@@ -11,7 +11,7 @@ Last updated: 2026-05-17
 
 ## Current baseline
 
-Completed through Phase 16:
+Completed through Phase 16; Phase 17 planned:
 
 - Phase 0 — competitive review and product positioning
 - Phase 1 — open-source foundation
@@ -90,7 +90,7 @@ Artifacts:
 
 ## Phase 16 — Project Lead subagent profile
 
-Status: complete pending commit/push.
+Status: complete. Phase commit pushed.
 
 Created:
 
@@ -106,6 +106,12 @@ Purpose:
 - keep controlled writes post-MVP and disabled by default
 
 The Project Lead is not a coding implementer and should not spawn further subagents.
+
+## Phase 17 — Synthetic GnuCash Fixture and Read-Only Integration Validation
+
+Status: planned.
+
+Goal: create a disposable synthetic GnuCash SQLite fixture using piecash and validate the read-only service layer against it with real integration tests.
 
 ## Standing constraints
 
