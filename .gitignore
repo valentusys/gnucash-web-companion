@@ -27,10 +27,12 @@ data/books/*.gnucash
 data/books/*.sqlite
 data/books/*.sqlite3
 data/books/*.db
+data/app/*
 data/backups/*
 # Keep placeholder directories
 !data/.gitkeep
 !data/books/.gitkeep
+!data/app/.gitkeep
 !data/backups/.gitkeep
 
 # OS
