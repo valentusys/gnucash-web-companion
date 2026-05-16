@@ -4,13 +4,12 @@ from pathlib import Path
 
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine, make_url
-from sqlalchemy.orm import DeclarativeBase, sessionmaker
+from sqlalchemy.orm import declarative_base, sessionmaker
 
 from app.config import get_settings
 
 
-class Base(DeclarativeBase):
-    pass
+Base = declarative_base()
 
 
 def _ensure_sqlite_parent_dir(database_url: str) -> None:
