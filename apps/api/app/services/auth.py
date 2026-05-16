@@ -15,6 +15,25 @@ from app.models import User
 logger = logging.getLogger(__name__)
 
 JWT_ALGORITHM = "HS256"
+INSECURE_JWT_SECRET_VALUES = {
+    "",
+    "change-me",
+    "change-me-use-a-long-random-secret",
+}
+
+
+class AuthConfigurationError(RuntimeError):
+    """Raised when authentication is not safely configured."""
+
+
+def require_configured_jwt_secret(secret: str) -> str:
+    """Return a usable JWT secret or raise a controlled configuration error."""
+    normalized = secret.strip()
+    if normalized in INSECURE_JWT_SECRET_VALUES:
+        raise AuthConfigurationError(
+            "JWT_SECRET is not configured. Set a long random JWT_SECRET before logging in."
+        )
+    return normalized
 
 
 def hash_password(password: str) -> str:

@@ -59,6 +59,10 @@ Completed light/dark theme system, desktop/mobile navigation, reusable state com
 
 Completed README/docs refresh, sensitive-file ignore checks, CI readiness review, release instructions, and public GitHub publication checklist.
 
+### Phase 11 — Integration QA and MVP hardening
+
+Completed bootstrap access hardening, required JWT secret enforcement, SQLite runtime thread fix, root redirect behavior, controlled frontend error page, and local backend/frontend QA.
+
 ## Next: v0.0.1 pre-alpha
 
 Target: public GitHub repository publication and `v0.0.1` pre-alpha tag.

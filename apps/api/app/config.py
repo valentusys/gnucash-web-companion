@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     app_env: str = "development"
     app_database_url: str = "sqlite:////data/app/app.db"
     gnucash_default_book_path: str = "/data/books/main.gnucash.sqlite"
-    jwt_secret: str = "change-me"
+    jwt_secret: str = ""
     jwt_token_expire_minutes: int = 30
     app_admin_username: str = "admin"
     app_admin_password: str = ""

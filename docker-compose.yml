@@ -7,7 +7,7 @@ services:
       - APP_ENV=${APP_ENV:-development}
       - APP_DATABASE_URL=${APP_DATABASE_URL:-sqlite:////data/app/app.db}
       - GNUCASH_DEFAULT_BOOK_PATH=${GNUCASH_DEFAULT_BOOK_PATH:-/data/books/main.gnucash.sqlite}
-      - JWT_SECRET=${JWT_SECRET:-change-me-use-a-long-random-secret}
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required; set a long random value in .env}
       - JWT_TOKEN_EXPIRE_MINUTES=${JWT_TOKEN_EXPIRE_MINUTES:-30}
       - APP_ADMIN_USERNAME=${APP_ADMIN_USERNAME:-admin}
       - APP_ADMIN_PASSWORD=${APP_ADMIN_PASSWORD:-}
@@ -33,7 +33,7 @@ services:
     expose:
       - "3000"
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/login', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"]
       interval: 30s
       timeout: 5s
       retries: 3

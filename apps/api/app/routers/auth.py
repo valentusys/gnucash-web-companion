@@ -9,7 +9,13 @@ from sqlalchemy.orm import Session
 from app.config import Settings, get_settings
 from app.database import get_engine, get_session_factory
 from app.models import User
-from app.services.auth import authenticate_user, create_access_token, decode_access_token
+from app.services.auth import (
+    AuthConfigurationError,
+    authenticate_user,
+    create_access_token,
+    decode_access_token,
+    require_configured_jwt_secret,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -54,8 +60,16 @@ async def get_current_user(
             detail="Not authenticated",
         )
 
+    try:
+        jwt_secret = require_configured_jwt_secret(settings.jwt_secret)
+    except AuthConfigurationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
+
     token = auth_header.split(" ", 1)[1]
-    payload = decode_access_token(token, settings.jwt_secret)
+    payload = decode_access_token(token, jwt_secret)
     if payload is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -99,9 +113,17 @@ def login(
             detail="Invalid username or password",
         )
 
+    try:
+        jwt_secret = require_configured_jwt_secret(settings.jwt_secret)
+    except AuthConfigurationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
+
     token = create_access_token(
         data={"sub": str(user.id)},
-        secret=settings.jwt_secret,
+        secret=jwt_secret,
         expire_minutes=settings.jwt_token_expire_minutes,
     )
     return LoginResponse(access_token=token, user=_user_response(user))

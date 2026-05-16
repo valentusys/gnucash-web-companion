@@ -125,7 +125,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ -f docker-compose.yml ]; then
-            docker compose config --quiet
+            JWT_SECRET=ci-only-compose-validation-secret docker compose config --quiet
           else
             echo "docker-compose.yml not found; skipping."
           fi

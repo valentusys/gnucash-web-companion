@@ -1,6 +1,6 @@
 # MVP v0.1
 
-> **Status: MVP in progress / pre-alpha.** The project has working foundations for authentication, read-only GnuCash access, accounts, transactions, reports, and frontend navigation. It still needs integration testing and hardening before any production use.
+> **Status: MVP in progress / pre-alpha.** The project has working foundations for authentication, read-only GnuCash access, accounts, transactions, reports, frontend navigation, and integration hardening. It is still not production-ready.
 
 ## Goal
 
@@ -62,5 +62,7 @@ Ship a trustworthy read-only web companion for one existing GnuCash SQL book.
 
 - Basic reports aggregate only the configured base currency; non-base-currency splits are excluded rather than converted.
 - Docker Compose exists but should still be tested in the target deployment environment.
+- `JWT_SECRET` must be replaced with a long random value before login will work; placeholder secrets are rejected.
+- Missing/unreadable books are surfaced as controlled errors; the app does not generate fake financial data.
 - Pre-alpha builds are for trusted private networks only.
 - The auth foundation is not a substitute for a full production security audit.

@@ -78,7 +78,8 @@ Use it safely:
 git clone https://github.com/valentusys/gnucash-web-companion.git
 cd gnucash-web-companion
 cp .env.example .env
-# Edit .env: set JWT_SECRET, admin bootstrap password/hash, and GNUCASH_DEFAULT_BOOK_PATH.
+# Edit .env: set a real JWT_SECRET, admin bootstrap password/hash, and GNUCASH_DEFAULT_BOOK_PATH.
+# The placeholder JWT_SECRET in .env.example is intentionally rejected by the API.
 # Put only a test copy of your GnuCash SQL book under data/books/.
 docker compose up --build
 ```

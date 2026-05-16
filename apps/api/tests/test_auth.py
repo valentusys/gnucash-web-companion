@@ -11,7 +11,12 @@ from app.database import Base
 from app.main import app
 from app.models import User
 from app.routers.auth import get_db
-from app.services.auth import hash_password, seed_admin_user
+from app.services.auth import (
+    AuthConfigurationError,
+    hash_password,
+    require_configured_jwt_secret,
+    seed_admin_user,
+)
 
 TEST_SETTINGS = Settings(
     app_env="test",
@@ -64,6 +69,19 @@ def client(session_factory):
 
     app.dependency_overrides.clear()
     get_settings.cache_clear()
+
+
+class TestAuthConfiguration:
+    def test_rejects_missing_or_placeholder_jwt_secret(self):
+        for secret in ["", "change-me", "change-me-use-a-long-random-secret"]:
+            with pytest.raises(AuthConfigurationError):
+                require_configured_jwt_secret(secret)
+
+    def test_accepts_configured_jwt_secret(self):
+        assert (
+            require_configured_jwt_secret("test-secret-key-for-unit-tests-32-bytes-minimum")
+            == "test-secret-key-for-unit-tests-32-bytes-minimum"
+        )
 
 
 class TestLoginEndpoint:

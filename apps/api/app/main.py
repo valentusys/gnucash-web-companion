@@ -13,7 +13,7 @@ from app.routers.books import router as books_router
 from app.routers.accounts import router as accounts_router
 from app.routers.transactions import router as transactions_router
 from app.routers.reports import router as reports_router
-from app.services.seed import seed_default_book
+from app.services.seed import seed_admin_default_book_access, seed_default_book
 from app.services.auth import seed_admin_user
 
 settings = get_settings()
@@ -27,6 +27,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     with Session() as session:
         seed_default_book(session, settings.gnucash_default_book_path)
         seed_admin_user(session)
+        seed_admin_default_book_access(session)
     yield
 
 
