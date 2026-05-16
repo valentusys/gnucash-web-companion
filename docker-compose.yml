@@ -7,7 +7,11 @@ services:
       - APP_ENV=${APP_ENV:-development}
       - APP_DATABASE_URL=${APP_DATABASE_URL:-sqlite:////data/app/app.db}
       - GNUCASH_DEFAULT_BOOK_PATH=${GNUCASH_DEFAULT_BOOK_PATH:-/data/books/main.gnucash.sqlite}
-      - JWT_SECRET=${JWT_SECRET:-change-me}
+      - JWT_SECRET=${JWT_SECRET:-change-me-use-a-long-random-secret}
+      - JWT_TOKEN_EXPIRE_MINUTES=${JWT_TOKEN_EXPIRE_MINUTES:-30}
+      - APP_ADMIN_USERNAME=${APP_ADMIN_USERNAME:-admin}
+      - APP_ADMIN_PASSWORD=${APP_ADMIN_PASSWORD:-}
+      - APP_ADMIN_PASSWORD_HASH=${APP_ADMIN_PASSWORD_HASH:-}
       - CORS_ORIGINS=${CORS_ORIGINS:-["*"]}
     volumes:
       - ./data:/data

@@ -59,6 +59,10 @@ See `.env.example` for the full list of configuration options.
 | `APP_DATABASE_URL`          | SQLAlchemy-compatible app metadata DB URL     |
 | `GNUCASH_DEFAULT_BOOK_PATH` | Path to the GnuCash SQLite book file          |
 | `JWT_SECRET`                | Secret key for JWT signing                    |
+| `JWT_TOKEN_EXPIRE_MINUTES`  | Access token lifetime in minutes             |
+| `APP_ADMIN_USERNAME`        | Bootstrap admin username                     |
+| `APP_ADMIN_PASSWORD`        | Plaintext bootstrap password; dev only       |
+| `APP_ADMIN_PASSWORD_HASH`   | Preferred bootstrap bcrypt password hash     |
 | `PUBLIC_APP_NAME`           | Public display name for the app               |
 | `API_INTERNAL_URL`          | Internal URL the proxy uses to reach the API  |
 | `CORS_ORIGINS`              | JSON list of allowed CORS origins             |

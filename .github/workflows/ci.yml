@@ -48,6 +48,7 @@ jobs:
             cd apps/web
             if [ -f package-lock.json ]; then npm ci; else npm install; fi
             npm run check
+            npm run test:auth-routes
             npm run build
           else
             echo "apps/web skeleton not created yet; skipping frontend checks."

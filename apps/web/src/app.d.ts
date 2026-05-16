@@ -1,3 +1,9 @@
-import './app.css';
+declare global {
+	namespace App {
+		interface Locals {
+			authenticated: boolean;
+		}
+	}
+}
 
-export const prerender = true;
+export {};

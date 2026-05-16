@@ -8,7 +8,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.database import Base, get_engine, get_session_factory
+from app.routers.auth import router as auth_router
 from app.services.seed import seed_default_book
+from app.services.auth import seed_admin_user
 
 settings = get_settings()
 
@@ -20,6 +22,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     Session = get_session_factory(engine)
     with Session() as session:
         seed_default_book(session, settings.gnucash_default_book_path)
+        seed_admin_user(session)
     yield
 
 
@@ -32,6 +35,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(auth_router)
 
 
 @app.get("/health")
