@@ -6,6 +6,8 @@ GnuCash books contain high-trust accounting data. Treat them as sensitive and ha
 
 The MVP is read-only. It must not create, edit, delete, migrate, or otherwise mutate the GnuCash book.
 
+This is a design and implementation boundary, not a promise that pre-alpha software is safe for your only copy of real accounting data. Always test with a disposable copy first.
+
 ## Rules
 
 - Keep backups before testing any tool against a real book.

@@ -18,13 +18,20 @@ node_modules/
 build/
 package-lock.json
 
-# Data files (GnuCash books, app metadata DBs)
+# Data files (GnuCash books, app metadata DBs, backups)
 data/*.gnucash
 data/*.db
 data/*.sqlite
 data/*.sqlite3
-# Keep .gitkeep
+data/books/*.gnucash
+data/books/*.sqlite
+data/books/*.sqlite3
+data/books/*.db
+data/backups/*
+# Keep placeholder directories
 !data/.gitkeep
+!data/books/.gitkeep
+!data/backups/.gitkeep
 
 # OS
 .DS_Store
@@ -47,3 +54,18 @@ logs/
 .coverage
 htmlcov/
 .pytest_cache/
+
+# Secrets / credentials
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pfx
+*.secret
+*.secrets
+secrets
+secrets.*
+secrets/
+credentials
+credentials/

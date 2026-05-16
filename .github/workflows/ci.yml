@@ -14,7 +14,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Verify required foundation files
+      - name: Verify required publication files
         shell: bash
         run: |
           set -euo pipefail
@@ -26,52 +26,106 @@ jobs:
             CODE_OF_CONDUCT.md
             SECURITY.md
             .env.example
+            .gitignore
             docs/ARCHITECTURE.md
             docs/MVP.md
             docs/ROADMAP.md
             docs/SECURITY_MODEL.md
             docs/GNUCASH_SAFETY.md
             docs/DEVELOPMENT.md
-            docs/handoff/phase-1.md
             .github/FUNDING.yml
             .github/PULL_REQUEST_TEMPLATE.md
+            .github/ISSUE_TEMPLATE/bug_report.yml
+            .github/ISSUE_TEMPLATE/feature_request.yml
           )
           for file in "${required[@]}"; do
             test -f "$file" || { echo "Missing required file: $file"; exit 1; }
           done
 
-      - name: Frontend checks
+      - name: Verify sensitive files are not tracked
         shell: bash
         run: |
           set -euo pipefail
-          if [ -f apps/web/package.json ]; then
-            cd apps/web
-            if [ -f package-lock.json ]; then npm ci; else npm install; fi
-            npm run check
-            npm run test:auth-routes
-            npm run build
-          else
-            echo "apps/web skeleton not created yet; skipping frontend checks."
+          if git ls-files | grep -E '(^|/)(\.env$|secrets?$|credentials?$)|data/books/.*\.(sqlite|sqlite3|gnucash|db)$|data/backups/.'; then
+            echo "Sensitive data file appears to be tracked. Remove it before publishing."
+            exit 1
           fi
 
-      - name: Backend checks
+  frontend:
+    name: Frontend checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        if: hashFiles('apps/web/package.json') != ''
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install and verify frontend
         shell: bash
         run: |
           set -euo pipefail
-          if [ -f apps/api/pyproject.toml ] || [ -f apps/api/requirements.txt ]; then
-            cd apps/api
-            pip install -r requirements.txt
-            python -m pytest tests/ -v
-          else
-            echo "apps/api skeleton not created yet; skipping backend checks."
+          if [ ! -f apps/web/package.json ]; then
+            echo "apps/web not present; skipping frontend checks."
+            exit 0
           fi
+          cd apps/web
+          if [ -f package-lock.json ]; then npm ci; else npm install; fi
+          if [ -f eslint.config.js ] || [ -f .eslintrc ] || [ -f .eslintrc.cjs ] || [ -f .eslintrc.json ]; then
+            npm run lint
+          else
+            echo "No ESLint config present; skipping npm run lint until lint config is added."
+          fi
+          npm run check
+          npm run test:auth-routes
+          npm run build
+
+  backend:
+    name: Backend tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        if: hashFiles('apps/api/requirements.txt') != '' || hashFiles('apps/api/pyproject.toml') != ''
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install and test backend
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f apps/api/requirements.txt ] && [ ! -f apps/api/pyproject.toml ]; then
+            echo "apps/api not present; skipping backend checks."
+            exit 0
+          fi
+          cd apps/api
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then
+            python -m pip install -r requirements.txt
+          else
+            python -m pip install -e .
+          fi
+          python -m pytest tests/ -q
+
+  compose:
+    name: Docker Compose validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Verify Docker Compose file
         shell: bash
         run: |
           set -euo pipefail
           if [ -f docker-compose.yml ]; then
-            docker compose config --quiet || { echo "Invalid docker-compose.yml"; exit 1; }
+            docker compose config --quiet
           else
             echo "docker-compose.yml not found; skipping."
           fi

@@ -1,124 +1,156 @@
 # gnucash-web-companion
 
-> **Status: pre-alpha / MVP in progress** — This project is under active early development. It is not yet feature-complete or production-ready.
+> **Status: pre-alpha / MVP in progress** — this repository is suitable for review and experimentation, but it is not feature-complete, audited, or production-ready.
 
-A modern, self-hosted web companion for existing [GnuCash](https://www.gnucash.org/) books. Open your book in a browser, browse accounts, search transactions, and view dashboards and reports — without modifying your data.
+A modern, self-hosted web companion for existing [GnuCash](https://www.gnucash.org/) books. It is designed to browse accounts, transactions, dashboards, and basic reports in a browser while keeping GnuCash desktop as the authoritative editor.
 
 ## What it is
 
-- A **read-first** web application that connects to an existing GnuCash book (via [piecash](https://github.com/sdementen/piecash)) and exposes a clean, modern UI.
-- A **self-hosted** service: you deploy it on your own infrastructure. Your financial data never leaves your server.
-- A **companion**, not a replacement: GnuCash desktop remains the authoritative editor for your book.
+- A **read-only-first** web application for existing GnuCash SQL books, accessed through [piecash](https://github.com/sdementen/piecash).
+- A **self-hosted** app you run on your own infrastructure.
+- A **companion**, not a replacement: GnuCash desktop remains the source of truth for editing.
+- **Single-book by default**, with internal service boundaries that keep later multi-book support possible.
 
 ## What it is not
 
 - It is **not** a GnuCash replacement.
 - It is **not** a hosted personal-finance SaaS.
-- It is **not** a collaborative multi-user accounting editor.
-- It does **not** write to your GnuCash book in the MVP (v0.1).
+- It is **not** true collaborative multi-user accounting.
+- It does **not** write to your GnuCash book in the MVP.
+- It does **not** provide any production-readiness or security guarantee yet.
 
 ## Current status
 
 | Milestone | Status |
 |---|---|
-| Phase 0 — Competitive review & product positioning | ✅ Complete |
-| Phase 1 — Open-source foundation (this release) | ✅ Complete |
-| Phase 2 — Project skeleton (SvelteKit + FastAPI + Docker) | ✅ Complete |
-| MVP v0.1 — Read-only browsing, dashboards, reports | ⬜ Planned |
+| Phase 0 — Competitive review & product positioning | Complete |
+| Phase 1 — Open-source foundation | Complete |
+| Phase 2 — SvelteKit + FastAPI + Docker skeleton | Complete |
+| Phase 3 — App metadata DB and book registry foundation | Complete |
+| Phase 4 — Authentication foundation | Complete |
+| Phase 5 — Read-only piecash service layer | Complete |
+| Phase 6 — Books/accounts API and UI | Complete |
+| Phase 7 — Transaction browsing API and UI | Complete |
+| Phase 8 — Dashboard reports API and UI | Complete |
+| Phase 9 — Frontend theme, mobile shell, PWA manifest | Complete |
+| Phase 10 — Public repo hygiene and release readiness | Complete |
+| MVP v0.1 — Read-only browsing, dashboards, reports | Integration/testing in progress |
 
-## MVP v0.1 scope (read-only)
+## MVP scope: read-only first
 
-The first milestone is **read-only**. Planned features:
+The first public milestone is intentionally conservative:
 
-- Connect to one configured GnuCash book (SQLite via piecash).
+- Connect to one configured GnuCash SQL book.
 - Open the book in read-only mode.
-- Display book metadata and health status.
-- Account hierarchy with balances.
-- Account detail with splits/transactions.
-- Transaction detail pages.
-- Search and filter transactions.
-- Dashboard: net worth, income vs. expenses, cash flow, top expense categories.
-- Privacy mode (blur sensitive numbers).
-- Clear indicators that the book is read-only.
-- Docker/self-host deployment.
+- Show account hierarchy and balances.
+- Browse account detail and transaction detail.
+- Search/filter transactions with pagination.
+- Show basic dashboard reports: net worth, income/expense, cash flow, top expense categories.
+- Store application metadata in a separate app database, not inside the GnuCash book.
+- Provide Docker/self-host deployment scaffolding.
 
-**Explicitly out of scope for v0.1:** writes, transaction creation/editing, multi-book UI, collaborative editing, invoice/bill management, direct GnuCash schema modification.
+Explicitly out of scope for the MVP:
 
-## ⚠️ Safety warning
+- Transaction/account creation or editing.
+- Direct GnuCash schema modification.
+- Invoice, bill, customer, or vendor editing.
+- True collaborative multi-user editing.
+- Multi-book management UI as a core baseline.
+- Hosted SaaS operation.
 
-GnuCash books contain high-trust accounting data. This project:
+## Safety warning
 
-- Opens your book **read-only** in MVP.
-- Stores app metadata (preferences, saved filters, cache state) in a **separate** database.
-- Never modifies the GnuCash schema.
+GnuCash books contain sensitive accounting data. This project is read-only-first, but early software can still have bugs and operational risks.
 
-**Nevertheless:** always maintain regular backups of your GnuCash files. Do not point this app at your only copy of a book. See [docs/GNUCASH_SAFETY.md](docs/GNUCASH_SAFETY.md) for details.
+Use it safely:
+
+- **Use a test copy of your book first.** Do not point pre-alpha builds at your only copy.
+- Maintain regular, tested backups of all GnuCash files.
+- Do not commit `.gnucash`, `.sqlite`, backups, `.env`, or secrets to the repository.
+- Do not expose early builds directly to the public internet.
+- Review [docs/GNUCASH_SAFETY.md](docs/GNUCASH_SAFETY.md) before testing with real data.
 
 ## Quick start
 
-> 🚧 This is a pre-alpha project. The Docker-based quick start below assumes you have a [Docker Engine](https://docs.docker.com/engine/) installed.
+> This is a pre-alpha quick start. It assumes Docker Engine and Docker Compose are installed. Docker runtime has not been certified for production use.
 
 ```bash
 git clone https://github.com/valentusys/gnucash-web-companion.git
 cd gnucash-web-companion
 cp .env.example .env
+# Edit .env: set JWT_SECRET, admin bootstrap password/hash, and GNUCASH_DEFAULT_BOOK_PATH.
+# Put only a test copy of your GnuCash SQL book under data/books/.
 docker compose up --build
 ```
 
-- Frontend: <http://localhost:8080>
-- API health: <http://localhost:8080/api/health>
+Default local URLs:
 
-See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for detailed setup instructions.
+- Web UI: <http://localhost:8080>
+- API health via proxy: <http://localhost:8080/api/health>
+
+See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for local development setup.
 
 ## Architecture
 
-> Architecture is documented at a foundation level in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Phase 2 adds only the runnable shell; GnuCash data access is deferred to Phase 3.
+- **Frontend:** SvelteKit in `apps/web/`
+- **Backend:** FastAPI in `apps/api/`
+- **GnuCash access:** piecash opened read-only behind a service layer
+- **App metadata DB:** separate SQLite database (`app.db`) for users, book registry, and access metadata
+- **Deployment:** Docker Compose with Caddy reverse proxy
 
-Planned stack:
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.
 
-- **Frontend:** SvelteKit
-- **Backend:** FastAPI (Python)
-- **GnuCash access:** piecash
-- **App metadata DB:** SQLite (separate from the GnuCash book)
-- **Deployment:** Docker / docker-compose
+## Release readiness
 
-## Roadmap
+The first public pre-alpha tag is planned as `v0.0.1`.
 
-> 🚧 See [docs/ROADMAP.md](docs/ROADMAP.md) for the full roadmap.
+Maintainer instructions are documented in [docs/handoff/phase-10.md](docs/handoff/phase-10.md). In short:
 
-Short-term:
+```bash
+git checkout main
+git pull origin main
+git tag -a v0.0.1 -m "v0.0.1 pre-alpha"
+git push origin v0.0.1
+```
 
-1. Phase 2: Project skeleton, Docker dev environment, sample fixtures.
-2. Phase 3: Read-only API endpoints, piecash integration, safety tests.
-3. Phase 4: UI shell, dashboard, account browsing, search.
-4. v0.1 release: Read-only MVP.
+Do not publish npm or PyPI packages unless explicitly requested.
+
+## Repository description and topics
+
+Suggested GitHub repository description:
+
+> Modern self-hosted read-only web companion for GnuCash books, built with SvelteKit, FastAPI, and piecash.
+
+Suggested topics:
+
+- `gnucash`
+- `personal-finance`
+- `accounting`
+- `self-hosted`
+- `sveltekit`
+- `fastapi`
+- `open-source`
+- `finance`
+- `sqlite`
+
+## Screenshots
+
+Screenshots are not included yet. The README intentionally does not promise a polished UI until the MVP has completed integration testing.
 
 ## Contributing
 
-We welcome contributions! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions, branch/PR guidelines, and how to respect the read-only MVP boundary.
+Contributions are welcome, especially documentation, tests, safety review, and read-only UX improvements. Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a PR.
 
 ## Funding
 
-> 🚧 This project is not yet funded. If you find it valuable, consider supporting development:
-
-- GitHub Sponsors: *not yet configured*
-- Open Collective: *not yet configured*
-- Ko-fi: *not yet configured*
-
-See [.github/FUNDING.yml](.github/FUNDING.yml) for current funding links.
+This project is not yet funded. See [.github/FUNDING.yml](.github/FUNDING.yml) for current funding metadata/placeholders.
 
 ## License
 
-This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)** — see [LICENSE](LICENSE) for the full text.
+This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)** — see [LICENSE](LICENSE).
 
 ### Why AGPL-3.0?
 
-`gnucash-web-companion` is designed to be self-hosted as a web application. The AGPL-3.0 ensures that:
+`gnucash-web-companion` is a self-hosted web application. AGPL-3.0 keeps modifications shared over a network open, aligns well with GnuCash's GPL-3.0 license family, and preserves the project as free/open software.
 
-1. **Modifications shared over the network stay open.** If you host a modified version of this app for others to use (even as a service), you must make your source code available under the same license. This protects the open-source nature of the project in the self-hosted/web-app context.
-2. **It aligns with GnuCash itself**, which is licensed under GPL-3.0. AGPL-3.0 is a natural fit for a companion project that extends GnuCash into the web.
-3. **It keeps the project free and open** for individuals, communities, and self-hosting enthusiasts.
-
-### Not legal advice
-
-The above is an explanation of the project's licensing rationale, not legal advice. If you have questions about how AGPL-3.0 applies to your specific situation, consult a qualified legal professional.
+This licensing summary is not legal advice.

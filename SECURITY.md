@@ -5,39 +5,52 @@
 If you discover a security vulnerability in `gnucash-web-companion`, please report it responsibly:
 
 1. **Do not** open a public GitHub issue for the vulnerability.
-2. **Email** the maintainers directly at: `[SECURITY_CONTACT_EMAIL]` *(placeholder — replace with a real address before publishing)*.
-3. Include a clear description of the vulnerability, steps to reproduce, and any relevant environment details.
-4. Allow a reasonable time for the maintainers to respond and address the issue before public disclosure.
+2. Use GitHub's private vulnerability reporting / Security Advisory flow if it is enabled for the repository.
+3. If private reporting is not available, contact the project owner privately before public disclosure.
+4. Include a clear description, steps to reproduce, affected commit/version, and relevant environment details.
+5. Allow a reasonable time for maintainers to respond and address the issue before public disclosure.
 
-We appreciate your help in keeping this project and its users safe.
+## Supported versions
 
-## ⚠️ Do not expose early versions publicly
+This project is currently **pre-alpha**. There are no supported production releases yet.
 
-`gnucash-web-companion` is in **pre-alpha / early development**. It has not undergone a security audit. **Do not:**
+Security fixes will target the `main` branch until versioned support policy is defined.
 
-- Expose this application to the public internet.
+## Do not expose early versions publicly
+
+`gnucash-web-companion` is in **pre-alpha / MVP in progress**. It has not undergone a security audit. Do not:
+
+- Expose this application directly to the public internet.
 - Deploy it in a production environment.
 - Use it with real financial data without thorough testing and backups.
-- Assume it is hardened against common web attacks (CSRF, XSS, injection, etc.).
+- Assume it is hardened against common web attacks.
 
-Treat early versions as **development-only** tools running on trusted, private networks.
+Treat early versions as development-only or trusted-private-network tools.
 
 ## Secrets handling
 
-- **Never commit secrets** (API keys, database credentials, session secrets, etc.) to the repository.
-- Use environment variables or a secrets manager. See `.env.example` for the expected configuration variables.
-- The `.gitignore` file excludes `.env` — do not override this.
-- If you accidentally commit a secret, rotate it immediately and notify the maintainers.
+- Never commit secrets, API keys, database credentials, JWT secrets, private keys, or real `.env` files.
+- Use environment variables or a secrets manager.
+- `.gitignore` excludes `.env`, common key/cert files, `secrets/`, and `credentials/`.
+- If you accidentally commit a secret, rotate it immediately and notify maintainers.
 
 ## Financial data sensitivity
 
-This application is designed to read GnuCash books, which contain **highly sensitive personal or business financial data**. Consider:
+This application reads GnuCash books, which may contain highly sensitive personal or business financial data.
 
-- **Data at rest:** The GnuCash book and the app metadata database should be stored on encrypted storage where feasible.
-- **Data in transit:** Always serve the application over HTTPS (via a reverse proxy or TLS termination).
-- **Access control:** Restrict access to the application to authorized users only. Do not rely on obscurity.
-- **Backups:** Maintain regular, tested backups of your GnuCash book. This application should never be your only copy of financial data.
+Recommended precautions:
 
-## No guarantee of production readiness
+- Test with a non-sensitive fixture or copy of your book first.
+- Store GnuCash books and app metadata databases on encrypted storage where feasible.
+- Serve the application over HTTPS behind a trusted reverse proxy if used beyond localhost.
+- Restrict access to authorized users only.
+- Maintain regular, tested backups of your GnuCash book.
+- Do not commit real `.gnucash`, `.sqlite`, backup, or export files.
 
-This project is provided as-is, without warranty of any kind. It is **not guaranteed to be production-ready** at this stage. Use at your own risk, and always maintain independent backups of your data.
+## Read-only boundary
+
+The MVP is read-only-first, but that is not a guarantee that your operational setup is safe. Review [docs/GNUCASH_SAFETY.md](docs/GNUCASH_SAFETY.md) before using the app with real data.
+
+## No production guarantee
+
+This project is provided as-is, without warranty of any kind. It is **not guaranteed to be production-ready** at this stage. Use at your own risk.

@@ -1,65 +1,98 @@
 # Architecture
 
-> Status: Phase 3 foundation. The repository now has a runnable SvelteKit/FastAPI skeleton plus a separate app metadata database and book registry services. GnuCash data access via piecash starts in a later phase.
+> **Status: pre-alpha / MVP in progress.** The current codebase has a SvelteKit frontend, FastAPI backend, app metadata database, authentication foundation, read-only piecash service layer, and read-only accounts/transactions/reports UI. It is still not production-ready.
 
 ## Product boundary
 
-`gnucash-web-companion` is a self-hosted, read-first companion for existing GnuCash books. GnuCash desktop remains the authoritative editor.
+`gnucash-web-companion` is a self-hosted, read-only-first companion for existing GnuCash books. GnuCash desktop remains the authoritative editor.
 
-The app is designed to be safe around accounting data:
+Safety boundaries:
 
-- The MVP is read-only against GnuCash books.
-- GnuCash files/databases are not used to store web-app users, roles, UI state, audit logs, or access metadata.
-- Application metadata lives in a physically separate `app.db` SQLite database.
-- Multi-book support is prepared at the service/data-model layer, but the default MVP experience is still one configured book.
+- The MVP does not write to GnuCash books.
+- GnuCash files/databases are not used to store web-app users, roles, sessions, UI state, audit logs, or feature flags.
+- Application metadata lives in a physically separate SQLite database (`app.db`).
+- The default user experience is one configured book.
+- Multi-book support is represented in the data model and service boundaries, but a multi-book management UI is not the MVP baseline.
+- Collaborative multi-user editing is not a core feature.
 
 ## Stack
 
 - **Frontend:** SvelteKit in `apps/web/`
 - **Backend:** FastAPI in `apps/api/`
-- **GnuCash access:** piecash, planned for Phase 4+
+- **GnuCash access:** `piecash`, opened read-only behind `GnuCashBookService`
 - **App metadata DB:** SQLite via SQLAlchemy, default `sqlite:////data/app/app.db`
-- **Deployment:** Docker / docker-compose under `docker/`
-- **Reverse proxy:** Caddy
+- **Authentication:** JWT issued by the API; frontend stores it in an httpOnly cookie named `access_token`
+- **Deployment:** Docker Compose with Caddy reverse proxy
 
-## High-level components
+## Runtime components
 
-### 1. Web app (`apps/web`)
-
-Responsibilities:
-
-- Dashboard, account tree, transaction search, and read-only reports in later phases.
-- Hide book selection when only one book exists.
-- No transaction/account editing in MVP v0.1.
-- No multi-user or book-selection UI in Phase 3.
-
-### 2. API app (`apps/api`)
+### Web app (`apps/web`)
 
 Responsibilities:
 
-- Owns the HTTP API and application services.
+- Login/logout flow.
+- Server-side route protection through SvelteKit hooks.
+- Dashboard, account browsing, account detail, transaction list, transaction detail.
+- Theme system (light/dark) using CSS custom properties.
+- Mobile navigation and PWA manifest foundation.
+
+Important constraints:
+
+- Auth token is not stored in `localStorage` or `sessionStorage`.
+- `localStorage` is used only for the UI theme preference (`theme`).
+- No service worker is installed; private financial API data is not aggressively cached.
+- UI exposes read-only browsing/reporting only.
+
+### API app (`apps/api`)
+
+Responsibilities:
+
+- Owns HTTP API and application services.
 - Owns the app metadata DB connection and schema.
-- Resolves the current/default book through `BookRegistryService` instead of hardcoding a global book path in feature code.
-- Enforces app-level book access through `BookAccessService` once auth is added.
-- Will open GnuCash books read-only through piecash in a later phase.
+- Seeds a default book record from `GNUCASH_DEFAULT_BOOK_PATH`.
+- Seeds an admin user during bootstrap when configured through environment variables.
+- Enforces authentication and book access checks on read-only book routes.
+- Opens GnuCash books read-only through the service layer.
+- Returns DTOs/schemas rather than mutable piecash ORM objects.
 
-### 3. GnuCash book
+Implemented router areas:
+
+- `GET /health`
+- `POST /auth/login`
+- `GET /auth/me`
+- `POST /auth/logout`
+- `GET /books`
+- `GET /books/{book_id}`
+- `GET /books/{book_id}/accounts`
+- `GET /books/{book_id}/accounts/tree`
+- `GET /books/{book_id}/accounts/{account_id}`
+- `GET /books/{book_id}/transactions`
+- `GET /books/{book_id}/transactions/{transaction_id}`
+- `GET /books/{book_id}/accounts/{account_id}/transactions`
+- `GET /books/{book_id}/reports/summary`
+- `GET /books/{book_id}/reports/cashflow`
+- `GET /books/{book_id}/reports/expenses-by-account`
+- `GET /books/{book_id}/reports/recent-transactions`
+
+MVP alias routes exist for the default book where appropriate, but feature code should prefer explicit book-aware services.
+
+### GnuCash book
 
 Responsibilities:
 
 - Source of truth for accounting data.
-- Opened read-only for MVP.
+- Opened read-only by `piecash` in MVP.
 - Never stores app metadata.
 - Never stores web users, access roles, sessions, audit logs, saved UI state, or feature flags.
 
-### 4. App metadata DB (`app.db`)
+### App metadata DB (`app.db`)
 
 Responsibilities:
 
 - Stores web-app metadata separate from the GnuCash book.
-- Provides the foundation for future multi-book routing and user-book access.
-- Default location in Docker: `/data/app/app.db`.
-- Default GnuCash book path in Docker: `/data/books/main.gnucash.sqlite`.
+- Provides the foundation for default-book routing, auth, and future multi-book support.
+- Default Docker location: `/data/app/app.db`.
+- Default GnuCash book path: `/data/books/main.gnucash.sqlite`.
 
 Current models:
 
@@ -94,13 +127,13 @@ Current models:
   - `payload_json`
   - `created_at`
 
-## Book registry and access services
+## Service layer
 
 ### `BookRegistryService`
 
-The registry is the app-level source of truth for book records. Feature code should use this service rather than reading `GNUCASH_DEFAULT_BOOK_PATH` directly.
+The registry is the app-level source of truth for book records. Feature code should resolve books through this service rather than reading `GNUCASH_DEFAULT_BOOK_PATH` directly.
 
-Methods:
+Key methods:
 
 - `get_default_book()`
 - `list_books_for_user(user)`
@@ -108,82 +141,92 @@ Methods:
 
 ### `BookAccessService`
 
-The access service centralizes role checks and avoids scattering role comparisons across API handlers.
+Centralizes role checks.
 
-Methods:
+Key methods:
 
 - `get_role(user, book)`
 - `assert_can_view(user, book)`
 - `assert_can_edit(user, book)`
 
-Current role behavior:
+Role behavior:
 
-- `owner`: can view and edit app-level book metadata in the future.
-- `editor`: can view and edit app-level book metadata in the future.
-- `viewer`: can view, cannot edit.
+- `owner`: can view; reserved for future app metadata administration.
+- `editor`: can view; reserved for future app metadata editing.
+- `viewer`: can view.
 
-Important MVP note: GnuCash writes remain disabled regardless of role. `editor` and `owner` are stored now only so future app metadata permissions do not require a schema rewrite.
+Important MVP note: GnuCash writes remain disabled regardless of role.
+
+### `GnuCashBookService`
+
+The only service that should directly call `piecash`.
+
+Key methods:
+
+- `check_connection()`
+- `list_accounts()`
+- `get_account(account_id)`
+- `get_account_tree()`
+- `list_transactions(...)`
+- `count_transactions(...)`
+- `get_transaction(transaction_id)`
+- `get_summary()`
+- `get_cashflow()`
+- `get_report_summary()`
+- `get_expenses_by_account()`
+- `get_cashflow_by_month()`
+
+Safety constraints:
+
+- Opens books with `readonly=True`.
+- Does not expose save/commit/mutation methods.
+- Closes books after reads.
+- Converts values into DTOs.
+- Represents money as strings externally; no floats for money.
+
+Controlled errors:
+
+- `BookNotFoundError`
+- `BookNotConfiguredError`
+- `EntityNotFoundError`
+- `GnuCashReadError`
 
 ## Startup and seeding
 
 On API startup:
 
 1. The API creates the app metadata DB schema if needed.
-2. The API seeds one default `Book` from `GNUCASH_DEFAULT_BOOK_PATH`.
-3. If `GNUCASH_DEFAULT_BOOK_PATH` is empty or missing, startup logs a controlled warning and skips default-book seeding.
+2. The API seeds one default `Book` from `GNUCASH_DEFAULT_BOOK_PATH` when configured.
+3. The API may seed an admin user from `APP_ADMIN_USERNAME` plus `APP_ADMIN_PASSWORD_HASH` or `APP_ADMIN_PASSWORD`.
 
-The seed operation is idempotent: an existing default book is reused rather than duplicated.
+Bootstrap notes:
 
-Auth is deferred to a later phase. The schema supports an admin user, but Phase 3 does not seed one by default.
+- `APP_ADMIN_PASSWORD_HASH` is preferred.
+- `APP_ADMIN_PASSWORD` is a development/bootstrap fallback only.
+- If book path config is absent, the API should fail controlled book-dependent requests rather than crashing during process startup.
 
-## Initial API direction
+## Data and money handling
 
-Current implemented endpoint:
+- Use `Decimal` internally for money.
+- Return money amounts as strings in API DTOs.
+- Do not use floats for currency values.
+- Transaction lists are paginated.
+- Multi-split transaction list items use `counter_account_name = "Split transaction"`.
 
-- `GET /api/health` through the proxy, backed by API `GET /health`
+## Multi-currency limitation
 
-Planned read-only endpoints:
-
-- `GET /api/book`
-- `GET /api/book/summary`
-- `GET /api/accounts`
-- `GET /api/accounts/{account_guid}`
-- `GET /api/accounts/{account_guid}/splits`
-- `GET /api/transactions/{transaction_guid}`
-- `GET /api/search`
-- `GET /api/reports/net-worth`
-- `GET /api/reports/income-expense`
-- `GET /api/reports/cash-flow`
-
-Future book-context APIs should resolve a `Book` through `BookRegistryService` first, then pass an explicit book context into GnuCash read services.
-
-## Multi-book readiness
-
-The baseline is **single-book by default + multi-book-ready later**, not family/collaborative access as the core product thesis.
-
-Phase 3 prepares for multi-book by introducing:
-
-- `Book` records in `app.db`
-- `UserBookAccess` records in `app.db`
-- `BookRegistryService`
-- `BookAccessService`
-- default-book seeding from config
-
-What Phase 3 intentionally does not add:
-
-- Book picker UI
-- Multi-user UI
-- Shared editing
-- GnuCash write paths
-- piecash integration
+Current basic reports aggregate only values whose commodity matches the book's configured `base_currency`. Non-base-currency splits are excluded rather than converted. Future multi-currency reporting must define an exchange-rate source, date policy, and UI disclosure before combining currencies.
 
 ## Architectural decisions
 
-- **Separate app metadata DB:** web-app state must not be mixed into GnuCash data.
 - **Read-only MVP:** safest way to support existing books without corruption or lock contention.
-- **Service-level book resolution:** avoids baking a global singleton book into future APIs.
-- **Roles stored early:** enables future auth/access work without changing the core schema.
-- **No collaborative editing core:** the product is a companion for GnuCash desktop, not a replacement multi-user accounting system.
+- **Separate app metadata DB:** web-app state must not be mixed into GnuCash data.
+- **Service-level book resolution:** avoids hardcoding one global book in feature code.
+- **Book-aware APIs:** default single-book UX now, explicit book context for later multi-book support.
+- **httpOnly cookie auth:** avoids storing auth tokens in browser storage.
+- **No service worker:** avoids accidental offline caching of sensitive financial API responses.
+- **No chart library in MVP:** dashboard uses lightweight CSS bars.
+- **No collaborative editing core:** the product is a companion for GnuCash desktop, not a replacement accounting system.
 
 ## Non-goals
 
@@ -191,5 +234,6 @@ What Phase 3 intentionally does not add:
 - No collaborative multi-user editing as a core feature.
 - No app metadata inside the GnuCash book.
 - No SaaS-first architecture.
-- No book-selection UI until there is real multi-book behavior to support it.
-- No piecash integration before the app metadata foundation is stable.
+- No production guarantee in pre-alpha.
+- No telemetry.
+- No npm/PyPI package publishing unless explicitly requested.
