@@ -51,15 +51,60 @@ Current limitation:
 - API responses keep money as strings and expose a single `currency` for aggregated totals.
 - Future multi-currency reporting must define an explicit exchange-rate source, date policy, and UI disclosure before totals can combine currencies.
 
-## Future write mode requirements
+## Phase 12 controlled write boundary
 
-Before any write feature is accepted, the project needs:
+Phase 12 introduces a deliberately narrow v0.2 write surface. The original v0.1 read-only flows remain the stable baseline; write operations are opt-in by capability and endpoint, not a general editing mode.
 
-- Explicit opt-in configuration.
-- Backup strategy.
-- Locking/concurrency strategy.
-- Audit log or write history.
-- Validation of double-entry invariants.
-- Exact numeric handling.
-- Recovery documentation.
-- Extensive fixture coverage.
+Allowed first-pass writes:
+
+- Create a transaction with two or more splits.
+- Patch transaction metadata only: description, posted date, and split memos.
+
+Still not allowed:
+
+- Delete transactions.
+- Edit split amounts or accounts on existing transactions.
+- Recurring transactions.
+- CSV/OFX import.
+- Direct SQL writes.
+- Bypassing backups or locks.
+
+Every write must follow this order:
+
+1. Validate the request using exact `Decimal` arithmetic only.
+2. Check that the authenticated user has `editor` or `owner` access to the book.
+3. Acquire the per-book write lock.
+4. Create a timestamped backup of the GnuCash book.
+5. Open the book with `piecash` in write mode.
+6. Apply the mutation.
+7. Save/commit the book.
+8. Write an app metadata `AuditLog` entry containing user id, book id, action, transaction id, request summary, backup path, result, and timestamp.
+9. Release the lock in a `finally` path.
+
+Validation rules:
+
+- At least two splits are required.
+- Splits must balance to zero per currency.
+- Amounts must be decimal strings; floats are not accepted.
+- All accounts must exist.
+- Placeholder accounts are rejected by default.
+- Currency codes must be valid three-letter uppercase codes and match account commodities where available.
+
+Backups:
+
+- Backups are timestamped and stored per book under a sibling `backups/<book-stem>/` directory for filesystem books, e.g. `/data/backups/main/...` when the book is under `/data/books/`.
+- If backup creation fails, the write must not proceed.
+- The backup path is recorded in the audit log payload.
+
+Locking:
+
+- The current lock is an in-process per-book lock and returns a controlled conflict when a second write tries to run concurrently.
+- This is safe for the single-process container deployment used by the current MVP.
+- Multi-worker or multi-host deployments must replace it with a file or distributed lock before write mode is considered production-safe.
+
+Operational guidance:
+
+- Continue testing with disposable copies first.
+- Keep external backups outside the app as well.
+- Do not use GnuCash Desktop and this app to write to the same book at the same time.
+- Treat Phase 12 as controlled-write pre-alpha, not a full accounting editor.

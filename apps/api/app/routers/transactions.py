@@ -1,17 +1,21 @@
 """Book-aware and MVP transaction browsing router.
 
-All endpoints are read-only and require auth.
+Read-only endpoints require auth.
+Write endpoints (Phase 12) require editor/owner role and follow strict write flow.
 """
 
 from __future__ import annotations
 
+import json
+import logging
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from app.models import Book, User
+from app.models import Book, User, AuditLog
 from app.routers.auth import get_current_user, get_db
 from app.routers.accounts import resolve_default_viewable_book
 from app.routers.books import (
@@ -24,12 +28,23 @@ from app.schemas.gnucash import (
     TransactionDetailDTO,
     TransactionListItemDTO,
 )
+from app.schemas.gnucash_writes import (
+    TransactionCreateRequestDTO,
+    TransactionPatchRequestDTO,
+    TransactionValidationResultDTO,
+    TransactionWriteResultDTO,
+)
 from app.services.gnucash_exceptions import (
     BookNotConfiguredError,
     BookNotFoundError,
     EntityNotFoundError,
     GnuCashReadError,
 )
+from app.services.gnucash_write import GnuCashWriteService, GnuCashWriteError
+from app.services.book_access import AccessDenied, BookAccessService
+from app.services.write_lock import WriteLockError
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["transactions"])
 
@@ -274,3 +289,227 @@ def _resolve_viewable_book(book_id: int, user: User, session: Session) -> Book:
     from app.routers.books import resolve_viewable_book
 
     return resolve_viewable_book(book_id, user, session)
+
+
+def _require_book_edit_access(book: Book, user: User, session: Session) -> None:
+    """Require current user editor or owner access to a book."""
+    try:
+        BookAccessService(session).assert_can_edit(user, book)
+    except AccessDenied as exc:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Book edit access denied",
+        ) from exc
+
+
+def _write_service_for(book: Book) -> GnuCashWriteService:
+    """Create the write-capable GnuCash service for a book."""
+    return GnuCashWriteService(book)
+
+
+def _audit_log(
+    session: Session,
+    user_id: int,
+    book_id: int,
+    action: str,
+    payload: dict,
+) -> AuditLog:
+    """Write an audit log entry.
+
+    The audit entry is created before invoking the GnuCash write. The route then
+    updates it with success/failure details so a successful book mutation is not
+    left completely unaudited if later response handling fails.
+    """
+    log = AuditLog(
+        user_id=user_id,
+        book_id=book_id,
+        action=action,
+        payload_json=json.dumps(payload, default=str),
+    )
+    session.add(log)
+    session.commit()
+    session.refresh(log)
+    return log
+
+
+def _update_audit_log(session: Session, log: AuditLog, payload: dict) -> None:
+    """Best-effort audit log update used after a write attempt completes."""
+    log.payload_json = json.dumps(payload, default=str)
+    session.add(log)
+    session.commit()
+    session.refresh(log)
+
+
+def _request_summary(request: TransactionCreateRequestDTO) -> dict[str, Any]:
+    return {
+        "date": request.date,
+        "description": request.description,
+        "split_count": len(request.splits),
+        "currencies": sorted({split.currency for split in request.splits}),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Phase 12: Controlled write endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.post(
+    "/books/{book_id}/transactions/validate",
+    response_model=TransactionValidationResultDTO,
+)
+async def validate_book_transaction(
+    book_id: int,
+    request: TransactionCreateRequestDTO,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+) -> TransactionValidationResultDTO:
+    """Validate a transaction create request without writing."""
+    book = _resolve_viewable_book(book_id, user, session)
+    _require_book_edit_access(book, user, session)
+
+    service = _write_service_for(book)
+    return service.validate_transaction_create(request)
+
+
+@router.post(
+    "/books/{book_id}/transactions",
+    response_model=TransactionWriteResultDTO,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_book_transaction(
+    book_id: int,
+    request: TransactionCreateRequestDTO,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+) -> TransactionWriteResultDTO:
+    """Create a new transaction with the given splits.
+
+    Follows the strict write flow: validate, lock, backup, write, audit.
+    """
+    book = _resolve_viewable_book(book_id, user, session)
+    _require_book_edit_access(book, user, session)
+
+    service = _write_service_for(book)
+    audit_payload = {
+        "action": "transaction.create",
+        "transaction_id": None,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "request_summary": _request_summary(request),
+        "backup_path": None,
+        "result": "started",
+    }
+    log = _audit_log(session, user.id, book.id, "transaction.create", audit_payload)
+
+    try:
+        result = service.create_transaction(
+            request=request,
+            user_id=user.id,
+            book_id=book.id,
+        )
+    except WriteLockError as exc:
+        audit_payload.update({"result": "failed", "error": str(exc)})
+        _update_audit_log(session, log, audit_payload)
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Could not acquire write lock: {exc}",
+        ) from exc
+    except GnuCashWriteError as exc:
+        audit_payload.update({"result": "failed", "error": str(exc)})
+        _update_audit_log(session, log, audit_payload)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        ) from exc
+
+    audit_payload.update(
+        {
+            "transaction_id": result.transaction_id,
+            "backup_path": result.backup_path,
+            "result": "success",
+        }
+    )
+    _update_audit_log(session, log, audit_payload)
+    result.audit_log_id = log.id
+
+    return result
+
+
+@router.patch(
+    "/books/{book_id}/transactions/{transaction_id}",
+    response_model=TransactionWriteResultDTO,
+)
+async def patch_book_transaction(
+    book_id: int,
+    transaction_id: str,
+    request: TransactionPatchRequestDTO,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+) -> TransactionWriteResultDTO:
+    """Patch description, date, and/or split memos for an existing transaction.
+
+    Does NOT allow editing split amounts or accounts.
+    """
+    book = _resolve_viewable_book(book_id, user, session)
+    _require_book_edit_access(book, user, session)
+
+    service = _write_service_for(book)
+    fields_updated = {
+        k: v
+        for k, v in {
+            "description": request.description,
+            "date": request.date,
+            "split_memos": request.split_memos,
+        }.items()
+        if v is not None
+    }
+    audit_payload = {
+        "action": "transaction.patch",
+        "transaction_id": transaction_id,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "request_summary": {"fields_updated": list(fields_updated.keys())},
+        "fields_updated": fields_updated,
+        "backup_path": None,
+        "result": "started",
+    }
+    log = _audit_log(session, user.id, book.id, "transaction.patch", audit_payload)
+
+    try:
+        result = service.patch_transaction_metadata(
+            transaction_id=transaction_id,
+            request=request,
+            user_id=user.id,
+            book_id=book.id,
+        )
+    except WriteLockError as exc:
+        audit_payload.update({"result": "failed", "error": str(exc)})
+        _update_audit_log(session, log, audit_payload)
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Could not acquire write lock: {exc}",
+        ) from exc
+    except GnuCashWriteError as exc:
+        audit_payload.update({"result": "failed", "error": str(exc)})
+        _update_audit_log(session, log, audit_payload)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        ) from exc
+    except EntityNotFoundError as exc:
+        audit_payload.update({"result": "failed", "error": str(exc)})
+        _update_audit_log(session, log, audit_payload)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+    audit_payload.update(
+        {
+            "backup_path": result.backup_path,
+            "result": "success",
+        }
+    )
+    _update_audit_log(session, log, audit_payload)
+    result.audit_log_id = log.id
+
+    return result

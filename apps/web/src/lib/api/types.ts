@@ -90,3 +90,16 @@ export type CashflowPeriod = {
 	outflow: string;
 	net: string;
 };
+
+export type TransactionValidationResult = {
+	valid: boolean;
+	errors: string[];
+	warnings: string[];
+	summary: Record<string, unknown>;
+};
+
+export type TransactionWriteResult = {
+	transaction_id: string;
+	backup_path: string;
+	audit_log_id: number | null;
+};
