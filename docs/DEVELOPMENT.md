@@ -1,25 +1,75 @@
 # Development
 
-> Status: placeholder. Detailed setup will be added when Phase 2 creates the SvelteKit/FastAPI skeleton.
+> Detailed setup for the project development environment.
 
 ## Repository layout
 
-- `apps/web/` — planned SvelteKit frontend.
-- `apps/api/` — planned FastAPI backend.
-- `docs/` — product, architecture, security, and handoff docs.
-- `docker/` — planned Docker/dev infrastructure.
-- `data/` — local development data directory; real data files must not be committed.
+```
+apps/
+  web/          SvelteKit frontend (served by Node in production)
+  api/          FastAPI backend (uvicorn)
+data/           Local development data directory
+docker/         Docker and proxy configuration
+docs/           Product, architecture, security, and handoff docs
+```
 
-## Expected local setup
+## Quick start (Docker)
+
+Prerequisites: Docker Engine and Docker Compose.
 
 ```bash
 git clone https://github.com/valentusys/gnucash-web-companion.git
 cd gnucash-web-companion
 cp .env.example .env
-# edit .env for your local paths
+docker compose up --build
 ```
 
-App startup commands will be added after the project skeleton exists.
+The application will be available at:
+
+- **Frontend:** <http://localhost:8080>
+- **API health:** <http://localhost:8080/api/health>
+
+## Local development (without Docker)
+
+### Backend
+
+```bash
+cd apps/api
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+### Frontend
+
+```bash
+cd apps/web
+npm install
+npm run dev
+```
+
+## Environment variables
+
+See `.env.example` for the full list of configuration options.
+
+| Variable                    | Description                                   |
+|-----------------------------|-----------------------------------------------|
+| `APP_ENV`                   | Application environment (development/prod)    |
+| `APP_DATABASE_URL`          | SQLAlchemy-compatible app metadata DB URL     |
+| `GNUCASH_DEFAULT_BOOK_PATH` | Path to the GnuCash SQLite book file          |
+| `JWT_SECRET`                | Secret key for JWT signing                    |
+| `PUBLIC_APP_NAME`           | Public display name for the app               |
+| `API_INTERNAL_URL`          | Internal URL the proxy uses to reach the API  |
+| `CORS_ORIGINS`              | JSON list of allowed CORS origins             |
+
+## Health check
+
+The API exposes a health endpoint:
+
+```
+GET /api/health  ->  {"status": "ok", "service": "api"}
+```
 
 ## Development principles
 
@@ -29,11 +79,12 @@ App startup commands will be added after the project skeleton exists.
 - Do not commit secrets or real financial data.
 - Prefer small focused PRs.
 
-## Future checks
+## CI checks
 
-CI is currently a non-breaking skeleton. Later it should run:
+CI now runs foundation checks plus real skeleton checks when app manifests exist:
 
-- frontend lint and typecheck
-- backend tests
-- formatting checks
-- security/dependency checks
+- frontend install, `npm run check`, and `npm run build`
+- backend dependency install and `pytest`
+- Docker Compose file validation
+
+Future phases should add lint/format enforcement and security/dependency checks.

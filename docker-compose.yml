@@ -1,0 +1,50 @@
+services:
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    environment:
+      - APP_ENV=${APP_ENV:-development}
+      - APP_DATABASE_URL=${APP_DATABASE_URL:-sqlite:////data/app/app.db}
+      - GNUCASH_DEFAULT_BOOK_PATH=${GNUCASH_DEFAULT_BOOK_PATH:-/data/books/main.gnucash.sqlite}
+      - JWT_SECRET=${JWT_SECRET:-change-me}
+      - CORS_ORIGINS=${CORS_ORIGINS:-["*"]}
+    volumes:
+      - ./data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    environment:
+      - PUBLIC_APP_NAME=${PUBLIC_APP_NAME:-GnuCash Web Companion}
+      - API_INTERNAL_URL=${API_INTERNAL_URL:-http://api:8000}
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  proxy:
+    image: caddy:2-alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./docker/Caddyfile.docker:/etc/caddy/Caddyfile:ro
+    depends_on:
+      api:
+        condition: service_healthy
+      web:
+        condition: service_started
+    restart: unless-stopped

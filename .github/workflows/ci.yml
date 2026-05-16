@@ -40,22 +40,37 @@ jobs:
             test -f "$file" || { echo "Missing required file: $file"; exit 1; }
           done
 
-      - name: Frontend checks placeholder
+      - name: Frontend checks
         shell: bash
         run: |
           set -euo pipefail
           if [ -f apps/web/package.json ]; then
-            echo "Future: run frontend install, lint, and typecheck here."
+            cd apps/web
+            if [ -f package-lock.json ]; then npm ci; else npm install; fi
+            npm run check
+            npm run build
           else
             echo "apps/web skeleton not created yet; skipping frontend checks."
           fi
 
-      - name: Backend checks placeholder
+      - name: Backend checks
         shell: bash
         run: |
           set -euo pipefail
           if [ -f apps/api/pyproject.toml ] || [ -f apps/api/requirements.txt ]; then
-            echo "Future: run backend tests here."
+            cd apps/api
+            pip install -r requirements.txt
+            python -m pytest tests/ -v
           else
             echo "apps/api skeleton not created yet; skipping backend checks."
+          fi
+
+      - name: Verify Docker Compose file
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f docker-compose.yml ]; then
+            docker compose config --quiet || { echo "Invalid docker-compose.yml"; exit 1; }
+          else
+            echo "docker-compose.yml not found; skipping."
           fi

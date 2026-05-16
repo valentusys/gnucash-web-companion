@@ -23,7 +23,7 @@ A modern, self-hosted web companion for existing [GnuCash](https://www.gnucash.o
 |---|---|
 | Phase 0 — Competitive review & product positioning | ✅ Complete |
 | Phase 1 — Open-source foundation (this release) | ✅ Complete |
-| Phase 2 — Project skeleton (SvelteKit + FastAPI + Docker) | ⬜ Planned |
+| Phase 2 — Project skeleton (SvelteKit + FastAPI + Docker) | ✅ Complete |
 | MVP v0.1 — Read-only browsing, dashboards, reports | ⬜ Planned |
 
 ## MVP v0.1 scope (read-only)
@@ -56,20 +56,23 @@ GnuCash books contain high-trust accounting data. This project:
 
 ## Quick start
 
-> 🚧 Placeholder — Docker-based quick start will be documented in Phase 2 once the project skeleton exists.
+> 🚧 This is a pre-alpha project. The Docker-based quick start below assumes you have a [Docker Engine](https://docs.docker.com/engine/) installed.
 
 ```bash
-# Coming soon:
 git clone https://github.com/valentusys/gnucash-web-companion.git
 cd gnucash-web-companion
 cp .env.example .env
-# Edit .env to point at your GnuCash book
-docker compose up
+docker compose up --build
 ```
+
+- Frontend: <http://localhost:8080>
+- API health: <http://localhost:8080/api/health>
+
+See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for detailed setup instructions.
 
 ## Architecture
 
-> 🚧 Architecture is documented at a foundation level in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). It will be validated and expanded in Phase 2 before real application code is added.
+> Architecture is documented at a foundation level in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Phase 2 adds only the runnable shell; GnuCash data access is deferred to Phase 3.
 
 Planned stack:
 
