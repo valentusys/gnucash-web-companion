@@ -11,7 +11,7 @@ Last updated: 2026-05-17
 
 ## Current baseline
 
-Completed through Phase 14:
+Completed through Phase 15:
 
 - Phase 0 — competitive review and product positioning
 - Phase 1 — open-source foundation
@@ -28,6 +28,7 @@ Completed through Phase 14:
 - Phase 12 — controlled transaction writes implemented as post-MVP capability
 - Phase 13 — agent project context
 - Phase 14 — MVP read-only scope lock and write gating
+- Phase 15 — public pre-alpha release readiness
 
 ## MVP product model
 
@@ -57,34 +58,39 @@ Important positioning:
 - A GnuCash book is treated as a monopolistic accounting ledger.
 - Multi-user expansion is primarily through multiple independent books.
 
-## Phase 14 — MVP read-only scope lock
+## Phase 15 — Public pre-alpha release readiness
 
-Status: complete in current working tree pending commit/push.
+Status: complete pending commit, push, and tag.
 
-Goal:
+Release candidate: `v0.0.1-prealpha`.
 
-- Reconcile post-MVP Phase 12 controlled write code with the absolute MVP v0.1 read-only constraint.
-- Keep controlled write implementation available for future phases, but disabled by default.
-- Hide write UI by default.
-- Document single-agent phase workflow and absolute constraints in `AGENTS.md`.
+GitHub issues:
 
-Implementation:
+- `gh` is not installed and `GITHUB_TOKEN` is not available.
+- Local issue files were created under `docs/github/issues/`.
+- Local label and milestone instructions were created under `docs/github/`.
 
-- Backend config adds `GNUCASH_WRITES_ENABLED=false` default.
-- Write routes return `403` unless writes are explicitly enabled.
-- Frontend hides `/transactions/new` entry point unless writes are enabled.
-- `/transactions/new` redirects back to `/transactions` unless writes are enabled.
-- Docker and `.env.example` carry `GNUCASH_WRITES_ENABLED=false`.
+Release:
 
-GitHub tooling check:
+- Tag should be created only after checks pass and the phase commit is pushed.
+- GitHub pre-release cannot be created automatically without `gh` or token.
+- Manual GitHub release instructions are in `docs/github/manual-release-instructions.md`.
 
-- `git` is installed.
-- `gh` is not installed on this machine, so GitHub issue automation via `gh` is blocked.
-- Git push may still work through existing git credentials.
+Artifacts:
+
+- `docs/v0.2-controlled-writes.md`
+- `docs/release/v0.0.1-prealpha-checklist.md`
+- `docs/release/v0.0.1-prealpha-notes.md`
+- `docs/github/labels-to-create.md`
+- `docs/github/milestones-to-create.md`
+- `docs/github/issues/*.md`
+- `docs/github/manual-release-instructions.md`
+- `docs/handoff/phase-15.md`
 
 ## Standing constraints
 
 - MVP v0.1 is strictly read-only for GnuCash.
+- `GNUCASH_WRITES_ENABLED=false` by default.
 - Do not commit real financial data, GnuCash books, backups, `.env`, credentials, tokens, certificates, or private keys.
 - Money values must use string/Decimal representation, not floats.
 - Auth tokens must stay in httpOnly cookies, not localStorage/sessionStorage.

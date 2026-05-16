@@ -2,13 +2,13 @@
 
 > **Status: pre-alpha / MVP in progress** — this repository is suitable for review and experimentation, but it is not feature-complete, audited, or production-ready.
 
-A modern, self-hosted web companion for existing [GnuCash](https://www.gnucash.org/) books. It is designed to browse accounts, transactions, dashboards, and basic reports in a browser while keeping GnuCash desktop as the authoritative editor.
+A modern, self-hosted web companion for existing [GnuCash](https://www.gnucash.org/) books. It is designed to browse accounts, transactions, dashboards, and basic reports in a browser while keeping GnuCash Desktop as the authoritative editor.
 
 ## What it is
 
 - A **read-only-first** web application for existing GnuCash SQL books, accessed through [piecash](https://github.com/sdementen/piecash).
 - A **self-hosted** app you run on your own infrastructure.
-- A **companion**, not a replacement: GnuCash desktop remains the source of truth for editing.
+- A **companion**, not a replacement: GnuCash Desktop remains the source of truth for editing.
 - **Single-book by default**, with internal service boundaries that keep later multi-book support possible.
 
 ## What it is not
@@ -16,25 +16,15 @@ A modern, self-hosted web companion for existing [GnuCash](https://www.gnucash.o
 - It is **not** a GnuCash replacement.
 - It is **not** a hosted personal-finance SaaS.
 - It is **not** true collaborative multi-user accounting.
-- It does **not** write to your GnuCash book in the MVP.
+- It does **not** write to your GnuCash book by default.
 - It does **not** provide any production-readiness or security guarantee yet.
 
 ## Current status
 
-| Milestone | Status |
-|---|---|
-| Phase 0 — Competitive review & product positioning | Complete |
-| Phase 1 — Open-source foundation | Complete |
-| Phase 2 — SvelteKit + FastAPI + Docker skeleton | Complete |
-| Phase 3 — App metadata DB and book registry foundation | Complete |
-| Phase 4 — Authentication foundation | Complete |
-| Phase 5 — Read-only piecash service layer | Complete |
-| Phase 6 — Books/accounts API and UI | Complete |
-| Phase 7 — Transaction browsing API and UI | Complete |
-| Phase 8 — Dashboard reports API and UI | Complete |
-| Phase 9 — Frontend theme, mobile shell, PWA manifest | Complete |
-| Phase 10 — Public repo hygiene and release readiness | Complete |
-| MVP v0.1 — Read-only browsing, dashboards, reports | Integration/testing in progress |
+- Phase 0–14 are complete.
+- MVP v0.1 remains **read-only by default**.
+- Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by default.
+- First public pre-alpha release candidate: `v0.0.1-prealpha`.
 
 ## MVP scope: read-only first
 
@@ -51,12 +41,14 @@ The first public milestone is intentionally conservative:
 
 Explicitly out of scope for the MVP:
 
-- Transaction/account creation or editing.
+- Transaction/account creation or editing enabled by default.
 - Direct GnuCash schema modification.
 - Invoice, bill, customer, or vendor editing.
 - True collaborative multi-user editing.
+- Family shared-wallet baseline.
 - Multi-book management UI as a core baseline.
 - Hosted SaaS operation.
+- Fake currency conversion.
 
 ## Safety warning
 
@@ -70,6 +62,16 @@ Use it safely:
 - Do not expose early builds directly to the public internet.
 - Review [docs/GNUCASH_SAFETY.md](docs/GNUCASH_SAFETY.md) before testing with real data.
 
+## Experimental write code
+
+This repository may contain experimental post-MVP controlled-write code. It is disabled by default with:
+
+```text
+GNUCASH_WRITES_ENABLED=false
+```
+
+Controlled writes are not part of MVP v0.1. Do not enable write mode against your only copy of a GnuCash book. See [docs/v0.2-controlled-writes.md](docs/v0.2-controlled-writes.md) for the design and safety requirements.
+
 ## Quick start
 
 > This is a pre-alpha quick start. It assumes Docker Engine and Docker Compose are installed. Docker runtime has not been certified for production use.
@@ -80,6 +82,7 @@ cd gnucash-web-companion
 cp .env.example .env
 # Edit .env: set a real JWT_SECRET, admin bootstrap password/hash, and GNUCASH_DEFAULT_BOOK_PATH.
 # The placeholder JWT_SECRET in .env.example is intentionally rejected by the API.
+# Keep GNUCASH_WRITES_ENABLED=false for the read-only MVP.
 # Put only a test copy of your GnuCash SQL book under data/books/.
 docker compose up --build
 ```
@@ -96,23 +99,23 @@ See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for local development setup.
 - **Frontend:** SvelteKit in `apps/web/`
 - **Backend:** FastAPI in `apps/api/`
 - **GnuCash access:** piecash opened read-only behind a service layer
-- **App metadata DB:** separate SQLite database (`app.db`) for users, book registry, and access metadata
+- **App metadata DB:** separate SQLite database (`app.db`) for users, book registry, access metadata, and audit logs
 - **Deployment:** Docker Compose with Caddy reverse proxy
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.
 
 ## Release readiness
 
-The first public pre-alpha tag is planned as `v0.0.1`.
+The first public pre-alpha tag is planned as:
 
-Maintainer instructions are documented in [docs/handoff/phase-10.md](docs/handoff/phase-10.md). In short:
-
-```bash
-git checkout main
-git pull origin main
-git tag -a v0.0.1 -m "v0.0.1 pre-alpha"
-git push origin v0.0.1
+```text
+v0.0.1-prealpha
 ```
+
+Release checklist and notes:
+
+- [docs/release/v0.0.1-prealpha-checklist.md](docs/release/v0.0.1-prealpha-checklist.md)
+- [docs/release/v0.0.1-prealpha-notes.md](docs/release/v0.0.1-prealpha-notes.md)
 
 Do not publish npm or PyPI packages unless explicitly requested.
 
