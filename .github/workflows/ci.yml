@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  foundation:
+    name: Foundation checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify required foundation files
+        shell: bash
+        run: |
+          set -euo pipefail
+          required=(
+            README.md
+            LICENSE
+            CHANGELOG.md
+            CONTRIBUTING.md
+            CODE_OF_CONDUCT.md
+            SECURITY.md
+            .env.example
+            docs/ARCHITECTURE.md
+            docs/MVP.md
+            docs/ROADMAP.md
+            docs/SECURITY_MODEL.md
+            docs/GNUCASH_SAFETY.md
+            docs/DEVELOPMENT.md
+            docs/handoff/phase-1.md
+            .github/FUNDING.yml
+            .github/PULL_REQUEST_TEMPLATE.md
+          )
+          for file in "${required[@]}"; do
+            test -f "$file" || { echo "Missing required file: $file"; exit 1; }
+          done
+
+      - name: Frontend checks placeholder
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f apps/web/package.json ]; then
+            echo "Future: run frontend install, lint, and typecheck here."
+          else
+            echo "apps/web skeleton not created yet; skipping frontend checks."
+          fi
+
+      - name: Backend checks placeholder
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f apps/api/pyproject.toml ] || [ -f apps/api/requirements.txt ]; then
+            echo "Future: run backend tests here."
+          else
+            echo "apps/api skeleton not created yet; skipping backend checks."
+          fi

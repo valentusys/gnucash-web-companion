@@ -1,0 +1,7 @@
+# Placeholder
+
+This directory will contain Docker and docker-compose configuration files.
+
+- `Dockerfile` for the backend: planned for Phase 2.
+- `Dockerfile` for the frontend: planned for Phase 2.
+- `docker-compose.yml` for local development: planned for Phase 2.

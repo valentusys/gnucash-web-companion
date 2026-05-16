@@ -1,0 +1,8 @@
+# Data directory
+
+This directory is the default location for:
+
+- GnuCash book files (`.gnucash`, etc.) — **ignored by git** (see `.gitignore`).
+- App metadata database (`app-metadata.db`) — **ignored by git**.
+
+The `.gitkeep` file preserves this directory in git. Actual data files are never committed.

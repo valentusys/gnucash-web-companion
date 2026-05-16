@@ -1,0 +1,44 @@
+name: Feature request
+description: Suggest an improvement or future capability
+title: "feature: "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before requesting a feature, please read docs/MVP.md and docs/ROADMAP.md. MVP v0.1 is read-only.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / user need
+      description: What problem would this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope area
+      options:
+        - Read-only MVP
+        - Documentation
+        - Developer experience
+        - Future write mode (not MVP)
+        - Future multi-book support
+        - Other
+    validations:
+      required: true
+  - type: checkboxes
+    id: boundaries
+    attributes:
+      label: Scope checklist
+      options:
+        - label: I understand that transaction/account writes are out of scope for MVP v0.1.
+          required: true
+        - label: This does not propose collaborative multi-user editing as a core feature.
+          required: true

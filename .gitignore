@@ -1,5 +1,49 @@
+# Environment
 .env
+.env.local
+.env.*.local
+
+# Python
 .venv/
 __pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Node / SvelteKit
 node_modules/
+.svelte-kit/
+build/
+package-lock.json
+
+# Data files (GnuCash books, app metadata DBs)
+data/*.gnucash
+data/*.db
+data/*.sqlite
+data/*.sqlite3
+# Keep .gitkeep
+!data/.gitkeep
+
+# OS
 .DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Docker
+docker-compose.override.yml
+
+# Logs
+*.log
+logs/
+
+# Coverage / test artifacts
+.coverage
+htmlcov/
+.pytest_cache/
