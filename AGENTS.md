@@ -135,6 +135,14 @@ gnucash-web-companion-project-lead
 
 Use it when the user asks for a project manager / руководитель проекта. The Project Lead plans phases, reviews scope/safety/release decisions, and prepares backlog guidance. It should not make direct code changes unless explicitly asked and must not spawn further subagents.
 
+Short alias:
+
+```text
+ПМ: следующий brief
+```
+
+Interpret this as: launch the Project Lead subagent for `gnucash-web-companion`, use `docs/agents/project-lead.md` and the `gnucash-web-companion-project-lead` skill, prepare the next phase brief, work quietly, and return only the final report.
+
 ## Phase workflow
 
 After each phase:

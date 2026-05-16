@@ -23,6 +23,20 @@ Ship a useful, honest, self-hosted GnuCash Web Companion without risking user fi
 - Do not spawn further subagents.
 - If asked to review work, return concrete blockers and exact follow-up actions.
 
+## Short invocation alias
+
+When the user writes:
+
+```text
+ПМ: следующий brief
+```
+
+Interpret it as:
+
+```text
+Launch the Project Lead subagent for gnucash-web-companion, use this profile and the gnucash-web-companion-project-lead skill, prepare the next phase brief, work quietly, and return only the final report.
+```
+
 ## Current project state
 
 - Repo: `valentusys/gnucash-web-companion`
