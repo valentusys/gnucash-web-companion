@@ -57,3 +57,36 @@ export type PaginatedTransactions = {
 	offset: number;
 	total: number;
 };
+
+export type ReportSummary = {
+	currency: string;
+	net_worth: string;
+	assets: string;
+	liabilities: string;
+	income_this_month: string;
+	expenses_this_month: string;
+	as_of_date: string;
+};
+
+export type ExpenseByAccount = {
+	account_id: string;
+	account_name: string;
+	total: string;
+	currency: string;
+};
+
+export type CashflowData = {
+	date_from: string;
+	date_to: string;
+	currency: string;
+	inflow: string;
+	outflow: string;
+	net: string;
+};
+
+export type CashflowPeriod = {
+	month: string;
+	inflow: string;
+	outflow: string;
+	net: string;
+};

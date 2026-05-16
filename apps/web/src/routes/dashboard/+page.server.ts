@@ -1,0 +1,55 @@
+import { getAuthToken, apiFetch } from '$lib/api/server';
+import type { ReportSummary, ExpenseByAccount, CashflowPeriod, TransactionListItem } from '$lib/api/types';
+
+export async function load({ cookies, fetch: fetchFn }: { cookies: any; fetch: any }) {
+	const token = getAuthToken(cookies);
+
+	const today = new Date();
+	const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+	const dateFrom = firstOfMonth.toISOString().slice(0, 10);
+	const dateTo = today.toISOString().slice(0, 10);
+
+	let summary: ReportSummary | null = null;
+	let expenses: ExpenseByAccount[] = [];
+	let cashflowPeriods: CashflowPeriod[] = [];
+	let recentTransactions: TransactionListItem[] = [];
+	let loadError: string | null = null;
+
+	try {
+		summary = await apiFetch<ReportSummary>(fetchFn, '/reports/summary', token);
+	} catch (e: any) {
+		loadError = e.message;
+	}
+
+	try {
+		expenses = await apiFetch<ExpenseByAccount[]>(
+			fetchFn,
+			`/reports/expenses-by-account?date_from=${dateFrom}&date_to=${dateTo}`,
+			token
+		);
+	} catch {
+		expenses = [];
+	}
+
+	try {
+		cashflowPeriods = await apiFetch<CashflowPeriod[]>(
+			fetchFn,
+			`/reports/cashflow?date_from=${dateFrom}&date_to=${dateTo}&by_month=true`,
+			token
+		);
+	} catch {
+		cashflowPeriods = [];
+	}
+
+	try {
+		recentTransactions = await apiFetch<TransactionListItem[]>(
+			fetchFn,
+			'/reports/recent-transactions?limit=10',
+			token
+		);
+	} catch {
+		recentTransactions = [];
+	}
+
+	return { summary, expenses, cashflowPeriods, recentTransactions, loadError };
+}

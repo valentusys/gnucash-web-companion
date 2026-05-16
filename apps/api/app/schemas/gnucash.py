@@ -84,6 +84,40 @@ class CashflowDTO(BaseModel):
     net: str
 
 
+class ReportSummaryDTO(BaseModel):
+    """Dashboard summary: net worth, assets, liabilities, income/expenses this month.
+
+    Multi-currency limitation: only accounts whose commodity matches the book's
+    base currency are included. Accounts in other currencies are silently excluded.
+    """
+
+    currency: str
+    net_worth: str
+    assets: str
+    liabilities: str
+    income_this_month: str
+    expenses_this_month: str
+    as_of_date: str
+
+
+class ExpenseByAccountDTO(BaseModel):
+    """Total expenses for a single account within a date range."""
+
+    account_id: str
+    account_name: str
+    total: str
+    currency: str
+
+
+class CashflowPeriodDTO(BaseModel):
+    """Cashflow totals broken down by month."""
+
+    month: str  # YYYY-MM
+    inflow: str
+    outflow: str
+    net: str
+
+
 class PaginatedResponse(BaseModel):
     """Generic paginated response wrapper."""
 

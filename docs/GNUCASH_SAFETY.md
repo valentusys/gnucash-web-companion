@@ -38,6 +38,17 @@ Safety rules for this service:
 - Represent money as `Decimal` internally and strings externally. Never use floats for money.
 - Use fixture or mock-based tests unless validating against a disposable sample book.
 
+## Basic reports and multi-currency limitation
+
+Phase 8 dashboard reports are deliberately basic and read-only. They must not infer exchange rates or perform fake currency conversion.
+
+Current limitation:
+
+- Summary, cashflow, and expenses-by-account reports aggregate only accounts/splits whose commodity matches the configured book `base_currency`.
+- Non-base-currency accounts/splits are excluded from totals instead of being converted.
+- API responses keep money as strings and expose a single `currency` for aggregated totals.
+- Future multi-currency reporting must define an explicit exchange-rate source, date policy, and UI disclosure before totals can combine currencies.
+
 ## Future write mode requirements
 
 Before any write feature is accepted, the project needs:

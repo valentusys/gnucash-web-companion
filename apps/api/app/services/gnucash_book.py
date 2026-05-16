@@ -16,7 +16,10 @@ from app.schemas.gnucash import (
     AccountTreeNodeDTO,
     BookSummaryDTO,
     CashflowDTO,
+    CashflowPeriodDTO,
+    ExpenseByAccountDTO,
     MoneyDTO,
+    ReportSummaryDTO,
     TransactionDetailDTO,
     TransactionListItemDTO,
     TransactionSplitDTO,
@@ -256,12 +259,15 @@ class GnuCashBookService:
                     account_type = str(getattr(account, "type", "")).upper()
                     if account_type not in {"INCOME", "EXPENSE"}:
                         continue
+                    currency = self._account_currency(account)
+                    if currency != self.base_currency:
+                        continue
                     amount = self._split_amount(split)
                     if account_type == "INCOME":
-                        if amount >= 0:
-                            inflow += amount
+                        if amount <= 0:
+                            inflow += abs(amount)
                         else:
-                            outflow += abs(amount)
+                            outflow += amount
                     elif account_type == "EXPENSE":
                         if amount >= 0:
                             outflow += amount
@@ -276,6 +282,171 @@ class GnuCashBookService:
             outflow=format_money(outflow),
             net=format_money(net),
         )
+
+    def get_report_summary(self, as_of_date: date | str | None = None) -> ReportSummaryDTO:
+        """Return dashboard summary: net worth, assets, liabilities, income/expenses this month.
+
+        Multi-currency limitation: only accounts whose commodity matches the book's
+        base currency are included. Accounts in other currencies are silently excluded
+        from asset/liability totals.
+        """
+        as_of = _coerce_date(as_of_date) or date.today()
+        today = as_of
+        month_start = date(today.year, today.month, 1)
+        assets = Decimal("0")
+        liabilities = Decimal("0")
+        income_this_month = Decimal("0")
+        expenses_this_month = Decimal("0")
+        with self._open_book() as book:
+            for account in self._accounts(book):
+                account_type = str(getattr(account, "type", "")).upper()
+                currency = self._account_currency(account)
+                if currency != self.base_currency:
+                    continue
+                if account_type in {"ASSET", "BANK", "CASH", "RECEIVABLE", "STOCK", "MUTUAL"}:
+                    assets += self._account_balance(account)
+                elif account_type in {"LIABILITY", "CREDIT", "PAYABLE"}:
+                    liabilities += self._account_balance(account)
+            for transaction in self._transactions(book):
+                tx_date = _coerce_date(self._transaction_date(transaction))
+                if tx_date is None or tx_date < month_start or tx_date > today:
+                    continue
+                for split in self._splits(transaction):
+                    account = getattr(split, "account", None)
+                    if account is None:
+                        continue
+                    account_type = str(getattr(account, "type", "")).upper()
+                    currency = self._account_currency(account)
+                    if currency != self.base_currency:
+                        continue
+                    amount = self._split_amount(split)
+                    if account_type == "INCOME":
+                        if amount < 0:
+                            income_this_month += abs(amount)
+                        else:
+                            expenses_this_month += amount
+                    elif account_type == "EXPENSE":
+                        if amount >= 0:
+                            expenses_this_month += amount
+                        else:
+                            income_this_month += abs(amount)
+        net_worth = assets + liabilities  # liabilities are already negative
+        return ReportSummaryDTO(
+            currency=self.base_currency,
+            net_worth=format_money(net_worth),
+            assets=format_money(assets),
+            liabilities=format_money(liabilities),
+            income_this_month=format_money(income_this_month),
+            expenses_this_month=format_money(-expenses_this_month),
+            as_of_date=today.isoformat(),
+        )
+
+    def get_expenses_by_account(
+        self,
+        date_from: date | str | None = None,
+        date_to: date | str | None = None,
+    ) -> list[ExpenseByAccountDTO]:
+        """Return total expenses grouped by expense account within a date range.
+
+        Multi-currency limitation: only splits whose account commodity matches the
+        book's base currency are included.
+        """
+        start = _coerce_date(date_from)
+        end = _coerce_date(date_to)
+        totals: dict[str, Decimal] = {}
+        account_names: dict[str, str] = {}
+        account_currencies: dict[str, str] = {}
+        with self._open_book() as book:
+            for transaction in self._transactions(book):
+                tx_date = _coerce_date(self._transaction_date(transaction))
+                if tx_date is None:
+                    continue
+                if start is not None and tx_date < start:
+                    continue
+                if end is not None and tx_date > end:
+                    continue
+                for split in self._splits(transaction):
+                    account = getattr(split, "account", None)
+                    if account is None:
+                        continue
+                    account_type = str(getattr(account, "type", "")).upper()
+                    if account_type != "EXPENSE":
+                        continue
+                    currency = self._account_currency(account)
+                    if currency != self.base_currency:
+                        continue
+                    amount = self._split_amount(split)
+                    account_id = self._account_id(account)
+                    if account_id not in totals:
+                        totals[account_id] = Decimal("0")
+                        account_names[account_id] = account_full_name(account)
+                        account_currencies[account_id] = currency
+                    if amount >= 0:
+                        totals[account_id] += amount
+                    else:
+                        totals[account_id] -= abs(amount)
+        result = [
+            ExpenseByAccountDTO(
+                account_id=aid,
+                account_name=account_names.get(aid, ""),
+                total=format_money(totals[aid]),
+                currency=account_currencies.get(aid, self.base_currency),
+            )
+            for aid in totals
+        ]
+        result.sort(key=lambda x: Decimal(x.total), reverse=True)
+        return result
+
+    def get_cashflow_by_month(
+        self,
+        date_from: date | str,
+        date_to: date | str,
+    ) -> list[CashflowPeriodDTO]:
+        """Return cashflow totals broken down by month within a date range."""
+        start = _coerce_date(date_from)
+        end = _coerce_date(date_to)
+        if start is None or end is None:
+            raise ValueError("date_from and date_to are required")
+        months: dict[str, dict[str, Decimal]] = {}
+        with self._open_book() as book:
+            for transaction in self._transactions(book):
+                tx_date = _coerce_date(self._transaction_date(transaction))
+                if tx_date is None or tx_date < start or tx_date > end:
+                    continue
+                month_key = f"{tx_date.year:04d}-{tx_date.month:02d}"
+                if month_key not in months:
+                    months[month_key] = {"inflow": Decimal("0"), "outflow": Decimal("0")}
+                for split in self._splits(transaction):
+                    account = getattr(split, "account", None)
+                    if account is None:
+                        continue
+                    account_type = str(getattr(account, "type", "")).upper()
+                    if account_type not in {"INCOME", "EXPENSE"}:
+                        continue
+                    currency = self._account_currency(account)
+                    if currency != self.base_currency:
+                        continue
+                    amount = self._split_amount(split)
+                    if account_type == "INCOME":
+                        if amount <= 0:
+                            months[month_key]["inflow"] += abs(amount)
+                        else:
+                            months[month_key]["outflow"] += amount
+                    elif account_type == "EXPENSE":
+                        if amount >= 0:
+                            months[month_key]["outflow"] += amount
+                        else:
+                            months[month_key]["inflow"] += abs(amount)
+        result = [
+            CashflowPeriodDTO(
+                month=key,
+                inflow=format_money(values["inflow"]),
+                outflow=format_money(values["outflow"]),
+                net=format_money(values["inflow"] - values["outflow"]),
+            )
+            for key, values in sorted(months.items())
+        ]
+        return result
 
     def _accounts(self, book: Any) -> Iterable[Any]:
         return getattr(book, "accounts", []) or []
