@@ -1,6 +1,6 @@
 # GitHub Labels to Create
 
-GitHub CLI is not installed in the current environment. Create these labels manually or after installing/authenticating `gh`.
+Created on GitHub with `gh` after CLI installation/authentication.
 
 - `read-only` — color `0E8A16` — Read-only MVP scope
 - `multi-book` — color `1D76DB` — Multiple independent GnuCash books

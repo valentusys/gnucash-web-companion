@@ -68,15 +68,17 @@ Release candidate: `v0.0.1-prealpha`.
 
 GitHub issues:
 
-- `gh` is not installed and `GITHUB_TOKEN` is not available.
-- Local issue files were created under `docs/github/issues/`.
-- Local label and milestone instructions were created under `docs/github/`.
+- `gh` is installed in `~/.local/bin/gh` and authenticated for `valentusys`.
+- GitHub labels and milestones were created from `docs/github/`.
+- GitHub issues #1–#10 were created from `docs/github/issues/`.
+- Issues #1, #2, and #4 were closed as completed by Phase 17 / release automation.
 
 Release:
 
 - `v0.0.1-prealpha` tag was pushed with git.
-- GitHub pre-release cannot be created automatically without `gh` or token.
-- Manual GitHub release instructions are in `docs/github/manual-release-instructions.md`.
+- GitHub pre-release was created with `gh`.
+- Release URL: https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.0.1-prealpha
+- Automation notes are in `docs/github/manual-release-instructions.md`.
 
 Artifacts:
 
@@ -137,7 +139,7 @@ Artifacts:
 
 Non-goals: no production code changes, no new features, no real financial data, no release/tag bump.
 
-Related issue: `docs/github/issues/03-readme-screenshots-mobile-preview.md`.
+Related issue: GitHub #3 (`docs/github/issues/03-readme-screenshots-mobile-preview.md`).
 
 ## Standing constraints
 
