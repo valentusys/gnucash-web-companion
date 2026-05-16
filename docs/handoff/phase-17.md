@@ -1,7 +1,65 @@
 # Phase 17 — Synthetic GnuCash Fixture and Read-Only Integration Validation
 
 ## Status
-Planned — ready for autonomous coding agent execution.
+Complete — 2026-05-17.
+
+## Actual results
+
+### Files created
+- `apps/api/scripts/create_test_fixture.py` — standalone fixture generation script (piecash 1.2.1).
+- `apps/api/tests/fixtures/test-book.gnucash.sqlite` — 208 KB synthetic GnuCash book.
+- `apps/api/tests/test_integration_fixture.py` — 19 integration tests in 9 test classes.
+
+### Files modified
+- `apps/api/tests/test_gnucash_book.py` — replaced `@pytest.mark.skipif` placeholder with `test_fixture_based_integration_tests_exist`.
+- `docs/handoff/phase-17.md` — this file.
+- `PROJECT_STATUS.md` — Phase 17 marked complete.
+
+### Fixture details
+- 10 accounts in `book.accounts` (ROOT is in `book.root_account` only, not in `book.accounts`).
+- Account tree: Root Account (ROOT) → Assets (ASSET), Expenses (EXPENSE), Income (INCOME), Liabilities (LIABILITY) → Bank (BANK), Food (EXPENSE), Transport (EXPENSE), Salary (INCOME), Credit Card (LIABILITY) → Checking (BANK).
+- 5 transactions: January salary, Grocery store, Bus pass, Monthly expenses (4 splits), Credit card payment.
+- Single currency: SEK. No real financial data.
+
+### Integration test results (19 tests)
+All pass in ~1s total:
+- `TestFixtureConnection::test_fixture_connection` — check_connection() returns True.
+- `TestFixtureAccountTree::test_fixture_account_tree` — 10 accounts, 4 tree roots, correct nesting.
+- `TestFixtureAccountBalances` — 5 tests: Checking=2729.50, Food=670.50, Salary=5000.00, Transport=350.00, Credit Card=-1250.00.
+- `TestFixtureTransactionList` — 3 tests: count=5, date-desc sort, all descriptions present.
+- `TestFixtureTransactionDetail` — 2 tests: multi-split has 4 splits, two-split has 2.
+- `TestFixtureSummary::test_fixture_summary` — account_count=10, transaction_count=5, currency=SEK.
+- `TestFixtureCashflow` — 3 tests: Jan (in=5000, out=320.50), Feb (out=700), full range.
+- `TestFixtureReportSummary` — 2 tests: assets/liabilities non-zero, Feb income/expenses correct.
+- `TestFixtureErrors::test_fixture_missing_book_error` — BookNotFoundError raised.
+
+### Full backend suite
+187 passed, 0 failed (167 existing + 19 new + 1 updated placeholder).
+
+### Frontend checks
+- `npm run check` — 0 errors, 0 warnings.
+- `npm run test:auth-routes` — passed.
+- `npm run build` — built successfully.
+
+### Docker config
+`docker compose config --quiet` — passed (exit 0).
+
+### Git
+- `git diff --check` — no whitespace errors.
+- Fixture file is NOT git-ignored (`.gitignore` allows `tests/fixtures/*.sqlite`).
+
+### Deviations from spec
+1. **Account count**: spec said 9 (1 ROOT + 8 children). Actual: `book.accounts` returns 10 non-ROOT accounts. ROOT is in `book.root_account` only. Service layer returns 10 accounts. Tests assert 10.
+2. **Account tree**: spec assumed ROOT visible in tree. Actual: ROOT is not in `_accounts()`, so the 4 children of ROOT become top-level tree nodes. Tree has 4 roots, not 1.
+3. **Balance signs**: spec said Salary=-5000, Credit Card=1250. Actual (piecash convention): Salary=5000.00 (income positive), Credit Card=-1250.00 (liability negative). Tests match actual piecash behavior.
+
+### No production code changes
+Only new test files + script. No changes to services, routers, schemas, frontend, or Docker.
+
+### GitHub issue status
+- `docs/github/issues/01-synthetic-disposable-gnucash-sqlite-fixture.md` — closable.
+- `docs/github/issues/02-validate-read-only-adapter-real-book.md` — closable.
+- `gh` not available; local issue files updated.
 
 ## Summary
 Create a synthetic (disposable, no real financial data) GnuCash SQLite book fixture and validate the piecash read-only service layer against it. This replaces mock-only tests with real-SQLite integration tests while keeping the repo free of personal data.

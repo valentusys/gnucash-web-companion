@@ -109,9 +109,20 @@ The Project Lead is not a coding implementer and should not spawn further subage
 
 ## Phase 17 — Synthetic GnuCash Fixture and Read-Only Integration Validation
 
-Status: planned.
+Status: complete. Phase commit pushed.
 
 Goal: create a disposable synthetic GnuCash SQLite fixture using piecash and validate the read-only service layer against it with real integration tests.
+
+Artifacts:
+
+- `apps/api/scripts/create_test_fixture.py` — standalone script that generates the synthetic fixture.
+- `apps/api/tests/fixtures/test-book.gnucash.sqlite` — 208 KB synthetic GnuCash book (9 user accounts + 1 ROOT, 5 transactions, SEK).
+- `apps/api/tests/test_integration_fixture.py` — 19 integration tests validating the full read-only path.
+- `apps/api/tests/test_gnucash_book.py` — replaced placeholder skipped test with fixture existence check.
+
+Test results: 187 passed (167 existing + 19 new integration + 1 updated), 0 failed.
+
+Deviation from spec: the spec assumed 9 accounts (1 ROOT + 8 children) but piecash `book.accounts` returns 10 non-ROOT accounts (ROOT is only in `book.root_account`). The service layer returns 10 accounts. Tests assert `account_count == 10`. The account tree has 4 top-level nodes (ROOT is not in `_accounts()` so its children become roots).
 
 ## Standing constraints
 

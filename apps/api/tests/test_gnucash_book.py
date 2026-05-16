@@ -226,10 +226,9 @@ def test_get_cashflow(service):
     assert cashflow.net == "-320.00"
 
 
-@pytest.mark.skipif(
-    not Path("tests/fixtures/sample.gnucash").exists(),
-    reason="Optional fixture book is not checked in",
-)
-def test_optional_fixture_book_connection():
-    service = GnuCashBookService({"uri_or_path": "tests/fixtures/sample.gnucash", "base_currency": "SEK"})
-    assert service.check_connection() is True
+def test_fixture_based_integration_tests_exist():
+    """Verify the synthetic fixture and integration test module are present."""
+    fixture_path = Path("tests/fixtures/test-book.gnucash.sqlite")
+    assert fixture_path.exists(), f"Synthetic fixture not found: {fixture_path}"
+    integration_test = Path("tests/test_integration_fixture.py")
+    assert integration_test.exists(), f"Integration test module not found: {integration_test}"
