@@ -75,6 +75,9 @@ function formToPayload(formData: FormData): CreatePayload {
 }
 
 export const load: PageServerLoad = async ({ cookies, fetch }) => {
+	if (env.GNUCASH_WRITES_ENABLED !== 'true') {
+		throw redirect(303, '/transactions');
+	}
 	const token = getAuthToken(cookies);
 	const [books, accounts] = await Promise.all([
 		apiFetch<Book[]>(fetch, '/books', token),
@@ -89,6 +92,9 @@ export const load: PageServerLoad = async ({ cookies, fetch }) => {
 
 export const actions: Actions = {
 	validate: async ({ cookies, fetch, request }) => {
+		if (env.GNUCASH_WRITES_ENABLED !== 'true') {
+			return { error: 'GnuCash writes are disabled. MVP v0.1 is read-only by default.' };
+		}
 		const token = getAuthToken(cookies);
 		const formData = await request.formData();
 		const bookId = String(formData.get('book_id') ?? '');
@@ -110,6 +116,9 @@ export const actions: Actions = {
 		}
 	},
 	create: async ({ cookies, fetch, request }) => {
+		if (env.GNUCASH_WRITES_ENABLED !== 'true') {
+			return { error: 'GnuCash writes are disabled. MVP v0.1 is read-only by default.' };
+		}
 		const token = getAuthToken(cookies);
 		const formData = await request.formData();
 		const bookId = String(formData.get('book_id') ?? '');

@@ -33,6 +33,17 @@ TEST_SETTINGS = Settings(
     jwt_token_expire_minutes=30,
     app_admin_username="admin",
     app_admin_password="testpassword123",
+    gnucash_writes_enabled=True,
+)
+
+READ_ONLY_TEST_SETTINGS = Settings(
+    app_env="test",
+    app_database_url="sqlite:///:memory:",
+    jwt_secret="test-secret-key-for-unit-tests-32-bytes-minimum",
+    jwt_token_expire_minutes=30,
+    app_admin_username="admin",
+    app_admin_password="testpassword123",
+    gnucash_writes_enabled=False,
 )
 
 
@@ -296,6 +307,31 @@ def _make_mock_piecash(fake_book, fake_accounts):
     mock_piecash.Split = fake_split_factory
 
     return mock_piecash, created_tx
+
+
+
+
+class TestWritesDisabledByDefault:
+    """MVP v0.1 must remain read-only unless post-MVP writes are explicitly enabled."""
+
+    def test_validate_is_forbidden_when_writes_disabled(self, client, auth_headers, sample_book):
+        app.dependency_overrides[get_settings] = lambda: READ_ONLY_TEST_SETTINGS
+        payload = {
+            "date": "2026-05-16",
+            "description": "Test",
+            "splits": [
+                {"account_id": "bank-guid", "amount": "-100.00", "currency": "SEK", "memo": ""},
+                {"account_id": "food-guid", "amount": "100.00", "currency": "SEK", "memo": ""},
+            ],
+        }
+        response = client.post(
+            f"/books/{sample_book}/transactions/validate",
+            json=payload,
+            headers=auth_headers,
+        )
+        assert response.status_code == 403
+        assert "read-only" in response.json()["detail"]
+        app.dependency_overrides[get_settings] = lambda: TEST_SETTINGS
 
 
 # ---------------------------------------------------------------------------

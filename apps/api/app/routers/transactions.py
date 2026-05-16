@@ -15,6 +15,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
+from app.config import Settings, get_settings
 from app.models import Book, User, AuditLog
 from app.routers.auth import get_current_user, get_db
 from app.routers.accounts import resolve_default_viewable_book
@@ -349,6 +350,15 @@ def _request_summary(request: TransactionCreateRequestDTO) -> dict[str, Any]:
     }
 
 
+def _ensure_writes_enabled(settings: Settings) -> None:
+    """Keep the MVP read-only unless post-MVP writes are explicitly enabled."""
+    if not settings.gnucash_writes_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="GnuCash writes are disabled. MVP v0.1 is read-only by default.",
+        )
+
+
 # ---------------------------------------------------------------------------
 # Phase 12: Controlled write endpoints
 # ---------------------------------------------------------------------------
@@ -363,8 +373,10 @@ async def validate_book_transaction(
     request: TransactionCreateRequestDTO,
     user: User = Depends(get_current_user),
     session: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
 ) -> TransactionValidationResultDTO:
     """Validate a transaction create request without writing."""
+    _ensure_writes_enabled(settings)
     book = _resolve_viewable_book(book_id, user, session)
     _require_book_edit_access(book, user, session)
 
@@ -382,11 +394,13 @@ async def create_book_transaction(
     request: TransactionCreateRequestDTO,
     user: User = Depends(get_current_user),
     session: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
 ) -> TransactionWriteResultDTO:
     """Create a new transaction with the given splits.
 
     Follows the strict write flow: validate, lock, backup, write, audit.
     """
+    _ensure_writes_enabled(settings)
     book = _resolve_viewable_book(book_id, user, session)
     _require_book_edit_access(book, user, session)
 
@@ -445,11 +459,13 @@ async def patch_book_transaction(
     request: TransactionPatchRequestDTO,
     user: User = Depends(get_current_user),
     session: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
 ) -> TransactionWriteResultDTO:
     """Patch description, date, and/or split memos for an existing transaction.
 
     Does NOT allow editing split amounts or accounts.
     """
+    _ensure_writes_enabled(settings)
     book = _resolve_viewable_book(book_id, user, session)
     _require_book_edit_access(book, user, session)
 

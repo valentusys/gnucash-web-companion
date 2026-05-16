@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     app_admin_password: str = ""
     app_admin_password_hash: str = ""
     cors_origins: list[str] = Field(default_factory=lambda: ["*"])
+    gnucash_writes_enabled: bool = False
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

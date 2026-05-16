@@ -63,7 +63,9 @@
 				<p class="mt-2 text-sm" style="color: var(--app-muted);">Book: {data.activeBook.name}</p>
 			{/if}
 		</div>
-		<a class="rounded-xl px-4 py-2 text-sm font-semibold text-white" style="background: var(--app-accent);" href="/transactions/new">New transaction</a>
+		{#if data.writesEnabled}
+			<a class="rounded-xl px-4 py-2 text-sm font-semibold text-white" style="background: var(--app-accent);" href="/transactions/new">New transaction</a>
+		{/if}
 	</div>
 
 	<TransactionFilters

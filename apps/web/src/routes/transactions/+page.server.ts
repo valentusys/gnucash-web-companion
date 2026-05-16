@@ -1,3 +1,4 @@
+import { env } from '$env/dynamic/private';
 import { apiFetch, getAuthToken } from '$lib/api/server';
 import type { Account, Book, PaginatedTransactions } from '$lib/api/types';
 import type { PageServerLoad } from './$types';
@@ -34,6 +35,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 		accounts,
 		txs,
 		filters: { query, dateFrom, dateTo, accountId },
+		writesEnabled: env.GNUCASH_WRITES_ENABLED === 'true',
 		showBookSelector: books.length > 1,
 		activeBook: books.find((book) => book.is_default) ?? books[0] ?? null
 	};

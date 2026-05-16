@@ -13,6 +13,7 @@ services:
       - APP_ADMIN_PASSWORD=${APP_ADMIN_PASSWORD:-}
       - APP_ADMIN_PASSWORD_HASH=${APP_ADMIN_PASSWORD_HASH:-}
       - CORS_ORIGINS=${CORS_ORIGINS:-["*"]}
+      - GNUCASH_WRITES_ENABLED=${GNUCASH_WRITES_ENABLED:-false}
     volumes:
       - ./data:/data
     healthcheck:
@@ -30,6 +31,7 @@ services:
     environment:
       - PUBLIC_APP_NAME=${PUBLIC_APP_NAME:-GnuCash Web Companion}
       - API_INTERNAL_URL=${API_INTERNAL_URL:-http://api:8000}
+      - GNUCASH_WRITES_ENABLED=${GNUCASH_WRITES_ENABLED:-false}
       - ORIGIN=${ORIGIN:-http://localhost:8080}
     expose:
       - "3000"
