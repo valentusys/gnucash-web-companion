@@ -57,10 +57,10 @@
 <main class="mx-auto max-w-6xl px-4 py-8">
 	<div class="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
 		<div>
-			<p class="text-sm font-medium uppercase tracking-wide text-blue-700">Transactions</p>
-			<h1 class="mt-1 text-3xl font-bold text-gray-900">Browse transactions</h1>
+			<p class="text-sm font-medium uppercase tracking-wide" style="color: var(--app-accent);">Transactions</p>
+			<h1 class="mt-1 text-3xl font-bold" style="color: var(--app-text);">Browse transactions</h1>
 			{#if data.activeBook}
-				<p class="mt-2 text-sm text-gray-600">Book: {data.activeBook.name}</p>
+				<p class="mt-2 text-sm" style="color: var(--app-muted);">Book: {data.activeBook.name}</p>
 			{/if}
 		</div>
 	</div>
@@ -74,7 +74,7 @@
 		onChange={handleFilter}
 	/>
 
-	<div class="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
+	<div class="rounded-2xl p-4" style="background-color: var(--app-panel); box-shadow: 0 1px 3px var(--app-panel-shadow); border: 1px solid var(--app-border);">
 		<TransactionTable transactions={txs.items} onSelect={handleSelect} />
 		<TransactionCard transactions={txs.items} onSelect={handleSelect} />
 		<Pagination {offset} {limit} {total} onChange={handlePageChange} />

@@ -26,44 +26,44 @@
 </svelte:head>
 
 <main class="mx-auto max-w-4xl px-4 py-8">
-	<a href="/accounts" class="text-sm font-medium text-blue-700 hover:text-blue-900">← Back to accounts</a>
+	<a href="/accounts" class="text-sm font-medium hover:underline" style="color: var(--app-accent);">← Back to accounts</a>
 
-	<section class="mt-4 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
+	<section class="mt-4 rounded-2xl p-6" style="background-color: var(--app-panel); box-shadow: 0 1px 3px var(--app-panel-shadow); border: 1px solid var(--app-border);">
 		<div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
 			<div>
-				<p class="text-sm font-medium uppercase tracking-wide text-blue-700">Account detail</p>
-				<h1 class="mt-1 text-3xl font-bold text-gray-900">{account.name}</h1>
-				<p class="mt-2 break-words text-gray-600">{account.full_name}</p>
+				<p class="text-sm font-medium uppercase tracking-wide" style="color: var(--app-accent);">Account detail</p>
+				<h1 class="mt-1 text-3xl font-bold" style="color: var(--app-text);">{account.name}</h1>
+				<p class="mt-2 break-words" style="color: var(--app-muted);">{account.full_name}</p>
 			</div>
-			<div class="rounded-xl bg-gray-50 px-4 py-3 text-right">
-				<p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Balance</p>
+			<div class="rounded-xl px-4 py-3 text-right" style="background-color: var(--app-elevated-bg);">
+				<p class="text-xs font-semibold uppercase tracking-wide" style="color: var(--app-muted);">Balance</p>
 				<p class="mt-1 text-xl"><AccountBalance balance={account.balance} currency={account.currency} /></p>
 			</div>
 		</div>
 
 		<dl class="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
-			<div class="rounded-xl bg-gray-50 p-4">
-				<dt class="text-xs font-semibold uppercase text-gray-500">Type</dt>
-				<dd class="mt-1 text-gray-900">{account.type}</dd>
+			<div class="rounded-xl p-4" style="background-color: var(--app-elevated-bg);">
+				<dt class="text-xs font-semibold uppercase" style="color: var(--app-muted);">Type</dt>
+				<dd class="mt-1" style="color: var(--app-text);">{account.type}</dd>
 			</div>
-			<div class="rounded-xl bg-gray-50 p-4">
-				<dt class="text-xs font-semibold uppercase text-gray-500">Currency</dt>
-				<dd class="mt-1 text-gray-900">{account.currency}</dd>
+			<div class="rounded-xl p-4" style="background-color: var(--app-elevated-bg);">
+				<dt class="text-xs font-semibold uppercase" style="color: var(--app-muted);">Currency</dt>
+				<dd class="mt-1" style="color: var(--app-text);">{account.currency}</dd>
 			</div>
-			<div class="rounded-xl bg-gray-50 p-4">
-				<dt class="text-xs font-semibold uppercase text-gray-500">Placeholder</dt>
-				<dd class="mt-1 text-gray-900">{account.placeholder ? 'Yes' : 'No'}</dd>
+			<div class="rounded-xl p-4" style="background-color: var(--app-elevated-bg);">
+				<dt class="text-xs font-semibold uppercase" style="color: var(--app-muted);">Placeholder</dt>
+				<dd class="mt-1" style="color: var(--app-text);">{account.placeholder ? 'Yes' : 'No'}</dd>
 			</div>
-			<div class="rounded-xl bg-gray-50 p-4">
-				<dt class="text-xs font-semibold uppercase text-gray-500">Hidden</dt>
-				<dd class="mt-1 text-gray-900">{account.hidden ? 'Yes' : 'No'}</dd>
+			<div class="rounded-xl p-4" style="background-color: var(--app-elevated-bg);">
+				<dt class="text-xs font-semibold uppercase" style="color: var(--app-muted);">Hidden</dt>
+				<dd class="mt-1" style="color: var(--app-text);">{account.hidden ? 'Yes' : 'No'}</dd>
 			</div>
 		</dl>
 	</section>
 
-	<section class="mt-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-		<h2 class="text-lg font-semibold text-gray-900">Transactions</h2>
-		<p class="mt-1 text-sm text-gray-500">{txs.total} transaction{txs.total !== 1 ? 's' : ''}</p>
+	<section class="mt-6 rounded-2xl p-6" style="background-color: var(--app-panel); box-shadow: 0 1px 3px var(--app-panel-shadow); border: 1px solid var(--app-border);">
+		<h2 class="text-lg font-semibold" style="color: var(--app-text);">Transactions</h2>
+		<p class="mt-1 text-sm" style="color: var(--app-muted);">{txs.total} transaction{txs.total !== 1 ? 's' : ''}</p>
 
 		<div class="mt-4">
 			<TransactionTable transactions={txs.items} onSelect={handleSelect} />

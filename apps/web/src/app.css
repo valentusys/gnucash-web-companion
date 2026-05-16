@@ -1,1 +1,120 @@
 @import "tailwindcss";
+
+/* ============================================================
+   Theme System — CSS custom properties
+   ============================================================ */
+
+:root,
+[data-theme="light"] {
+	--app-bg: #f9fafb;
+	--app-panel: #ffffff;
+	--app-text: #111827;
+	--app-muted: #6b7280;
+	--app-accent: #2563eb;
+	--app-danger: #dc2626;
+	--app-success: #16a34a;
+	--app-border: #e5e7eb;
+	--app-accent-hover: #1d4ed8;
+	--app-danger-hover: #b91c1c;
+	--app-success-hover: #15803d;
+	--app-panel-shadow: rgba(0, 0, 0, 0.08);
+	--app-ring: rgba(37, 99, 235, 0.2);
+	--app-nav-bg: #ffffff;
+	--app-nav-border: #e5e7eb;
+	--app-input-bg: #ffffff;
+	--app-input-border: #d1d5db;
+	--app-hover-bg: #f3f4f6;
+	--app-elevated-bg: #f3f4f6;
+}
+
+[data-theme="dark"] {
+	--app-bg: #0f172a;
+	--app-panel: #1e293b;
+	--app-text: #f1f5f9;
+	--app-muted: #94a3b8;
+	--app-accent: #3b82f6;
+	--app-danger: #ef4444;
+	--app-success: #22c55e;
+	--app-border: #334155;
+	--app-accent-hover: #60a5fa;
+	--app-danger-hover: #f87171;
+	--app-success-hover: #4ade80;
+	--app-panel-shadow: rgba(0, 0, 0, 0.3);
+	--app-ring: rgba(59, 130, 246, 0.3);
+	--app-nav-bg: #1e293b;
+	--app-nav-border: #334155;
+	--app-input-bg: #0f172a;
+	--app-input-border: #475569;
+	--app-hover-bg: #334155;
+	--app-elevated-bg: #334155;
+}
+
+/* ============================================================
+   Base resets
+   ============================================================ */
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+html {
+	-webkit-text-size-adjust: 100%;
+	scroll-behavior: smooth;
+	color-scheme: light;
+}
+
+[data-theme="dark"] {
+	color-scheme: dark;
+}
+
+body {
+	margin: 0;
+	font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+	background-color: var(--app-bg);
+	color: var(--app-text);
+	line-height: 1.5;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+/* Prevent horizontal scroll on mobile */
+html, body {
+	overflow-x: hidden;
+	max-width: 100vw;
+}
+
+/* Focus visible styles for accessibility */
+:focus-visible {
+	outline: 2px solid var(--app-accent);
+	outline-offset: 2px;
+}
+
+/* Remove default focus for mouse users */
+:focus:not(:focus-visible) {
+	outline: none;
+}
+
+/* Screen-reader only utility */
+.sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border-width: 0;
+}
+
+/* Safe-area support for fixed mobile bottom navigation */
+.safe-bottom {
+	padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ============================================================
+   Theme flash prevention — inline script sets data-theme
+   before first paint. This ensures no white flash in dark mode.
+   ============================================================ */

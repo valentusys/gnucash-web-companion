@@ -4,5 +4,5 @@
 
 <span class="tabular-nums">
 	{amount}
-	<span class="ml-1 text-xs font-medium uppercase text-gray-500">{currency}</span>
+	<span class="ml-1 text-xs font-medium uppercase" style="color: var(--app-muted);">{currency}</span>
 </span>

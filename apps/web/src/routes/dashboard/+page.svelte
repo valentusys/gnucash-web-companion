@@ -11,12 +11,13 @@
 	<title>Dashboard — GnuCash Web Companion</title>
 </svelte:head>
 
-<main class="mx-auto max-w-5xl px-4 py-6 sm:py-10">
-	<h1 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Dashboard</h1>
+<main class="mx-auto max-w-5xl px-4 py-6 sm:py-10" style="color: var(--app-text);">
+	<h1 class="text-2xl font-bold tracking-tight sm:text-3xl" style="color: var(--app-text);">Dashboard</h1>
 
 	{#if data.loadError}
 		<div
-			class="mt-4 rounded-lg bg-red-50 p-4 text-sm text-red-700 ring-1 ring-red-200"
+			class="mt-4 rounded-lg p-4 text-sm"
+			style="background-color: color-mix(in srgb, var(--app-danger) 8%, var(--app-panel)); color: var(--app-danger); border: 1px solid var(--app-danger);"
 			role="alert"
 		>
 			<p class="font-semibold">Failed to load dashboard data</p>
@@ -24,8 +25,8 @@
 		</div>
 	{/if}
 
-	<section class="mt-6">
-		<h2 class="mb-3 text-sm font-medium uppercase tracking-wide text-gray-500">Summary</h2>
+	<section class="mt-6" aria-labelledby="summary-heading">
+		<h2 id="summary-heading" class="mb-3 text-sm font-medium uppercase tracking-wide" style="color: var(--app-muted);">Summary</h2>
 		<SummaryGrid summary={data.summary} />
 	</section>
 
@@ -34,7 +35,8 @@
 		<ExpensesByAccount expenses={data.expenses} />
 	</div>
 
-	<section class="mt-6">
+	<section class="mt-6" aria-labelledby="cashflow-heading">
+		<h2 id="cashflow-heading" class="sr-only">Cashflow</h2>
 		<CashflowSummary periods={data.cashflowPeriods} />
 	</section>
 </main>

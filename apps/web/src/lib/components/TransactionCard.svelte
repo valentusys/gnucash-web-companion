@@ -14,7 +14,8 @@
 <div class="space-y-3 md:hidden">
 	{#each transactions as tx (tx.id)}
 		<div
-			class="cursor-pointer rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200"
+			class="cursor-pointer rounded-xl p-4"
+			style="background-color: var(--app-panel); box-shadow: 0 1px 3px var(--app-panel-shadow); border: 1px solid var(--app-border);"
 			onclick={() => onSelect(tx.id)}
 			onkeydown={(e) => { if (e.key === 'Enter') onSelect(tx.id); }}
 			role="button"
@@ -22,20 +23,20 @@
 		>
 			<div class="flex items-start justify-between gap-3">
 				<div class="min-w-0">
-					<p class="truncate text-sm font-medium text-gray-900">{tx.description || '—'}</p>
-					<p class="mt-1 text-xs text-gray-500">{tx.date}</p>
+					<p class="truncate text-sm font-medium" style="color: var(--app-text);">{tx.description || '—'}</p>
+					<p class="mt-1 text-xs" style="color: var(--app-muted);">{tx.date}</p>
 				</div>
 				<div class="shrink-0 text-right">
 					<p class="text-sm font-semibold"><Money amount={tx.amount} currency={tx.currency} /></p>
 				</div>
 			</div>
-			<div class="mt-2 flex flex-wrap gap-2 text-xs text-gray-500">
-				<span class="rounded bg-gray-100 px-2 py-0.5">{tx.account_name}</span>
-				<span class="text-gray-400">→</span>
-				<span class="rounded bg-gray-100 px-2 py-0.5">{tx.counter_account_name}</span>
+			<div class="mt-2 flex flex-wrap gap-2 text-xs" style="color: var(--app-muted);">
+				<span class="rounded px-2 py-0.5" style="background-color: var(--app-elevated-bg);">{tx.account_name}</span>
+				<span style="color: var(--app-border);">→</span>
+				<span class="rounded px-2 py-0.5" style="background-color: var(--app-elevated-bg);">{tx.counter_account_name}</span>
 			</div>
 		</div>
 	{:else}
-		<p class="py-8 text-center text-sm text-gray-500">No transactions found.</p>
+		<p class="py-8 text-center text-sm" style="color: var(--app-muted);">No transactions found.</p>
 	{/each}
 </div>

@@ -40,9 +40,9 @@
 {:else}
 	<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
 		{#each Array(5) as _}
-			<div class="animate-pulse rounded-xl bg-gray-100 p-5">
-				<div class="h-3 w-24 rounded bg-gray-200"></div>
-				<div class="mt-3 h-7 w-32 rounded bg-gray-200"></div>
+			<div class="animate-pulse rounded-xl p-5" style="background-color: var(--app-elevated-bg);">
+				<div class="h-3 w-24 rounded" style="background-color: var(--app-border);"></div>
+				<div class="mt-3 h-7 w-32 rounded" style="background-color: var(--app-border);"></div>
 			</div>
 		{/each}
 	</div>

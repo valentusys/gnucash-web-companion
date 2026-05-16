@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="GnuCash Web Companion icon">
+  <rect width="512" height="512" rx="112" fill="#2563eb"/>
+  <path d="M128 160h256a32 32 0 0 1 32 32v176a32 32 0 0 1-32 32H128a32 32 0 0 1-32-32V192a32 32 0 0 1 32-32Z" fill="#ffffff" opacity="0.95"/>
+  <path d="M160 224h192M160 280h192M160 336h128" stroke="#2563eb" stroke-width="28" stroke-linecap="round"/>
+  <circle cx="368" cy="336" r="28" fill="#16a34a"/>
+  <path d="M256 96v96" stroke="#ffffff" stroke-width="32" stroke-linecap="round" opacity="0.9"/>
+</svg>

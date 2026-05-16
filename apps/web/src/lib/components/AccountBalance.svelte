@@ -5,6 +5,6 @@
 	const negative = $derived(balance.trim().startsWith('-'));
 </script>
 
-<span class={negative ? 'font-semibold text-red-700' : 'font-semibold text-gray-900'}>
+<span class="font-semibold" style="color: {negative ? 'var(--app-danger)' : 'var(--app-text)'};">
 	<Money amount={balance} {currency} />
 </span>

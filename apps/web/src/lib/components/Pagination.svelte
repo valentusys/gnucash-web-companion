@@ -26,22 +26,24 @@
 </script>
 
 <div class="flex items-center justify-between gap-4 py-3">
-	<p class="text-sm text-gray-600">
+	<p class="text-sm" style="color: var(--app-muted);">
 		{total === 0 ? 'No results' : `${offset + 1}–${Math.min(offset + limit, total)} of ${total}`}
 	</p>
 	<div class="flex items-center gap-2">
 		<button
 			type="button"
-			class="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+			class="rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-40"
+			style="border-color: var(--app-border); color: var(--app-text);"
 			disabled={!hasPrev}
 			onclick={prev}
 		>
 			Previous
 		</button>
-		<span class="text-sm text-gray-500">Page {currentPage} of {totalPages}</span>
+		<span class="text-sm" style="color: var(--app-muted);">Page {currentPage} of {totalPages}</span>
 		<button
 			type="button"
-			class="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+			class="rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-40"
+			style="border-color: var(--app-border); color: var(--app-text);"
 			disabled={!hasNext}
 			onclick={next}
 		>

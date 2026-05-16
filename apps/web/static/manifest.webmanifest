@@ -1,0 +1,20 @@
+{
+	"name": "GnuCash Web Companion",
+	"short_name": "GnuCash",
+	"description": "Modern self-hosted read-only companion for existing GnuCash books.",
+	"start_url": "/dashboard",
+	"display": "standalone",
+	"background_color": "#f9fafb",
+	"theme_color": "#2563eb",
+	"orientation": "any",
+	"icons": [
+		{
+			"src": "/icon.svg",
+			"sizes": "any",
+			"type": "image/svg+xml",
+			"purpose": "any maskable"
+		}
+	],
+	"categories": ["finance", "productivity"],
+	"lang": "en"
+}

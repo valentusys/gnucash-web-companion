@@ -35,6 +35,11 @@ assert.match(logoutServer, /cookies\.delete\('access_token'/, 'logout must delet
 
 for (const file of walk(join(root, 'src'))) {
 	const content = readFileSync(file, 'utf8');
+	// Theme-related files are allowed to use localStorage for theme preference only (not auth tokens)
+	if (file.endsWith('app.html') || file.endsWith('theme.ts')) {
+		assert.doesNotMatch(content, /access_token/, `${file} must not reference auth tokens`);
+		continue;
+	}
 	assert.doesNotMatch(content, /localStorage|sessionStorage/, `${file} must not use localStorage/sessionStorage`);
 }
 

@@ -11,16 +11,19 @@
 <main class="mx-auto max-w-6xl px-4 py-8">
 	<div class="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
 		<div>
-			<p class="text-sm font-medium uppercase tracking-wide text-blue-700">Accounts</p>
-			<h1 class="mt-1 text-3xl font-bold text-gray-900">Account tree</h1>
+			<p class="text-sm font-medium uppercase tracking-wide" style="color: var(--app-accent);">Accounts</p>
+			<h1 class="mt-1 text-3xl font-bold" style="color: var(--app-text);">Account tree</h1>
 			{#if data.activeBook}
-				<p class="mt-2 text-sm text-gray-600">Book: {data.activeBook.name}</p>
+				<p class="mt-2 text-sm" style="color: var(--app-muted);">Book: {data.activeBook.name}</p>
 			{/if}
 		</div>
 		{#if data.showBookSelector}
-			<label class="text-sm font-medium text-gray-700">
+			<label class="text-sm font-medium" style="color: var(--app-text);">
 				Book
-				<select class="mt-1 block rounded-lg border border-gray-300 bg-white px-3 py-2">
+				<select
+					class="mt-1 block rounded-lg border px-3 py-2"
+					style="border-color: var(--app-input-border); background-color: var(--app-input-bg); color: var(--app-text);"
+				>
 					{#each data.books as book (book.id)}
 						<option selected={book.id === data.activeBook?.id}>{book.name}</option>
 					{/each}
