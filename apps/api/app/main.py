@@ -9,6 +9,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
 from app.database import Base, get_engine, get_session_factory
 from app.routers.auth import router as auth_router
+from app.routers.books import router as books_router
+from app.routers.accounts import router as accounts_router
 from app.services.seed import seed_default_book
 from app.services.auth import seed_admin_user
 
@@ -37,6 +39,8 @@ app.add_middleware(
 )
 
 app.include_router(auth_router)
+app.include_router(books_router)
+app.include_router(accounts_router)
 
 
 @app.get("/health")

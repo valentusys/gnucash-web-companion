@@ -21,7 +21,7 @@ function walk(dir, files = []) {
 }
 
 const hooks = read('src/hooks.server.ts');
-assert.match(hooks, /PROTECTED_PREFIXES\s*=\s*\['\/dashboard'\]/, 'dashboard route must be protected');
+assert.match(hooks, /PROTECTED_PREFIXES[\s\S]*'\/dashboard'[\s\S]*'\/accounts'/, 'dashboard and accounts routes must be protected');
 assert.match(hooks, /redirect\(303, `\/login\?next=/, 'protected routes must redirect to /login');
 assert.match(hooks, /cookies\.get\('access_token'\)/, 'protected routes must use the httpOnly cookie');
 
