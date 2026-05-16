@@ -11,7 +11,7 @@ Last updated: 2026-05-17
 
 ## Current baseline
 
-Completed through Phase 16; Phase 17 planned:
+Completed through Phase 17; Phase 18 planned:
 
 - Phase 0 — competitive review and product positioning
 - Phase 1 — open-source foundation
@@ -30,6 +30,7 @@ Completed through Phase 16; Phase 17 planned:
 - Phase 14 — MVP read-only scope lock and write gating
 - Phase 15 — public pre-alpha release readiness
 - Phase 16 — project lead subagent profile
+- Phase 17 — synthetic GnuCash fixture and read-only integration validation
 
 ## MVP product model
 
@@ -123,6 +124,20 @@ Artifacts:
 Test results: 187 passed (167 existing + 19 new integration + 1 updated), 0 failed.
 
 Deviation from spec: the spec assumed 9 accounts (1 ROOT + 8 children) but piecash `book.accounts` returns 10 non-ROOT accounts (ROOT is only in `book.root_account`). The service layer returns 10 accounts. Tests assert `account_count == 10`. The account tree has 4 top-level nodes (ROOT is not in `_accounts()` so its children become roots).
+
+## Phase 18 — README Screenshots and Mobile Preview with Synthetic Data
+
+Status: planned.
+
+Goal: add visual proof of the current UI to the README using only synthetic fixture data.
+
+Artifacts:
+- `docs/images/` — 7 screenshot files (login, dashboard desktop/mobile, accounts tree, transactions list, transaction detail, dark mode).
+- `README.md` — updated with `## Screenshots` section.
+
+Non-goals: no production code changes, no new features, no real financial data, no release/tag bump.
+
+Related issue: `docs/github/issues/03-readme-screenshots-mobile-preview.md`.
 
 ## Standing constraints
 

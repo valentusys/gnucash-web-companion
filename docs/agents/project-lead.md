@@ -142,13 +142,13 @@ Do not allow release notes to imply production security, hosted SaaS readiness, 
 Recommended next phase:
 
 ```text
-Phase 16 — Synthetic GnuCash fixture and real read-only integration validation.
+Phase 18 — README screenshots and mobile preview using synthetic data.
 ```
 
 Priority order:
 
-1. Synthetic/disposable GnuCash SQL fixture.
-2. Real read-only adapter validation against fixture.
+1. ~~Synthetic/disposable GnuCash SQL fixture.~~ → Done (Phase 17)
+2. ~~Real read-only adapter validation against fixture.~~ → Done (Phase 17)
 3. README screenshots using synthetic data only.
 4. Manual GitHub issue/label/milestone creation or install/configure `gh`.
 5. v0.0.1-prealpha GitHub pre-release.
