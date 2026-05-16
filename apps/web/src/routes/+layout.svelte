@@ -11,6 +11,7 @@
 				<a href="/dashboard" class="text-sm font-semibold text-gray-900">GnuCash Web Companion</a>
 				<nav class="flex items-center gap-3">
 					<a href="/accounts" class="text-sm font-medium text-gray-700 hover:text-gray-950">Accounts</a>
+					<a href="/transactions" class="text-sm font-medium text-gray-700 hover:text-gray-950">Transactions</a>
 					<form method="POST" action="/logout">
 						<button
 							type="submit"

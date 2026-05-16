@@ -80,6 +80,11 @@ def account_service_for(book: Book) -> GnuCashBookService:
     return GnuCashBookService(book)
 
 
+def transaction_service_for(book: Book) -> GnuCashBookService:
+    """Alias for account_service_for; same service handles transactions."""
+    return GnuCashBookService(book)
+
+
 @router.get("")
 async def list_books(
     user: User = Depends(get_current_user),

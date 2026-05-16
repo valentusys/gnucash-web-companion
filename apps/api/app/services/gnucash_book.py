@@ -176,6 +176,8 @@ class GnuCashBookService:
         date_from: date | str | None = None,
         date_to: date | str | None = None,
         query: str | None = None,
+        min_amount: Decimal | str | None = None,
+        max_amount: Decimal | str | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> list[TransactionListItemDTO]:
@@ -184,10 +186,14 @@ class GnuCashBookService:
         start = _coerce_date(date_from)
         end = _coerce_date(date_to)
         normalized_query = query.lower() if query else None
+        min_decimal = self._optional_decimal(min_amount)
+        max_decimal = self._optional_decimal(max_amount)
         with self._open_book() as book:
             items: list[TransactionListItemDTO] = []
             for transaction in self._transactions(book):
-                if not self._transaction_matches(transaction, account_id, start, end, normalized_query):
+                if not self._transaction_matches(
+                    transaction, account_id, start, end, normalized_query, min_decimal, max_decimal
+                ):
                     continue
                 items.append(self._transaction_to_list_item(transaction, account_id))
             items.sort(key=lambda item: (item.date, item.id), reverse=True)
@@ -199,6 +205,29 @@ class GnuCashBookService:
             if transaction is None:
                 raise EntityNotFoundError("transaction", transaction_id)
             return self._transaction_to_detail(transaction)
+
+    def count_transactions(
+        self,
+        account_id: str | None = None,
+        date_from: date | str | None = None,
+        date_to: date | str | None = None,
+        query: str | None = None,
+        min_amount: Decimal | str | None = None,
+        max_amount: Decimal | str | None = None,
+    ) -> int:
+        start = _coerce_date(date_from)
+        end = _coerce_date(date_to)
+        normalized_query = query.lower() if query else None
+        min_decimal = self._optional_decimal(min_amount)
+        max_decimal = self._optional_decimal(max_amount)
+        with self._open_book() as book:
+            return sum(
+                1
+                for transaction in self._transactions(book)
+                if self._transaction_matches(
+                    transaction, account_id, start, end, normalized_query, min_decimal, max_decimal
+                )
+            )
 
     def get_summary(self) -> BookSummaryDTO:
         with self._open_book() as book:
@@ -322,6 +351,11 @@ class GnuCashBookService:
             return value
         return Decimal(str(value))
 
+    def _optional_decimal(self, value: Decimal | str | None) -> Decimal | None:
+        if value is None or value == "":
+            return None
+        return self._decimal(value)
+
     def _transaction_matches(
         self,
         transaction: Any,
@@ -329,6 +363,8 @@ class GnuCashBookService:
         date_from: date | None,
         date_to: date | None,
         query: str | None,
+        min_amount: Decimal | None = None,
+        max_amount: Decimal | None = None,
     ) -> bool:
         tx_date = _coerce_date(self._transaction_date(transaction))
         if date_from and (tx_date is None or tx_date < date_from):
@@ -337,8 +373,14 @@ class GnuCashBookService:
             return False
         if query and query not in str(getattr(transaction, "description", "")).lower():
             return False
-        if account_id:
-            return any(self._account_id(getattr(split, "account", None)) == account_id for split in self._splits(transaction))
+        if account_id and not any(self._account_id(getattr(split, "account", None)) == account_id for split in self._splits(transaction)):
+            return False
+        if min_amount is not None or max_amount is not None:
+            amount = abs(self._split_amount(self._select_split(self._splits(transaction), account_id)))
+            if min_amount is not None and amount < min_amount:
+                return False
+            if max_amount is not None and amount > max_amount:
+                return False
         return True
 
     def _transaction_to_list_item(self, transaction: Any, account_id: str | None = None) -> TransactionListItemDTO:

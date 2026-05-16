@@ -82,3 +82,12 @@ class CashflowDTO(BaseModel):
     inflow: str
     outflow: str
     net: str
+
+
+class PaginatedResponse(BaseModel):
+    """Generic paginated response wrapper."""
+
+    items: list = Field(default_factory=list)
+    limit: int = 50
+    offset: int = 0
+    total: int = 0

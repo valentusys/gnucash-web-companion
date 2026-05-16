@@ -1,8 +1,24 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import AccountBalance from '$lib/components/AccountBalance.svelte';
+	import TransactionTable from '$lib/components/TransactionTable.svelte';
+	import TransactionCard from '$lib/components/TransactionCard.svelte';
+	import Pagination from '$lib/components/Pagination.svelte';
 
 	let { data } = $props();
 	const account = $derived(data.account);
+	const txs = $derived(data.txs);
+
+	function handleSelect(id: string) {
+		goto(`/transactions/${encodeURIComponent(id)}`);
+	}
+
+	function handlePageChange(newOffset: number) {
+		const sp = new URLSearchParams();
+		sp.set('limit', String(txs.limit));
+		sp.set('offset', String(newOffset));
+		goto(`/accounts/${encodeURIComponent(account.id)}?${sp.toString()}`);
+	}
 </script>
 
 <svelte:head>
@@ -45,8 +61,14 @@
 		</dl>
 	</section>
 
-	<section class="mt-6 rounded-2xl border border-dashed border-gray-300 bg-white p-6 text-gray-600">
+	<section class="mt-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
 		<h2 class="text-lg font-semibold text-gray-900">Transactions</h2>
-		<p class="mt-2">Transaction list will be added in Phase 7.</p>
+		<p class="mt-1 text-sm text-gray-500">{txs.total} transaction{txs.total !== 1 ? 's' : ''}</p>
+
+		<div class="mt-4">
+			<TransactionTable transactions={txs.items} onSelect={handleSelect} />
+			<TransactionCard transactions={txs.items} onSelect={handleSelect} />
+			<Pagination offset={txs.offset} limit={txs.limit} total={txs.total} onChange={handlePageChange} />
+		</div>
 	</section>
 </main>

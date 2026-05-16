@@ -1,6 +1,6 @@
 import { redirect, type Handle } from '@sveltejs/kit';
 
-const PROTECTED_PREFIXES = ['/dashboard', '/accounts', '/books'];
+const PROTECTED_PREFIXES = ['/dashboard', '/accounts', '/books', '/transactions'];
 
 function isProtectedPath(pathname: string): boolean {
 	return PROTECTED_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
