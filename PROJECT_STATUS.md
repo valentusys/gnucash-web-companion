@@ -60,7 +60,7 @@ Important positioning:
 
 ## Phase 15 — Public pre-alpha release readiness
 
-Status: complete pending commit, push, and tag.
+Status: complete. Phase commit pushed and `v0.0.1-prealpha` tag pushed.
 
 Release candidate: `v0.0.1-prealpha`.
 
@@ -72,7 +72,7 @@ GitHub issues:
 
 Release:
 
-- Tag should be created only after checks pass and the phase commit is pushed.
+- `v0.0.1-prealpha` tag was pushed with git.
 - GitHub pre-release cannot be created automatically without `gh` or token.
 - Manual GitHub release instructions are in `docs/github/manual-release-instructions.md`.
 

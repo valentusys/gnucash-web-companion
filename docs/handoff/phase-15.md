@@ -62,7 +62,7 @@ Passed on 2026-05-17:
 
 ## Release status
 
-- tag: to be created after the Phase 15 commit is pushed
+- tag: `v0.0.1-prealpha` pushed with git
 - pre-release: blocked for automation because `gh` is unavailable and no `GITHUB_TOKEN` is available
 - manual instructions: `docs/github/manual-release-instructions.md`
 
