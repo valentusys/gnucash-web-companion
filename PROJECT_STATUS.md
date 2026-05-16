@@ -11,7 +11,7 @@ Last updated: 2026-05-17
 
 ## Current baseline
 
-Completed through Phase 15:
+Completed through Phase 16:
 
 - Phase 0 — competitive review and product positioning
 - Phase 1 — open-source foundation
@@ -29,6 +29,7 @@ Completed through Phase 15:
 - Phase 13 — agent project context
 - Phase 14 — MVP read-only scope lock and write gating
 - Phase 15 — public pre-alpha release readiness
+- Phase 16 — project lead subagent profile
 
 ## MVP product model
 
@@ -86,6 +87,25 @@ Artifacts:
 - `docs/github/issues/*.md`
 - `docs/github/manual-release-instructions.md`
 - `docs/handoff/phase-15.md`
+
+## Phase 16 — Project Lead subagent profile
+
+Status: complete pending commit/push.
+
+Created:
+
+- `docs/agents/project-lead.md` — durable Project Lead / Руководитель проекта profile for future Hermes subagent use.
+- Hermes skill `gnucash-web-companion-project-lead` — reusable project lead context for future sessions.
+
+Purpose:
+
+- plan phases
+- review scope and safety boundaries
+- manage release/backlog guidance
+- prevent product drift away from read-only MVP positioning
+- keep controlled writes post-MVP and disabled by default
+
+The Project Lead is not a coding implementer and should not spawn further subagents.
 
 ## Standing constraints
 

@@ -119,6 +119,22 @@ gh auth status
 
 If `gh` is authenticated, use `gh` for GitHub issues/runs. If `gh` is not authenticated but a safe token is explicitly available, configure auth. If GitHub auth is impossible, continue locally and record the blocker.
 
+## Project Lead subagent
+
+A durable project-lead profile exists at:
+
+```text
+docs/agents/project-lead.md
+```
+
+Hermes skill:
+
+```text
+gnucash-web-companion-project-lead
+```
+
+Use it when the user asks for a project manager / руководитель проекта. The Project Lead plans phases, reviews scope/safety/release decisions, and prepares backlog guidance. It should not make direct code changes unless explicitly asked and must not spawn further subagents.
+
 ## Phase workflow
 
 After each phase:
