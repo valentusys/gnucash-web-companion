@@ -1,5 +1,6 @@
 <script lang="ts">
 	import AccountTree from '$lib/components/AccountTree.svelte';
+	import EmptyState from '$lib/components/EmptyState.svelte';
 
 	let { data } = $props();
 </script>
@@ -32,5 +33,12 @@
 		{/if}
 	</div>
 
-	<AccountTree accounts={data.accounts} />
+	{#if data.accounts.length}
+		<AccountTree accounts={data.accounts} />
+	{:else}
+		<EmptyState
+			title="No accounts available"
+			message="Verify the selected test-copy GnuCash book path and reload this read-only view."
+		/>
+	{/if}
 </main>

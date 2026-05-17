@@ -29,6 +29,9 @@
 	} = $props();
 
 	let amountError = $state('');
+	const hasActiveFilters = $derived(
+		Boolean(query || dateFrom || dateTo || accountId || minAmount || maxAmount)
+	);
 
 	function normalizeDecimal(value: FormDataEntryValue | null): string {
 		return String(value ?? '').trim();
@@ -71,6 +74,19 @@
 	style="background-color: var(--app-panel); box-shadow: 0 1px 3px var(--app-panel-shadow); border: 1px solid var(--app-border);"
 	onsubmit={handleSubmit}
 >
+	<div class="basis-full">
+		<div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+			<div>
+				<p class="text-sm font-semibold" style="color: var(--app-text);">Transaction filters</p>
+				<p class="text-xs" style="color: var(--app-muted);">
+					Narrow the read-only transaction list and CSV export; filters never modify your GnuCash book.
+				</p>
+			</div>
+			{#if hasActiveFilters}
+				<p class="text-xs font-medium" style="color: var(--app-accent);">Filtered view</p>
+			{/if}
+		</div>
+	</div>
 	<div class="flex-1">
 		<label for="tx-query" class="block text-xs font-semibold uppercase" style="color: var(--app-muted);">Search</label>
 		<input
@@ -164,11 +180,13 @@
 		</button>
 		<button
 			type="button"
-			class="rounded-lg border px-4 py-2 text-sm font-medium transition-colors hover:opacity-80"
+			class="rounded-lg border px-4 py-2 text-sm font-medium transition-colors hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
 			style="border-color: var(--app-border); color: var(--app-text);"
 			onclick={handleReset}
+			disabled={!hasActiveFilters}
+			aria-label="Reset all transaction filters"
 		>
-			Reset
+			Reset filters
 		</button>
 	</div>
 </form>

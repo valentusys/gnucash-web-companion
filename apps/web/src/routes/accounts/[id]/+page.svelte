@@ -8,6 +8,12 @@
 	let { data } = $props();
 	const account = $derived(data.account);
 	const txs = $derived(data.txs);
+	const accountPath = $derived.by(() =>
+		account.full_name
+			.split(':')
+			.map((part: string) => part.trim())
+			.filter(Boolean)
+	);
 
 	function handleSelect(id: string) {
 		goto(`/transactions/${encodeURIComponent(id)}`);
@@ -26,7 +32,15 @@
 </svelte:head>
 
 <main class="mx-auto max-w-4xl px-4 py-8">
-	<a href="/accounts" class="text-sm font-medium hover:underline" style="color: var(--app-accent);">← Back to accounts</a>
+	<nav class="text-sm font-medium" aria-label="Account breadcrumb">
+		<ol class="flex flex-wrap items-center gap-2">
+			<li><a href="/accounts" class="hover:underline" style="color: var(--app-accent);">Accounts</a></li>
+			{#each accountPath as part, index}
+				<li aria-hidden="true" style="color: var(--app-muted);">/</li>
+				<li style={index === accountPath.length - 1 ? 'color: var(--app-text);' : 'color: var(--app-muted);'} aria-current={index === accountPath.length - 1 ? 'page' : undefined}>{part}</li>
+			{/each}
+		</ol>
+	</nav>
 
 	<section class="mt-4 rounded-2xl p-6" style="background-color: var(--app-panel); box-shadow: 0 1px 3px var(--app-panel-shadow); border: 1px solid var(--app-border);">
 		<div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">

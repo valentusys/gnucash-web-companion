@@ -42,7 +42,10 @@
 				</tr>
 			{:else}
 				<tr>
-					<td colspan="5" class="px-4 py-8 text-center" style="color: var(--app-muted);">No transactions found.</td>
+					<td colspan="5" class="px-4 py-10 text-center">
+						<p class="font-medium" style="color: var(--app-text);">No transactions match this view</p>
+						<p class="mt-1 text-sm" style="color: var(--app-muted);">Try resetting filters or choose another account.</p>
+					</td>
 				</tr>
 			{/each}
 		</tbody>

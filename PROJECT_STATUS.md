@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 47.
+Completed through Phase 48.
 
 Completed phases:
 
@@ -63,10 +63,11 @@ Completed phases:
 - Phase 45 — GnuCash compatibility fixture plan
 - Phase 46 — Compatibility fixture implementation v1
 - Phase 47 — auditor pass after compatibility work
+- Phase 48 — UX polish for read-only core
 
 Next planned phase:
 
-- Phase 48 — UX polish for read-only core.
+- Phase 49 — Transaction search/filter hardening.
 
 ## MVP product model
 
@@ -725,6 +726,27 @@ Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default sta
 Test results: Phase 46 compatibility fixture tests passed; backend full suite passed; frontend check/auth-routes/build passed; Docker config validation passed; `git diff --check` passed.
 
 Related issue: GitHub #22 updated with the Phase 47 audit result and remains open for future desktop-version fixture coverage unless maintainers decide the generated fixture path is sufficient for the issue.
+
+## Phase 48 — UX Polish for Read-Only Core
+
+Status: complete. Phase commit pushed.
+
+Goal: improve read-only daily usability with small frontend-only polish while avoiding any write-scope expansion.
+
+Artifacts:
+
+- `apps/web/src/lib/components/TransactionFilters.svelte` — adds explanatory read-only filter copy, filtered-view status, and a disabled/explicit reset-filters button when no filters are active.
+- `apps/web/src/lib/components/TransactionCard.svelte` and `TransactionTable.svelte` — improve empty transaction states and mobile transaction card copy.
+- `apps/web/src/routes/transactions/+page.svelte` — clarifies CSV export filter count/status and documents the 10,000-row cap next to the export action.
+- `apps/web/src/routes/accounts/+page.svelte` — adds an account-tree empty state for missing/empty read-only book views.
+- `apps/web/src/routes/accounts/[id]/+page.svelte` — replaces the plain back link with clearer account breadcrumbs.
+- `CHANGELOG.md` and `docs/handoff/phase-48.md` — phase status and handoff synchronized.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default state; controlled writes remain experimental post-MVP and disabled by default; Phase 48 is frontend UX-only and does not add write capability, account editing, import/sync, release/tag publication, or real financial/secrets artifacts.
+
+Test results: backend full suite passed; frontend check/auth-routes/build passed; Docker config validation passed; `git diff --check` passed.
+
+Related issue: none identified in the roadmap for Phase 48.
 
 ## Phase 22 — Real Controlled Write Integration Tests
 

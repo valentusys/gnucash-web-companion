@@ -37,6 +37,11 @@
 			data.filters.maxAmount
 		].filter(Boolean).length
 	);
+	const csvStatus = $derived(
+		activeFilterCount
+			? `Exports current filtered view, capped at 10,000 rows.`
+			: 'Exports this read-only transaction list, capped at 10,000 rows.'
+	);
 
 	function paramsToUrl(params: {
 		query?: string;
@@ -105,11 +110,13 @@
 		<div class="flex flex-col gap-2 md:items-end">
 			{#if data.activeBook}
 				<a
-					class="rounded-xl px-4 py-2 text-sm font-semibold"
+					class="rounded-xl px-4 py-2 text-center text-sm font-semibold"
 					style="background: var(--app-panel); color: var(--app-text); border: 1px solid var(--app-border);"
 					href={exportCsvUrl}
-					>Экспорт CSV{#if activeFilterCount} ({activeFilterCount}){/if}</a
+					aria-describedby="csv-export-status"
+					>Export CSV{#if activeFilterCount} ({activeFilterCount} filter{activeFilterCount === 1 ? '' : 's'}){/if}</a
 				>
+				<p id="csv-export-status" class="max-w-xs text-xs" style="color: var(--app-muted);">{csvStatus}</p>
 			{/if}
 			{#if data.writesEnabled}
 				<div class="max-w-sm space-y-2">

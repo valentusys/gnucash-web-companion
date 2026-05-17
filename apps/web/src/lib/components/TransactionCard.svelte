@@ -1,4 +1,5 @@
 <script lang="ts">
+	import EmptyState from '$lib/components/EmptyState.svelte';
 	import Money from '$lib/components/Money.svelte';
 	import type { TransactionListItem } from '$lib/api/types';
 
@@ -23,7 +24,7 @@
 		>
 			<div class="flex items-start justify-between gap-3">
 				<div class="min-w-0">
-					<p class="truncate text-sm font-medium" style="color: var(--app-text);">{tx.description || '—'}</p>
+					<p class="truncate text-sm font-medium" style="color: var(--app-text);">{tx.description || 'No description'}</p>
 					<p class="mt-1 text-xs" style="color: var(--app-muted);">{tx.date}</p>
 				</div>
 				<div class="shrink-0 text-right">
@@ -37,6 +38,9 @@
 			</div>
 		</div>
 	{:else}
-		<p class="py-8 text-center text-sm" style="color: var(--app-muted);">No transactions found.</p>
+		<EmptyState
+			title="No transactions match this view"
+			message="Try resetting filters or choose another account. This screen is read-only."
+		/>
 	{/each}
 </div>

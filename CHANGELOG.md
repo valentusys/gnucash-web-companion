@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Phase 48 — read-only core UX polish: clearer transaction empty states, filter reset/status copy, CSV export cap/status copy, mobile card copy, account-tree empty state, and account breadcrumbs without write-scope expansion.
 - Phase 47 — independent auditor pass after compatibility fixture work, confirming fixture safety/no personal data/no unwanted generated binary commits and keeping compatibility claims conservative.
 - Phase 46 — generated disposable GnuCash SQLite compatibility fixture v1 path with read-only service tests for account tree, transaction list, split detail, reports, and checksum no-mutation behavior.
 - Phase 45 — GnuCash real-version compatibility fixture plan covering target versions, fixture data model, safe generation/storage policy, and acceptance tests for issue #22.
