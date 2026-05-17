@@ -45,7 +45,7 @@ Launch the Project Lead subagent for gnucash-web-companion, use this profile and
 - Release candidate tag: `v0.0.1-prealpha`
 - MVP v0.1: read-only by default
 - Controlled writes: experimental post-MVP only, gated by `GNUCASH_WRITES_ENABLED=false`
-- GitHub automation blocker: `gh` not installed and no `GITHUB_TOKEN` in the environment
+- GitHub automation: `gh` is available in the current maintainer environment and authenticated as `valentusys`; re-check with `gh auth status` at the start of each session.
 
 Primary continuity files:
 
@@ -139,7 +139,7 @@ Do not allow release notes to imply production security, hosted SaaS readiness, 
 
 ## Backlog priority
 
-Recommended next phase:
+Historical recommended next phase at the time this profile was created:
 
 ```text
 Phase 18 — README screenshots and mobile preview using synthetic data.

@@ -11,7 +11,7 @@ Last updated: 2026-05-17
 
 ## Current baseline
 
-Completed through Phase 24:
+Completed through Phase 25:
 
 - Phase 0 — competitive review and product positioning
 - Phase 1 — open-source foundation
@@ -38,6 +38,7 @@ Completed through Phase 24:
 - Phase 22 — real controlled write integration tests
 - Phase 23 — backup restore smoke test
 - Phase 24 — CSV export for transactions
+- Phase 25 — documentation, release, and roadmap sync
 
 ## MVP product model
 
@@ -254,6 +255,24 @@ Deviations: 8 tests implemented vs 7 minimum. Export endpoint placed before `{tr
 Production code changes: read-only only. Zero write-path changes. No new dependencies.
 
 Related issues: none.
+
+## Phase 25 — Documentation, Release, and Roadmap Sync
+
+Status: complete. Phase commits pushed: `bbd1c8b`, `fa328d6`.
+
+Goal: sync public docs, changelog, controlled-write notes, release candidate notes, and backlog after Phases 17–24 without creating a tag or release.
+
+Artifacts:
+
+- `README.md` — updated current status and release-candidate links for `v0.0.2-prealpha`.
+- `CHANGELOG.md` — added Unreleased entries for Phases 17–24.
+- `docs/v0.2-controlled-writes.md` — updated completed and pending write-safety checklist items.
+- `docs/release/v0.0.2-prealpha-notes.md` — created candidate notes only; no tag/release published.
+- `docs/handoff/phase-25.md` — handoff document.
+
+Test results: 262 passed, frontend check/auth-routes/build OK, Docker config valid.
+
+Related issues opened after Phase 25 / audit: GitHub #16, GitHub #17.
 
 ## Phase 22 — Real Controlled Write Integration Tests
 

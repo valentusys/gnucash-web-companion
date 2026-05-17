@@ -21,10 +21,11 @@ A modern, self-hosted web companion for existing [GnuCash](https://www.gnucash.o
 
 ## Current status
 
-- Phase 0–24 are complete.
+- Phase 0–25 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by default.
-- First public pre-alpha release candidate: `v0.0.1-prealpha`.
+- First public pre-alpha release: `v0.0.1-prealpha`.
+- Next pre-alpha release candidate notes exist for `v0.0.2-prealpha`; no `v0.0.2-prealpha` tag or GitHub release has been published yet.
 
 ## MVP scope: read-only first
 
@@ -106,7 +107,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.
 
 ## Release readiness
 
-The first public pre-alpha tag is planned as:
+The first public pre-alpha tag/release is:
 
 ```text
 v0.0.1-prealpha
@@ -117,7 +118,7 @@ Release checklist and notes:
 - [docs/release/v0.0.1-prealpha-checklist.md](docs/release/v0.0.1-prealpha-checklist.md)
 - [docs/release/v0.0.1-prealpha-notes.md](docs/release/v0.0.1-prealpha-notes.md)
 
-The next pre-alpha release candidate is:
+The next pre-alpha release candidate is documented as:
 
 ```text
 v0.0.2-prealpha
@@ -127,7 +128,7 @@ Release candidate notes:
 
 - [docs/release/v0.0.2-prealpha-notes.md](docs/release/v0.0.2-prealpha-notes.md)
 
-Do not publish npm or PyPI packages unless explicitly requested.
+No `v0.0.2-prealpha` tag or GitHub release has been published yet. Do not publish git tags, GitHub releases, npm packages, or PyPI packages unless explicitly requested.
 
 ## Repository description and topics
 
