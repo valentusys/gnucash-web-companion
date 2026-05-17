@@ -46,6 +46,10 @@ Completed through Phase 31:
 - Phase 30 — transaction amount range filters for CSV export
 - Phase 31 — read-only safety status banner
 
+Next planned phase:
+
+- Phase 32 — backend write-gating regression coverage (PM brief created; implementation not started)
+
 ## MVP product model
 
 MVP v0.1:
@@ -387,6 +391,20 @@ Artifacts:
 Test results: backend full suite, frontend check/auth-routes/build, and Docker config validation all passed.
 
 Related issues: none; this completed a small release-readiness/read-only MVP polish item from the roadmap.
+
+## Phase 32 — Backend Write-Gating Regression Coverage
+
+Status: planned by Project Lead. Implementation not started.
+
+Goal: convert the Phase 1 background-mission ad-hoc write-gating audit into committed regression tests for validate/create/patch controlled-write endpoints with writes disabled.
+
+Planning artifact:
+
+- `docs/handoff/phase-32.md` — PM brief for the next engineer phase.
+
+Reason: the audit confirmed real API behavior is currently safe, but GitHub issue #18 remains the highest-risk accepted blocker until the no-write-service-instantiation behavior is protected by committed tests.
+
+Expected scope: primarily `apps/api/tests/test_transaction_writes.py`; production code only if a gating regression is discovered. Keep writes disabled by default and do not expand write capability.
 
 ## Phase 22 — Real Controlled Write Integration Tests
 
