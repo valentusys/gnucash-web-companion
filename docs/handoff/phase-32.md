@@ -149,6 +149,6 @@ None.
 ## Commit / push / GitHub
 
 - Implementation commit: `5bdb201` (`test: cover disabled write gating`).
-- Final handoff/status commit: pending before final push.
+- Final handoff/status commit: `9deec92` (`docs: finalize phase 32 handoff`).
 - Push: pending before final push.
 - GitHub issue #18: to close after commits are pushed and checks pass.
