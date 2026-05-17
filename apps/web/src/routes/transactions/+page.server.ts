@@ -1,5 +1,5 @@
 import { env } from '$env/dynamic/private';
-import { apiFetch, getAuthToken, getActiveBookId } from '$lib/api/server';
+import { apiFetch, getAuthToken, getActiveBookContext } from '$lib/api/server';
 import type { Account, PaginatedTransactions } from '$lib/api/types';
 import type { PageServerLoad } from './$types';
 
@@ -11,8 +11,7 @@ function positiveInt(value: string | null, fallback: number, max: number): numbe
 
 export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 	const token = getAuthToken(cookies);
-	const activeBookId = getActiveBookId(cookies);
-	const bookPrefix = activeBookId ? `/books/${activeBookId}` : '';
+	const { activeBook, bookPrefix } = await getActiveBookContext(fetch, cookies, token);
 
 	const limit = positiveInt(url.searchParams.get('limit'), 50, 200) || 50;
 	const offset = positiveInt(url.searchParams.get('offset'), 0, Number.MAX_SAFE_INTEGER);
@@ -39,6 +38,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 	return {
 		accounts,
 		txs,
+		activeBook,
 		filters: { query, dateFrom, dateTo, accountId, minAmount, maxAmount },
 		writesEnabled: env.GNUCASH_WRITES_ENABLED === 'true'
 	};

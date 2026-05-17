@@ -1,16 +1,14 @@
-import { getAuthToken, getActiveBookId, apiFetch } from '$lib/api/server';
+import { getAuthToken, getActiveBookContext, apiFetch } from '$lib/api/server';
 import type { ReportSummary, ExpenseByAccount, CashflowPeriod, TransactionListItem } from '$lib/api/types';
 
 export async function load({ cookies, fetch: fetchFn }: { cookies: any; fetch: any }) {
 	const token = getAuthToken(cookies);
-	const activeBookId = getActiveBookId(cookies);
+	const { activeBook, bookPrefix } = await getActiveBookContext(fetchFn, cookies, token);
 
 	const today = new Date();
 	const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 	const dateFrom = firstOfMonth.toISOString().slice(0, 10);
 	const dateTo = today.toISOString().slice(0, 10);
-
-	const bookPrefix = activeBookId ? `/books/${activeBookId}` : '';
 
 	let summary: ReportSummary | null = null;
 	let expenses: ExpenseByAccount[] = [];
@@ -54,5 +52,5 @@ export async function load({ cookies, fetch: fetchFn }: { cookies: any; fetch: a
 		recentTransactions = [];
 	}
 
-	return { summary, expenses, cashflowPeriods, recentTransactions, loadError };
+	return { summary, expenses, cashflowPeriods, recentTransactions, loadError, activeBook };
 }

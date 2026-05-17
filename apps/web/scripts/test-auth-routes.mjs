@@ -80,6 +80,50 @@ assert.match(
 	'transactions page must show warning text near the enabled write entry point'
 );
 
+const serverApi = read('src/lib/api/server.ts');
+assert.match(
+	serverApi,
+	/export function resolveActiveBook[\s\S]*books\.find\(\(book\) => book\.id === selectedBookId\)[\s\S]*books\.find\(\(book\) => book\.is_default\)[\s\S]*books\[0\]/,
+	'book context must prefer selected accessible book, then accessible default, then first accessible book'
+);
+assert.match(
+	serverApi,
+	/cookies\.set\(SELECTED_BOOK_COOKIE[\s\S]*sameSite: 'lax'/,
+	'invalid selected book cookies must be replaced with an accessible fallback cookie'
+);
+for (const routeFile of [
+	'src/routes/+layout.server.ts',
+	'src/routes/dashboard/+page.server.ts',
+	'src/routes/accounts/+page.server.ts',
+	'src/routes/accounts/[id]/+page.server.ts',
+	'src/routes/transactions/+page.server.ts',
+	'src/routes/transactions/[id]/+page.server.ts'
+]) {
+	assert.match(
+		read(routeFile),
+		/getActiveBookContext/,
+		`${routeFile} must resolve book-aware data routes from the accessible book context`
+	);
+}
+
+const bookSwitcher = read('src/lib/components/BookSwitcher.svelte');
+assert.match(bookSwitcher, /Current book:/, 'book switcher must label the current book clearly');
+assert.match(
+	bookSwitcher,
+	/goto\(`\$\{window\.location\.pathname\}\$\{window\.location\.search\}`\)/,
+	'book switcher must preserve the current route and query string when switching books'
+);
+assert.match(
+	bookSwitcher,
+	/independent read-only books/,
+	'book switcher copy must frame multi-book as independent read-only books, not collaborative editing'
+);
+assert.doesNotMatch(
+	bookSwitcher,
+	/upload|collaborative|shared wallet|family wallet/i,
+	'book switcher must not add upload or collaborative/family-wallet framing'
+);
+
 const transactionFilters = read('src/lib/components/TransactionFilters.svelte');
 assert.match(
 	transactionFilters,

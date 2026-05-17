@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 49.
+Completed through Phase 50.
 
 Completed phases:
 
@@ -65,10 +65,11 @@ Completed phases:
 - Phase 47 — auditor pass after compatibility work
 - Phase 48 — UX polish for read-only core
 - Phase 49 — transaction search/filter hardening
+- Phase 50 — book switcher stabilization
 
 Next planned phase:
 
-- Phase 50 — Book switcher stabilization.
+- Phase 51 — auditor pass after UX/book/filter work.
 
 ## MVP product model
 
@@ -770,6 +771,27 @@ Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default sta
 Test results: backend full suite passed; frontend check/auth-routes/build passed; Docker config validation passed; `git diff --check` passed.
 
 Related issue: GitHub #11 updated with the Phase 49 hardening summary and left open for broader future read-only search/filter enhancements.
+
+## Phase 50 — Book Switcher Stabilization
+
+Status: complete. Phase commit pushed.
+
+Goal: stabilize the existing multi-book UI foundation at a safe read-only level without adding book upload, book registration UI, collaborative editing, or write-scope expansion.
+
+Artifacts:
+
+- `apps/web/src/lib/api/server.ts` — adds shared accessible-book context resolution that prefers the selected accessible book, then accessible default, then first accessible book; stale/unauthorized selected-book cookies are refreshed or cleared before book-aware API routes are built.
+- `apps/web/src/routes/+layout.server.ts`, `dashboard/+page.server.ts`, `accounts/+page.server.ts`, `accounts/[id]/+page.server.ts`, `transactions/+page.server.ts`, and `transactions/[id]/+page.server.ts` — use shared active-book context so page data routes no longer trust raw `selected_book_id` directly.
+- `apps/web/src/lib/components/BookSwitcher.svelte` — labels the current book clearly, preserves route/query string on switch, marks the default book, and frames multi-book as independent read-only books.
+- `apps/web/scripts/test-auth-routes.mjs` — adds static frontend checks for book context fallback, route usage, route/query preservation, and no collaborative/upload framing.
+- `docs/book-switcher-readonly-model.md` — documents read-only multi-book behavior, access boundary, fallback order, and non-goals.
+- `README.md`, `PROJECT_STATUS.md`, `CHANGELOG.md`, and `docs/handoff/phase-50.md` — phase status and documentation synchronized.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default state; controlled writes remain experimental post-MVP and disabled by default; Phase 50 does not add write capability, book upload, import/sync, account editing, collaborative editing, release/tag publication, or real financial/secrets artifacts.
+
+Test results: backend full suite passed; frontend check/auth-routes/build passed; Docker config validation passed; `git diff --check` passed.
+
+Related issue: GitHub #13 updated with the Phase 50 stabilization summary and remains open for future admin-only book management UI.
 
 ## Phase 22 — Real Controlled Write Integration Tests
 

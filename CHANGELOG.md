@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Phase 50 — book switcher stabilization: clearer current-book UI, route/query-preserving switching, accessible-book fallback handling, independent-books documentation, and frontend route checks for book-aware access boundaries.
 - Phase 49 — transaction search/filter hardening: shared API validation for inverted/invalid date ranges and inverted amount ranges, frontend date-range validation, documented URL/pagination behavior, and CSV export filter parity regression coverage.
 - Phase 48 — read-only core UX polish: clearer transaction empty states, filter reset/status copy, CSV export cap/status copy, mobile card copy, account-tree empty state, and account breadcrumbs without write-scope expansion.
 - Phase 47 — independent auditor pass after compatibility fixture work, confirming fixture safety/no personal data/no unwanted generated binary commits and keeping compatibility claims conservative.
