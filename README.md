@@ -40,17 +40,18 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–56 are complete.
+- Phase 0–57 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by default.
 - First public pre-alpha release: `v0.0.1-prealpha`.
 - Current public pre-alpha release: [`v0.0.2-prealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.0.2-prealpha).
-- Latest audit: [docs/audits/2026-05-18-phase-55-v0.1-readonly-scope-freeze.md](docs/audits/2026-05-18-phase-55-v0.1-readonly-scope-freeze.md).
+- Latest audit: [docs/audits/phase-57-audit.md](docs/audits/phase-57-audit.md).
 - Russian localization/i18n foundation started in Phase 52; English documentation remains canonical. See [README.ru.md](README.ru.md) and [docs/localization.md](docs/localization.md).
 - Community announcement drafts and where-to-share guidance were refreshed in Phase 53 for cautious feedback collection, not production marketing.
 - Startup diagnostics, a richer non-sensitive health endpoint, and troubleshooting guidance were added in Phase 54 for self-hosted deployments.
 - Phase 55 completed a v0.1 read-only scope-freeze audit: ready to prepare a `v0.1.0-readonly` plan, not ready to publish v0.1 yet.
 - Phase 56 created the `v0.1.0-readonly` release plan and checklist. This is planning only; no v0.1 tag/release has been published.
+- Phase 57 completed the `v0.1.0-readonly` release-gate audit. v0.1 publication is blocked until conservative release notes and a copied/disposable-data runtime smoke/dogfood pass are completed.
 
 ## MVP scope: read-only first
 

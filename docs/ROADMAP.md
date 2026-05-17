@@ -8,7 +8,8 @@ This roadmap is intentionally conservative. Safety and trust come before feature
 - Latest published pre-release: `v0.0.2-prealpha`.
 - Published release notes: `docs/release/v0.0.2-prealpha-notes.md`.
 - Phase 55 scope-freeze audit verdict: ready to prepare a `v0.1.0-readonly` milestone plan, not ready to publish v0.1 yet.
-- Phase 56 created the `v0.1.0-readonly` plan and checklist. Publishing v0.1 still requires a dedicated release-gate audit and explicit release phase.
+- Phase 56 created the `v0.1.0-readonly` plan and checklist.
+- Phase 57 completed the dedicated release-gate audit and found v0.1 publication blocked until conservative release notes and copied/disposable-data runtime smoke/dogfood evidence are completed.
 - MVP v0.1 remains read-only by default; controlled writes are experimental, post-MVP, and disabled by `GNUCASH_WRITES_ENABLED=false` unless explicitly enabled in a disposable environment.
 
 ## Completed phase groups
@@ -77,11 +78,11 @@ Completed:
 
 ## Next: v0.1 read-only release gate
 
-Target: safe private self-hosted read-only browsing and reporting over one configured GnuCash book. Phase 55 found the project ready to prepare a `v0.1.0-readonly` plan/checklist, and Phase 56 created those planning artifacts. The project is still not approved to publish v0.1.
+Target: safe private self-hosted read-only browsing and reporting over one configured GnuCash book. Phase 55 found the project ready to prepare a `v0.1.0-readonly` plan/checklist, Phase 56 created those planning artifacts, and Phase 57 blocked publication until release notes and runtime smoke/dogfood evidence are completed. The project is still not approved to publish v0.1.
 
 Remaining likely work:
 
-- dedicated v0.1 release-gate audit
+- conservative `v0.1.0-readonly` release notes
 - end-to-end Docker runtime testing on a clean machine or explicitly accepted limitation
 - UI polish based on synthetic/sample books only
 - privacy mode for sensitive numbers
