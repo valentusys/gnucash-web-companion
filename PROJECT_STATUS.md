@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 45.
+Completed through Phase 46.
 
 Completed phases:
 
@@ -61,10 +61,11 @@ Completed phases:
 - Phase 43 — local deployment hardening guide
 - Phase 44 — backup and recovery runbook
 - Phase 45 — GnuCash compatibility fixture plan
+- Phase 46 — Compatibility fixture implementation v1
 
 Next planned phase:
 
-- Phase 46 — Compatibility fixture implementation v1.
+- Phase 47 — Auditor pass after compatibility work.
 
 ## MVP product model
 
@@ -684,6 +685,26 @@ Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default sta
 Test results: backend full suite passed (`269 passed`, 27 existing warnings); frontend check/auth-routes/build passed; Docker config validation passed; `git diff --check` passed.
 
 Related issue: GitHub #22 updated with the Phase 45 plan and remains open for Phase 46 implementation.
+
+## Phase 46 — Compatibility Fixture Implementation v1
+
+Status: complete. Phase commit pushed.
+
+Goal: add the first generated disposable compatibility fixture path beyond mocks without committing a new binary GnuCash file or expanding write scope.
+
+Artifacts:
+
+- `apps/api/scripts/create_compatibility_fixture_v1.py` — deterministic generator for a synthetic disposable GnuCash SQLite fixture and non-sensitive metadata/sha256 output.
+- `apps/api/tests/test_compatibility_fixture_v1.py` — read-only compatibility tests for generation metadata, checksum no-mutation behavior, account tree, transaction list, split transaction detail, reports basic, and loading a copied generated fixture.
+- `docs/gnucash-compatibility-fixture-v1.md` — documentation for the generator path, data model, validation coverage, and safety limits.
+- `.gitignore` — ignores `apps/api/tests/generated-fixtures/` so locally generated SQLite fixtures are not committed.
+- `docs/gnucash-compatibility.md`, `README.md`, `CHANGELOG.md`, and `docs/handoff/phase-46.md` — status and compatibility docs synchronized.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default state; controlled writes remain experimental post-MVP and disabled by default; Phase 46 does not add write capability, enable writes, publish a release/tag, or add real financial/secrets artifacts. The generated fixture is synthetic and generated in temp/ignored paths; no new binary GnuCash fixture is committed.
+
+Test results: backend full suite passed; frontend check/auth-routes/build passed; Docker config validation passed; `git diff --check` passed.
+
+Related issue: GitHub #22 updated with the Phase 46 implementation status and remains open for future desktop-version fixture coverage unless maintainers decide this generator path is sufficient for the issue.
 
 ## Phase 22 — Real Controlled Write Integration Tests
 
