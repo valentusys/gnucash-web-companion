@@ -55,7 +55,7 @@ All checks passed:
 
 ## Commit
 
-Committed and pushed to origin/main.
+Committed and pushed to origin/main. Commit: `bbd1c8b`.
 
 ## Blockers
 
