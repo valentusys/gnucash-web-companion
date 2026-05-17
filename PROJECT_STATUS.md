@@ -1,6 +1,6 @@
 # PROJECT_STATUS
 
-Last updated: 2026-05-17
+Last updated: 2026-05-18
 
 ## Repository
 
@@ -11,7 +11,7 @@ Last updated: 2026-05-17
 
 ## Current baseline
 
-Completed through Phase 35.
+Completed through Phase 37.
 
 Completed phases:
 
@@ -52,10 +52,11 @@ Completed phases:
 - Phase 34 — README/public status baseline sync after Phase 33 audit finding
 - Phase 35 — audit-driven Phase 34 public baseline and controlled-writes docs sync
 - Phase 36 — write-mode UI warning and explicit confirmation
+- Phase 37 — independent audit and baseline sync
 
 Next planned phase:
 
-- TBD by Project Lead after Phase 36 verification/audit/release triage.
+- Phase 38 — personal dogfood readiness, focused on safe read-only testing with a copied GnuCash book.
 
 ## MVP product model
 
@@ -499,6 +500,25 @@ Safety result: `GNUCASH_WRITES_ENABLED=false` remains the default documented sta
 Test results: disabled-write regression subset passed; backend full suite passed; frontend check/auth-routes/build passed; Docker config validation passed.
 
 Related issues: GitHub #21 closed by Phase 36; GitHub #18, #20, and #22 intentionally remain open.
+
+## Phase 37 — Independent Audit and Baseline Sync
+
+Status: complete. Phase commit pushed.
+
+Goal: run the required independent audit after Phase 36 and synchronize public baseline/status documentation without adding features, publishing a release, or expanding controlled writes.
+
+Artifacts:
+
+- `docs/audits/2026-05-18-phase-37-audit.md` — independent Phase 37 audit artifact.
+- `README.md` — current status advanced to Phase 0–36 complete and latest audit link updated to the Phase 37 audit.
+- `CHANGELOG.md` — added Phase 37 Unreleased entry.
+- `docs/handoff/phase-37.md` — PM/auditor/engineer handoff and verification report.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default state; controlled writes remain experimental/post-MVP and disabled by default; Phase 37 made documentation/status-only fixes after the audit and did not change write code, auth storage, or release artifacts.
+
+Test results: disabled-write regression subset passed; frontend check/auth-routes/build passed; Docker config validation passed.
+
+Related issues: GitHub #19 closed by Phase 37; GitHub #18, #20, and #22 intentionally remain open.
 
 ## Phase 22 — Real Controlled Write Integration Tests
 

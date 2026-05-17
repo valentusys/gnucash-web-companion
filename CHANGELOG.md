@@ -28,6 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Phase 34 — public README/status baseline sync through the Phase 33 baseline.
 - Phase 35 — audit-driven public status sync through Phase 34 and controlled-writes limitation cleanup.
 - Phase 36 — write-mode UI warning and explicit confirmation for experimental controlled writes.
+- Phase 37 — independent audit and baseline sync after Phase 36.
 
 ### Security
 
