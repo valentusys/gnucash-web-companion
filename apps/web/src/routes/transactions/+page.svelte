@@ -5,12 +5,24 @@
 	import TransactionFilters from '$lib/components/TransactionFilters.svelte';
 	import Pagination from '$lib/components/Pagination.svelte';
 
-	let { data } = $props();
+		let { data } = $props();
 
 	const txs = $derived(data.txs);
 	const limit = $derived(txs.limit);
 	const offset = $derived(txs.offset);
 	const total = $derived(txs.total);
+
+	const exportCsvUrl = $derived.by(() => {
+		const bookId = data.activeBook?.id;
+		if (!bookId) return '#';
+		const sp = new URLSearchParams();
+		if (data.filters.query) sp.set('query', data.filters.query);
+		if (data.filters.dateFrom) sp.set('date_from', data.filters.dateFrom);
+		if (data.filters.dateTo) sp.set('date_to', data.filters.dateTo);
+		if (data.filters.accountId) sp.set('account_id', data.filters.accountId);
+		const qs = sp.toString();
+		return `/books/${bookId}/transactions/export${qs ? '?' + qs : ''}`;
+	});
 
 	function paramsToUrl(params: {
 		query?: string;
@@ -63,9 +75,19 @@
 				<p class="mt-2 text-sm" style="color: var(--app-muted);">Book: {data.activeBook.name}</p>
 			{/if}
 		</div>
-		{#if data.writesEnabled}
-			<a class="rounded-xl px-4 py-2 text-sm font-semibold text-white" style="background: var(--app-accent);" href="/transactions/new">New transaction</a>
-		{/if}
+		<div class="flex gap-2">
+			{#if data.activeBook}
+				<a
+					class="rounded-xl px-4 py-2 text-sm font-semibold"
+					style="background: var(--app-panel); color: var(--app-text); border: 1px solid var(--app-border);"
+					href={exportCsvUrl}
+					>Экспорт CSV</a
+				>
+			{/if}
+			{#if data.writesEnabled}
+				<a class="rounded-xl px-4 py-2 text-sm font-semibold text-white" style="background: var(--app-accent);" href="/transactions/new">New transaction</a>
+			{/if}
+		</div>
 	</div>
 
 	<TransactionFilters

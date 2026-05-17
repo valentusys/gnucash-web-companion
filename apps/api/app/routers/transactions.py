@@ -6,6 +6,8 @@ Write endpoints (Phase 12) require editor/owner role and follow strict write flo
 
 from __future__ import annotations
 
+import csv
+import io
 import json
 import logging
 from datetime import datetime, timezone
@@ -13,6 +15,7 @@ from decimal import Decimal
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
@@ -107,6 +110,89 @@ async def list_book_transactions(
         offset=offset,
         total=total,
     ).model_dump()
+
+
+# ---------------------------------------------------------------------------
+# CSV Export (read-only, book-aware)
+# ---------------------------------------------------------------------------
+
+CSV_EXPORT_LIMIT = 10_000
+
+
+@router.get("/books/{book_id}/transactions/export")
+async def export_book_transactions_csv(
+    book_id: int,
+    account_id: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
+    query: str | None = None,
+    min_amount: Decimal | None = Query(None),
+    max_amount: Decimal | None = Query(None),
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+) -> StreamingResponse:
+    """Export transactions as a CSV file for a viewable book.
+
+    Respects the same filters as the list endpoint. Row cap: 10,000.
+    """
+    book = _resolve_viewable_book(book_id, user, session)
+    try:
+        service = transaction_service_for(book)
+        total = service.count_transactions(
+            account_id=account_id,
+            date_from=date_from,
+            date_to=date_to,
+            query=query,
+            min_amount=min_amount,
+            max_amount=max_amount,
+        )
+        capped = min(total, CSV_EXPORT_LIMIT)
+        items = service.list_transactions(
+            account_id=account_id,
+            date_from=date_from,
+            date_to=date_to,
+            query=query,
+            min_amount=min_amount,
+            max_amount=max_amount,
+            limit=capped,
+            offset=0,
+        )
+    except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
+        handle_gnucash_error(exc)
+
+    headers = [
+        "id",
+        "date",
+        "description",
+        "amount",
+        "currency",
+        "account_id",
+        "account_name",
+        "counter_account_name",
+    ]
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(headers)
+    for item in items:
+        writer.writerow([
+            item.id,
+            item.date,
+            item.description,
+            item.amount,
+            item.currency,
+            item.account_id,
+            item.account_name,
+            item.counter_account_name,
+        ])
+
+    filename = f"transactions-book{book_id}.csv"
+    return StreamingResponse(
+        iter([buf.getvalue()]),
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+        },
+    )
 
 
 @router.get("/books/{book_id}/transactions/{transaction_id}")

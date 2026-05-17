@@ -11,7 +11,7 @@ Last updated: 2026-05-17
 
 ## Current baseline
 
-Completed through Phase 23:
+Completed through Phase 24:
 
 - Phase 0 — competitive review and product positioning
 - Phase 1 — open-source foundation
@@ -35,7 +35,9 @@ Completed through Phase 23:
 - Phase 19 — multi-currency limitation tests and auth cookie security documentation
 - Phase 20 — multi-book UI foundation
 - Phase 21 — file-based write lock replacement
-- Phase 22 — real controlled write integration tests (brief prepared)
+- Phase 22 — real controlled write integration tests
+- Phase 23 — backup restore smoke test
+- Phase 24 — CSV export for transactions
 
 ## MVP product model
 
@@ -231,6 +233,27 @@ Deviations: 6 tests implemented vs 4 minimum. Added `test_restore_preserves_orig
 Production code changes: none. Zero production code changes; restore is `shutil.copy2` overwrite matching the production backup model.
 
 Related issues: GitHub #9 (closed).
+
+## Phase 24 — CSV Export for Transactions
+
+Status: complete. Phase commit pushed.
+
+Goal: add read-only CSV export endpoint to backend and export button to frontend transactions page.
+
+Artifacts:
+
+- `apps/api/app/routers/transactions.py` — added `GET /books/{book_id}/transactions/export` endpoint (read-only, book-aware, respects all list filters, 10,000 row cap).
+- `apps/api/tests/test_transaction_export.py` — 8 backend tests covering auth requirement, CSV headers, transaction data, date filter, account filter, query filter, access denial, and Content-Disposition filename.
+- `apps/web/src/routes/transactions/+page.svelte` — added «Экспорт CSV» button that preserves current filters (query, date_from, date_to, account_id) in the export URL.
+- `docs/handoff/phase-24.md` — handoff document.
+
+Test results: 262 passed (254 existing + 8 new), 0 failed. Frontend: check 0 errors, build success, auth-routes passed. Docker config valid.
+
+Deviations: 8 tests implemented vs 7 minimum. Export endpoint placed before `{transaction_id}` route to avoid path collision (`/export` would match as `transaction_id="export"`). No new dependencies required (uses stdlib `csv` + `io`).
+
+Production code changes: read-only only. Zero write-path changes. No new dependencies.
+
+Related issues: none.
 
 ## Phase 22 — Real Controlled Write Integration Tests
 
