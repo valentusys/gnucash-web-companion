@@ -395,7 +395,7 @@ Related issues: none; this completed a small release-readiness/read-only MVP pol
 
 ## Phase 32 — Backend Write-Gating Regression Coverage
 
-Status: complete. Phase commit pushed.
+Status: complete. Phase commits pushed.
 
 Goal: convert the Phase 1 background-mission ad-hoc write-gating audit into committed regression tests for validate/create/patch controlled-write endpoints with writes disabled.
 

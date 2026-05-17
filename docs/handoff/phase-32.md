@@ -148,6 +148,7 @@ None.
 
 ## Commit / push / GitHub
 
-- Commit: pending before final commit.
+- Implementation commit: `5bdb201` (`test: cover disabled write gating`).
+- Final handoff/status commit: pending before final push.
 - Push: pending before final push.
-- GitHub issue #18: to close after commit is pushed and checks pass.
+- GitHub issue #18: to close after commits are pushed and checks pass.
