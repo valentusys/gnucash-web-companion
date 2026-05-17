@@ -24,7 +24,7 @@ Key artifacts:
 - `docs/GNUCASH_SAFETY.md`
 - `docs/handoff/phase-0.md` through `docs/handoff/phase-11.md`
 
-### Controlled-write safety groundwork, still post-MVP — Phases 12–14 and 21–23
+### Controlled-write safety groundwork, still post-MVP — Phases 12–14, 21–23, and 32
 
 Implemented controlled write code and safety tests only as future/post-MVP work. The MVP remains read-only by default.
 
@@ -34,6 +34,7 @@ Completed:
 - file-based per-book write locking
 - disposable-book write integration tests
 - backup restore smoke tests
+- disabled-write bypass regression coverage for validate/create/patch routes
 
 Do not treat this as production-safe write support.
 

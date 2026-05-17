@@ -11,7 +11,7 @@ Last updated: 2026-05-17
 
 ## Current baseline
 
-Completed through Phase 32. Phase 33 is planned by PM brief and awaiting engineer implementation.
+Completed through Phase 33.
 
 Completed phases:
 
@@ -48,10 +48,11 @@ Completed phases:
 - Phase 30 — transaction amount range filters for CSV export
 - Phase 31 — read-only safety status banner
 - Phase 32 — backend write-gating regression coverage
+- Phase 33 — controlled-writes documentation cleanup and status sync
 
 Next planned phase:
 
-- Phase 33 — controlled-writes documentation cleanup and status sync. PM brief: `docs/handoff/phase-33.md`.
+- TBD by Project Lead after audit/release triage.
 
 ## MVP product model
 
@@ -412,7 +413,27 @@ Result: `Settings.gnucash_writes_enabled` remains `False` by default, all three 
 
 Test results: backend full suite passed (`269 passed`, 27 existing warnings); frontend check/auth-routes/build passed; Docker config validation passed.
 
-Related issue: GitHub #18 (closed by Phase 32).
+Related issue: GitHub #18 (write-gating verification follow-up; status managed by audit/release triage).
+
+## Phase 33 — Controlled-Writes Documentation Cleanup and Status Sync
+
+Status: complete. Phase commit pushed.
+
+Goal: clean stale controlled-writes documentation and synchronize the public status baseline through Phase 32 without expanding controlled-write scope.
+
+Artifacts:
+
+- `docs/v0.2-controlled-writes.md` — replaced stale active legacy-lock wording with current `fcntl.flock()` file-locking status, documented Phase 23 restore smoke coverage and Phase 32 disabled-write bypass regression coverage, and moved completed limitations into a resolved historical section.
+- `README.md` — current status advanced to Phase 0–32 complete without claiming a `v0.0.2-prealpha` tag/release exists.
+- `CHANGELOG.md` — added Phase 33 documentation/status cleanup entry.
+- `docs/release/v0.0.2-prealpha-notes.md` and `docs/ROADMAP.md` — synchronized Phase 32 safety coverage and retained pre-alpha/read-only positioning.
+- `docs/handoff/phase-33.md` — implementation handoff updated.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default state; controlled writes remain experimental/post-MVP and disabled by default; no product code or frontend auth storage paths were changed; no real financial/secrets artifacts were added.
+
+Test results: disabled-write regression subset passed; backend full suite passed; frontend check/auth-routes/build passed; Docker config validation passed.
+
+Related issues: GitHub #23 closed by Phase 33; GitHub #19 closed after README/PROJECT_STATUS/CHANGELOG sync; GitHub #18 intentionally unchanged by this documentation phase.
 
 ## Phase 22 — Real Controlled Write Integration Tests
 

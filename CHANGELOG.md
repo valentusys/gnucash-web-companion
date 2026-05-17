@@ -24,6 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Phase 30 — frontend amount range filters for read-only transaction browsing and CSV export.
 - Phase 31 — global read-only safety status banner in the authenticated web shell.
 - Phase 32 — backend write-gating regression coverage for disabled validate/create/patch routes.
+- Phase 33 — controlled-writes documentation cleanup and public status sync through Phase 32.
 
 ### Security
 
@@ -32,6 +33,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Independent audit report refreshed for Phase 29 with read-only/default-write checks.
 - Authenticated app shell now displays a persistent read-only-by-default reminder.
 - Disabled-write API regression tests now prove validate/create/patch return read-only 403 responses without constructing the write service.
+- Controlled-writes documentation now reflects file-based locking, backup restore smoke coverage, and disabled-write bypass regression coverage as completed safety work while write mode remains experimental and disabled by default.
 
 ### Known limitations
 

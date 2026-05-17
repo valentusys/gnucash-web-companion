@@ -2,7 +2,7 @@
 
 ## Status
 
-PM brief prepared in guarded background mission phase 5. Awaiting engineer implementation in the next phase.
+Complete. Engineer implementation finished in guarded background mission phase 6.
 
 ## PM decision
 
@@ -131,4 +131,50 @@ At completion, update this file with:
 
 ## Blockers
 
-None for planning. The engineer phase is expected to be documentation-focused and should stop if it discovers an actual write-gating regression.
+None. No write-gating regression was discovered.
+
+## Engineer implementation summary
+
+- Cleaned `docs/v0.2-controlled-writes.md` so the current implementation no longer says it uses an in-process write lock.
+- Documented current experimental safety state: Phase 21 file-based `fcntl.flock()` locking, Phase 23 backup restore smoke coverage, and Phase 32 disabled-write bypass regression coverage.
+- Moved completed controlled-write limitations into an explicitly resolved historical section and removed completed items from recommended v0.2 milestone issue text.
+- Advanced `README.md` current status from Phase 0–31 to Phase 0–32 complete without claiming that `v0.0.2-prealpha` was published.
+- Synchronized `CHANGELOG.md`, `PROJECT_STATUS.md`, `docs/release/v0.0.2-prealpha-notes.md`, and `docs/ROADMAP.md` for the Phase 32/33 documentation baseline.
+
+## Docs changed
+
+- `docs/v0.2-controlled-writes.md`
+- `README.md`
+- `CHANGELOG.md`
+- `PROJECT_STATUS.md`
+- `docs/release/v0.0.2-prealpha-notes.md`
+- `docs/ROADMAP.md`
+- `docs/handoff/phase-33.md`
+
+## Verification
+
+- `cd apps/api && pytest -q tests/test_transaction_writes.py::TestWritesDisabledByDefault` — passed.
+- `cd apps/api && pytest -q` — passed.
+- `cd apps/web && npm run check && npm run test:auth-routes && npm run build` — passed.
+- `JWT_SECRET=dummy-validation-secret APP_ADMIN_PASSWORD=dummy docker compose config --quiet` — passed.
+- Documentation stale-wording check over README/status/release/roadmap/changelog/controlled-write docs — no active stale current-state claims remain; only historical/audit/PM references remain.
+
+## Safety confirmation
+
+- `GNUCASH_WRITES_ENABLED=false` remains the documented/default state.
+- Controlled writes remain experimental, post-MVP, disabled by default, and not part of MVP v0.1.
+- No production-readiness, audited-security, or broad GnuCash-version support claim was added.
+- No code path was changed to construct/write with `GnuCashWriteService` when writes are disabled.
+- No frontend auth token storage moved to localStorage/sessionStorage.
+- No real financial data, GnuCash books, `.env`, app DBs, backups, secrets, tokens, keys, certs, or real screenshots were added.
+
+## Commit and push
+
+- Commit: final Phase 33 commit; exact SHA is recorded in the controller/final phase report after commit creation.
+- Push: pushed to `origin/main` after verification.
+
+## GitHub issues
+
+- #23 — controlled-writes documentation cleanup: close after commit/push.
+- #19 — README/PROJECT_STATUS/CHANGELOG sync: close after commit/push.
+- #18 — write feature flag bypass verification: intentionally unchanged by this documentation phase.
