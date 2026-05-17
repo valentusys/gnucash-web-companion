@@ -11,7 +11,9 @@ Last updated: 2026-05-17
 
 ## Current baseline
 
-Completed through Phase 32:
+Completed through Phase 32. Phase 33 is planned by PM brief and awaiting engineer implementation.
+
+Completed phases:
 
 - Phase 0 — competitive review and product positioning
 - Phase 1 — open-source foundation
@@ -49,7 +51,7 @@ Completed through Phase 32:
 
 Next planned phase:
 
-- TBD by Project Lead.
+- Phase 33 — controlled-writes documentation cleanup and status sync. PM brief: `docs/handoff/phase-33.md`.
 
 ## MVP product model
 
