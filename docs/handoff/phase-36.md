@@ -201,7 +201,7 @@ Passed:
 
 ## GitHub issue status
 
-- #21: implemented by Phase 36; update/close after push.
+- #21: closed after Phase 36 verification and push.
 - #18: intentionally remains open.
 - #20: intentionally remains open; no `v0.0.2-prealpha` tag/release published.
 - #22: intentionally remains open.
