@@ -40,12 +40,12 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–40 are complete.
+- Phase 0–41 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by default.
 - First public pre-alpha release: `v0.0.1-prealpha`.
-- Next pre-alpha release candidate checklist and notes exist for `v0.0.2-prealpha`; no `v0.0.2-prealpha` tag or GitHub release has been published yet.
-- Latest audit: [docs/audits/2026-05-18-phase-37-audit.md](docs/audits/2026-05-18-phase-37-audit.md).
+- Next pre-alpha release candidate checklist, notes, and release-gate audit exist for `v0.0.2-prealpha`; no `v0.0.2-prealpha` tag or GitHub release has been published yet.
+- Latest audit: [docs/audits/2026-05-18-v0.0.2-release-gate.md](docs/audits/2026-05-18-v0.0.2-release-gate.md).
 
 ## MVP scope: read-only first
 

@@ -32,6 +32,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Phase 38 — personal read-only dogfood guide and manual smoke checklist for copied GnuCash books.
 - Phase 39 — automated read-only API smoke script for local Docker deployments.
 - Phase 40 — `v0.0.2-prealpha` release-candidate checklist and notes cleanup without publishing a tag/release.
+- Phase 41 — `v0.0.2-prealpha` release-gate audit and release-documentation hygiene cleanup without publishing a tag/release.
 
 ### Security
 
@@ -43,6 +44,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Controlled-writes documentation now reflects file-based locking, backup restore smoke coverage, and disabled-write bypass regression coverage as completed safety work while write mode remains experimental and disabled by default.
 - Controlled-writes limitations now correctly state that frontend amount range filters exist for read-only browsing and CSV export.
 - Experimental write mode now shows a prominent UI warning and requires explicit acknowledgement before final create submission while remaining disabled by default.
+- Release-gate audit re-verified disabled-write gating and tracked-file sensitive-data hygiene before `v0.0.2-prealpha` publication.
 
 ### Known limitations
 

@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 40.
+Completed through Phase 41.
 
 Completed phases:
 
@@ -56,10 +56,11 @@ Completed phases:
 - Phase 38 — personal dogfood readiness
 - Phase 39 — read-only smoke test automation
 - Phase 40 — v0.0.2-prealpha release candidate cleanup
+- Phase 41 — release gate audit for v0.0.2-prealpha
 
 Next planned phase:
 
-- Phase 41 — release gate audit for `v0.0.2-prealpha` before any tag or GitHub release is published.
+- Phase 42 — publish `v0.0.2-prealpha` only if Phase 41 gate fixes/checks/post-push CI remain green.
 
 ## MVP product model
 
@@ -580,6 +581,26 @@ Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default sta
 Test results: backend full suite passed; frontend check/auth-routes/build passed; Docker config validation passed; `git diff --check` passed.
 
 Related issue: GitHub #20 updated with Phase 40 status; GitHub #18 and #22 intentionally remain open.
+
+## Phase 41 — Release Gate Audit for v0.0.2-prealpha
+
+Status: complete. Phase commit pushed.
+
+Goal: run the external release-gate audit before any `v0.0.2-prealpha` tag or GitHub release is published, then fix only accepted audit blockers/mismatches.
+
+Artifacts:
+
+- `docs/audits/2026-05-18-v0.0.2-release-gate.md` — independent release-gate audit artifact with verdict `Ready after listed blockers`.
+- `README.md` — current status advanced through Phase 41 and latest audit link updated to the release-gate audit.
+- `docs/release/v0.0.2-prealpha-notes.md` — Phase 41 audit note added and stale related-doc links fixed before use as release notes.
+- `CHANGELOG.md` — added Phase 41 Unreleased entry.
+- `docs/handoff/phase-41.md` — PM/auditor/engineer handoff and verification report.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default state; controlled writes remain experimental post-MVP and disabled by default; Phase 41 did not enable writes, expand write scope, publish a release/tag, or add real financial/secrets artifacts. Disabled validate/create/patch write gating was re-verified.
+
+Test results: disabled-write regression subset passed; backend full suite passed; frontend check/auth-routes/build passed; Docker config validation passed; `git diff --check` passed. Post-push GitHub CI should be checked before Phase 42 publication.
+
+Related issues: GitHub #18 closed after release-gate re-verification; GitHub #20 updated with Phase 41 gate status; GitHub #22 remains open for compatibility fixtures.
 
 ## Phase 22 — Real Controlled Write Integration Tests
 
