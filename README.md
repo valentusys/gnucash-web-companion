@@ -40,7 +40,7 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–55 are complete.
+- Phase 0–56 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by default.
 - First public pre-alpha release: `v0.0.1-prealpha`.
@@ -50,6 +50,7 @@ This project is not a fit if you need:
 - Community announcement drafts and where-to-share guidance were refreshed in Phase 53 for cautious feedback collection, not production marketing.
 - Startup diagnostics, a richer non-sensitive health endpoint, and troubleshooting guidance were added in Phase 54 for self-hosted deployments.
 - Phase 55 completed a v0.1 read-only scope-freeze audit: ready to prepare a `v0.1.0-readonly` plan, not ready to publish v0.1 yet.
+- Phase 56 created the `v0.1.0-readonly` release plan and checklist. This is planning only; no v0.1 tag/release has been published.
 
 ## MVP scope: read-only first
 
@@ -148,6 +149,11 @@ Release checklist and notes:
 
 - [docs/release/v0.0.2-prealpha-checklist.md](docs/release/v0.0.2-prealpha-checklist.md)
 - [docs/release/v0.0.2-prealpha-notes.md](docs/release/v0.0.2-prealpha-notes.md)
+
+Current v0.1 read-only planning docs:
+
+- [docs/release/v0.1.0-readonly-plan.md](docs/release/v0.1.0-readonly-plan.md)
+- [docs/release/v0.1.0-readonly-checklist.md](docs/release/v0.1.0-readonly-checklist.md)
 
 GitHub release:
 

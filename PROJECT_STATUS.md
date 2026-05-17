@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 55.
+Completed through Phase 56.
 
 Completed phases:
 
@@ -71,10 +71,11 @@ Completed phases:
 - Phase 53 — community announcement draft
 - Phase 54 — observability and diagnostics
 - Phase 55 — v0.1 read-only scope freeze audit
+- Phase 56 — v0.1 read-only release planning
 
 Next planned phase:
 
-- Phase 56 — v0.1 read-only release planning.
+- Dedicated v0.1 read-only release-gate audit / release-readiness decision. No phase number has been selected in this status file.
 
 ## MVP product model
 
@@ -898,6 +899,27 @@ Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default sta
 Test results: disabled-write regression subset passed; backend full suite passed; frontend check/auth-routes/build passed; Docker config validation passed; `git diff --check` passed.
 
 Related issues: no new Phase 55 issue was required. GitHub #22, #17, #13, #12, and #11 remain open backlog items to consider during v0.1 planning.
+
+## Phase 56 — v0.1 Read-Only Release Planning
+
+Status: complete. Phase commit pushed.
+
+Goal: create a conservative `v0.1.0-readonly` release plan and checklist after the Phase 55 audit verdict allowed v0.1 planning, without publishing a tag/release or expanding write scope.
+
+Artifacts:
+
+- `docs/release/v0.1.0-readonly-plan.md` — included/excluded scope, open backlog triage, minimum checks, dogfood requirements, compatibility scope, upgrade path, release blockers, rollback plan, and required next governance step.
+- `docs/release/v0.1.0-readonly-checklist.md` — release-gate checklist for scope, docs, automated checks, runtime smoke/dogfood, compatibility, sensitive-data hygiene, GitHub/project hygiene, publication gate, and rollback readiness.
+- `README.md` — current status advanced through Phase 56 and v0.1 planning docs linked.
+- `CHANGELOG.md` — Unreleased entry added for Phase 56.
+- `docs/ROADMAP.md` — next posture advanced from planning to a future v0.1 release-gate audit.
+- `docs/handoff/phase-56.md` — PM/engineer handoff and verification report.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default state; controlled writes remain experimental post-MVP and disabled by default. Phase 56 did not enable writes, expand write scope, publish a v0.1 tag/release, add production/security-audited claims, or add real financial/secrets artifacts.
+
+Test results: backend full suite passed; frontend check/auth-routes/build passed; Docker config validation passed; `git diff --check` passed.
+
+Related issues: no Phase 56-specific GitHub issue was required. The plan explicitly triages open issues #22, #17, #13, #12, and #11 for v0.1 in/out scope.
 
 ## Phase 22 — Real Controlled Write Integration Tests
 

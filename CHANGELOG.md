@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Phase 56 — `v0.1.0-readonly` release planning: conservative release plan and checklist defining included/excluded read-only scope, minimum checks, dogfood/runtime smoke gates, compatibility limits, upgrade path, blockers, rollback plan, and a required future release-gate audit before any tag/release.
 - Phase 55 — v0.1 read-only scope-freeze audit, confirming the project is ready to prepare a `v0.1.0-readonly` plan while fixing stale roadmap release-posture wording and preserving the read-only/default-write safety boundary.
 - Phase 54 — observability and diagnostics: structured safe startup diagnostics, richer non-sensitive `/health` payload with app DB/default-book/write-mode checks, and self-hosted troubleshooting guidance.
 - Phase 53 — community announcement draft and where-to-share guidance for cautious feedback collection, with explicit pre-alpha, read-only-by-default, no production/security guarantee, and experimental-write warnings.
