@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 57.
+Completed through Phase 58.
 
 Completed phases:
 
@@ -73,10 +73,11 @@ Completed phases:
 - Phase 55 — v0.1 read-only scope freeze audit
 - Phase 56 — v0.1 read-only release planning
 - Phase 57 — v0.1.0-readonly release-gate audit
+- Phase 58 — v0.1.0-readonly release publication audit
 
 Next planned phase:
 
-- Resolve Phase 57 release-gate blockers before any `v0.1.0-readonly` publication: create conservative v0.1 release notes and complete/record copied-or-disposable-data runtime smoke/dogfood evidence. Do not start Phase 58/publication until those blockers are handled by an explicit later phase.
+- Resolve Phase 57/58 release-publication blockers before any `v0.1.0-readonly` publication: create conservative v0.1 release notes and complete/record copied-or-disposable-data runtime smoke/dogfood evidence. Do not create a v0.1 tag/GitHub release until those blockers are handled by an explicit later phase.
 
 ## MVP product model
 
@@ -942,6 +943,27 @@ Release-gate result: v0.1 publication is blocked by process/docs evidence gaps, 
 Test results: disabled-write regression subset and backend full suite passed. Frontend check/auth-routes/build, Docker config validation, and `git diff --check` are recorded in the Phase 57 handoff.
 
 Related issues: GitHub #24 and #25 created for the Phase 57 release-gate blockers.
+
+## Phase 58 — v0.1.0-readonly Release Publication Audit
+
+Status: complete. Phase commit pushed.
+
+Goal: audit the expected `v0.1.0-readonly` publication state from the auditor roadmap without publishing a tag/release or expanding write scope.
+
+Artifacts:
+
+- `docs/audits/phase-58-audit.md` — independent Phase 58 publication audit artifact with verdict `Not ready / publication audit blocked`.
+- `README.md` — current status advanced through Phase 58 and latest-audit link updated.
+- `CHANGELOG.md` — Unreleased entry added for the release-facing Phase 58 publication audit result.
+- `docs/handoff/phase-58.md` — PM/auditor/engineer handoff and verification report.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default state; controlled writes remain experimental post-MVP and disabled by default. Phase 58 did not enable writes, expand write scope, publish a v0.1 tag/release, add production/security-audited claims, or add real financial/secrets artifacts.
+
+Release-publication result: no `v0.1.0-readonly` git tag or GitHub release exists, which is consistent with the unresolved Phase 57 blockers. Publication remains blocked by missing conservative v0.1 release notes and missing copied/disposable-data runtime smoke/dogfood evidence.
+
+Test results: backend full suite, frontend check/auth-routes/build, Docker Compose config validation, and `git diff --check` are recorded in the Phase 58 handoff.
+
+Related issues: no new issue created; GitHub #24 and #25 were updated with Phase 58 audit comments and remain the meaningful release-publication blockers.
 
 ## Phase 22 — Real Controlled Write Integration Tests
 
