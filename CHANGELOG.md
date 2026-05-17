@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Phase 47 — independent auditor pass after compatibility fixture work, confirming fixture safety/no personal data/no unwanted generated binary commits and keeping compatibility claims conservative.
 - Phase 46 — generated disposable GnuCash SQLite compatibility fixture v1 path with read-only service tests for account tree, transaction list, split detail, reports, and checksum no-mutation behavior.
 - Phase 45 — GnuCash real-version compatibility fixture plan covering target versions, fixture data model, safe generation/storage policy, and acceptance tests for issue #22.
 - Phase 44 — backup and recovery runbook for app metadata DB, copied GnuCash books, Docker data paths, restore dry-runs, and experimental controlled-write pre-write backup expectations.

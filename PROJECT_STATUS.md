@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 46.
+Completed through Phase 47.
 
 Completed phases:
 
@@ -62,10 +62,11 @@ Completed phases:
 - Phase 44 — backup and recovery runbook
 - Phase 45 — GnuCash compatibility fixture plan
 - Phase 46 — Compatibility fixture implementation v1
+- Phase 47 — auditor pass after compatibility work
 
 Next planned phase:
 
-- Phase 47 — Auditor pass after compatibility work.
+- Phase 48 — UX polish for read-only core.
 
 ## MVP product model
 
@@ -705,6 +706,25 @@ Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default sta
 Test results: backend full suite passed; frontend check/auth-routes/build passed; Docker config validation passed; `git diff --check` passed.
 
 Related issue: GitHub #22 updated with the Phase 46 implementation status and remains open for future desktop-version fixture coverage unless maintainers decide this generator path is sufficient for the issue.
+
+## Phase 47 — Auditor Pass After Compatibility Work
+
+Status: complete. Phase commit pushed.
+
+Goal: independently audit the Phase 46 compatibility fixture work for fixture safety, personal-data hygiene, unwanted binary commits, honest compatibility documentation, and README overclaim risk.
+
+Artifacts:
+
+- `docs/audits/2026-05-18-phase-47-audit.md` — independent Phase 47 audit artifact with verdict `Ready for pre-alpha release` and no blockers.
+- `README.md` — current status advanced through Phase 47 and latest-audit link updated to the Phase 47 audit.
+- `CHANGELOG.md` — added Phase 47 Unreleased entry.
+- `docs/handoff/phase-47.md` — PM/auditor/engineer handoff and verification report.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default state; controlled writes remain experimental post-MVP and disabled by default; Phase 47 did not enable writes, expand write scope, publish a release/tag, or add real financial/secrets artifacts. Only existing committed fixture binaries are the historical synthetic test fixtures; the Phase 46 generated fixture output path remains ignored and no generated binary was committed.
+
+Test results: Phase 46 compatibility fixture tests passed; backend full suite passed; frontend check/auth-routes/build passed; Docker config validation passed; `git diff --check` passed.
+
+Related issue: GitHub #22 updated with the Phase 47 audit result and remains open for future desktop-version fixture coverage unless maintainers decide the generated fixture path is sufficient for the issue.
 
 ## Phase 22 — Real Controlled Write Integration Tests
 
