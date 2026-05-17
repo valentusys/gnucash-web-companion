@@ -40,12 +40,12 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–50 are complete.
+- Phase 0–51 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by default.
 - First public pre-alpha release: `v0.0.1-prealpha`.
 - Current public pre-alpha release: [`v0.0.2-prealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.0.2-prealpha).
-- Latest audit: [docs/audits/2026-05-18-phase-47-audit.md](docs/audits/2026-05-18-phase-47-audit.md).
+- Latest audit: [docs/audits/2026-05-18-phase-51-audit.md](docs/audits/2026-05-18-phase-51-audit.md).
 
 ## MVP scope: read-only first
 

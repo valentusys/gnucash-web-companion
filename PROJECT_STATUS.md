@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 50.
+Completed through Phase 51.
 
 Completed phases:
 
@@ -66,10 +66,11 @@ Completed phases:
 - Phase 48 — UX polish for read-only core
 - Phase 49 — transaction search/filter hardening
 - Phase 50 — book switcher stabilization
+- Phase 51 — auditor pass after UX/book/filter work
 
 Next planned phase:
 
-- Phase 51 — auditor pass after UX/book/filter work.
+- Phase 52 — Russian localization planning and i18n foundation.
 
 ## MVP product model
 
@@ -792,6 +793,25 @@ Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default sta
 Test results: backend full suite passed; frontend check/auth-routes/build passed; Docker config validation passed; `git diff --check` passed.
 
 Related issue: GitHub #13 updated with the Phase 50 stabilization summary and remains open for future admin-only book management UI.
+
+## Phase 51 — Auditor Pass After UX/Book/Filter Work
+
+Status: complete. Phase commit pushed.
+
+Goal: independently audit the Phase 48–50 UX, transaction filter/export, and book-switcher work to confirm read-only scope, independent-books framing, filter/export safety, and documentation consistency.
+
+Artifacts:
+
+- `docs/audits/2026-05-18-phase-51-audit.md` — independent Phase 51 audit artifact with verdict `Ready for pre-alpha release` and no blockers.
+- `README.md` — current status advanced through Phase 51 and latest-audit link updated to the Phase 51 audit.
+- `CHANGELOG.md` — added Phase 51 Unreleased entry.
+- `docs/handoff/phase-51.md` — PM/auditor/engineer handoff and verification report.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default state; controlled writes remain experimental post-MVP and disabled by default; Phase 51 did not enable writes, expand write scope, add book upload/import/management UI, add collaborative editing, publish a release/tag, or add real financial/secrets artifacts.
+
+Test results: backend full suite passed; frontend check/auth-routes/build passed; Docker config validation passed; `git diff --check` passed.
+
+Related issues: GitHub #11 and #13 updated with the Phase 51 audit result and remain open for broader future search/filter and admin-only book-management work.
 
 ## Phase 22 — Real Controlled Write Integration Tests
 
