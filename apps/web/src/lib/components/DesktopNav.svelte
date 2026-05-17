@@ -1,5 +1,9 @@
 <script lang="ts">
 	import ThemeSwitcher from '$lib/components/ThemeSwitcher.svelte';
+	import BookSwitcher from '$lib/components/BookSwitcher.svelte';
+	import type { Book } from '$lib/api/types';
+
+	let { books, activeBook }: { books: Book[]; activeBook: Book | null } = $props();
 
 	const navLinks = [
 		{ href: '/dashboard', label: 'Dashboard' },
@@ -26,7 +30,8 @@
 			{/each}
 		</nav>
 
-		<div class="flex items-center gap-2">
+		<div class="flex items-center gap-3">
+			<BookSwitcher {books} {activeBook} />
 			<ThemeSwitcher />
 			<form method="POST" action="/logout">
 				<button

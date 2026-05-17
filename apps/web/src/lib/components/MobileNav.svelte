@@ -1,4 +1,9 @@
 <script lang="ts">
+	import BookSwitcher from '$lib/components/BookSwitcher.svelte';
+	import type { Book } from '$lib/api/types';
+
+	let { books, activeBook }: { books: Book[]; activeBook: Book | null } = $props();
+
 	const navLinks = [
 		{ href: '/dashboard', label: 'Dashboard', icon: 'home' },
 		{ href: '/accounts', label: 'Accounts', icon: 'accounts' },
@@ -25,6 +30,10 @@
 	style="background-color: var(--app-nav-bg); border-color: var(--app-nav-border);"
 	aria-label="Mobile navigation"
 >
+	<!-- Book switcher row above the nav links on mobile -->
+	<div class="flex items-center justify-center border-b px-3 py-2" style="border-color: var(--app-nav-border);">
+		<BookSwitcher {books} {activeBook} />
+	</div>
 	<div class="flex items-stretch justify-around safe-bottom">
 		{#each navLinks as link}
 			<a

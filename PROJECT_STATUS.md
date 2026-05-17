@@ -164,6 +164,33 @@ Test results: 198 passed (187 existing + 11 new), 0 failed.
 
 Related issues: GitHub #6, GitHub #10.
 
+## Phase 20 — Multi-Book UI Foundation
+
+Status: complete. Phase commit pushed locally (gh auth invalid, push skipped).
+
+Goal: add a minimal book switcher to the frontend and wire it to existing GET /books API, migrating page-level data loads from default-book alias routes to explicit book-aware routes.
+
+Artifacts:
+
+- `apps/web/src/lib/components/BookSwitcher.svelte` — new component, dropdown for multi-book, plain text for single-book.
+- `apps/web/src/lib/api/server.ts` — added `getActiveBookId(cookies)` helper.
+- `apps/web/src/routes/+layout.server.ts` — fetches books, resolves active book from cookie/default/first.
+- `apps/web/src/routes/+layout.svelte` — passes book context to nav components.
+- `apps/web/src/lib/components/DesktopNav.svelte` — integrated BookSwitcher.
+- `apps/web/src/lib/components/MobileNav.svelte` — integrated BookSwitcher.
+- `apps/web/src/routes/dashboard/+page.server.ts` — book-aware report routes.
+- `apps/web/src/routes/accounts/+page.server.ts` — book-aware account tree route.
+- `apps/web/src/routes/accounts/[id]/+page.server.ts` — book-aware account detail + transactions routes.
+- `apps/web/src/routes/transactions/+page.server.ts` — book-aware transaction list + accounts routes.
+- `apps/web/src/routes/transactions/[id]/+page.server.ts` — book-aware transaction detail route.
+- `apps/api/tests/test_multi_book_access.py` — 8 new tests for multi-book access filtering.
+
+Test results: 207 passed (199 + 8 new), 1 pre-existing failure (test_gnucash_book.py relative path). Frontend: check 0 errors, build success, auth-routes passed.
+
+Deviations: page-level loads no longer return books/activeBook/showBookSelector (layout provides them instead). `getActiveBookId()` validates cookie value as positive integer.
+
+Related issues: GitHub #5.
+
 ## Standing constraints
 
 - MVP v0.1 is strictly read-only for GnuCash.

@@ -8,6 +8,13 @@ export function getAuthToken(cookies: Cookies): string {
 	return token;
 }
 
+export function getActiveBookId(cookies: Cookies): number | null {
+	const raw = cookies.get('selected_book_id');
+	if (!raw) return null;
+	const parsed = Number(raw);
+	return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
 export async function apiFetch<T>(
 	fetchFn: typeof fetch,
 	path: string,
