@@ -13,6 +13,8 @@ Last updated: 2026-05-17
 
 Completed through Phase 33.
 
+Planning note: Phase 34 has been planned by PM to sync public status documentation through the Phase 33 baseline after the phase 7 audit reopened GitHub issue #19. Implementation is not complete yet.
+
 Completed phases:
 
 - Phase 0 — competitive review and product positioning
@@ -52,7 +54,7 @@ Completed phases:
 
 Next planned phase:
 
-- TBD by Project Lead after audit/release triage.
+- Phase 34 — README/public status baseline sync after Phase 33 audit finding (#19). PM brief created in `docs/handoff/phase-34.md`; engineer implementation pending.
 
 ## MVP product model
 
