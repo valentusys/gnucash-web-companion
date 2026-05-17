@@ -11,7 +11,7 @@ Last updated: 2026-05-17
 
 ## Current baseline
 
-Completed through Phase 27:
+Completed through Phase 28:
 
 - Phase 0 — competitive review and product positioning
 - Phase 1 — open-source foundation
@@ -41,6 +41,7 @@ Completed through Phase 27:
 - Phase 25 — documentation, release, and roadmap sync
 - Phase 26 — audit-driven status sync
 - Phase 27 — discoverability and community announcement readiness
+- Phase 28 — GnuCash compatibility matrix
 
 ## MVP product model
 
@@ -311,6 +312,23 @@ Artifacts:
 Test results: 262 passed, frontend check/auth-routes/build OK, Docker config valid.
 
 Related issue: GitHub #16.
+
+## Phase 28 — GnuCash Compatibility Matrix
+
+Status: complete. Phase commit pushed.
+
+Goal: document and test the current GnuCash SQL fixture compatibility baseline without claiming broad version support.
+
+Artifacts:
+
+- `docs/gnucash-compatibility.md` — compatibility matrix for committed synthetic fixtures, untested backends, user guidance, and future compatibility work.
+- `apps/api/tests/test_gnucash_compatibility.py` — tests verifying fixture `versions` table markers and doc coverage.
+- `README.md` — link to compatibility/safety docs.
+- `docs/handoff/phase-28.md` — handoff document.
+
+Test results: 264 passed, frontend check/auth-routes/build OK, Docker config validation OK.
+
+Related issue: GitHub #15.
 
 ## Phase 22 — Real Controlled Write Integration Tests
 

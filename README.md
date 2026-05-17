@@ -216,6 +216,10 @@ Community/draft materials:
 - [docs/community/announcement-draft.md](docs/community/announcement-draft.md)
 - [docs/community/social-preview.md](docs/community/social-preview.md)
 
+Compatibility/safety docs:
+
+- [docs/gnucash-compatibility.md](docs/gnucash-compatibility.md)
+
 ## Funding
 
 This project is not yet funded. See [.github/FUNDING.yml](.github/FUNDING.yml) for current funding metadata/placeholders.
