@@ -11,7 +11,7 @@ Last updated: 2026-05-17
 
 ## Current baseline
 
-Completed through Phase 34.
+Completed through Phase 34. Phase 35 is planned as an audit-driven documentation/status synchronization phase; implementation is not complete yet.
 
 Completed phases:
 
@@ -53,7 +53,7 @@ Completed phases:
 
 Next planned phase:
 
-- TBD by Project Lead after release/documentation triage.
+- Phase 35 — audit-driven Phase 34 public baseline and controlled-writes docs sync (PM brief prepared in `docs/handoff/phase-35.md`; implementation pending).
 
 ## MVP product model
 
