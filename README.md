@@ -4,6 +4,8 @@
 
 A modern, self-hosted web companion for existing [GnuCash](https://www.gnucash.org/) books. It is designed to browse accounts, transactions, dashboards, and basic reports in a browser while keeping GnuCash Desktop as the authoritative editor.
 
+Short pitch: **read-only browser/mobile visibility for existing GnuCash SQL books, without turning the web app into the authoritative accounting editor.**
+
 ## What it is
 
 - A **read-only-first** web application for existing GnuCash SQL books, accessed through [piecash](https://github.com/sdementen/piecash).
@@ -18,6 +20,23 @@ A modern, self-hosted web companion for existing [GnuCash](https://www.gnucash.o
 - It is **not** true collaborative multi-user accounting.
 - It does **not** write to your GnuCash book by default.
 - It does **not** provide any production-readiness or security guarantee yet.
+
+## Who this is for / not for
+
+This project may fit you if:
+
+- you already use GnuCash and want browser/mobile read-only access on self-hosted infrastructure;
+- you want dashboards, account/transaction browsing, search/filtering, and CSV export over an existing SQL book;
+- you are comfortable testing pre-alpha software against a disposable copy first;
+- you want GnuCash Desktop to remain the authoritative editor.
+
+This project is not a fit if you need:
+
+- production-ready or security-audited accounting software;
+- hosted personal-finance SaaS;
+- collaborative multi-user editing of one book;
+- banking integrations, CSV/OFX import, or full GnuCash replacement features;
+- safe write-mode access to your only copy of a GnuCash book.
 
 ## Current status
 
@@ -148,6 +167,14 @@ Suggested topics:
 - `finance`
 - `sqlite`
 
+## Comparison with related projects
+
+- [`gnucash-web`](https://github.com/joshuabach/gnucash-web): a simple Flask/Bootstrap mobile-friendly companion that supports adding/editing transactions. This project borrows the companion idea but keeps the MVP read-only by default and uses FastAPI/SvelteKit.
+- [`GnuDash`](https://github.com/QuirkyTurtle94/GnuDash): a rich Next.js/browser-WASM dashboard/editor with import/export-oriented workflows. This project instead keeps GnuCash access server-side behind a backend service layer and avoids making the web UI a replacement editor.
+- [Fava / Beancount](https://beancount.github.io/fava/): a strong web UI for Beancount plain-text ledgers. This project targets existing GnuCash SQL books rather than migrating users to Beancount.
+
+More detail: [docs/COMPETITIVE_REVIEW.md](docs/COMPETITIVE_REVIEW.md).
+
 ## Screenshots
 
 All screenshots use synthetic fixture data — no real financial data.
@@ -183,6 +210,11 @@ All screenshots use synthetic fixture data — no real financial data.
 ## Contributing
 
 Contributions are welcome, especially documentation, tests, safety review, and read-only UX improvements. Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a PR.
+
+Community/draft materials:
+
+- [docs/community/announcement-draft.md](docs/community/announcement-draft.md)
+- [docs/community/social-preview.md](docs/community/social-preview.md)
 
 ## Funding
 

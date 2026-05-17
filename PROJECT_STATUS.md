@@ -11,7 +11,7 @@ Last updated: 2026-05-17
 
 ## Current baseline
 
-Completed through Phase 25:
+Completed through Phase 27:
 
 - Phase 0 — competitive review and product positioning
 - Phase 1 — open-source foundation
@@ -39,6 +39,8 @@ Completed through Phase 25:
 - Phase 23 — backup restore smoke test
 - Phase 24 — CSV export for transactions
 - Phase 25 — documentation, release, and roadmap sync
+- Phase 26 — audit-driven status sync
+- Phase 27 — discoverability and community announcement readiness
 
 ## MVP product model
 
@@ -273,6 +275,42 @@ Artifacts:
 Test results: 262 passed, frontend check/auth-routes/build OK, Docker config valid.
 
 Related issues opened after Phase 25 / audit: GitHub #16, GitHub #17.
+
+## Phase 26 — Audit-Driven Status Sync
+
+Status: complete. Phase commit pushed.
+
+Goal: fix audit-identified status/release documentation drift without changing product code or publishing tags/releases.
+
+Artifacts:
+
+- `docs/audits/2026-05-17-audit.md` — independent audit report.
+- `README.md` — advanced current status to Phase 0–25 and clarified `v0.0.1-prealpha` vs `v0.0.2-prealpha` candidate state.
+- `PROJECT_STATUS.md` — advanced status baseline through Phase 25.
+- `docs/agents/project-lead.md` — removed stale GitHub auth blocker and marked old Phase 18 recommendation as historical.
+- `docs/handoff/phase-26.md` — handoff document.
+
+Test results: 262 passed, frontend check/auth-routes/build OK, Docker config valid.
+
+Related issues: GitHub #16, GitHub #17.
+
+## Phase 27 — Discoverability and Community Announcement Readiness
+
+Status: complete. Phase commit pushed.
+
+Goal: complete the non-blocking discoverability work before wider announcement while preserving pre-alpha/read-only positioning.
+
+Artifacts:
+
+- `README.md` — added short pitch, “Who this is for / not for”, comparison with `gnucash-web`, GnuDash, and Fava/Beancount, and community draft links.
+- `docs/community/announcement-draft.md` — conservative announcement draft with safety warnings.
+- `docs/community/social-preview.md` — manual GitHub social preview setup and safety checklist.
+- GitHub topics configured: `gnucash`, `personal-finance`, `accounting`, `self-hosted`, `sveltekit`, `fastapi`, `open-source`, `finance`, `sqlite`.
+- `docs/handoff/phase-27.md` — handoff document.
+
+Test results: 262 passed, frontend check/auth-routes/build OK, Docker config valid.
+
+Related issue: GitHub #16.
 
 ## Phase 22 — Real Controlled Write Integration Tests
 
