@@ -60,7 +60,7 @@ Document and test the current GnuCash SQL compatibility baseline using committed
 
 ## Commit
 
-Pending until commit/push step completes.
+- `343e098` — `docs: Phase 28 GnuCash compatibility matrix`
 
 ## GitHub
 

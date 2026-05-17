@@ -16,11 +16,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Phase 22 — real controlled write integration tests against disposable piecash books.
 - Phase 23 — backup restore smoke test (automated restore verification).
 - Phase 24 — CSV export for transactions (read-only, filter-preserving, 10,000 row cap).
+- Phase 25 — documentation, release, and roadmap sync for the next pre-alpha candidate.
+- Phase 26 — audit-driven status sync after independent review.
+- Phase 27 — discoverability and community announcement readiness docs.
+- Phase 28 — GnuCash compatibility matrix for committed synthetic fixtures.
+- Phase 29 — audit-driven release documentation sync for Phases 26–28.
 
 ### Security
 
 - Auth cookie deployment documentation (httpOnly, sameSite, secure flags, no production guarantee).
 - Multi-currency reporting limitations documented and tested.
+- Independent audit report refreshed for Phase 29 with read-only/default-write checks.
 
 ### Known limitations
 
@@ -28,6 +34,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - piecash write compatibility not guaranteed for all GnuCash versions.
 - CSV export amount range filters not yet available in frontend (backend supports them).
 - Multi-book UI is structural; full multi-user access control is post-MVP.
+- Compatibility matrix currently covers committed synthetic SQLite fixtures only; PostgreSQL/MySQL/MariaDB, XML books, and multiple desktop-generated versions are not yet validated.
 
 ## [0.0.1] - 2026-05-16
 

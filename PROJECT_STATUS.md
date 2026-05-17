@@ -11,7 +11,7 @@ Last updated: 2026-05-17
 
 ## Current baseline
 
-Completed through Phase 28:
+Completed through Phase 29:
 
 - Phase 0 — competitive review and product positioning
 - Phase 1 — open-source foundation
@@ -42,6 +42,7 @@ Completed through Phase 28:
 - Phase 26 — audit-driven status sync
 - Phase 27 — discoverability and community announcement readiness
 - Phase 28 — GnuCash compatibility matrix
+- Phase 29 — audit-driven release documentation sync
 
 ## MVP product model
 
@@ -329,6 +330,26 @@ Artifacts:
 Test results: 264 passed, frontend check/auth-routes/build OK, Docker config validation OK.
 
 Related issue: GitHub #15.
+
+## Phase 29 — Audit-Driven Release Documentation Sync
+
+Status: complete. Phase commit pushed.
+
+Goal: run the required independent audit before Phase 29 and fix accepted release/status documentation blockers instead of expanding feature scope.
+
+Artifacts:
+
+- `docs/audits/2026-05-17-audit.md` — refreshed independent audit report for Phase 29.
+- `README.md` — current status advanced through Phase 29 and linked to the latest audit.
+- `CHANGELOG.md` — Unreleased entries updated through Phase 29.
+- `docs/release/v0.0.2-prealpha-notes.md` — candidate notes updated for Phases 25–29 and current compatibility limits.
+- `docs/ROADMAP.md` — roadmap refreshed so `v0.0.1-prealpha` is no longer described as the next unpublished step.
+- `docs/handoff/phase-28.md` — replaced stale pending commit placeholder with `343e098`.
+- `docs/handoff/phase-29.md` — handoff document.
+
+Test results: backend 264 passed (27 warnings), frontend check/auth-routes/build OK, Docker config validation OK.
+
+Related issues: none created; audit blocker was fixed immediately in Phase 29.
 
 ## Phase 22 — Real Controlled Write Integration Tests
 
