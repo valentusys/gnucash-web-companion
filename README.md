@@ -186,3 +186,15 @@ This project is licensed under the **GNU Affero General Public License v3.0 (AGP
 `gnucash-web-companion` is a self-hosted web application. AGPL-3.0 keeps modifications shared over a network open, aligns well with GnuCash's GPL-3.0 license family, and preserves the project as free/open software.
 
 This licensing summary is not legal advice.
+
+## Security and Deployment
+
+This is a **pre-alpha** self-hosted application. Auth tokens are stored in
+`httpOnly` cookies with `sameSite=lax` and protocol-dependent `secure` flags.
+The JWT logout model is stateless (frontend deletes the cookie; no server-side
+blacklist). **Do not expose this application directly to the public internet.**
+Always use HTTPS in production and keep `GNUCASH_WRITES_ENABLED=false` unless
+you explicitly need post-MVP write features.
+
+See [docs/security/auth-cookie-deployment.md](docs/security/auth-cookie-deployment.md)
+for full details on cookie attributes, deployment warnings, and limitations.

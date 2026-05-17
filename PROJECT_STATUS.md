@@ -11,7 +11,7 @@ Last updated: 2026-05-17
 
 ## Current baseline
 
-Completed through Phase 18; Phase 19 planned:
+Completed through Phase 18; Phase 19 in progress:
 
 - Phase 0 — competitive review and product positioning
 - Phase 1 — open-source foundation
@@ -145,6 +145,24 @@ Deviations: transaction detail used GUID-based URL (`/transactions/89bdbe5a...`)
 Verification: all 7 screenshots < 300 KB, no real financial data, no production code changes, README renders images with relative paths.
 
 Related issue: GitHub #3.
+
+## Phase 19 — Multi-Currency Limitation Tests and Auth Cookie Security Documentation
+
+Status: complete. Phase commit pushed.
+
+Goal: add mixed-currency integration tests and document auth cookie security for self-hosted deployment.
+
+Artifacts:
+
+- `apps/api/scripts/create_multicurrency_fixture.py` — script to generate the multi-currency fixture.
+- `apps/api/tests/fixtures/test-book-multicurrency.gnucash.sqlite` — 208 KB synthetic book (13 accounts: 10 SEK + 3 EUR; 6 transactions: 5 SEK + 1 EUR).
+- `apps/api/tests/test_multicurrency_reports.py` — 11 integration tests validating multi-currency exclusion.
+- `docs/security/auth-cookie-deployment.md` — cookie attributes, deployment warnings, no production guarantee.
+- `README.md` — new `## Security and Deployment` section with link to the doc.
+
+Test results: 198 passed (187 existing + 11 new), 0 failed.
+
+Related issues: GitHub #6, GitHub #10.
 
 ## Standing constraints
 
