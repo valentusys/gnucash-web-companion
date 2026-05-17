@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 38.
+Completed through Phase 39.
 
 Completed phases:
 
@@ -54,10 +54,11 @@ Completed phases:
 - Phase 36 — write-mode UI warning and explicit confirmation
 - Phase 37 — independent audit and baseline sync
 - Phase 38 — personal dogfood readiness
+- Phase 39 — read-only smoke test automation
 
 Next planned phase:
 
-- Phase 39 — read-only smoke test automation, focused on a minimal automated smoke script for local Docker deployments.
+- Phase 40 — v0.0.2-prealpha release candidate cleanup, focused on release-candidate docs without publishing a tag/release.
 
 ## MVP product model
 
@@ -534,11 +535,30 @@ Artifacts:
 - `CHANGELOG.md` — added Phase 38 Unreleased entry.
 - `docs/handoff/phase-38.md` — PM/engineer handoff and verification report.
 
-Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default state; controlled writes remain experimental/post-MVP and disabled by default; Phase 38 added documentation/checklists only and did not change product code, backend write-gating, frontend write UI, auth storage, or release artifacts.
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default state; controlled writes remain experimental post-MVP and disabled by default; Phase 38 added documentation/checklists only and did not change product code, backend write-gating, frontend write UI, auth storage, or release artifacts.
 
 Test results: backend full suite passed; frontend check/auth-routes/build passed; Docker config validation passed.
 
 Related issues: no Phase 38-specific GitHub issue found in the current open issue list; GitHub #18, #20, and #22 intentionally remain open.
+
+## Phase 39 — Read-Only Smoke Test Automation
+
+Status: complete. Phase commit pushed.
+
+Goal: add a minimal automated API smoke script for local read-only Docker deployments without requiring real financial data or expanding write scope.
+
+Artifacts:
+
+- `scripts/smoke/read-only-api-smoke.py` — stdlib-only Python smoke script for local API deployments; checks `/health`, login, `/auth/me`, default book discovery through `/books`, book metadata, accounts, transactions, reports summary, and disabled-write 403 responses for validate/create/patch controlled-write endpoints.
+- `scripts/smoke/read-only-smoke-check.md` — updated manual checklist with the Phase 39 automated API smoke command and environment variables.
+- `CHANGELOG.md` — added Phase 39 Unreleased entry.
+- `docs/handoff/phase-39.md` — PM/engineer handoff and verification report.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default state; controlled writes remain experimental post-MVP and disabled by default; Phase 39 adds smoke automation only and does not enable writes, add write capability, change auth storage, publish a release, or add real financial/secrets artifacts.
+
+Test results: script help/compile check passed; backend full suite passed; frontend check/auth-routes/build passed; Docker config validation passed.
+
+Related issues: no Phase 39-specific GitHub issue found in the current open issue list; GitHub #18, #20, and #22 intentionally remain open.
 
 ## Phase 22 — Real Controlled Write Integration Tests
 

@@ -2,7 +2,7 @@
 
 Manual smoke checklist for Phase 38 personal dogfood readiness.
 
-Use this together with `docs/dogfood/personal-readonly-dogfood.md`. It intentionally stays manual/checklist-based; automated API smoke coverage is planned separately.
+Use this together with `docs/dogfood/personal-readonly-dogfood.md`. This file stays manual/checklist-based. For the Phase 39 automated API smoke path, use `scripts/smoke/read-only-api-smoke.py`.
 
 ## Preconditions
 
@@ -50,6 +50,16 @@ With `GNUCASH_WRITES_ENABLED=false`:
 - [ ] Direct navigation to `/transactions/new` does not expose a usable create form.
 - [ ] No frontend copy implies that writes are production-ready.
 - [ ] No write test is performed against the personal copied book.
+
+## Automated API smoke path
+
+After the local Docker deployment is running with `GNUCASH_WRITES_ENABLED=false`, run:
+
+```bash
+SMOKE_ADMIN_PASSWORD='<local-admin-password>' scripts/smoke/read-only-api-smoke.py
+```
+
+The script targets `http://localhost:8080/api` by default and checks API health, login, `/auth/me`, default book discovery, accounts, transactions, reports summary, and disabled-write 403 responses for validate/create/patch endpoints. Override with `SMOKE_API_BASE_URL` only when testing a different local/LAN deployment.
 
 ## Shutdown / cleanup
 

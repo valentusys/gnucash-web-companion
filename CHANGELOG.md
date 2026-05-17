@@ -30,6 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Phase 36 — write-mode UI warning and explicit confirmation for experimental controlled writes.
 - Phase 37 — independent audit and baseline sync after Phase 36.
 - Phase 38 — personal read-only dogfood guide and manual smoke checklist for copied GnuCash books.
+- Phase 39 — automated read-only API smoke script for local Docker deployments.
 
 ### Security
 
