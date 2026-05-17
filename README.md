@@ -21,7 +21,7 @@ A modern, self-hosted web companion for existing [GnuCash](https://www.gnucash.o
 
 ## Current status
 
-- Phase 0–14 are complete.
+- Phase 0–24 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by default.
 - First public pre-alpha release candidate: `v0.0.1-prealpha`.
@@ -116,6 +116,16 @@ Release checklist and notes:
 
 - [docs/release/v0.0.1-prealpha-checklist.md](docs/release/v0.0.1-prealpha-checklist.md)
 - [docs/release/v0.0.1-prealpha-notes.md](docs/release/v0.0.1-prealpha-notes.md)
+
+The next pre-alpha release candidate is:
+
+```text
+v0.0.2-prealpha
+```
+
+Release candidate notes:
+
+- [docs/release/v0.0.2-prealpha-notes.md](docs/release/v0.0.2-prealpha-notes.md)
 
 Do not publish npm or PyPI packages unless explicitly requested.
 

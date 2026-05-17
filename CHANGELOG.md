@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Phase 17 — synthetic GnuCash fixture and read-only integration validation.
+- Phase 18 — README screenshots and mobile preview with synthetic data.
+- Phase 19 — multi-currency limitation tests and auth cookie security documentation.
+- Phase 20 — multi-book UI foundation (book switcher, book-aware routes).
+- Phase 21 — file-based write lock replacement (`fcntl.flock()` for multi-worker safety).
+- Phase 22 — real controlled write integration tests against disposable piecash books.
+- Phase 23 — backup restore smoke test (automated restore verification).
+- Phase 24 — CSV export for transactions (read-only, filter-preserving, 10,000 row cap).
+
+### Security
+
+- Auth cookie deployment documentation (httpOnly, sameSite, secure flags, no production guarantee).
+- Multi-currency reporting limitations documented and tested.
+
+### Known limitations
+
+- Pre-alpha only; no production-readiness guarantee.
+- piecash write compatibility not guaranteed for all GnuCash versions.
+- CSV export amount range filters not yet available in frontend (backend supports them).
+- Multi-book UI is structural; full multi-user access control is post-MVP.
+
 ## [0.0.1] - 2026-05-16
 
 ### Added
