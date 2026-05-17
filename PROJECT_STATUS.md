@@ -11,7 +11,7 @@ Last updated: 2026-05-17
 
 ## Current baseline
 
-Completed through Phase 30:
+Completed through Phase 31:
 
 - Phase 0 — competitive review and product positioning
 - Phase 1 — open-source foundation
@@ -44,6 +44,7 @@ Completed through Phase 30:
 - Phase 28 — GnuCash compatibility matrix
 - Phase 29 — audit-driven release documentation sync
 - Phase 30 — transaction amount range filters for CSV export
+- Phase 31 — read-only safety status banner
 
 ## MVP product model
 
@@ -370,6 +371,22 @@ Artifacts:
 Test results: backend full suite, frontend check/auth-routes/build, and Docker config validation all passed.
 
 Related issue: GitHub #14.
+
+## Phase 31 — Read-Only Safety Status Banner
+
+Status: complete. Phase commit pushed.
+
+Goal: add a small global UI reminder that the MVP is read-only by default and that GnuCash Desktop remains the authoritative editor.
+
+Artifacts:
+
+- `apps/web/src/lib/components/ReadOnlyStatusBanner.svelte` — reusable authenticated-app banner with explicit read-only/default-write safety language.
+- `apps/web/src/routes/+layout.svelte` — displays the banner in the authenticated app shell above page content.
+- `README.md`, `CHANGELOG.md`, `docs/ROADMAP.md`, `docs/release/v0.0.2-prealpha-notes.md`, and `docs/handoff/phase-31.md` — status/release docs updated.
+
+Test results: backend full suite, frontend check/auth-routes/build, and Docker config validation all passed.
+
+Related issues: none; this completed a small release-readiness/read-only MVP polish item from the roadmap.
 
 ## Phase 22 — Real Controlled Write Integration Tests
 

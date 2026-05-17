@@ -22,12 +22,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Phase 28 — GnuCash compatibility matrix for committed synthetic fixtures.
 - Phase 29 — audit-driven release documentation sync for Phases 26–28.
 - Phase 30 — frontend amount range filters for read-only transaction browsing and CSV export.
+- Phase 31 — global read-only safety status banner in the authenticated web shell.
 
 ### Security
 
 - Auth cookie deployment documentation (httpOnly, sameSite, secure flags, no production guarantee).
 - Multi-currency reporting limitations documented and tested.
 - Independent audit report refreshed for Phase 29 with read-only/default-write checks.
+- Authenticated app shell now displays a persistent read-only-by-default reminder.
 
 ### Known limitations
 
