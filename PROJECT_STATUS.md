@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 42.
+Completed through Phase 43.
 
 Completed phases:
 
@@ -58,10 +58,11 @@ Completed phases:
 - Phase 40 — v0.0.2-prealpha release candidate cleanup
 - Phase 41 — release gate audit for v0.0.2-prealpha
 - Phase 42 — publish v0.0.2-prealpha
+- Phase 43 — local deployment hardening guide
 
 Next planned phase:
 
-- Phase 43 — local deployment hardening guide.
+- Phase 44 — backup and recovery runbook.
 
 ## MVP product model
 
@@ -622,6 +623,25 @@ Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default sta
 Test results: post-Phase-41 GitHub CI was green before publication; backend full suite passed; frontend check/auth-routes/build passed; Docker config validation passed; `git diff --check` passed.
 
 Related issue: GitHub #20 updated and closed after successful `v0.0.2-prealpha` publication.
+
+## Phase 43 — Local Deployment Hardening Guide
+
+Status: complete. Phase commit pushed.
+
+Goal: add practical, conservative instructions for safely running the pre-alpha app locally or on a trusted LAN/VPN without implying production readiness.
+
+Artifacts:
+
+- `docs/deployment/local-secure-deployment.md` — local-only and LAN/VPN-only deployment guide covering reverse proxy/HTTPS notes, `.env` secrets, data/backup/app DB locations, GnuCash copied-book handling, public-internet warning, read-only smoke verification, and keeping `GNUCASH_WRITES_ENABLED=false`.
+- `README.md` — current status advanced through Phase 43 and linked to the local secure deployment guide from quick-start and security/deployment sections.
+- `CHANGELOG.md` — added Phase 43 Unreleased entry.
+- `docs/handoff/phase-43.md` — PM/engineer handoff and verification report.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default state; controlled writes remain experimental post-MVP and disabled by default; Phase 43 is documentation-only and does not enable writes, expand write scope, publish a release/tag, or add real financial/secrets artifacts.
+
+Test results: backend full suite passed; frontend check/auth-routes/build passed; Docker config validation passed; `git diff --check` passed.
+
+Related issues: no Phase 43-specific GitHub issue found in the current open issue list; GitHub #22, #17, #13, #12, and #11 remain open for later roadmap work.
 
 ## Phase 22 — Real Controlled Write Integration Tests
 

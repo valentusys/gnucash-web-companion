@@ -40,7 +40,7 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–42 are complete.
+- Phase 0–43 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by default.
 - First public pre-alpha release: `v0.0.1-prealpha`.
@@ -113,7 +113,9 @@ Default local URLs:
 - Web UI: <http://localhost:8080>
 - API health via proxy: <http://localhost:8080/api/health>
 
-See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for local development setup.
+See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for local development setup and
+[docs/deployment/local-secure-deployment.md](docs/deployment/local-secure-deployment.md)
+for conservative local/LAN/VPN deployment guidance.
 
 ## Architecture
 
@@ -250,4 +252,6 @@ Always use HTTPS in production and keep `GNUCASH_WRITES_ENABLED=false` unless
 you explicitly need post-MVP write features.
 
 See [docs/security/auth-cookie-deployment.md](docs/security/auth-cookie-deployment.md)
-for full details on cookie attributes, deployment warnings, and limitations.
+for full details on cookie attributes, deployment warnings, and limitations. See
+[docs/deployment/local-secure-deployment.md](docs/deployment/local-secure-deployment.md)
+for practical local-only and LAN/VPN-only deployment hardening guidance.
