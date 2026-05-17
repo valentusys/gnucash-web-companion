@@ -54,7 +54,7 @@ Completed phases:
 
 Next planned phase:
 
-- TBD by Project Lead after release/documentation triage.
+- Phase 36 — write-mode UI warning and explicit confirmation (PM brief created; implementation pending).
 
 ## MVP product model
 
