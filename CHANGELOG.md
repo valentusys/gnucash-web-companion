@@ -26,6 +26,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Phase 32 — backend write-gating regression coverage for disabled validate/create/patch routes.
 - Phase 33 — controlled-writes documentation cleanup and public status sync after disabled-write regression coverage.
 - Phase 34 — public README/status baseline sync through the Phase 33 baseline.
+- Phase 35 — audit-driven public status sync through Phase 34 and controlled-writes limitation cleanup.
 
 ### Security
 
@@ -35,6 +36,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Authenticated app shell now displays a persistent read-only-by-default reminder.
 - Disabled-write API regression tests now prove validate/create/patch return read-only 403 responses without constructing the write service.
 - Controlled-writes documentation now reflects file-based locking, backup restore smoke coverage, and disabled-write bypass regression coverage as completed safety work while write mode remains experimental and disabled by default.
+- Controlled-writes limitations now correctly state that frontend amount range filters exist for read-only browsing and CSV export.
 
 ### Known limitations
 

@@ -11,7 +11,7 @@ Last updated: 2026-05-17
 
 ## Current baseline
 
-Completed through Phase 34. Phase 35 is planned as an audit-driven documentation/status synchronization phase; implementation is not complete yet.
+Completed through Phase 35.
 
 Completed phases:
 
@@ -50,10 +50,11 @@ Completed phases:
 - Phase 32 — backend write-gating regression coverage
 - Phase 33 — controlled-writes documentation cleanup and status sync
 - Phase 34 — README/public status baseline sync after Phase 33 audit finding
+- Phase 35 — audit-driven Phase 34 public baseline and controlled-writes docs sync
 
 Next planned phase:
 
-- Phase 35 — audit-driven Phase 34 public baseline and controlled-writes docs sync (PM brief prepared in `docs/handoff/phase-35.md`; implementation pending).
+- TBD by Project Lead after release/documentation triage.
 
 ## MVP product model
 
@@ -444,7 +445,7 @@ Goal: synchronize public status/readiness documentation through the Phase 33 bas
 
 Artifacts:
 
-- `README.md` — current status advanced to Phase 0–33 complete while retaining pre-alpha, not production-ready, not security-audited, read-only-by-default, and unpublished `v0.0.2-prealpha` language.
+- `README.md` — current status advanced to the then-current Phase 33 baseline while retaining pre-alpha, not production-ready, not security-audited, read-only-by-default, and unpublished `v0.0.2-prealpha` language.
 - `CHANGELOG.md` — added Phase 34 documentation/status sync entry.
 - `docs/release/v0.0.2-prealpha-notes.md` — updated candidate scope from Phases 17–32 to Phases 17–33 and added Phase 33 documentation cleanup note; no tag or release was published.
 - `docs/ROADMAP.md` — release-governance grouping updated to include Phase 33/34 status baseline cleanup.
@@ -455,6 +456,27 @@ Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default sta
 Test results: disabled-write regression subset passed; backend full suite passed; frontend check/auth-routes/build passed; Docker config validation passed.
 
 Related issues: GitHub #19 closed by Phase 34; GitHub #18, #20, #21, and #22 intentionally remain open.
+
+## Phase 35 — Audit-Driven Phase 34 Public Baseline and Controlled-Writes Docs Sync
+
+Status: complete. Phase commit pushed.
+
+Goal: resolve the accepted phase 10 audit documentation blockers by synchronizing public current-status wording through the Phase 34/35 baseline and removing the stale controlled-writes limitation that described frontend amount range filters as missing.
+
+Artifacts:
+
+- `README.md` — current status advanced so Phase 34 is no longer missing from the public baseline, while retaining pre-alpha, not production-ready, not security-audited, read-only-by-default, and unpublished `v0.0.2-prealpha` language.
+- `docs/v0.2-controlled-writes.md` — updated known limitations to state that Phase 30 added frontend amount range filters for browsing and CSV export; moved that work into resolved historical limitations.
+- `CHANGELOG.md` — added Phase 35 documentation/status sync and controlled-writes limitation cleanup entries.
+- `docs/release/v0.0.2-prealpha-notes.md` — candidate notes updated through Phase 35 without publishing a tag or GitHub release.
+- `docs/ROADMAP.md` — release-governance grouping updated to include Phase 35 documentation cleanup.
+- `docs/handoff/phase-35.md` — implementation handoff updated.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default state; controlled writes remain experimental/post-MVP and disabled by default; no code path or write-gating route order was changed; no frontend auth storage path was changed; no real financial/secrets artifacts were added.
+
+Test results: disabled-write regression subset passed; backend full suite passed; frontend check/auth-routes/build passed; Docker config validation passed.
+
+Related issues: GitHub #19 closed by Phase 35; GitHub #18, #20, #21, and #22 intentionally remain open.
 
 ## Phase 22 — Real Controlled Write Integration Tests
 

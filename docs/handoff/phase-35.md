@@ -2,7 +2,7 @@
 
 ## Status
 
-Planned by Project Lead in guarded background mission phase 11. This is a PM brief only; implementation is not complete until the engineer updates this file with results, verification, commit, push, and GitHub issue outcomes.
+Implemented by engineer in guarded background mission phase 12. Documentation/status synchronization is complete; final commit SHA and push status are recorded below.
 
 ## PM decision
 
@@ -146,6 +146,55 @@ At completion, update this file with:
 - push status;
 - GitHub issue #19/#18/#20/#21/#22 status.
 
+## Engineer implementation results
+
+### Implementation summary
+
+- Synchronized public current-status wording so Phase 34 is no longer missing from the active public baseline.
+- Updated controlled-writes documentation to remove the stale active limitation that described amount range filters as backend-only in the frontend; Phase 30 frontend amount filters are now recorded as completed historical work.
+- Updated changelog, release candidate notes, roadmap, project status, and this handoff without publishing any tag or GitHub release.
+- No product code or write-gating behavior was changed.
+
+### Exact docs changed
+
+- `README.md`
+- `CHANGELOG.md`
+- `PROJECT_STATUS.md`
+- `docs/v0.2-controlled-writes.md`
+- `docs/release/v0.0.2-prealpha-notes.md`
+- `docs/ROADMAP.md`
+- `docs/handoff/phase-35.md`
+
+### Verification results
+
+- `cd apps/api && pytest -q tests/test_transaction_writes.py::TestWritesDisabledByDefault` — passed.
+- `cd apps/api && pytest -q` — passed.
+- `cd apps/web && npm run check && npm run test:auth-routes && npm run build` — passed.
+- `JWT_SECRET=dummy-validation-secret APP_ADMIN_PASSWORD=dummy docker compose config --quiet` — passed.
+- Documentation search for active stale `Phase 0–33`, `Phase 0-33`, `through Phase 33`, and `backend-only in the frontend` claims in README/status/changelog/release/roadmap/controlled-writes docs — no active stale public baseline or controlled-writes limitation remains; only historical Phase 34/PROJECT_STATUS references remain.
+
+### Safety confirmation
+
+- `GNUCASH_WRITES_ENABLED=false` remains the documented/default state.
+- Controlled writes remain experimental, post-MVP, disabled by default, and outside MVP v0.1.
+- No production-readiness, audited-security, or broad GnuCash-version support claim was added.
+- No code path was changed to construct/write with `GnuCashWriteService` when writes are disabled.
+- No frontend auth token storage was moved to localStorage/sessionStorage.
+- No real financial data, GnuCash books, `.env`, app DBs, backups, secrets, tokens, keys, certs, or real screenshots were added.
+
+### GitHub issue status
+
+- #19: closed after README/PROJECT_STATUS/CHANGELOG/release docs were synchronized through Phase 35 and stale controlled-writes limitation wording was removed.
+- #18: left open as requested.
+- #20: left open as requested.
+- #21: left open as requested.
+- #22: left open as requested.
+
+### Commit and push
+
+- Commit: pending until final commit is created.
+- Push: pending until final commit is pushed to `origin/main`.
+
 ## Blockers
 
-None for planning. The next engineer phase is blocked from feature work until the accepted audit documentation blockers above are resolved.
+None. The accepted audit documentation blockers for Phase 35 were resolved.

@@ -38,9 +38,9 @@ Completed:
 
 Do not treat this as production-safe write support.
 
-### Release governance and agent continuity — Phases 15–16, 25–29, and 33–34
+### Release governance and agent continuity — Phases 15–16, 25–29, and 33–35
 
-Completed public pre-alpha release setup, Project Lead context, release/status documentation synchronization, audit-driven fixes, discoverability docs, compatibility matrix, Phase 29 audit documentation refresh, and Phase 33/34 public status baseline cleanup.
+Completed public pre-alpha release setup, Project Lead context, release/status documentation synchronization, audit-driven fixes, discoverability docs, compatibility matrix, Phase 29 audit documentation refresh, Phase 33/34 public status baseline cleanup, and Phase 35 audit-driven controlled-writes limitation cleanup.
 
 Key artifacts:
 
@@ -51,7 +51,7 @@ Key artifacts:
 - `docs/agents/project-lead.md`
 - `docs/handoff/phase-15.md` through `docs/handoff/phase-16.md`
 - `docs/handoff/phase-25.md` through `docs/handoff/phase-29.md`
-- `docs/handoff/phase-33.md` through `docs/handoff/phase-34.md`
+- `docs/handoff/phase-33.md` through `docs/handoff/phase-35.md`
 
 ### Read-only release-value improvements — Phases 17–20, 24, 27–28, and 30–31
 
