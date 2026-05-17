@@ -11,9 +11,7 @@ Last updated: 2026-05-17
 
 ## Current baseline
 
-Completed through Phase 33.
-
-Planning note: Phase 34 has been planned by PM to sync public status documentation through the Phase 33 baseline after the phase 7 audit reopened GitHub issue #19. Implementation is not complete yet.
+Completed through Phase 34.
 
 Completed phases:
 
@@ -51,10 +49,11 @@ Completed phases:
 - Phase 31 — read-only safety status banner
 - Phase 32 — backend write-gating regression coverage
 - Phase 33 — controlled-writes documentation cleanup and status sync
+- Phase 34 — README/public status baseline sync after Phase 33 audit finding
 
 Next planned phase:
 
-- Phase 34 — README/public status baseline sync after Phase 33 audit finding (#19). PM brief created in `docs/handoff/phase-34.md`; engineer implementation pending.
+- TBD by Project Lead after release/documentation triage.
 
 ## MVP product model
 
@@ -421,12 +420,12 @@ Related issue: GitHub #18 (write-gating verification follow-up; status managed b
 
 Status: complete. Phase commit pushed.
 
-Goal: clean stale controlled-writes documentation and synchronize the public status baseline through Phase 32 without expanding controlled-write scope.
+Goal: clean stale controlled-writes documentation and synchronize the public status baseline after disabled-write regression coverage without expanding controlled-write scope.
 
 Artifacts:
 
 - `docs/v0.2-controlled-writes.md` — replaced stale active legacy-lock wording with current `fcntl.flock()` file-locking status, documented Phase 23 restore smoke coverage and Phase 32 disabled-write bypass regression coverage, and moved completed limitations into a resolved historical section.
-- `README.md` — current status advanced to Phase 0–32 complete without claiming a `v0.0.2-prealpha` tag/release exists.
+- `README.md` — then-current status baseline advanced without claiming a `v0.0.2-prealpha` tag/release exists.
 - `CHANGELOG.md` — added Phase 33 documentation/status cleanup entry.
 - `docs/release/v0.0.2-prealpha-notes.md` and `docs/ROADMAP.md` — synchronized Phase 32 safety coverage and retained pre-alpha/read-only positioning.
 - `docs/handoff/phase-33.md` — implementation handoff updated.
@@ -435,7 +434,27 @@ Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default sta
 
 Test results: disabled-write regression subset passed; backend full suite passed; frontend check/auth-routes/build passed; Docker config validation passed.
 
-Related issues: GitHub #23 closed by Phase 33; GitHub #19 closed after README/PROJECT_STATUS/CHANGELOG sync; GitHub #18 intentionally unchanged by this documentation phase.
+Related issues: GitHub #23 closed by Phase 33; GitHub #19 reopened by the phase 7 audit for follow-up public status synchronization; GitHub #18 intentionally unchanged by this documentation phase.
+
+## Phase 34 — README/Public Status Baseline Sync After Phase 33 Audit Finding
+
+Status: complete. Phase commit pushed.
+
+Goal: synchronize public status/readiness documentation through the Phase 33 baseline after the phase 7 audit reopened GitHub issue #19 for stale README wording.
+
+Artifacts:
+
+- `README.md` — current status advanced to Phase 0–33 complete while retaining pre-alpha, not production-ready, not security-audited, read-only-by-default, and unpublished `v0.0.2-prealpha` language.
+- `CHANGELOG.md` — added Phase 34 documentation/status sync entry.
+- `docs/release/v0.0.2-prealpha-notes.md` — updated candidate scope from Phases 17–32 to Phases 17–33 and added Phase 33 documentation cleanup note; no tag or release was published.
+- `docs/ROADMAP.md` — release-governance grouping updated to include Phase 33/34 status baseline cleanup.
+- `docs/handoff/phase-34.md` — engineer implementation handoff updated.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default state; controlled writes remain experimental/post-MVP and disabled by default; no product code or frontend auth storage paths were changed; no real financial/secrets artifacts were added.
+
+Test results: disabled-write regression subset passed; backend full suite passed; frontend check/auth-routes/build passed; Docker config validation passed.
+
+Related issues: GitHub #19 closed by Phase 34; GitHub #18, #20, #21, and #22 intentionally remain open.
 
 ## Phase 22 — Real Controlled Write Integration Tests
 

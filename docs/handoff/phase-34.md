@@ -2,7 +2,7 @@
 
 ## Status
 
-Planned by Project Lead in guarded background mission phase 8. Engineer implementation is next.
+Implemented by engineer in guarded background mission phase 9. Commit/push details below.
 
 ## PM decision
 
@@ -137,6 +137,56 @@ At completion, update this file with:
 - push status;
 - GitHub issue #19/#18/#20/#21/#22 status.
 
+## Engineer implementation summary
+
+- Synchronized README current status to Phase 0–33 complete while preserving pre-alpha, not production-ready, not security-audited, read-only-by-default, and unpublished `v0.0.2-prealpha` language.
+- Added Phase 34 to `CHANGELOG.md` and `PROJECT_STATUS.md`.
+- Updated `docs/release/v0.0.2-prealpha-notes.md` so the candidate scope includes Phase 33 documentation cleanup but still states that no tag/release has been created.
+- Updated `docs/ROADMAP.md` release-governance grouping to include Phase 33/34 status baseline cleanup.
+- Removed active stale public current-state wording for `Phase 0–32` / `through Phase 32` from the required public status docs.
+
+## Exact docs changed
+
+- `README.md`
+- `CHANGELOG.md`
+- `PROJECT_STATUS.md`
+- `docs/release/v0.0.2-prealpha-notes.md`
+- `docs/ROADMAP.md`
+- `docs/handoff/phase-34.md`
+
+## Verification results
+
+- `cd apps/api && pytest -q tests/test_transaction_writes.py::TestWritesDisabledByDefault` — passed (`4 passed, 1 warning`).
+- Documentation stale-claim check for `Phase 0–32`, `Phase 0-32`, and `through Phase 32` in required public status docs — passed; no active stale status claims found.
+- `cd apps/api && pytest -q` — passed (`269 passed, 27 warnings`).
+- `cd apps/web && npm run check` — passed (`0 errors and 0 warnings`).
+- `cd apps/web && npm run test:auth-routes` — passed (`auth route checks passed`).
+- `cd apps/web && npm run build` — passed.
+- `JWT_SECRET=dummy-validation-secret APP_ADMIN_PASSWORD=dummy docker compose config --quiet` — passed.
+- GitHub preflight — `gh` authenticated as `valentusys`; #19/#18/#20/#21/#22 inspected before implementation.
+
+## Safety confirmation
+
+- `GNUCASH_WRITES_ENABLED=false` remains the documented/default state.
+- Controlled writes remain experimental, post-MVP, disabled by default, and outside MVP v0.1.
+- No production-readiness, audited-security, or broad GnuCash-version support claim was added.
+- No product code was changed; no code path was changed to construct/write with `GnuCashWriteService` when writes are disabled.
+- No frontend auth token storage path was changed.
+- No real financial data, GnuCash books, `.env`, app DBs, backups, secrets, tokens, keys, certs, or real screenshots were added.
+
+## Commit and push
+
+- Commit: `2dd1bba` (`docs: sync phase 34 public status baseline`).
+- Push: pushed to `origin/main`.
+
+## GitHub issue outcome
+
+- #19: closed after README/PROJECT_STATUS/CHANGELOG/release docs were synchronized through the Phase 33/34 public status baseline.
+- #18: remains open.
+- #20: remains open.
+- #21: remains open.
+- #22: remains open.
+
 ## Blockers
 
-None for planning. No backend write-gating regression was discovered in the preceding audit.
+None for implementation. No backend write-gating regression was discovered in the preceding audit.

@@ -24,7 +24,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Phase 30 — frontend amount range filters for read-only transaction browsing and CSV export.
 - Phase 31 — global read-only safety status banner in the authenticated web shell.
 - Phase 32 — backend write-gating regression coverage for disabled validate/create/patch routes.
-- Phase 33 — controlled-writes documentation cleanup and public status sync through Phase 32.
+- Phase 33 — controlled-writes documentation cleanup and public status sync after disabled-write regression coverage.
+- Phase 34 — public README/status baseline sync through the Phase 33 baseline.
 
 ### Security
 
