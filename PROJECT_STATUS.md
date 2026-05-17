@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 39.
+Completed through Phase 40.
 
 Completed phases:
 
@@ -55,10 +55,11 @@ Completed phases:
 - Phase 37 — independent audit and baseline sync
 - Phase 38 — personal dogfood readiness
 - Phase 39 — read-only smoke test automation
+- Phase 40 — v0.0.2-prealpha release candidate cleanup
 
 Next planned phase:
 
-- Phase 40 — v0.0.2-prealpha release candidate cleanup, focused on release-candidate docs without publishing a tag/release.
+- Phase 41 — release gate audit for `v0.0.2-prealpha` before any tag or GitHub release is published.
 
 ## MVP product model
 
@@ -559,6 +560,26 @@ Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default sta
 Test results: script help/compile check passed; backend full suite passed; frontend check/auth-routes/build passed; Docker config validation passed.
 
 Related issues: no Phase 39-specific GitHub issue found in the current open issue list; GitHub #18, #20, and #22 intentionally remain open.
+
+## Phase 40 — v0.0.2-prealpha Release Candidate Cleanup
+
+Status: complete. Phase commit pushed.
+
+Goal: prepare honest release-candidate documentation for `v0.0.2-prealpha` without publishing a tag or GitHub release.
+
+Artifacts:
+
+- `docs/release/v0.0.2-prealpha-checklist.md` — new release-candidate checklist covering scope, exclusions, required gate, automated checks, optional local smoke, and release command placeholder reserved for the explicit publish phase.
+- `docs/release/v0.0.2-prealpha-notes.md` — updated through Phase 40 with dogfood/smoke work and release-gate language.
+- `README.md` — current status advanced through Phase 40 and linked to the `v0.0.2-prealpha` checklist.
+- `CHANGELOG.md` — added Phase 40 Unreleased entry.
+- `docs/handoff/phase-40.md` — PM/engineer handoff and verification report.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default state; controlled writes remain experimental post-MVP and disabled by default; Phase 40 is documentation/release-candidate cleanup only and does not enable writes, expand write scope, publish a release/tag, or add real financial/secrets artifacts.
+
+Test results: backend full suite passed; frontend check/auth-routes/build passed; Docker config validation passed; `git diff --check` passed.
+
+Related issue: GitHub #20 updated with Phase 40 status; GitHub #18 and #22 intentionally remain open.
 
 ## Phase 22 — Real Controlled Write Integration Tests
 
