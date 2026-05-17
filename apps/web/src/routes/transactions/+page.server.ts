@@ -20,12 +20,16 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 	const dateFrom = url.searchParams.get('date_from') ?? '';
 	const dateTo = url.searchParams.get('date_to') ?? '';
 	const accountId = url.searchParams.get('account_id') ?? '';
+	const minAmount = url.searchParams.get('min_amount') ?? '';
+	const maxAmount = url.searchParams.get('max_amount') ?? '';
 
 	const transactionParams = new URLSearchParams({ limit: String(limit), offset: String(offset) });
 	if (query) transactionParams.set('query', query);
 	if (dateFrom) transactionParams.set('date_from', dateFrom);
 	if (dateTo) transactionParams.set('date_to', dateTo);
 	if (accountId) transactionParams.set('account_id', accountId);
+	if (minAmount) transactionParams.set('min_amount', minAmount);
+	if (maxAmount) transactionParams.set('max_amount', maxAmount);
 
 	const [accounts, txs] = await Promise.all([
 		apiFetch<Account[]>(fetch, `${bookPrefix}/accounts`, token),
@@ -35,7 +39,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 	return {
 		accounts,
 		txs,
-		filters: { query, dateFrom, dateTo, accountId },
+		filters: { query, dateFrom, dateTo, accountId, minAmount, maxAmount },
 		writesEnabled: env.GNUCASH_WRITES_ENABLED === 'true'
 	};
 };

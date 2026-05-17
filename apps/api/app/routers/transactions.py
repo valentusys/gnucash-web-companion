@@ -81,6 +81,7 @@ async def list_book_transactions(
     session: Session = Depends(get_db),
 ) -> dict[str, Any]:
     """List transactions for a viewable book with pagination and filters."""
+    _validate_amount_range(min_amount, max_amount)
     book = _resolve_viewable_book(book_id, user, session)
     try:
         service = transaction_service_for(book)
@@ -135,6 +136,7 @@ async def export_book_transactions_csv(
 
     Respects the same filters as the list endpoint. Row cap: 10,000.
     """
+    _validate_amount_range(min_amount, max_amount)
     book = _resolve_viewable_book(book_id, user, session)
     try:
         service = transaction_service_for(book)
@@ -226,6 +228,7 @@ async def list_book_account_transactions(
     session: Session = Depends(get_db),
 ) -> dict[str, Any]:
     """List transactions for a specific account in a viewable book."""
+    _validate_amount_range(min_amount, max_amount)
     book = _resolve_viewable_book(book_id, user, session)
     try:
         service = transaction_service_for(book)
@@ -276,6 +279,7 @@ async def list_default_book_transactions(
     session: Session = Depends(get_db),
 ) -> dict[str, Any]:
     """List transactions for the default book."""
+    _validate_amount_range(min_amount, max_amount)
     book = resolve_default_viewable_book(user, session)
     try:
         service = transaction_service_for(book)
@@ -336,6 +340,7 @@ async def list_default_book_account_transactions(
     session: Session = Depends(get_db),
 ) -> dict[str, Any]:
     """List transactions for a specific account in the default book."""
+    _validate_amount_range(min_amount, max_amount)
     book = resolve_default_viewable_book(user, session)
     try:
         service = transaction_service_for(book)
@@ -376,6 +381,15 @@ def _resolve_viewable_book(book_id: int, user: User, session: Session) -> Book:
     from app.routers.books import resolve_viewable_book
 
     return resolve_viewable_book(book_id, user, session)
+
+
+def _validate_amount_range(min_amount: Decimal | None, max_amount: Decimal | None) -> None:
+    """Reject inverted amount ranges before querying GnuCash."""
+    if min_amount is not None and max_amount is not None and min_amount > max_amount:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="min_amount cannot be greater than max_amount",
+        )
 
 
 def _require_book_edit_access(book: Book, user: User, session: Session) -> None:

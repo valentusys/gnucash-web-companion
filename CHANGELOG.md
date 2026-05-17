@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Phase 27 — discoverability and community announcement readiness docs.
 - Phase 28 — GnuCash compatibility matrix for committed synthetic fixtures.
 - Phase 29 — audit-driven release documentation sync for Phases 26–28.
+- Phase 30 — frontend amount range filters for read-only transaction browsing and CSV export.
 
 ### Security
 
@@ -32,7 +33,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Pre-alpha only; no production-readiness guarantee.
 - piecash write compatibility not guaranteed for all GnuCash versions.
-- CSV export amount range filters not yet available in frontend (backend supports them).
+- Transaction amount range filters are available for browsing and CSV export; advanced export customization is still limited.
 - Multi-book UI is structural; full multi-user access control is post-MVP.
 - Compatibility matrix currently covers committed synthetic SQLite fixtures only; PostgreSQL/MySQL/MariaDB, XML books, and multiple desktop-generated versions are not yet validated.
 

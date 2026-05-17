@@ -6,6 +6,8 @@
 		dateFrom,
 		dateTo,
 		accountId = '',
+		minAmount = '',
+		maxAmount = '',
 		accounts = [],
 		onChange
 	}: {
@@ -13,29 +15,59 @@
 		dateFrom: string;
 		dateTo: string;
 		accountId?: string;
+		minAmount?: string;
+		maxAmount?: string;
 		accounts?: Account[];
-		onChange: (params: { query: string; dateFrom: string; dateTo: string; accountId: string }) => void;
+		onChange: (params: {
+			query: string;
+			dateFrom: string;
+			dateTo: string;
+			accountId: string;
+			minAmount: string;
+			maxAmount: string;
+		}) => void;
 	} = $props();
+
+	let amountError = $state('');
+
+	function normalizeDecimal(value: FormDataEntryValue | null): string {
+		return String(value ?? '').trim();
+	}
+
+	function validateAmountRange(min: string, max: string): string {
+		if (min && max && Number(min) > Number(max)) {
+			return 'Minimum amount must be less than or equal to maximum amount.';
+		}
+		return '';
+	}
 
 	function handleSubmit(e: Event) {
 		e.preventDefault();
 		const form = e.currentTarget as HTMLFormElement;
+		if (!form.reportValidity()) return;
 		const data = new FormData(form);
+		const nextMinAmount = normalizeDecimal(data.get('min_amount'));
+		const nextMaxAmount = normalizeDecimal(data.get('max_amount'));
+		amountError = validateAmountRange(nextMinAmount, nextMaxAmount);
+		if (amountError) return;
 		onChange({
 			query: String(data.get('query') ?? ''),
 			dateFrom: String(data.get('date_from') ?? ''),
 			dateTo: String(data.get('date_to') ?? ''),
-			accountId: String(data.get('account_id') ?? '')
+			accountId: String(data.get('account_id') ?? ''),
+			minAmount: nextMinAmount,
+			maxAmount: nextMaxAmount
 		});
 	}
 
 	function handleReset() {
-		onChange({ query: '', dateFrom: '', dateTo: '', accountId: '' });
+		amountError = '';
+		onChange({ query: '', dateFrom: '', dateTo: '', accountId: '', minAmount: '', maxAmount: '' });
 	}
 </script>
 
 <form
-	class="mb-4 flex flex-col gap-3 rounded-xl p-4 sm:flex-row sm:items-end"
+	class="mb-4 flex flex-col gap-3 rounded-xl p-4 sm:flex-row sm:flex-wrap sm:items-end"
 	style="background-color: var(--app-panel); box-shadow: 0 1px 3px var(--app-panel-shadow); border: 1px solid var(--app-border);"
 	onsubmit={handleSubmit}
 >
@@ -86,6 +118,41 @@
 			class="mt-1 block w-full rounded-lg border px-3 py-2 text-sm"
 			style="border-color: var(--app-input-border); background-color: var(--app-input-bg); color: var(--app-text);"
 		/>
+	</div>
+	<div>
+		<label for="tx-min-amount" class="block text-xs font-semibold uppercase" style="color: var(--app-muted);">Min amount</label>
+		<input
+			id="tx-min-amount"
+			name="min_amount"
+			type="number"
+			step="any"
+			inputmode="decimal"
+			value={minAmount}
+			placeholder="0.00"
+			aria-invalid={amountError ? 'true' : undefined}
+			aria-describedby={amountError ? 'tx-amount-error' : undefined}
+			class="mt-1 block w-full rounded-lg border px-3 py-2 text-sm"
+			style="border-color: var(--app-input-border); background-color: var(--app-input-bg); color: var(--app-text);"
+		/>
+	</div>
+	<div>
+		<label for="tx-max-amount" class="block text-xs font-semibold uppercase" style="color: var(--app-muted);">Max amount</label>
+		<input
+			id="tx-max-amount"
+			name="max_amount"
+			type="number"
+			step="any"
+			inputmode="decimal"
+			value={maxAmount}
+			placeholder="1000.00"
+			aria-invalid={amountError ? 'true' : undefined}
+			aria-describedby={amountError ? 'tx-amount-error' : undefined}
+			class="mt-1 block w-full rounded-lg border px-3 py-2 text-sm"
+			style="border-color: var(--app-input-border); background-color: var(--app-input-bg); color: var(--app-text);"
+		/>
+		{#if amountError}
+			<p id="tx-amount-error" class="mt-1 text-xs" style="color: #dc2626;">{amountError}</p>
+		{/if}
 	</div>
 	<div class="flex gap-2">
 		<button

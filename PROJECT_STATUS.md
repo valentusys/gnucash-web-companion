@@ -11,7 +11,7 @@ Last updated: 2026-05-17
 
 ## Current baseline
 
-Completed through Phase 29:
+Completed through Phase 30:
 
 - Phase 0 — competitive review and product positioning
 - Phase 1 — open-source foundation
@@ -43,6 +43,7 @@ Completed through Phase 29:
 - Phase 27 — discoverability and community announcement readiness
 - Phase 28 — GnuCash compatibility matrix
 - Phase 29 — audit-driven release documentation sync
+- Phase 30 — transaction amount range filters for CSV export
 
 ## MVP product model
 
@@ -350,6 +351,25 @@ Artifacts:
 Test results: backend 264 passed (27 warnings), frontend check/auth-routes/build OK, Docker config validation OK.
 
 Related issues: none created; audit blocker was fixed immediately in Phase 29.
+
+## Phase 30 — Transaction Amount Range Filters for CSV Export
+
+Status: complete. Phase commit pushed.
+
+Goal: expose read-only transaction amount range filters in the frontend and preserve them in CSV export URLs.
+
+Artifacts:
+
+- `apps/web/src/lib/components/TransactionFilters.svelte` — added `min_amount` and `max_amount` controls with client-side min/max validation.
+- `apps/web/src/routes/transactions/+page.server.ts` — passes amount range filters to the backend list endpoint and page data.
+- `apps/web/src/routes/transactions/+page.svelte` — preserves amount filters across pagination/export and shows active filter count on the CSV export button.
+- `apps/api/app/routers/transactions.py` — rejects inverted amount ranges before querying GnuCash.
+- `apps/api/tests/test_transaction_export.py` — added export amount range and inverted-range tests.
+- `README.md`, `CHANGELOG.md`, `docs/ROADMAP.md`, `docs/release/v0.0.2-prealpha-notes.md`, and `docs/handoff/phase-30.md` — status/release docs updated.
+
+Test results: backend full suite, frontend check/auth-routes/build, and Docker config validation all passed.
+
+Related issue: GitHub #14.
 
 ## Phase 22 — Real Controlled Write Integration Tests
 

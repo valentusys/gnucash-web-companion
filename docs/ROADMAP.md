@@ -51,7 +51,7 @@ Key artifacts:
 - `docs/handoff/phase-15.md` through `docs/handoff/phase-16.md`
 - `docs/handoff/phase-25.md` through `docs/handoff/phase-29.md`
 
-### Read-only release-value improvements — Phases 17–20 and 24, 27–28
+### Read-only release-value improvements — Phases 17–20, 24, 27–28, and 30
 
 Completed:
 
@@ -61,6 +61,7 @@ Completed:
 - multi-currency limitation tests/docs
 - multi-book UI foundation
 - read-only transaction CSV export
+- transaction amount range filters for browsing and CSV export
 - community announcement readiness docs
 - GnuCash compatibility matrix for committed synthetic fixtures
 
@@ -72,7 +73,6 @@ Recommended next work:
 
 - clean-machine Docker runtime/E2E validation using synthetic fixture data
 - release checklist refresh for `v0.0.2-prealpha`
-- frontend amount range filters for CSV export (#14)
 - clearer read-only/privacy indicators in the UI
 - deployment hardening documentation
 

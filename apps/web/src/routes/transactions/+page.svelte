@@ -20,15 +20,30 @@
 		if (data.filters.dateFrom) sp.set('date_from', data.filters.dateFrom);
 		if (data.filters.dateTo) sp.set('date_to', data.filters.dateTo);
 		if (data.filters.accountId) sp.set('account_id', data.filters.accountId);
+		if (data.filters.minAmount) sp.set('min_amount', data.filters.minAmount);
+		if (data.filters.maxAmount) sp.set('max_amount', data.filters.maxAmount);
 		const qs = sp.toString();
 		return `/books/${bookId}/transactions/export${qs ? '?' + qs : ''}`;
 	});
+
+	const activeFilterCount = $derived(
+		[
+			data.filters.query,
+			data.filters.dateFrom,
+			data.filters.dateTo,
+			data.filters.accountId,
+			data.filters.minAmount,
+			data.filters.maxAmount
+		].filter(Boolean).length
+	);
 
 	function paramsToUrl(params: {
 		query?: string;
 		dateFrom?: string;
 		dateTo?: string;
 		accountId?: string;
+		minAmount?: string;
+		maxAmount?: string;
 		offset?: number;
 	}) {
 		const sp = new URLSearchParams();
@@ -36,12 +51,21 @@
 		if (params.dateFrom) sp.set('date_from', params.dateFrom);
 		if (params.dateTo) sp.set('date_to', params.dateTo);
 		if (params.accountId) sp.set('account_id', params.accountId);
+		if (params.minAmount) sp.set('min_amount', params.minAmount);
+		if (params.maxAmount) sp.set('max_amount', params.maxAmount);
 		sp.set('limit', String(limit));
 		sp.set('offset', String(params.offset ?? 0));
 		return `/transactions?${sp.toString()}`;
 	}
 
-	function handleFilter(params: { query: string; dateFrom: string; dateTo: string; accountId: string }) {
+	function handleFilter(params: {
+		query: string;
+		dateFrom: string;
+		dateTo: string;
+		accountId: string;
+		minAmount: string;
+		maxAmount: string;
+	}) {
 		goto(paramsToUrl({ ...params, offset: 0 }));
 	}
 
@@ -52,6 +76,8 @@
 				dateFrom: data.filters.dateFrom,
 				dateTo: data.filters.dateTo,
 				accountId: data.filters.accountId,
+				minAmount: data.filters.minAmount,
+				maxAmount: data.filters.maxAmount,
 				offset: newOffset
 			})
 		);
@@ -81,7 +107,7 @@
 					class="rounded-xl px-4 py-2 text-sm font-semibold"
 					style="background: var(--app-panel); color: var(--app-text); border: 1px solid var(--app-border);"
 					href={exportCsvUrl}
-					>Экспорт CSV</a
+					>Экспорт CSV{#if activeFilterCount} ({activeFilterCount}){/if}</a
 				>
 			{/if}
 			{#if data.writesEnabled}
@@ -95,6 +121,8 @@
 		dateFrom={data.filters.dateFrom}
 		dateTo={data.filters.dateTo}
 		accountId={data.filters.accountId}
+		minAmount={data.filters.minAmount}
+		maxAmount={data.filters.maxAmount}
 		accounts={data.accounts}
 		onChange={handleFilter}
 	/>

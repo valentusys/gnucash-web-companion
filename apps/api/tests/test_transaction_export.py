@@ -373,6 +373,39 @@ class TestExportTransactionsCSV:
         assert len(rows) == 2
         assert rows[1][2] == "ICA"
 
+    def test_export_respects_amount_range_filter(
+        self, client, auth_headers, sample_book, fake_book_for_export, session_factory
+    ):
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(fake_book_for_export)
+            session.commit()
+
+        response = client.get(
+            f"/books/{sample_book}/transactions/export?account_id=checking-guid&min_amount=100&max_amount=400",
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        rows = _parse_csv_response(response)
+        assert len(rows) == 2
+        assert rows[1][0] == "tx-1"
+        assert rows[1][3] == "-320.00"
+
+    def test_export_rejects_inverted_amount_range(
+        self, client, auth_headers, sample_book, fake_book_for_export, session_factory
+    ):
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(fake_book_for_export)
+            session.commit()
+
+        response = client.get(
+            f"/books/{sample_book}/transactions/export?min_amount=500&max_amount=100",
+            headers=auth_headers,
+        )
+        assert response.status_code == 400
+        assert response.json()["detail"] == "min_amount cannot be greater than max_amount"
+
     def test_export_access_denied(
         self, client, viewer_headers, sample_book, fake_book_for_export, session_factory
     ):
