@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Phase 52 — Russian localization planning and i18n foundation: English-default SvelteKit locale structure, opt-in Russian UI strings for login/navigation/safety banner/core page titles, `README.ru.md`, and localization guidance documenting English docs as canonical.
 - Phase 51 — independent auditor pass after UX/book/filter work, confirming read-only scope, independent-books framing, filter/export safety, and documentation consistency with no blockers.
 - Phase 50 — book switcher stabilization: clearer current-book UI, route/query-preserving switching, accessible-book fallback handling, independent-books documentation, and frontend route checks for book-aware access boundaries.
 - Phase 49 — transaction search/filter hardening: shared API validation for inverted/invalid date ranges and inverted amount ranges, frontend date-range validation, documented URL/pagination behavior, and CSV export filter parity regression coverage.

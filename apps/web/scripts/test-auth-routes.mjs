@@ -33,6 +33,33 @@ assert.doesNotMatch(loginServer, /localStorage|sessionStorage/, 'login must not 
 const logoutServer = read('src/routes/logout/+server.ts');
 assert.match(logoutServer, /cookies\.delete\('access_token'/, 'logout must delete auth cookie');
 
+const layoutServer = read('src/routes/+layout.server.ts');
+assert.match(layoutServer, /localeFromCookie\(cookies\)/, 'layout must resolve UI locale from cookie with English default fallback');
+
+const localeRoute = read('src/routes/locale/+server.ts');
+assert.match(localeRoute, /LOCALE_COOKIE[\s\S]*httpOnly:\s*true[\s\S]*sameSite: 'lax'/, 'locale switch must use a sameSite cookie, not browser storage');
+assert.doesNotMatch(localeRoute, /access_token/, 'locale route must not touch auth tokens');
+
+const i18nMessages = read('src/lib/i18n/messages.ts');
+for (const phrase of [
+	"DEFAULT_LOCALE = 'en'",
+	"supportedLocales = ['en', 'ru']",
+	"'login.title': 'Sign in'",
+	"'login.title': 'Вход'",
+	"'safety.message'",
+	'MVP по умолчанию работает только на чтение',
+	"'dashboard.title': 'Dashboard'",
+	"'dashboard.title': 'Обзор'",
+	"'accounts.title': 'Дерево счетов'",
+	"'transactions.title': 'Просмотр транзакций'"
+]) {
+	assert.ok(i18nMessages.includes(phrase), `i18n messages must include: ${phrase}`);
+}
+
+const localeSwitcher = read('src/lib/components/LocaleSwitcher.svelte');
+assert.match(localeSwitcher, /method="POST" action="\/locale"/, 'locale switcher must submit through the server cookie route');
+assert.doesNotMatch(localeSwitcher, /localStorage|sessionStorage/, 'locale switcher must not use browser storage');
+
 const transactionsServer = read('src/routes/transactions/+page.server.ts');
 assert.match(
 	transactionsServer,

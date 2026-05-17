@@ -1,21 +1,27 @@
 <script lang="ts">
 	import ThemeSwitcher from '$lib/components/ThemeSwitcher.svelte';
+	import LocaleSwitcher from '$lib/components/LocaleSwitcher.svelte';
+	import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 
-	let { form } = $props();
+	let { data, form } = $props();
+	let locale = $derived<Locale>(data.locale ?? DEFAULT_LOCALE);
 </script>
 
 <svelte:head>
-	<title>Sign in — GnuCash Web Companion</title>
+	<title>{t(locale, 'login.title')} — GnuCash Web Companion</title>
 </svelte:head>
 
 <main class="flex min-h-screen items-center justify-center px-4 py-12" style="background-color: var(--app-bg);">
 	<section class="w-full max-w-md rounded-2xl p-6 shadow-sm sm:p-8" style="background-color: var(--app-panel); box-shadow: 0 1px 3px var(--app-panel-shadow);">
 		<div class="mb-8 flex items-center justify-between">
 			<div>
-				<h1 class="text-3xl font-bold tracking-tight" style="color: var(--app-text);">Sign in</h1>
-				<p class="mt-2 text-sm" style="color: var(--app-muted);">Use the configured admin account to continue.</p>
+				<h1 class="text-3xl font-bold tracking-tight" style="color: var(--app-text);">{t(locale, 'login.title')}</h1>
+				<p class="mt-2 text-sm" style="color: var(--app-muted);">{t(locale, 'login.subtitle')}</p>
 			</div>
-			<ThemeSwitcher />
+			<div class="flex items-center gap-2">
+				<LocaleSwitcher {locale} returnTo="/login" compact />
+				<ThemeSwitcher />
+			</div>
 		</div>
 
 		{#if form?.error}
@@ -30,7 +36,7 @@
 
 		<form method="POST" class="space-y-5">
 			<label class="block">
-				<span class="text-sm font-medium" style="color: var(--app-text);">Username</span>
+				<span class="text-sm font-medium" style="color: var(--app-text);">{t(locale, 'login.username')}</span>
 				<input
 					name="username"
 					type="text"
@@ -43,7 +49,7 @@
 			</label>
 
 			<label class="block">
-				<span class="text-sm font-medium" style="color: var(--app-text);">Password</span>
+				<span class="text-sm font-medium" style="color: var(--app-text);">{t(locale, 'login.password')}</span>
 				<input
 					name="password"
 					type="password"
@@ -59,7 +65,7 @@
 				class="w-full rounded-xl px-4 py-3 text-base font-semibold text-white shadow-sm transition-colors hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2"
 				style="background-color: var(--app-accent); --tw-ring-color: var(--app-accent);"
 			>
-				Sign in
+				{t(locale, 'login.submit')}
 			</button>
 		</form>
 	</section>

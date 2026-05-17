@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 51.
+Completed through Phase 52.
 
 Completed phases:
 
@@ -67,10 +67,11 @@ Completed phases:
 - Phase 49 — transaction search/filter hardening
 - Phase 50 — book switcher stabilization
 - Phase 51 — auditor pass after UX/book/filter work
+- Phase 52 — Russian localization planning and i18n foundation
 
 Next planned phase:
 
-- Phase 52 — Russian localization planning and i18n foundation.
+- Phase 53 — Community announcement draft.
 
 ## MVP product model
 
@@ -812,6 +813,28 @@ Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default sta
 Test results: backend full suite passed; frontend check/auth-routes/build passed; Docker config validation passed; `git diff --check` passed.
 
 Related issues: GitHub #11 and #13 updated with the Phase 51 audit result and remain open for broader future search/filter and admin-only book-management work.
+
+## Phase 52 — Russian Localization Planning and i18n Foundation
+
+Status: complete. Phase commit pushed.
+
+Goal: start SvelteKit i18n carefully without translating the whole project or making Russian the default.
+
+Artifacts:
+
+- `apps/web/src/lib/i18n/messages.ts` and `apps/web/src/lib/i18n/index.ts` — typed English-default locale catalog with opt-in Russian strings.
+- `apps/web/src/routes/locale/+server.ts` — safe locale cookie handler for switching UI language without browser localStorage/sessionStorage.
+- `apps/web/src/lib/components/LocaleSwitcher.svelte` — small locale switcher used on login and authenticated navigation.
+- Login, navigation, read-only safety banner, dashboard title, accounts title, and transactions title now use the i18n catalog while English remains the default.
+- `README.ru.md` — initial Russian README stub with explicit canonical-English and safety caveats.
+- `docs/localization.md` — localization approach, reviewed Russian safety text policy, and non-goals.
+- `README.md`, `CHANGELOG.md`, and `docs/handoff/phase-52.md` — phase status and documentation synchronized.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default state; controlled writes remain experimental post-MVP and disabled by default; Phase 52 does not enable writes, expand write scope, publish a release/tag, add real financial/secrets artifacts, or make Russian the default. English docs remain canonical and Russian safety text is manually reviewed.
+
+Test results: backend full suite passed; frontend check/auth-routes/build passed; Docker config validation passed; `git diff --check` passed.
+
+Related issue: GitHub #17 updated with the Phase 52 localization foundation summary and remains open for broader future translation work.
 
 ## Phase 22 — Real Controlled Write Integration Tests
 

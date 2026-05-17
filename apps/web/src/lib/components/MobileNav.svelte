@@ -1,14 +1,21 @@
 <script lang="ts">
 	import BookSwitcher from '$lib/components/BookSwitcher.svelte';
+	import LocaleSwitcher from '$lib/components/LocaleSwitcher.svelte';
 	import type { Book } from '$lib/api/types';
+import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 
-	let { books, activeBook }: { books: Book[]; activeBook: Book | null } = $props();
+	let {
+		books,
+		activeBook,
+		locale = DEFAULT_LOCALE,
+		returnTo = '/dashboard'
+	}: { books: Book[]; activeBook: Book | null; locale?: Locale; returnTo?: string } = $props();
 
-	const navLinks = [
-		{ href: '/dashboard', label: 'Dashboard', icon: 'home' },
-		{ href: '/accounts', label: 'Accounts', icon: 'accounts' },
-		{ href: '/transactions', label: 'Transactions', icon: 'transactions' },
-	] as const;
+	const navLinks = $derived([
+		{ href: '/dashboard', label: t(locale, 'nav.dashboard'), icon: 'home' },
+		{ href: '/accounts', label: t(locale, 'nav.accounts'), icon: 'accounts' },
+		{ href: '/transactions', label: t(locale, 'nav.transactions'), icon: 'transactions' }
+	] as const);
 
 	function iconFor(name: string, active: boolean) {
 		const c = active ? 'var(--app-accent)' : 'var(--app-muted)';
@@ -31,8 +38,9 @@
 	aria-label="Mobile navigation"
 >
 	<!-- Book switcher row above the nav links on mobile -->
-	<div class="flex items-center justify-center border-b px-3 py-2" style="border-color: var(--app-nav-border);">
+	<div class="flex items-center justify-center gap-3 border-b px-3 py-2" style="border-color: var(--app-nav-border);">
 		<BookSwitcher {books} {activeBook} />
+		<LocaleSwitcher {locale} {returnTo} compact />
 	</div>
 	<div class="flex items-stretch justify-around safe-bottom">
 		{#each navLinks as link}

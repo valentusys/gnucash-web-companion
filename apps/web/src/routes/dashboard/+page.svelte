@@ -3,16 +3,18 @@
 	import RecentTransactions from '$lib/components/RecentTransactions.svelte';
 	import ExpensesByAccount from '$lib/components/ExpensesByAccount.svelte';
 	import CashflowSummary from '$lib/components/CashflowSummary.svelte';
+import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 
 	let { data }: { data: any } = $props();
+	let locale = $derived<Locale>(data.locale ?? DEFAULT_LOCALE);
 </script>
 
 <svelte:head>
-	<title>Dashboard — GnuCash Web Companion</title>
+	<title>{t(locale, 'dashboard.title')} — GnuCash Web Companion</title>
 </svelte:head>
 
 <main class="mx-auto max-w-5xl px-4 py-6 sm:py-10" style="color: var(--app-text);">
-	<h1 class="text-2xl font-bold tracking-tight sm:text-3xl" style="color: var(--app-text);">Dashboard</h1>
+	<h1 class="text-2xl font-bold tracking-tight sm:text-3xl" style="color: var(--app-text);">{t(locale, 'dashboard.title')}</h1>
 
 	{#if data.loadError}
 		<div

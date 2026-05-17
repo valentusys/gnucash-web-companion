@@ -5,8 +5,10 @@
 	import TransactionFilters from '$lib/components/TransactionFilters.svelte';
 	import Pagination from '$lib/components/Pagination.svelte';
 	import WriteModeWarning from '$lib/components/WriteModeWarning.svelte';
+import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 
 		let { data } = $props();
+	let locale = $derived<Locale>(data.locale ?? DEFAULT_LOCALE);
 
 	const txs = $derived(data.txs);
 	const limit = $derived(txs.limit);
@@ -95,14 +97,14 @@
 </script>
 
 <svelte:head>
-	<title>Transactions — GnuCash Web Companion</title>
+	<title>{t(locale, 'transactions.kicker')} — GnuCash Web Companion</title>
 </svelte:head>
 
 <main class="mx-auto max-w-6xl px-4 py-8">
 	<div class="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
 		<div>
-			<p class="text-sm font-medium uppercase tracking-wide" style="color: var(--app-accent);">Transactions</p>
-			<h1 class="mt-1 text-3xl font-bold" style="color: var(--app-text);">Browse transactions</h1>
+			<p class="text-sm font-medium uppercase tracking-wide" style="color: var(--app-accent);">{t(locale, 'transactions.kicker')}</p>
+			<h1 class="mt-1 text-3xl font-bold" style="color: var(--app-text);">{t(locale, 'transactions.title')}</h1>
 			{#if data.activeBook}
 				<p class="mt-2 text-sm" style="color: var(--app-muted);">Book: {data.activeBook.name}</p>
 			{/if}
