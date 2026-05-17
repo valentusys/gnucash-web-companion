@@ -11,7 +11,7 @@ Last updated: 2026-05-17
 
 ## Current baseline
 
-Completed through Phase 20; Phase 21 in progress:
+Completed through Phase 21; Phase 22 brief prepared:
 
 - Phase 0 — competitive review and product positioning
 - Phase 1 — open-source foundation
@@ -31,6 +31,11 @@ Completed through Phase 20; Phase 21 in progress:
 - Phase 15 — public pre-alpha release readiness
 - Phase 16 — project lead subagent profile
 - Phase 17 — synthetic GnuCash fixture and read-only integration validation
+- Phase 18 — README screenshots and mobile preview with synthetic data
+- Phase 19 — multi-currency limitation tests and auth cookie security documentation
+- Phase 20 — multi-book UI foundation
+- Phase 21 — file-based write lock replacement
+- Phase 22 — real controlled write integration tests (brief prepared)
 
 ## MVP product model
 
@@ -208,6 +213,24 @@ Test results: 218 passed (208 existing + 10 new), 0 failed. Frontend: check 0 er
 Deviation from spec: added book_id sanitization in `_lock_path()` to handle absolute paths and URIs (which contain `/` and `:` characters) by replacing them with underscores. This prevents path traversal when `book_key` is a filesystem path like `/data/books/test.gnucash.sqlite`.
 
 Related issues: GitHub #7 (closed).
+
+## Phase 22 — Real Controlled Write Integration Tests
+
+Status: complete. Phase commit pushed.
+
+Goal: add integration tests that exercise the controlled write path against a real disposable GnuCash SQLite fixture using piecash, validating the full write flow end-to-end.
+
+Artifacts:
+
+- `apps/api/tests/test_write_integration.py` — 30 integration tests across 8 test classes covering create, patch, backup, audit, lock lifecycle, lock contention, rejection scenarios, read-back verification, and original fixture immutability against real piecash books.
+
+Test results: 248 passed (218 existing + 30 new), 0 failed. Frontend: check 0 errors, build success, auth-routes passed. Docker config valid.
+
+Deviations: ROOT account has `placeholder=0` (not 1 as spec assumed) but is rejected because it's not in `book.accounts` (it's `book.root_account`), achieving the same test goal. 30 tests implemented vs 15 minimum.
+
+Production code changes: none. Zero production code changes required; write service works correctly against real piecash books.
+
+Related issues: GitHub #8 (closed).
 
 ## Standing constraints
 
