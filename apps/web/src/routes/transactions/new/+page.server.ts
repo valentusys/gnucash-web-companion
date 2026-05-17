@@ -74,6 +74,10 @@ function formToPayload(formData: FormData): CreatePayload {
 	};
 }
 
+function hasWriteAcknowledgement(formData: FormData): boolean {
+	return String(formData.get('write_acknowledgement') ?? '') === 'experimental-write-mode-acknowledged';
+}
+
 export const load: PageServerLoad = async ({ cookies, fetch }) => {
 	if (env.GNUCASH_WRITES_ENABLED !== 'true') {
 		throw redirect(303, '/transactions');
@@ -123,6 +127,13 @@ export const actions: Actions = {
 		const formData = await request.formData();
 		const bookId = String(formData.get('book_id') ?? '');
 		const payload = formToPayload(formData);
+		if (!hasWriteAcknowledgement(formData)) {
+			return {
+				error:
+					'Explicit acknowledgement is required before creating an experimental controlled-write transaction. Use only disposable/test copies with backups.',
+				payload
+			};
+		}
 		try {
 			const validationResult = await apiPost<TransactionValidationResult>(
 				fetch,

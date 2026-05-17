@@ -4,6 +4,7 @@
 	import TransactionCard from '$lib/components/TransactionCard.svelte';
 	import TransactionFilters from '$lib/components/TransactionFilters.svelte';
 	import Pagination from '$lib/components/Pagination.svelte';
+	import WriteModeWarning from '$lib/components/WriteModeWarning.svelte';
 
 		let { data } = $props();
 
@@ -101,7 +102,7 @@
 				<p class="mt-2 text-sm" style="color: var(--app-muted);">Book: {data.activeBook.name}</p>
 			{/if}
 		</div>
-		<div class="flex gap-2">
+		<div class="flex flex-col gap-2 md:items-end">
 			{#if data.activeBook}
 				<a
 					class="rounded-xl px-4 py-2 text-sm font-semibold"
@@ -111,10 +112,21 @@
 				>
 			{/if}
 			{#if data.writesEnabled}
-				<a class="rounded-xl px-4 py-2 text-sm font-semibold text-white" style="background: var(--app-accent);" href="/transactions/new">New transaction</a>
+				<div class="max-w-sm space-y-2">
+					<p class="text-xs font-semibold" style="color: #b45309;">
+						Experimental post-MVP write mode is enabled. MVP v0.1 remains read-only by default; use only disposable/test copies with backups.
+					</p>
+					<a class="inline-flex rounded-xl px-4 py-2 text-sm font-semibold text-white" style="background: var(--app-accent);" href="/transactions/new">New transaction</a>
+				</div>
 			{/if}
 		</div>
 	</div>
+
+	{#if data.writesEnabled}
+		<div class="mb-6">
+			<WriteModeWarning compact />
+		</div>
+	{/if}
 
 	<TransactionFilters
 		query={data.filters.query}

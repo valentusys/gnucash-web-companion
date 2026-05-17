@@ -2,7 +2,7 @@
 
 ## Status
 
-Planned by Project Lead in guarded background mission phase 14. This is a PM brief for the next engineer phase; implementation is not complete yet.
+Implemented by engineer in guarded background mission phase 15. Phase 36 implementation is complete; verification passed; commit/push completed.
 
 ## PM decision
 
@@ -157,6 +157,54 @@ At completion, update this file with:
 - commit SHA;
 - push status;
 - GitHub issue #21/#18/#20/#22 status.
+
+## Implementation summary
+
+Implemented the Phase 36 brief exactly as a UI warning/acknowledgement safety phase for GitHub #21. No write endpoints were added, write mode was not enabled by default, and backend write-gating was preserved.
+
+Changes:
+
+- Added `apps/web/src/lib/components/WriteModeWarning.svelte` with explicit controlled-write safety copy: experimental post-MVP, MVP v0.1 read-only by default, `GNUCASH_WRITES_ENABLED=false` safe default, GnuCash Desktop authoritative, disposable/test copies with backups only, never the only real financial book.
+- Updated `apps/web/src/routes/transactions/+page.svelte` so the `New transaction` entry point remains gated by `data.writesEnabled` and, when visible, is accompanied by warning text plus the warning component.
+- Updated `apps/web/src/routes/transactions/new/+page.svelte` with a prominent warning above the form and a required acknowledgement checkbox for final create submission. The validation-only button uses `formnovalidate` so users can still validate form data without the final-write acknowledgement.
+- Updated `apps/web/src/routes/transactions/new/+page.server.ts` so final create rejects missing `write_acknowledgement` before validate/create API calls.
+- Extended `apps/web/scripts/test-auth-routes.mjs` to verify disabled-write redirect, enabled write warning text, warning component coverage, acknowledgement checkbox, and server-side acknowledgement ordering.
+- Updated `CHANGELOG.md`, `docs/v0.2-controlled-writes.md`, `docs/release/v0.0.2-prealpha-notes.md`, and `PROJECT_STATUS.md`.
+
+## Verification
+
+Passed:
+
+- `cd apps/api && pytest -q tests/test_transaction_writes.py::TestWritesDisabledByDefault` — passed.
+- `cd apps/api && pytest -q` — passed.
+- `cd apps/web && npm run check` — passed, 0 errors/warnings.
+- `cd apps/web && npm run test:auth-routes` — passed.
+- `cd apps/web && npm run build` — passed.
+- `JWT_SECRET=dummy-validation-secret APP_ADMIN_PASSWORD=dummy docker compose config --quiet` — passed.
+
+## Safety confirmation
+
+- `Settings.gnucash_writes_enabled: bool = False` remains the backend default.
+- `_ensure_writes_enabled()` remains the backend guard for validate/create/patch endpoints.
+- Disabled-write regression tests still prove validate/create/patch return safe 403 responses before write-service construction.
+- Frontend `/transactions/new` remains redirected when `GNUCASH_WRITES_ENABLED !== 'true'`.
+- Final create now requires explicit acknowledgement in the browser and on the SvelteKit server action before backend validate/create API calls.
+- Controlled writes remain experimental, post-MVP, disabled by default, and outside MVP v0.1.
+- No production-readiness, audited-security, or broad GnuCash-version support claim was added.
+- No auth localStorage/sessionStorage path was introduced.
+- No real financial data, GnuCash books, `.env`, app DBs, backups, secrets, tokens, keys, certs, or real screenshots were added.
+
+## Commit / push
+
+- Commit: `fc46629` (`feat: add write mode warning acknowledgement`).
+- Push: pushed to `origin/main`.
+
+## GitHub issue status
+
+- #21: implemented by Phase 36; update/close after push.
+- #18: intentionally remains open.
+- #20: intentionally remains open; no `v0.0.2-prealpha` tag/release published.
+- #22: intentionally remains open.
 
 ## Project Lead report
 

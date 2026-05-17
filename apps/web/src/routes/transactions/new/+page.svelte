@@ -1,4 +1,6 @@
 <script lang="ts">
+	import WriteModeWarning from '$lib/components/WriteModeWarning.svelte';
+
 	let { data, form } = $props();
 
 	type SplitPayload = {
@@ -19,11 +21,13 @@
 	const previous = $derived((form?.payload ?? {}) as PreviousPayload);
 	const validation = $derived(form?.validation);
 	const hasBlockingErrors = $derived(Boolean(validation && !validation.valid));
+	let writeAcknowledged = $state(false);
 
 	function confirmSubmit() {
 		if (hasBlockingErrors) return false;
+		if (!writeAcknowledged) return true;
 		confirmed = window.confirm(
-			'This will write to your GnuCash book after creating a backup. Continue?'
+			'Final warning: this experimental post-MVP action will write to a GnuCash book copy. Use only disposable/test copies with backups. Continue?'
 		);
 		return confirmed;
 	}
@@ -50,6 +54,10 @@
 			{form.error}
 		</div>
 	{/if}
+
+	<div class="mb-4">
+		<WriteModeWarning />
+	</div>
 
 	{#if validation}
 		<div class="mb-4 rounded-2xl p-4 text-sm" role="status" style="border: 1px solid var(--app-border); background: var(--app-panel); color: var(--app-text);">
@@ -126,8 +134,22 @@
 			</label>
 		</div>
 
+		<label class="flex gap-3 rounded-2xl p-4 text-sm" style="border: 1px solid #f59e0b; background: #fffbeb; color: #78350f;">
+			<input
+				name="write_acknowledgement"
+				type="checkbox"
+				value="experimental-write-mode-acknowledged"
+				bind:checked={writeAcknowledged}
+				class="mt-1 h-4 w-4"
+				required
+			/>
+			<span>
+				I acknowledge that controlled writes are experimental post-MVP functionality, MVP v0.1 remains read-only by default, <code>GNUCASH_WRITES_ENABLED=false</code> is the safe default, GnuCash Desktop remains the authoritative editor, and I am using only a disposable/test copy with backups.
+			</span>
+		</label>
+
 		<div class="flex flex-col gap-3 md:flex-row md:justify-end">
-			<button formaction="?/validate" class="rounded-xl px-4 py-2 font-semibold" style="border: 1px solid var(--app-border); color: var(--app-text);" type="submit">Validate</button>
+			<button formaction="?/validate" formnovalidate class="rounded-xl px-4 py-2 font-semibold" style="border: 1px solid var(--app-border); color: var(--app-text);" type="submit">Validate</button>
 			<button
 				formaction="?/create"
 				onclick={(event) => {

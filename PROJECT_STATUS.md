@@ -51,10 +51,11 @@ Completed phases:
 - Phase 33 — controlled-writes documentation cleanup and status sync
 - Phase 34 — README/public status baseline sync after Phase 33 audit finding
 - Phase 35 — audit-driven Phase 34 public baseline and controlled-writes docs sync
+- Phase 36 — write-mode UI warning and explicit confirmation
 
 Next planned phase:
 
-- Phase 36 — write-mode UI warning and explicit confirmation (PM brief created; implementation pending).
+- TBD by Project Lead after Phase 36 verification/audit/release triage.
 
 ## MVP product model
 
@@ -477,6 +478,27 @@ Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default sta
 Test results: disabled-write regression subset passed; backend full suite passed; frontend check/auth-routes/build passed; Docker config validation passed.
 
 Related issues: GitHub #19 closed by Phase 35; GitHub #18, #20, #21, and #22 intentionally remain open.
+
+## Phase 36 — Write-Mode UI Warning and Explicit Confirmation
+
+Status: complete. Phase commit pushed.
+
+Goal: resolve GitHub #21 by adding explicit warning and acknowledgement coverage around the experimental controlled-write UI without expanding write capabilities or changing backend write-gating.
+
+Artifacts:
+
+- `apps/web/src/lib/components/WriteModeWarning.svelte` — prominent reusable warning that controlled writes are experimental post-MVP, disabled by default, for disposable/test copies with backups only, and subordinate to GnuCash Desktop.
+- `apps/web/src/routes/transactions/+page.svelte` — enabled write entry point remains hidden unless frontend `GNUCASH_WRITES_ENABLED === 'true'` and now includes warning text/panel when shown.
+- `apps/web/src/routes/transactions/new/+page.svelte` — warning panel before the form plus required acknowledgement checkbox before final create submission; validation action remains available with `formnovalidate`.
+- `apps/web/src/routes/transactions/new/+page.server.ts` — final create action rejects missing acknowledgement before validate/create API calls.
+- `apps/web/scripts/test-auth-routes.mjs` — static route checks now verify disabled-write redirect, enabled warning copy, and acknowledgement coverage.
+- `CHANGELOG.md`, `docs/v0.2-controlled-writes.md`, `docs/release/v0.0.2-prealpha-notes.md`, and `docs/handoff/phase-36.md` — Phase 36 status/safety docs updated.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the default documented state; controlled writes remain experimental/post-MVP and disabled by default; backend disabled-write guards remain covered by `TestWritesDisabledByDefault`; no auth localStorage/sessionStorage path was introduced; no real financial/secrets artifacts were added.
+
+Test results: disabled-write regression subset passed; backend full suite passed; frontend check/auth-routes/build passed; Docker config validation passed.
+
+Related issues: GitHub #21 closed by Phase 36; GitHub #18, #20, and #22 intentionally remain open.
 
 ## Phase 22 — Real Controlled Write Integration Tests
 
