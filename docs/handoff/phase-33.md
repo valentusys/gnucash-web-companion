@@ -175,6 +175,6 @@ None. No write-gating regression was discovered.
 
 ## GitHub issues
 
-- #23 — controlled-writes documentation cleanup: close after commit/push.
-- #19 — README/PROJECT_STATUS/CHANGELOG sync: close after commit/push.
-- #18 — write feature flag bypass verification: intentionally unchanged by this documentation phase.
+- #23 — controlled-writes documentation cleanup: closed as completed after commit/push.
+- #19 — README/PROJECT_STATUS/CHANGELOG sync: closed as completed after commit/push.
+- #18 — write feature flag bypass verification: remains open/reopened; intentionally unchanged by this documentation phase.
