@@ -11,7 +11,7 @@ Last updated: 2026-05-17
 
 ## Current baseline
 
-Completed through Phase 21; Phase 22 brief prepared:
+Completed through Phase 23:
 
 - Phase 0 — competitive review and product positioning
 - Phase 1 — open-source foundation
@@ -213,6 +213,24 @@ Test results: 218 passed (208 existing + 10 new), 0 failed. Frontend: check 0 er
 Deviation from spec: added book_id sanitization in `_lock_path()` to handle absolute paths and URIs (which contain `/` and `:` characters) by replacing them with underscores. This prevents path traversal when `book_key` is a filesystem path like `/data/books/test.gnucash.sqlite`.
 
 Related issues: GitHub #7 (closed).
+
+## Phase 23 — Backup Restore Smoke Test
+
+Status: complete. Phase commit pushed.
+
+Goal: add automated tests verifying backups created before write operations can be restored, confirming original GnuCash book state is fully recoverable.
+
+Artifacts:
+
+- `apps/api/tests/test_backup_restore.py` — 6 integration tests across 2 test classes covering backup file validity, backup pre-write state, restore undoes write (transaction count), restore preserves account count, restore preserves original transaction data, and original fixture immutability.
+
+Test results: 254 passed (248 existing + 6 new), 0 failed. Frontend: check 0 errors, build success, auth-routes passed. Docker config valid.
+
+Deviations: 6 tests implemented vs 4 minimum. Added `test_restore_preserves_original_transaction_data` and `test_original_fixture_never_modified` for stronger safety coverage.
+
+Production code changes: none. Zero production code changes; restore is `shutil.copy2` overwrite matching the production backup model.
+
+Related issues: GitHub #9 (closed).
 
 ## Phase 22 — Real Controlled Write Integration Tests
 
