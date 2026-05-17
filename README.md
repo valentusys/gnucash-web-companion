@@ -40,7 +40,7 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–43 are complete.
+- Phase 0–44 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by default.
 - First public pre-alpha release: `v0.0.1-prealpha`.
@@ -115,7 +115,9 @@ Default local URLs:
 
 See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for local development setup and
 [docs/deployment/local-secure-deployment.md](docs/deployment/local-secure-deployment.md)
-for conservative local/LAN/VPN deployment guidance.
+for conservative local/LAN/VPN deployment guidance. See
+[docs/operations/backup-and-recovery.md](docs/operations/backup-and-recovery.md)
+for manual backup and recovery guidance.
 
 ## Architecture
 

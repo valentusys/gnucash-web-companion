@@ -213,7 +213,7 @@ Before testing with any copied real data:
 - back up copied books under `data/books/` if you have made local test changes outside this app;
 - periodically run a restore dry-run outside the app.
 
-This is basic operational guidance, not a production backup system. A fuller backup/recovery runbook is intentionally left for a later phase.
+This is basic operational guidance, not a production backup system. See `docs/operations/backup-and-recovery.md` for the fuller manual backup and recovery runbook.
 
 ## Shutdown and cleanup
 

@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 43.
+Completed through Phase 44.
 
 Completed phases:
 
@@ -59,10 +59,11 @@ Completed phases:
 - Phase 41 — release gate audit for v0.0.2-prealpha
 - Phase 42 — publish v0.0.2-prealpha
 - Phase 43 — local deployment hardening guide
+- Phase 44 — backup and recovery runbook
 
 Next planned phase:
 
-- Phase 44 — backup and recovery runbook.
+- Phase 45 — GnuCash compatibility fixture plan.
 
 ## MVP product model
 
@@ -642,6 +643,26 @@ Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default sta
 Test results: backend full suite passed; frontend check/auth-routes/build passed; Docker config validation passed; `git diff --check` passed.
 
 Related issues: no Phase 43-specific GitHub issue found in the current open issue list; GitHub #22, #17, #13, #12, and #11 remain open for later roadmap work.
+
+## Phase 44 — Backup and Recovery Runbook
+
+Status: complete. Phase commit pushed.
+
+Goal: document conservative backup and recovery procedures for read-only deployments and future experimental controlled-write testing without claiming production-grade disaster recovery.
+
+Artifacts:
+
+- `docs/operations/backup-and-recovery.md` — manual backup/recovery runbook covering app metadata DB backups, copied GnuCash book backups, Docker data paths, backup frequency, restore dry-runs, controlled-write pre-write backup expectations, restored-book verification, and explicit non-guarantees.
+- `README.md` — current status advanced through Phase 44 and linked to the backup/recovery runbook from safety/deployment documentation.
+- `docs/deployment/local-secure-deployment.md` — Phase 43 placeholder for a later runbook replaced with the actual Phase 44 runbook link.
+- `CHANGELOG.md` — added Phase 44 Unreleased entry.
+- `docs/handoff/phase-44.md` — PM/engineer handoff and verification report.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default state; controlled writes remain experimental post-MVP and disabled by default; Phase 44 is documentation-only and does not enable writes, expand write scope, publish a release/tag, or add real financial/secrets artifacts.
+
+Test results: backend full suite passed (`269 passed`, 27 existing warnings); frontend check/auth-routes/build passed; Docker config validation passed; `git diff --check` passed.
+
+Related issues: no Phase 44-specific GitHub issue found in the current open issue list; GitHub #22, #17, #13, #12, and #11 remain open for later roadmap work.
 
 ## Phase 22 — Real Controlled Write Integration Tests
 
