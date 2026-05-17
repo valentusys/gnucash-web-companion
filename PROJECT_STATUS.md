@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 41.
+Completed through Phase 42.
 
 Completed phases:
 
@@ -57,10 +57,11 @@ Completed phases:
 - Phase 39 — read-only smoke test automation
 - Phase 40 — v0.0.2-prealpha release candidate cleanup
 - Phase 41 — release gate audit for v0.0.2-prealpha
+- Phase 42 — publish v0.0.2-prealpha
 
 Next planned phase:
 
-- Phase 42 — publish `v0.0.2-prealpha` only if Phase 41 gate fixes/checks/post-push CI remain green.
+- Phase 43 — local deployment hardening guide.
 
 ## MVP product model
 
@@ -601,6 +602,26 @@ Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default sta
 Test results: disabled-write regression subset passed; backend full suite passed; frontend check/auth-routes/build passed; Docker config validation passed; `git diff --check` passed. Post-push GitHub CI should be checked before Phase 42 publication.
 
 Related issues: GitHub #18 closed after release-gate re-verification; GitHub #20 updated with Phase 41 gate status; GitHub #22 remains open for compatibility fixtures.
+
+## Phase 42 — Publish v0.0.2-prealpha
+
+Status: complete. Phase commit pushed, annotated tag pushed, and GitHub pre-release published.
+
+Goal: publish `v0.0.2-prealpha` only after confirming the Phase 41 release gate was complete and post-push GitHub CI for the gate commit was green.
+
+Artifacts:
+
+- Git tag: `v0.0.2-prealpha`.
+- GitHub pre-release: https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.0.2-prealpha
+- `README.md` — current status and release readiness now point to the published `v0.0.2-prealpha` release.
+- `CHANGELOG.md` — moved accumulated pre-alpha changes into the `0.0.2-prealpha` release section and added the Phase 42 publication entry.
+- `docs/handoff/phase-42.md` — PM/engineer handoff and verification report.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default state; controlled writes remain experimental post-MVP and disabled by default; Phase 42 did not enable writes, expand write scope, or add real financial/secrets artifacts.
+
+Test results: post-Phase-41 GitHub CI was green before publication; backend full suite passed; frontend check/auth-routes/build passed; Docker config validation passed; `git diff --check` passed.
+
+Related issue: GitHub #20 updated and closed after successful `v0.0.2-prealpha` publication.
 
 ## Phase 22 — Real Controlled Write Integration Tests
 

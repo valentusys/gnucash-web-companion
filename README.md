@@ -40,11 +40,11 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–41 are complete.
+- Phase 0–42 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by default.
 - First public pre-alpha release: `v0.0.1-prealpha`.
-- Next pre-alpha release candidate checklist, notes, and release-gate audit exist for `v0.0.2-prealpha`; no `v0.0.2-prealpha` tag or GitHub release has been published yet.
+- Current public pre-alpha release: [`v0.0.2-prealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.0.2-prealpha).
 - Latest audit: [docs/audits/2026-05-18-v0.0.2-release-gate.md](docs/audits/2026-05-18-v0.0.2-release-gate.md).
 
 ## MVP scope: read-only first
@@ -127,29 +127,33 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.
 
 ## Release readiness
 
-The first public pre-alpha tag/release is:
-
-```text
-v0.0.1-prealpha
-```
-
-Release checklist and notes:
-
-- [docs/release/v0.0.1-prealpha-checklist.md](docs/release/v0.0.1-prealpha-checklist.md)
-- [docs/release/v0.0.1-prealpha-notes.md](docs/release/v0.0.1-prealpha-notes.md)
-
-The next pre-alpha release candidate is documented as:
+The current public pre-alpha tag/release is:
 
 ```text
 v0.0.2-prealpha
 ```
 
-Release candidate checklist and notes:
+Release checklist and notes:
 
 - [docs/release/v0.0.2-prealpha-checklist.md](docs/release/v0.0.2-prealpha-checklist.md)
 - [docs/release/v0.0.2-prealpha-notes.md](docs/release/v0.0.2-prealpha-notes.md)
 
-No `v0.0.2-prealpha` tag or GitHub release has been published yet. Do not publish git tags, GitHub releases, npm packages, or PyPI packages unless explicitly requested.
+GitHub release:
+
+- <https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.0.2-prealpha>
+
+The previous public pre-alpha tag/release is:
+
+```text
+v0.0.1-prealpha
+```
+
+Previous release checklist and notes:
+
+- [docs/release/v0.0.1-prealpha-checklist.md](docs/release/v0.0.1-prealpha-checklist.md)
+- [docs/release/v0.0.1-prealpha-notes.md](docs/release/v0.0.1-prealpha-notes.md)
+
+Do not publish further git tags, GitHub releases, npm packages, or PyPI packages unless explicitly requested.
 
 ## Repository description and topics
 

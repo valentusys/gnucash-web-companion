@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+No unreleased changes.
+
+## [0.0.2-prealpha] - 2026-05-18
+
 ### Added
 
 - Phase 17 — synthetic GnuCash fixture and read-only integration validation.
@@ -33,6 +37,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Phase 39 — automated read-only API smoke script for local Docker deployments.
 - Phase 40 — `v0.0.2-prealpha` release-candidate checklist and notes cleanup without publishing a tag/release.
 - Phase 41 — `v0.0.2-prealpha` release-gate audit and release-documentation hygiene cleanup without publishing a tag/release.
+- Phase 42 — published `v0.0.2-prealpha` after the Phase 41 gate and green local/GitHub checks.
 
 ### Security
 
