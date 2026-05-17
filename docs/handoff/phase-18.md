@@ -1,17 +1,70 @@
 # Phase 18 — README Screenshots and Mobile Preview with Synthetic Data
 
 ## Status
-Planned — 2026-05-17.
+Complete — 2026-05-17.
 
 ## Context
 
-Phase 17 delivered a synthetic GnuCash SQLite fixture (`apps/api/tests/fixtures/test-book.gnucash.sqlite`) with 10 accounts and 5 transactions in SEK. The full stack is functional: login, dashboard, accounts, transactions, reports, dark mode, mobile shell. The `v0.0.1-prealpha` tag exists but the README has no screenshots yet.
+Phase 17 delivered a synthetic GnuCash SQLite fixture (`apps/api/tests/fixtures/test-book.gnucash.sqlite`) with 10 accounts and 5 transactions in SEK. The full stack is functional: login, dashboard, accounts, transactions, reports, dark mode, mobile shell. The `v0.0.1-prealpha` tag exists but the README had no screenshots yet.
 
-The project is pre-alpha and must not expose real financial data. All screenshots must use only the synthetic fixture data (or the existing test book).
+The project is pre-alpha and must not expose real financial data. All screenshots use only the synthetic fixture data.
 
 ## Goal
 
 Add visual proof of the current UI to the README so that visitors to the repository can see what the project looks like before cloning.
+
+## Results
+
+### Screenshots captured
+
+All 7 screenshots captured successfully using Chromium headless via CDP (Chrome DevTools Protocol). Total size: ~453 KB.
+
+| File | Size | Content |
+|------|------|---------|
+| `docs/images/login.png` | 20.0 KB | Login page, light mode, empty form |
+| `docs/images/dashboard-desktop.png` | 84.8 KB | Desktop dashboard with summary cards, recent transactions, expense chart |
+| `docs/images/dashboard-mobile.png` | 35.0 KB | Mobile viewport (375×812) responsive dashboard |
+| `docs/images/accounts-tree.png` | 90.9 KB | Account hierarchy with balances (SEK) |
+| `docs/images/transactions-list.png` | 95.9 KB | Transaction table with search/filter controls |
+| `docs/images/transaction-detail.png` | 41.7 KB | Single transaction view with splits |
+| `docs/images/dark-mode.png` | 84.7 KB | Dashboard in dark theme |
+
+### Data safety verified
+
+All screenshots contain only synthetic fixture data:
+- Generic account names: Assets, Bank, Checking, Expenses, Food, Transport, Income, Salary, Liabilities, Credit Card
+- Synthetic transactions: "Credit card payment", "Monthly expenses", "Bus pass", "Grocery store", "January salary"
+- Currency: SEK
+- No real financial data exposed
+
+### README updated
+
+`README.md` — replaced placeholder "Screenshots are not included yet" section with `## Screenshots` section containing all 7 images with relative paths (`docs/images/*.png`).
+
+### Production code changes
+
+None. Only `README.md` and `docs/images/` were modified.
+
+### Deviations from spec
+
+1. **Transaction detail URL**: The spec assumed `/transactions/1` but the synthetic fixture uses GUIDs as transaction IDs. Used the actual first transaction GUID (`89bdbe5a90af4c2fb4fc76b781d4a23b`) for the screenshot. The route pattern `/transactions/[id]` works correctly with GUIDs.
+
+2. **Screenshot tooling**: The `browser_vision` tool timed out (no display available). Used Chromium headless with CDP via Python `websocket-client` instead. This approach works without a display server.
+
+3. **Authentication method**: Could not inject httpOnly cookies directly via CDP `Network.set_cookie` because SvelteKit's server-side auth hook reads cookies from the request, and CDP cookie injection doesn't persist across navigations in headless mode. Used form-based login via CDP `Runtime.evaluate` to fill and submit the login form, which properly sets the httpOnly cookie through the SvelteKit action.
+
+## Verification
+
+- All 7 screenshot files exist under `docs/images/`, each < 300 KB ✓
+- No screenshot contains real financial data ✓
+- README has `## Screenshots` section with all 7 images ✓
+- Relative paths used (`docs/images/*.png`) ✓
+- No production code modified ✓
+- `.gitignore` still blocks sensitive data ✓
+
+## GitHub
+
+Related issue: #3 (Add screenshots and mobile preview to README).
 
 ## Non-goals
 

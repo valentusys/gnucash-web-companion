@@ -11,7 +11,7 @@ Last updated: 2026-05-17
 
 ## Current baseline
 
-Completed through Phase 17; Phase 18 planned:
+Completed through Phase 18; Phase 19 planned:
 
 - Phase 0 — competitive review and product positioning
 - Phase 1 — open-source foundation
@@ -129,17 +129,22 @@ Deviation from spec: the spec assumed 9 accounts (1 ROOT + 8 children) but pieca
 
 ## Phase 18 — README Screenshots and Mobile Preview with Synthetic Data
 
-Status: planned.
+Status: complete. Phase commit pushed.
 
 Goal: add visual proof of the current UI to the README using only synthetic fixture data.
 
 Artifacts:
-- `docs/images/` — 7 screenshot files (login, dashboard desktop/mobile, accounts tree, transactions list, transaction detail, dark mode).
-- `README.md` — updated with `## Screenshots` section.
 
-Non-goals: no production code changes, no new features, no real financial data, no release/tag bump.
+- `docs/images/` — 7 screenshot files (login, dashboard desktop/mobile, accounts tree, transactions list, transaction detail, dark mode). Total ~453 KB.
+- `README.md` — updated with `## Screenshots` section containing all 7 images via relative paths.
 
-Related issue: GitHub #3 (`docs/github/issues/03-readme-screenshots-mobile-preview.md`).
+Screenshots: login (20 KB), dashboard-desktop (85 KB), dashboard-mobile (35 KB), accounts-tree (91 KB), transactions-list (96 KB), transaction-detail (42 KB), dark-mode (85 KB).
+
+Deviations: transaction detail used GUID-based URL (`/transactions/89bdbe5a...`) instead of `/transactions/1` since the synthetic fixture uses GUIDs. Used Chromium headless with CDP via Python instead of `browser_vision` tool (display not available). Used form-based login via CDP instead of cookie injection.
+
+Verification: all 7 screenshots < 300 KB, no real financial data, no production code changes, README renders images with relative paths.
+
+Related issue: GitHub #3.
 
 ## Standing constraints
 

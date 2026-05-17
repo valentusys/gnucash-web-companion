@@ -139,7 +139,35 @@ Suggested topics:
 
 ## Screenshots
 
-Screenshots are not included yet. The README intentionally does not promise a polished UI until the MVP has completed integration testing.
+All screenshots use synthetic fixture data — no real financial data.
+
+### Login
+
+![Login](docs/images/login.png)
+
+### Dashboard — Desktop
+
+![Dashboard Desktop](docs/images/dashboard-desktop.png)
+
+### Dashboard — Mobile
+
+![Dashboard Mobile](docs/images/dashboard-mobile.png)
+
+### Accounts Tree
+
+![Accounts Tree](docs/images/accounts-tree.png)
+
+### Transactions List
+
+![Transactions List](docs/images/transactions-list.png)
+
+### Transaction Detail
+
+![Transaction Detail](docs/images/transaction-detail.png)
+
+### Dark Mode
+
+![Dark Mode](docs/images/dark-mode.png)
 
 ## Contributing
 
