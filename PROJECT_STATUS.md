@@ -11,7 +11,7 @@ Last updated: 2026-05-17
 
 ## Current baseline
 
-Completed through Phase 18; Phase 19 in progress:
+Completed through Phase 20; Phase 21 in progress:
 
 - Phase 0 — competitive review and product positioning
 - Phase 1 — open-source foundation
@@ -190,6 +190,24 @@ Test results: 207 passed (199 + 8 new), 1 pre-existing failure (test_gnucash_boo
 Deviations: page-level loads no longer return books/activeBook/showBookSelector (layout provides them instead). `getActiveBookId()` validates cookie value as positive integer.
 
 Related issues: GitHub #5.
+
+## Phase 21 — File-Based Write Lock Replacement
+
+Status: complete. Phase commit pushed.
+
+Goal: replace in-process `threading.Lock`-based write lock with `fcntl.flock()`-based file locking for multi-worker safety.
+
+Artifacts:
+
+- `apps/api/app/services/write_lock.py` — rewritten to use `fcntl.flock()` on per-book lock files under `/data/locks/`. Book IDs are sanitized (path separators → underscores) to produce flat filenames.
+- `apps/api/tests/test_write_lock.py` — 10 new tests covering acquire/release, non-blocking behavior, context manager (normal + exception), independent books, lock file creation, idempotent release, blocking acquire, and auto-creation of nested lock directories.
+- `apps/api/tests/test_transaction_writes.py` — updated old `TestWriteLockService` tests to use `tmp_path`-based lock directories; patched singleton in `test_create_endpoint_exists` to use a tmp-based file lock service.
+
+Test results: 218 passed (208 existing + 10 new), 0 failed. Frontend: check 0 errors, build success, auth-routes passed. Docker config valid.
+
+Deviation from spec: added book_id sanitization in `_lock_path()` to handle absolute paths and URIs (which contain `/` and `:` characters) by replacing them with underscores. This prevents path traversal when `book_key` is a filesystem path like `/data/books/test.gnucash.sqlite`.
+
+Related issues: GitHub #7 (closed).
 
 ## Standing constraints
 

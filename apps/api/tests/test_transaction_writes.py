@@ -515,18 +515,22 @@ class TestCreateTransaction:
         fake_book = FakeBookForWrite(accounts=fake_accounts, transactions=[])
         mock_piecash, created_tx = _make_mock_piecash(fake_book, fake_accounts)
 
+        import app.services.write_lock as wl_module
         import app.services.gnucash_write as gw_module
         import app.services.gnucash_book as gb_module
 
-        with patch.object(gw_module, "piecash", mock_piecash):
-            with patch.object(gb_module, "piecash", mock_piecash):
-                with patch("app.services.gnucash_write.create_book_backup", return_value=str(fake_book_path)):
-                    with patch.object(GnuCashWriteService, "_validate_configured_book", return_value=str(fake_book_path)):
-                        response = client.post(
-                            f"/books/{sample_book}/transactions",
-                            json=payload,
-                            headers=auth_headers,
-                        )
+        tmp_lock_svc = wl_module.WriteLockService(lock_dir=fake_book_path.parent / "locks")
+        with patch.object(wl_module, "write_lock_service", tmp_lock_svc):
+            with patch.object(gw_module, "write_lock_service", tmp_lock_svc):
+                with patch.object(gw_module, "piecash", mock_piecash):
+                    with patch.object(gb_module, "piecash", mock_piecash):
+                        with patch("app.services.gnucash_write.create_book_backup", return_value=str(fake_book_path)):
+                            with patch.object(GnuCashWriteService, "_validate_configured_book", return_value=str(fake_book_path)):
+                                response = client.post(
+                                    f"/books/{sample_book}/transactions",
+                                    json=payload,
+                                    headers=auth_headers,
+                                )
 
         assert response.status_code == 201
         data = response.json()
@@ -794,18 +798,18 @@ class TestBackupService:
 class TestWriteLockService:
     """TDD: per-book write lock must prevent concurrent writes."""
 
-    def test_lock_acquire_and_release(self):
+    def test_lock_acquire_and_release(self, tmp_path):
         from app.services.write_lock import WriteLockService
 
-        svc = WriteLockService()
+        svc = WriteLockService(lock_dir=tmp_path / "locks")
         acquired = svc.acquire("book-1")
         assert acquired is True
         svc.release("book-1")
 
-    def test_lock_blocks_concurrent(self):
+    def test_lock_blocks_concurrent(self, tmp_path):
         from app.services.write_lock import WriteLockService
 
-        svc = WriteLockService()
+        svc = WriteLockService(lock_dir=tmp_path / "locks")
         acquired1 = svc.acquire("book-1")
         assert acquired1 is True
 
@@ -815,19 +819,19 @@ class TestWriteLockService:
 
         svc.release("book-1")
 
-    def test_lock_different_books_independent(self):
+    def test_lock_different_books_independent(self, tmp_path):
         from app.services.write_lock import WriteLockService
 
-        svc = WriteLockService()
+        svc = WriteLockService(lock_dir=tmp_path / "locks")
         assert svc.acquire("book-1") is True
         assert svc.acquire("book-2") is True
         svc.release("book-1")
         svc.release("book-2")
 
-    def test_lock_release_idempotent(self):
+    def test_lock_release_idempotent(self, tmp_path):
         from app.services.write_lock import WriteLockService
 
-        svc = WriteLockService()
+        svc = WriteLockService(lock_dir=tmp_path / "locks")
         svc.acquire("book-1")
         svc.release("book-1")
         svc.release("book-1")  # Should not raise

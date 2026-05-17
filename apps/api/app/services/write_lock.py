@@ -1,17 +1,22 @@
 """Per-book write lock service.
 
-Provides in-process locking to prevent concurrent writes to the same GnuCash book.
+Provides file-based locking to prevent concurrent writes to the same GnuCash
+book across multiple workers/processes. Uses ``fcntl.flock()`` on per-book
+lock files under ``/data/locks/``.
 
-Limitation: This is an in-process lock. In a multi-process deployment (e.g. multiple
-gunicorn workers), this will not prevent concurrent writes across processes. For
-production multi-process deployments, a file-based or distributed lock should be used.
+Replaces the previous in-process ``threading.Lock`` implementation to support
+multi-worker deployments (e.g. multiple gunicorn workers).
 """
 
 from __future__ import annotations
 
-import threading
+import fcntl
+import os
 from collections.abc import Generator
 from contextlib import contextmanager
+from pathlib import Path
+
+DEFAULT_LOCK_DIR = Path("/data/locks")
 
 
 class WriteLockError(Exception):
@@ -23,22 +28,30 @@ class WriteLockError(Exception):
 
 
 class WriteLockService:
-    """Thread-safe per-book write lock.
+    """File-based per-book write lock.
 
-    Uses a dictionary of locks keyed by book identifier. Each book can have
-    at most one writer at a time within this process.
+    Uses ``fcntl.flock()`` on a per-book lock file. Each book can have at most
+    one writer at a time across all workers/processes sharing the same lock
+    directory.
+
+    Args:
+        lock_dir: Directory for lock files. Defaults to ``/data/locks``.
     """
 
-    def __init__(self) -> None:
-        self._locks: dict[str, threading.Lock] = {}
-        self._meta_lock = threading.Lock()
+    def __init__(self, lock_dir: Path = DEFAULT_LOCK_DIR) -> None:
+        self._lock_dir = lock_dir
+        self._fds: dict[str, int] = {}
 
-    def _get_lock(self, book_id: str) -> threading.Lock:
-        """Get or create the lock for a given book_id."""
-        with self._meta_lock:
-            if book_id not in self._locks:
-                self._locks[book_id] = threading.Lock()
-            return self._locks[book_id]
+    def _lock_path(self, book_id: str) -> Path:
+        """Return the lock file path for a given book_id.
+
+        The book_id is sanitized to replace path separators and other
+        characters that are unsafe in filenames with underscores, so that
+        even absolute paths or URIs produce a flat filename under the
+        lock directory.
+        """
+        safe = book_id.replace("/", "_").replace("\\", "_").replace(":", "_")
+        return self._lock_dir / f"{safe}.lock"
 
     def acquire(self, book_id: str, blocking: bool = False) -> bool:
         """Attempt to acquire the write lock for a book.
@@ -50,23 +63,48 @@ class WriteLockService:
         Returns:
             True if the lock was acquired, False otherwise.
         """
-        lock = self._get_lock(book_id)
-        return lock.acquire(blocking=blocking)
+        lock_path = self._lock_path(book_id)
+        try:
+            lock_path.parent.mkdir(parents=True, exist_ok=True)
+            fd = os.open(str(lock_path), os.O_CREAT | os.O_RDWR)
+            try:
+                flags = fcntl.LOCK_EX
+                if not blocking:
+                    flags |= fcntl.LOCK_NB
+                fcntl.flock(fd, flags)
+                # If a previous fd exists for this book, close it (shouldn't
+                # happen in normal usage, but prevents fd leaks).
+                old_fd = self._fds.get(book_id)
+                self._fds[book_id] = fd
+                if old_fd is not None:
+                    try:
+                        os.close(old_fd)
+                    except OSError:
+                        pass
+                return True
+            except (BlockingIOError, OSError):
+                os.close(fd)
+                return False
+        except OSError:
+            return False
 
     def release(self, book_id: str) -> None:
         """Release the write lock for a book.
 
         Safe to call even if the lock was not acquired (no-op).
         """
-        with self._meta_lock:
-            lock = self._locks.get(book_id)
-        if lock is None:
+        fd = self._fds.pop(book_id, None)
+        if fd is None:
             return
         try:
-            lock.release()
-        except RuntimeError:
-            # Lock was not held
+            fcntl.flock(fd, fcntl.LOCK_UN)
+        except OSError:
             pass
+        finally:
+            try:
+                os.close(fd)
+            except OSError:
+                pass
 
     @contextmanager
     def lock(self, book_id: str) -> Generator[None, None, None]:
