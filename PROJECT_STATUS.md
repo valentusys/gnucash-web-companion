@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 37.
+Completed through Phase 38.
 
 Completed phases:
 
@@ -53,10 +53,11 @@ Completed phases:
 - Phase 35 — audit-driven Phase 34 public baseline and controlled-writes docs sync
 - Phase 36 — write-mode UI warning and explicit confirmation
 - Phase 37 — independent audit and baseline sync
+- Phase 38 — personal dogfood readiness
 
 Next planned phase:
 
-- Phase 38 — personal dogfood readiness, focused on safe read-only testing with a copied GnuCash book.
+- Phase 39 — read-only smoke test automation, focused on a minimal automated smoke script for local Docker deployments.
 
 ## MVP product model
 
@@ -519,6 +520,25 @@ Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default sta
 Test results: disabled-write regression subset passed; frontend check/auth-routes/build passed; Docker config validation passed.
 
 Related issues: GitHub #19 closed by Phase 37; GitHub #18, #20, and #22 intentionally remain open.
+
+## Phase 38 — Personal Dogfood Readiness
+
+Status: complete. Phase commit pushed.
+
+Goal: prepare safe personal read-only dogfood instructions for testing against a copied GnuCash SQL book without adding features, expanding write scope, or publishing a release.
+
+Artifacts:
+
+- `docs/dogfood/personal-readonly-dogfood.md` — step-by-step local dogfood guide covering copied-book setup, `data/books/`, `GNUCASH_WRITES_ENABLED=false`, Docker startup, screen checks, CSV export handling, write-UI-hidden confirmation, shutdown, cleanup, and safe reporting rules.
+- `scripts/smoke/read-only-smoke-check.md` — manual smoke checklist for read-only dogfood readiness; automation remains planned for Phase 39.
+- `CHANGELOG.md` — added Phase 38 Unreleased entry.
+- `docs/handoff/phase-38.md` — PM/engineer handoff and verification report.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default state; controlled writes remain experimental/post-MVP and disabled by default; Phase 38 added documentation/checklists only and did not change product code, backend write-gating, frontend write UI, auth storage, or release artifacts.
+
+Test results: backend full suite passed; frontend check/auth-routes/build passed; Docker config validation passed.
+
+Related issues: no Phase 38-specific GitHub issue found in the current open issue list; GitHub #18, #20, and #22 intentionally remain open.
 
 ## Phase 22 — Real Controlled Write Integration Tests
 
