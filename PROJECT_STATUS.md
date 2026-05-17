@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 54.
+Completed through Phase 55.
 
 Completed phases:
 
@@ -70,10 +70,11 @@ Completed phases:
 - Phase 52 — Russian localization planning and i18n foundation
 - Phase 53 — community announcement draft
 - Phase 54 — observability and diagnostics
+- Phase 55 — v0.1 read-only scope freeze audit
 
 Next planned phase:
 
-- Phase 55 — v0.1 read-only scope freeze audit.
+- Phase 56 — v0.1 read-only release planning.
 
 ## MVP product model
 
@@ -877,6 +878,26 @@ Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default sta
 Test results: health diagnostics tests passed; backend full suite passed; frontend check/auth-routes/build passed; Docker config validation passed; `git diff --check` passed.
 
 Related issue: no Phase 54-specific GitHub issue was identified in the open issue list.
+
+## Phase 55 — v0.1 Read-Only Scope Freeze Audit
+
+Status: complete. Phase commit pushed.
+
+Goal: audit whether the project is ready to prepare a real `v0.1.0-readonly` milestone plan without publishing a release or expanding write scope.
+
+Artifacts:
+
+- `docs/audits/2026-05-18-phase-55-v0.1-readonly-scope-freeze.md` — independent scope-freeze audit artifact with verdict `Ready to prepare v0.1 read-only`.
+- `docs/ROADMAP.md` — stale release-posture wording fixed so `v0.0.2-prealpha` is no longer described as unpublished.
+- `README.md` — current status advanced through Phase 55 and latest-audit link updated to the Phase 55 audit.
+- `CHANGELOG.md` — Unreleased entry added for Phase 55.
+- `docs/handoff/phase-55.md` — PM/auditor/engineer handoff and verification report.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default state; controlled writes remain experimental post-MVP and disabled by default. Phase 55 did not enable writes, expand write scope, publish a release/tag, add production/security-audited claims, or add real financial/secrets artifacts.
+
+Test results: disabled-write regression subset passed; backend full suite passed; frontend check/auth-routes/build passed; Docker config validation passed; `git diff --check` passed.
+
+Related issues: no new Phase 55 issue was required. GitHub #22, #17, #13, #12, and #11 remain open backlog items to consider during v0.1 planning.
 
 ## Phase 22 — Real Controlled Write Integration Tests
 

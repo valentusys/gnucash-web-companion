@@ -5,9 +5,9 @@ This roadmap is intentionally conservative. Safety and trust come before feature
 ## Current release posture
 
 - Status: pre-alpha / MVP in progress.
-- Latest published pre-release: `v0.0.1-prealpha`.
-- Next candidate notes: `docs/release/v0.0.2-prealpha-notes.md`.
-- No `v0.0.2-prealpha` tag or GitHub release has been published.
+- Latest published pre-release: `v0.0.2-prealpha`.
+- Published release notes: `docs/release/v0.0.2-prealpha-notes.md`.
+- Phase 55 scope-freeze audit verdict: ready to prepare a `v0.1.0-readonly` milestone plan, not ready to publish v0.1 yet.
 - MVP v0.1 remains read-only by default; controlled writes are experimental, post-MVP, and disabled by `GNUCASH_WRITES_ENABLED=false` unless explicitly enabled in a disposable environment.
 
 ## Completed phase groups
@@ -38,16 +38,18 @@ Completed:
 
 Do not treat this as production-safe write support.
 
-### Release governance and agent continuity — Phases 15–16, 25–29, and 33–35
+### Release governance and agent continuity — Phases 15–16, 25–29, 33–35, 40–42, and 55
 
-Completed public pre-alpha release setup, Project Lead context, release/status documentation synchronization, audit-driven fixes, discoverability docs, compatibility matrix, Phase 29 audit documentation refresh, Phase 33/34 public status baseline cleanup, and Phase 35 audit-driven controlled-writes limitation cleanup.
+Completed public pre-alpha release setup, Project Lead context, release/status documentation synchronization, audit-driven fixes, discoverability docs, compatibility matrix, Phase 29 audit documentation refresh, Phase 33/34 public status baseline cleanup, Phase 35 audit-driven controlled-writes limitation cleanup, `v0.0.2-prealpha` release governance/publication, and the Phase 55 v0.1 read-only scope-freeze audit.
 
 Key artifacts:
 
 - `docs/release/v0.0.1-prealpha-checklist.md`
 - `docs/release/v0.0.1-prealpha-notes.md`
+- `docs/release/v0.0.2-prealpha-checklist.md`
 - `docs/release/v0.0.2-prealpha-notes.md`
 - `docs/audits/2026-05-17-audit.md`
+- `docs/audits/2026-05-18-phase-55-v0.1-readonly-scope-freeze.md`
 - `docs/agents/project-lead.md`
 - `docs/handoff/phase-15.md` through `docs/handoff/phase-16.md`
 - `docs/handoff/phase-25.md` through `docs/handoff/phase-29.md`
@@ -68,22 +70,17 @@ Completed:
 - community announcement readiness docs
 - GnuCash compatibility matrix for committed synthetic fixtures
 
-## Next: v0.0.2 pre-alpha candidate review
+## Completed: v0.0.2 pre-alpha publication
 
-Target: review `main` as a second pre-alpha candidate without publishing a tag/release unless Val explicitly requests it.
+`v0.0.2-prealpha` was published in Phase 42 after the Phase 41 release-gate audit, green local checks, and green GitHub CI. Do not publish further tags or releases unless a later explicit release phase says so.
 
-Recommended next work:
+## Next: v0.1 read-only MVP planning
 
-- clean-machine Docker runtime/E2E validation using synthetic fixture data
-- release checklist refresh for `v0.0.2-prealpha`
-- deployment hardening documentation
-
-## Next: v0.1 read-only MVP
-
-Target: safe private self-hosted read-only browsing and reporting over one configured GnuCash book.
+Target: safe private self-hosted read-only browsing and reporting over one configured GnuCash book. Phase 55 found the project ready to prepare a `v0.1.0-readonly` plan/checklist, not ready to publish v0.1 yet.
 
 Remaining likely work:
 
+- explicit `v0.1.0-readonly` plan/checklist
 - end-to-end Docker runtime testing on a clean machine
 - UI polish based on synthetic/sample books only
 - privacy mode for sensitive numbers
