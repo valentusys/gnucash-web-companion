@@ -40,7 +40,7 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–47 are complete.
+- Phase 0–49 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by default.
 - First public pre-alpha release: `v0.0.1-prealpha`.
@@ -55,7 +55,7 @@ The first public milestone is intentionally conservative:
 - Open the book in read-only mode.
 - Show account hierarchy and balances.
 - Browse account detail and transaction detail.
-- Search/filter transactions with pagination.
+- Search/filter transactions with pagination and documented CSV export parity (see [docs/transactions-filters.md](docs/transactions-filters.md)).
 - Show basic dashboard reports: net worth, income/expense, cash flow, top expense categories.
 - Store application metadata in a separate app database, not inside the GnuCash book.
 - Provide Docker/self-host deployment scaffolding.

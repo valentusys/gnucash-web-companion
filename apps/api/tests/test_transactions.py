@@ -325,6 +325,21 @@ class TestListTransactionsMVP:
         assert data["total"] == 1
         assert data["items"][0]["id"] == "tx-2"
 
+    def test_rejects_inverted_date_range(
+        self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory
+    ):
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(fake_book_with_transactions)
+            session.commit()
+
+        response = client.get(
+            "/transactions?date_from=2026-05-18&date_to=2026-05-16",
+            headers=auth_headers,
+        )
+        assert response.status_code == 400
+        assert response.json()["detail"] == "date_from cannot be later than date_to"
+
     def test_filter_by_account_id(
         self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory
     ):
@@ -357,6 +372,21 @@ class TestListTransactionsMVP:
         assert data["total"] == 1
         assert data["items"][0]["id"] == "tx-1"
         assert data["items"][0]["amount"] == "-320.00"
+
+    def test_rejects_inverted_amount_range(
+        self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory
+    ):
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(fake_book_with_transactions)
+            session.commit()
+
+        response = client.get(
+            "/transactions?min_amount=400&max_amount=100",
+            headers=auth_headers,
+        )
+        assert response.status_code == 400
+        assert response.json()["detail"] == "min_amount cannot be greater than max_amount"
 
     def test_access_denied(
         self, client, viewer_headers, sample_book, fake_book_with_transactions, session_factory

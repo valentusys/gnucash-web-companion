@@ -338,6 +338,21 @@ class TestExportTransactionsCSV:
         assert len(rows) == 2
         assert rows[1][0] == "tx-2"
 
+    def test_export_rejects_inverted_date_range(
+        self, client, auth_headers, sample_book, fake_book_for_export, session_factory
+    ):
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(fake_book_for_export)
+            session.commit()
+
+        response = client.get(
+            f"/books/{sample_book}/transactions/export?date_from=2026-05-18&date_to=2026-05-16",
+            headers=auth_headers,
+        )
+        assert response.status_code == 400
+        assert response.json()["detail"] == "date_from cannot be later than date_to"
+
     def test_export_respects_account_filter(
         self, client, auth_headers, sample_book, fake_book_for_export, session_factory
     ):
@@ -390,6 +405,27 @@ class TestExportTransactionsCSV:
         assert len(rows) == 2
         assert rows[1][0] == "tx-1"
         assert rows[1][3] == "-320.00"
+
+    def test_export_respects_combined_list_filters(
+        self, client, auth_headers, sample_book, fake_book_for_export, session_factory
+    ):
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(fake_book_for_export)
+            session.commit()
+
+        response = client.get(
+            f"/books/{sample_book}/transactions/export"
+            "?query=split&date_from=2026-05-17&date_to=2026-05-18"
+            "&account_id=checking-guid&min_amount=40&max_amount=60",
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        rows = _parse_csv_response(response)
+        assert len(rows) == 2
+        assert rows[1][0] == "tx-2"
+        assert rows[1][2] == "Split transaction test"
+        assert rows[1][3] == "-50.00"
 
     def test_export_rejects_inverted_amount_range(
         self, client, auth_headers, sample_book, fake_book_for_export, session_factory

@@ -10,7 +10,7 @@ import csv
 import io
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from typing import Any
 
@@ -81,7 +81,7 @@ async def list_book_transactions(
     session: Session = Depends(get_db),
 ) -> dict[str, Any]:
     """List transactions for a viewable book with pagination and filters."""
-    _validate_amount_range(min_amount, max_amount)
+    _validate_transaction_filters(date_from, date_to, min_amount, max_amount)
     book = _resolve_viewable_book(book_id, user, session)
     try:
         service = transaction_service_for(book)
@@ -136,7 +136,7 @@ async def export_book_transactions_csv(
 
     Respects the same filters as the list endpoint. Row cap: 10,000.
     """
-    _validate_amount_range(min_amount, max_amount)
+    _validate_transaction_filters(date_from, date_to, min_amount, max_amount)
     book = _resolve_viewable_book(book_id, user, session)
     try:
         service = transaction_service_for(book)
@@ -228,7 +228,7 @@ async def list_book_account_transactions(
     session: Session = Depends(get_db),
 ) -> dict[str, Any]:
     """List transactions for a specific account in a viewable book."""
-    _validate_amount_range(min_amount, max_amount)
+    _validate_transaction_filters(date_from, date_to, min_amount, max_amount)
     book = _resolve_viewable_book(book_id, user, session)
     try:
         service = transaction_service_for(book)
@@ -279,7 +279,7 @@ async def list_default_book_transactions(
     session: Session = Depends(get_db),
 ) -> dict[str, Any]:
     """List transactions for the default book."""
-    _validate_amount_range(min_amount, max_amount)
+    _validate_transaction_filters(date_from, date_to, min_amount, max_amount)
     book = resolve_default_viewable_book(user, session)
     try:
         service = transaction_service_for(book)
@@ -340,7 +340,7 @@ async def list_default_book_account_transactions(
     session: Session = Depends(get_db),
 ) -> dict[str, Any]:
     """List transactions for a specific account in the default book."""
-    _validate_amount_range(min_amount, max_amount)
+    _validate_transaction_filters(date_from, date_to, min_amount, max_amount)
     book = resolve_default_viewable_book(user, session)
     try:
         service = transaction_service_for(book)
@@ -381,6 +381,46 @@ def _resolve_viewable_book(book_id: int, user: User, session: Session) -> Book:
     from app.routers.books import resolve_viewable_book
 
     return resolve_viewable_book(book_id, user, session)
+
+
+def _validate_transaction_filters(
+    date_from: str | None,
+    date_to: str | None,
+    min_amount: Decimal | None,
+    max_amount: Decimal | None,
+) -> None:
+    """Reject invalid or inverted transaction filters before querying GnuCash."""
+    _validate_date_range(date_from, date_to)
+    _validate_amount_range(min_amount, max_amount)
+
+
+def _validate_date_range(date_from: str | None, date_to: str | None) -> None:
+    """Reject invalid or inverted ISO date ranges before querying GnuCash."""
+    if not date_from and not date_to:
+        return
+
+    parsed_from = _parse_filter_date("date_from", date_from) if date_from else None
+    parsed_to = _parse_filter_date("date_to", date_to) if date_to else None
+    if parsed_from is not None and parsed_to is not None and parsed_from > parsed_to:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="date_from cannot be later than date_to",
+        )
+
+
+def _parse_filter_date(name: str, value: str | None) -> date:
+    if value is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"{name} must use YYYY-MM-DD format",
+        )
+    try:
+        return date.fromisoformat(value)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"{name} must use YYYY-MM-DD format",
+        ) from exc
 
 
 def _validate_amount_range(min_amount: Decimal | None, max_amount: Decimal | None) -> None:

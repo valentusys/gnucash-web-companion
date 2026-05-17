@@ -28,6 +28,7 @@
 		}) => void;
 	} = $props();
 
+	let dateError = $state('');
 	let amountError = $state('');
 	const hasActiveFilters = $derived(
 		Boolean(query || dateFrom || dateTo || accountId || minAmount || maxAmount)
@@ -35,6 +36,13 @@
 
 	function normalizeDecimal(value: FormDataEntryValue | null): string {
 		return String(value ?? '').trim();
+	}
+
+	function validateDateRange(from: string, to: string): string {
+		if (from && to && from > to) {
+			return 'Start date must be earlier than or equal to end date.';
+		}
+		return '';
 	}
 
 	function validateAmountRange(min: string, max: string): string {
@@ -49,14 +57,17 @@
 		const form = e.currentTarget as HTMLFormElement;
 		if (!form.reportValidity()) return;
 		const data = new FormData(form);
+		const nextDateFrom = String(data.get('date_from') ?? '');
+		const nextDateTo = String(data.get('date_to') ?? '');
 		const nextMinAmount = normalizeDecimal(data.get('min_amount'));
 		const nextMaxAmount = normalizeDecimal(data.get('max_amount'));
+		dateError = validateDateRange(nextDateFrom, nextDateTo);
 		amountError = validateAmountRange(nextMinAmount, nextMaxAmount);
-		if (amountError) return;
+		if (dateError || amountError) return;
 		onChange({
 			query: String(data.get('query') ?? ''),
-			dateFrom: String(data.get('date_from') ?? ''),
-			dateTo: String(data.get('date_to') ?? ''),
+			dateFrom: nextDateFrom,
+			dateTo: nextDateTo,
 			accountId: String(data.get('account_id') ?? ''),
 			minAmount: nextMinAmount,
 			maxAmount: nextMaxAmount
@@ -64,6 +75,7 @@
 	}
 
 	function handleReset() {
+		dateError = '';
 		amountError = '';
 		onChange({ query: '', dateFrom: '', dateTo: '', accountId: '', minAmount: '', maxAmount: '' });
 	}
@@ -120,6 +132,8 @@
 			name="date_from"
 			type="date"
 			value={dateFrom}
+			aria-invalid={dateError ? 'true' : undefined}
+			aria-describedby={dateError ? 'tx-date-error' : undefined}
 			class="mt-1 block w-full rounded-lg border px-3 py-2 text-sm"
 			style="border-color: var(--app-input-border); background-color: var(--app-input-bg); color: var(--app-text);"
 		/>
@@ -131,9 +145,14 @@
 			name="date_to"
 			type="date"
 			value={dateTo}
+			aria-invalid={dateError ? 'true' : undefined}
+			aria-describedby={dateError ? 'tx-date-error' : undefined}
 			class="mt-1 block w-full rounded-lg border px-3 py-2 text-sm"
 			style="border-color: var(--app-input-border); background-color: var(--app-input-bg); color: var(--app-text);"
 		/>
+		{#if dateError}
+			<p id="tx-date-error" class="mt-1 text-xs" style="color: #dc2626;">{dateError}</p>
+		{/if}
 	</div>
 	<div>
 		<label for="tx-min-amount" class="block text-xs font-semibold uppercase" style="color: var(--app-muted);">Min amount</label>

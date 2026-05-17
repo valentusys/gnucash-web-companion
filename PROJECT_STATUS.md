@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 48.
+Completed through Phase 49.
 
 Completed phases:
 
@@ -64,10 +64,11 @@ Completed phases:
 - Phase 46 — Compatibility fixture implementation v1
 - Phase 47 — auditor pass after compatibility work
 - Phase 48 — UX polish for read-only core
+- Phase 49 — transaction search/filter hardening
 
 Next planned phase:
 
-- Phase 49 — Transaction search/filter hardening.
+- Phase 50 — Book switcher stabilization.
 
 ## MVP product model
 
@@ -747,6 +748,28 @@ Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default sta
 Test results: backend full suite passed; frontend check/auth-routes/build passed; Docker config validation passed; `git diff --check` passed.
 
 Related issue: none identified in the roadmap for Phase 48.
+
+## Phase 49 — Transaction Search/Filter Hardening
+
+Status: complete. Phase commit pushed.
+
+Goal: make read-only transaction search and filters more reliable and understandable while keeping API/frontend/CSV export behavior aligned.
+
+Artifacts:
+
+- `apps/api/app/routers/transactions.py` — adds shared transaction-filter validation so list, account-scoped list, book-scoped list, and CSV export reject invalid/inverted date ranges and inverted amount ranges before querying GnuCash.
+- `apps/api/tests/test_transactions.py` — adds list-view regression coverage for inverted date and amount ranges.
+- `apps/api/tests/test_transaction_export.py` — adds CSV export regression coverage for inverted date ranges and combined query/date/account/amount filter parity.
+- `apps/web/src/lib/components/TransactionFilters.svelte` — adds client-side inverted date range validation with accessible inline error state alongside existing amount validation.
+- `apps/web/scripts/test-auth-routes.mjs` — extends frontend route checks to assert transaction filter URL/CSV parity and frontend range validation coverage.
+- `docs/transactions-filters.md` — documents supported filters, validation, URL/pagination behavior, and CSV export parity.
+- `README.md`, `CHANGELOG.md`, and `docs/handoff/phase-49.md` — phase status and documentation synchronized.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default state; controlled writes remain experimental post-MVP and disabled by default; Phase 49 does not add write capability, enable write mode, publish a release/tag, or add real financial/secrets artifacts.
+
+Test results: backend full suite passed; frontend check/auth-routes/build passed; Docker config validation passed; `git diff --check` passed.
+
+Related issue: GitHub #11 updated with the Phase 49 hardening summary and left open for broader future read-only search/filter enhancements.
 
 ## Phase 22 — Real Controlled Write Integration Tests
 

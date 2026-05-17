@@ -58,10 +58,38 @@ assert.ok(
 );
 
 const transactionListPage = read('src/routes/transactions/+page.svelte');
+for (const filterParam of ['query', 'date_from', 'date_to', 'account_id', 'min_amount', 'max_amount']) {
+	assert.ok(
+		transactionListPage.includes(`sp.set('${filterParam}'`) ||
+			transactionListPage.includes(`sp.set('${filterParam}',`),
+		`transactions page URLs must preserve ${filterParam}`
+	);
+}
+assert.ok(
+	transactionListPage.includes("/transactions/export${qs ? '?' + qs : ''}"),
+	'CSV export URL must include the active filter query string'
+);
+assert.match(
+	transactionListPage,
+	/paramsToUrl[\s\S]*sp\.set\('limit'[\s\S]*sp\.set\('offset'/,
+	'transaction pagination/filter URLs must include limit and offset'
+);
 assert.match(
 	transactionListPage,
 	/data\.writesEnabled[\s\S]*Experimental post-MVP write mode[\s\S]*New transaction/,
 	'transactions page must show warning text near the enabled write entry point'
+);
+
+const transactionFilters = read('src/lib/components/TransactionFilters.svelte');
+assert.match(
+	transactionFilters,
+	/validateDateRange[\s\S]*Start date must be earlier than or equal to end date/,
+	'transaction filters must reject inverted date ranges before navigation'
+);
+assert.match(
+	transactionFilters,
+	/validateAmountRange[\s\S]*Minimum amount must be less than or equal to maximum amount/,
+	'transaction filters must reject inverted amount ranges before navigation'
 );
 
 const newTransactionPage = read('src/routes/transactions/new/+page.svelte');
