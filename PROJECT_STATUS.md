@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 52.
+Completed through Phase 53.
 
 Completed phases:
 
@@ -68,10 +68,11 @@ Completed phases:
 - Phase 50 — book switcher stabilization
 - Phase 51 — auditor pass after UX/book/filter work
 - Phase 52 — Russian localization planning and i18n foundation
+- Phase 53 — community announcement draft
 
 Next planned phase:
 
-- Phase 53 — Community announcement draft.
+- Phase 54 — Observability and diagnostics.
 
 ## MVP product model
 
@@ -835,6 +836,26 @@ Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default sta
 Test results: backend full suite passed; frontend check/auth-routes/build passed; Docker config validation passed; `git diff --check` passed.
 
 Related issue: GitHub #17 updated with the Phase 52 localization foundation summary and remains open for broader future translation work.
+
+## Phase 53 — Community Announcement Draft
+
+Status: complete. Phase commit pushed.
+
+Goal: prepare a cautious community announcement package for interested GnuCash/self-hosted testers without production marketing or write-safety overclaims.
+
+Artifacts:
+
+- `docs/community/announcement-draft.md` — refreshed conservative announcement draft with short pitch, current working scope, not-ready scope, safety warning, target tester profile, feedback prompts, and suggested posts for r/GnuCash, r/selfhosted, later Show HN, and Mastodon/Linux/self-hosted communities.
+- `docs/community/where-to-share.md` — channel guidance, posting gates, anti-channels, feedback prompts, and safety checklist for community sharing.
+- `README.md` — current status advanced through Phase 53 and community docs linked.
+- `CHANGELOG.md` — Unreleased entry added for Phase 53.
+- `docs/handoff/phase-53.md` — PM/engineer handoff and verification report.
+
+Safety result: Phase 53 is documentation/community-planning only. MVP remains read-only by default; `GNUCASH_WRITES_ENABLED=false` remains the safe/default state; controlled writes remain experimental post-MVP and disabled by default. No write scope, release/tag, product code, real financial data, `.env`, app DB, backup, secret, key, token, certificate, real screenshot, or real export was added.
+
+Test results: backend full suite passed; frontend check/auth-routes/build passed; Docker config validation passed; `git diff --check` passed.
+
+Related issue: GitHub #16 received a Phase 53 follow-up comment and remains closed.
 
 ## Phase 22 — Real Controlled Write Integration Tests
 

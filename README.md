@@ -40,13 +40,14 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–52 are complete.
+- Phase 0–53 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by default.
 - First public pre-alpha release: `v0.0.1-prealpha`.
 - Current public pre-alpha release: [`v0.0.2-prealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.0.2-prealpha).
 - Latest audit: [docs/audits/2026-05-18-phase-51-audit.md](docs/audits/2026-05-18-phase-51-audit.md).
 - Russian localization/i18n foundation started in Phase 52; English documentation remains canonical. See [README.ru.md](README.ru.md) and [docs/localization.md](docs/localization.md).
+- Community announcement drafts and where-to-share guidance were refreshed in Phase 53 for cautious feedback collection, not production marketing.
 
 ## MVP scope: read-only first
 
@@ -226,6 +227,7 @@ Contributions are welcome, especially documentation, tests, safety review, and r
 Community/draft materials:
 
 - [docs/community/announcement-draft.md](docs/community/announcement-draft.md)
+- [docs/community/where-to-share.md](docs/community/where-to-share.md)
 - [docs/community/social-preview.md](docs/community/social-preview.md)
 
 Compatibility/safety docs:
