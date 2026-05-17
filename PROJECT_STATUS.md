@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 44.
+Completed through Phase 45.
 
 Completed phases:
 
@@ -60,10 +60,11 @@ Completed phases:
 - Phase 42 — publish v0.0.2-prealpha
 - Phase 43 — local deployment hardening guide
 - Phase 44 — backup and recovery runbook
+- Phase 45 — GnuCash compatibility fixture plan
 
 Next planned phase:
 
-- Phase 45 — GnuCash compatibility fixture plan.
+- Phase 46 — Compatibility fixture implementation v1.
 
 ## MVP product model
 
@@ -663,6 +664,26 @@ Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default sta
 Test results: backend full suite passed (`269 passed`, 27 existing warnings); frontend check/auth-routes/build passed; Docker config validation passed; `git diff --check` passed.
 
 Related issues: no Phase 44-specific GitHub issue found in the current open issue list; GitHub #22, #17, #13, #12, and #11 remain open for later roadmap work.
+
+## Phase 45 — GnuCash Compatibility Fixture Plan
+
+Status: complete. Phase commit pushed.
+
+Goal: advance GitHub issue #22 by defining a safe, conservative plan for real-version GnuCash compatibility fixtures without committing binary fixtures, real data, or expanding write scope.
+
+Artifacts:
+
+- `docs/gnucash-version-fixture-plan.md` — new planning document covering target GnuCash version families, OS/source metadata, synthetic fixture data model, safe generation/storage policy, and acceptance tests for future fixture implementation.
+- `docs/gnucash-compatibility.md` — linked the Phase 45 fixture plan from future compatibility work.
+- `README.md` — current status advanced through Phase 45 and linked the fixture plan under compatibility/safety docs.
+- `CHANGELOG.md` — added Phase 45 Unreleased entry.
+- `docs/handoff/phase-45.md` — PM/engineer handoff and verification report.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default state; controlled writes remain experimental post-MVP and disabled by default; Phase 45 is documentation/planning-only and does not add fixture binaries, enable writes, expand write scope, publish a release/tag, or add real financial/secrets artifacts.
+
+Test results: backend full suite passed (`269 passed`, 27 existing warnings); frontend check/auth-routes/build passed; Docker config validation passed; `git diff --check` passed.
+
+Related issue: GitHub #22 updated with the Phase 45 plan and remains open for Phase 46 implementation.
 
 ## Phase 22 — Real Controlled Write Integration Tests
 

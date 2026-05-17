@@ -40,7 +40,7 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–44 are complete.
+- Phase 0–45 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by default.
 - First public pre-alpha release: `v0.0.1-prealpha`.
@@ -229,6 +229,7 @@ Community/draft materials:
 Compatibility/safety docs:
 
 - [docs/gnucash-compatibility.md](docs/gnucash-compatibility.md)
+- [docs/gnucash-version-fixture-plan.md](docs/gnucash-version-fixture-plan.md)
 
 ## Funding
 

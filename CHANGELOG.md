@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Phase 45 — GnuCash real-version compatibility fixture plan covering target versions, fixture data model, safe generation/storage policy, and acceptance tests for issue #22.
 - Phase 44 — backup and recovery runbook for app metadata DB, copied GnuCash books, Docker data paths, restore dry-runs, and experimental controlled-write pre-write backup expectations.
 - Phase 43 — local secure deployment guide for conservative localhost, LAN, and VPN-only self-host testing while keeping writes disabled by default.
 
