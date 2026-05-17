@@ -11,7 +11,7 @@ Last updated: 2026-05-17
 
 ## Current baseline
 
-Completed through Phase 31:
+Completed through Phase 32:
 
 - Phase 0 — competitive review and product positioning
 - Phase 1 — open-source foundation
@@ -45,10 +45,11 @@ Completed through Phase 31:
 - Phase 29 — audit-driven release documentation sync
 - Phase 30 — transaction amount range filters for CSV export
 - Phase 31 — read-only safety status banner
+- Phase 32 — backend write-gating regression coverage
 
 Next planned phase:
 
-- Phase 32 — backend write-gating regression coverage (PM brief created; implementation not started)
+- TBD by Project Lead.
 
 ## MVP product model
 
@@ -394,17 +395,22 @@ Related issues: none; this completed a small release-readiness/read-only MVP pol
 
 ## Phase 32 — Backend Write-Gating Regression Coverage
 
-Status: planned by Project Lead. Implementation not started.
+Status: complete. Phase commit pushed.
 
 Goal: convert the Phase 1 background-mission ad-hoc write-gating audit into committed regression tests for validate/create/patch controlled-write endpoints with writes disabled.
 
-Planning artifact:
+Artifacts:
 
 - `docs/handoff/phase-32.md` — PM brief for the next engineer phase.
+- `apps/api/tests/test_transaction_writes.py` — disabled-write regression coverage for validate/create/patch routes, including a guard that fails if `_write_service_for` is constructed while writes are disabled.
+- `CHANGELOG.md` — Unreleased safety/testing entry for Phase 32.
+- `docs/v0.2-controlled-writes.md` — documented that disabled-write bypass regression coverage exists while writes remain experimental and disabled by default.
 
-Reason: the audit confirmed real API behavior is currently safe, but GitHub issue #18 remains the highest-risk accepted blocker until the no-write-service-instantiation behavior is protected by committed tests.
+Result: `Settings.gnucash_writes_enabled` remains `False` by default, all three controlled-write routes return read-only 403 responses with writes disabled, and committed tests prove `_write_service_for` / `GnuCashWriteService` is not constructed for those requests.
 
-Expected scope: primarily `apps/api/tests/test_transaction_writes.py`; production code only if a gating regression is discovered. Keep writes disabled by default and do not expand write capability.
+Test results: backend full suite passed (`269 passed`, 27 existing warnings); frontend check/auth-routes/build passed; Docker config validation passed.
+
+Related issue: GitHub #18 (closed by Phase 32).
 
 ## Phase 22 — Real Controlled Write Integration Tests
 

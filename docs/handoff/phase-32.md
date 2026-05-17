@@ -2,7 +2,7 @@
 
 ## Status
 
-Planned by Project Lead. Not implemented yet.
+Complete. Implemented by engineer in guarded background mission phase 3.
 
 ## PM decision
 
@@ -120,4 +120,34 @@ At completion, update this file with:
 
 ## Blockers
 
-None for planning. The next engineer phase should proceed directly with the regression test work.
+None.
+
+## Engineer implementation summary
+
+- Extended `apps/api/tests/test_transaction_writes.py::TestWritesDisabledByDefault` into committed regression coverage for all three controlled-write routes:
+  - `POST /books/{book_id}/transactions/validate`;
+  - `POST /books/{book_id}/transactions`;
+  - `PATCH /books/{book_id}/transactions/{transaction_id}`.
+- Added a default-settings assertion that `Settings().gnucash_writes_enabled is False`.
+- Added a monkeypatched `_write_service_for` sentinel that raises if the write service is constructed while writes are disabled; each disabled-write route test asserts it remains uncalled.
+- Updated `PROJECT_STATUS.md`, `CHANGELOG.md`, and `docs/v0.2-controlled-writes.md` to describe this as safety regression coverage only, not expanded write support.
+
+## Verification
+
+- `cd apps/api && pytest -q tests/test_transaction_writes.py::TestWritesDisabledByDefault` — passed (`4 passed`, one existing piecash/SQLAlchemy deprecation warning).
+- `cd apps/api && pytest -q` — passed (`269 passed`, 27 existing warnings).
+- `cd apps/web && npm run check && npm run test:auth-routes && npm run build` — passed (`svelte-check found 0 errors and 0 warnings`; auth route checks passed; build completed).
+- `JWT_SECRET=dummy-validation-secret APP_ADMIN_PASSWORD=dummy docker compose config --quiet` — passed.
+
+## Safety confirmation
+
+- `Settings.gnucash_writes_enabled: bool = False` remains the default in `apps/api/app/config.py`.
+- Existing `_ensure_writes_enabled()` guard remains in place and is called before book-specific write-service construction in validate/create/patch routes.
+- No backend write service is constructed when writes are disabled, proven by committed API tests.
+- No new GnuCash write capability, delete/import/recurring/account-edit feature, banking integration, CSV/OFX import, frontend auth token storage change, real financial artifact, or secret was added.
+
+## Commit / push / GitHub
+
+- Commit: pending before final commit.
+- Push: pending before final push.
+- GitHub issue #18: to close after commit is pushed and checks pass.

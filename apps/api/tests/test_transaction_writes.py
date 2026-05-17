@@ -309,29 +309,98 @@ def _make_mock_piecash(fake_book, fake_accounts):
     return mock_piecash, created_tx
 
 
+def _balanced_transaction_payload():
+    return {
+        "date": "2026-05-16",
+        "description": "Test",
+        "splits": [
+            {"account_id": "bank-guid", "amount": "-100.00", "currency": "SEK", "memo": ""},
+            {"account_id": "food-guid", "amount": "100.00", "currency": "SEK", "memo": ""},
+        ],
+    }
 
 
 class TestWritesDisabledByDefault:
     """MVP v0.1 must remain read-only unless post-MVP writes are explicitly enabled."""
 
-    def test_validate_is_forbidden_when_writes_disabled(self, client, auth_headers, sample_book):
-        app.dependency_overrides[get_settings] = lambda: READ_ONLY_TEST_SETTINGS
-        payload = {
-            "date": "2026-05-16",
-            "description": "Test",
-            "splits": [
-                {"account_id": "bank-guid", "amount": "-100.00", "currency": "SEK", "memo": ""},
-                {"account_id": "food-guid", "amount": "100.00", "currency": "SEK", "memo": ""},
-            ],
-        }
-        response = client.post(
-            f"/books/{sample_book}/transactions/validate",
-            json=payload,
-            headers=auth_headers,
+    def test_settings_default_keeps_writes_disabled(self):
+        assert Settings().gnucash_writes_enabled is False
+
+    @pytest.fixture
+    def fail_if_write_service_is_constructed(self, monkeypatch):
+        calls = []
+
+        def forbidden_write_service(*args, **kwargs):
+            calls.append((args, kwargs))
+            raise AssertionError("_write_service_for must not be called when writes are disabled")
+
+        monkeypatch.setattr(
+            "app.routers.transactions._write_service_for",
+            forbidden_write_service,
         )
+        return calls
+
+    def _assert_read_only_response_without_write_service(self, response, calls):
         assert response.status_code == 403
         assert "read-only" in response.json()["detail"]
-        app.dependency_overrides[get_settings] = lambda: TEST_SETTINGS
+        assert calls == []
+
+    def _force_read_only_settings(self):
+        app.dependency_overrides[get_settings] = lambda: READ_ONLY_TEST_SETTINGS
+
+    def test_validate_is_forbidden_when_writes_disabled(
+        self,
+        client,
+        auth_headers,
+        sample_book,
+        fail_if_write_service_is_constructed,
+    ):
+        self._force_read_only_settings()
+        response = client.post(
+            f"/books/{sample_book}/transactions/validate",
+            json=_balanced_transaction_payload(),
+            headers=auth_headers,
+        )
+        self._assert_read_only_response_without_write_service(
+            response,
+            fail_if_write_service_is_constructed,
+        )
+
+    def test_create_is_forbidden_when_writes_disabled_without_constructing_write_service(
+        self,
+        client,
+        auth_headers,
+        sample_book,
+        fail_if_write_service_is_constructed,
+    ):
+        self._force_read_only_settings()
+        response = client.post(
+            f"/books/{sample_book}/transactions",
+            json=_balanced_transaction_payload(),
+            headers=auth_headers,
+        )
+        self._assert_read_only_response_without_write_service(
+            response,
+            fail_if_write_service_is_constructed,
+        )
+
+    def test_patch_is_forbidden_when_writes_disabled_without_constructing_write_service(
+        self,
+        client,
+        auth_headers,
+        sample_book,
+        fail_if_write_service_is_constructed,
+    ):
+        self._force_read_only_settings()
+        response = client.patch(
+            f"/books/{sample_book}/transactions/some-tx-id",
+            json={"description": "Updated description"},
+            headers=auth_headers,
+        )
+        self._assert_read_only_response_without_write_service(
+            response,
+            fail_if_write_service_is_constructed,
+        )
 
 
 # ---------------------------------------------------------------------------
