@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 53.
+Completed through Phase 54.
 
 Completed phases:
 
@@ -69,10 +69,11 @@ Completed phases:
 - Phase 51 — auditor pass after UX/book/filter work
 - Phase 52 — Russian localization planning and i18n foundation
 - Phase 53 — community announcement draft
+- Phase 54 — observability and diagnostics
 
 Next planned phase:
 
-- Phase 54 — Observability and diagnostics.
+- Phase 55 — v0.1 read-only scope freeze audit.
 
 ## MVP product model
 
@@ -856,6 +857,26 @@ Safety result: Phase 53 is documentation/community-planning only. MVP remains re
 Test results: backend full suite passed; frontend check/auth-routes/build passed; Docker config validation passed; `git diff --check` passed.
 
 Related issue: GitHub #16 received a Phase 53 follow-up comment and remains closed.
+
+## Phase 54 — Observability and Diagnostics
+
+Status: complete. Phase commit pushed.
+
+Goal: make self-hosted deployment errors easier to diagnose with safe startup diagnostics, a richer non-sensitive health endpoint, default-book/app-DB checks, and troubleshooting documentation.
+
+Artifacts:
+
+- `apps/api/app/diagnostics.py` — safe diagnostics helpers for default book existence, app metadata DB reachability, health payload construction, and structured startup logging.
+- `apps/api/app/main.py` — startup now logs a `startup_diagnostics` JSON event, and `/health` returns app DB/default-book/write-mode checks without exposing secrets or full paths.
+- `apps/api/tests/test_health.py` — regression tests for richer health payloads, understandable missing-book diagnostics, and secret/path-safe startup logs.
+- `docs/operations/troubleshooting.md` — self-hosted troubleshooting guide covering health payloads, missing default book checks, app DB reachability, startup diagnostics logs, and safe bug-report contents.
+- `README.md`, `docs/DEVELOPMENT.md`, `CHANGELOG.md`, and `docs/handoff/phase-54.md` — status and troubleshooting docs synchronized.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default state; controlled writes remain experimental post-MVP and disabled by default. Phase 54 does not add write capability, enable write mode, publish a release/tag, add telemetry, or add real financial/secrets artifacts. Health/startup diagnostics intentionally avoid full book paths, credentials, JWT secrets, admin passwords, database URLs, and real data.
+
+Test results: health diagnostics tests passed; backend full suite passed; frontend check/auth-routes/build passed; Docker config validation passed; `git diff --check` passed.
+
+Related issue: no Phase 54-specific GitHub issue was identified in the open issue list.
 
 ## Phase 22 — Real Controlled Write Integration Tests
 

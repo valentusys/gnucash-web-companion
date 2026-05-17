@@ -69,11 +69,18 @@ See `.env.example` for the full list of configuration options.
 
 ## Health check
 
-The API exposes a health endpoint:
+The API exposes a non-sensitive health endpoint:
 
+```text
+GET /api/health
 ```
-GET /api/health  ->  {"status": "ok", "service": "api"}
-```
+
+The response includes `status`, `service`, and safe checks for app metadata DB
+reachability, default book presence, and whether experimental writes are enabled.
+It intentionally avoids full filesystem paths, credentials, JWT secrets, admin
+passwords, and database connection strings. See
+[docs/operations/troubleshooting.md](operations/troubleshooting.md) for example
+payloads and troubleshooting steps.
 
 ## Development principles
 

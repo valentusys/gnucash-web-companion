@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.database import Base, get_engine, get_session_factory
+from app.diagnostics import build_health_payload, log_startup_diagnostics
 from app.routers.auth import router as auth_router
 from app.routers.books import router as books_router
 from app.routers.accounts import router as accounts_router
@@ -21,11 +22,13 @@ settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    current_settings = get_settings()
     engine = get_engine()
     Base.metadata.create_all(engine)
+    log_startup_diagnostics(current_settings, engine)
     Session = get_session_factory(engine)
     with Session() as session:
-        seed_default_book(session, settings.gnucash_default_book_path)
+        seed_default_book(session, current_settings.gnucash_default_book_path)
         seed_admin_user(session)
         seed_admin_default_book_access(session)
     yield
@@ -49,5 +52,5 @@ app.include_router(reports_router)
 
 
 @app.get("/health")
-async def health() -> dict[str, str]:
-    return {"status": "ok", "service": "api"}
+async def health() -> dict[str, object]:
+    return build_health_payload(get_settings(), get_engine())

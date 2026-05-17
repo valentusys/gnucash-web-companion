@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Phase 54 — observability and diagnostics: structured safe startup diagnostics, richer non-sensitive `/health` payload with app DB/default-book/write-mode checks, and self-hosted troubleshooting guidance.
 - Phase 53 — community announcement draft and where-to-share guidance for cautious feedback collection, with explicit pre-alpha, read-only-by-default, no production/security guarantee, and experimental-write warnings.
 - Phase 52 — Russian localization planning and i18n foundation: English-default SvelteKit locale structure, opt-in Russian UI strings for login/navigation/safety banner/core page titles, `README.ru.md`, and localization guidance documenting English docs as canonical.
 - Phase 51 — independent auditor pass after UX/book/filter work, confirming read-only scope, independent-books framing, filter/export safety, and documentation consistency with no blockers.

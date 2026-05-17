@@ -40,7 +40,7 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–53 are complete.
+- Phase 0–54 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by default.
 - First public pre-alpha release: `v0.0.1-prealpha`.
@@ -48,6 +48,7 @@ This project is not a fit if you need:
 - Latest audit: [docs/audits/2026-05-18-phase-51-audit.md](docs/audits/2026-05-18-phase-51-audit.md).
 - Russian localization/i18n foundation started in Phase 52; English documentation remains canonical. See [README.ru.md](README.ru.md) and [docs/localization.md](docs/localization.md).
 - Community announcement drafts and where-to-share guidance were refreshed in Phase 53 for cautious feedback collection, not production marketing.
+- Startup diagnostics, a richer non-sensitive health endpoint, and troubleshooting guidance were added in Phase 54 for self-hosted deployments.
 
 ## MVP scope: read-only first
 
@@ -120,7 +121,9 @@ See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for local development setup and
 [docs/deployment/local-secure-deployment.md](docs/deployment/local-secure-deployment.md)
 for conservative local/LAN/VPN deployment guidance. See
 [docs/operations/backup-and-recovery.md](docs/operations/backup-and-recovery.md)
-for manual backup and recovery guidance.
+for manual backup and recovery guidance, and
+[docs/operations/troubleshooting.md](docs/operations/troubleshooting.md)
+for safe health/startup diagnostics.
 
 ## Architecture
 
