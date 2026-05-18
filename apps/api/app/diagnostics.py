@@ -14,6 +14,43 @@ from app.config import Settings
 
 logger = logging.getLogger(__name__)
 
+DEVELOPMENT_LIKE_ENVS = {"dev", "development", "local", "test", "testing"}
+
+
+def _is_development_like_env(app_env: str) -> bool:
+    """Return whether APP_ENV is local/development/test-like."""
+    return app_env.strip().lower() in DEVELOPMENT_LIKE_ENVS
+
+
+def cors_deployment_posture(settings: Settings) -> dict[str, Any]:
+    """Return a safe CORS deployment-posture diagnostic."""
+    origins = [origin.strip() for origin in settings.cors_origins]
+    wildcard_enabled = "*" in origins
+    development_like = _is_development_like_env(settings.app_env)
+    risky = wildcard_enabled and not development_like
+
+    if risky:
+        message = (
+            "CORS_ORIGINS allows all origins while APP_ENV is not development-like. "
+            "Narrow CORS_ORIGINS to exact localhost, LAN, or VPN browser origins before shared deployment; "
+            "do not expose this pre-alpha app directly to the public internet."
+        )
+    elif wildcard_enabled:
+        message = (
+            "CORS_ORIGINS uses the development wildcard default. This is acceptable for local development, "
+            "but narrow it to exact LAN/VPN origins before shared deployment."
+        )
+    else:
+        message = "CORS_ORIGINS is narrowed to configured origins."
+
+    return {
+        "wildcard_enabled": wildcard_enabled,
+        "app_env": settings.app_env,
+        "development_like_env": development_like,
+        "risk_level": "warning" if risky else "ok",
+        "message": message,
+    }
+
 
 def _safe_book_path_status(path_value: str) -> dict[str, Any]:
     """Return non-sensitive default-book diagnostics without exposing full paths."""
@@ -82,18 +119,22 @@ def check_app_database(engine: Engine) -> dict[str, Any]:
 def build_health_payload(settings: Settings, engine: Engine) -> dict[str, Any]:
     """Build the public health payload using only non-sensitive diagnostics."""
     default_book = _safe_book_path_status(settings.gnucash_default_book_path)
+    cors = cors_deployment_posture(settings)
     app_database = {
         **_safe_app_database_config(settings.app_database_url),
         **check_app_database(engine),
     }
 
     degraded = not default_book["exists"] or not app_database["reachable"]
+    warnings = [cors["message"]] if cors["risk_level"] == "warning" else []
 
     return {
         "status": "degraded" if degraded else "ok",
         "service": "api",
+        "warnings": warnings,
         "checks": {
             "app_database": app_database,
+            "cors": cors,
             "default_book": default_book,
             "writes_enabled": settings.gnucash_writes_enabled,
         },
@@ -114,7 +155,23 @@ def startup_diagnostics(settings: Settings, engine: Engine) -> dict[str, Any]:
 
 def log_startup_diagnostics(settings: Settings, engine: Engine) -> None:
     """Log startup diagnostics as a single safe JSON object."""
+    diagnostics = startup_diagnostics(settings, engine)
     logger.info(
         "startup_diagnostics %s",
-        json.dumps(startup_diagnostics(settings, engine), sort_keys=True),
+        json.dumps(diagnostics, sort_keys=True),
     )
+    cors = diagnostics["checks"]["cors"]
+    if cors["risk_level"] == "warning":
+        logger.warning(
+            "cors_deployment_warning %s",
+            json.dumps(
+                {
+                    "event": "cors_deployment_warning",
+                    "service": "api",
+                    "app_env": settings.app_env,
+                    "wildcard_enabled": cors["wildcard_enabled"],
+                    "message": cors["message"],
+                },
+                sort_keys=True,
+            ),
+        )

@@ -105,8 +105,38 @@ Important:
 
 - `JWT_SECRET=change-me-use-a-long-random-secret` is a placeholder and is intentionally unsafe.
 - Keep `GNUCASH_WRITES_ENABLED=false` for the read-only MVP.
-- `CORS_ORIGINS=["*"]` is a development-friendly default; narrow it before any shared LAN/VPN deployment if browser origins are known.
+- `CORS_ORIGINS=["*"]` is a development-friendly default; narrow it before any shared LAN/VPN deployment if browser origins are known. The API health/startup diagnostics warn when this wildcard is used outside development-like `APP_ENV` values.
 - Set `ORIGIN` to the exact external URL used by browsers, especially when using HTTPS behind a reverse proxy.
+
+## CORS origin narrowing for LAN/VPN
+
+CORS is not a public-internet security boundary, but wildcard browser origins are still too loose for shared LAN/VPN testing. Before a LAN/VPN deployment, set `CORS_ORIGINS` to the exact browser origins that should call the API through the web/proxy URL.
+
+Examples:
+
+```dotenv
+# Local-only browser access
+APP_ENV=development
+ORIGIN=http://localhost:8080
+CORS_ORIGINS=["http://localhost:8080"]
+
+# LAN HTTP testing on a trusted subnet only
+APP_ENV=lan
+ORIGIN=http://gnucash.lan:8080
+CORS_ORIGINS=["http://gnucash.lan:8080","http://192.168.1.50:8080"]
+
+# VPN or private HTTPS reverse-proxy hostname
+APP_ENV=vpn
+ORIGIN=https://gnucash.vpn.example
+CORS_ORIGINS=["https://gnucash.vpn.example"]
+```
+
+Notes:
+
+- Include the scheme (`http://` or `https://`) and port exactly as the browser sees them.
+- Do not include secrets, JWTs, passwords, book paths, account names, transaction descriptions, amounts, or CSV data in origin values or logs.
+- Even with narrowed CORS, keep this pre-alpha app off the direct public internet; use localhost, a trusted LAN, or a VPN, and prefer HTTPS when credentials or copied financial data cross the network.
+- If `/api/health` reports a CORS warning for a non-development-like `APP_ENV`, narrow `CORS_ORIGINS` before using the deployment from shared devices.
 
 ## Data locations and volumes
 

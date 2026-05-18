@@ -76,11 +76,17 @@ GET /api/health
 ```
 
 The response includes `status`, `service`, and safe checks for app metadata DB
-reachability, default book presence, and whether experimental writes are enabled.
+reachability, CORS deployment posture, default book presence, and whether experimental writes are enabled.
 It intentionally avoids full filesystem paths, credentials, JWT secrets, admin
 passwords, and database connection strings. See
 [docs/operations/troubleshooting.md](operations/troubleshooting.md) for example
 payloads and troubleshooting steps.
+
+If `CORS_ORIGINS` contains `*` while `APP_ENV` is not development-like, health
+and startup diagnostics include a non-secret warning. Keep `CORS_ORIGINS=["*"]`
+for local development only; for shared LAN/VPN testing, use exact origins such
+as `CORS_ORIGINS=["http://gnucash.lan:8080"]` or
+`CORS_ORIGINS=["https://gnucash.vpn.example"]`.
 
 ## Development principles
 

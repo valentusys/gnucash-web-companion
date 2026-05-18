@@ -9,7 +9,7 @@ from sqlalchemy.pool import StaticPool
 import app.database as database_module
 import app.main as main_module
 from app.config import Settings
-from app.diagnostics import build_health_payload, log_startup_diagnostics
+from app.diagnostics import build_health_payload, cors_deployment_posture, log_startup_diagnostics
 from app.main import app
 
 client = TestClient(app)
@@ -50,6 +50,14 @@ def test_health_returns_richer_non_sensitive_payload(monkeypatch, tmp_path):
     assert payload["checks"]["app_database"]["reachable"] is True
     assert payload["checks"]["app_database"]["backend"] == "sqlite"
     assert payload["checks"]["app_database"]["database_name"] == "app.db"
+    assert payload["warnings"] == []
+    assert payload["checks"]["cors"] == {
+        "wildcard_enabled": True,
+        "app_env": "test",
+        "development_like_env": True,
+        "risk_level": "ok",
+        "message": "CORS_ORIGINS uses the development wildcard default. This is acceptable for local development, but narrow it to exact LAN/VPN origins before shared deployment.",
+    }
     assert payload["checks"]["default_book"] == {
         "configured": True,
         "exists": True,
@@ -80,6 +88,54 @@ def test_health_explains_missing_default_book_without_full_path(tmp_path):
     assert str(tmp_path) not in str(payload)
 
 
+def test_cors_posture_warns_for_wildcard_outside_development_like_env(tmp_path):
+    settings = Settings(
+        app_env="production",
+        app_database_url=f"sqlite:///{tmp_path / 'app.db'}",
+        gnucash_default_book_path=str(tmp_path / "missing.gnucash.sqlite"),
+        jwt_secret="secret-that-must-not-appear",
+        app_admin_password="password-that-must-not-appear",
+        cors_origins=["*"],
+    )
+
+    payload = build_health_payload(settings, _in_memory_engine())
+
+    cors = payload["checks"]["cors"]
+    assert cors["wildcard_enabled"] is True
+    assert cors["app_env"] == "production"
+    assert cors["development_like_env"] is False
+    assert cors["risk_level"] == "warning"
+    assert "Narrow CORS_ORIGINS to exact localhost, LAN, or VPN browser origins" in cors["message"]
+    assert "public internet" in cors["message"]
+    assert payload["warnings"] == [cors["message"]]
+
+    payload_text = str(payload)
+    assert "secret-that-must-not-appear" not in payload_text
+    assert "password-that-must-not-appear" not in payload_text
+    assert str(tmp_path) not in payload_text
+
+
+def test_cors_posture_accepts_narrowed_origins_outside_development(tmp_path):
+    settings = Settings(
+        app_env="production",
+        app_database_url=f"sqlite:///{tmp_path / 'app.db'}",
+        gnucash_default_book_path=str(tmp_path / "missing.gnucash.sqlite"),
+        jwt_secret="secret-that-must-not-appear",
+        app_admin_password="password-that-must-not-appear",
+        cors_origins=["https://gnucash.home.arpa", "https://gnucash.vpn.example"],
+    )
+
+    cors = cors_deployment_posture(settings)
+
+    assert cors == {
+        "wildcard_enabled": False,
+        "app_env": "production",
+        "development_like_env": False,
+        "risk_level": "ok",
+        "message": "CORS_ORIGINS is narrowed to configured origins.",
+    }
+
+
 def test_startup_diagnostics_log_is_structured_and_safe(caplog, tmp_path):
     secret = "super-secret-health-token"
     settings = Settings(
@@ -98,6 +154,30 @@ def test_startup_diagnostics_log_is_structured_and_safe(caplog, tmp_path):
     assert '"event": "startup_diagnostics"' in log_text
     assert '"status": "degraded"' in log_text
     assert "missing.gnucash.sqlite" in log_text
+    assert str(tmp_path) not in log_text
+    assert secret not in log_text
+    assert "admin-password-secret" not in log_text
+
+
+def test_startup_logs_warning_for_risky_cors_without_secrets(caplog, tmp_path):
+    secret = "super-secret-cors-token"
+    settings = Settings(
+        app_env="production",
+        app_database_url=f"sqlite:///{tmp_path / 'app.db'}",
+        gnucash_default_book_path=str(tmp_path / "missing.gnucash.sqlite"),
+        jwt_secret=secret,
+        app_admin_password="admin-password-secret",
+        cors_origins=["*"],
+    )
+
+    with caplog.at_level(logging.INFO, logger="app.diagnostics"):
+        log_startup_diagnostics(settings, _in_memory_engine())
+
+    log_text = caplog.text
+    assert "cors_deployment_warning" in log_text
+    assert '\"event\": \"cors_deployment_warning\"' in log_text
+    assert '\"wildcard_enabled\": true' in log_text
+    assert "Narrow CORS_ORIGINS" in log_text
     assert str(tmp_path) not in log_text
     assert secret not in log_text
     assert "admin-password-secret" not in log_text

@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Phase 112 — added safe CORS deployment posture diagnostics to `/health` and startup logs, warning when wildcard `CORS_ORIGINS` is used outside development-like environments while documenting exact localhost/LAN/VPN origin examples without production-readiness claims.
 - Phase 111 — added a safe GnuCash Desktop/CLI tooling availability probe for compatibility evidence, documented that the local environment has no `gnucash`/`gnucash-cli`, and kept Desktop-generated compatibility claims explicitly blocked until a disposable Desktop environment exists.
 - Phase 110 — hardened the read-only `/books` metadata UX with explicit access role/status/read-only metadata, safe book-context links to existing read-only views, stronger no-management-action copy, and regression coverage that archived/unauthorized books remain hidden or blocked.
 - Phase 109 — added a conservative read-only scheduled/recurring transaction awareness API and `/scheduled` UI page that expose only safe summary metadata, avoid next-run predictions and template split details, and keep GnuCash Desktop as the authoritative editor.
