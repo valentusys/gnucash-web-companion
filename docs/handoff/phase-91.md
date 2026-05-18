@@ -107,6 +107,12 @@ PASS
 
 ### GitHub/release
 
-- GitHub #13 to be updated with Phase 91 evidence and kept open for the broader future admin-only book-management scope.
-- Existing tags/releases should remain `v0.1.0-readonly`, `v0.0.2-prealpha`, and `v0.0.1-prealpha` only.
-- No new tag or GitHub release should be created.
+- GitHub #13 was updated with Phase 91 evidence and kept open for the broader future admin-only book-management scope: https://github.com/valentusys/gnucash-web-companion/issues/13#issuecomment-4476596391
+- Existing tags/releases were verified as `v0.1.0-readonly`, `v0.0.2-prealpha`, and `v0.0.1-prealpha` only.
+- No new tag or GitHub release was created.
+
+### Commit/push
+
+Phase implementation commit: `631ffe0 feat: add read-only books metadata page`.
+
+Push evidence: `git push origin main` succeeded and remote `origin/main` advanced from `7052d0d` to `631ffe0`.
