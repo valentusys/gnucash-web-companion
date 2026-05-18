@@ -2,7 +2,7 @@
 
 Date: 2026-05-19
 Role: Project Lead / PM
-Status: planned for engineer implementation
+Status: complete — implemented, committed, and pushed
 Source audit: `docs/audits/2026-05-19-analyst-report.md`
 Current planning HEAD: `a4d0415`
 
@@ -158,3 +158,59 @@ The engineer's final report to Val must be in Russian and include:
 - Do not publish another release.
 - Existing open issues remain as-is.
 - After this correction, the project may resume narrow practical read-only backlog work only if release/status/docs drift is resolved.
+
+## Implementation result
+
+Phase 105 was implemented as a narrow release/docs correction for the already published `v0.1.1-readonly` GitHub pre-release.
+
+Changed local docs/release metadata:
+
+- `README.md` now names `v0.1.1-readonly` as the current public read-only pre-alpha release and links the v0.1.1 release notes/final gate while preserving pre-alpha, read-only-by-default, not-production-ready, not-security-audited, test-copy-first, and no-direct-public-internet warnings.
+- `PROJECT_STATUS.md` now records that `v0.1.1-readonly` is published, the local/GitHub tag exists, the tag target is after Phase 104, and Phase 105 corrected the release/docs drift.
+- `CHANGELOG.md` now contains a `0.1.1-readonly` section with the actual tag scope, including Phase 103 date preset UX and Phase 104 split-memo search, plus conservative known limitations and write-disabled safety language.
+- `docs/release/v0.1.1-readonly-notes.md` was converted from draft/prep wording into honest published pre-release notes and explicitly states that the existing tag points to `a4d04150c043ad4da3dea577b30ed7ffd2032df0` after Phase 104.
+- `docs/audits/2026-05-19-analyst-report.md` was included in the commit because it is the source audit for this correction.
+
+Remote release metadata:
+
+- GitHub release notes for the existing `v0.1.1-readonly` release were synchronized in place from `docs/release/v0.1.1-readonly-notes.md` using `gh release edit v0.1.1-readonly --notes-file docs/release/v0.1.1-readonly-notes.md`.
+- No new GitHub release or tag was created, and the existing tag was not moved.
+
+## Evidence and checks
+
+Initial state:
+
+- `git status --short --branch`: `## main...origin/main`
+- Branch: `main`
+- Starting HEAD: `3572adca5d224f1977855091bc9e0c1d326665af`
+- `v0.1.1-readonly` tag exists and points to `a4d04150c043ad4da3dea577b30ed7ffd2032df0 docs: record phase 104 push evidence`.
+- `gh release view v0.1.1-readonly` before correction showed an existing non-draft pre-release published at `2026-05-18T13:54:13Z`, but the body still contained stale release-prep-only wording.
+
+Verification run:
+
+- `git diff --check` — passed.
+- Changed-file scope check — passed; only the expected release/status docs and audit/handoff docs were changed.
+- Product-code diff check — passed; no diffs under `apps/`, `docker-compose.yml`, `pyproject.toml`, `package.json`, or `package-lock.json`.
+- Stale release-state grep over `README.md`, `PROJECT_STATUS.md`, `CHANGELOG.md`, and `docs/release/v0.1.1-readonly-notes.md` — passed for current-state docs. Remaining historical `not published` wording in `PROJECT_STATUS.md` is explicitly marked as the then-current Phase 97/98 historical state and notes that Phase 105 corrected it after publication.
+- `gh release view v0.1.1-readonly --json tagName,targetCommitish,isDraft,isPrerelease,publishedAt,body,url` after sync — passed; body now starts with published release notes and no longer contains draft/not-published/not-authorized current-state claims.
+- `JWT_SECRET=dummy-validation-secret APP_ADMIN_PASSWORD=dummy docker compose config --quiet` — passed.
+
+Full backend/frontend test suites were intentionally not run because Phase 105 changed only release/status documentation and GitHub release metadata, and product-code/config diffs were absent. Docker Compose config validation was still run as the required safety check.
+
+## Lesson / guardrail
+
+Always update release/status documentation immediately in the same phase as any factual release-state change. README, PROJECT_STATUS, CHANGELOG, local release notes, and GitHub release notes must not be left to drift after publishing, moving, or otherwise changing release state.
+
+## Safety statement
+
+- Product code was not changed.
+- Write mode was not enabled or expanded; `GNUCASH_WRITES_ENABLED=false` remains the documented/configured default.
+- No new tag, GitHub release, package, or external release artifact was created.
+- The existing `v0.1.1-readonly` tag was not moved.
+- No `.env`, secrets, tokens, certs, keys, app DBs, backups, real GnuCash books, screenshots, private CSV exports, private paths, account names, transaction descriptions, memos, amounts, or real/private financial data were committed.
+
+## Commit/push result
+
+- Commit message: `docs: sync v0.1.1 readonly release state`.
+- Final commit hash is intentionally recorded in the final engineer report and can be verified with `git rev-parse HEAD` after push; it is not embedded here to avoid self-referential amend drift.
+- Push: completed to `origin/main`; final HEAD/push evidence is recorded in the final engineer report.

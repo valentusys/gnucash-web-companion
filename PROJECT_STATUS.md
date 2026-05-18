@@ -1,17 +1,24 @@
 # PROJECT_STATUS
 
-Last updated: 2026-05-18
+Last updated: 2026-05-19
 
 ## Repository
 
 - GitHub: `valentusys/gnucash-web-companion`
 - Local path: `/home/val/gnucash-web-companion`
 - Branch: `main`
-- Status: pre-alpha / v0.1 read-only published
+- Status: pre-alpha / v0.1.1 read-only published
 
 ## Current baseline
 
-Completed through Phase 104.
+Completed through Phase 105.
+
+Current public release state:
+
+- `v0.1.1-readonly` is the current published public read-only pre-alpha GitHub pre-release.
+- Local/GitHub tag `v0.1.1-readonly` exists and points to `a4d04150c043ad4da3dea577b30ed7ffd2032df0`, after Phase 104.
+- The release scope includes the Phase 103/104 read-only transaction date-preset and split-memo search changes in addition to the Phase 95/96 CSV export maintenance fixes.
+- Phase 105 corrected the release/docs drift found by the analyst report: README, PROJECT_STATUS, CHANGELOG, local release notes, and the existing GitHub release body now describe `v0.1.1-readonly` as published instead of release-prep-only.
 
 Completed phases:
 
@@ -120,6 +127,7 @@ Completed phases:
 - Phase 102 — compatibility fixture/version matrix v3 safe provenance refresh
 - Phase 103 — read-only transaction date-range preset UX from GitHub #11
 - Phase 104 — read-only transaction query semantics over split memos from GitHub #11
+- Phase 105 — v0.1.1-readonly release/docs correction after publication
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -159,7 +167,7 @@ Completed phases:
 
 Next planned phase:
 
-- Phase 105 — choose one narrow practical read-only backlog slice, preferably another GitHub #11 transaction search/filter improvement such as transaction state/reconciled filtering if it can be implemented safely through existing split metadata and synthetic tests. Do not publish `v0.1.1-readonly`, create tags/releases/packages, run personal-book dogfood, or start v0.2/write-mode expansion without separate explicit Val authorization and safe input data.
+- Phase 106 — choose one narrow practical read-only backlog slice, preferably another GitHub #11 transaction search/filter improvement such as transaction state/reconciled filtering if it can be implemented safely through existing split metadata and synthetic tests. Do not create tags/releases/packages, run personal-book dogfood, or start v0.2/write-mode expansion without separate explicit Val authorization and safe input data.
 
 ## MVP product model
 
@@ -1443,7 +1451,7 @@ Artifacts:
 
 Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default state; controlled writes remain experimental post-MVP and disabled by default. Phase 76 did not enable writes, expand write scope, create a v0.2 milestone, publish a release, claim production readiness/security audit, claim safe write mode, or add real financial/secrets artifacts.
 
-Planning result: not ready to create or promote a v0.2 controlled-writes planning milestone. `v0.1.0-readonly` is not published and remains blocked by #24/#25; actual copied-book dogfood evidence is still missing; #36 remains open for remaining write-readiness gates; #22 remains open for real GnuCash version fixture coverage. Existing write-boundary safeguards support only the current experimental/post-MVP posture.
+Planning result: at the time of Phase 76, the project was not ready to create or promote a v0.2 controlled-writes planning milestone. `v0.1.0-readonly` had not yet been published and remained blocked by #24/#25; actual copied-book dogfood evidence was still missing; #36 remained open for remaining write-readiness gates; #22 remained open for real GnuCash version fixture coverage. Existing write-boundary safeguards supported only the current experimental/post-MVP posture.
 
 Test results: git/GitHub release/tag checks, static release/docs/write-boundary audit checks, backend full suite, frontend check/auth-routes/build, Docker Compose config validation, and `git diff --check` are recorded in the Phase 76 handoff.
 
@@ -1491,7 +1499,7 @@ Safety result: `GNUCASH_WRITES_ENABLED=false` was verified in Docker Compose-res
 
 Dogfood result: Docker/browser dogfood through Caddy passed on the copied/disposable fixture. `/login` returned 200; unauthenticated `/dashboard` redirected to `/login?next=%2Fdashboard`; Chromium login reached dashboard; dashboard, accounts, account detail, transactions, transaction detail, and CSV export route loaded; API smoke passed.
 
-Release result: #37 fixed. #25 remains open pending PM/release-gate acceptance of Phase 78 browser dogfood evidence and any remaining copied-real-book limitation. #24 remains open because release notes were not completed in this phase. `v0.1.0-readonly` was not published.
+Release result: at the time of Phase 78, #37 was fixed, #25 remained open pending PM/release-gate acceptance of Phase 78 browser dogfood evidence and any remaining copied-real-book limitation, #24 remained open because release notes were not completed in that phase, and `v0.1.0-readonly` had not yet been published. It was published later in Phase 80.
 
 Test results: backend full suite, frontend check/auth-routes/build, Docker Compose config validation, Docker browser dogfood through Caddy, API smoke, write-disabled probes, and `git diff --check` are recorded in the Phase 78 handoff.
 
@@ -1776,12 +1784,12 @@ PM decision: release-prep only. Do not publish `v0.1.1-readonly`, do not run the
 
 Artifacts:
 
-- `docs/release/v0.1.1-readonly-notes.md` — conservative draft release notes for a future GitHub pre-release.
+- `docs/release/v0.1.1-readonly-notes.md` — originally prepared in Phase 97 as conservative release notes for a future GitHub pre-release; Phase 105 later corrected this file after the release was published.
 - `docs/release/v0.1.1-readonly-checklist.md` — release-prep checklist separating completed Phase 95/96 evidence, required Phase 98 gate checks, intentionally unauthorized publication steps, known limitations, and open issues.
 - `docs/handoff/phase-97.md` — PM/engineer handoff with implementation summary, safety statement, verification, release/GitHub state, commit, and push evidence.
 - `CHANGELOG.md` and `PROJECT_STATUS.md` — status sync through Phase 97.
 
-Release-prep result: the candidate notes/checklist summarize post-`v0.1.0-readonly` maintenance value, especially the Phase 95 CSV export fix and Phase 96 synthetic benchmark confirmation, while explicitly stating that `v0.1.1-readonly` is not published yet and still requires Phase 98 release-gate verification before any authorized publication.
+Release-prep result: at the time of Phase 97, the candidate notes/checklist summarized post-`v0.1.0-readonly` maintenance value, especially the Phase 95 CSV export fix and Phase 96 synthetic benchmark confirmation, and correctly stated the then-current state: `v0.1.1-readonly` had not yet been published and still required Phase 98 release-gate verification before any authorized publication. Phase 105 later corrected the notes after publication.
 
 Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/configured default. Phase 97 did not enable writes, add write scope, publish a tag/release, start v0.2 work, claim production readiness/security audit/broad compatibility/personal-book dogfood success, or add real financial/secrets/runtime artifacts.
 
@@ -1803,13 +1811,38 @@ Artifacts:
 - `docs/handoff/phase-98.md` — PM/engineer handoff with implementation summary, safety statement, verification, release/GitHub state, commit, and push evidence.
 - `CHANGELOG.md` and `PROJECT_STATUS.md` — status sync through Phase 98.
 
-Release-gate result: the verdict is `Ready for later authorized publish phase`. Backend, frontend, Docker config, GitHub Actions recent `main` runs, tag/release absence, issue-state, disabled-write/read-only safety, and hygiene checks passed. `v0.1.1-readonly` is still not published; publication requires a later explicit Phase 99/publish authorization.
+Release-gate result: at the time of Phase 98, the verdict was `Ready for later authorized publish phase`. Backend, frontend, Docker config, GitHub Actions recent `main` runs, tag/release absence, issue-state, disabled-write/read-only safety, and hygiene checks passed. `v0.1.1-readonly` was not yet published in Phase 98 and publication still required a later explicit publish authorization. Phase 105 later corrected release/status docs after the release was published.
 
 Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/configured default. Phase 98 did not enable writes, add write scope, publish a tag/release, start v0.2 work, claim production readiness/security audit/broad compatibility/personal-book dogfood success, or add real financial/secrets/runtime artifacts.
 
-Verification result: backend full suite passed (`329 passed, 27 warnings`); frontend check/auth-routes/build passed; Docker Compose config validation passed; `git diff --check` passed before commit; GitHub Actions recent `main` runs were successful; no `v0.1.1-readonly` local tag or GitHub release exists.
+Verification result: backend full suite passed (`329 passed, 27 warnings`); frontend check/auth-routes/build passed; Docker Compose config validation passed; `git diff --check` passed before commit; GitHub Actions recent `main` runs were successful; at that Phase 98 point no `v0.1.1-readonly` local tag or GitHub release existed.
 
 Related issues: GitHub #39 remains closed based on Phase 95/96 synthetic evidence and Phase 98 release-gate checks. GitHub #38 remains open/blocked pending a safe copied personal GnuCash SQL book outside git.
+
+## Phase 105 — v0.1.1-readonly Release/Docs Correction
+
+Status: complete. Phase commit pushed.
+
+Goal: fix the release/docs drift found in `docs/audits/2026-05-19-analyst-report.md` after `v0.1.1-readonly` had already been published while local/public notes still described it as release-prep-only.
+
+PM decision: documentation/release-metadata correction only. Do not change product code, do not create a new tag/release/package, do not move the existing tag, do not enable or expand write mode, and do not commit private financial data or secrets.
+
+Artifacts:
+
+- `README.md` — now names `v0.1.1-readonly` as the current public read-only pre-alpha release while preserving pre-alpha/read-only/not-production/security warnings.
+- `PROJECT_STATUS.md` — records that `v0.1.1-readonly` is published, tag/release exists, and the tag points after Phase 104.
+- `CHANGELOG.md` — adds a `0.1.1-readonly` release section with the actual tag scope, including Phase 103/104 read-only transaction date-preset and split-memo search changes.
+- `docs/release/v0.1.1-readonly-notes.md` — corrected from release-prep language to honest published pre-release notes.
+- GitHub release body for `v0.1.1-readonly` — synchronized in place from the corrected local notes with `gh release edit`; no new release or tag was created.
+- `docs/handoff/phase-105.md` — implementation/evidence/checks/results updated.
+
+Release/docs correction result: stale release-state claims were corrected. The current public release is `v0.1.1-readonly`, published as a GitHub pre-release on 2026-05-18. The tag points to `a4d04150c043ad4da3dea577b30ed7ffd2032df0` after Phase 104, so the release notes now explicitly include Phase 103/104 read-only transaction-filter/search changes.
+
+Lesson/guardrail: always update release/status documentation immediately in the same phase as any factual release-state change. Do not leave README, PROJECT_STATUS, CHANGELOG, local release notes, or GitHub release notes to be corrected later.
+
+Safety result: no product code was changed. No tag, release, package, app behavior, backend/frontend route, Docker runtime config, write service, or write flag was changed. `GNUCASH_WRITES_ENABLED=false` remains the documented/configured default; controlled writes remain post-MVP/experimental. No real/private financial data, GnuCash books, app DBs, backups, `.env`, screenshots, exports, secrets, tokens, certs, keys, private paths, account names, transaction descriptions, memos, or amounts were committed.
+
+Verification result: docs-only validation passed, including `git diff --check`, changed-file scope check, stale release-state grep, GitHub release view after sync, and `JWT_SECRET=dummy-validation-secret APP_ADMIN_PASSWORD=dummy docker compose config --quiet`. Full backend/frontend suites were intentionally not run because Phase 105 changed only release/status docs and GitHub release metadata, not product code.
 
 ## Standing constraints
 

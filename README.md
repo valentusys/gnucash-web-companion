@@ -40,12 +40,13 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–94 are complete.
+- Phase 0–105 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by default.
 - First public pre-alpha release: `v0.0.1-prealpha`.
-- Current public pre-alpha release: [`v0.1.0-readonly`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.0-readonly).
-- Latest release-gate artifact: [docs/release/v0.1.0-readonly-final-gate.md](docs/release/v0.1.0-readonly-final-gate.md).
+- Current public pre-alpha release: [`v0.1.1-readonly`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.1-readonly).
+- Latest release notes: [docs/release/v0.1.1-readonly-notes.md](docs/release/v0.1.1-readonly-notes.md).
+- Latest release-gate artifact: [docs/release/v0.1.1-readonly-final-gate.md](docs/release/v0.1.1-readonly-final-gate.md).
 - Russian localization/i18n foundation started in Phase 52; English documentation remains canonical. See [README.ru.md](README.ru.md) and [docs/localization.md](docs/localization.md).
 - Community announcement drafts and where-to-share guidance were refreshed in Phase 53 for cautious feedback collection, not production marketing.
 - Startup diagnostics, a richer non-sensitive health endpoint, and troubleshooting guidance were added in Phase 54 for self-hosted deployments.
@@ -180,16 +181,32 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.
 The current public pre-alpha tag/release is:
 
 ```text
-v0.1.0-readonly
+v0.1.1-readonly
 ```
 
 Release checklist and notes:
+
+- [docs/release/v0.1.1-readonly-checklist.md](docs/release/v0.1.1-readonly-checklist.md)
+- [docs/release/v0.1.1-readonly-notes.md](docs/release/v0.1.1-readonly-notes.md)
+- [docs/release/v0.1.1-readonly-final-gate.md](docs/release/v0.1.1-readonly-final-gate.md)
+
+GitHub release:
+
+- <https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.1-readonly>
+
+The previous public read-only pre-alpha tag/release is:
+
+```text
+v0.1.0-readonly
+```
+
+Previous release checklist and notes:
 
 - [docs/release/v0.1.0-readonly-checklist.md](docs/release/v0.1.0-readonly-checklist.md)
 - [docs/release/v0.1.0-readonly-notes.md](docs/release/v0.1.0-readonly-notes.md)
 - [docs/release/v0.1.0-readonly-final-gate.md](docs/release/v0.1.0-readonly-final-gate.md)
 
-GitHub release:
+Previous GitHub release:
 
 - <https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.0-readonly>
 
