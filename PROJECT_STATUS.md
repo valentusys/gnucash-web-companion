@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 93.
+Completed through Phase 94.
 
 Completed phases:
 
@@ -109,6 +109,7 @@ Completed phases:
 - Phase 91 — read-only book management metadata UI
 - Phase 92 — compatibility fixture v2 / version matrix progress
 - Phase 93 — Russian localization small slice
+- Phase 94 — post-v0.1 maintenance release decision
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -124,9 +125,11 @@ Completed phases:
 
 - Phase 93 completed a narrow Russian localization slice: desktop/mobile navigation now localizes the `/books` label, the read-only `/books` metadata page uses English/Russian catalog strings for headings, helper copy, read-only badges, access/status labels, empty state, and the GnuCash Desktop authoritative-editor safety note, and `README.ru.md` plus `docs/localization.md` document that English remains canonical and translation is incomplete. Frontend route/static checks cover the new catalog strings and localized `/books` usage. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
+- Phase 94 completed the post-v0.1 maintenance-release decision from the roadmap without analyst/auditor involvement or audit-only artifacts: `docs/release/v0.1.1-readonly-decision.md` records the verdict `More fixes required before maintenance release`. The reviewed post-`v0.1.0-readonly` change set is meaningful, but GitHub #39 remains an open read-only CSV export correctness blocker because benchmark evidence repeatedly showed the CSV body capped at 500 rows while headers report a 10,000-row cap and `truncated=false`. No `v0.1.1-readonly` notes/checklist were created, no tag/release was published, no real/private data was committed, writes remain disabled by default, and no v0.2 work was started.
+
 Next planned phase:
 
-- Phase 94 should make the post-v0.1 maintenance-release decision from the roadmap without launching an auditor unless explicitly requested. It must not publish a tag/release by default, must keep writes disabled, and should decide whether to prepare v0.1.1-readonly next, defer it, or require more fixes.
+- Fix GitHub #39 with regression coverage before preparing a `v0.1.1-readonly` maintenance release candidate. Keep #38 open for the separate copied personal-book dogfood rerun when a safe copied SQL book is available.
 
 ## MVP product model
 
@@ -1710,6 +1713,28 @@ Safety result: generated synthetic data only. `GNUCASH_WRITES_ENABLED=false` rem
 Verification result: targeted report/benchmark tests and required backend/frontend/docker/git checks are recorded in `docs/handoff/phase-89.md`.
 
 Related issues: GitHub #33 closed as completed with Phase 89 evidence. GitHub #39 remains open for the existing CSV export row-count/header mismatch.
+
+## Phase 94 — Post-v0.1 Maintenance Release Decision
+
+Status: complete. Phase commit pushed.
+
+Goal: decide whether enough post-`v0.1.0-readonly` changes exist to prepare `v0.1.1-readonly`, without analyst/auditor involvement, audit-only artifacts, tag/release publication, write-mode enablement, v0.2 work, or private data artifacts.
+
+PM decision: more fixes are required before maintenance release. Do not prepare or publish `v0.1.1-readonly` yet.
+
+Artifacts:
+
+- `docs/release/v0.1.1-readonly-decision.md` — durable maintenance-release decision artifact reviewing Phases 81–93, release/tag state, open blockers, and minimum requirements before a future release-prep phase.
+- `docs/handoff/phase-94.md` — PM/engineer handoff with decision, safety scope, verification, GitHub state, commit, and push evidence.
+- `README.md`, `CHANGELOG.md`, and `PROJECT_STATUS.md` — status sync through Phase 94.
+
+Release decision result: the post-release change set is meaningful, including seed-log redaction, multi-book boundary hardening, money-display hardening, CSV export header/truncation signaling, benchmark evidence, transaction-filter UX, read-only book metadata UI, compatibility metadata collection, and a narrow Russian localization slice. However, GitHub #39 remains an open read-only CSV export correctness blocker because benchmark evidence repeatedly showed the CSV body capped at 500 rows while export headers report a 10,000-row cap and `truncated=false`. Fix #39 with regression coverage before creating `v0.1.1-readonly` notes/checklist.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/configured default. Phase 94 did not enable writes, add write scope, publish a new tag/release, start v0.2 work, claim production readiness/security audit, claim broad compatibility, or add real financial/secrets/runtime artifacts.
+
+Verification result: required backend/frontend/docker/git checks plus release/tag/open-issue verification are recorded in `docs/handoff/phase-94.md`.
+
+Related issues: GitHub #39 updated with Phase 94 release-decision evidence and kept open as the maintenance-release prep blocker. GitHub #38 remains open for the separate copied personal-book dogfood rerun when a safe copied SQL book is available.
 
 ## Standing constraints
 
