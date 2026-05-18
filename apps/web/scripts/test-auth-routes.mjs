@@ -103,6 +103,32 @@ assert.ok(
 	'write acknowledgement must be checked before final create validation/write API calls'
 );
 
+const booksPageServer = read('src/routes/books/+page.server.ts');
+assert.match(booksPageServer, /getActiveBookContext\(fetch, cookies, token\)/, '/books page must resolve accessible book metadata and the current/default book through the authenticated API context');
+assert.doesNotMatch(booksPageServer, /upload|delete|write|edit/i, '/books page server load must stay metadata/read-only only');
+
+const booksPage = read('src/routes/books/+page.svelte');
+for (const requiredPhrase of [
+	'Book management',
+	'view/manage metadata only',
+	'Active/default book',
+	'Base currency',
+	'Storage type',
+	'Read-only',
+	'Access status',
+	'Archived and unauthorized books are hidden or blocked by the API'
+]) {
+	assert.ok(booksPage.includes(requiredPhrase), `/books page must include: ${requiredPhrase}`);
+}
+assert.match(booksPage, /data\.books[\s\S]*book\.name[\s\S]*book\.base_currency[\s\S]*book\.storage_type/s, '/books page must render book name, base currency, and storage type');
+assert.match(booksPage, /book\.is_default[\s\S]*Active\/default book/s, '/books page must clearly mark the active/default book');
+assert.doesNotMatch(booksPage, /<form|<input|type="file"|method="POST"|Upload book|Delete book|collaborative|shared wallet|family wallet/i, '/books page must not offer upload/delete controls or collaborative/family-wallet framing');
+
+const desktopNav = read('src/lib/components/DesktopNav.svelte');
+const mobileNav = read('src/lib/components/MobileNav.svelte');
+assert.match(desktopNav, /href: '\/books'[\s\S]*label: 'Books'/, 'desktop nav must expose the /books management page');
+assert.match(mobileNav, /href: '\/books'[\s\S]*label: 'Books'/, 'mobile nav must expose the /books management page');
+
 const transactionListPage = read('src/routes/transactions/+page.svelte');
 for (const filterParam of ['query', 'date_from', 'date_to', 'account_id', 'min_amount', 'max_amount']) {
 	assert.ok(

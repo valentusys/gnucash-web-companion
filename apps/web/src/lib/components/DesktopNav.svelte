@@ -15,7 +15,8 @@ import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 	const navLinks = $derived([
 		{ href: '/dashboard', label: t(locale, 'nav.dashboard') },
 		{ href: '/accounts', label: t(locale, 'nav.accounts') },
-		{ href: '/transactions', label: t(locale, 'nav.transactions') }
+		{ href: '/transactions', label: t(locale, 'nav.transactions') },
+		{ href: '/books', label: 'Books' }
 	] as const);
 </script>
 
