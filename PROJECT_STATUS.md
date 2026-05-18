@@ -11,7 +11,7 @@ Last updated: 2026-05-19
 
 ## Current baseline
 
-Completed through Phase 114.
+Completed through Phase 115.
 
 Current public release state:
 
@@ -137,6 +137,7 @@ Completed phases:
 - Phase 112 — LAN/VPN deployment safety behavior from GitHub #26
 - Phase 113 — Russian localization glossary and transaction filter/export UI slice from GitHub #17/#29
 - Phase 114 — synthetic browser dogfood refresh after UX/filter changes
+- Phase 115 — v0.1.2-readonly maintenance release prep and final gate without publication
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -192,9 +193,11 @@ Completed phases:
 
 - Phase 114 completed a synthetic browser dogfood refresh after the recent read-only UX/filter/books/scheduled/localization changes: Docker/Caddy was run locally with `GNUCASH_WRITES_ENABLED=false` against a synthetic/disposable fixture copied into ignored runtime data, `scripts/smoke/read-only-api-smoke.py` passed core API/CSV/disabled-write checks, and the new durable `scripts/smoke/read-only-browser-dogfood.py` drove headless Chromium through login, protected redirect, dashboard, accounts, books, scheduled, account detail, transaction filters, transaction detail, and authenticated CSV export route checks. Evidence is documented in `docs/dogfood/phase-114-synthetic-browser-dogfood.md`; no screenshots, raw CSV exports, app DBs, GnuCash books, backups, `.env`, secrets, tokens, certs, keys, private paths, or real/private financial data were committed. This is synthetic/disposable dogfood only; GitHub #38 remains open/blocked for personal copied-book dogfood until Val provides a safe copied SQL book path outside git.
 
+- Phase 115 completed conservative `v0.1.2-readonly` maintenance release prep without publication: `docs/release/v0.1.2-readonly-notes.md`, `docs/release/v0.1.2-readonly-checklist.md`, and `docs/release/v0.1.2-readonly-final-gate.md` summarize Phases 106–114 and record the verdict `Ready for later authorized publish phase`. Full backend tests, frontend check/auth-routes/build, Docker Compose config validation, GitHub Actions state check, tag/release absence checks, and sensitive tracked-file scan passed. No tag, GitHub release, package, GnuCash book, app DB, backup, `.env`, screenshot, CSV export, secret, token, cert, key, private path, or real/private financial data was committed; writes remain disabled by default; no v0.2 work was started; publication still requires separate explicit Val authorization.
+
 Next planned phase:
 
-- Phase 115 — prepare conservative `v0.1.2-readonly` maintenance release artifacts/gate only if Phases 106–114 are sufficient, without publishing a tag/release/package unless Val explicitly authorizes publication.
+- If Val explicitly authorizes publication, run a dedicated non-ambiguous publish phase for `v0.1.2-readonly`: re-check clean tree, checks/CI, tag/release absence, then create the annotated tag and GitHub pre-release from the prepared notes. Without publication authorization, continue with practical read-only MVP value or blocked personal copied-book dogfood only when a safe copied SQL book path is provided outside git.
 
 ## MVP product model
 
