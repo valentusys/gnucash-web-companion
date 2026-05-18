@@ -138,4 +138,6 @@ PASS
 
 ### Commit/push
 
-To be filled after final verification and push.
+Phase implementation commit: `0e50c76 feat: harden dashboard aggregate reporting`.
+
+Push evidence: `git push origin main` succeeded after one transient HTTPS reset retry; remote `origin/main` advanced from `f005532` to `0e50c76`.
