@@ -3,12 +3,29 @@
 import logging
 from pathlib import Path
 from typing import Optional
+from urllib.parse import urlparse
 
 from sqlalchemy.orm import Session
 
 from app.models import Book, User, UserBookAccess
 
 logger = logging.getLogger(__name__)
+
+
+def _safe_book_log_label(path: str) -> str:
+    """Return a non-sensitive default-book label for logs.
+
+    The app metadata DB must retain the configured path/URI so the backend can
+    open the book, but startup logs should not expose directories, credentials,
+    hosts, query parameters, or full connection strings.
+    """
+    parsed = urlparse(path)
+    if parsed.scheme and parsed.netloc:
+        filename = Path(parsed.path).name
+    else:
+        filename = Path(path).name
+
+    return filename or "configured default book"
 
 
 def seed_default_book(session: Session, path: Optional[str]) -> Optional[Book]:
@@ -29,8 +46,8 @@ def seed_default_book(session: Session, path: Optional[str]) -> Optional[Book]:
     if existing is not None:
         return existing
 
-    filename = Path(path).name
-    name = filename.split(".")[0] or Path(path).stem or "Default Book"
+    filename = _safe_book_log_label(path)
+    name = filename.split(".")[0] or Path(filename).stem or "Default Book"
 
     book = Book(
         name=name,
@@ -41,7 +58,7 @@ def seed_default_book(session: Session, path: Optional[str]) -> Optional[Book]:
     session.add(book)
     session.commit()
     session.refresh(book)
-    logger.info("Seeded default book: %s (%s)", book.name, book.uri_or_path)
+    logger.info("Seeded default book: %s (%s)", book.name, _safe_book_log_label(path))
     return book
 
 

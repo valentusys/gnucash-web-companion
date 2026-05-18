@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 80.
+Completed through Phase 81.
 
 Completed phases:
 
@@ -96,10 +96,11 @@ Completed phases:
 - Phase 78 — Docker `/login` redirect-loop fix and browser/UI dogfood rerun
 - Phase 79 — accept dogfood evidence, write v0.1 release notes, and final release gate
 - Phase 80 — publish v0.1.0-readonly pre-release
+- Phase 81 — redact default-book seed logs and close post-release security hardening issue #27
 
 Next planned phase:
 
-- Phase 80 published `v0.1.0-readonly` as an annotated git tag and GitHub pre-release. The tag points to Phase 79 gate commit `8180d555d71feaaf008d3edafeaa24dffd3dcfdb`, and the release uses `docs/release/v0.1.0-readonly-notes.md`. Next work should be a narrow post-release concrete task from open issues/release-hardening backlog: a tested user-facing/read-only fix, release-link validation, or real post-release smoke/dogfood check. Do not publish another tag/release, expand writes, or start v0.2 work without explicit scope.
+- Phase 81 completed a narrow post-release hardening fix for #27: default-book seeding still stores the configured path/URI in app metadata for runtime use, but startup seed logs now include only a sanitized book filename/label and regression tests prove full filesystem paths, connection URIs, hosts, usernames, passwords/tokens, and query parameters are not logged. Next work should be another narrow concrete post-release task from open issues/release-hardening backlog, preferably a tested read-only bug fix/user-facing UX improvement or real smoke/dogfood maintenance check. Do not publish another tag/release, expand writes, or start v0.2 work without explicit scope.
 
 ## MVP product model
 
@@ -1488,6 +1489,27 @@ Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/configured 
 Test and release verification results are recorded in `docs/handoff/phase-80.md`. Local required checks passed before publication, Phase 79 main-branch CI was green before tagging, the v0.1 tag/release absence was verified before publication, and the tag/release presence was verified after publication.
 
 Related issues: no issues were closed in Phase 80. Open follow-up issues #22 and #26–#36 remain non-blocking for this conservative pre-alpha read-only publication.
+
+## Phase 81 — Default-book Seed Log Redaction
+
+Status: complete. Phase commit pushed.
+
+Goal: complete one narrow post-release concrete hardening task from the open release-hardening backlog by fixing GitHub #27 without starting audit-only work, write-mode work, a new tag/release, or v0.2 planning.
+
+PM decision: choose #27 because it is low-risk, concrete, testable, post-release security/logging hardening. The expected result is a tested behavior change: default-book seed logs must not expose full filesystem paths, connection URIs, hosts, usernames, passwords/tokens, or query parameters.
+
+Artifacts:
+
+- `apps/api/app/services/seed.py` — added `_safe_book_log_label()` and changed default-book seed logging/name derivation to use sanitized filename/label for log-visible data while preserving the configured path/URI in `Book.uri_or_path`.
+- `apps/api/tests/test_seed.py` — added regression tests for redacting full filesystem paths and connection URI details from seed logs.
+- `docs/handoff/phase-81.md` — PM/engineer handoff and verification report.
+- `README.md`, `CHANGELOG.md`, and `PROJECT_STATUS.md` — post-release status sync.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/configured default. Phase 81 did not enable writes, add write scope, publish a new tag/release, start v0.2 work, claim production readiness/security audit, claim collaborative editing/SaaS/GnuCash replacement status, or add real financial/secrets/runtime artifacts.
+
+Verification result: backend tests, frontend check/auth-routes/build, Docker Compose config validation, `git diff --check`, release state verification, pushed commit verification, and clean working tree verification are recorded in `docs/handoff/phase-81.md`.
+
+Related issues: GitHub #27 closed as completed with evidence. Open follow-up issues #22, #26, #28–#36 remain non-blocking backlog for later narrow phases.
 
 ## Standing constraints
 

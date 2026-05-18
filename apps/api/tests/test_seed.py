@@ -46,6 +46,33 @@ class TestSeedDefaultBook:
         count = session.query(Book).count()
         assert count == 1
 
+    def test_seed_log_redacts_full_default_book_path(self, session, caplog):
+        path = "/srv/private/customer-ledgers/main.gnucash.sqlite"
+
+        with caplog.at_level(logging.INFO, logger="app.services.seed"):
+            book = seed_default_book(session, path)
+
+        assert book is not None
+        assert "Seeded default book" in caplog.text
+        assert "main.gnucash.sqlite" in caplog.text
+        assert path not in caplog.text
+        assert "/srv/private/customer-ledgers" not in caplog.text
+
+    def test_seed_log_redacts_connection_uri_details(self, session, caplog):
+        uri = "postgresql://ledger_user:credential-value@db.internal:5432/books/main?sslmode=require"
+
+        with caplog.at_level(logging.INFO, logger="app.services.seed"):
+            book = seed_default_book(session, uri)
+
+        assert book is not None
+        assert "Seeded default book" in caplog.text
+        assert "main" in caplog.text
+        assert uri not in caplog.text
+        assert "credential-value" not in caplog.text
+        assert "ledger_user" not in caplog.text
+        assert "db.internal" not in caplog.text
+        assert "sslmode" not in caplog.text
+
     def test_missing_path_returns_none_and_warns(self, session, caplog):
         with caplog.at_level(logging.WARNING):
             result = seed_default_book(session, None)

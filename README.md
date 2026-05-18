@@ -40,7 +40,7 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–80 are complete.
+- Phase 0–81 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by default.
 - First public pre-alpha release: `v0.0.1-prealpha`.
@@ -75,6 +75,7 @@ This project is not a fit if you need:
 - Phase 78 fixed #37 and reran Docker/Caddy browser dogfood on copied/disposable data: `/login`, dashboard, accounts, account detail, transactions, transaction detail, CSV export, hidden write UI, API smoke, and disabled write probes passed with `GNUCASH_WRITES_ENABLED=false`.
 - Phase 79 accepted the Phase 78 dogfood evidence for #25, created conservative `v0.1.0-readonly` release notes, ran the final release gate, and found `v0.1.0-readonly` ready for publication as a separate explicit next step. No v0.1 tag or GitHub release has been published yet.
 - Phase 80 published `v0.1.0-readonly` as an annotated git tag and GitHub pre-release on the Phase 79 gate commit, using `docs/release/v0.1.0-readonly-notes.md` as the release notes. This was a narrow publish-only phase: no scope expansion, writes remain disabled by default, and no v0.2 work was started.
+- Phase 81 completed post-release hardening for #27: default-book seed logs now expose only a sanitized book filename/label instead of full filesystem paths or connection URI details; regression tests cover path and URI redaction. No new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
 ## MVP scope: read-only first
 
