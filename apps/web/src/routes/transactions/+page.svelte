@@ -25,6 +25,7 @@ import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 		if (data.filters.accountId) sp.set('account_id', data.filters.accountId);
 		if (data.filters.minAmount) sp.set('min_amount', data.filters.minAmount);
 		if (data.filters.maxAmount) sp.set('max_amount', data.filters.maxAmount);
+		if (data.filters.transactionState) sp.set('transaction_state', data.filters.transactionState);
 		const qs = sp.toString();
 		return `/books/${bookId}/transactions/export${qs ? '?' + qs : ''}`;
 	});
@@ -36,7 +37,8 @@ import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 			data.filters.dateTo,
 			data.filters.accountId,
 			data.filters.minAmount,
-			data.filters.maxAmount
+			data.filters.maxAmount,
+			data.filters.transactionState
 		].filter(Boolean).length
 	);
 	const csvStatus = $derived(
@@ -52,6 +54,7 @@ import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 		accountId?: string;
 		minAmount?: string;
 		maxAmount?: string;
+		transactionState?: string;
 		offset?: number;
 	}) {
 		const sp = new URLSearchParams();
@@ -61,6 +64,7 @@ import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 		if (params.accountId) sp.set('account_id', params.accountId);
 		if (params.minAmount) sp.set('min_amount', params.minAmount);
 		if (params.maxAmount) sp.set('max_amount', params.maxAmount);
+		if (params.transactionState) sp.set('transaction_state', params.transactionState);
 		sp.set('limit', String(limit));
 		sp.set('offset', String(params.offset ?? 0));
 		return `/transactions?${sp.toString()}`;
@@ -73,6 +77,7 @@ import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 		accountId: string;
 		minAmount: string;
 		maxAmount: string;
+		transactionState: string;
 	}) {
 		goto(paramsToUrl({ ...params, offset: 0 }));
 	}
@@ -86,6 +91,7 @@ import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 				accountId: data.filters.accountId,
 				minAmount: data.filters.minAmount,
 				maxAmount: data.filters.maxAmount,
+				transactionState: data.filters.transactionState,
 				offset: newOffset
 			})
 		);
@@ -144,6 +150,7 @@ import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 		accountId={data.filters.accountId}
 		minAmount={data.filters.minAmount}
 		maxAmount={data.filters.maxAmount}
+		transactionState={data.filters.transactionState}
 		accounts={data.accounts}
 		datePresets={data.datePresets}
 		onChange={handleFilter}

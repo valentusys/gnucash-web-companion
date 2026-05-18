@@ -153,7 +153,7 @@ assert.match(desktopNav, /href: '\/books'[\s\S]*label: t\(locale, 'nav\.books'\)
 assert.match(mobileNav, /href: '\/books'[\s\S]*label: t\(locale, 'nav\.books'\)/, 'mobile nav must expose the localized /books management page');
 
 const transactionListPage = read('src/routes/transactions/+page.svelte');
-for (const filterParam of ['query', 'date_from', 'date_to', 'account_id', 'min_amount', 'max_amount']) {
+for (const filterParam of ['query', 'date_from', 'date_to', 'account_id', 'min_amount', 'max_amount', 'transaction_state']) {
 	assert.ok(
 		transactionListPage.includes(`sp.set('${filterParam}'`) ||
 			transactionListPage.includes(`sp.set('${filterParam}',`),
@@ -251,6 +251,11 @@ assert.match(
 	transactionFilters,
 	/activeFilterSummary[\s\S]*Search: \$\{query\}[\s\S]*Account: \$\{selectedAccount\.full_name\}[\s\S]*Amount: \$\{minAmount\} to \$\{maxAmount\}/,
 	'transaction filters must build a readable active filter summary for search, account, date, and amount filters'
+);
+assert.match(
+	transactionFilters,
+	/transactionState[\s\S]*State: \$\{transactionState\}[\s\S]*name="transaction_state"[\s\S]*Unreconciled[\s\S]*Cleared[\s\S]*Reconciled[\s\S]*Voided/s,
+	'transaction filters must expose a safe split reconciliation state selector and active summary'
 );
 assert.match(
 	transactionFilters,

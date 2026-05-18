@@ -161,6 +161,7 @@ class FakeSplit:
     account: FakeAccount
     value: Decimal
     memo: str = ""
+    reconcile_state: str = "n"
 
 
 @dataclass
@@ -195,8 +196,8 @@ def fake_transaction_data():
     food = FakeAccount(guid="food-guid", name="Food", type="EXPENSE")
     tax = FakeAccount(guid="tax-guid", name="Tax", type="EXPENSE")
 
-    split1_checking = FakeSplit(account=checking, value=Decimal("-320"))
-    split1_food = FakeSplit(account=food, value=Decimal("320"), memo="groceries")
+    split1_checking = FakeSplit(account=checking, value=Decimal("-320"), reconcile_state="c")
+    split1_food = FakeSplit(account=food, value=Decimal("320"), memo="groceries", reconcile_state="c")
     tx1 = FakeTransaction(
         guid="tx-1",
         post_date=date(2026, 5, 16),
@@ -219,8 +220,8 @@ def fake_transaction_data():
         post_date=date(2026, 5, 18),
         description="Salary",
         splits=[
-            FakeSplit(account=checking, value=Decimal("5000")),
-            FakeSplit(account=food, value=Decimal("-5000")),
+            FakeSplit(account=checking, value=Decimal("5000"), reconcile_state="y"),
+            FakeSplit(account=food, value=Decimal("-5000"), reconcile_state="y"),
         ],
     )
 
@@ -402,6 +403,54 @@ class TestListTransactionsMVP:
         )
         assert response.status_code == 400
         assert response.json()["detail"] == "min_amount cannot be greater than max_amount"
+
+    def test_filter_by_transaction_state_matches_split_reconciliation_state(
+        self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory
+    ):
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(fake_book_with_transactions)
+            session.commit()
+
+        response = client.get("/transactions?transaction_state=cleared", headers=auth_headers)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == 1
+        assert [item["id"] for item in data["items"]] == ["tx-1"]
+
+    def test_filter_by_transaction_state_respects_account_scope(
+        self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory
+    ):
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(fake_book_with_transactions)
+            session.commit()
+
+        response = client.get(
+            "/accounts/checking-guid/transactions?transaction_state=reconciled",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == 1
+        assert [item["id"] for item in data["items"]] == ["tx-3"]
+
+    def test_rejects_unknown_transaction_state(
+        self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory
+    ):
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(fake_book_with_transactions)
+            session.commit()
+
+        response = client.get("/transactions?transaction_state=maybe", headers=auth_headers)
+
+        assert response.status_code == 400
+        assert response.json()["detail"] == (
+            "transaction_state must be one of: cleared, reconciled, unreconciled, voided"
+        )
 
     def test_access_denied(
         self, client, viewer_headers, sample_book, fake_book_with_transactions, session_factory

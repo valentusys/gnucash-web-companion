@@ -11,7 +11,7 @@ Last updated: 2026-05-19
 
 ## Current baseline
 
-Completed through Phase 105.
+Completed through Phase 106.
 
 Current public release state:
 
@@ -128,6 +128,7 @@ Completed phases:
 - Phase 103 — read-only transaction date-range preset UX from GitHub #11
 - Phase 104 — read-only transaction query semantics over split memos from GitHub #11
 - Phase 105 — v0.1.1-readonly release/docs correction after publication
+- Phase 106 — read-only transaction state/reconciliation filters from GitHub #11
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -165,9 +166,11 @@ Completed phases:
 
 - Phase 104 completed a narrow read-only transaction query semantics slice from GitHub #11: the existing `query` filter now matches transaction descriptions and split memo fields case-insensitively through the shared GnuCash service-layer matcher used by transaction lists, count/pagination totals, account transaction lists, and CSV export. Regression coverage proves memo-only query matches return the expected transaction, counts stay consistent, CSV export includes memo-matched transactions with corrected metadata headers, description-only search still works, and unmatched queries return no results. Frontend search helper copy now states `Description or split memo...`; active filter summary and CSV export parity remain on the existing `query` contract with no browser storage or new search parameter. GitHub #11 was updated with evidence and left open for remaining read-only search/filter enhancements such as transaction state filters, saved presets, and broader notes/full-text semantics. No backend write path was changed, no tag, GitHub release, package, GnuCash book, app DB, backup, `.env`, screenshot, CSV export, secret, token, cert, key, private path, account name, transaction description, memo, amount, or real/private financial data was committed; writes remain disabled by default; controlled writes remain post-MVP/experimental; no v0.2 work was started.
 
+- Phase 106 completed a narrow read-only transaction state/reconciliation filter slice from GitHub #11: transaction list, count/pagination, account-scoped transaction lists, and CSV export now accept the shared `transaction_state` query parameter with supported values `unreconciled`, `cleared`, `reconciled`, and `voided`, mapped to confirmed GnuCash split `reconcile_state` values `n`, `c`, `y`, and `v`. Unsupported values fail fast with HTTP 400 before opening/querying the book. The web transaction filters now expose a state dropdown, active-filter summary, and URL/export preservation for the new parameter, while `docs/transactions-filters.md` documents the read-only split-state semantics. Backend and frontend regression coverage proves list/count/account-scope/CSV parity and disabled-write safety. GitHub #11 remains open for remaining filter/preset scope. No backend write path was changed, no tag, GitHub release, package, GnuCash book, app DB, backup, `.env`, screenshot, CSV export, secret, token, cert, key, private path, account name, transaction description, memo, amount, or real/private financial data was committed; writes remain disabled by default; controlled writes remain post-MVP/experimental; no v0.2 work was started.
+
 Next planned phase:
 
-- Phase 106 — choose one narrow practical read-only backlog slice, preferably another GitHub #11 transaction search/filter improvement such as transaction state/reconciled filtering if it can be implemented safely through existing split metadata and synthetic tests. Do not create tags/releases/packages, run personal-book dogfood, or start v0.2/write-mode expansion without separate explicit Val authorization and safe input data.
+- Phase 107 — continue the analyst roadmap with read-only transaction filter URL presets/reset UX from GitHub #11: shareable URL behavior, clear-all filters, and CSV query-string parity without localStorage/sessionStorage, saved private queries, write-mode expansion, tags, releases, or private data.
 
 ## MVP product model
 

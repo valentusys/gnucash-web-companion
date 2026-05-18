@@ -9,6 +9,7 @@
 		accountId = '',
 		minAmount = '',
 		maxAmount = '',
+		transactionState = '',
 		accounts = [],
 		datePresets = [],
 		onChange
@@ -19,6 +20,7 @@
 		accountId?: string;
 		minAmount?: string;
 		maxAmount?: string;
+		transactionState?: string;
 		accounts?: Account[];
 		datePresets?: { label: string; href: string; active: boolean }[];
 		onChange: (params: {
@@ -28,13 +30,14 @@
 			accountId: string;
 			minAmount: string;
 			maxAmount: string;
+			transactionState: string;
 		}) => void;
 	} = $props();
 
 	let dateError = $state('');
 	let amountError = $state('');
 	const hasActiveFilters = $derived(
-		Boolean(query || dateFrom || dateTo || accountId || minAmount || maxAmount)
+		Boolean(query || dateFrom || dateTo || accountId || minAmount || maxAmount || transactionState)
 	);
 	const activeFilterSummary = $derived.by(() => {
 		const filters: string[] = [];
@@ -49,6 +52,7 @@
 		if (minAmount && maxAmount) filters.push(`Amount: ${minAmount} to ${maxAmount}`);
 		else if (minAmount) filters.push(`Min amount: ${minAmount}`);
 		else if (maxAmount) filters.push(`Max amount: ${maxAmount}`);
+		if (transactionState) filters.push(`State: ${transactionState}`);
 
 		return filters;
 	});
@@ -89,14 +93,15 @@
 			dateTo: nextDateTo,
 			accountId: String(data.get('account_id') ?? ''),
 			minAmount: nextMinAmount,
-			maxAmount: nextMaxAmount
+			maxAmount: nextMaxAmount,
+			transactionState: String(data.get('transaction_state') ?? '')
 		});
 	}
 
 	function handleReset() {
 		dateError = '';
 		amountError = '';
-		onChange({ query: '', dateFrom: '', dateTo: '', accountId: '', minAmount: '', maxAmount: '' });
+		onChange({ query: '', dateFrom: '', dateTo: '', accountId: '', minAmount: '', maxAmount: '', transactionState: '' });
 	}
 </script>
 
@@ -217,6 +222,24 @@
 		{#if dateError}
 			<p id="tx-date-error" class="mt-1 text-xs" style="color: #dc2626;">{dateError}</p>
 		{/if}
+	</div>
+
+	<div>
+		<label for="tx-state" class="block text-xs font-semibold uppercase" style="color: var(--app-muted);">State</label>
+		<select
+			id="tx-state"
+			name="transaction_state"
+			class="mt-1 block w-full rounded-lg border px-3 py-2 text-sm"
+			style="border-color: var(--app-input-border); background-color: var(--app-input-bg); color: var(--app-text);"
+			aria-describedby="tx-state-help"
+		>
+			<option value="" selected={!transactionState}>Any state</option>
+			<option value="unreconciled" selected={transactionState === 'unreconciled'}>Unreconciled</option>
+			<option value="cleared" selected={transactionState === 'cleared'}>Cleared</option>
+			<option value="reconciled" selected={transactionState === 'reconciled'}>Reconciled</option>
+			<option value="voided" selected={transactionState === 'voided'}>Voided</option>
+		</select>
+		<p id="tx-state-help" class="mt-1 max-w-xs text-xs" style="color: var(--app-muted);">Filters by the GnuCash split reconciliation state; it does not edit transactions.</p>
 	</div>
 	<div>
 		<label for="tx-min-amount" class="block text-xs font-semibold uppercase" style="color: var(--app-muted);">Min amount</label>

@@ -16,6 +16,7 @@ The transactions page and API support these filters:
 - `account_id` — account GUID filter.
 - `min_amount` — inclusive lower absolute amount bound, represented as a decimal string.
 - `max_amount` — inclusive upper absolute amount bound, represented as a decimal string.
+- `transaction_state` — optional split reconciliation-state filter. Supported values are `unreconciled`, `cleared`, `reconciled`, and `voided`, mapped to GnuCash split `reconcile_state` values exposed by piecash. Without an account filter it matches transactions with any split in that state; with `account_id` or account-detail transaction lists it matches the selected account split state.
 - `limit` and `offset` — pagination for list views only.
 
 ## Validation
@@ -25,6 +26,7 @@ The backend rejects invalid or inverted filter ranges before opening/querying th
 - `date_from` later than `date_to` returns HTTP 400.
 - malformed `date_from` or `date_to` values return HTTP 400.
 - `min_amount` greater than `max_amount` returns HTTP 400.
+- unsupported `transaction_state` values return HTTP 400 before opening/querying the book.
 
 The frontend also blocks inverted date and amount ranges before navigating, so normal UI use shows an inline error instead of loading an invalid filtered page.
 
@@ -33,7 +35,7 @@ The frontend also blocks inverted date and amount ranges before navigating, so n
 The transactions page reflects active filters in the URL query string:
 
 ```text
-/transactions?query=ica&date_from=2026-05-01&date_to=2026-05-31&account_id=...&min_amount=10&max_amount=500&limit=50&offset=0
+/transactions?query=ica&date_from=2026-05-01&date_to=2026-05-31&account_id=...&min_amount=10&max_amount=500&transaction_state=cleared&limit=50&offset=0
 ```
 
 Changing filters resets `offset` to `0`. Pagination preserves the active filters and changes only the offset.
@@ -43,7 +45,7 @@ Changing filters resets `offset` to `0`. Pagination preserves the active filters
 The CSV export link preserves the same active filters as the list view:
 
 ```text
-/books/<book_id>/transactions/export?query=ica&date_from=2026-05-01&date_to=2026-05-31&account_id=...&min_amount=10&max_amount=500
+/books/<book_id>/transactions/export?query=ica&date_from=2026-05-01&date_to=2026-05-31&account_id=...&min_amount=10&max_amount=500&transaction_state=cleared
 ```
 
 CSV export intentionally does not include `limit` or `offset`; it exports the matching filtered set from the first row, capped at 10,000 rows. This keeps export parity with filters while avoiding page-only pagination limits.
@@ -67,5 +69,6 @@ When `X-CSV-Export-Truncated` is `true`, the CSV contains only the first 10,000 
 
 - Export is read-only.
 - Export files may contain sensitive financial data; do not commit real exports.
+- State filtering is read-only and reflects the split reconciliation state stored by GnuCash; it does not infer a new transaction workflow or edit cleared/reconciled flags.
 - No currency conversion is performed or implied.
 - Amounts remain string/Decimal-style values; do not use floats for money in new code.

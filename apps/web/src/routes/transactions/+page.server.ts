@@ -10,6 +10,7 @@ type TransactionFilters = {
 	accountId: string;
 	minAmount: string;
 	maxAmount: string;
+	transactionState: string;
 	limit: number;
 };
 
@@ -39,6 +40,7 @@ function buildTransactionFilterUrl(filters: TransactionFilters, dates: DatePrese
 	if (filters.accountId) sp.set('account_id', filters.accountId);
 	if (filters.minAmount) sp.set('min_amount', filters.minAmount);
 	if (filters.maxAmount) sp.set('max_amount', filters.maxAmount);
+	if (filters.transactionState) sp.set('transaction_state', filters.transactionState);
 	sp.set('limit', String(filters.limit));
 	sp.set('offset', '0');
 	return `/transactions?${sp.toString()}`;
@@ -85,7 +87,8 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 	const accountId = url.searchParams.get('account_id') ?? '';
 	const minAmount = url.searchParams.get('min_amount') ?? '';
 	const maxAmount = url.searchParams.get('max_amount') ?? '';
-	const filters = { query, dateFrom, dateTo, accountId, minAmount, maxAmount, limit };
+	const transactionState = url.searchParams.get('transaction_state') ?? '';
+	const filters = { query, dateFrom, dateTo, accountId, minAmount, maxAmount, transactionState, limit };
 
 	const transactionParams = new URLSearchParams({ limit: String(limit), offset: String(offset) });
 	if (query) transactionParams.set('query', query);
@@ -94,6 +97,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 	if (accountId) transactionParams.set('account_id', accountId);
 	if (minAmount) transactionParams.set('min_amount', minAmount);
 	if (maxAmount) transactionParams.set('max_amount', maxAmount);
+	if (transactionState) transactionParams.set('transaction_state', transactionState);
 
 	const [accounts, txs] = await Promise.all([
 		apiFetch<Account[]>(fetch, `${bookPrefix}/accounts`, token),
@@ -104,7 +108,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 		accounts,
 		txs,
 		activeBook,
-		filters: { query, dateFrom, dateTo, accountId, minAmount, maxAmount },
+		filters: { query, dateFrom, dateTo, accountId, minAmount, maxAmount, transactionState },
 		datePresets: buildDatePresets(filters),
 		writesEnabled: env.GNUCASH_WRITES_ENABLED === 'true'
 	};

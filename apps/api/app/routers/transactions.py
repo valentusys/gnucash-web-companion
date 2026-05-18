@@ -47,6 +47,7 @@ from app.services.gnucash_exceptions import (
 from app.services.gnucash_write import GnuCashWriteService, GnuCashWriteError
 from app.services.book_access import AccessDenied, BookAccessService
 from app.services.write_lock import WriteLockError
+from app.services.gnucash_book import SUPPORTED_TRANSACTION_STATES
 
 logger = logging.getLogger(__name__)
 
@@ -75,13 +76,14 @@ async def list_book_transactions(
     date_from: str | None = None,
     date_to: str | None = None,
     query: str | None = None,
+    transaction_state: str | None = None,
     min_amount: Decimal | None = Query(None),
     max_amount: Decimal | None = Query(None),
     user: User = Depends(get_current_user),
     session: Session = Depends(get_db),
 ) -> dict[str, Any]:
     """List transactions for a viewable book with pagination and filters."""
-    _validate_transaction_filters(date_from, date_to, min_amount, max_amount)
+    _validate_transaction_filters(date_from, date_to, min_amount, max_amount, transaction_state)
     book = _resolve_viewable_book(book_id, user, session)
     try:
         service = transaction_service_for(book)
@@ -90,6 +92,7 @@ async def list_book_transactions(
             date_from=date_from,
             date_to=date_to,
             query=query,
+            transaction_state=transaction_state,
             min_amount=min_amount,
             max_amount=max_amount,
         )
@@ -98,6 +101,7 @@ async def list_book_transactions(
             date_from=date_from,
             date_to=date_to,
             query=query,
+            transaction_state=transaction_state,
             min_amount=min_amount,
             max_amount=max_amount,
             limit=limit,
@@ -127,6 +131,7 @@ async def export_book_transactions_csv(
     date_from: str | None = None,
     date_to: str | None = None,
     query: str | None = None,
+    transaction_state: str | None = None,
     min_amount: Decimal | None = Query(None),
     max_amount: Decimal | None = Query(None),
     user: User = Depends(get_current_user),
@@ -136,7 +141,7 @@ async def export_book_transactions_csv(
 
     Respects the same filters as the list endpoint. Row cap: 10,000.
     """
-    _validate_transaction_filters(date_from, date_to, min_amount, max_amount)
+    _validate_transaction_filters(date_from, date_to, min_amount, max_amount, transaction_state)
     book = _resolve_viewable_book(book_id, user, session)
     try:
         service = transaction_service_for(book)
@@ -145,6 +150,7 @@ async def export_book_transactions_csv(
             date_from=date_from,
             date_to=date_to,
             query=query,
+            transaction_state=transaction_state,
             min_amount=min_amount,
             max_amount=max_amount,
         )
@@ -154,6 +160,7 @@ async def export_book_transactions_csv(
             date_from=date_from,
             date_to=date_to,
             query=query,
+            transaction_state=transaction_state,
             min_amount=min_amount,
             max_amount=max_amount,
             limit=capped,
@@ -228,13 +235,14 @@ async def list_book_account_transactions(
     date_from: str | None = None,
     date_to: str | None = None,
     query: str | None = None,
+    transaction_state: str | None = None,
     min_amount: Decimal | None = Query(None),
     max_amount: Decimal | None = Query(None),
     user: User = Depends(get_current_user),
     session: Session = Depends(get_db),
 ) -> dict[str, Any]:
     """List transactions for a specific account in a viewable book."""
-    _validate_transaction_filters(date_from, date_to, min_amount, max_amount)
+    _validate_transaction_filters(date_from, date_to, min_amount, max_amount, transaction_state)
     book = _resolve_viewable_book(book_id, user, session)
     try:
         service = transaction_service_for(book)
@@ -243,6 +251,7 @@ async def list_book_account_transactions(
             date_from=date_from,
             date_to=date_to,
             query=query,
+            transaction_state=transaction_state,
             min_amount=min_amount,
             max_amount=max_amount,
         )
@@ -251,6 +260,7 @@ async def list_book_account_transactions(
             date_from=date_from,
             date_to=date_to,
             query=query,
+            transaction_state=transaction_state,
             min_amount=min_amount,
             max_amount=max_amount,
             limit=limit,
@@ -279,13 +289,14 @@ async def list_default_book_transactions(
     date_from: str | None = None,
     date_to: str | None = None,
     query: str | None = None,
+    transaction_state: str | None = None,
     min_amount: Decimal | None = Query(None),
     max_amount: Decimal | None = Query(None),
     user: User = Depends(get_current_user),
     session: Session = Depends(get_db),
 ) -> dict[str, Any]:
     """List transactions for the default book."""
-    _validate_transaction_filters(date_from, date_to, min_amount, max_amount)
+    _validate_transaction_filters(date_from, date_to, min_amount, max_amount, transaction_state)
     book = resolve_default_viewable_book(user, session)
     try:
         service = transaction_service_for(book)
@@ -294,6 +305,7 @@ async def list_default_book_transactions(
             date_from=date_from,
             date_to=date_to,
             query=query,
+            transaction_state=transaction_state,
             min_amount=min_amount,
             max_amount=max_amount,
         )
@@ -302,6 +314,7 @@ async def list_default_book_transactions(
             date_from=date_from,
             date_to=date_to,
             query=query,
+            transaction_state=transaction_state,
             min_amount=min_amount,
             max_amount=max_amount,
             limit=limit,
@@ -340,13 +353,14 @@ async def list_default_book_account_transactions(
     date_from: str | None = None,
     date_to: str | None = None,
     query: str | None = None,
+    transaction_state: str | None = None,
     min_amount: Decimal | None = Query(None),
     max_amount: Decimal | None = Query(None),
     user: User = Depends(get_current_user),
     session: Session = Depends(get_db),
 ) -> dict[str, Any]:
     """List transactions for a specific account in the default book."""
-    _validate_transaction_filters(date_from, date_to, min_amount, max_amount)
+    _validate_transaction_filters(date_from, date_to, min_amount, max_amount, transaction_state)
     book = resolve_default_viewable_book(user, session)
     try:
         service = transaction_service_for(book)
@@ -355,6 +369,7 @@ async def list_default_book_account_transactions(
             date_from=date_from,
             date_to=date_to,
             query=query,
+            transaction_state=transaction_state,
             min_amount=min_amount,
             max_amount=max_amount,
         )
@@ -363,6 +378,7 @@ async def list_default_book_account_transactions(
             date_from=date_from,
             date_to=date_to,
             query=query,
+            transaction_state=transaction_state,
             min_amount=min_amount,
             max_amount=max_amount,
             limit=limit,
@@ -394,10 +410,12 @@ def _validate_transaction_filters(
     date_to: str | None,
     min_amount: Decimal | None,
     max_amount: Decimal | None,
+    transaction_state: str | None,
 ) -> None:
     """Reject invalid or inverted transaction filters before querying GnuCash."""
     _validate_date_range(date_from, date_to)
     _validate_amount_range(min_amount, max_amount)
+    _validate_transaction_state(transaction_state)
 
 
 def _validate_date_range(date_from: str | None, date_to: str | None) -> None:
@@ -435,6 +453,18 @@ def _validate_amount_range(min_amount: Decimal | None, max_amount: Decimal | Non
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="min_amount cannot be greater than max_amount",
+        )
+
+
+def _validate_transaction_state(transaction_state: str | None) -> None:
+    """Reject unsupported split reconciliation-state filters before querying GnuCash."""
+    if not transaction_state:
+        return
+    if transaction_state not in SUPPORTED_TRANSACTION_STATES:
+        allowed = ", ".join(sorted(SUPPORTED_TRANSACTION_STATES))
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"transaction_state must be one of: {allowed}",
         )
 
 

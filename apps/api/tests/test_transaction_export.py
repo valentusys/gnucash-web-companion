@@ -163,6 +163,7 @@ class FakeSplit:
     account: FakeAccount
     value: Decimal
     memo: str = ""
+    reconcile_state: str = "n"
 
 
 @dataclass
@@ -202,8 +203,8 @@ def fake_export_data():
         post_date=date(2026, 5, 16),
         description="ICA",
         splits=[
-            FakeSplit(account=checking, value=Decimal("-320")),
-            FakeSplit(account=food, value=Decimal("320"), memo="groceries"),
+            FakeSplit(account=checking, value=Decimal("-320"), reconcile_state="c"),
+            FakeSplit(account=food, value=Decimal("320"), memo="groceries", reconcile_state="c"),
         ],
     )
 
@@ -223,8 +224,8 @@ def fake_export_data():
         post_date=date(2026, 5, 18),
         description="Salary",
         splits=[
-            FakeSplit(account=checking, value=Decimal("5000")),
-            FakeSplit(account=food, value=Decimal("-5000")),
+            FakeSplit(account=checking, value=Decimal("5000"), reconcile_state="y"),
+            FakeSplit(account=food, value=Decimal("-5000"), reconcile_state="y"),
         ],
     )
 
@@ -461,6 +462,43 @@ class TestExportTransactionsCSV:
         )
         assert response.status_code == 400
         assert response.json()["detail"] == "min_amount cannot be greater than max_amount"
+
+    def test_export_respects_transaction_state_filter(
+        self, client, auth_headers, sample_book, fake_book_for_export, session_factory
+    ):
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(fake_book_for_export)
+            session.commit()
+
+        response = client.get(
+            f"/books/{sample_book}/transactions/export?transaction_state=reconciled",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        rows = _parse_csv_response(response)
+        assert len(rows) == 2
+        assert rows[1][0] == "tx-3"
+        assert response.headers["X-CSV-Export-Total"] == "1"
+
+    def test_export_rejects_unknown_transaction_state(
+        self, client, auth_headers, sample_book, fake_book_for_export, session_factory
+    ):
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(fake_book_for_export)
+            session.commit()
+
+        response = client.get(
+            f"/books/{sample_book}/transactions/export?transaction_state=posted",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 400
+        assert response.json()["detail"] == (
+            "transaction_state must be one of: cleared, reconciled, unreconciled, voided"
+        )
 
     def test_export_access_denied(
         self, client, viewer_headers, sample_book, fake_book_for_export, session_factory

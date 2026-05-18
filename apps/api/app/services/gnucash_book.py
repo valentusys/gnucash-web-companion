@@ -33,6 +33,12 @@ from app.services.gnucash_exceptions import (
 
 MONEY_QUANT = Decimal("0.01")
 SPLIT_TRANSACTION_LABEL = "Split transaction"
+SUPPORTED_TRANSACTION_STATES = {
+    "unreconciled": "n",
+    "cleared": "c",
+    "reconciled": "y",
+    "voided": "v",
+}
 
 
 def format_money(value: Any) -> str:
@@ -179,6 +185,7 @@ class GnuCashBookService:
         date_from: date | str | None = None,
         date_to: date | str | None = None,
         query: str | None = None,
+        transaction_state: str | None = None,
         min_amount: Decimal | str | None = None,
         max_amount: Decimal | str | None = None,
         limit: int = 50,
@@ -190,13 +197,21 @@ class GnuCashBookService:
         start = _coerce_date(date_from)
         end = _coerce_date(date_to)
         normalized_query = query.lower() if query else None
+        normalized_state = self._normalize_transaction_state(transaction_state)
         min_decimal = self._optional_decimal(min_amount)
         max_decimal = self._optional_decimal(max_amount)
         with self._open_book() as book:
             items: list[TransactionListItemDTO] = []
             for transaction in self._transactions(book):
                 if not self._transaction_matches(
-                    transaction, account_id, start, end, normalized_query, min_decimal, max_decimal
+                    transaction,
+                    account_id,
+                    start,
+                    end,
+                    normalized_query,
+                    normalized_state,
+                    min_decimal,
+                    max_decimal,
                 ):
                     continue
                 items.append(self._transaction_to_list_item(transaction, account_id))
@@ -216,12 +231,14 @@ class GnuCashBookService:
         date_from: date | str | None = None,
         date_to: date | str | None = None,
         query: str | None = None,
+        transaction_state: str | None = None,
         min_amount: Decimal | str | None = None,
         max_amount: Decimal | str | None = None,
     ) -> int:
         start = _coerce_date(date_from)
         end = _coerce_date(date_to)
         normalized_query = query.lower() if query else None
+        normalized_state = self._normalize_transaction_state(transaction_state)
         min_decimal = self._optional_decimal(min_amount)
         max_decimal = self._optional_decimal(max_amount)
         with self._open_book() as book:
@@ -229,7 +246,14 @@ class GnuCashBookService:
                 1
                 for transaction in self._transactions(book)
                 if self._transaction_matches(
-                    transaction, account_id, start, end, normalized_query, min_decimal, max_decimal
+                    transaction,
+                    account_id,
+                    start,
+                    end,
+                    normalized_query,
+                    normalized_state,
+                    min_decimal,
+                    max_decimal,
                 )
             )
 
@@ -533,6 +557,11 @@ class GnuCashBookService:
             return None
         return self._decimal(value)
 
+    def _normalize_transaction_state(self, state: str | None) -> str | None:
+        if state is None or state == "":
+            return None
+        return SUPPORTED_TRANSACTION_STATES[state]
+
     def _transaction_matches(
         self,
         transaction: Any,
@@ -540,6 +569,7 @@ class GnuCashBookService:
         date_from: date | None,
         date_to: date | None,
         query: str | None,
+        transaction_state: str | None = None,
         min_amount: Decimal | None = None,
         max_amount: Decimal | None = None,
     ) -> bool:
@@ -551,6 +581,8 @@ class GnuCashBookService:
         if query and not self._transaction_text_matches(transaction, query):
             return False
         if account_id and not any(self._account_id(getattr(split, "account", None)) == account_id for split in self._splits(transaction)):
+            return False
+        if transaction_state and not self._transaction_state_matches(transaction, account_id, transaction_state):
             return False
         if min_amount is not None or max_amount is not None:
             amount = abs(self._split_amount(self._select_split(self._splits(transaction), account_id)))
@@ -565,6 +597,12 @@ class GnuCashBookService:
         if query in description:
             return True
         return any(query in str(getattr(split, "memo", "") or "").lower() for split in self._splits(transaction))
+
+    def _transaction_state_matches(self, transaction: Any, account_id: str | None, expected_state: str) -> bool:
+        splits = self._splits(transaction)
+        if account_id:
+            splits = [split for split in splits if self._account_id(getattr(split, "account", None)) == account_id]
+        return any(str(getattr(split, "reconcile_state", "") or "").lower() == expected_state for split in splits)
 
     def _transaction_to_list_item(self, transaction: Any, account_id: str | None = None) -> TransactionListItemDTO:
         splits = self._splits(transaction)
