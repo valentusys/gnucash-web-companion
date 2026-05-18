@@ -135,7 +135,7 @@ Completed phases:
 
 Next planned phase:
 
-- Phase 97 should prepare conservative `v0.1.1-readonly` release notes/checklist after the confirmed Phase 95/#39 CSV export fix and Phase 96 synthetic benchmark evidence. Keep #38 separate and open unless a safe copied personal SQL book is available outside git; do not publish a tag/release in Phase 97.
+- Phase 97 PM brief is prepared in `docs/handoff/phase-97-pm-brief.md`: prepare conservative `v0.1.1-readonly` release notes/checklist after the confirmed Phase 95/#39 CSV export fix and Phase 96 synthetic benchmark evidence. Keep #38 separate and open unless a safe copied personal SQL book is available outside git; do not publish a tag/release in Phase 97.
 
 ## MVP product model
 
