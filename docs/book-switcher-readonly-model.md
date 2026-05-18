@@ -43,6 +43,12 @@ If the selected book cookie is missing, malformed, stale, or points to a book ou
 
 When fallback occurs, the server refreshes or clears the `selected_book_id` cookie so subsequent page loads stay aligned with the visible read-only context.
 
+## Archive and visibility semantics
+
+Archived books are not visible in the read-only switcher because `GET /books` returns only non-archived books that the signed-in user can view. Direct requests for archived books are treated as not found by the backend route resolver before any GnuCash data is opened.
+
+The current app has no book-management UI. Any future archive/unarchive or visibility-management work must keep these semantics explicit and add regression tests before it is presented as safe multi-book administration.
+
 ## Safety position
 
 Multi-book support means multiple independent GnuCash books with scoped access. GnuCash Desktop remains the authoritative editor for each book. Phase 50 does not add book upload, book registration UI, write capability, import/sync, or collaborative editing.

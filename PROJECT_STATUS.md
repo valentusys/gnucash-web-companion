@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 72.
+Completed through Phase 73.
 
 Completed phases:
 
@@ -88,10 +88,11 @@ Completed phases:
 - Phase 70 — community announcement audit
 - Phase 71 — performance risk audit
 - Phase 72 — data model and money correctness audit
+- Phase 73 — multi-book access model audit
 
 Next planned phase:
 
-- Continue the auditor roadmap with Phase 73 only when explicitly requested. Do not create a v0.1 tag/GitHub release until #24/#25 are handled by an explicit later phase. Phase 72 confirmed backend core money handling uses Decimal/string DTOs and CSV preserves decimal strings; `docs/money-model.md` now documents sign/split conventions, and frontend display-only `Number()` money usage is tracked in #34. Phase 72 did not publish a release and did not unblock v0.1 publication.
+- Continue the auditor roadmap with Phase 74 only when explicitly requested. Do not create a v0.1 tag/GitHub release until #24/#25 are handled by an explicit later phase. Phase 73 confirmed the multi-book access model remains explicit and read-only: `GET /books` is scoped by `UserBookAccess`, unauthorized book-aware routes are blocked, the frontend switcher only shows accessible independent books, and archive/visibility semantics are now documented. GitHub #35 tracks non-blocking test hardening for archived books and full route-family access-boundary coverage. Phase 73 did not publish a release and did not unblock v0.1 publication.
 
 ## MVP product model
 
@@ -1295,6 +1296,28 @@ Money-correctness result: backend core read-only money paths use Decimal/string 
 Test results: static money-correctness audit searches, backend full suite, frontend check/auth-routes/build, Docker Compose config validation, and `git diff --check` are recorded in the Phase 72 handoff.
 
 Related issues: GitHub #34 was created for frontend display-only `Number()` money hygiene. GitHub #24 and #25 remain v0.1 release blockers; GitHub #27 remains open for seed-log path redaction; GitHub #26, #22, #28, #29, and #30–#33 remain open for deployment/compatibility/markdown/localization/performance follow-up.
+
+## Phase 73 — Multi-book Access Model Audit
+
+Status: complete. Phase commit pushed.
+
+Goal: audit the multi-book access model from the auditor roadmap without adding product feature scope, expanding writes, publishing a release, or implying collaborative accounting/family-wallet semantics.
+
+Artifacts:
+
+- `docs/audits/phase-73-audit.md` — independent Phase 73 multi-book access model audit artifact with verdict: no new blocker for the current pre-alpha/read-only posture.
+- `docs/book-switcher-readonly-model.md` — clarified archived-book visibility and future archive/visibility-management documentation expectations.
+- `README.md` — current status advanced through Phase 73 and latest-audit link updated.
+- `CHANGELOG.md` — Unreleased entry added for the release-facing Phase 73 audit/docs result.
+- `docs/handoff/phase-73.md` — PM/auditor/engineer handoff and verification report.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default state; controlled writes remain experimental post-MVP and disabled by default. Phase 73 did not enable writes, expand write scope, publish a v0.1 tag/release, claim production readiness/security audit, add collaborative accounting/family-wallet framing, or add real financial/secrets artifacts.
+
+Multi-book access result: user-book access remains explicit through `UserBookAccess`; `GET /books` returns only non-archived books visible to the current user; book-aware account, transaction, CSV export, and report routes resolve a viewable book before opening GnuCash data; the frontend switcher shows only accessible books from the authenticated `GET /books` context and keeps independent read-only wording. Archive/visibility route semantics need stronger dedicated regression coverage and are tracked in #35.
+
+Test results: static multi-book access/documentation audit checks, backend full suite, frontend check/auth-routes/build, Docker Compose config validation, and `git diff --check` are recorded in the Phase 73 handoff.
+
+Related issues: GitHub #35 was created for archived-book/full route-family multi-book access boundary test hardening. GitHub #24 and #25 remain v0.1 release blockers; GitHub #27 remains open for seed-log path redaction; GitHub #26, #22, #28, #29, #30–#34 remain open for deployment/compatibility/markdown/localization/performance/money follow-up.
 
 ## Standing constraints
 
