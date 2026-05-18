@@ -162,8 +162,9 @@ Final check results:
 
 ## Commit / push
 
-- Commit message: `docs: add phase 65 test coverage audit`.
-- Commit: pending until final commit/push.
+- Primary phase commit message: `docs: add phase 65 test coverage audit`.
+- Primary phase commit: `4b61b4f` (pushed to `origin/main`).
+- Follow-up status-only commit records this hash in the handoff.
 
 ## Blockers carried forward
 
