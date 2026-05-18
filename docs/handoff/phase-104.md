@@ -104,5 +104,5 @@ PM should select one narrow practical read-only backlog slice, preferably anothe
 
 ## Commit / push
 
-- Implementation commit: `1f0f415` (`feat: search split memos in transactions`).
+- Implementation commit: `0daca5b` (`feat: search split memos in transactions`).
 - Push: pending before push.
