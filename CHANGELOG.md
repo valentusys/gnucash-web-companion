@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Phase 64 — compatibility audit, confirming README/release/compatibility docs do not claim broad GnuCash compatibility without evidence: tested scope remains documented synthetic GnuCash SQL SQLite fixture paths, PostgreSQL/MySQL/MariaDB/XML/all-version support is not claimed, #22 remains open for real-version fixture coverage, and `v0.1.0-readonly` publication remains blocked by #24/#25.
 - Phase 63 — backup/recovery audit, confirming the manual backup and restore runbook covers copied GnuCash books, app metadata, controlled-write pre-write backups, restore dry-runs, read-only verification, and production-DR limitations while correcting stale Compose write-disabled verification examples.
 - Phase 62 — deployment-safety audit, confirming local/self-hosted docs are conservative for localhost/LAN/VPN-only read-only testing while keeping direct public-internet exposure unsafe, leaving `v0.1.0-readonly` publication blocked by #24/#25, and tracking CORS origin narrowing visibility in #26.
 - Phase 61 — dogfood-results audit, confirming that no completed copied-book dogfood results are recorded yet; `v0.1.0-readonly` publication remains blocked until copied/disposable-data runtime evidence is completed and audited.

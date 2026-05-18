@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 63.
+Completed through Phase 64.
 
 Completed phases:
 
@@ -79,10 +79,11 @@ Completed phases:
 - Phase 61 — dogfood results audit
 - Phase 62 — deployment safety audit
 - Phase 63 — backup/recovery audit
+- Phase 64 — compatibility audit
 
 Next planned phase:
 
-- Continue the auditor roadmap with Phase 64 only when explicitly requested. Do not create a v0.1 tag/GitHub release until #24/#25 are handled by an explicit later phase. Phase 63 confirmed backup/recovery docs are acceptable for cautious local/private read-only testing after a stale Compose verification example was fixed, but it did not unblock v0.1 publication.
+- Continue the auditor roadmap with Phase 65 only when explicitly requested. Do not create a v0.1 tag/GitHub release until #24/#25 are handled by an explicit later phase. Phase 64 confirmed compatibility claims are conservative and found no broad-compatibility blocker, but it did not add real GnuCash Desktop version fixtures and did not unblock v0.1 publication.
 
 ## MVP product model
 
@@ -1094,6 +1095,27 @@ Deviations: ROOT account has `placeholder=0` (not 1 as spec assumed) but is reje
 Production code changes: none. Zero production code changes required; write service works correctly against real piecash books.
 
 Related issues: GitHub #8 (closed).
+
+## Phase 64 — Compatibility Audit
+
+Status: complete. Phase commit pushed.
+
+Goal: audit GnuCash compatibility claims from the auditor roadmap without publishing a release, expanding write scope, or claiming broad all-book/all-version support.
+
+Artifacts:
+
+- `docs/audits/phase-64-audit.md` — independent Phase 64 compatibility-claims audit artifact with verdict `No compatibility-claims blocker found for the current pre-alpha/read-only posture`.
+- `README.md` — current status advanced through Phase 64 and latest-audit link updated.
+- `CHANGELOG.md` — Unreleased entry added for the release-facing Phase 64 compatibility audit result.
+- `docs/handoff/phase-64.md` — PM/auditor/engineer handoff and verification report.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default state; controlled writes remain experimental post-MVP and disabled by default. Phase 64 did not enable writes, expand write scope, publish a v0.1 tag/release, claim XML/PostgreSQL/MySQL/MariaDB/all-version compatibility, or add real financial/secrets artifacts.
+
+Compatibility result: README, release planning docs, and compatibility docs avoid broad compatibility claims. Tested coverage remains limited to documented synthetic GnuCash SQL SQLite fixture paths. GitHub #22 remains open for real GnuCash Desktop version fixture coverage. v0.1 publication remains blocked by #24/#25.
+
+Test results: backend full suite, frontend check/auth-routes/build, Docker Compose config validation, and `git diff --check` are recorded in the Phase 64 handoff.
+
+Related issues: no new issue created; GitHub #22 was updated with the Phase 64 audit result and remains open. GitHub #24 and #25 remain release blockers; GitHub #26 remains a non-blocking deployment-hardening visibility item.
 
 ## Standing constraints
 
