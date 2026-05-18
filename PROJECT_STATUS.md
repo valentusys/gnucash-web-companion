@@ -129,7 +129,7 @@ Completed phases:
 
 Next planned phase:
 
-- Fix GitHub #39 with regression coverage before preparing a `v0.1.1-readonly` maintenance release candidate. Keep #38 open for the separate copied personal-book dogfood rerun when a safe copied SQL book is available.
+- Phase 95 is planned in `docs/handoff/phase-95-pm-brief.md`: fix GitHub #39 with regression coverage before preparing a `v0.1.1-readonly` maintenance release candidate. Keep #38 open for the separate copied personal-book dogfood rerun when a safe copied SQL book is available.
 
 ## MVP product model
 
