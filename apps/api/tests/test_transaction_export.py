@@ -472,3 +472,53 @@ class TestExportTransactionsCSV:
         disposition = response.headers["Content-Disposition"]
         assert disposition.startswith("attachment;")
         assert f'transactions-book{sample_book}.csv' in disposition
+
+    def test_export_reports_cap_and_truncation_headers(
+        self,
+        client,
+        auth_headers,
+        sample_book,
+        fake_book_for_export,
+        session_factory,
+        monkeypatch,
+    ):
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(fake_book_for_export)
+            session.commit()
+
+        import app.routers.transactions as transactions_router
+
+        monkeypatch.setattr(transactions_router, "CSV_EXPORT_LIMIT", 2)
+
+        response = client.get(
+            f"/books/{sample_book}/transactions/export",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        rows = _parse_csv_response(response)
+        assert len(rows) == 3  # header + capped 2 exported rows
+        assert response.headers["X-CSV-Export-Limit"] == "2"
+        assert response.headers["X-CSV-Export-Total"] == "3"
+        assert response.headers["X-CSV-Export-Truncated"] == "true"
+        assert response.headers["X-CSV-Export-Timeout-Policy"] == "synchronous-request-timeout"
+
+    def test_export_reports_not_truncated_when_under_cap(
+        self, client, auth_headers, sample_book, fake_book_for_export, session_factory
+    ):
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(fake_book_for_export)
+            session.commit()
+
+        response = client.get(
+            f"/books/{sample_book}/transactions/export",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        assert response.headers["X-CSV-Export-Limit"] == "10000"
+        assert response.headers["X-CSV-Export-Total"] == "3"
+        assert response.headers["X-CSV-Export-Truncated"] == "false"
+        assert response.headers["X-CSV-Export-Timeout-Policy"] == "synchronous-request-timeout"

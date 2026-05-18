@@ -48,6 +48,21 @@ The CSV export link preserves the same active filters as the list view:
 
 CSV export intentionally does not include `limit` or `offset`; it exports the matching filtered set from the first row, capped at 10,000 rows. This keeps export parity with filters while avoiding page-only pagination limits.
 
+## CSV export cap, truncation, and timeout behavior
+
+CSV export is generated synchronously during the HTTP request. The app does not run CSV export as a background job and does not stream an unbounded full-book export. If an operator, reverse proxy, or browser request times out before completion, narrow the date/account/query/amount filters and retry; no GnuCash data is modified.
+
+The backend always applies `CSV_EXPORT_LIMIT = 10_000` rows. A successful export response includes these advisory headers so operators and the web proxy can detect large-export behavior without parsing the CSV body:
+
+```text
+X-CSV-Export-Limit: 10000
+X-CSV-Export-Total: <matching row count before cap>
+X-CSV-Export-Truncated: true|false
+X-CSV-Export-Timeout-Policy: synchronous-request-timeout
+```
+
+When `X-CSV-Export-Truncated` is `true`, the CSV contains only the first 10,000 matching transactions for the current filters. Apply narrower filters if a complete subset is needed.
+
 ## Safety notes
 
 - Export is read-only.

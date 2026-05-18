@@ -119,6 +119,14 @@ const exportProxyRoute = read('src/routes/books/[bookId]/transactions/export/+se
 assert.match(exportProxyRoute, /getAuthToken\(cookies\)/, 'CSV export proxy must read the httpOnly auth cookie on the server');
 assert.match(exportProxyRoute, /authorization: `Bearer \$\{token\}`/, 'CSV export proxy must call the API with a bearer token');
 assert.match(exportProxyRoute, /content-type.*text\/csv/is, 'CSV export proxy must stream CSV content back to the browser');
+for (const exportHeader of [
+	'x-csv-export-limit',
+	'x-csv-export-total',
+	'x-csv-export-truncated',
+	'x-csv-export-timeout-policy'
+]) {
+	assert.ok(exportProxyRoute.includes(exportHeader), `CSV export proxy must forward ${exportHeader}`);
+}
 assert.match(
 	transactionListPage,
 	/paramsToUrl[\s\S]*sp\.set\('limit'[\s\S]*sp\.set\('offset'/,

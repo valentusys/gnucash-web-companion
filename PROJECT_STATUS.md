@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 83.
+Completed through Phase 84.
 
 Completed phases:
 
@@ -99,10 +99,11 @@ Completed phases:
 - Phase 81 — redact default-book seed logs and close post-release security hardening issue #27
 - Phase 82 — expand read-only multi-book access boundary regression coverage and close #35
 - Phase 83 — replace frontend `Number()` money display decisions and close #34
+- Phase 84 — define tested CSV export truncation/timeout behavior and close #32
 
 Next planned phase:
 
-- Phase 83 completed a narrow post-release frontend money-display hardening task for #34: dashboard/recent-transaction/cashflow/expense-bar/amount-filter UI decisions now use decimal-string helpers instead of `Number()` on money strings, with lightweight helper coverage. Next work should be another narrow concrete post-release task from open issues/release-hardening backlog, preferably a tested read-only bug fix/user-facing UX improvement or real smoke/dogfood maintenance check. Do not publish another tag/release, expand writes, or start v0.2 work without explicit scope.
+- Phase 84 completed a narrow post-release CSV export hardening task for #32: successful CSV responses now expose export limit/total/truncated/timeout-policy headers, the SvelteKit export proxy forwards them, tests cover truncated and non-truncated exports with disposable fake data, and the transactions UI/docs state that large exports are synchronous and should be narrowed if they time out. Next work should be another narrow concrete post-release task from open issues/release-hardening backlog, preferably a tested read-only bug fix/user-facing UX improvement or real smoke/dogfood maintenance check. Do not publish another tag/release, expand writes, or start v0.2 work without explicit scope.
 
 ## MVP product model
 
@@ -1554,6 +1555,31 @@ Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/configured 
 Verification result: helper tests, frontend check/auth-routes/build, backend tests, Docker Compose config validation, `git diff --check`, release state verification, pushed commit verification, and clean working tree verification are recorded in `docs/handoff/phase-83.md`.
 
 Related issues: GitHub #34 closed as completed with evidence. Open follow-up issues #22, #26, #28–#33, and #36 remain non-blocking backlog for later narrow phases.
+
+## Phase 84 — CSV Export Truncation and Timeout Behavior
+
+Status: complete. Phase commit pushed.
+
+Goal: complete one narrow post-release concrete hardening task from the open read-only/release-hardening backlog by satisfying GitHub #32 with tested CSV export cap/truncation/timeout behavior, without starting audit-only work, write-mode work, a new tag/release, or v0.2 planning.
+
+PM decision: choose #32 because it is low-risk, concrete, testable, and improves a user/operator-facing read-only export boundary after the v0.1.0-readonly publication. The expected result is a tested maintenance/UX behavior: CSV export remains capped at 10,000 rows, reports whether the filtered set was truncated, documents/labels synchronous timeout behavior, and tells users to narrow filters if a large export times out.
+
+Artifacts:
+
+- `apps/api/app/routers/transactions.py` — successful CSV exports now include `X-CSV-Export-Limit`, `X-CSV-Export-Total`, `X-CSV-Export-Truncated`, and `X-CSV-Export-Timeout-Policy` response headers.
+- `apps/api/tests/test_transaction_export.py` — added disposable fake-data regression coverage for truncated and non-truncated CSV export responses.
+- `apps/web/src/routes/books/[bookId]/transactions/export/+server.ts` — forwards the CSV export metadata headers through the SvelteKit/browser download proxy.
+- `apps/web/scripts/test-auth-routes.mjs` — verifies the proxy keeps forwarding the export metadata headers.
+- `apps/web/src/routes/transactions/+page.svelte` — user-facing CSV export status now says large exports are synchronous and should be narrowed if they time out.
+- `docs/transactions-filters.md` — documents the 10,000-row cap, truncation headers, and synchronous request-timeout policy.
+- `docs/handoff/phase-84.md` — PM/engineer handoff and verification report.
+- `README.md`, `CHANGELOG.md`, and `PROJECT_STATUS.md` — post-release status sync.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/configured default. Phase 84 did not enable writes, add write scope, publish a new tag/release, start v0.2 work, claim production readiness/security audit, claim collaborative editing/SaaS/GnuCash replacement status, or add real financial/secrets/runtime artifacts.
+
+Verification result: targeted CSV export tests, frontend auth-route/proxy checks, frontend check/build, backend tests, Docker Compose config validation, `git diff --check`, release state verification, pushed commit verification, and clean working tree verification are recorded in `docs/handoff/phase-84.md`.
+
+Related issues: GitHub #32 closed as completed with evidence. Open follow-up issues #22, #26, #28–#31, #33, and #36 remain non-blocking backlog for later narrow phases.
 
 ## Standing constraints
 

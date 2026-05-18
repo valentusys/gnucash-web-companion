@@ -188,11 +188,16 @@ async def export_book_transactions_csv(
         ])
 
     filename = f"transactions-book{book_id}.csv"
+    truncated = total > CSV_EXPORT_LIMIT
     return StreamingResponse(
         iter([buf.getvalue()]),
         media_type="text/csv",
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',
+            "X-CSV-Export-Limit": str(CSV_EXPORT_LIMIT),
+            "X-CSV-Export-Total": str(total),
+            "X-CSV-Export-Truncated": "true" if truncated else "false",
+            "X-CSV-Export-Timeout-Policy": "synchronous-request-timeout",
         },
     )
 

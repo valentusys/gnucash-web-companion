@@ -41,8 +41,8 @@ import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 	);
 	const csvStatus = $derived(
 		activeFilterCount
-			? `Exports current filtered view, capped at 10,000 rows.`
-			: 'Exports this read-only transaction list, capped at 10,000 rows.'
+			? `Exports current filtered view, capped at 10,000 rows. Large exports run synchronously; narrow filters if the request times out.`
+			: 'Exports this read-only transaction list, capped at 10,000 rows. Large exports run synchronously; narrow filters if the request times out.'
 	);
 
 	function paramsToUrl(params: {

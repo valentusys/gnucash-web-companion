@@ -33,12 +33,22 @@ export const GET: RequestHandler = async ({ cookies, fetch, params, url }) => {
 	}
 
 	const csv = await response.text();
+	const responseHeaders: Record<string, string> = {
+		'content-type': response.headers.get('content-type') ?? 'text/csv; charset=utf-8',
+		'content-disposition':
+			response.headers.get('content-disposition') ?? `attachment; filename="book-${bookId}-transactions.csv"`
+	};
+	for (const header of [
+		'x-csv-export-limit',
+		'x-csv-export-total',
+		'x-csv-export-truncated',
+		'x-csv-export-timeout-policy'
+	]) {
+		const value = response.headers.get(header);
+		if (value) responseHeaders[header] = value;
+	}
 	return new Response(csv, {
 		status: 200,
-		headers: {
-			'content-type': response.headers.get('content-type') ?? 'text/csv; charset=utf-8',
-			'content-disposition':
-				response.headers.get('content-disposition') ?? `attachment; filename="book-${bookId}-transactions.csv"`
-		}
+		headers: responseHeaders
 	});
 };
