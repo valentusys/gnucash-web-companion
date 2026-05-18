@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Phase 61 — dogfood-results audit, confirming that no completed copied-book dogfood results are recorded yet; `v0.1.0-readonly` publication remains blocked until copied/disposable-data runtime evidence is completed and audited.
 - Phase 60 — dogfood-readiness audit, confirming the maintainer can safely start read-only dogfood on a copied real GnuCash SQL book while keeping `v0.1.0-readonly` publication blocked until actual copied/disposable-data runtime evidence is recorded.
 - Phase 59 — post-release regression-risk audit, confirming that a true post-v0.1 regression audit is not applicable yet because no `v0.1.0-readonly` tag/GitHub release exists; publication remains blocked by the Phase 57/58 release-notes and copied/disposable-data smoke/dogfood evidence issues.
 - Phase 58 — `v0.1.0-readonly` release publication audit, confirming no v0.1 tag/GitHub release exists yet and publication remains blocked by the Phase 57 release-notes and copied/disposable-data smoke/dogfood evidence issues.
