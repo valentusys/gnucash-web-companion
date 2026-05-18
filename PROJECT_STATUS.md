@@ -141,7 +141,7 @@ Completed phases:
 
 Next planned phase:
 
-- Phase 99: publish `v0.1.1-readonly` only if explicitly authorized by the PM/controller. Before publication, re-confirm tag/release absence, create the annotated tag and GitHub pre-release from `docs/release/v0.1.1-readonly-notes.md`, record tag/release URLs, keep conservative pre-alpha/read-only/default-write-disabled language, and do not claim personal-book dogfood success while GitHub #38 remains open/blocked.
+- Phase 99: run a safe non-publishing `v0.1.1-readonly` pre-publish dry-run and authorization guard. Because Val has not given a separate explicit publish authorization, Phase 99 must not create a tag, GitHub release, or package publication; it should verify tag/release absence, release notes/checklist/final-gate inputs, recent GitHub Actions state, and record exact would-run commands as `NOT EXECUTED` in `docs/release/v0.1.1-readonly-prepublish-dry-run.md`. Publication remains reserved for a later explicit authorization.
 
 ## MVP product model
 
