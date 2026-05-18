@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- Phase 95 — fixed GitHub #39, the read-only CSV export row-count/header mismatch above the historical 500-row service clamp. CSV export now fetches up to the documented 10,000-row export cap while normal list-style callers keep their existing pagination limits. Regression coverage proves a 501-row synthetic export returns 501 data rows with `X-CSV-Export-Limit: 10000`, `X-CSV-Export-Total: 501`, and `X-CSV-Export-Truncated: false`; a targeted 1,000-transaction synthetic benchmark returned 1,000 CSV data rows with `csv_limit=10000`, `csv_total=1000`, and `truncated=False`. No write-mode scope was added or enabled, no real/private data was committed, and no tag/release was published.
+
 ### Added
 
 - Phase 94 — made the post-v0.1 maintenance-release decision without launching an analyst/auditor or creating an audit-only artifact: `docs/release/v0.1.1-readonly-decision.md` records the verdict `More fixes required before maintenance release`. The post-`v0.1.0-readonly` change set is meaningful, but GitHub #39 remains an open read-only CSV export row-count/header consistency blocker, so no `v0.1.1-readonly` notes/checklist were created and no tag/release was published. Writes remain disabled by default, no v0.2 work was started, and no real/private data was committed.

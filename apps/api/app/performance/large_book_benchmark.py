@@ -125,6 +125,7 @@ class BenchmarkResult:
     duration_ms_max: float
     response_bytes: int
     item_count: int | None = None
+    csv_limit: int | None = None
     csv_total: int | None = None
     csv_truncated: bool | None = None
 
@@ -361,31 +362,37 @@ def _select_many_split_transaction_id(book_path: Path) -> str:
     return str(row[0])
 
 
-def _summarize_response(case: BenchmarkCase, response: Any) -> tuple[int | None, int | None, bool | None]:
+def _summarize_response(
+    case: BenchmarkCase, response: Any
+) -> tuple[int | None, int | None, int | None, bool | None]:
     item_count: int | None = None
+    csv_limit: int | None = None
     csv_total: int | None = None
     csv_truncated: bool | None = None
 
     if case.name == "csv_export_up_to_cap":
+        csv_limit_header = response.headers.get("X-CSV-Export-Limit")
+        if csv_limit_header is not None:
+            csv_limit = int(csv_limit_header)
         csv_total_header = response.headers.get("X-CSV-Export-Total")
         if csv_total_header is not None:
             csv_total = int(csv_total_header)
         csv_truncated = response.headers.get("X-CSV-Export-Truncated") == "true"
         rows = list(csv.reader(io.StringIO(response.text)))
         item_count = max(0, len(rows) - 1)
-        return item_count, csv_total, csv_truncated
+        return item_count, csv_limit, csv_total, csv_truncated
 
     try:
         payload = response.json()
     except ValueError:
-        return None, None, None
+        return None, None, None, None
     if isinstance(payload, list):
         item_count = len(payload)
     elif isinstance(payload, dict) and isinstance(payload.get("items"), list):
         item_count = len(payload["items"])
     elif isinstance(payload, dict) and isinstance(payload.get("splits"), list):
         item_count = len(payload["splits"])
-    return item_count, None, None
+    return item_count, None, None, None
 
 
 def run_benchmark(
@@ -417,7 +424,7 @@ def run_benchmark(
                 last_response = response
             if last_response is None:  # pragma: no cover - repeats validation prevents this
                 raise RuntimeError("benchmark produced no response")
-            item_count, csv_total, csv_truncated = _summarize_response(case, last_response)
+            item_count, csv_limit, csv_total, csv_truncated = _summarize_response(case, last_response)
             results.append(
                 BenchmarkResult(
                     name=case.name,
@@ -429,6 +436,7 @@ def run_benchmark(
                     duration_ms_max=round(max(durations), 2),
                     response_bytes=len(last_response.content),
                     item_count=item_count,
+                    csv_limit=csv_limit,
                     csv_total=csv_total,
                     csv_truncated=csv_truncated,
                 )
@@ -484,7 +492,10 @@ def main(argv: list[str] | None = None) -> int:
         if result.item_count is not None:
             extra += f", items={result.item_count}"
         if result.csv_total is not None:
-            extra += f", csv_total={result.csv_total}, truncated={result.csv_truncated}"
+            extra += (
+                f", csv_limit={result.csv_limit}, csv_total={result.csv_total}, "
+                f"truncated={result.csv_truncated}"
+            )
         print(
             f"{result.name}: status={result.status_code}, median={result.duration_ms_median:.2f} ms, "
             f"min={result.duration_ms_min:.2f} ms, max={result.duration_ms_max:.2f} ms, bytes={result.response_bytes}{extra}"

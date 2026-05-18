@@ -522,3 +522,54 @@ class TestExportTransactionsCSV:
         assert response.headers["X-CSV-Export-Total"] == "3"
         assert response.headers["X-CSV-Export-Truncated"] == "false"
         assert response.headers["X-CSV-Export-Timeout-Policy"] == "synchronous-request-timeout"
+
+    def test_export_above_service_page_clamp_returns_all_rows_and_consistent_headers(
+        self,
+        client,
+        auth_headers,
+        sample_book,
+        tmp_path,
+        session_factory,
+        monkeypatch,
+    ):
+        root = FakeAccount(guid="root-guid", name="Assets", type="ROOT")
+        checking = FakeAccount(guid="checking-guid", name="Checking", type="BANK", parent=root)
+        food = FakeAccount(guid="food-guid", name="Food", type="EXPENSE", parent=root)
+        transactions = [
+            FakeTransaction(
+                guid=f"tx-{index:03d}",
+                post_date=date(2026, 5, (index % 28) + 1),
+                description=f"Synthetic transaction {index:03d}",
+                splits=[
+                    FakeSplit(account=checking, value=Decimal("-1.00")),
+                    FakeSplit(account=food, value=Decimal("1.00")),
+                ],
+            )
+            for index in range(501)
+        ]
+        book_path = tmp_path / "large-export.gnucash"
+        book_path.write_text("fake")
+
+        def fake_open_book(path, readonly=False):
+            return FakeBookForExport(accounts=[root, checking, food], transactions=transactions)
+
+        import app.services.gnucash_book as gb_module
+
+        monkeypatch.setattr(gb_module.piecash, "open_book", fake_open_book)
+
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(book_path)
+            session.commit()
+
+        response = client.get(
+            f"/books/{sample_book}/transactions/export",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        rows = _parse_csv_response(response)
+        assert len(rows) == 502  # header + all 501 matching transactions
+        assert response.headers["X-CSV-Export-Limit"] == "10000"
+        assert response.headers["X-CSV-Export-Total"] == "501"
+        assert response.headers["X-CSV-Export-Truncated"] == "false"

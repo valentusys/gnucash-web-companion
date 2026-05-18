@@ -158,6 +158,7 @@ async def export_book_transactions_csv(
             max_amount=max_amount,
             limit=capped,
             offset=0,
+            max_limit=CSV_EXPORT_LIMIT,
         )
     except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
         handle_gnucash_error(exc)

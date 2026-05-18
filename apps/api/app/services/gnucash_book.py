@@ -183,8 +183,9 @@ class GnuCashBookService:
         max_amount: Decimal | str | None = None,
         limit: int = 50,
         offset: int = 0,
+        max_limit: int = 500,
     ) -> list[TransactionListItemDTO]:
-        limit = max(0, min(limit, 500))
+        limit = max(0, min(limit, max_limit))
         offset = max(0, offset)
         start = _coerce_date(date_from)
         end = _coerce_date(date_to)

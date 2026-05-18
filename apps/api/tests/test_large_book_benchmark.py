@@ -7,9 +7,11 @@ from pathlib import Path
 
 from app.performance.large_book_benchmark import (
     BENCHMARK_CASES,
+    BenchmarkCase,
     BenchmarkConfig,
     benchmark_plan,
     create_large_synthetic_book,
+    _summarize_response,
 )
 
 
@@ -100,3 +102,23 @@ def test_create_large_synthetic_book_rejects_too_few_many_splits(tmp_path: Path)
         assert "many_split_count" in str(exc)
     else:  # pragma: no cover - defensive assertion
         raise AssertionError("expected ValueError for too small many-splits scope")
+
+
+def test_csv_export_benchmark_summary_records_limit_header() -> None:
+    class Response:
+        headers = {
+            "X-CSV-Export-Limit": "10000",
+            "X-CSV-Export-Total": "2",
+            "X-CSV-Export-Truncated": "false",
+        }
+        text = "id,date\ntx-1,2026-05-01\ntx-2,2026-05-02\n"
+
+    item_count, csv_limit, csv_total, csv_truncated = _summarize_response(
+        BenchmarkCase("csv_export_up_to_cap", "GET", "/books/{book_id}/transactions/export"),
+        Response(),
+    )
+
+    assert item_count == 2
+    assert csv_limit == 10000
+    assert csv_total == 2
+    assert csv_truncated is False
