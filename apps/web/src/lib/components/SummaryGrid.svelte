@@ -1,5 +1,6 @@
 <script lang="ts">
 	import BalanceCard from '$lib/components/BalanceCard.svelte';
+	import { isNonNegativeDecimalString } from '$lib/money.js';
 
 	let { summary }: { summary: import('$lib/api/types').ReportSummary | null } = $props();
 </script>
@@ -10,7 +11,7 @@
 			label="Net Worth"
 			value={summary.net_worth}
 			currency={summary.currency}
-			trend={Number(summary.net_worth) >= 0 ? 'up' : 'down'}
+			trend={isNonNegativeDecimalString(summary.net_worth) ? 'up' : 'down'}
 		/>
 		<BalanceCard
 			label="Assets"

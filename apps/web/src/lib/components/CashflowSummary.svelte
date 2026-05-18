@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { isNonNegativeDecimalString } from '$lib/money.js';
+
 	type Period = import('$lib/api/types').CashflowPeriod;
 
 	let { periods, loading = false }: { periods: Period[]; loading?: boolean } = $props();
@@ -37,7 +39,7 @@
 							<span style="color: var(--app-muted);">Net</span>
 							<p
 								class="font-semibold tabular-nums"
-								style="color: {Number(period.net) >= 0 ? 'var(--app-success)' : 'var(--app-danger)'};"
+								style="color: {isNonNegativeDecimalString(period.net) ? 'var(--app-success)' : 'var(--app-danger)'};"
 							>
 								{period.net}
 							</p>

@@ -1,12 +1,15 @@
 <script lang="ts">
+	import { decimalBarWidthPercent } from '$lib/money.js';
+
 	type Expense = import('$lib/api/types').ExpenseByAccount;
 
 	let { expenses, loading = false }: { expenses: Expense[]; loading?: boolean } = $props();
 
 	function barWidth(total: string, all: Expense[]): string {
-		const max = Math.max(...all.map((e) => Math.abs(Number(e.total))), 1);
-		const pct = Math.min((Math.abs(Number(total)) / max) * 100, 100);
-		return `${pct}%`;
+		return decimalBarWidthPercent(
+			total,
+			all.map((e) => e.total)
+		);
 	}
 </script>
 

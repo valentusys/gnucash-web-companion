@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { isNonNegativeDecimalString } from '$lib/money.js';
+
 	type Transaction = import('$lib/api/types').TransactionListItem;
 
 	let { transactions, loading = false }: { transactions: Transaction[]; loading?: boolean } = $props();
@@ -31,7 +33,7 @@
 					</div>
 					<span
 						class="ml-4 whitespace-nowrap text-sm font-semibold tabular-nums"
-						style="color: {Number(tx.amount) >= 0 ? 'var(--app-success)' : 'var(--app-danger)'};"
+						style="color: {isNonNegativeDecimalString(tx.amount) ? 'var(--app-success)' : 'var(--app-danger)'};"
 					>
 						{tx.amount}
 						<span class="ml-0.5 text-xs font-normal" style="color: var(--app-muted);">{tx.currency}</span>

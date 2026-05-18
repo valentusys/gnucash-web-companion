@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 82.
+Completed through Phase 83.
 
 Completed phases:
 
@@ -98,10 +98,11 @@ Completed phases:
 - Phase 80 — publish v0.1.0-readonly pre-release
 - Phase 81 — redact default-book seed logs and close post-release security hardening issue #27
 - Phase 82 — expand read-only multi-book access boundary regression coverage and close #35
+- Phase 83 — replace frontend `Number()` money display decisions and close #34
 
 Next planned phase:
 
-- Phase 82 completed a narrow post-release read-only boundary hardening task for #35: backend regression tests now prove archived books are hidden/blocked and unauthorized access is denied across the book-aware accounts, transactions, CSV export, and reports route families. Next work should be another narrow concrete post-release task from open issues/release-hardening backlog, preferably a tested read-only bug fix/user-facing UX improvement or real smoke/dogfood maintenance check. Do not publish another tag/release, expand writes, or start v0.2 work without explicit scope.
+- Phase 83 completed a narrow post-release frontend money-display hardening task for #34: dashboard/recent-transaction/cashflow/expense-bar/amount-filter UI decisions now use decimal-string helpers instead of `Number()` on money strings, with lightweight helper coverage. Next work should be another narrow concrete post-release task from open issues/release-hardening backlog, preferably a tested read-only bug fix/user-facing UX improvement or real smoke/dogfood maintenance check. Do not publish another tag/release, expand writes, or start v0.2 work without explicit scope.
 
 ## MVP product model
 
@@ -1531,6 +1532,28 @@ Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/configured 
 Verification result: targeted multi-book tests, backend tests, frontend check/auth-routes/build, Docker Compose config validation, `git diff --check`, release state verification, pushed commit verification, and clean working tree verification are recorded in `docs/handoff/phase-82.md`.
 
 Related issues: GitHub #35 closed as completed with evidence. Open follow-up issues #22, #26, #28–#34, and #36 remain non-blocking backlog for later narrow phases.
+
+## Phase 83 — Frontend Decimal-string Money Display Hardening
+
+Status: complete. Phase commit pushed.
+
+Goal: complete one narrow post-release concrete hardening task from the open read-only/release-hardening backlog by satisfying GitHub #34 with frontend decimal-string money display helpers, without starting audit-only work, write-mode work, a new tag/release, or v0.2 planning.
+
+PM decision: choose #34 because it is low-risk, concrete, testable, and aligns the frontend read-only UI with the project money rule. The expected result is a tested user-facing/display hardening change: frontend amount/balance/total/net decisions should not convert money strings through JS `Number()`.
+
+Artifacts:
+
+- `apps/web/src/lib/money.js` — added decimal-string parse/compare/sign/percentage helpers using `BigInt` rather than JS `Number()` for money strings.
+- `apps/web/scripts/test-money-strings.mjs` and `apps/web/package.json` — added lightweight helper coverage via `npm run test:money-strings`.
+- `apps/web/src/lib/components/SummaryGrid.svelte`, `RecentTransactions.svelte`, `CashflowSummary.svelte`, `ExpensesByAccount.svelte`, and `TransactionFilters.svelte` — replaced money-string `Number()` decisions with decimal-string helpers for sign colors/trends, expense bar widths, and client-side amount-range prevalidation.
+- `docs/handoff/phase-83.md` — PM/engineer handoff and verification report.
+- `README.md`, `CHANGELOG.md`, and `PROJECT_STATUS.md` — post-release status sync.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/configured default. Phase 83 did not enable writes, add write scope, publish a new tag/release, start v0.2 work, claim production readiness/security audit, claim collaborative editing/SaaS/GnuCash replacement status, or add real financial/secrets/runtime artifacts.
+
+Verification result: helper tests, frontend check/auth-routes/build, backend tests, Docker Compose config validation, `git diff --check`, release state verification, pushed commit verification, and clean working tree verification are recorded in `docs/handoff/phase-83.md`.
+
+Related issues: GitHub #34 closed as completed with evidence. Open follow-up issues #22, #26, #28–#33, and #36 remain non-blocking backlog for later narrow phases.
 
 ## Standing constraints
 

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Account } from '$lib/api/types';
+	import { compareDecimalStrings } from '$lib/money.js';
 
 	let {
 		query,
@@ -46,7 +47,7 @@
 	}
 
 	function validateAmountRange(min: string, max: string): string {
-		if (min && max && Number(min) > Number(max)) {
+		if (min && max && compareDecimalStrings(min, max) > 0) {
 			return 'Minimum amount must be less than or equal to maximum amount.';
 		}
 		return '';
