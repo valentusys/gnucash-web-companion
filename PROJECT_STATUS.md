@@ -150,7 +150,7 @@ Completed phases:
 
 Next planned phase:
 
-- Phase 102 is the next practical non-publishing roadmap phase if no safe copied personal-book path is provided and publication remains unauthorized: expand compatibility fixture/version-matrix evidence for GitHub #22 using only safe disposable/generated or explicitly provided copied test books. If Val provides a safe copied/disposable GnuCash SQL book path outside git first, rerun GitHub #38 instead as a local-only read-only dogfood phase with redacted evidence. Do not publish `v0.1.1-readonly` unless Val gives separate explicit authorization in a later request.
+- Phase 102 is planned in `docs/handoff/phase-102-pm-brief.md` as the next practical non-publishing roadmap phase because no safe copied personal-book path was provided and publication remains unauthorized: expand compatibility fixture/version-matrix evidence for GitHub #22 using only safe disposable/generated or explicitly provided copied test books. If Val provides a safe copied/disposable GnuCash SQL book path outside git first, rerun GitHub #38 instead as a local-only read-only dogfood phase with redacted evidence. Do not publish `v0.1.1-readonly` unless Val gives separate explicit authorization in a later request.
 
 ## MVP product model
 
