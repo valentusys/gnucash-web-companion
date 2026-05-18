@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 84.
+Completed through Phase 85.
 
 Completed phases:
 
@@ -100,10 +100,11 @@ Completed phases:
 - Phase 82 — expand read-only multi-book access boundary regression coverage and close #35
 - Phase 83 — replace frontend `Number()` money display decisions and close #34
 - Phase 84 — define tested CSV export truncation/timeout behavior and close #32
+- Phase 85 — post-v0.1 copied personal-book dogfood attempt with safe blocker tracking
 
 Next planned phase:
 
-- Phase 84 completed a narrow post-release CSV export hardening task for #32: successful CSV responses now expose export limit/total/truncated/timeout-policy headers, the SvelteKit export proxy forwards them, tests cover truncated and non-truncated exports with disposable fake data, and the transactions UI/docs state that large exports are synchronous and should be narrowed if they time out. Next work should be another narrow concrete post-release task from open issues/release-hardening backlog, preferably a tested read-only bug fix/user-facing UX improvement or real smoke/dogfood maintenance check. Do not publish another tag/release, expand writes, or start v0.2 work without explicit scope.
+- Phase 85 attempted the post-v0.1 copied personal-book dogfood pass. No safe copied personal GnuCash SQL book was available to this environment outside git, so no successful real-book pass is claimed; a redacted dogfood blocker/result artifact was recorded, GitHub #38 tracks rerunning the pass when a safe copied personal book is available, no private data was committed, and writes remain disabled by default. Next work should not assume Phase 85 passed on real personal data; either provide a safe copied personal book and rerun the dogfood checklist, or choose another narrow concrete post-release maintenance task from the roadmap/open backlog. Do not publish another tag/release, expand writes, or start v0.2 work without explicit scope.
 
 ## MVP product model
 
@@ -1580,6 +1581,26 @@ Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/configured 
 Verification result: targeted CSV export tests, frontend auth-route/proxy checks, frontend check/build, backend tests, Docker Compose config validation, `git diff --check`, release state verification, pushed commit verification, and clean working tree verification are recorded in `docs/handoff/phase-84.md`.
 
 Related issues: GitHub #32 closed as completed with evidence. Open follow-up issues #22, #26, #28–#31, #33, and #36 remain non-blocking backlog for later narrow phases.
+
+## Phase 85 — Post-v0.1 Personal Copied-Book Dogfood
+
+Status: complete with blocker recorded. Phase commit pushed.
+
+Goal: attempt exactly the roadmap Phase 85 dogfood pass against a copied personal GnuCash SQL book outside git, using the published/read-only app posture, without analyst/auditor involvement, write enablement, private-data commits, a new release/tag, or v0.2 work.
+
+PM decision: run only the safe copied personal-book dogfood scenario. The original book must remain untouched, writes must stay disabled, access must be local-only, and no screenshots/exports/private financial data may be committed. If no safe copied personal SQL book is available, record that as a blocker rather than pretending a real-book pass succeeded.
+
+Artifacts:
+
+- `docs/dogfood/phase-85-personal-copied-book-results.md` — redacted dogfood result artifact. It records that no safe copied personal SQL book was available to this environment outside git, so the real-book Docker/browser/API checklist is blocked rather than passed.
+- `docs/handoff/phase-85.md` — PM/engineer handoff, safety scope, blocked runtime checklist, verification, issue, commit, and push evidence.
+- `README.md`, `CHANGELOG.md`, and `PROJECT_STATUS.md` — post-release status sync.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/configured default. Phase 85 did not enable writes, add write scope, publish a new tag/release, start v0.2 work, claim production readiness/security audit, claim collaborative editing/SaaS/GnuCash replacement status, or add real financial/secrets/runtime artifacts. No private account names, private amounts, private paths, screenshots, CSV exports, `.env`, app DB, backup, real GnuCash book, token, cert, or key were committed.
+
+Verification result: required backend tests, frontend check/auth-routes/build, Docker Compose config validation, `git diff --check`, release state verification, pushed commit verification, and clean working tree verification are recorded in `docs/handoff/phase-85.md`. Docker/browser/API smoke against the copied personal book is explicitly blocked because no safe copied personal SQL book is available in this environment.
+
+Related issues: GitHub #38 opened to track rerunning the copied personal-book dogfood checklist when a safe copied personal SQL book is available. No existing issue was closed without runtime evidence.
 
 ## Standing constraints
 

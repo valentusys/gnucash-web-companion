@@ -40,7 +40,7 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–84 are complete.
+- Phase 0–85 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by default.
 - First public pre-alpha release: `v0.0.1-prealpha`.
@@ -78,7 +78,8 @@ This project is not a fit if you need:
 - Phase 81 completed post-release hardening for #27: default-book seed logs now expose only a sanitized book filename/label instead of full filesystem paths or connection URI details; regression tests cover path and URI redaction. No new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 - Phase 82 completed post-release read-only boundary hardening for #35: backend regression tests now cover archived-book hiding/blocking and unauthorized access denial across the book-aware accounts, transactions, CSV export, and reports route families. No new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 - Phase 83 completed post-release frontend money-display hardening for #34: dashboard/recent-transaction/cashflow/expense-bar/amount-filter UI decisions now use decimal-string helpers instead of `Number()` on money strings. No new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
-- Phase 84 completed post-release CSV export truncation/timeout hardening for #32: successful CSV export responses now advertise the row cap, matching total, truncation flag, and synchronous timeout policy; the frontend export proxy forwards those headers; tests cover truncated/non-truncated exports with disposable fake data; and the transactions UI/docs tell users/operators that large exports are synchronous and should be narrowed if they time out. No new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
+- Phase 84 completed post-release CSV export truncation/timeout hardening for #32: successful CSV export responses now advertise the row cap, matching total, truncation flag, and synchronous timeout policy; the frontend export proxy forwards them; tests cover truncated and non-truncated exports with disposable fake data; and the transactions UI/docs tell users/operators that large exports are synchronous and should be narrowed if they time out. No new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
+- Phase 85 attempted the post-v0.1 copied personal-book dogfood pass. No safe copied personal GnuCash SQL book was available to this environment outside git, so no real-book pass is claimed; a redacted blocker/result artifact was recorded in [docs/dogfood/phase-85-personal-copied-book-results.md](docs/dogfood/phase-85-personal-copied-book-results.md), GitHub #38 tracks the rerun when a safe copied book is available, no private data was committed, and writes remain disabled by default.
 
 ## MVP scope: read-only first
 
