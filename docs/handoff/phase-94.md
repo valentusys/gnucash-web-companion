@@ -108,8 +108,8 @@ PASS
 
 ### Commit/push
 
-Phase implementation commit:
+Phase implementation commits:
 
-- Current commit: `docs: record phase 94 maintenance decision`
+- `f578ebf docs: record phase 94 maintenance decision`
 
-Push evidence to be recorded after `git push origin main` succeeds.
+Push evidence: `git push origin main` succeeded and remote `origin/main` advanced from `4613d33` to `f578ebf`.
