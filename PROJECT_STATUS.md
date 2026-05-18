@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 73.
+Completed through Phase 74.
 
 Completed phases:
 
@@ -89,10 +89,11 @@ Completed phases:
 - Phase 71 — performance risk audit
 - Phase 72 — data model and money correctness audit
 - Phase 73 — multi-book access model audit
+- Phase 74 — controlled writes boundary audit
 
 Next planned phase:
 
-- Continue the auditor roadmap with Phase 74 only when explicitly requested. Do not create a v0.1 tag/GitHub release until #24/#25 are handled by an explicit later phase. Phase 73 confirmed the multi-book access model remains explicit and read-only: `GET /books` is scoped by `UserBookAccess`, unauthorized book-aware routes are blocked, the frontend switcher only shows accessible independent books, and archive/visibility semantics are now documented. GitHub #35 tracks non-blocking test hardening for archived books and full route-family access-boundary coverage. Phase 73 did not publish a release and did not unblock v0.1 publication.
+- Continue the auditor roadmap with Phase 75 only when explicitly requested. Do not create a v0.1 tag/GitHub release until #24/#25 are handled by an explicit later phase. Phase 74 confirmed controlled writes remain experimental/post-MVP and disabled by default: `GNUCASH_WRITES_ENABLED=false` remains the backend/default environment setting, backend validate/create/patch write routes are gated before write service construction, frontend write UI is hidden unless explicitly enabled and requires warning/acknowledgement, disposable-fixture write tests plus file-lock/backup-restore coverage exist, and GitHub #36 tracks remaining v0.2 write-readiness gates. Phase 74 did not publish a release, did not enable writes, did not expand write scope, and did not unblock v0.1 publication.
 
 ## MVP product model
 
@@ -1318,6 +1319,27 @@ Multi-book access result: user-book access remains explicit through `UserBookAcc
 Test results: static multi-book access/documentation audit checks, backend full suite, frontend check/auth-routes/build, Docker Compose config validation, and `git diff --check` are recorded in the Phase 73 handoff.
 
 Related issues: GitHub #35 was created for archived-book/full route-family multi-book access boundary test hardening. GitHub #24 and #25 remain v0.1 release blockers; GitHub #27 remains open for seed-log path redaction; GitHub #26, #22, #28, #29, #30–#34 remain open for deployment/compatibility/markdown/localization/performance/money follow-up.
+
+## Phase 74 — Controlled Writes Boundary Audit
+
+Status: complete. Phase commit pushed.
+
+Goal: re-audit the controlled-writes boundary from the auditor roadmap without enabling writes, expanding write scope, publishing a release, or implying write-mode safety for real books.
+
+Artifacts:
+
+- `docs/audits/phase-74-audit.md` — independent Phase 74 controlled-writes boundary audit artifact with verdict: keep writes experimental.
+- `README.md` — current status advanced through Phase 74 and latest-audit link updated.
+- `CHANGELOG.md` — Unreleased entry added for the release-facing Phase 74 audit result.
+- `docs/handoff/phase-74.md` — PM/auditor/engineer handoff and verification report.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default state; controlled writes remain experimental post-MVP and disabled by default. Phase 74 did not enable writes, expand write scope, publish a v0.1 tag/release, claim production readiness/security audit, claim safe write mode, or add real financial/secrets artifacts.
+
+Controlled-writes boundary result: backend validate/create/patch routes call the write feature gate before resolving books or constructing `GnuCashWriteService`; frontend write UI is hidden unless explicitly enabled and requires warning/acknowledgement; write integration tests and backup/restore tests use disposable copied fixtures; file-based locking and backup restore smoke coverage are documented. Remaining v0.2 write-readiness gaps are tracked in #36.
+
+Test results: static controlled-writes boundary audit checks, backend full suite, frontend check/auth-routes/build, Docker Compose config validation, and `git diff --check` are recorded in the Phase 74 handoff.
+
+Related issues: GitHub #36 was created for remaining controlled-write v0.2 readiness gates. GitHub #24 and #25 remain v0.1 release blockers; GitHub #22 remains open for real GnuCash version fixture coverage; GitHub #27 remains open for seed-log path redaction; GitHub #26, #28, #29, #30–#35 remain open for deployment/markdown/localization/performance/money/multi-book follow-up.
 
 ## Standing constraints
 

@@ -40,12 +40,12 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–73 are complete.
+- Phase 0–74 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by default.
 - First public pre-alpha release: `v0.0.1-prealpha`.
 - Current public pre-alpha release: [`v0.0.2-prealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.0.2-prealpha).
-- Latest audit: [docs/audits/phase-73-audit.md](docs/audits/phase-73-audit.md).
+- Latest audit: [docs/audits/phase-74-audit.md](docs/audits/phase-74-audit.md).
 - Russian localization/i18n foundation started in Phase 52; English documentation remains canonical. See [README.ru.md](README.ru.md) and [docs/localization.md](docs/localization.md).
 - Community announcement drafts and where-to-share guidance were refreshed in Phase 53 for cautious feedback collection, not production marketing.
 - Startup diagnostics, a richer non-sensitive health endpoint, and troubleshooting guidance were added in Phase 54 for self-hosted deployments.
@@ -68,6 +68,7 @@ This project is not a fit if you need:
 - Phase 71 completed a performance-risk audit: no new blocker was found for the current pre-alpha/read-only posture, but large-book, many-splits, CSV timeout/truncation, and dashboard aggregate performance evidence is not available yet and is tracked in #30–#33; do not claim known large-book scalability.
 - Phase 72 completed a data model and money-correctness audit: backend core money paths use Decimal/string DTOs and CSV export preserves decimal strings; canonical sign/split guidance is now in [docs/money-model.md](docs/money-model.md), and frontend display-only `Number()` money usage is tracked in #34; v0.1 publication remains blocked by #24/#25.
 - Phase 73 completed a multi-book access model audit: user-book access remains explicit through `UserBookAccess`, unauthorized book-aware routes are blocked, the switcher shows only accessible independent read-only books, archive/visibility semantics were clarified in [docs/book-switcher-readonly-model.md](docs/book-switcher-readonly-model.md), and #35 tracks archived-book/full route-family boundary-test hardening; v0.1 publication remains blocked by #24/#25.
+- Phase 74 completed a controlled-writes boundary audit: writes remain disabled by default, backend validate/create/patch routes are feature-gated before write service construction, write UI remains hidden unless explicitly enabled and requires warning/acknowledgement, disposable-fixture write tests plus lock/backup-restore coverage exist, and #36 tracks remaining v0.2 write-readiness gates; write mode remains experimental/post-MVP and v0.1 publication remains blocked by #24/#25.
 
 ## MVP scope: read-only first
 
