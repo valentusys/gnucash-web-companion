@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 96.
+Completed through Phase 97.
 
 Completed phases:
 
@@ -112,6 +112,7 @@ Completed phases:
 - Phase 94 — post-v0.1 maintenance release decision
 - Phase 95 — CSV export row-count/header mismatch fix
 - Phase 96 — synthetic large-export benchmark and UX confirmation
+- Phase 97 — v0.1.1-readonly release-prep checklist and notes
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -133,9 +134,11 @@ Completed phases:
 
 - Phase 96 confirmed the Phase 95 / GitHub #39 fix through the generated synthetic large-book benchmark path and a narrow frontend UX copy check. The 1,000-transaction synthetic benchmark returned 1,000 CSV data rows with `csv_limit=10000`, `csv_total=1000`, `truncated=False`, `csv_expected_body_rows=1000`, and `csv_body_matches_expected=True`; results are documented in `docs/performance/phase-96-large-export-benchmark.md`. Benchmark JSON now records expected body-row consistency fields, and the transaction export helper copy now states that export is read-only, filtered, capped at 10,000 rows, synchronous, and may require narrower filters if a request times out or is truncated. GitHub #39 remains closed; GitHub #38 remains open and separate for copied personal-book dogfood. No real/private data was committed, no tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
+- Phase 97 prepared conservative `v0.1.1-readonly` release-prep artifacts without publishing a tag/release: `docs/release/v0.1.1-readonly-notes.md` and `docs/release/v0.1.1-readonly-checklist.md`. The notes/checklist summarize post-`v0.1.0-readonly` maintenance value, especially the Phase 95 CSV export fix and Phase 96 synthetic benchmark confirmation, while keeping pre-alpha/read-only/default-write-disabled safety language and explicitly requiring a later Phase 98 release gate before publication. GitHub #39 remains closed; GitHub #38 remains open/blocked for copied personal-book dogfood. No real/private financial data, GnuCash books, `.env`, app DBs, backups, screenshots, exports, secrets, tokens, certs, or keys were committed; writes remain disabled by default; controlled writes remain post-MVP/experimental; no v0.2 work was started.
+
 Next planned phase:
 
-- Phase 97 PM brief is prepared in `docs/handoff/phase-97-pm-brief.md`: prepare conservative `v0.1.1-readonly` release notes/checklist after the confirmed Phase 95/#39 CSV export fix and Phase 96 synthetic benchmark evidence. Keep #38 separate and open unless a safe copied personal SQL book is available outside git; do not publish a tag/release in Phase 97.
+- Phase 98: run the `v0.1.1-readonly` release-gate verification before any publication. Required gate should include backend/frontend/Docker checks, disabled-write/read-only safety confirmation, sensitive-data hygiene, GitHub Actions/release state when authenticated, and a final verdict artifact. Do not publish a tag/release until a later explicitly authorized publish phase.
 
 ## MVP product model
 
@@ -1741,6 +1744,29 @@ Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/configured 
 Verification result: required backend/frontend/docker/git checks plus release/tag/open-issue verification are recorded in `docs/handoff/phase-94.md`.
 
 Related issues: GitHub #39 updated with Phase 94 release-decision evidence and kept open as the maintenance-release prep blocker. GitHub #38 remains open for the separate copied personal-book dogfood rerun when a safe copied SQL book is available.
+
+## Phase 97 — v0.1.1-readonly Release-Prep Checklist and Notes
+
+Status: complete. Phase commit pushed.
+
+Goal: prepare conservative `v0.1.1-readonly` release notes and a release-prep checklist after the Phase 95 GitHub #39 CSV export fix and Phase 96 synthetic benchmark confirmation, without publishing a tag/release.
+
+PM decision: release-prep only. Do not publish `v0.1.1-readonly`, do not run the final release gate in this phase, do not claim production readiness/security audit/broad compatibility/personal-book dogfood success, and keep #38 separate unless a safe copied personal SQL book becomes available outside git.
+
+Artifacts:
+
+- `docs/release/v0.1.1-readonly-notes.md` — conservative draft release notes for a future GitHub pre-release.
+- `docs/release/v0.1.1-readonly-checklist.md` — release-prep checklist separating completed Phase 95/96 evidence, required Phase 98 gate checks, intentionally unauthorized publication steps, known limitations, and open issues.
+- `docs/handoff/phase-97.md` — PM/engineer handoff with implementation summary, safety statement, verification, release/GitHub state, commit, and push evidence.
+- `CHANGELOG.md` and `PROJECT_STATUS.md` — status sync through Phase 97.
+
+Release-prep result: the candidate notes/checklist summarize post-`v0.1.0-readonly` maintenance value, especially the Phase 95 CSV export fix and Phase 96 synthetic benchmark confirmation, while explicitly stating that `v0.1.1-readonly` is not published yet and still requires Phase 98 release-gate verification before any authorized publication.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/configured default. Phase 97 did not enable writes, add write scope, publish a tag/release, start v0.2 work, claim production readiness/security audit/broad compatibility/personal-book dogfood success, or add real financial/secrets/runtime artifacts.
+
+Verification result: `git diff --check` passed. Backend/frontend/Docker checks were not run because Phase 97 changed only docs/release/status/handoff artifacts and did not touch backend, frontend, or config code; those checks are required for Phase 98 release-gate verification.
+
+Related issues: GitHub #39 remains closed based on Phase 95/96 synthetic evidence. GitHub #38 remains open/blocked pending a safe copied personal GnuCash SQL book outside git.
 
 ## Standing constraints
 
