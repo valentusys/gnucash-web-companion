@@ -339,6 +339,11 @@ class GnuCashBookService:
             income_this_month=format_money(income_this_month),
             expenses_this_month=format_money(-expenses_this_month),
             as_of_date=today.isoformat(),
+            reporting_basis="base_currency_only",
+            includes_currency_conversion=False,
+            limitations=[
+                f"Only {self.base_currency} accounts and splits are included; other currencies are excluded without conversion."
+            ],
         )
 
     def get_expenses_by_account(

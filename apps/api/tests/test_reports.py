@@ -318,6 +318,20 @@ def fake_book_for_reports(tmp_path, monkeypatch, fake_report_data):
     return book_path
 
 
+@pytest.fixture
+def empty_fake_book_for_reports(tmp_path, monkeypatch):
+    book_path = tmp_path / "empty-reports.gnucash"
+    book_path.write_text("fake")
+
+    def fake_open_book(path, readonly=False):
+        return FakeBookForReports(accounts=[], transactions=[])
+
+    import app.services.gnucash_book as gb_module
+
+    monkeypatch.setattr(gb_module.piecash, "open_book", fake_open_book)
+    return book_path
+
+
 # ---------------------------------------------------------------------------
 # Tests: GET /reports/summary (MVP alias)
 # ---------------------------------------------------------------------------
@@ -327,6 +341,39 @@ class TestReportSummaryMVP:
     def test_requires_auth(self, client):
         response = client.get("/reports/summary")
         assert response.status_code == 401
+
+    def test_invalid_as_of_date_returns_clear_client_error(self, client, auth_headers, sample_book):
+        response = client.get(
+            "/reports/summary?as_of_date=not-a-date",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 422
+        assert response.json()["detail"] == "as_of_date must be a valid YYYY-MM-DD date"
+
+    def test_empty_book_returns_conservative_zero_summary(
+        self, client, auth_headers, sample_book, empty_fake_book_for_reports, session_factory
+    ):
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(empty_fake_book_for_reports)
+            session.commit()
+
+        response = client.get(
+            "/reports/summary?as_of_date=2026-05-16",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["net_worth"] == "0.00"
+        assert data["assets"] == "0.00"
+        assert data["liabilities"] == "0.00"
+        assert data["income_this_month"] == "0.00"
+        assert data["expenses_this_month"] == "0.00"
+        assert data["limitations"] == [
+            "Only SEK accounts and splits are included; other currencies are excluded without conversion."
+        ]
 
     def test_returns_summary_shape(
         self, client, auth_headers, sample_book, fake_book_for_reports, session_factory
@@ -349,8 +396,16 @@ class TestReportSummaryMVP:
         assert "income_this_month" in data
         assert "expenses_this_month" in data
         assert "as_of_date" in data
+        assert "reporting_basis" in data
+        assert "includes_currency_conversion" in data
+        assert "limitations" in data
         assert data["currency"] == "SEK"
         assert data["as_of_date"] == "2026-05-16"
+        assert data["reporting_basis"] == "base_currency_only"
+        assert data["includes_currency_conversion"] is False
+        assert data["limitations"] == [
+            "Only SEK accounts and splits are included; other currencies are excluded without conversion."
+        ]
 
     def test_summary_values(
         self, client, auth_headers, sample_book, fake_book_for_reports, session_factory
@@ -475,6 +530,19 @@ class TestRecentTransactionsMVP:
         data = response.json()
         assert len(data) <= 2
 
+    def test_empty_book_returns_empty_recent_transactions(
+        self, client, auth_headers, sample_book, empty_fake_book_for_reports, session_factory
+    ):
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(empty_fake_book_for_reports)
+            session.commit()
+
+        response = client.get("/reports/recent-transactions", headers=auth_headers)
+
+        assert response.status_code == 200
+        assert response.json() == []
+
     def test_access_denied(
         self, client, viewer_headers, sample_book, fake_book_for_reports, session_factory
     ):
@@ -497,6 +565,15 @@ class TestExpensesByAccountMVP:
         response = client.get("/reports/expenses-by-account")
         assert response.status_code == 401
 
+    def test_invalid_date_returns_clear_client_error(self, client, auth_headers, sample_book):
+        response = client.get(
+            "/reports/expenses-by-account?date_from=2026-05-01&date_to=bad-date",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 422
+        assert response.json()["detail"] == "date_to must be a valid YYYY-MM-DD date"
+
     def test_returns_expenses_list(
         self, client, auth_headers, sample_book, fake_book_for_reports, session_factory
     ):
@@ -517,6 +594,22 @@ class TestExpensesByAccountMVP:
             assert "account_name" in item
             assert "total" in item
             assert "currency" in item
+
+    def test_empty_book_returns_empty_expenses_list(
+        self, client, auth_headers, sample_book, empty_fake_book_for_reports, session_factory
+    ):
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(empty_fake_book_for_reports)
+            session.commit()
+
+        response = client.get(
+            "/reports/expenses-by-account?date_from=2026-05-01&date_to=2026-05-31",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        assert response.json() == []
 
     def test_expenses_sorted_by_total_desc(
         self, client, auth_headers, sample_book, fake_book_for_reports, session_factory
@@ -546,6 +639,15 @@ class TestCashflowMVP:
         response = client.get("/reports/cashflow")
         assert response.status_code == 401
 
+    def test_invalid_date_returns_clear_client_error(self, client, auth_headers, sample_book):
+        response = client.get(
+            "/reports/cashflow?date_from=not-a-date&date_to=2026-05-31",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 422
+        assert response.json()["detail"] == "date_from must be a valid YYYY-MM-DD date"
+
     def test_returns_cashflow(
         self, client, auth_headers, sample_book, fake_book_for_reports, session_factory
     ):
@@ -566,6 +668,26 @@ class TestCashflowMVP:
         assert "inflow" in data
         assert "outflow" in data
         assert "net" in data
+
+    def test_empty_book_returns_zero_cashflow(
+        self, client, auth_headers, sample_book, empty_fake_book_for_reports, session_factory
+    ):
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(empty_fake_book_for_reports)
+            session.commit()
+
+        response = client.get(
+            "/reports/cashflow?date_from=2026-05-01&date_to=2026-05-31",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["currency"] == "SEK"
+        assert data["inflow"] == "0.00"
+        assert data["outflow"] == "0.00"
+        assert data["net"] == "0.00"
 
     def test_cashflow_excludes_non_base_currency_splits(
         self,

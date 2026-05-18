@@ -10,10 +10,10 @@ Multi-currency limitation:
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.models import Book, User
@@ -51,6 +51,35 @@ def _current_month_range() -> tuple[str, str]:
     return first_of_month.isoformat(), today.isoformat()
 
 
+def _parse_report_date(value: str | None, field_name: str) -> date | None:
+    if value is None:
+        return None
+    try:
+        return date.fromisoformat(value)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail=f"{field_name} must be a valid YYYY-MM-DD date",
+        ) from exc
+
+
+def _normalize_report_date_range(
+    date_from: str | None,
+    date_to: str | None,
+) -> tuple[str, str]:
+    if date_from is None or date_to is None:
+        return _current_month_range()
+    parsed_from = _parse_report_date(date_from, "date_from")
+    parsed_to = _parse_report_date(date_to, "date_to")
+    assert parsed_from is not None and parsed_to is not None
+    if parsed_from > parsed_to:
+        raise HTTPException(
+            status_code=422,
+            detail="date_from must be on or before date_to",
+        )
+    return parsed_from.isoformat(), parsed_to.isoformat()
+
+
 # ---------------------------------------------------------------------------
 # Book-aware endpoints
 # ---------------------------------------------------------------------------
@@ -67,9 +96,7 @@ async def get_book_report_summary(
     book = _resolve_viewable_book(book_id, user, session)
     try:
         service = transaction_service_for(book)
-        parsed_date = None
-        if as_of_date:
-            parsed_date = date.fromisoformat(as_of_date)
+        parsed_date = _parse_report_date(as_of_date, "as_of_date")
         summary = service.get_report_summary(as_of_date=parsed_date)
     except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
         handle_gnucash_error(exc)
@@ -92,8 +119,7 @@ async def get_book_cashflow(
     book = _resolve_viewable_book(book_id, user, session)
     try:
         service = transaction_service_for(book)
-        if date_from is None or date_to is None:
-            date_from, date_to = _current_month_range()
+        date_from, date_to = _normalize_report_date_range(date_from, date_to)
         if by_month:
             periods = service.get_cashflow_by_month(date_from, date_to)
             return [period.model_dump() for period in periods]
@@ -120,8 +146,7 @@ async def get_book_expenses_by_account(
     book = _resolve_viewable_book(book_id, user, session)
     try:
         service = transaction_service_for(book)
-        if date_from is None or date_to is None:
-            date_from, date_to = _current_month_range()
+        date_from, date_to = _normalize_report_date_range(date_from, date_to)
         expenses = service.get_expenses_by_account(date_from, date_to)
     except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
         handle_gnucash_error(exc)
@@ -160,9 +185,7 @@ async def get_default_report_summary(
     book = resolve_default_viewable_book(user, session)
     try:
         service = transaction_service_for(book)
-        parsed_date = None
-        if as_of_date:
-            parsed_date = date.fromisoformat(as_of_date)
+        parsed_date = _parse_report_date(as_of_date, "as_of_date")
         summary = service.get_report_summary(as_of_date=parsed_date)
     except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
         handle_gnucash_error(exc)
@@ -184,8 +207,7 @@ async def get_default_cashflow(
     book = resolve_default_viewable_book(user, session)
     try:
         service = transaction_service_for(book)
-        if date_from is None or date_to is None:
-            date_from, date_to = _current_month_range()
+        date_from, date_to = _normalize_report_date_range(date_from, date_to)
         if by_month:
             periods = service.get_cashflow_by_month(date_from, date_to)
             return [period.model_dump() for period in periods]
@@ -211,8 +233,7 @@ async def get_default_expenses_by_account(
     book = resolve_default_viewable_book(user, session)
     try:
         service = transaction_service_for(book)
-        if date_from is None or date_to is None:
-            date_from, date_to = _current_month_range()
+        date_from, date_to = _normalize_report_date_range(date_from, date_to)
         expenses = service.get_expenses_by_account(date_from, date_to)
     except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
         handle_gnucash_error(exc)

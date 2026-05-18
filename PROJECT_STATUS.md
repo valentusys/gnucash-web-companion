@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 88.
+Completed through Phase 89.
 
 Completed phases:
 
@@ -104,14 +104,17 @@ Completed phases:
 - Phase 86 — Phase 85 dogfood blocker triage and safe copied-book preflight helper
 - Phase 87 — large-book read-only benchmark v1
 - Phase 88 — account with many splits performance test
+- Phase 89 — dashboard aggregate performance and correctness pass
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
 - Phase 88 completed the account-with-many-splits performance test on generated synthetic data only: the benchmark fixture now includes 1,000 transactions, one 60-split transaction, account-detail pagination checks for offsets 0 and 50, and transaction-detail rendering for the many-splits transaction. Results are documented in `docs/performance/phase-88-many-splits-benchmark.md`. The many-splits detail path rendered 60 splits without endpoint failure in the local/TestClient run; account-detail pagination remains above one second locally and is documented as a limitation rather than a scalability claim. GitHub #31 was closed with evidence. GitHub #39 remains open for the CSV export row-count/header mismatch. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
+- Phase 89 completed the dashboard aggregate performance and correctness pass on generated synthetic data only: dashboard summary now exposes `reporting_basis=base_currency_only`, `includes_currency_conversion=false`, and no-conversion/mixed-currency limitations, the web dashboard displays those limitations, report date validation now returns clearer `422` client errors, and the large-book benchmark now covers dashboard summary, cashflow-by-month, expenses-by-account, and recent-transactions. Results are documented in `docs/performance/phase-89-dashboard-aggregate-benchmark.md`. All dashboard endpoints returned `200` in the 1,000-transaction local/TestClient benchmark; cashflow-by-month and recent-transactions remain service-layer scans and are documented as pre-alpha evidence rather than a production scalability claim. GitHub #33 was closed with evidence. GitHub #39 remains open for the CSV export row-count/header mismatch. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
+
 Next planned phase:
 
-- Phase 89 should remain a concrete read-only maintenance/performance result from the roadmap; prefer a narrow tested dashboard aggregate benchmark/follow-up using generated synthetic data only, and do not enable writes, start v0.2, or publish a release.
+- Phase 90 should remain a concrete read-only maintenance/runtime/result phase from the roadmap; do not enable writes, start v0.2, publish a release, or create an audit-only phase unless explicitly requested.
 
 ## MVP product model
 
@@ -1630,6 +1633,71 @@ Safety result: writes remain disabled by default. The helper does not parse, cop
 Verification result: the new regression test and required backend/frontend/docker/git checks are recorded in `docs/handoff/phase-86.md`. Docker/browser/API personal-book dogfood remains blocked until #38 has a safe copied book; Phase 86 does not claim a real-book pass.
 
 Related issues: GitHub #38 updated with Phase 86 triage and preflight-helper evidence, but kept open because the real copied personal-book dogfood rerun still requires a safe copied book.
+
+## Phase 87 — Large-book Read-only Benchmark v1
+
+Status: complete. Phase commit pushed.
+
+Goal: add a generated synthetic large-book benchmark for read-only API paths without using private books, enabling writes, publishing a release, or starting v0.2 work.
+
+Artifacts:
+
+- `apps/api/app/performance/large_book_benchmark.py` — synthetic benchmark fixture and authenticated read-only API measurement helper.
+- `apps/api/scripts/run_large_book_benchmark.py` — local benchmark CLI.
+- `apps/api/tests/test_large_book_benchmark.py` — regression coverage for benchmark plan/scope.
+- `docs/performance/phase-87-large-book-benchmark.md` — benchmark evidence and limitations.
+- `docs/handoff/phase-87.md` — PM/engineer handoff.
+
+Safety result: generated synthetic data only, no committed generated binary fixture, no write-mode work, no v0.2 work, no tag/release.
+
+Related issues: GitHub #30 closed as completed. GitHub #39 opened for CSV export row-count/header mismatch.
+
+## Phase 88 — Account with Many Splits Performance Test
+
+Status: complete. Phase commit pushed.
+
+Goal: extend the synthetic read-only benchmark to include many-splits transaction detail and account transaction pagination evidence.
+
+Artifacts:
+
+- `apps/api/app/performance/large_book_benchmark.py` — now creates one 60-split transaction and measures account-detail pagination plus many-splits transaction detail.
+- `apps/api/tests/test_large_book_benchmark.py` — regression coverage for many-splits scope.
+- `docs/performance/phase-88-many-splits-benchmark.md` — benchmark evidence and limitations.
+- `docs/handoff/phase-88.md` — PM/engineer handoff.
+
+Safety result: generated synthetic data only, no committed generated binary fixture, no write-mode work, no v0.2 work, no tag/release.
+
+Related issues: GitHub #31 closed as completed. GitHub #39 remains open for CSV export row-count/header mismatch.
+
+## Phase 89 — Dashboard Aggregate Performance and Correctness Pass
+
+Status: complete. Phase commit pushed.
+
+Goal: make dashboard aggregates less likely to be slow or misleading on larger books by hardening conservative reporting claims and expanding synthetic benchmark coverage.
+
+PM decision: implement exactly the roadmap Phase 89 dashboard aggregate pass. Dashboard claims must remain conservative: no fake currency conversion, base-currency-only reporting, visible limitations/empty/error behavior, and measured read-only aggregate endpoints rather than broad performance claims.
+
+Artifacts:
+
+- `apps/api/app/routers/reports.py` — centralized dashboard report date parsing/range validation and clear `422` client errors.
+- `apps/api/app/services/gnucash_book.py` — summary DTO now includes `reporting_basis="base_currency_only"`, `includes_currency_conversion=false`, and explicit no-conversion/mixed-currency limitation text.
+- `apps/api/app/schemas/gnucash.py` — summary schema includes the conservative reporting metadata.
+- `apps/api/tests/test_reports.py` — regression coverage for empty summary, mixed-currency exclusion, date error quality, cashflow, expenses, recent transactions, and book-aware report endpoints.
+- `apps/api/app/performance/large_book_benchmark.py` — benchmark now covers dashboard summary, cashflow-by-month, expenses-by-account, and recent-transactions.
+- `apps/api/tests/test_large_book_benchmark.py` — regression coverage for the expanded dashboard benchmark plan.
+- `apps/web/src/lib/api/types.ts` — frontend summary type includes conservative reporting metadata.
+- `apps/web/src/routes/dashboard/+page.svelte` — dashboard renders the summary limitation visibly above summary cards.
+- `docs/performance/phase-89-dashboard-aggregate-benchmark.md` — benchmark command, local results, findings, and limitations.
+- `docs/handoff/phase-89.md` — PM/engineer handoff.
+- `README.md`, `CHANGELOG.md`, and `PROJECT_STATUS.md` — status sync.
+
+Benchmark result: the 1,000-transaction synthetic TestClient benchmark returned `200` for dashboard summary, cashflow-by-month, expenses-by-account, and recent-transactions. Summary and expenses-by-account were below one second locally; cashflow-by-month and recent-transactions were also below one second locally but remain service-layer scans and are not a production scalability guarantee.
+
+Safety result: generated synthetic data only. `GNUCASH_WRITES_ENABLED=false` remains the documented/configured default. Phase 89 did not enable writes, add write scope, publish a new tag/release, start v0.2 work, claim production readiness/security audit, claim collaborative editing/SaaS/GnuCash replacement status, or add real financial/secrets/runtime artifacts.
+
+Verification result: targeted report/benchmark tests and required backend/frontend/docker/git checks are recorded in `docs/handoff/phase-89.md`.
+
+Related issues: GitHub #33 closed as completed with Phase 89 evidence. GitHub #39 remains open for the existing CSV export row-count/header mismatch.
 
 ## Standing constraints
 

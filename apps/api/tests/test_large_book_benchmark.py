@@ -25,6 +25,9 @@ def test_benchmark_plan_covers_phase_87_read_only_scope() -> None:
         "account_detail_transactions_page_2",
         "many_splits_transaction_detail",
         "dashboard_summary",
+        "dashboard_cashflow_monthly",
+        "dashboard_expenses_by_account_month",
+        "dashboard_recent_transactions",
         "csv_export_up_to_cap",
     ]
     assert plan == BENCHMARK_CASES

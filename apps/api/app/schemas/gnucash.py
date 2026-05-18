@@ -88,7 +88,8 @@ class ReportSummaryDTO(BaseModel):
     """Dashboard summary: net worth, assets, liabilities, income/expenses this month.
 
     Multi-currency limitation: only accounts whose commodity matches the book's
-    base currency are included. Accounts in other currencies are silently excluded.
+    base currency are included. Accounts in other currencies are excluded with an
+    explicit limitation message; no currency conversion is performed.
     """
 
     currency: str
@@ -98,6 +99,9 @@ class ReportSummaryDTO(BaseModel):
     income_this_month: str
     expenses_this_month: str
     as_of_date: str
+    reporting_basis: str = "base_currency_only"
+    includes_currency_conversion: bool = False
+    limitations: list[str] = Field(default_factory=list)
 
 
 class ExpenseByAccountDTO(BaseModel):

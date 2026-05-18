@@ -29,6 +29,19 @@ import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 
 	<section class="mt-6" aria-labelledby="summary-heading">
 		<h2 id="summary-heading" class="mb-3 text-sm font-medium uppercase tracking-wide" style="color: var(--app-muted);">Summary</h2>
+		{#if data.summary?.limitations?.length}
+			<div
+				class="mb-3 rounded-lg p-3 text-sm"
+				style="background-color: color-mix(in srgb, var(--app-warning) 10%, var(--app-panel)); color: var(--app-text); border: 1px solid color-mix(in srgb, var(--app-warning) 55%, var(--app-border));"
+			>
+				<p class="font-semibold">Conservative dashboard totals</p>
+				<ul class="mt-1 list-disc pl-5" style="color: var(--app-muted);">
+					{#each data.summary.limitations as limitation}
+						<li>{limitation}</li>
+					{/each}
+				</ul>
+			</div>
+		{/if}
 		<SummaryGrid summary={data.summary} />
 	</section>
 

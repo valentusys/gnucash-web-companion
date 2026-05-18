@@ -66,6 +66,9 @@ export type ReportSummary = {
 	income_this_month: string;
 	expenses_this_month: string;
 	as_of_date: string;
+	reporting_basis?: string;
+	includes_currency_conversion?: boolean;
+	limitations?: string[];
 };
 
 export type ExpenseByAccount = {

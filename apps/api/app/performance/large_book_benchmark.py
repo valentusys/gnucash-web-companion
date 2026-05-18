@@ -77,6 +77,21 @@ BENCHMARK_CASES: list[BenchmarkCase] = [
         "/books/{book_id}/transactions/{many_split_transaction_id}",
     ),
     BenchmarkCase("dashboard_summary", "GET", "/books/{book_id}/reports/summary?as_of_date=2026-12-31"),
+    BenchmarkCase(
+        "dashboard_cashflow_monthly",
+        "GET",
+        "/books/{book_id}/reports/cashflow?date_from=2026-01-01&date_to=2026-12-31&by_month=true",
+    ),
+    BenchmarkCase(
+        "dashboard_expenses_by_account_month",
+        "GET",
+        "/books/{book_id}/reports/expenses-by-account?date_from=2026-12-01&date_to=2026-12-31",
+    ),
+    BenchmarkCase(
+        "dashboard_recent_transactions",
+        "GET",
+        "/books/{book_id}/reports/recent-transactions?limit=10",
+    ),
     BenchmarkCase("csv_export_up_to_cap", "GET", "/books/{book_id}/transactions/export"),
 ]
 
