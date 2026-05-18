@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 59.
+Completed through Phase 60.
 
 Completed phases:
 
@@ -75,10 +75,11 @@ Completed phases:
 - Phase 57 — v0.1.0-readonly release-gate audit
 - Phase 58 — v0.1.0-readonly release publication audit
 - Phase 59 — post-release regression risk audit
+- Phase 60 — dogfood readiness audit
 
 Next planned phase:
 
-- Resolve Phase 57/58/59 release-publication blockers before any `v0.1.0-readonly` publication: create conservative v0.1 release notes and complete/record copied-or-disposable-data runtime smoke/dogfood evidence. Do not create a v0.1 tag/GitHub release until those blockers are handled by an explicit later phase.
+- Resolve Phase 57/58/59/60 release-publication blockers before any `v0.1.0-readonly` publication: create conservative v0.1 release notes and complete/record copied-or-disposable-data runtime smoke/dogfood evidence. Phase 60 confirms dogfood docs are ready to execute, but does not record a completed dogfood pass. Do not create a v0.1 tag/GitHub release until those blockers are handled by an explicit later phase.
 
 ## MVP product model
 
@@ -986,6 +987,27 @@ Post-release regression result: a true post-v0.1 regression audit is not applica
 Test results: backend full suite, frontend check/auth-routes/build, Docker Compose config validation, and `git diff --check` are recorded in the Phase 59 handoff.
 
 Related issues: no new issue created; GitHub #24 and #25 were updated with Phase 59 audit comments and remain the meaningful v0.1 publication blockers.
+
+## Phase 60 — Dogfood Readiness Audit
+
+Status: complete. Phase commit pushed.
+
+Goal: audit whether the maintainer can safely start read-only dogfood on a copied real GnuCash SQL book, without performing the dogfood run, publishing a release, expanding write scope, or weakening safety language.
+
+Artifacts:
+
+- `docs/audits/phase-60-audit.md` — independent Phase 60 dogfood-readiness audit artifact with verdict `Ready for maintainer dogfood`.
+- `README.md` — current status advanced through Phase 60 and latest-audit link updated.
+- `CHANGELOG.md` — Unreleased entry added for the release-facing Phase 60 dogfood-readiness audit result.
+- `docs/handoff/phase-60.md` — PM/auditor/engineer handoff and verification report.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default state; controlled writes remain experimental post-MVP and disabled by default. Phase 60 did not enable writes, expand write scope, publish a v0.1 tag/release, add production/security-audited claims, run dogfood against a real book, or add real financial/secrets artifacts.
+
+Dogfood-readiness result: maintainer dogfood instructions exist and cover copied-book setup, `GNUCASH_DEFAULT_BOOK_PATH`, disabled writes, Docker startup, dashboard/accounts/transactions checks, CSV export, shutdown, cleanup, and public-internet warnings. This confirms readiness to execute dogfood; it does not record a completed dogfood pass and does not close the release blocker tracked in GitHub #25.
+
+Test results: backend full suite, frontend check/auth-routes/build, Docker Compose config validation, and `git diff --check` are recorded in the Phase 60 handoff.
+
+Related issues: no new issue created; GitHub #25 was updated with the Phase 60 dogfood-readiness audit result and remains open until actual copied/disposable-data runtime evidence is recorded. GitHub #24 also remains open for conservative v0.1 release notes.
 
 ## Phase 22 — Real Controlled Write Integration Tests
 

@@ -40,12 +40,12 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–59 are complete.
+- Phase 0–60 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by default.
 - First public pre-alpha release: `v0.0.1-prealpha`.
 - Current public pre-alpha release: [`v0.0.2-prealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.0.2-prealpha).
-- Latest audit: [docs/audits/phase-59-audit.md](docs/audits/phase-59-audit.md).
+- Latest audit: [docs/audits/phase-60-audit.md](docs/audits/phase-60-audit.md).
 - Russian localization/i18n foundation started in Phase 52; English documentation remains canonical. See [README.ru.md](README.ru.md) and [docs/localization.md](docs/localization.md).
 - Community announcement drafts and where-to-share guidance were refreshed in Phase 53 for cautious feedback collection, not production marketing.
 - Startup diagnostics, a richer non-sensitive health endpoint, and troubleshooting guidance were added in Phase 54 for self-hosted deployments.
@@ -54,6 +54,7 @@ This project is not a fit if you need:
 - Phase 57 completed the `v0.1.0-readonly` release-gate audit. v0.1 publication is blocked until conservative release notes and a copied/disposable-data runtime smoke/dogfood pass are completed.
 - Phase 58 audited the expected publication state and confirmed that no `v0.1.0-readonly` tag/GitHub release exists yet; publication remains blocked by the Phase 57 release-gate issues.
 - Phase 59 completed a post-release regression-risk audit and found that a true post-v0.1 regression audit is not applicable yet because no `v0.1.0-readonly` tag/GitHub release exists; publication remains blocked by the same release-gate issues.
+- Phase 60 completed a dogfood-readiness audit and found the maintainer can safely start read-only dogfood on a copied real book; this is not a completed dogfood pass and does not unblock v0.1 publication until runtime evidence is recorded.
 
 ## MVP scope: read-only first
 
