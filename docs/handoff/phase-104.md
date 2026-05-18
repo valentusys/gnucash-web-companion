@@ -105,4 +105,5 @@ PM should select one narrow practical read-only backlog slice, preferably anothe
 ## Commit / push
 
 - Implementation commit: `0daca5b` (`feat: search split memos in transactions`).
-- Push: pending before push.
+- Evidence commit: `28c2619` (`docs: record phase 104 commit evidence`).
+- Push: PASS — pushed `main` to `origin/main` (`c300f44..28c2619`).
