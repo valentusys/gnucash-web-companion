@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 61.
+Completed through Phase 62.
 
 Completed phases:
 
@@ -77,10 +77,11 @@ Completed phases:
 - Phase 59 — post-release regression risk audit
 - Phase 60 — dogfood readiness audit
 - Phase 61 — dogfood results audit
+- Phase 62 — deployment safety audit
 
 Next planned phase:
 
-- Resolve Phase 57/58/59/60/61 release-publication blockers before any `v0.1.0-readonly` publication: create conservative v0.1 release notes and complete/record copied-or-disposable-data runtime smoke/dogfood evidence. Phase 60 confirmed dogfood docs are ready to execute, and Phase 61 confirmed no completed dogfood results are available to audit yet. Do not create a v0.1 tag/GitHub release until those blockers are handled by an explicit later phase.
+- Resolve Phase 57/58/59/60/61 release-publication blockers before any `v0.1.0-readonly` publication: create conservative v0.1 release notes and complete/record copied-or-disposable-data runtime smoke/dogfood evidence. Phase 62 confirmed deployment docs are conservative for local/LAN/VPN-only read-only testing and found no deployment-doc blocker, but it did not unblock v0.1 publication. Do not create a v0.1 tag/GitHub release until #24/#25 are handled by an explicit later phase.
 
 ## MVP product model
 
@@ -1030,6 +1031,27 @@ Dogfood-results result: no actual copied-book dogfood results are recorded yet, 
 Test results: backend full suite, frontend check/auth-routes/build, Docker Compose config validation, and `git diff --check` are recorded in the Phase 61 handoff.
 
 Related issues: no new issue created; GitHub #25 was updated with the Phase 61 blocked dogfood-results audit result and remains open. GitHub #24 also remains open for conservative v0.1 release notes.
+
+## Phase 62 — Deployment Safety Audit
+
+Status: complete. Phase commit pushed.
+
+Goal: audit whether local/self-hosted deployment docs are safe for the current pre-alpha/read-only posture without publishing a release, expanding write scope, or implying public-internet readiness.
+
+Artifacts:
+
+- `docs/audits/phase-62-audit.md` — independent Phase 62 deployment-safety audit artifact with verdict `No deployment-safety blocker found for local/private read-only testing`.
+- `README.md` — current status advanced through Phase 62 and latest-audit link updated.
+- `CHANGELOG.md` — Unreleased entry added for the release-facing Phase 62 deployment-safety audit result.
+- `docs/handoff/phase-62.md` — PM/auditor/engineer handoff and verification report.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default state; controlled writes remain experimental post-MVP and disabled by default. Phase 62 did not enable writes, expand write scope, publish a v0.1 tag/release, claim public-internet safety, or add real financial/secrets artifacts.
+
+Deployment-safety result: docs are conservative for localhost, LAN, and VPN-only read-only testing. They warn against direct public-internet exposure, require a strong JWT secret, recommend HTTPS/VPN/LAN posture, document Docker volume/data paths, document backup locations, and distinguish the app metadata DB from copied GnuCash books. A non-blocking CORS visibility follow-up was created as GitHub #26.
+
+Test results: backend full suite, frontend check/auth-routes/build, Docker Compose config validation, and `git diff --check` are recorded in the Phase 62 handoff.
+
+Related issues: GitHub #26 created for CORS origin narrowing visibility. GitHub #24 and #25 remain release blockers for conservative v0.1 release notes and copied/disposable-data runtime smoke/dogfood evidence.
 
 ## Phase 22 — Real Controlled Write Integration Tests
 
