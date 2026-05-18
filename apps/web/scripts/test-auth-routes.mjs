@@ -90,6 +90,22 @@ assert.match(
 	/writesEnabled:\s*env\.GNUCASH_WRITES_ENABLED === 'true'/,
 	'transactions page must expose writesEnabled only when GNUCASH_WRITES_ENABLED is true'
 );
+for (const requiredPreset of ['This month', 'Last month', 'Year to date', 'Clear dates']) {
+	assert.ok(
+		transactionsServer.includes(requiredPreset),
+		`transactions server load must expose the date preset label: ${requiredPreset}`
+	);
+}
+assert.match(
+	transactionsServer,
+	/buildTransactionFilterUrl[\s\S]*date_from[\s\S]*date_to[\s\S]*account_id[\s\S]*min_amount[\s\S]*max_amount/s,
+	'date preset URLs must preserve existing non-date transaction filters while using date_from/date_to query params'
+);
+assert.match(
+	transactionsServer,
+	/datePresets:\s*buildDatePresets/,
+	'transactions server load must return date preset URL data to the page'
+);
 
 const newTransactionServer = read('src/routes/transactions/new/+page.server.ts');
 assert.match(
@@ -240,6 +256,16 @@ assert.match(
 	transactionFilters,
 	/Active filters applied to list and CSV export[\s\S]*aria-label="Active transaction filters"/,
 	'active filter summary must tell users the same filters apply to list and CSV export'
+);
+assert.match(
+	transactionFilters,
+	/Date presets[\s\S]*datePresets[\s\S]*preset\.href[\s\S]*aria-label=\{`Apply transaction date preset: \$\{preset\.label\}`\}/,
+	'transaction filters must render accessible date preset links from server-provided query URLs'
+);
+assert.match(
+	transactionFilters,
+	/Custom date range[\s\S]*id="tx-date-from"[\s\S]*type="date"[\s\S]*id="tx-date-to"[\s\S]*type="date"/s,
+	'custom date inputs must remain visible alongside preset links'
 );
 
 const newTransactionPage = read('src/routes/transactions/new/+page.svelte');

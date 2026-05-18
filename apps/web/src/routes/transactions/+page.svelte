@@ -145,6 +145,7 @@ import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 		minAmount={data.filters.minAmount}
 		maxAmount={data.filters.maxAmount}
 		accounts={data.accounts}
+		datePresets={data.datePresets}
 		onChange={handleFilter}
 	/>
 

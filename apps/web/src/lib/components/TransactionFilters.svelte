@@ -10,6 +10,7 @@
 		minAmount = '',
 		maxAmount = '',
 		accounts = [],
+		datePresets = [],
 		onChange
 	}: {
 		query: string;
@@ -19,6 +20,7 @@
 		minAmount?: string;
 		maxAmount?: string;
 		accounts?: Account[];
+		datePresets?: { label: string; href: string; active: boolean }[];
 		onChange: (params: {
 			query: string;
 			dateFrom: string;
@@ -115,6 +117,29 @@
 				<p class="text-xs font-medium" style="color: var(--app-accent);">Filtered view</p>
 			{/if}
 		</div>
+		{#if datePresets.length}
+			<div class="mt-3">
+				<p class="text-xs font-semibold uppercase tracking-wide" style="color: var(--app-muted);">Date presets</p>
+				<div class="mt-2 flex flex-wrap gap-2" aria-label="Transaction date range presets">
+					{#each datePresets as preset}
+						<a
+							href={preset.href}
+							class="rounded-full border px-3 py-1.5 text-xs font-semibold"
+							style={preset.active
+								? 'border-color: var(--app-accent); color: var(--app-accent); background: var(--app-bg);'
+								: 'border-color: var(--app-border); color: var(--app-text); background: var(--app-panel);'}
+							aria-label={`Apply transaction date preset: ${preset.label}`}
+							aria-current={preset.active ? 'true' : undefined}
+						>
+							{preset.label}
+						</a>
+					{/each}
+				</div>
+				<p class="mt-2 text-xs" style="color: var(--app-muted);">
+					Presets update only the ordinary date_from/date_to filters; the list and CSV export stay read-only and use the same filtered view.
+				</p>
+			</div>
+		{/if}
 		{#if activeFilterSummary.length}
 			<div
 				class="mt-3 rounded-lg border px-3 py-2"
@@ -164,6 +189,7 @@
 		</select>
 	</div>
 	<div>
+		<p class="text-xs font-semibold uppercase" style="color: var(--app-muted);">Custom date range</p>
 		<label for="tx-date-from" class="block text-xs font-semibold uppercase" style="color: var(--app-muted);">From</label>
 		<input
 			id="tx-date-from"

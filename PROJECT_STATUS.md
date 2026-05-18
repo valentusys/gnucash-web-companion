@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 102.
+Completed through Phase 103.
 
 Completed phases:
 
@@ -118,6 +118,7 @@ Completed phases:
 - Phase 100 — non-publishing synthetic install/upgrade smoke
 - Phase 101 — copied personal-book dogfood rerun gate blocked by missing safe copied book path
 - Phase 102 — compatibility fixture/version matrix v3 safe provenance refresh
+- Phase 103 — read-only transaction date-range preset UX from GitHub #11
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -151,9 +152,11 @@ Completed phases:
 
 - Phase 102 completed the compatibility fixture/version matrix v3 safe provenance refresh for GitHub #22 without a real Desktop-generated fixture: `gnucash --version` is unavailable in this environment, so no broad GnuCash Desktop version compatibility row is claimed. The generated/disposable compatibility path was improved instead: `collect_gnucash_compatibility_metadata.py` and `create_compatibility_fixture_v1.py` now record safe runtime provenance (collector/generator version, OS, Python, SQLite, and piecash versions), and regression tests prove the copied-book collector still redacts private paths and does not serialize account names or transaction descriptions. `docs/gnucash-compatibility.md`, `docs/gnucash-version-fixture-plan.md`, and `docs/gnucash-compatibility-fixture-v1.md` document the narrow Phase 102 evidence and remaining gap. GitHub #22 was updated and left open for future real GnuCash Desktop/generated version coverage. No tag, GitHub release, package, GnuCash book, app DB, backup, `.env`, screenshot, CSV export, secret, token, cert, key, private path, account name, transaction description, memo, amount, or real/private financial data was committed; writes remain disabled by default; controlled writes remain post-MVP/experimental; no v0.2 work was started.
 
+- Phase 103 completed a narrow read-only transaction date-range preset UX slice from GitHub #11: the transactions page now exposes accessible preset links for `This month`, `Last month`, `Year to date`, and `Clear dates`; presets populate only the existing `date_from`/`date_to` query parameters, preserve search/account/amount filters, reset offset to the first page, and keep the existing custom date inputs visible. Active filter summary and CSV export parity remain on the same read-only filter contract, and frontend route/static checks cover preset labels, preset URL construction, custom date inputs, and CSV filter preservation. GitHub #11 was updated with evidence and left open for broader future read-only search/filter improvements. No backend write path was changed, no tag, GitHub release, package, GnuCash book, app DB, backup, `.env`, screenshot, CSV export, secret, token, cert, key, private path, account name, transaction description, memo, amount, or real/private financial data was committed; writes remain disabled by default; controlled writes remain post-MVP/experimental; no v0.2 work was started.
+
 Next planned phase:
 
-- Phase 103 — read-only transaction date-range preset UX from GitHub #11, planned in `docs/handoff/phase-103-pm-brief.md`. This is the next uncompleted practical roadmap phase after Phases 95-102. It must preserve existing read-only list/CSV filter parity and must not publish `v0.1.1-readonly`; publication still requires separate explicit Val authorization.
+- Phase 104 — PM should choose the next narrow practical read-only roadmap slice, likely another GitHub #11 transaction search/filter improvement such as transaction state filtering or broader full-text semantics. Do not publish `v0.1.1-readonly`, create tags/releases/packages, run personal-book dogfood, or start v0.2/write-mode expansion without separate explicit Val authorization and safe input data.
 
 ## MVP product model
 
