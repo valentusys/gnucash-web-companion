@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 100.
+Completed through Phase 101.
 
 Completed phases:
 
@@ -116,6 +116,7 @@ Completed phases:
 - Phase 98 — v0.1.1-readonly release-gate verification
 - Phase 99 — v0.1.1-readonly pre-publish dry-run and authorization guard
 - Phase 100 — non-publishing synthetic install/upgrade smoke
+- Phase 101 — copied personal-book dogfood rerun gate blocked by missing safe copied book path
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -145,9 +146,11 @@ Completed phases:
 
 - Phase 100 completed a non-publishing synthetic/disposable install smoke on current `main`: `docs/dogfood/phase-100-synthetic-install-upgrade-smoke.md` records branch/HEAD, tag/release absence, synthetic fixture source, Docker Compose config validation, local Docker startup with `GNUCASH_WRITES_ENABLED=false`, and read-only API smoke coverage for health, login/auth, books/default book, accounts, transactions, transaction detail, CSV export, reports summary, and disabled validate/create/patch write probes. The phase also fixed narrow smoke-tooling drift so `scripts/smoke/read-only-api-smoke.py --help` is non-mutating and added transaction-detail/CSV-export checks to the existing smoke script. A true upgrade from `v0.1.1-readonly` was not feasible because no such tag/release exists and publication remains unauthorized. GitHub #39 remains closed; GitHub #38 remains open/blocked for copied personal-book dogfood. No tag, GitHub release, package, or release artifact was published; writes remain disabled by default; controlled writes remain post-MVP/experimental; no real/private financial data, personal GnuCash books, `.env`, app DBs, backups, screenshots, exports, secrets, tokens, certs, keys, or private paths were committed; no v0.2 work was started.
 
+- Phase 101 completed the copied personal-book dogfood rerun gate for GitHub #38 as an honest blocked result: `docs/dogfood/phase-101-personal-copied-book-results.md` records `BLOCKED — safe copied book path not provided`. No explicit safe copied GnuCash SQL book path was provided via controller/user context or `GNUCASH_DOGFOOD_BOOK_PATH`, no copy-confirmation flag was present, and no private directories were searched. Therefore the local copied-book dogfood smoke was not run and #38 remains open/blocked. Release-boundary and tooling checks passed: clean `main` starting state, no local `v0.1.1-readonly` tag, no GitHub release named `v0.1.1-readonly`, Docker Compose config validation, smoke script help, and smoke script compile. No tag, GitHub release, package, GnuCash book, app DB, backup, `.env`, screenshot, CSV export, secret, token, cert, key, private path, account name, transaction description, memo, amount, or real/private financial data was committed; writes remain disabled by default; controlled writes remain post-MVP/experimental; no personal-book dogfood success is claimed; no v0.2 work was started.
+
 Next planned phase:
 
-- Phase 101 is planned in `docs/handoff/phase-101-pm-brief.md` as a copied personal-book dogfood rerun gate for GitHub #38. The engineer must proceed only with an explicitly provided safe copied GnuCash SQL book path outside git; if no safe path is provided, record a redacted blocked result and keep #38 open. Do not publish `v0.1.1-readonly` unless Val gives separate explicit authorization in a later request.
+- Phase 102 is the next practical non-publishing roadmap phase if no safe copied personal-book path is provided and publication remains unauthorized: expand compatibility fixture/version-matrix evidence for GitHub #22 using only safe disposable/generated or explicitly provided copied test books. If Val provides a safe copied/disposable GnuCash SQL book path outside git first, rerun GitHub #38 instead as a local-only read-only dogfood phase with redacted evidence. Do not publish `v0.1.1-readonly` unless Val gives separate explicit authorization in a later request.
 
 ## MVP product model
 
