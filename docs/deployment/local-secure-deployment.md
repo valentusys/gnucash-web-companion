@@ -166,7 +166,7 @@ GNUCASH_WRITES_ENABLED=false
 Verify Docker Compose resolves the same value:
 
 ```bash
-docker compose config | grep 'GNUCASH_WRITES_ENABLED=false'
+docker compose config | grep -E 'GNUCASH_WRITES_ENABLED: "?false"?'
 ```
 
 Expected behavior with writes disabled:

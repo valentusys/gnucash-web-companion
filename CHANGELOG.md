@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Phase 63 — backup/recovery audit, confirming the manual backup and restore runbook covers copied GnuCash books, app metadata, controlled-write pre-write backups, restore dry-runs, read-only verification, and production-DR limitations while correcting stale Compose write-disabled verification examples.
 - Phase 62 — deployment-safety audit, confirming local/self-hosted docs are conservative for localhost/LAN/VPN-only read-only testing while keeping direct public-internet exposure unsafe, leaving `v0.1.0-readonly` publication blocked by #24/#25, and tracking CORS origin narrowing visibility in #26.
 - Phase 61 — dogfood-results audit, confirming that no completed copied-book dogfood results are recorded yet; `v0.1.0-readonly` publication remains blocked until copied/disposable-data runtime evidence is completed and audited.
 - Phase 60 — dogfood-readiness audit, confirming the maintainer can safely start read-only dogfood on a copied real GnuCash SQL book while keeping `v0.1.0-readonly` publication blocked until actual copied/disposable-data runtime evidence is recorded.

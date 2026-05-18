@@ -161,7 +161,7 @@ Confirm writes remain disabled before starting:
 
 ```bash
 JWT_SECRET=dummy-validation-secret APP_ADMIN_PASSWORD=dummy docker compose config --quiet
-docker compose config | grep 'GNUCASH_WRITES_ENABLED=false'
+docker compose config | grep -E 'GNUCASH_WRITES_ENABLED: "?false"?'
 ```
 
 Start the stack:
