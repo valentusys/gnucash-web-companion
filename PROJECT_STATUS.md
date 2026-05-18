@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 71.
+Completed through Phase 72.
 
 Completed phases:
 
@@ -87,10 +87,11 @@ Completed phases:
 - Phase 69 — localization/i18n audit
 - Phase 70 — community announcement audit
 - Phase 71 — performance risk audit
+- Phase 72 — data model and money correctness audit
 
 Next planned phase:
 
-- Continue the auditor roadmap with Phase 72 only when explicitly requested. Do not create a v0.1 tag/GitHub release until #24/#25 are handled by an explicit later phase. Phase 71 confirmed that no known-large-book performance claim is supported yet; large-book, many-splits, CSV timeout/truncation, and dashboard aggregate performance risks are tracked in #30–#33. Phase 71 did not publish a release and did not unblock v0.1 publication.
+- Continue the auditor roadmap with Phase 73 only when explicitly requested. Do not create a v0.1 tag/GitHub release until #24/#25 are handled by an explicit later phase. Phase 72 confirmed backend core money handling uses Decimal/string DTOs and CSV preserves decimal strings; `docs/money-model.md` now documents sign/split conventions, and frontend display-only `Number()` money usage is tracked in #34. Phase 72 did not publish a release and did not unblock v0.1 publication.
 
 ## MVP product model
 
@@ -1271,6 +1272,29 @@ Performance-risk result: transaction list routes have pagination caps and CSV ex
 Test results: static performance-risk audit checks, backend full suite, frontend check/auth-routes/build, Docker Compose config validation, and `git diff --check` are recorded in the Phase 71 handoff.
 
 Related issues: GitHub #30, #31, #32, and #33 were created for large-book benchmark, many-splits benchmark, CSV timeout/truncation behavior, and dashboard aggregate performance tracking. GitHub #24 and #25 remain v0.1 release blockers; GitHub #27 remains open for seed-log path redaction; GitHub #26, #22, #28, and #29 remain open for deployment/compatibility/markdown/localization follow-up.
+
+## Phase 72 — Data Model and Money Correctness Audit
+
+Status: complete. Phase commit pushed.
+
+Goal: audit money handling from the auditor roadmap without adding product features, expanding write scope, publishing a release, or claiming v0.1 readiness.
+
+Artifacts:
+
+- `docs/audits/phase-72-audit.md` — independent Phase 72 data model and money-correctness audit artifact with verdict: no new blocker for the current pre-alpha/read-only posture.
+- `docs/money-model.md` — canonical money representation, CSV export, sign-convention, split-amount, and multi-currency behavior notes.
+- `README.md` — current status advanced through Phase 72 and latest-audit link updated.
+- `CHANGELOG.md` — Unreleased entry added for the release-facing Phase 72 audit/docs result.
+- `docs/handoff/phase-72.md` — PM/auditor/engineer handoff and verification report.
+- `docs/ARCHITECTURE.md` — linked to the canonical money model.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default state; controlled writes remain experimental post-MVP and disabled by default. Phase 72 did not enable writes, expand write scope, publish a v0.1 tag/release, claim production readiness/security audit, add fake currency conversion, or add real financial/secrets artifacts.
+
+Money-correctness result: backend core read-only money paths use Decimal/string DTOs, reject floats in service-layer money conversion, serialize JSON money as strings, and write CSV export amounts from string DTOs. Multi-currency report totals remain conservative and exclude non-base-currency values instead of converting them. Canonical docs now clarify sign and split amount conventions.
+
+Test results: static money-correctness audit searches, backend full suite, frontend check/auth-routes/build, Docker Compose config validation, and `git diff --check` are recorded in the Phase 72 handoff.
+
+Related issues: GitHub #34 was created for frontend display-only `Number()` money hygiene. GitHub #24 and #25 remain v0.1 release blockers; GitHub #27 remains open for seed-log path redaction; GitHub #26, #22, #28, #29, and #30–#33 remain open for deployment/compatibility/markdown/localization/performance follow-up.
 
 ## Standing constraints
 

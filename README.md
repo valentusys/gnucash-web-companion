@@ -40,12 +40,12 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–71 are complete.
+- Phase 0–72 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by default.
 - First public pre-alpha release: `v0.0.1-prealpha`.
 - Current public pre-alpha release: [`v0.0.2-prealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.0.2-prealpha).
-- Latest audit: [docs/audits/phase-71-audit.md](docs/audits/phase-71-audit.md).
+- Latest audit: [docs/audits/phase-72-audit.md](docs/audits/phase-72-audit.md).
 - Russian localization/i18n foundation started in Phase 52; English documentation remains canonical. See [README.ru.md](README.ru.md) and [docs/localization.md](docs/localization.md).
 - Community announcement drafts and where-to-share guidance were refreshed in Phase 53 for cautious feedback collection, not production marketing.
 - Startup diagnostics, a richer non-sensitive health endpoint, and troubleshooting guidance were added in Phase 54 for self-hosted deployments.
@@ -66,6 +66,7 @@ This project is not a fit if you need:
 - Phase 69 completed a localization/i18n audit: English remains canonical, Russian README/UI scope is conservative and opt-in, #29 tracks a non-blocking accounting/safety terminology glossary, and v0.1 publication remains blocked by #24/#25.
 - Phase 70 completed a community-announcement audit: the project is ready only for limited feedback-oriented sharing in narrow technical/GnuCash circles, not broad launch-style promotion; v0.1 publication remains blocked by #24/#25.
 - Phase 71 completed a performance-risk audit: no new blocker was found for the current pre-alpha/read-only posture, but large-book, many-splits, CSV timeout/truncation, and dashboard aggregate performance evidence is not available yet and is tracked in #30–#33; do not claim known large-book scalability.
+- Phase 72 completed a data model and money-correctness audit: backend core money paths use Decimal/string DTOs and CSV export preserves decimal strings; canonical sign/split guidance is now in [docs/money-model.md](docs/money-model.md), and frontend display-only `Number()` money usage is tracked in #34; v0.1 publication remains blocked by #24/#25.
 
 ## MVP scope: read-only first
 
@@ -260,6 +261,7 @@ Compatibility/safety docs:
 - [docs/gnucash-compatibility.md](docs/gnucash-compatibility.md)
 - [docs/gnucash-version-fixture-plan.md](docs/gnucash-version-fixture-plan.md)
 - [docs/gnucash-compatibility-fixture-v1.md](docs/gnucash-compatibility-fixture-v1.md)
+- [docs/money-model.md](docs/money-model.md)
 - [docs/localization.md](docs/localization.md)
 
 ## Funding

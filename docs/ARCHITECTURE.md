@@ -213,6 +213,9 @@ Bootstrap notes:
 - Transaction lists are paginated.
 - Multi-split transaction list items use `counter_account_name = "Split transaction"`.
 
+See `docs/money-model.md` for the current canonical money representation,
+CSV export, sign-convention, split-amount, and multi-currency behavior notes.
+
 ## Multi-currency limitation
 
 Current basic reports aggregate only values whose commodity matches the book's configured `base_currency`. Non-base-currency splits are excluded rather than converted. Future multi-currency reporting must define an exchange-rate source, date policy, and UI disclosure before combining currencies.
