@@ -164,7 +164,7 @@ Final check results:
 ## Commit / push
 
 - Commit message: `docs: add phase 64 compatibility audit`.
-- Commit: final pushed Phase 64 commit is reported in the final/Telegram report.
+- Commit: `06762f7` (pushed to `origin/main`).
 
 ## Blockers carried forward
 
