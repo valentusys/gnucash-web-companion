@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 66.
+Completed through Phase 67.
 
 Completed phases:
 
@@ -82,10 +82,11 @@ Completed phases:
 - Phase 64 — compatibility audit
 - Phase 65 — test coverage audit
 - Phase 66 — security posture audit
+- Phase 67 — open-source hygiene audit
 
 Next planned phase:
 
-- Continue the auditor roadmap with Phase 67 only when explicitly requested. Do not create a v0.1 tag/GitHub release until #24/#25 are handled by an explicit later phase. Phase 66 confirmed the conservative security posture remains intact, created #27 for full-path seed-log redaction, and kept #26 open for CORS origin narrowing visibility; it did not perform a professional security audit and did not unblock v0.1 publication.
+- Continue the auditor roadmap with Phase 68 only when explicitly requested. Do not create a v0.1 tag/GitHub release until #24/#25 are handled by an explicit later phase. Phase 67 confirmed good public OSS hygiene, created the missing `needs-triage` label used by issue templates, and updated the GitHub repository description to include read-only positioning; it did not publish a release and did not unblock v0.1 publication.
 
 ## MVP product model
 
@@ -1160,6 +1161,27 @@ Security-posture result: auth tokens remain stored in httpOnly cookies rather th
 Test results: backend full suite, frontend check/auth-routes/build, Docker Compose config validation, and `git diff --check` are recorded in the Phase 66 handoff.
 
 Related issues: GitHub #27 created for seed-log path redaction; GitHub #26 updated and kept open for CORS origin narrowing visibility. GitHub #24 and #25 remain v0.1 release blockers; GitHub #22 remains open for compatibility follow-up.
+
+## Phase 67 — Open-Source Hygiene Audit
+
+Status: complete. Phase commit pushed.
+
+Goal: audit public project health from the auditor roadmap without adding product features, expanding write scope, or publishing a release.
+
+Artifacts:
+
+- `docs/audits/phase-67-audit.md` — independent Phase 67 open-source hygiene audit artifact with verdict: good OSS hygiene, with minor cleanup completed.
+- `README.md` — current status advanced through Phase 67 and latest-audit link updated.
+- `CHANGELOG.md` — Unreleased entry added for the release-facing Phase 67 OSS hygiene audit result.
+- `docs/handoff/phase-67.md` — PM/auditor/engineer handoff and verification report.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default state; controlled writes remain experimental post-MVP and disabled by default. Phase 67 did not enable writes, expand write scope, publish a v0.1 tag/release, claim production readiness/security audit, or add real financial/secrets artifacts.
+
+Open-source hygiene result: license, README, contributing guide, code of conduct, security policy, funding placeholder, issue/PR templates, GitHub topics, documented social-preview setup, and meaningful open issues are present. The missing `needs-triage` label referenced by issue templates was created. The GitHub repository description was updated to include read-only positioning: `Modern self-hosted read-only web companion for GnuCash books.`
+
+Test results: `git diff --check` and GitHub hygiene verification are recorded in the Phase 67 handoff. No v0.1 readiness verdict was made and no product code changed, so the full backend/frontend/Docker suite was not rerun for this audit-only phase.
+
+Related issues: no new issue created; label/repository-description hygiene was fixed directly. GitHub #24 and #25 remain v0.1 release blockers; GitHub #27 remains open for seed-log path redaction; GitHub #26 and #22 remain open for deployment/compatibility follow-up.
 
 ## Standing constraints
 
