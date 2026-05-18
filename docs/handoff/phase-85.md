@@ -122,4 +122,4 @@ Docker/browser/API smoke against the copied personal book was not feasible becau
 
 ### Commit/push
 
-To be filled after commit and push.
+Phase documentation commit `a6fc0021fd055bf0f52cebc1302e23f6df845f49` was pushed to `origin/main`.
