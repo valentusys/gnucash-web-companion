@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 65.
+Completed through Phase 66.
 
 Completed phases:
 
@@ -81,10 +81,11 @@ Completed phases:
 - Phase 63 — backup/recovery audit
 - Phase 64 — compatibility audit
 - Phase 65 — test coverage audit
+- Phase 66 — security posture audit
 
 Next planned phase:
 
-- Continue the auditor roadmap with Phase 66 only when explicitly requested. Do not create a v0.1 tag/GitHub release until #24/#25 are handled by an explicit later phase. Phase 65 confirmed automated tests support the current pre-alpha/read-only maturity claims, but it did not replace copied/disposable-data runtime smoke/dogfood evidence and did not unblock v0.1 publication.
+- Continue the auditor roadmap with Phase 67 only when explicitly requested. Do not create a v0.1 tag/GitHub release until #24/#25 are handled by an explicit later phase. Phase 66 confirmed the conservative security posture remains intact, created #27 for full-path seed-log redaction, and kept #26 open for CORS origin narrowing visibility; it did not perform a professional security audit and did not unblock v0.1 publication.
 
 ## MVP product model
 
@@ -1138,6 +1139,27 @@ Coverage result: backend tests, frontend check/auth-route/build coverage, Docker
 Test results: backend full suite, frontend check/auth-routes/build, Docker Compose config validation, and `git diff --check` are recorded in the Phase 65 handoff.
 
 Related issues: no new issue created; GitHub #25 was updated with the Phase 65 audit result and remains open. GitHub #24 and #25 remain release blockers; GitHub #22 and #26 remain open for compatibility/deployment-hardening follow-up.
+
+## Phase 66 — Security Posture Audit
+
+Status: complete. Phase commit pushed.
+
+Goal: audit the current security posture from the auditor roadmap without pretending to perform a professional security audit, adding product features, expanding write scope, or publishing a release.
+
+Artifacts:
+
+- `docs/audits/phase-66-audit.md` — independent Phase 66 security-posture audit artifact with verdict: ready to continue pre-alpha security hardening, not security-audited, and not ready to claim audited security.
+- `README.md` — current status advanced through Phase 66 and latest-audit link updated.
+- `CHANGELOG.md` — Unreleased entry added for the release-facing Phase 66 security-posture audit result.
+- `docs/handoff/phase-66.md` — PM/auditor/engineer handoff and verification report.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default state; controlled writes remain experimental post-MVP and disabled by default. Phase 66 did not enable writes, expand write scope, publish a v0.1 tag/release, claim production readiness/security audit, or add real financial/secrets artifacts.
+
+Security-posture result: auth tokens remain stored in httpOnly cookies rather than browser auth storage; placeholder JWT secrets are rejected; dependency files exist for future security scanning; CORS wildcard development defaults remain documented and tracked in #26; and #27 was created for the meaningful hardening finding that default-book seeding logs full configured GnuCash book paths/URIs.
+
+Test results: backend full suite, frontend check/auth-routes/build, Docker Compose config validation, and `git diff --check` are recorded in the Phase 66 handoff.
+
+Related issues: GitHub #27 created for seed-log path redaction; GitHub #26 updated and kept open for CORS origin narrowing visibility. GitHub #24 and #25 remain v0.1 release blockers; GitHub #22 remains open for compatibility follow-up.
 
 ## Standing constraints
 
