@@ -133,4 +133,4 @@ Existing piecash/SQLAlchemy/FastAPI warnings appeared during backend tests/bench
 
 Implementation commit: `099f8d0` (`test: record large csv export benchmark`).
 
-Push: pending until final push verification.
+Push: `origin/main` verified after push; final pushed HEAD is reported in Telegram/stdout.
