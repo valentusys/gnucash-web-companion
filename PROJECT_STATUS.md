@@ -11,7 +11,7 @@ Last updated: 2026-05-19
 
 ## Current baseline
 
-Completed through Phase 113.
+Completed through Phase 114.
 
 Current public release state:
 
@@ -136,6 +136,7 @@ Completed phases:
 - Phase 111 — compatibility fixture v4 safe Desktop-tooling evidence from GitHub #22
 - Phase 112 — LAN/VPN deployment safety behavior from GitHub #26
 - Phase 113 — Russian localization glossary and transaction filter/export UI slice from GitHub #17/#29
+- Phase 114 — synthetic browser dogfood refresh after UX/filter changes
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -189,9 +190,11 @@ Completed phases:
 
 - Phase 113 completed the Russian localization glossary and narrow transaction filter/export UI slice from GitHub #17/#29: `docs/localization.md` now includes an accounting/safety glossary with canonical English and preferred Russian terms for read-only boundaries, GnuCash Desktop authority, production/security caveats, split reconciliation states, CSV export, and partial translation. The transaction filter component and transaction/account CSV export copy now use the existing English/Russian message catalog for filter headings/help, active filter summaries, state labels, clear/reset, and export helper/button copy. English remains canonical, Russian remains opt-in/partial, URL-only filter behavior is unchanged, and no browser storage or write-mode behavior was added. No tag, release, package, GnuCash book, app DB, backup, `.env`, screenshot, CSV export, secret, token, cert, key, private path, account name, transaction description, memo, amount, or personal financial data was committed; writes remain disabled by default; controlled writes remain post-MVP/experimental; no v0.2 work was started.
 
+- Phase 114 completed a synthetic browser dogfood refresh after the recent read-only UX/filter/books/scheduled/localization changes: Docker/Caddy was run locally with `GNUCASH_WRITES_ENABLED=false` against a synthetic/disposable fixture copied into ignored runtime data, `scripts/smoke/read-only-api-smoke.py` passed core API/CSV/disabled-write checks, and the new durable `scripts/smoke/read-only-browser-dogfood.py` drove headless Chromium through login, protected redirect, dashboard, accounts, books, scheduled, account detail, transaction filters, transaction detail, and authenticated CSV export route checks. Evidence is documented in `docs/dogfood/phase-114-synthetic-browser-dogfood.md`; no screenshots, raw CSV exports, app DBs, GnuCash books, backups, `.env`, secrets, tokens, certs, keys, private paths, or real/private financial data were committed. This is synthetic/disposable dogfood only; GitHub #38 remains open/blocked for personal copied-book dogfood until Val provides a safe copied SQL book path outside git.
+
 Next planned phase:
 
-- Phase 114 — run the analyst roadmap synthetic browser dogfood refresh using generated/disposable data only, covering core read-only UI/API paths, CSV export/filter parity, and disabled-write probes without committing screenshots/exports/app DBs/private data.
+- Phase 115 — prepare conservative `v0.1.2-readonly` maintenance release artifacts/gate only if Phases 106–114 are sufficient, without publishing a tag/release/package unless Val explicitly authorizes publication.
 
 ## MVP product model
 
@@ -1867,6 +1870,29 @@ Lesson/guardrail: always update release/status documentation immediately in the 
 Safety result: no product code was changed. No tag, release, package, app behavior, backend/frontend route, Docker runtime config, write service, or write flag was changed. `GNUCASH_WRITES_ENABLED=false` remains the documented/configured default; controlled writes remain post-MVP/experimental. No real/private financial data, GnuCash books, app DBs, backups, `.env`, screenshots, exports, secrets, tokens, certs, keys, private paths, account names, transaction descriptions, memos, or amounts were committed.
 
 Verification result: docs-only validation passed, including `git diff --check`, changed-file scope check, stale release-state grep, GitHub release view after sync, and `JWT_SECRET=dummy-validation-secret APP_ADMIN_PASSWORD=dummy docker compose config --quiet`. Full backend/frontend suites were intentionally not run because Phase 105 changed only release/status docs and GitHub release metadata, not product code.
+
+## Phase 114 — Synthetic Browser Dogfood Refresh
+
+Status: complete. Phase commit pushed.
+
+Goal: rerun a current Docker/Caddy browser/UI and API dogfood pass using synthetic/disposable data after the UX/filter/books/scheduled/localization changes, without using personal books, enabling writes, publishing a release, or committing runtime artifacts.
+
+PM decision: execute analyst roadmap Phase 9 as a practical dogfood artifact. Use generated/disposable data only; record redacted evidence; treat failures as narrow bugs or explicit blockers; keep #38 separate for future personal copied-book dogfood.
+
+Artifacts:
+
+- `scripts/smoke/read-only-browser-dogfood.py` — durable headless Chromium/CDP browser dogfood helper for local Docker/Caddy deployments. It checks login, protected redirects, authenticated core pages, read-only write-UI hiding, transaction filters, account/transaction detail navigation, CSV export through the authenticated UI/proxy route, and no screenshot/download/export artifacts.
+- `docs/dogfood/phase-114-synthetic-browser-dogfood.md` — redacted runtime evidence for Docker/API/browser dogfood on synthetic data.
+- `docs/handoff/phase-114-pm-brief.md` and `docs/handoff/phase-114.md` — PM brief and engineer handoff.
+- `PROJECT_STATUS.md` and `CHANGELOG.md` — status sync through Phase 114.
+
+Dogfood result: local Docker/Caddy ran at `http://127.0.0.1:18080` with `GNUCASH_WRITES_ENABLED=false` and a synthetic/disposable fixture copy. API smoke passed health, login, `/auth/me`, books, accounts, transactions, transaction detail, CSV export, reports summary, and disabled validate/create/patch probes returning 403. Browser dogfood passed login, protected redirect, dashboard, accounts, books, scheduled, account detail, transaction filters, transaction detail, authenticated CSV export, httpOnly-cookie invisibility to `document.cookie`, and no screenshot/download/export file creation.
+
+Safety result: no personal/private book was used or searched for. No screenshot, CSV export, app DB, GnuCash book, backup, `.env`, secret, token, cert, key, private path, real account name, real transaction description, real memo, real amount, or personal financial data was committed. Writes remain disabled by default; controlled writes remain post-MVP/experimental; no tag/release/package was published; no v0.2 work was started.
+
+Verification result: Docker Compose config validation, API smoke, browser dogfood, backend full tests, frontend route checks/check/build, and `git diff --check` are recorded in `docs/handoff/phase-114.md`.
+
+Related issues: GitHub #11/#12/#13 updated with Phase 114 synthetic dogfood evidence for the recently touched surfaces. GitHub #38 remains open/blocked because this was not personal copied-book dogfood.
 
 ## Standing constraints
 

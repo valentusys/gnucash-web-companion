@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Phase 114 — added a durable headless Chromium/CDP browser dogfood helper and recorded a synthetic/disposable Docker/Caddy UI/API dogfood refresh covering login, dashboard, accounts, books, scheduled awareness, transaction filters, account/transaction detail, CSV export, and disabled-write probes with `GNUCASH_WRITES_ENABLED=false`.
 - Phase 113 — added a Russian accounting/safety glossary and localized the transaction filter/CSV export UI slice through the existing message catalog, while keeping English canonical, translation partial, URL-only filters, and read-only/export warnings intact.
 - Phase 112 — added safe CORS deployment posture diagnostics to `/health` and startup logs, warning when wildcard `CORS_ORIGINS` is used outside development-like environments while documenting exact localhost/LAN/VPN origin examples without production-readiness claims.
 - Phase 111 — added a safe GnuCash Desktop/CLI tooling availability probe for compatibility evidence, documented that the local environment has no `gnucash`/`gnucash-cli`, and kept Desktop-generated compatibility claims explicitly blocked until a disposable Desktop environment exists.
