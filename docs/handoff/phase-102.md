@@ -126,4 +126,5 @@ Either add a real GnuCash Desktop/version disposable fixture source for GitHub #
 
 ## Commit / push
 
-Implementation commit and push are performed after final verification. Final commit hash and push status are reported in the Phase 102 Telegram/stdout report after verification.
+- Commit: `7a8ed63` (`feat: refresh compatibility fixture provenance`).
+- Push: PASS — pushed `main` to `origin/main` (`3dce768..7a8ed63`).
