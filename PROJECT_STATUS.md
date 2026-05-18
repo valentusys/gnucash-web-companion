@@ -153,7 +153,7 @@ Completed phases:
 
 Next planned phase:
 
-- Next practical phase should either add real GnuCash Desktop/version fixture evidence for GitHub #22 if a safe disposable source is available, or return to GitHub #38 copied personal-book dogfood only if Val provides an explicit safe copied/disposable GnuCash SQL book path outside git. Do not publish `v0.1.1-readonly` unless Val gives separate explicit authorization in a later request.
+- Phase 103 — read-only transaction date-range preset UX from GitHub #11, planned in `docs/handoff/phase-103-pm-brief.md`. This is the next uncompleted practical roadmap phase after Phases 95-102. It must preserve existing read-only list/CSV filter parity and must not publish `v0.1.1-readonly`; publication still requires separate explicit Val authorization.
 
 ## MVP product model
 
