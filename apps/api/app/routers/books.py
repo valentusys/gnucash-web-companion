@@ -22,7 +22,16 @@ from app.services.gnucash_exceptions import (
 router = APIRouter(prefix="/books", tags=["books"])
 
 
-def serialize_book(book: Book) -> dict[str, Any]:
+def _access_role_for(book: Book, user: User | None) -> str | None:
+    if user is None:
+        return None
+    for entry in book.access_entries:
+        if entry.user_id == user.id:
+            return entry.role
+    return None
+
+
+def serialize_book(book: Book, user: User | None = None) -> dict[str, Any]:
     """Serialize app metadata for a book without opening its GnuCash data."""
     return {
         "id": book.id,
@@ -32,6 +41,10 @@ def serialize_book(book: Book) -> dict[str, Any]:
         "base_currency": book.base_currency,
         "is_default": book.is_default,
         "is_archived": book.is_archived,
+        "access_role": _access_role_for(book, user),
+        "read_only": True,
+        "status": "accessible",
+        "management_actions": [],
     }
 
 
@@ -97,7 +110,7 @@ async def list_books(
 ) -> list[dict[str, Any]]:
     """List books visible to the current user."""
     books = BookRegistryService(session).list_books_for_user(user)
-    return [serialize_book(book) for book in books]
+    return [serialize_book(book, user) for book in books]
 
 
 @router.get("/{book_id}")
@@ -108,7 +121,7 @@ async def get_book(
 ) -> dict[str, Any]:
     """Return one viewable book by id."""
     book = resolve_viewable_book(book_id, user, session)
-    return serialize_book(book)
+    return serialize_book(book, user)
 
 
 @router.get("/{book_id}/scheduled-transactions")

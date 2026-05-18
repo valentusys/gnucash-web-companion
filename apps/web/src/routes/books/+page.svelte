@@ -11,6 +11,14 @@
 	function formatStorageType(storageType: string): string {
 		return storageType || t(locale, 'books.unknown');
 	}
+
+	function formatAccessRole(role: string | null): string {
+		return role || t(locale, 'books.unknown');
+	}
+
+	function formatStatus(status: string): string {
+		return status || t(locale, 'books.unknown');
+	}
 </script>
 
 <svelte:head>
@@ -69,7 +77,7 @@
 							</div>
 						</div>
 
-						<dl class="mt-4 grid gap-3 text-sm sm:grid-cols-3">
+						<dl class="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-5">
 							<div>
 								<dt class="font-medium" style="color: var(--app-muted);">{t(locale, 'books.baseCurrency')}</dt>
 								<dd class="mt-1" style="color: var(--app-text);">{formatBaseCurrency(book.base_currency)}</dd>
@@ -79,10 +87,29 @@
 								<dd class="mt-1" style="color: var(--app-text);">{formatStorageType(book.storage_type)}</dd>
 							</div>
 							<div>
+								<dt class="font-medium" style="color: var(--app-muted);">{t(locale, 'books.accessRole')}</dt>
+								<dd class="mt-1 capitalize" style="color: var(--app-text);">{formatAccessRole(book.access_role)}</dd>
+							</div>
+							<div>
+								<dt class="font-medium" style="color: var(--app-muted);">{t(locale, 'books.status')}</dt>
+								<dd class="mt-1 capitalize" style="color: var(--app-text);">{formatStatus(book.status)}</dd>
+							</div>
+							<div>
 								<dt class="font-medium" style="color: var(--app-muted);">{t(locale, 'books.readonlyStatus')}</dt>
-								<dd class="mt-1" style="color: var(--app-text);">{t(locale, 'books.safetyNote')}</dd>
+								<dd class="mt-1" style="color: var(--app-text);">{book.read_only ? t(locale, 'books.safetyNote') : t(locale, 'books.unknown')}</dd>
 							</div>
 						</dl>
+
+						<div class="mt-4 rounded-xl border p-3" style="border-color: var(--app-border); background-color: var(--app-card-bg);">
+							<p class="text-sm font-semibold" style="color: var(--app-text);">{t(locale, 'books.openSafeViews')}</p>
+							<div class="mt-3 flex flex-wrap gap-2 text-sm">
+								<a class="rounded-lg border px-3 py-2 font-medium" style="border-color: var(--app-border); color: var(--app-text);" href={`/books/${book.id}/select?next=/accounts`}>{t(locale, 'books.viewAccounts')}</a>
+								<a class="rounded-lg border px-3 py-2 font-medium" style="border-color: var(--app-border); color: var(--app-text);" href={`/books/${book.id}/select?next=/transactions`}>{t(locale, 'books.browseTransactions')}</a>
+								<a class="rounded-lg border px-3 py-2 font-medium" style="border-color: var(--app-border); color: var(--app-text);" href={`/books/${book.id}/select?next=/scheduled`}>{t(locale, 'books.viewScheduled')}</a>
+								<a class="rounded-lg border px-3 py-2 font-medium" style="border-color: var(--app-border); color: var(--app-text);" href={`/books/${book.id}/select?next=/dashboard`}>{t(locale, 'books.dashboardSummary')}</a>
+							</div>
+							<p class="mt-3 text-xs" style="color: var(--app-muted);">{t(locale, 'books.noManagementActions')}</p>
+						</div>
 					</article>
 				{/each}
 			</div>

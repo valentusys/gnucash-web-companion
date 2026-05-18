@@ -134,6 +134,12 @@ const booksPageServer = read('src/routes/books/+page.server.ts');
 assert.match(booksPageServer, /getActiveBookContext\(fetch, cookies, token\)/, '/books page must resolve accessible book metadata and the current/default book through the authenticated API context');
 assert.doesNotMatch(booksPageServer, /upload|delete|write|edit/i, '/books page server load must stay metadata/read-only only');
 
+const booksSelectRoute = read('src/routes/books/[bookId]/select/+server.ts');
+assert.match(booksSelectRoute, /getActiveBookContext\(fetch, cookies, token\)/, 'book safe-link route must verify selected book against accessible API context before setting a cookie');
+assert.match(booksSelectRoute, /cookies\.set\('selected_book_id'[\s\S]*sameSite:\s*'lax'/s, 'book safe-link route must preserve active book context with the existing non-secret sameSite cookie');
+assert.match(booksSelectRoute, /SAFE_NEXT_PATHS[\s\S]*'\/dashboard'[\s\S]*'\/accounts'[\s\S]*'\/transactions'[\s\S]*'\/scheduled'/s, 'book safe-link route must redirect only to approved read-only views');
+assert.doesNotMatch(booksSelectRoute, /upload|delete|registry|admin|write|edit/i, 'book safe-link route must not expose management workflows');
+
 const booksPage = read('src/routes/books/+page.svelte');
 for (const requiredPhrase of [
 	'Book management',
@@ -143,14 +149,21 @@ for (const requiredPhrase of [
 	'Storage type',
 	'Read-only',
 	'Access status: Accessible',
-	'Archived and unauthorized books are hidden or blocked by the API'
+	'Archived and unauthorized books are hidden or blocked by the API',
+	'Open safe views',
+	'View accounts',
+	'Browse transactions',
+	'View scheduled metadata',
+	'Dashboard summary',
+	'No registry management actions are available on this read-only page.'
 ]) {
 	assert.ok(i18nMessages.includes(requiredPhrase), `books i18n catalog must include canonical English phrase: ${requiredPhrase}`);
 }
 assert.match(booksPage, /DEFAULT_LOCALE[\s\S]*t\(locale, 'books\.title'\)[\s\S]*t\(locale, 'books\.readonlyStatus'\)/s, '/books page must render localized titles and read-only safety labels from the i18n catalog');
 assert.match(booksPage, /t\(locale, 'books\.safetyNote'\)/, '/books page must render localized read-only safety note');
-assert.match(booksPage, /data\.books[\s\S]*book\.name[\s\S]*book\.base_currency[\s\S]*book\.storage_type/s, '/books page must render book name, base currency, and storage type');
+assert.match(booksPage, /data\.books[\s\S]*book\.name[\s\S]*book\.base_currency[\s\S]*book\.storage_type[\s\S]*book\.access_role[\s\S]*book\.status/s, '/books page must render book name, base currency, storage type, access role, and status');
 assert.match(booksPage, /book\.is_default[\s\S]*t\(locale, 'books\.defaultBook'\)/s, '/books page must clearly mark the active/default book');
+assert.match(booksPage, /\/books\/\$\{book\.id\}\/select\?next=\/accounts[\s\S]*\/books\/\$\{book\.id\}\/select\?next=\/transactions[\s\S]*\/books\/\$\{book\.id\}\/select\?next=\/scheduled[\s\S]*\/books\/\$\{book\.id\}\/select\?next=\/dashboard/s, '/books page must expose safe book-context links to read-only views');
 assert.doesNotMatch(booksPage, /<form|<input|type="file"|method="POST"|Upload book|Delete book|collaborative|shared wallet|family wallet/i, '/books page must not offer upload/delete controls or collaborative/family-wallet framing');
 
 const desktopNav = read('src/lib/components/DesktopNav.svelte');

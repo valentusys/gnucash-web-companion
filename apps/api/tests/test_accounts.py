@@ -233,6 +233,12 @@ class TestListBooks:
         ids = [b["id"] for b in data]
         assert sample_book in ids
 
+        book = next(b for b in data if b["id"] == sample_book)
+        assert book["access_role"] == "owner"
+        assert book["read_only"] is True
+        assert book["status"] == "accessible"
+        assert book["management_actions"] == []
+
     def test_excludes_books_without_access(
         self, client, auth_headers, second_book
     ):
@@ -241,6 +247,18 @@ class TestListBooks:
         data = response.json()
         ids = [b["id"] for b in data]
         assert second_book not in ids
+
+    def test_excludes_archived_books_even_with_access(
+        self, client, auth_headers, sample_book, session_factory
+    ):
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).one()
+            book.is_archived = True
+            session.commit()
+
+        response = client.get("/books", headers=auth_headers)
+        assert response.status_code == 200
+        assert response.json() == []
 
 
 # ---------------------------------------------------------------------------
@@ -258,6 +276,10 @@ class TestGetBook:
         data = response.json()
         assert data["id"] == sample_book
         assert data["name"] == "Test Book"
+        assert data["access_role"] == "owner"
+        assert data["read_only"] is True
+        assert data["status"] == "accessible"
+        assert data["management_actions"] == []
 
     def test_not_found(self, client, auth_headers):
         response = client.get("/books/99999", headers=auth_headers)

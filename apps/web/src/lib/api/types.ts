@@ -6,6 +6,10 @@ export type Book = {
 	base_currency: string | null;
 	is_default: boolean;
 	is_archived: boolean;
+	access_role: 'owner' | 'editor' | 'viewer' | null;
+	read_only: boolean;
+	status: string;
+	management_actions: string[];
 };
 
 export type Account = {

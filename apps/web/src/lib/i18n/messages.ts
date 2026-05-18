@@ -45,7 +45,15 @@ export type MessageKey =
 	| 'books.safetyNote'
 	| 'books.noBooks'
 	| 'books.notConfigured'
-	| 'books.unknown';
+	| 'books.unknown'
+	| 'books.accessRole'
+	| 'books.status'
+	| 'books.openSafeViews'
+	| 'books.viewAccounts'
+	| 'books.browseTransactions'
+	| 'books.viewScheduled'
+	| 'books.dashboardSummary'
+	| 'books.noManagementActions';
 
 export const messages: Record<Locale, Record<MessageKey, string>> = {
 	en: {
@@ -90,7 +98,15 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'books.safetyNote': 'GnuCash Desktop remains the authoritative editor.',
 		'books.noBooks': 'No accessible configured books are available for this account.',
 		'books.notConfigured': 'Not configured',
-		'books.unknown': 'Unknown'
+		'books.unknown': 'Unknown',
+		'books.accessRole': 'Access role',
+		'books.status': 'Metadata status',
+		'books.openSafeViews': 'Open safe views',
+		'books.viewAccounts': 'View accounts',
+		'books.browseTransactions': 'Browse transactions',
+		'books.viewScheduled': 'View scheduled metadata',
+		'books.dashboardSummary': 'Dashboard summary',
+		'books.noManagementActions': 'No registry management actions are available on this read-only page.'
 	},
 	ru: {
 		'locale.english': 'Английский',
@@ -134,6 +150,14 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'books.safetyNote': 'GnuCash Desktop остаётся главным редактором.',
 		'books.noBooks': 'Для этой учётной записи нет доступных настроенных книг.',
 		'books.notConfigured': 'Не настроено',
-		'books.unknown': 'Неизвестно'
+		'books.unknown': 'Неизвестно',
+		'books.accessRole': 'Роль доступа',
+		'books.status': 'Статус метаданных',
+		'books.openSafeViews': 'Открыть безопасные разделы',
+		'books.viewAccounts': 'Счета',
+		'books.browseTransactions': 'Транзакции',
+		'books.viewScheduled': 'Плановые метаданные',
+		'books.dashboardSummary': 'Обзор',
+		'books.noManagementActions': 'На этой read-only странице нет действий управления реестром книг.'
 	}
 };

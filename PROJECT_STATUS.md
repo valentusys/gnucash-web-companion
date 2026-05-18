@@ -11,7 +11,7 @@ Last updated: 2026-05-19
 
 ## Current baseline
 
-Completed through Phase 109.
+Completed through Phase 110.
 
 Current public release state:
 
@@ -132,6 +132,7 @@ Completed phases:
 - Phase 107 — transaction filter URL presets and clear-all reset UX from GitHub #11
 - Phase 108 — account detail transaction filter/export parity from GitHub #11
 - Phase 109 — scheduled/recurring transaction read-only awareness from GitHub #12
+- Phase 110 — books metadata UX hardening from GitHub #13
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -177,9 +178,11 @@ Completed phases:
 
 - Phase 109 completed scheduled/recurring transaction read-only awareness from GitHub #12: the backend now exposes `GET /scheduled-transactions` and `GET /books/{book_id}/scheduled-transactions` for safe scheduled transaction summary metadata through the authenticated book-aware API context, and the web app now has a protected `/scheduled` page for the active accessible book. The implementation intentionally shows only id/name/enabled/date/count/auto-create/auto-notify/advance-day/template-presence/recurrence metadata and does not expose template split details, raw SQL, account names, memos, descriptions, amounts, private paths, or fake next-run predictions. `docs/scheduled-transactions.md` documents the unsupported/editor boundary and GnuCash Desktop remains the authoritative scheduled-transaction editor. GitHub #12 was updated with evidence and remains open only if future scope requires richer verified schedule calculations/editor-adjacent UX. No backend write path was changed, no tag, release, package, GnuCash book, app DB, backup, `.env`, screenshot, CSV export, secret, token, cert, key, private path, account name, transaction description, memo, amount, or personal financial data was committed; writes remain disabled by default; controlled writes remain post-MVP/experimental; no v0.2 work was started.
 
+- Phase 110 completed books metadata UX hardening from GitHub #13: `GET /books` and `GET /books/{book_id}` now include explicit app-metadata-only `access_role`, `read_only`, `status`, and empty `management_actions` fields for visible books without opening GnuCash data. The `/books` page now renders access role/status/read-only metadata, stronger no-management-action copy, empty/inaccessible guidance, and safe links that verify the selected book against the authenticated accessible list before setting the existing non-secret selected-book cookie and redirecting only to read-only views (`/dashboard`, `/accounts`, `/transactions`, `/scheduled`). Regression coverage confirms archived and unauthorized books stay hidden/blocked. GitHub #13 was updated with evidence and remains open for future admin-only registration/default/deletion-from-registry workflows. No backend write path was changed, no upload/delete/registry-edit/default-changing UI was added, no tag, release, package, GnuCash book, app DB, backup, `.env`, screenshot, CSV export, secret, token, cert, key, private path, account name, transaction description, memo, amount, or personal financial data was committed; writes remain disabled by default; controlled writes remain post-MVP/experimental; no v0.2 work was started.
+
 Next planned phase:
 
-- Phase 110 — continue the analyst roadmap with books metadata UX hardening from GitHub #13, limited to read-only status/operator-confidence improvements without upload/deletion/registry editing/admin workflows.
+- Phase 111 — continue the analyst roadmap with compatibility fixture v4 safe Desktop evidence from GitHub #22 if tooling is available; otherwise improve reproducible generated/disposable fixture evidence without private books.
 
 ## MVP product model
 
