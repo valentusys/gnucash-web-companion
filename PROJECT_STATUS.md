@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 64.
+Completed through Phase 65.
 
 Completed phases:
 
@@ -80,10 +80,11 @@ Completed phases:
 - Phase 62 — deployment safety audit
 - Phase 63 — backup/recovery audit
 - Phase 64 — compatibility audit
+- Phase 65 — test coverage audit
 
 Next planned phase:
 
-- Continue the auditor roadmap with Phase 65 only when explicitly requested. Do not create a v0.1 tag/GitHub release until #24/#25 are handled by an explicit later phase. Phase 64 confirmed compatibility claims are conservative and found no broad-compatibility blocker, but it did not add real GnuCash Desktop version fixtures and did not unblock v0.1 publication.
+- Continue the auditor roadmap with Phase 66 only when explicitly requested. Do not create a v0.1 tag/GitHub release until #24/#25 are handled by an explicit later phase. Phase 65 confirmed automated tests support the current pre-alpha/read-only maturity claims, but it did not replace copied/disposable-data runtime smoke/dogfood evidence and did not unblock v0.1 publication.
 
 ## MVP product model
 
@@ -1116,6 +1117,27 @@ Compatibility result: README, release planning docs, and compatibility docs avoi
 Test results: backend full suite, frontend check/auth-routes/build, Docker Compose config validation, and `git diff --check` are recorded in the Phase 64 handoff.
 
 Related issues: no new issue created; GitHub #22 was updated with the Phase 64 audit result and remains open. GitHub #24 and #25 remain release blockers; GitHub #26 remains a non-blocking deployment-hardening visibility item.
+
+## Phase 65 — Test Coverage Audit
+
+Status: complete. Phase commit pushed.
+
+Goal: audit whether the current tests support the repository's maturity claims from the auditor roadmap without adding product features, expanding write scope, or publishing a release.
+
+Artifacts:
+
+- `docs/audits/phase-65-audit.md` — independent Phase 65 test-coverage audit artifact with a claim-to-test-coverage matrix and verdict: automated coverage supports the current pre-alpha/read-only posture, but does not unblock `v0.1.0-readonly` publication.
+- `README.md` — current status advanced through Phase 65 and latest-audit link updated.
+- `CHANGELOG.md` — Unreleased entry added for the release-facing Phase 65 test-coverage audit result.
+- `docs/handoff/phase-65.md` — PM/auditor/engineer handoff and verification report.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default state; controlled writes remain experimental post-MVP and disabled by default. Phase 65 did not enable writes, expand write scope, publish a v0.1 tag/release, claim production readiness/security audit/broad compatibility, or add real financial/secrets artifacts.
+
+Coverage result: backend tests, frontend check/auth-route/build coverage, Docker Compose validation, and CI workflow coverage support the current conservative pre-alpha/read-only claims. The audit found no new test-coverage blocker, but kept #24/#25 as release blockers because automated tests do not replace conservative v0.1 release notes or copied/disposable-data runtime smoke/dogfood evidence.
+
+Test results: backend full suite, frontend check/auth-routes/build, Docker Compose config validation, and `git diff --check` are recorded in the Phase 65 handoff.
+
+Related issues: no new issue created; GitHub #25 was updated with the Phase 65 audit result and remains open. GitHub #24 and #25 remain release blockers; GitHub #22 and #26 remain open for compatibility/deployment-hardening follow-up.
 
 ## Standing constraints
 

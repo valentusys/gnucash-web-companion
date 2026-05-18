@@ -40,12 +40,12 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–64 are complete.
+- Phase 0–65 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by default.
 - First public pre-alpha release: `v0.0.1-prealpha`.
 - Current public pre-alpha release: [`v0.0.2-prealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.0.2-prealpha).
-- Latest audit: [docs/audits/phase-64-audit.md](docs/audits/phase-64-audit.md).
+- Latest audit: [docs/audits/phase-65-audit.md](docs/audits/phase-65-audit.md).
 - Russian localization/i18n foundation started in Phase 52; English documentation remains canonical. See [README.ru.md](README.ru.md) and [docs/localization.md](docs/localization.md).
 - Community announcement drafts and where-to-share guidance were refreshed in Phase 53 for cautious feedback collection, not production marketing.
 - Startup diagnostics, a richer non-sensitive health endpoint, and troubleshooting guidance were added in Phase 54 for self-hosted deployments.
@@ -59,6 +59,7 @@ This project is not a fit if you need:
 - Phase 62 completed a deployment-safety audit and found no deployment-doc blocker for local/LAN/VPN-only read-only testing; direct public-internet exposure remains unsafe, v0.1 publication remains blocked by #24/#25, and CORS origin narrowing for shared LAN/VPN deployments is tracked in #26.
 - Phase 63 completed a backup/recovery audit and found no backup/recovery release blocker after correcting stale Compose write-disabled verification examples; backup/recovery remains manual/operator-run with no production disaster-recovery guarantee, and v0.1 publication remains blocked by #24/#25.
 - Phase 64 completed a compatibility-claims audit and found no broad-compatibility blocker: tested coverage remains limited to documented synthetic GnuCash SQL SQLite fixture paths, PostgreSQL/MySQL/MariaDB/XML/all-version support is not claimed, #22 remains open for real-version fixture coverage, and v0.1 publication remains blocked by #24/#25.
+- Phase 65 completed a test-coverage audit and found the automated suite supports the current pre-alpha/read-only maturity claims, but does not replace the #25 copied/disposable-data runtime smoke/dogfood gate; v0.1 publication remains blocked by #24/#25.
 
 ## MVP scope: read-only first
 
