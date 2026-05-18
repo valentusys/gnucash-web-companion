@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 86.
+Completed through Phase 87.
 
 Completed phases:
 
@@ -102,10 +102,13 @@ Completed phases:
 - Phase 84 — define tested CSV export truncation/timeout behavior and close #32
 - Phase 85 — post-v0.1 copied personal-book dogfood attempt with safe blocker tracking
 - Phase 86 — Phase 85 dogfood blocker triage and safe copied-book preflight helper
+- Phase 87 — large-book read-only benchmark v1
+
+- Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
 Next planned phase:
 
-- Phase 86 triaged the Phase 85 findings and found no concrete application bug to fix: the only Phase 85 blocker was the absence of a safe copied personal GnuCash SQL book in this environment, tracked by GitHub #38. To prevent another ambiguous/no-evidence dogfood attempt, Phase 86 added a small tested operator preflight helper that classifies a candidate copied-book path without opening the book or leaking private paths. Next work should still not assume Phase 85 passed on real personal data; provide a safe copied personal book and rerun the dogfood checklist, or proceed to another narrow post-release maintenance phase from the roadmap. Do not publish another tag/release, expand writes, or start v0.2 work without explicit scope.
+- Phase 88 should remain a concrete read-only performance/dogfood maintenance result: add a synthetic many-splits/account-detail benchmark or regression scenario, use generated data only, file any serious slowdown with evidence, and do not enable writes, start v0.2, or publish a release.
 
 ## MVP product model
 

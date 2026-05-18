@@ -1,0 +1,433 @@
+"""Phase 87 large-book read-only benchmark helper.
+
+The helper intentionally generates only synthetic/disposable GnuCash SQLite books
+and exercises read-only API paths. It must never require or commit private books,
+CSV exports, screenshots, app DBs, `.env`, or secrets.
+"""
+
+from __future__ import annotations
+
+import argparse
+import csv
+import io
+import json
+import statistics
+import sys
+import time
+from dataclasses import asdict, dataclass
+from datetime import date, timedelta
+from decimal import Decimal
+from pathlib import Path
+from typing import Any, Callable
+
+import piecash
+from fastapi.testclient import TestClient
+from piecash import Account, Split, Transaction
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
+
+from app.config import Settings, get_settings
+from app.database import Base
+from app.main import app
+from app.models import Book, User, UserBookAccess
+from app.routers.auth import get_db
+from app.services.auth import hash_password
+
+BASE_CURRENCY = "SEK"
+CSV_EXPORT_LIMIT = 10_000
+DEFAULT_OUTPUT_PATH = (
+    Path(__file__).resolve().parents[2]
+    / "tests"
+    / "generated-fixtures"
+    / "phase-87-large-book.gnucash.sqlite"
+)
+
+
+@dataclass(frozen=True)
+class BenchmarkCase:
+    name: str
+    method: str
+    path_template: str
+    read_only: bool = True
+
+
+BENCHMARK_CASES: list[BenchmarkCase] = [
+    BenchmarkCase("accounts_tree_load", "GET", "/books/{book_id}/accounts/tree"),
+    BenchmarkCase("transactions_list_first_page", "GET", "/books/{book_id}/transactions?limit=50&offset=0"),
+    BenchmarkCase(
+        "transaction_filters",
+        "GET",
+        "/books/{book_id}/transactions?limit=50&offset=0&query=synthetic&date_from=2026-01-01&date_to=2026-12-31",
+    ),
+    BenchmarkCase(
+        "account_detail_transactions",
+        "GET",
+        "/books/{book_id}/accounts/{account_id}/transactions?limit=50&offset=0",
+    ),
+    BenchmarkCase("dashboard_summary", "GET", "/books/{book_id}/reports/summary?as_of_date=2026-12-31"),
+    BenchmarkCase("csv_export_up_to_cap", "GET", "/books/{book_id}/transactions/export"),
+]
+
+
+@dataclass(frozen=True)
+class BenchmarkConfig:
+    transaction_count: int = 1_000
+    expense_account_count: int = 12
+    repeats: int = 3
+
+
+@dataclass(frozen=True)
+class FixtureMetadata:
+    path: Path
+    transaction_count: int
+    expense_account_count: int
+    synthetic: bool
+    contains_real_data: bool
+
+
+@dataclass(frozen=True)
+class BenchmarkResult:
+    name: str
+    method: str
+    path: str
+    status_code: int
+    duration_ms_min: float
+    duration_ms_median: float
+    duration_ms_max: float
+    response_bytes: int
+    item_count: int | None = None
+    csv_total: int | None = None
+    csv_truncated: bool | None = None
+
+
+def benchmark_plan() -> list[BenchmarkCase]:
+    """Return the conservative Phase 87 read-only benchmark plan."""
+    return BENCHMARK_CASES
+
+
+def create_large_synthetic_book(
+    output_path: str | Path = DEFAULT_OUTPUT_PATH,
+    *,
+    transaction_count: int = 1_000,
+    expense_account_count: int = 12,
+) -> FixtureMetadata:
+    """Create a deterministic synthetic GnuCash SQLite book for benchmarks."""
+    if transaction_count < 1:
+        raise ValueError("transaction_count must be at least 1")
+    if expense_account_count < 1:
+        raise ValueError("expense_account_count must be at least 1")
+
+    output = Path(output_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    if output.exists():
+        output.unlink()
+
+    book = piecash.create_book(currency=BASE_CURRENCY, sqlite_file=str(output))
+    currency = book.commodities[0]
+    root = book.root_account
+
+    assets = Account(name="Synthetic Assets", type="ASSET", parent=root, commodity=currency)
+    checking = Account(name="Synthetic Checking", type="BANK", parent=assets, commodity=currency)
+    savings = Account(name="Synthetic Savings", type="BANK", parent=assets, commodity=currency)
+
+    liabilities = Account(name="Synthetic Liabilities", type="LIABILITY", parent=root, commodity=currency)
+    credit_card = Account(name="Synthetic Credit Card", type="CREDIT", parent=liabilities, commodity=currency)
+
+    income = Account(name="Synthetic Income", type="INCOME", parent=root, commodity=currency)
+    salary = Account(name="Synthetic Salary", type="INCOME", parent=income, commodity=currency)
+
+    expenses = Account(name="Synthetic Expenses", type="EXPENSE", parent=root, commodity=currency)
+    expense_accounts = [
+        Account(
+            name=f"Synthetic Expense {idx:02d}",
+            type="EXPENSE",
+            parent=expenses,
+            commodity=currency,
+        )
+        for idx in range(1, expense_account_count + 1)
+    ]
+
+    equity = Account(name="Synthetic Equity", type="EQUITY", parent=root, commodity=currency)
+    opening = Account(name="Synthetic Opening Balances", type="EQUITY", parent=equity, commodity=currency)
+
+    Transaction(
+        currency=currency,
+        description="Synthetic benchmark transaction opening checking",
+        post_date=date(2026, 1, 1),
+        splits=[
+            Split(account=opening, value=Decimal("-10000.00")),
+            Split(account=checking, value=Decimal("10000.00")),
+        ],
+    )
+
+    start = date(2026, 1, 2)
+    for idx in range(1, transaction_count):
+        tx_date = start + timedelta(days=idx % 365)
+        amount = Decimal((idx % 500) + 1).quantize(Decimal("0.01"))
+        if idx % 10 == 0:
+            Transaction(
+                currency=currency,
+                description=f"Synthetic benchmark transaction salary {idx:05d}",
+                post_date=tx_date,
+                splits=[
+                    Split(account=salary, value=-(amount + Decimal("1000.00"))),
+                    Split(account=checking, value=amount + Decimal("1000.00")),
+                ],
+            )
+        elif idx % 15 == 0:
+            Transaction(
+                currency=currency,
+                description=f"Synthetic benchmark transaction transfer {idx:05d}",
+                post_date=tx_date,
+                splits=[
+                    Split(account=checking, value=-amount),
+                    Split(account=savings, value=amount),
+                ],
+            )
+        elif idx % 22 == 0:
+            expense = expense_accounts[idx % expense_account_count]
+            Transaction(
+                currency=currency,
+                description=f"Synthetic benchmark transaction credit {idx:05d}",
+                post_date=tx_date,
+                splits=[
+                    Split(account=credit_card, value=-amount),
+                    Split(account=expense, value=amount),
+                ],
+            )
+        else:
+            expense = expense_accounts[idx % expense_account_count]
+            Transaction(
+                currency=currency,
+                description=f"Synthetic benchmark transaction expense {idx:05d}",
+                post_date=tx_date,
+                splits=[
+                    Split(account=checking, value=-amount),
+                    Split(account=expense, value=amount),
+                ],
+            )
+
+    book.save()
+    book.close()
+    return FixtureMetadata(
+        path=output,
+        transaction_count=transaction_count,
+        expense_account_count=expense_account_count,
+        synthetic=True,
+        contains_real_data=False,
+    )
+
+
+def _test_settings() -> Settings:
+    return Settings(
+        app_env="benchmark",
+        app_database_url="sqlite:///:memory:",
+        jwt_secret="benchmark-secret-key-for-local-phase-87-only",
+        jwt_token_expire_minutes=30,
+        app_admin_username="admin",
+        app_admin_password="benchmark-password",
+    )
+
+
+def _build_client(book_path: Path) -> tuple[TestClient, int, dict[str, str], Callable[[], None]]:
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    session_factory = sessionmaker(bind=engine)
+
+    def override_get_db():
+        with session_factory() as session:
+            yield session
+
+    app.dependency_overrides[get_settings] = _test_settings
+    app.dependency_overrides[get_db] = override_get_db
+
+    with session_factory() as session:
+        user = User(
+            username="admin",
+            display_name="Benchmark Admin",
+            password_hash=hash_password("benchmark-password"),
+            is_admin=True,
+        )
+        session.add(user)
+        session.flush()
+        book = Book(
+            name="Phase 87 Synthetic Large Book",
+            storage_type="sqlite",
+            uri_or_path=str(book_path),
+            base_currency=BASE_CURRENCY,
+            is_default=True,
+        )
+        session.add(book)
+        session.flush()
+        session.add(UserBookAccess(user_id=user.id, book_id=book.id, role="owner"))
+        session.commit()
+        book_id = int(book.id)
+
+    client = TestClient(app)
+    login = client.post(
+        "/auth/login",
+        json={"username": "admin", "password": "benchmark-password"},
+    )
+    login.raise_for_status()
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+    def cleanup() -> None:
+        app.dependency_overrides.clear()
+        get_settings.cache_clear()
+        engine.dispose()
+
+    return client, book_id, headers, cleanup
+
+
+def _select_account_id(client: TestClient, book_id: int, headers: dict[str, str]) -> str:
+    response = client.get(f"/books/{book_id}/accounts/tree", headers=headers)
+    response.raise_for_status()
+
+    def walk(nodes: list[dict[str, Any]], preferred_types: set[str]) -> str | None:
+        for node in nodes:
+            if node.get("type") in preferred_types and node.get("id"):
+                return str(node["id"])
+            found = walk(node.get("children") or [], preferred_types)
+            if found:
+                return found
+        return None
+
+    tree = response.json()
+    account_id = walk(tree, {"BANK"}) or walk(tree, {"ASSET"})
+    if not account_id:
+        raise RuntimeError("benchmark fixture did not expose a usable account id")
+    return account_id
+
+
+def _summarize_response(case: BenchmarkCase, response: Any) -> tuple[int | None, int | None, bool | None]:
+    item_count: int | None = None
+    csv_total: int | None = None
+    csv_truncated: bool | None = None
+
+    if case.name == "csv_export_up_to_cap":
+        csv_total_header = response.headers.get("X-CSV-Export-Total")
+        if csv_total_header is not None:
+            csv_total = int(csv_total_header)
+        csv_truncated = response.headers.get("X-CSV-Export-Truncated") == "true"
+        rows = list(csv.reader(io.StringIO(response.text)))
+        item_count = max(0, len(rows) - 1)
+        return item_count, csv_total, csv_truncated
+
+    try:
+        payload = response.json()
+    except ValueError:
+        return None, None, None
+    if isinstance(payload, list):
+        item_count = len(payload)
+    elif isinstance(payload, dict) and isinstance(payload.get("items"), list):
+        item_count = len(payload["items"])
+    return item_count, None, None
+
+
+def run_benchmark(
+    book_path: str | Path,
+    *,
+    repeats: int = 3,
+) -> list[BenchmarkResult]:
+    """Run Phase 87 read-only API benchmark cases against a synthetic book."""
+    if repeats < 1:
+        raise ValueError("repeats must be at least 1")
+    client, book_id, headers, cleanup = _build_client(Path(book_path))
+    try:
+        account_id = _select_account_id(client, book_id, headers)
+        results: list[BenchmarkResult] = []
+        for case in BENCHMARK_CASES:
+            path = case.path_template.format(book_id=book_id, account_id=account_id)
+            durations: list[float] = []
+            last_response = None
+            for _ in range(repeats):
+                start = time.perf_counter()
+                response = client.request(case.method, path, headers=headers)
+                durations.append((time.perf_counter() - start) * 1000)
+                response.raise_for_status()
+                last_response = response
+            if last_response is None:  # pragma: no cover - repeats validation prevents this
+                raise RuntimeError("benchmark produced no response")
+            item_count, csv_total, csv_truncated = _summarize_response(case, last_response)
+            results.append(
+                BenchmarkResult(
+                    name=case.name,
+                    method=case.method,
+                    path=path,
+                    status_code=last_response.status_code,
+                    duration_ms_min=round(min(durations), 2),
+                    duration_ms_median=round(statistics.median(durations), 2),
+                    duration_ms_max=round(max(durations), 2),
+                    response_bytes=len(last_response.content),
+                    item_count=item_count,
+                    csv_total=csv_total,
+                    csv_truncated=csv_truncated,
+                )
+            )
+        return results
+    finally:
+        cleanup()
+
+
+def write_results_json(path: str | Path, metadata: FixtureMetadata, results: list[BenchmarkResult]) -> Path:
+    output = Path(path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "fixture": {**asdict(metadata), "path": str(metadata.path)},
+        "results": [asdict(result) for result in results],
+        "scope": {
+            "synthetic_generated_data_only": True,
+            "read_only_api_paths_only": True,
+            "contains_private_book": False,
+            "writes_enabled": False,
+        },
+    }
+    output.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return output
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Run Phase 87 large-book read-only benchmark v1")
+    parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT_PATH)
+    parser.add_argument("--transactions", type=int, default=BenchmarkConfig.transaction_count)
+    parser.add_argument("--expense-accounts", type=int, default=BenchmarkConfig.expense_account_count)
+    parser.add_argument("--repeats", type=int, default=BenchmarkConfig.repeats)
+    parser.add_argument("--json-output", type=Path, default=None)
+    args = parser.parse_args(argv)
+
+    metadata = create_large_synthetic_book(
+        args.output,
+        transaction_count=args.transactions,
+        expense_account_count=args.expense_accounts,
+    )
+    results = run_benchmark(metadata.path, repeats=args.repeats)
+
+    print("Phase 87 large-book read-only benchmark v1")
+    print(f"Synthetic fixture: {metadata.path}")
+    print(f"Transactions: {metadata.transaction_count}")
+    print(f"Expense accounts: {metadata.expense_account_count}")
+    print("No private book data used; read-only API paths only.")
+    for result in results:
+        extra = ""
+        if result.item_count is not None:
+            extra += f", items={result.item_count}"
+        if result.csv_total is not None:
+            extra += f", csv_total={result.csv_total}, truncated={result.csv_truncated}"
+        print(
+            f"{result.name}: status={result.status_code}, median={result.duration_ms_median:.2f} ms, "
+            f"min={result.duration_ms_min:.2f} ms, max={result.duration_ms_max:.2f} ms, bytes={result.response_bytes}{extra}"
+        )
+
+    if args.json_output:
+        output = write_results_json(args.json_output, metadata, results)
+        print(f"JSON results: {output}")
+    return 0
+
+
+if __name__ == "__main__":  # pragma: no cover
+    raise SystemExit(main(sys.argv[1:]))
