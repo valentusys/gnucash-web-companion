@@ -21,7 +21,7 @@ function walk(dir, files = []) {
 }
 
 const hooks = read('src/hooks.server.ts');
-assert.match(hooks, /PROTECTED_PREFIXES[\s\S]*'\/dashboard'[\s\S]*'\/accounts'/, 'dashboard and accounts routes must be protected');
+assert.match(hooks, /PROTECTED_PREFIXES[\s\S]*'\/dashboard'[\s\S]*'\/accounts'[\s\S]*'\/scheduled'/, 'dashboard, accounts, and scheduled routes must be protected');
 assert.match(hooks, /redirect\(303, `\/login\?next=/, 'protected routes must redirect to /login');
 assert.match(hooks, /cookies\.get\('access_token'\)/, 'protected routes must use the httpOnly cookie');
 
@@ -66,6 +66,7 @@ for (const phrase of [
 	"'login.title': 'Sign in'",
 	"'login.title': 'Вход'",
 	"'nav.books': 'Books'",
+	"'nav.scheduled': 'Scheduled'",
 	"'nav.books': 'Книги'",
 	"'safety.message'",
 	'MVP по умолчанию работает только на чтение',
@@ -154,8 +155,32 @@ assert.doesNotMatch(booksPage, /<form|<input|type="file"|method="POST"|Upload bo
 
 const desktopNav = read('src/lib/components/DesktopNav.svelte');
 const mobileNav = read('src/lib/components/MobileNav.svelte');
+assert.match(desktopNav, /href: '\/scheduled'[\s\S]*label: t\(locale, 'nav\.scheduled'\)/, 'desktop nav must expose the localized /scheduled page');
+assert.match(mobileNav, /href: '\/scheduled'[\s\S]*label: t\(locale, 'nav\.scheduled'\)/, 'mobile nav must expose the localized /scheduled page');
 assert.match(desktopNav, /href: '\/books'[\s\S]*label: t\(locale, 'nav\.books'\)/, 'desktop nav must expose the localized /books management page');
 assert.match(mobileNav, /href: '\/books'[\s\S]*label: t\(locale, 'nav\.books'\)/, 'mobile nav must expose the localized /books management page');
+
+const scheduledServer = read('src/routes/scheduled/+page.server.ts');
+assert.match(
+	scheduledServer,
+	/getActiveBookContext\(fetch, cookies, token\)[\s\S]*apiFetch<ScheduledTransaction\[\]>\(fetch, `\$\{bookPrefix\}\/scheduled-transactions`, token\)/s,
+	'scheduled page must load safe scheduled metadata for the active accessible book through the API'
+);
+const scheduledPage = read('src/routes/scheduled/+page.svelte');
+for (const scheduledPhrase of [
+	'Scheduled transactions',
+	'Read-only scheduled transaction awareness',
+	'Use GnuCash Desktop as the authoritative editor',
+	'Template split details and private raw SQL are not exposed',
+	'No scheduled transactions are available through the safe read-only adapter'
+]) {
+	assert.ok(scheduledPage.includes(scheduledPhrase), `scheduled page must include conservative copy: ${scheduledPhrase}`);
+}
+assert.doesNotMatch(
+	scheduledPage,
+	/<form|method="POST"|New scheduled|Edit scheduled|Delete scheduled|next occurrence|next-run/i,
+	'scheduled page must not expose scheduling editor controls or fake next-run copy'
+);
 
 const transactionListPage = read('src/routes/transactions/+page.svelte');
 for (const filterParam of ['query', 'date_from', 'date_to', 'account_id', 'min_amount', 'max_amount', 'transaction_state']) {
@@ -247,6 +272,7 @@ for (const routeFile of [
 	'src/routes/dashboard/+page.server.ts',
 	'src/routes/accounts/+page.server.ts',
 	'src/routes/accounts/[id]/+page.server.ts',
+	'src/routes/scheduled/+page.server.ts',
 	'src/routes/transactions/+page.server.ts',
 	'src/routes/transactions/[id]/+page.server.ts'
 ]) {

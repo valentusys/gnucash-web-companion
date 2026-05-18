@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Phase 109 — added a conservative read-only scheduled/recurring transaction awareness API and `/scheduled` UI page that expose only safe summary metadata, avoid next-run predictions and template split details, and keep GnuCash Desktop as the authoritative editor.
+
 ### Fixed
 
 - Phase 105 — synchronized local release/status documentation and the existing GitHub release body for the already published `v0.1.1-readonly` pre-release. This corrected stale release-prep-only wording, updated README/PROJECT_STATUS/release notes to name `v0.1.1-readonly` as the current public read-only pre-alpha release, and documented the guardrail that release/status docs must be updated in the same phase as factual release-state changes. No product code, tag, release, package, write-mode setting, private data, or real GnuCash book was changed.

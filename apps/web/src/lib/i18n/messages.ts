@@ -17,6 +17,7 @@ export type MessageKey =
 	| 'nav.dashboard'
 	| 'nav.accounts'
 	| 'nav.transactions'
+	| 'nav.scheduled'
 	| 'nav.books'
 	| 'nav.logout'
 	| 'safety.statusLabel'
@@ -59,6 +60,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'nav.dashboard': 'Dashboard',
 		'nav.accounts': 'Accounts',
 		'nav.transactions': 'Transactions',
+		'nav.scheduled': 'Scheduled',
 		'nav.books': 'Books',
 		'nav.logout': 'Logout',
 		'safety.statusLabel': 'Read-only safety status',
@@ -102,6 +104,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'nav.dashboard': 'Обзор',
 		'nav.accounts': 'Счета',
 		'nav.transactions': 'Транзакции',
+		'nav.scheduled': 'Плановые',
 		'nav.books': 'Книги',
 		'nav.logout': 'Выйти',
 		'safety.statusLabel': 'Статус безопасности read-only режима',

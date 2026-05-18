@@ -20,6 +20,8 @@ from app.schemas.gnucash import (
     ExpenseByAccountDTO,
     MoneyDTO,
     ReportSummaryDTO,
+    ScheduledTransactionDTO,
+    ScheduledTransactionRecurrenceDTO,
     TransactionDetailDTO,
     TransactionListItemDTO,
     TransactionSplitDTO,
@@ -224,6 +226,17 @@ class GnuCashBookService:
             if transaction is None:
                 raise EntityNotFoundError("transaction", transaction_id)
             return self._transaction_to_detail(transaction)
+
+    def list_scheduled_transactions(self) -> list[ScheduledTransactionDTO]:
+        """Return safe read-only scheduled transaction metadata.
+
+        This intentionally exposes only summary fields supported by piecash and does
+        not compute or predict next-run dates.
+        """
+        with self._open_book() as book:
+            items = [self._scheduled_transaction_to_dto(item) for item in self._scheduled_transactions(book)]
+            items.sort(key=lambda item: ((item.start_date or "9999-99-99"), item.name.lower(), item.id))
+            return items
 
     def count_transactions(
         self,
@@ -484,6 +497,21 @@ class GnuCashBookService:
     def _transactions(self, book: Any) -> Iterable[Any]:
         return getattr(book, "transactions", []) or []
 
+    def _scheduled_transactions(self, book: Any) -> Iterable[Any]:
+        scheduled = getattr(book, "scheduled_transactions", None)
+        if scheduled is not None:
+            return list(scheduled or [])
+        session = getattr(book, "session", None)
+        query = getattr(session, "query", None) if session is not None else None
+        if not callable(query):
+            return []
+        result = query(piecash.ScheduledTransaction)
+        all_items = getattr(result, "all", None)
+        if not callable(all_items):
+            return []
+        raw_items: Any = all_items()
+        return list(raw_items)
+
     def _account_id(self, account: Any) -> str:
         return _guid(account)
 
@@ -630,6 +658,57 @@ class GnuCashBookService:
             currency=currency,
             splits=split_dtos,
         )
+
+    def _scheduled_transaction_to_dto(self, scheduled: Any) -> ScheduledTransactionDTO:
+        limitations = [
+            "Read-only summary metadata only; edit scheduled transactions in GnuCash Desktop.",
+            "Next occurrence dates are not calculated by this pre-alpha view.",
+            "Template split details are intentionally not exposed.",
+        ]
+        return ScheduledTransactionDTO(
+            id=_guid(scheduled),
+            name=str(getattr(scheduled, "name", "") or ""),
+            enabled=bool(getattr(scheduled, "enabled", False)),
+            start_date=self._optional_date_string(getattr(scheduled, "start_date", None)),
+            end_date=self._optional_date_string(getattr(scheduled, "end_date", None)),
+            last_occurred=self._optional_date_string(getattr(scheduled, "last_occur", None)),
+            num_occurrences=self._optional_int(getattr(scheduled, "num_occur", None)),
+            remaining_occurrences=self._optional_int(getattr(scheduled, "rem_occur", None)),
+            auto_create=bool(getattr(scheduled, "auto_create", False)),
+            auto_notify=bool(getattr(scheduled, "auto_notify", False)),
+            advance_create_days=self._optional_int(getattr(scheduled, "adv_creation", None)),
+            advance_notify_days=self._optional_int(getattr(scheduled, "adv_notify", None)),
+            instance_count=self._optional_int(getattr(scheduled, "instance_count", None)),
+            has_template_account=bool(
+                getattr(scheduled, "template_act_guid", None) or getattr(scheduled, "template_account", None)
+            ),
+            recurrence=[self._recurrence_to_dto(item) for item in self._recurrences(scheduled)],
+            limitations=limitations,
+        )
+
+    def _recurrences(self, scheduled: Any) -> list[Any]:
+        recurrence = getattr(scheduled, "recurrence", []) or []
+        if isinstance(recurrence, list):
+            return recurrence
+        return [recurrence]
+
+    def _recurrence_to_dto(self, recurrence: Any) -> ScheduledTransactionRecurrenceDTO:
+        return ScheduledTransactionRecurrenceDTO(
+            period_type=str(getattr(recurrence, "recurrence_period_type", "") or ""),
+            multiplier=self._optional_int(getattr(recurrence, "recurrence_mult", None)),
+            period_start=self._optional_date_string(getattr(recurrence, "recurrence_period_start", None)),
+            weekend_adjust=str(getattr(recurrence, "recurrence_weekend_adjust", "") or ""),
+        )
+
+    def _optional_date_string(self, value: Any) -> str | None:
+        if value is None or value == "":
+            return None
+        return _date_string(value)
+
+    def _optional_int(self, value: Any) -> int | None:
+        if value is None or value == "":
+            return None
+        return int(value)
 
     def _split_to_dto(self, split: Any) -> TransactionSplitDTO:
         account = getattr(split, "account", None)

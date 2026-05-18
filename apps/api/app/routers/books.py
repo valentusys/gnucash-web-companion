@@ -85,6 +85,11 @@ def transaction_service_for(book: Book) -> GnuCashBookService:
     return GnuCashBookService(book)
 
 
+def scheduled_transaction_service_for(book: Book) -> GnuCashBookService:
+    """Alias for account_service_for; same service handles scheduled transaction metadata."""
+    return GnuCashBookService(book)
+
+
 @router.get("")
 async def list_books(
     user: User = Depends(get_current_user),
@@ -104,6 +109,22 @@ async def get_book(
     """Return one viewable book by id."""
     book = resolve_viewable_book(book_id, user, session)
     return serialize_book(book)
+
+
+@router.get("/{book_id}/scheduled-transactions")
+async def list_book_scheduled_transactions(
+    book_id: int,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+) -> list[dict[str, Any]]:
+    """List safe read-only scheduled transaction metadata for a viewable book."""
+    book = resolve_viewable_book(book_id, user, session)
+    scheduled = []
+    try:
+        scheduled = scheduled_transaction_service_for(book).list_scheduled_transactions()
+    except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
+        handle_gnucash_error(exc)
+    return [item.model_dump() for item in scheduled]
 
 
 @router.get("/{book_id}/accounts")

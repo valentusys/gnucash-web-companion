@@ -11,7 +11,7 @@ Last updated: 2026-05-19
 
 ## Current baseline
 
-Completed through Phase 108.
+Completed through Phase 109.
 
 Current public release state:
 
@@ -131,6 +131,7 @@ Completed phases:
 - Phase 106 — read-only transaction state/reconciliation filters from GitHub #11
 - Phase 107 — transaction filter URL presets and clear-all reset UX from GitHub #11
 - Phase 108 — account detail transaction filter/export parity from GitHub #11
+- Phase 109 — scheduled/recurring transaction read-only awareness from GitHub #12
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -174,9 +175,11 @@ Completed phases:
 
 - Phase 108 completed account detail transaction filter/export parity from GitHub #11: the account detail page now reuses the approved read-only transaction filters for its fixed account scope, supports search, date presets/custom dates, amount range, and split reconciliation state filters, preserves those filters through pagination, shows filtered counts and a clear empty-state explanation, and exports the same account-scoped filtered view through the existing CSV export endpoint with a fixed `account_id`. `TransactionFilters` now supports a locked account scope so account detail cannot accidentally switch or leak to another account. Backend regression coverage proves combined account-scoped filters keep count/list parity and do not return matches from other accounts; frontend route/static checks pin account detail URL/export/filter behavior. GitHub #11 was updated with evidence and remains open for remaining roadmap search/filter scope. No backend write path was changed, no tag, release, package, GnuCash book, app DB, backup, `.env`, screenshot, CSV export, secret, token, cert, key, private path, account name, transaction description, memo, amount, or personal financial data was committed; writes remain disabled by default; controlled writes remain post-MVP/experimental; no v0.2 work was started.
 
+- Phase 109 completed scheduled/recurring transaction read-only awareness from GitHub #12: the backend now exposes `GET /scheduled-transactions` and `GET /books/{book_id}/scheduled-transactions` for safe scheduled transaction summary metadata through the authenticated book-aware API context, and the web app now has a protected `/scheduled` page for the active accessible book. The implementation intentionally shows only id/name/enabled/date/count/auto-create/auto-notify/advance-day/template-presence/recurrence metadata and does not expose template split details, raw SQL, account names, memos, descriptions, amounts, private paths, or fake next-run predictions. `docs/scheduled-transactions.md` documents the unsupported/editor boundary and GnuCash Desktop remains the authoritative scheduled-transaction editor. GitHub #12 was updated with evidence and remains open only if future scope requires richer verified schedule calculations/editor-adjacent UX. No backend write path was changed, no tag, release, package, GnuCash book, app DB, backup, `.env`, screenshot, CSV export, secret, token, cert, key, private path, account name, transaction description, memo, amount, or personal financial data was committed; writes remain disabled by default; controlled writes remain post-MVP/experimental; no v0.2 work was started.
+
 Next planned phase:
 
-- Phase 109 — continue the analyst roadmap with scheduled/recurring transaction read-only awareness from GitHub #12, limited to safe metadata or honest unsupported UX without scheduling editor/write-mode expansion.
+- Phase 110 — continue the analyst roadmap with books metadata UX hardening from GitHub #13, limited to read-only status/operator-confidence improvements without upload/deletion/registry editing/admin workflows.
 
 ## MVP product model
 

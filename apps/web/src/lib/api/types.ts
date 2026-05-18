@@ -51,6 +51,32 @@ export type TransactionDetail = {
 	splits: TransactionSplit[];
 };
 
+export type ScheduledTransactionRecurrence = {
+	period_type: string;
+	multiplier: number | null;
+	period_start: string | null;
+	weekend_adjust: string;
+};
+
+export type ScheduledTransaction = {
+	id: string;
+	name: string;
+	enabled: boolean;
+	start_date: string | null;
+	end_date: string | null;
+	last_occurred: string | null;
+	num_occurrences: number | null;
+	remaining_occurrences: number | null;
+	auto_create: boolean;
+	auto_notify: boolean;
+	advance_create_days: number | null;
+	advance_notify_days: number | null;
+	instance_count: number | null;
+	has_template_account: boolean;
+	recurrence: ScheduledTransactionRecurrence[];
+	limitations: string[];
+};
+
 export type PaginatedTransactions = {
 	items: TransactionListItem[];
 	limit: number;

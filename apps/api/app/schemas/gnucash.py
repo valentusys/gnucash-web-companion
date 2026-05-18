@@ -65,6 +65,39 @@ class TransactionDetailDTO(BaseModel):
     splits: list[TransactionSplitDTO] = Field(default_factory=list, description="All splits in this transaction")
 
 
+class ScheduledTransactionRecurrenceDTO(BaseModel):
+    """Raw recurrence metadata for a GnuCash scheduled transaction.
+
+    This is intentionally not a computed next-run schedule.
+    """
+
+    period_type: str = Field("", description="Raw GnuCash recurrence period type")
+    multiplier: int | None = Field(None, description="Raw GnuCash recurrence multiplier")
+    period_start: str | None = Field(None, description="Raw recurrence start date as YYYY-MM-DD when available")
+    weekend_adjust: str = Field("", description="Raw weekend adjustment mode when available")
+
+
+class ScheduledTransactionDTO(BaseModel):
+    """Safe read-only scheduled/recurring transaction summary metadata."""
+
+    id: str = Field(..., description="Scheduled transaction GUID")
+    name: str = Field("", description="Scheduled transaction name")
+    enabled: bool = Field(False, description="Whether the scheduled transaction is enabled in GnuCash")
+    start_date: str | None = Field(None, description="Configured schedule start date")
+    end_date: str | None = Field(None, description="Configured schedule end date")
+    last_occurred: str | None = Field(None, description="Last occurrence date recorded by GnuCash")
+    num_occurrences: int | None = Field(None, description="Configured total occurrence count")
+    remaining_occurrences: int | None = Field(None, description="Remaining occurrence count recorded by GnuCash")
+    auto_create: bool = Field(False, description="Whether GnuCash is configured to auto-create instances")
+    auto_notify: bool = Field(False, description="Whether GnuCash is configured to notify before creation")
+    advance_create_days: int | None = Field(None, description="Configured advance creation days")
+    advance_notify_days: int | None = Field(None, description="Configured advance notification days")
+    instance_count: int | None = Field(None, description="Instance count recorded by GnuCash")
+    has_template_account: bool = Field(False, description="Whether a template account reference is present")
+    recurrence: list[ScheduledTransactionRecurrenceDTO] = Field(default_factory=list)
+    limitations: list[str] = Field(default_factory=list)
+
+
 class BookSummaryDTO(BaseModel):
     """High-level summary of a GnuCash book."""
 
