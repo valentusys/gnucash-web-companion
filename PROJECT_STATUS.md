@@ -138,7 +138,7 @@ Completed phases:
 
 Next planned phase:
 
-- Phase 98: run the `v0.1.1-readonly` release-gate verification before any publication. Required gate should include backend/frontend/Docker checks, disabled-write/read-only safety confirmation, sensitive-data hygiene, GitHub Actions/release state when authenticated, and a final verdict artifact. Do not publish a tag/release until a later explicitly authorized publish phase.
+- Phase 98: run the `v0.1.1-readonly` release-gate verification before any publication. Durable PM brief prepared in `docs/handoff/phase-98-pm-brief.md`. Required gate should include backend/frontend/Docker checks, disabled-write/read-only safety confirmation, sensitive-data hygiene, GitHub Actions/release state when authenticated, tag/release absence confirmation, and a final verdict artifact. Do not publish a tag/release until a later explicitly authorized publish phase.
 
 ## MVP product model
 
