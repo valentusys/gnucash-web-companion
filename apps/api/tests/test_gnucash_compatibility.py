@@ -35,3 +35,15 @@ def test_compatibility_doc_mentions_fixture_schema_markers() -> None:
     assert "Gnucash-Resave = 19920" in doc
     assert "PostgreSQL/MySQL/MariaDB" in doc
     assert "GNUCASH_WRITES_ENABLED=false" in doc
+
+
+def test_phase_92_metadata_collector_is_documented() -> None:
+    """The compatibility docs should explain the safe copied-book metadata path."""
+
+    compatibility_doc = DOC.read_text(encoding="utf-8")
+    fixture_plan = (ROOT / "docs/gnucash-version-fixture-plan.md").read_text(encoding="utf-8")
+    for doc in (compatibility_doc, fixture_plan):
+        assert "collect_gnucash_compatibility_metadata.py" in doc
+        assert "<redacted>" in doc
+        assert "account names" in doc
+        assert "transaction descriptions" in doc

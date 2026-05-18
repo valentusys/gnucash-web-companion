@@ -11,6 +11,7 @@ Status: pre-alpha compatibility notes for read-only MVP validation.
 | `apps/api/tests/fixtures/test-book.gnucash.sqlite` | SQLite | `Gnucash = 3000000`, `Gnucash-Resave = 19920` | read-only accounts, transactions, reports, CSV export; controlled-write tests only against disposable copies | Tested in CI/backend suite |
 | `apps/api/tests/fixtures/test-book-multicurrency.gnucash.sqlite` | SQLite | `Gnucash = 3000000`, `Gnucash-Resave = 19920` | read-only multi-currency limitation behavior | Tested in CI/backend suite |
 | `apps/api/scripts/create_compatibility_fixture_v1.py` generated fixture | SQLite | captured at test/runtime by metadata helper | generated account tree, transaction list, split transaction detail, reports basic, checksum no-mutation check | Tested by `tests/test_compatibility_fixture_v1.py`; generated locally, binary fixture not committed |
+| Phase 92 local compatibility metadata procedure against a generated disposable fixture | SQLite | safe JSON collector recorded `Gnucash = 3000000`, `Gnucash-Resave = 19920`, plus table counts only | copied/test-book metadata collection procedure, no row data, no private path, no mutation | Tested by `tests/test_gnucash_compatibility_metadata.py`; GnuCash Desktop was not installed in this environment, so this is procedure evidence, not a desktop-version compatibility claim |
 
 ## Not yet formally tested
 
@@ -39,6 +40,27 @@ sqlite3 copied-book.gnucash.sqlite 'select table_name, table_version from versio
 ```
 
 Do not paste real account names, descriptions, balances, transaction data, or private file paths into public issues.
+
+## Safe compatibility metadata collection for copied SQLite books
+
+Phase 92 adds a small metadata collector so a maintainer or contributor can record evidence from a copied/disposable GnuCash SQLite book without publishing private row data:
+
+```bash
+python apps/api/scripts/collect_gnucash_compatibility_metadata.py \
+  /tmp/copied-book.gnucash.sqlite \
+  --gnucash-version "GnuCash 5.10" \
+  --output /tmp/compatibility-metadata.json
+```
+
+The JSON intentionally records only:
+
+- redacted book path (`"<redacted>"`);
+- declared GnuCash Desktop version, if supplied by the operator;
+- backend (`SQLite`);
+- `versions` table markers;
+- safe table counts for selected tables.
+
+It intentionally does not record account names, transaction descriptions, amounts, memos, split rows, private file paths, app database data, or screenshots. Review the JSON before pasting it into GitHub issues or docs.
 
 ## Future compatibility work
 

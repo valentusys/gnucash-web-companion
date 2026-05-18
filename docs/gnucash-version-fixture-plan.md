@@ -99,12 +99,44 @@ sqlite3 fixture.gnucash.sqlite 'select count(*) from transactions;'
 
 Do not print or publish real descriptions, account names, transaction memos, private paths, or balances from user books.
 
+## Phase 92 copied/test-book metadata procedure
+
+Phase 92 improves the test-copy procedure without committing a new binary fixture. Use this when a contributor has a generated disposable fixture or a copied book outside git and wants to provide compatibility evidence safely.
+
+1. Work only on a copied/disposable SQLite book. Do not point the collector at the only/original book.
+2. Record the exact GnuCash Desktop version that created or last saved the copy, if known:
+
+   ```bash
+   gnucash --version
+   ```
+
+3. Run the metadata collector from the repository root:
+
+   ```bash
+   python apps/api/scripts/collect_gnucash_compatibility_metadata.py \
+     /tmp/copied-book.gnucash.sqlite \
+     --gnucash-version "GnuCash 5.10" \
+     --output /tmp/compatibility-metadata.json
+   ```
+
+4. Review `/tmp/compatibility-metadata.json` before sharing. It should contain only the redacted path (`"<redacted>"`), backend, declared GnuCash Desktop version, `versions` markers, and selected table counts. It must not contain account names, transaction descriptions, amounts, memos, split rows, private paths, screenshots, `.env`, app DB data, backups, or secrets.
+5. If this metadata is used to update `docs/gnucash-compatibility.md`, describe the row narrowly. A metadata row is evidence for that copied/test environment only; it is not proof of all GnuCash versions, all SQL backends, XML books, or production readiness.
+
+Phase 92 local procedure evidence:
+
+- `gnucash --version`: unavailable in this container (`gnucash: command not found`).
+- `piecash`: 1.2.1.
+- Generated disposable source: `apps/api/scripts/create_compatibility_fixture_v1.py` into a temporary directory outside git.
+- Collector result: redacted path, `Gnucash = 3000000`, `Gnucash-Resave = 19920`, safe table counts only.
+- Regression coverage: `apps/api/tests/test_gnucash_compatibility_metadata.py` proves the collector does not serialize private path, account name, or transaction description values from a copied SQLite book.
+
 ## Storage and generation policy
 
 Allowed without extra approval:
 
 - Documentation describing how to generate a fixture.
 - Small scripts that generate synthetic fixture data.
+- Small scripts that collect redacted compatibility metadata from copied/disposable SQLite books.
 - Tests that operate on generated or already committed synthetic fixture copies.
 
 Needs explicit approval before commit:
