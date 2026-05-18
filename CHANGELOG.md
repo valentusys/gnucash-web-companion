@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Phase 71 — performance-risk audit, confirming transaction pagination and CSV row-cap safeguards exist while identifying missing large-book, many-splits, CSV timeout/truncation, and dashboard aggregate benchmark evidence; created #30–#33 to track those read-only performance risks without changing product code or expanding write scope.
 - Phase 70 — community-announcement audit, confirming README audience boundaries, synthetic-screenshot labeling, conservative feedback-wanted announcement drafts, fair related-project comparison, and limited-circles-only sharing posture while keeping broad launch-style promotion and `v0.1.0-readonly` publication blocked by #24/#25.
 - Phase 69 — localization/i18n audit, confirming English remains canonical, Russian README/UI localization is conservative and opt-in, localized safety wording preserves the read-only/default-write boundary, complete translation is not a v0.1 blocker unless PM changes release criteria, and #29 tracks a non-blocking localization glossary for accounting/safety terms while `v0.1.0-readonly` publication remains blocked by #24/#25.
 - Phase 68 — documentation-formatting audit, confirming markdown source readability is acceptable with non-blocking cleanup needed before wider announcement; Phase 68 fixed small historical code-fence/link clarifications, created #28 for gradual raw-markdown readability cleanup, and left `v0.1.0-readonly` publication blocked by #24/#25.

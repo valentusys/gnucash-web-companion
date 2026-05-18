@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 70.
+Completed through Phase 71.
 
 Completed phases:
 
@@ -86,10 +86,11 @@ Completed phases:
 - Phase 68 — documentation formatting audit
 - Phase 69 — localization/i18n audit
 - Phase 70 — community announcement audit
+- Phase 71 — performance risk audit
 
 Next planned phase:
 
-- Continue the auditor roadmap with Phase 71 only when explicitly requested. Do not create a v0.1 tag/GitHub release until #24/#25 are handled by an explicit later phase. Phase 70 confirmed the project is ready only for limited feedback-oriented community sharing in narrow technical/GnuCash circles, not broad launch-style promotion; it did not publish a release and did not unblock v0.1 publication.
+- Continue the auditor roadmap with Phase 72 only when explicitly requested. Do not create a v0.1 tag/GitHub release until #24/#25 are handled by an explicit later phase. Phase 71 confirmed that no known-large-book performance claim is supported yet; large-book, many-splits, CSV timeout/truncation, and dashboard aggregate performance risks are tracked in #30–#33. Phase 71 did not publish a release and did not unblock v0.1 publication.
 
 ## MVP product model
 
@@ -1249,6 +1250,27 @@ Community-announcement result: README explains who the project is and is not for
 Test results: documentation/static announcement-readiness checks, backend full suite, frontend check/auth-routes/build, Docker Compose config validation, and `git diff --check` are recorded in the Phase 70 handoff.
 
 Related issues: no new issue created; existing #24, #25, #28, and #29 cover meaningful release/community follow-ups without adding noisy backlog theater. GitHub #24 and #25 remain v0.1 release blockers; GitHub #27 remains open for seed-log path redaction; GitHub #26, #22, #28, and #29 remain open for deployment/compatibility/markdown/localization follow-up.
+
+## Phase 71 — Performance Risk Audit
+
+Status: complete. Phase commit pushed.
+
+Goal: audit whether obvious read-only performance risks are tracked before any broader v0.1/large-book confidence claims.
+
+Artifacts:
+
+- `docs/audits/phase-71-audit.md` — independent Phase 71 performance-risk audit artifact with verdict: needs performance-risk tracking before broader confidence claims.
+- `README.md` — current status advanced through Phase 71 and latest-audit link updated.
+- `CHANGELOG.md` — Unreleased entry added for the release-facing Phase 71 performance-risk audit result.
+- `docs/handoff/phase-71.md` — PM/auditor/engineer handoff and verification report.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default state; controlled writes remain experimental post-MVP and disabled by default. Phase 71 did not enable writes, expand write scope, publish a v0.1 tag/release, claim production readiness/security audit, claim known large-book scalability, or add real financial/secrets artifacts.
+
+Performance-risk result: transaction list routes have pagination caps and CSV export has a documented 10,000-row cap, but the read-only service layer can still scan/sort matched transactions and dashboard aggregates iterate accounts/transactions/splits. No large-book benchmark evidence exists yet, so large-book scalability must not be claimed.
+
+Test results: static performance-risk audit checks, backend full suite, frontend check/auth-routes/build, Docker Compose config validation, and `git diff --check` are recorded in the Phase 71 handoff.
+
+Related issues: GitHub #30, #31, #32, and #33 were created for large-book benchmark, many-splits benchmark, CSV timeout/truncation behavior, and dashboard aggregate performance tracking. GitHub #24 and #25 remain v0.1 release blockers; GitHub #27 remains open for seed-log path redaction; GitHub #26, #22, #28, and #29 remain open for deployment/compatibility/markdown/localization follow-up.
 
 ## Standing constraints
 
