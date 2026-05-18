@@ -193,6 +193,16 @@ assert.match(
 	/validateAmountRange[\s\S]*Minimum amount must be less than or equal to maximum amount/,
 	'transaction filters must reject inverted amount ranges before navigation'
 );
+assert.match(
+	transactionFilters,
+	/activeFilterSummary[\s\S]*Search: \$\{query\}[\s\S]*Account: \$\{selectedAccount\.full_name\}[\s\S]*Amount: \$\{minAmount\} to \$\{maxAmount\}/,
+	'transaction filters must build a readable active filter summary for search, account, date, and amount filters'
+);
+assert.match(
+	transactionFilters,
+	/Active filters applied to list and CSV export[\s\S]*aria-label="Active transaction filters"/,
+	'active filter summary must tell users the same filters apply to list and CSV export'
+);
 
 const newTransactionPage = read('src/routes/transactions/new/+page.svelte');
 assert.match(

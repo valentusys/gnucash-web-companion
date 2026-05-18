@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 89.
+Completed through Phase 90.
 
 Completed phases:
 
@@ -105,6 +105,7 @@ Completed phases:
 - Phase 87 — large-book read-only benchmark v1
 - Phase 88 — account with many splits performance test
 - Phase 89 — dashboard aggregate performance and correctness pass
+- Phase 90 — transaction active filter summary UX improvement
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -112,9 +113,11 @@ Completed phases:
 
 - Phase 89 completed the dashboard aggregate performance and correctness pass on generated synthetic data only: dashboard summary now exposes `reporting_basis=base_currency_only`, `includes_currency_conversion=false`, and no-conversion/mixed-currency limitations, the web dashboard displays those limitations, report date validation now returns clearer `422` client errors, and the large-book benchmark now covers dashboard summary, cashflow-by-month, expenses-by-account, and recent-transactions. Results are documented in `docs/performance/phase-89-dashboard-aggregate-benchmark.md`. All dashboard endpoints returned `200` in the 1,000-transaction local/TestClient benchmark; cashflow-by-month and recent-transactions remain service-layer scans and are documented as pre-alpha evidence rather than a production scalability claim. GitHub #33 was closed with evidence. GitHub #39 remains open for the CSV export row-count/header mismatch. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
+- Phase 90 completed a narrow transaction search/filter UX improvement from GitHub #11: the transaction filter form now shows a readable active filter summary for search, account, date range, and amount range, explicitly stating that the same filters apply to the read-only list and CSV export. Frontend route checks cover the summary and CSV parity copy. No backend write changes were made, CSV export query-string parity remains intact, no real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
+
 Next planned phase:
 
-- Phase 90 should remain a concrete read-only maintenance/runtime/result phase from the roadmap; do not enable writes, start v0.2, publish a release, or create an audit-only phase unless explicitly requested.
+- Phase 91 should remain a concrete read-only maintenance/runtime/result phase from the roadmap; do not enable writes, start v0.2, publish a release, or create an audit-only phase unless explicitly requested.
 
 ## MVP product model
 

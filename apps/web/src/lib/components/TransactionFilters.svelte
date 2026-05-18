@@ -34,6 +34,22 @@
 	const hasActiveFilters = $derived(
 		Boolean(query || dateFrom || dateTo || accountId || minAmount || maxAmount)
 	);
+	const activeFilterSummary = $derived.by(() => {
+		const filters: string[] = [];
+		const selectedAccount = accounts.find((account) => account.id === accountId);
+
+		if (query) filters.push(`Search: ${query}`);
+		if (selectedAccount) filters.push(`Account: ${selectedAccount.full_name}`);
+		else if (accountId) filters.push(`Account ID: ${accountId}`);
+		if (dateFrom && dateTo) filters.push(`Dates: ${dateFrom} to ${dateTo}`);
+		else if (dateFrom) filters.push(`From: ${dateFrom}`);
+		else if (dateTo) filters.push(`To: ${dateTo}`);
+		if (minAmount && maxAmount) filters.push(`Amount: ${minAmount} to ${maxAmount}`);
+		else if (minAmount) filters.push(`Min amount: ${minAmount}`);
+		else if (maxAmount) filters.push(`Max amount: ${maxAmount}`);
+
+		return filters;
+	});
 
 	function normalizeDecimal(value: FormDataEntryValue | null): string {
 		return String(value ?? '').trim();
@@ -99,6 +115,27 @@
 				<p class="text-xs font-medium" style="color: var(--app-accent);">Filtered view</p>
 			{/if}
 		</div>
+		{#if activeFilterSummary.length}
+			<div
+				class="mt-3 rounded-lg border px-3 py-2"
+				style="border-color: var(--app-border); background: var(--app-bg);"
+				aria-live="polite"
+			>
+				<p class="text-xs font-semibold uppercase tracking-wide" style="color: var(--app-muted);">
+					Active filters applied to list and CSV export
+				</p>
+				<ul class="mt-2 flex flex-wrap gap-2" aria-label="Active transaction filters">
+					{#each activeFilterSummary as filter}
+						<li
+							class="rounded-full border px-2.5 py-1 text-xs font-medium"
+							style="border-color: var(--app-border); color: var(--app-text); background: var(--app-panel);"
+						>
+							{filter}
+						</li>
+					{/each}
+				</ul>
+			</div>
+		{/if}
 	</div>
 	<div class="flex-1">
 		<label for="tx-query" class="block text-xs font-semibold uppercase" style="color: var(--app-muted);">Search</label>
