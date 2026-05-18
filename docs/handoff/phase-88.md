@@ -131,4 +131,4 @@ PASS
 
 Phase implementation commit: `96f435e feat: add many-splits performance benchmark`.
 
-Push evidence commit: pending until final controller push.
+Push evidence commit: this handoff update, verified by final controller push.
