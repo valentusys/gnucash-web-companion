@@ -144,7 +144,7 @@ Completed phases:
 
 Next planned phase:
 
-- If Val explicitly authorizes publication in a separate request: re-check branch, HEAD, clean working tree, tag/release absence, recent GitHub Actions state, and release notes, then publish `v0.1.1-readonly` from the prepared artifacts. Without explicit publication authorization, continue only with non-publishing practical phases such as synthetic/disposable install/upgrade smoke or other read-only maintenance work.
+- Phase 100 is planned in `docs/handoff/phase-100-pm-brief.md` as a non-publishing synthetic/disposable install/upgrade smoke on current `main`, because Val has not provided the separate explicit authorization required for `v0.1.1-readonly` publication. Do not create a tag, GitHub release, package, or release artifact in Phase 100. If Val explicitly authorizes publication in a separate request instead, re-check branch, HEAD, clean working tree, tag/release absence, recent GitHub Actions state, and release notes before any publish command.
 
 ## MVP product model
 
