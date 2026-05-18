@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 98.
+Completed through Phase 99.
 
 Completed phases:
 
@@ -114,6 +114,7 @@ Completed phases:
 - Phase 96 — synthetic large-export benchmark and UX confirmation
 - Phase 97 — v0.1.1-readonly release-prep checklist and notes
 - Phase 98 — v0.1.1-readonly release-gate verification
+- Phase 99 — v0.1.1-readonly pre-publish dry-run and authorization guard
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -139,9 +140,11 @@ Completed phases:
 
 - Phase 98 completed the `v0.1.1-readonly` final release-gate verification without publishing a tag/release: `docs/release/v0.1.1-readonly-final-gate.md` records the verdict `Ready for later authorized publish phase`. Backend tests passed (`329 passed, 27 warnings`), frontend check/auth-routes/build passed, Docker Compose config validation passed, recent GitHub Actions `main` runs were successful, no local tag or GitHub release named `v0.1.1-readonly` exists, GitHub #39 remains closed, and GitHub #38 remains open/blocked for copied personal-book dogfood. No backend/frontend/config/write-mode code was changed; writes remain disabled by default; controlled writes remain post-MVP/experimental; no real/private financial data, GnuCash books, `.env`, app DBs, backups, screenshots, exports, secrets, tokens, certs, or keys were committed; no v0.2 work was started.
 
+- Phase 99 completed a safe non-publishing `v0.1.1-readonly` pre-publish dry-run and authorization guard: `docs/release/v0.1.1-readonly-prepublish-dry-run.md` records the verdict `Ready for explicit authorized publish`, confirms release notes/checklist/final-gate artifact presence, confirms no local tag or GitHub release named `v0.1.1-readonly` exists, records recent GitHub Actions state, records would-run publish commands as `NOT EXECUTED`, and records that publication authorization is absent in this phase. GitHub #39 remains closed; GitHub #38 remains open/blocked for copied personal-book dogfood. No backend/frontend/config/write-mode code was changed; no tag, GitHub release, package, or release artifact was published; writes remain disabled by default; controlled writes remain post-MVP/experimental; no real/private financial data, GnuCash books, `.env`, app DBs, backups, screenshots, exports, secrets, tokens, certs, or keys were committed; no v0.2 work was started.
+
 Next planned phase:
 
-- Phase 99: run a safe non-publishing `v0.1.1-readonly` pre-publish dry-run and authorization guard. Because Val has not given a separate explicit publish authorization, Phase 99 must not create a tag, GitHub release, or package publication; it should verify tag/release absence, release notes/checklist/final-gate inputs, recent GitHub Actions state, and record exact would-run commands as `NOT EXECUTED` in `docs/release/v0.1.1-readonly-prepublish-dry-run.md`. Publication remains reserved for a later explicit authorization.
+- If Val explicitly authorizes publication in a separate request: re-check branch, HEAD, clean working tree, tag/release absence, recent GitHub Actions state, and release notes, then publish `v0.1.1-readonly` from the prepared artifacts. Without explicit publication authorization, continue only with non-publishing practical phases such as synthetic/disposable install/upgrade smoke or other read-only maintenance work.
 
 ## MVP product model
 
