@@ -11,7 +11,7 @@ Last updated: 2026-05-19
 
 ## Current baseline
 
-Completed through Phase 115.
+Completed through Phase 116.
 
 Current public release state:
 
@@ -138,6 +138,7 @@ Completed phases:
 - Phase 113 — Russian localization glossary and transaction filter/export UI slice from GitHub #17/#29
 - Phase 114 — synthetic browser dogfood refresh after UX/filter changes
 - Phase 115 — v0.1.2-readonly maintenance release prep and final gate without publication
+- Phase 116 — GitHub #38 copied personal-book dogfood with redacted read-only evidence
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -195,9 +196,11 @@ Completed phases:
 
 - Phase 115 completed conservative `v0.1.2-readonly` maintenance release prep without publication: `docs/release/v0.1.2-readonly-notes.md`, `docs/release/v0.1.2-readonly-checklist.md`, and `docs/release/v0.1.2-readonly-final-gate.md` summarize Phases 106–114 and record the verdict `Ready for later authorized publish phase`. Full backend tests, frontend check/auth-routes/build, Docker Compose config validation, GitHub Actions state check, tag/release absence checks, and sensitive tracked-file scan passed. No tag, GitHub release, package, GnuCash book, app DB, backup, `.env`, screenshot, CSV export, secret, token, cert, key, private path, or real/private financial data was committed; writes remain disabled by default; no v0.2 work was started; publication still requires separate explicit Val authorization.
 
+- Phase 116 completed GitHub #38 copied personal-book dogfood with Val's provided safe copied archive: the archive was unpacked only to private temporary storage outside git, mounted read-only into local Docker/Caddy with `GNUCASH_WRITES_ENABLED=false`, and verified through API and headless browser dogfood. `/api/health`, login, dashboard, accounts, account detail, transactions, transaction detail, filters, CSV export, hidden write UI, and disabled write endpoints all passed; redacted evidence is documented in `docs/dogfood/phase-116-personal-book-dogfood.md`. GitHub #38 was closed after redacted evidence. No tag, release, package, GnuCash book, source zip, app DB, backup, `.env`, screenshot, CSV export, secret, token, cert, key, private path, account name, transaction description, memo, amount, or real/private financial data was committed; writes remain disabled by default; no v0.2 work was started.
+
 Next planned phase:
 
-- If Val explicitly authorizes publication, run a dedicated non-ambiguous publish phase for `v0.1.2-readonly`: re-check clean tree, checks/CI, tag/release absence, then create the annotated tag and GitHub pre-release from the prepared notes. Without publication authorization, continue with practical read-only MVP value or blocked personal copied-book dogfood only when a safe copied SQL book path is provided outside git.
+- If Val explicitly authorizes publication, run a dedicated non-ambiguous publish phase for `v0.1.2-readonly`: re-check clean tree, checks/CI, tag/release absence, then create the annotated tag and GitHub pre-release from the prepared notes. Without publication authorization, continue with practical read-only MVP value such as deployment polish, compatibility evidence, localization slices, or remaining read-only UX/filter backlog.
 
 ## MVP product model
 

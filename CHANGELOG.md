@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Phase 116 — completed GitHub #38 copied personal-book dogfood with a local-only Docker/Caddy read-only run against Val's provided safe copied book archive, recording only redacted route/status evidence and no private book data, app DB, screenshots, CSV exports, `.env`, paths, names, descriptions, memos, amounts, secrets, tags, releases, or packages.
 - Phase 115 — prepared conservative `v0.1.2-readonly` release notes, release-prep checklist, and final-gate artifact for a possible future maintenance pre-release without publishing a tag, GitHub release, package, or changing the default read-only/write-disabled posture.
 - Phase 114 — added a durable headless Chromium/CDP browser dogfood helper and recorded a synthetic/disposable Docker/Caddy UI/API dogfood refresh covering login, dashboard, accounts, books, scheduled awareness, transaction filters, account/transaction detail, CSV export, and disabled-write probes with `GNUCASH_WRITES_ENABLED=false`.
 - Phase 113 — added a Russian accounting/safety glossary and localized the transaction filter/CSV export UI slice through the existing message catalog, while keeping English canonical, translation partial, URL-only filters, and read-only/export warnings intact.
