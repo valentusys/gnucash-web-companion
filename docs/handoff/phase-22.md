@@ -69,14 +69,14 @@ Created `apps/api/tests/test_write_integration.py` with **30 integration tests**
 
 ### Test results
 
-```
+```text
 cd apps/api && pytest -q
 248 passed (218 existing + 30 new), 0 failed, 77s
 ```
 
 ### Frontend verification
 
-```
+```text
 cd apps/web && npm run check   → 0 errors, 0 warnings
 cd apps/web && npm run test:auth-routes → auth route checks passed
 cd apps/web && npm run build  → ✓ built in 4.96s
@@ -84,7 +84,7 @@ cd apps/web && npm run build  → ✓ built in 4.96s
 
 ### Docker config
 
-```
+```text
 JWT_SECRET=dummy-validation-secret APP_ADMIN_PASSWORD=dummy docker compose config --quiet → OK
 ```
 

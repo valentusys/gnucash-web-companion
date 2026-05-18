@@ -4,7 +4,7 @@
 
 ## Repository layout
 
-```
+```text
 apps/
   web/          SvelteKit frontend (served by Node in production)
   api/          FastAPI backend (uvicorn)

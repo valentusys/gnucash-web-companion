@@ -104,7 +104,7 @@ Create a synthetic (disposable, no real financial data) GnuCash SQLite book fixt
 ## Fixture requirements
 
 ### Account tree (all commodity: SEK)
-```
+```text
 Root (type: ROOT)
 ├── Assets (type: ASSET)
 │   └── Bank (type: BANK)

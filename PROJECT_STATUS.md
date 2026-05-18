@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 67.
+Completed through Phase 68.
 
 Completed phases:
 
@@ -83,10 +83,11 @@ Completed phases:
 - Phase 65 — test coverage audit
 - Phase 66 — security posture audit
 - Phase 67 — open-source hygiene audit
+- Phase 68 — documentation formatting audit
 
 Next planned phase:
 
-- Continue the auditor roadmap with Phase 68 only when explicitly requested. Do not create a v0.1 tag/GitHub release until #24/#25 are handled by an explicit later phase. Phase 67 confirmed good public OSS hygiene, created the missing `needs-triage` label used by issue templates, and updated the GitHub repository description to include read-only positioning; it did not publish a release and did not unblock v0.1 publication.
+- Continue the auditor roadmap with Phase 69 only when explicitly requested. Do not create a v0.1 tag/GitHub release until #24/#25 are handled by an explicit later phase. Phase 68 confirmed markdown source readability is acceptable with non-blocking cleanup needed, fixed small historical fence/link clarifications, and created #28 for gradual raw-markdown readability cleanup before wider announcement; it did not publish a release and did not unblock v0.1 publication.
 
 ## MVP product model
 
@@ -1182,6 +1183,28 @@ Open-source hygiene result: license, README, contributing guide, code of conduct
 Test results: `git diff --check` and GitHub hygiene verification are recorded in the Phase 67 handoff. No v0.1 readiness verdict was made and no product code changed, so the full backend/frontend/Docker suite was not rerun for this audit-only phase.
 
 Related issues: no new issue created; label/repository-description hygiene was fixed directly. GitHub #24 and #25 remain v0.1 release blockers; GitHub #27 remains open for seed-log path redaction; GitHub #26 and #22 remain open for deployment/compatibility follow-up.
+
+## Phase 68 — Documentation Formatting Audit
+
+Status: complete. Phase commit pushed.
+
+Goal: audit human readability of markdown source from the auditor roadmap without adding product features, expanding write scope, or publishing a release.
+
+Artifacts:
+
+- `docs/audits/phase-68-audit.md` — independent Phase 68 documentation-formatting audit artifact with verdict: documentation formatting is acceptable with non-blocking cleanup needed before wider announcement.
+- `README.md` — current status advanced through Phase 68 and latest-audit link updated.
+- `CHANGELOG.md` — Unreleased entry added for the release-facing Phase 68 documentation-formatting audit result.
+- `docs/handoff/phase-68.md` — PM/auditor/engineer handoff and verification report.
+- `docs/DEVELOPMENT.md`, `docs/handoff/phase-17.md`, `docs/handoff/phase-18.md`, and `docs/handoff/phase-22.md` — small historical markdown readability/link clarifications accepted by PM.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default state; controlled writes remain experimental post-MVP and disabled by default. Phase 68 did not enable writes, expand write scope, publish a v0.1 tag/release, claim production readiness/security audit, or add real financial/secrets artifacts.
+
+Documentation-formatting result: markdown source readability is acceptable for current pre-alpha docs, but many historical docs have very long raw-source lines. The phase fixed five unlabeled historical code fences and clarified one handoff-relative image path example. GitHub #28 now tracks broader gradual markdown source readability cleanup before wider announcement.
+
+Test results: custom markdown static scan and `git diff --check` are recorded in the Phase 68 handoff. Full backend/frontend/Docker suite was not rerun because this phase is audit/docs-only, changed no product code, and made no v0.1 release-readiness verdict.
+
+Related issues: GitHub #28 created for gradual markdown source readability cleanup. GitHub #24 and #25 remain v0.1 release blockers; GitHub #27 remains open for seed-log path redaction; GitHub #26 and #22 remain open for deployment/compatibility follow-up.
 
 ## Standing constraints
 

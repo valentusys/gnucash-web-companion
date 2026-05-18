@@ -90,7 +90,8 @@ Capture using the synthetic fixture (test-book.gnucash.sqlite) or the existing d
 ## Placement
 
 - Store screenshot files under `docs/images/` (create directory if needed).
-- Reference them from `README.md` using relative paths: `![Dashboard](docs/images/dashboard-desktop.png)`.
+- Reference them from `README.md` using relative paths such as `docs/images/dashboard-desktop.png`.
+  From this handoff file, the equivalent relative path is `../images/dashboard-desktop.png`.
 - Keep image files compressed (PNG or WebP, < 200 KB each if possible).
 - Add a `## Screenshots` section to README after the description/features section and before the "Getting Started" / "Quick Start" section.
 
