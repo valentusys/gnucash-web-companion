@@ -127,6 +127,6 @@ The piecash/SQLAlchemy warnings in backend tests are existing expected dependenc
 
 ### Commit/push
 
-Phase commit: pushed HEAD for `feat: add large-book read-only benchmark`.
+Phase implementation commit: `db51271 feat: add large-book read-only benchmark`.
 
-Pushed to `origin/main`: pending final push at the time of this handoff edit.
+Pushed to `origin/main`: yes, verified after push.
