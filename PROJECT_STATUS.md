@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 75.
+Completed through Phase 76.
 
 Completed phases:
 
@@ -91,10 +91,11 @@ Completed phases:
 - Phase 73 — multi-book access model audit
 - Phase 74 — controlled writes boundary audit
 - Phase 75 — v0.1.1 maintenance release audit
+- Phase 76 — v0.2 planning audit
 
 Next planned phase:
 
-- Continue the auditor roadmap with Phase 76 only when explicitly requested. Do not create a v0.1 tag/GitHub release until #24/#25 are handled by an explicit later phase. Phase 75 confirmed no `v0.1.1-readonly` maintenance release is needed/applicable because `v0.1.0-readonly` has not been published as a git tag or GitHub release. #24/#25 remain the initial v0.1 publication blockers; v0.1.1 should not be considered until after a real v0.1.0 release plus post-release maintenance change set exist. Phase 75 did not publish a release, did not prepare v0.1.1, did not enable writes, did not expand write scope, and did not unblock v0.1 publication.
+- Continue the auditor roadmap with Phase 77 only when explicitly requested. Do not create a v0.1 tag/GitHub release until #24/#25 are handled by an explicit later phase. Do not create or promote a v0.2 controlled-writes planning milestone until #24/#25 are resolved or explicitly accepted, copied/disposable-data dogfood evidence exists, and #36 write-readiness gates are intentionally handled. Phase 76 confirmed the project is not ready for v0.2 controlled-writes planning; controlled writes remain experimental/post-MVP and disabled by default.
 
 ## MVP product model
 
@@ -1362,6 +1363,27 @@ Maintenance-release result: no `v0.1.1-readonly` maintenance release is needed/a
 Test results: git/GitHub release/tag checks, static release/docs/write-boundary audit checks, backend full suite, frontend check/auth-routes/build, Docker Compose config validation, and `git diff --check` are recorded in the Phase 75 handoff.
 
 Related issues: no new issue was created because #24 and #25 already cover the meaningful initial v0.1 release blockers, and a v0.1.1 placeholder issue would be noisy before v0.1.0 exists. GitHub #36 remains open for controlled-write v0.2 readiness gates; GitHub #22 remains open for real GnuCash version fixture coverage; GitHub #27 remains open for seed-log path redaction; GitHub #26, #28, #29, #30–#35 remain open for deployment/markdown/localization/performance/money/multi-book follow-up.
+
+## Phase 76 — v0.2 Planning Audit
+
+Status: complete. Phase commit pushed.
+
+Goal: audit whether the project is ready to create or promote v0.2 controlled-writes planning from the auditor roadmap without enabling writes, expanding write scope, creating a misleading write milestone, publishing a release, or implying write-mode safety for real books.
+
+Artifacts:
+
+- `docs/audits/phase-76-audit.md` — independent Phase 76 v0.2 planning audit artifact with verdict: not ready; keep write mode experimental.
+- `README.md` — current status advanced through Phase 76 and latest-audit link updated.
+- `CHANGELOG.md` — Unreleased entry added for the release-facing Phase 76 planning-audit result.
+- `docs/handoff/phase-76.md` — PM/auditor/engineer handoff and verification report.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default state; controlled writes remain experimental post-MVP and disabled by default. Phase 76 did not enable writes, expand write scope, create a v0.2 milestone, publish a release, claim production readiness/security audit, claim safe write mode, or add real financial/secrets artifacts.
+
+Planning result: not ready to create or promote a v0.2 controlled-writes planning milestone. `v0.1.0-readonly` is not published and remains blocked by #24/#25; actual copied-book dogfood evidence is still missing; #36 remains open for remaining write-readiness gates; #22 remains open for real GnuCash version fixture coverage. Existing write-boundary safeguards support only the current experimental/post-MVP posture.
+
+Test results: git/GitHub release/tag checks, static release/docs/write-boundary audit checks, backend full suite, frontend check/auth-routes/build, Docker Compose config validation, and `git diff --check` are recorded in the Phase 76 handoff.
+
+Related issues: no new issue was created because #36 already tracks the meaningful v0.2 write-readiness gates. #36 was updated to record the Phase 76 planning-audit verdict and correct missing `GNUCASH_WRITES_ENABLED=false` wording. GitHub #24 and #25 remain initial v0.1 release blockers; GitHub #22 remains open for real GnuCash version fixture coverage; GitHub #27 remains open for seed-log path redaction; GitHub #26, #28, #29, #30–#35 remain open for deployment/markdown/localization/performance/money/multi-book follow-up.
 
 ## Standing constraints
 
