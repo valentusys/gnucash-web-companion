@@ -309,6 +309,21 @@ class TestListTransactionsMVP:
         assert data["total"] == 1
         assert data["items"][0]["description"] == "ICA"
 
+    def test_filter_by_query_matches_split_memo_and_counts_consistently(
+        self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory
+    ):
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(fake_book_with_transactions)
+            session.commit()
+
+        response = client.get("/transactions?query=GROCERIES", headers=auth_headers)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == 1
+        assert [item["id"] for item in data["items"]] == ["tx-1"]
+
     def test_filter_by_date_range(
         self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory
     ):

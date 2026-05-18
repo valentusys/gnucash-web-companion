@@ -79,11 +79,12 @@ def fake_book(fake_accounts):
         splits=[split_checking, split_food],
     )
     split_tax = FakeSplit(account=tax, value=Decimal("10"))
+    split_food_for_split_transaction = FakeSplit(account=food, value=Decimal("40"))
     split_transaction = FakeTransaction(
         guid="tx-2",
         post_date=date(2026, 5, 17),
         description="Split",
-        splits=[split_checking, split_food, split_tax],
+        splits=[split_checking, split_food_for_split_transaction, split_tax],
     )
     checking.splits = [split_checking]
     food.splits = [split_food]
@@ -199,6 +200,18 @@ def test_transaction_filters_pagination_and_query(service):
     results = service.list_transactions(query="ica", limit=1, offset=0)
     assert [item.id for item in results] == ["tx-1"]
     assert service.list_transactions(date_from="2026-05-17", date_to="2026-05-17")[0].id == "tx-2"
+
+
+def test_transaction_query_matches_split_memo_case_insensitively(service):
+    results = service.list_transactions(query="GROCERIES")
+
+    assert [item.id for item in results] == ["tx-1"]
+    assert service.count_transactions(query="GROCERIES") == 1
+
+
+def test_transaction_query_without_description_or_memo_match_returns_empty(service):
+    assert service.list_transactions(query="not-present") == []
+    assert service.count_transactions(query="not-present") == 0
 
 
 def test_get_transaction_detail_maps_splits(service):

@@ -388,6 +388,26 @@ class TestExportTransactionsCSV:
         assert len(rows) == 2
         assert rows[1][2] == "ICA"
 
+    def test_export_query_filter_matches_split_memo(
+        self, client, auth_headers, sample_book, fake_book_for_export, session_factory
+    ):
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(fake_book_for_export)
+            session.commit()
+
+        response = client.get(
+            f"/books/{sample_book}/transactions/export?query=GROCERIES",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        rows = _parse_csv_response(response)
+        assert len(rows) == 2
+        assert rows[1][0] == "tx-1"
+        assert rows[1][2] == "ICA"
+        assert response.headers["X-CSV-Export-Total"] == "1"
+
     def test_export_respects_amount_range_filter(
         self, client, auth_headers, sample_book, fake_book_for_export, session_factory
     ):

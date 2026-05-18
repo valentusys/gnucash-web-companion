@@ -259,6 +259,11 @@ assert.match(
 );
 assert.match(
 	transactionFilters,
+	/Search[\s\S]*Description or split memo\.\.\./,
+	'transaction search helper copy must honestly cover descriptions and split memos'
+);
+assert.match(
+	transactionFilters,
 	/Date presets[\s\S]*datePresets[\s\S]*preset\.href[\s\S]*aria-label=\{`Apply transaction date preset: \$\{preset\.label\}`\}/,
 	'transaction filters must render accessible date preset links from server-provided query URLs'
 );

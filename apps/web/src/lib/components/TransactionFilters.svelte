@@ -169,7 +169,7 @@
 			name="query"
 			type="text"
 			value={query}
-			placeholder="Description..."
+			placeholder="Description or split memo..."
 			class="mt-1 block w-full rounded-lg border px-3 py-2 text-sm"
 			style="border-color: var(--app-input-border); background-color: var(--app-input-bg); color: var(--app-text);"
 		/>

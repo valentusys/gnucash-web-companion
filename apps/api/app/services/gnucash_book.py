@@ -548,7 +548,7 @@ class GnuCashBookService:
             return False
         if date_to and (tx_date is None or tx_date > date_to):
             return False
-        if query and query not in str(getattr(transaction, "description", "")).lower():
+        if query and not self._transaction_text_matches(transaction, query):
             return False
         if account_id and not any(self._account_id(getattr(split, "account", None)) == account_id for split in self._splits(transaction)):
             return False
@@ -559,6 +559,12 @@ class GnuCashBookService:
             if max_amount is not None and amount > max_amount:
                 return False
         return True
+
+    def _transaction_text_matches(self, transaction: Any, query: str) -> bool:
+        description = str(getattr(transaction, "description", "")).lower()
+        if query in description:
+            return True
+        return any(query in str(getattr(split, "memo", "") or "").lower() for split in self._splits(transaction))
 
     def _transaction_to_list_item(self, transaction: Any, account_id: str | None = None) -> TransactionListItemDTO:
         splits = self._splits(transaction)
