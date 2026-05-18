@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the Phase 87 large-book read-only benchmark v1."""
+"""Run the Phase 87/88 large-book and many-splits read-only benchmark."""
 
 from __future__ import annotations
 

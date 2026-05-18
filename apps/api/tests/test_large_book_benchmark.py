@@ -22,6 +22,8 @@ def test_benchmark_plan_covers_phase_87_read_only_scope() -> None:
         "transactions_list_first_page",
         "transaction_filters",
         "account_detail_transactions",
+        "account_detail_transactions_page_2",
+        "many_splits_transaction_detail",
         "dashboard_summary",
         "csv_export_up_to_cap",
     ]
@@ -36,11 +38,13 @@ def test_create_large_synthetic_book_uses_only_disposable_data(tmp_path: Path) -
         output,
         transaction_count=24,
         expense_account_count=4,
+        many_split_count=8,
     )
 
     assert metadata.path == output
     assert metadata.transaction_count == 24
     assert metadata.expense_account_count == 4
+    assert metadata.many_split_count == 8
     assert metadata.synthetic is True
     assert metadata.contains_real_data is False
     assert output.exists()
@@ -54,9 +58,17 @@ def test_create_large_synthetic_book_uses_only_disposable_data(tmp_path: Path) -
                 "select description from transactions order by post_date, description limit 5"
             ).fetchall()
         ]
+        many_split_tx_guid = conn.execute(
+            "select guid from transactions where description = 'Synthetic benchmark transaction many splits'"
+        ).fetchone()[0]
+        many_split_count = conn.execute(
+            "select count(*) from splits where tx_guid = ?",
+            (many_split_tx_guid,),
+        ).fetchone()[0]
 
     assert account_count >= 10
     assert tx_count == 24
+    assert many_split_count == 8
     assert all(description.startswith("Synthetic benchmark transaction") for description in descriptions)
 
 
@@ -74,3 +86,14 @@ def test_create_large_synthetic_book_rejects_too_small_scope(tmp_path: Path) -> 
         assert "transaction_count" in str(exc)
     else:  # pragma: no cover - defensive assertion
         raise AssertionError("expected ValueError for empty benchmark scope")
+
+
+def test_create_large_synthetic_book_rejects_too_few_many_splits(tmp_path: Path) -> None:
+    output = tmp_path / "invalid-many-splits.gnucash.sqlite"
+
+    try:
+        create_large_synthetic_book(output, transaction_count=10, expense_account_count=4, many_split_count=1)
+    except ValueError as exc:
+        assert "many_split_count" in str(exc)
+    else:  # pragma: no cover - defensive assertion
+        raise AssertionError("expected ValueError for too small many-splits scope")

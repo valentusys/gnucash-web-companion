@@ -1,4 +1,4 @@
-"""Phase 87 large-book read-only benchmark helper.
+"""Phase 87/88 large-book and many-splits read-only benchmark helper.
 
 The helper intentionally generates only synthetic/disposable GnuCash SQLite books
 and exercises read-only API paths. It must never require or commit private books,
@@ -12,6 +12,7 @@ import csv
 import io
 import json
 import statistics
+import sqlite3
 import sys
 import time
 from dataclasses import asdict, dataclass
@@ -65,6 +66,16 @@ BENCHMARK_CASES: list[BenchmarkCase] = [
         "GET",
         "/books/{book_id}/accounts/{account_id}/transactions?limit=50&offset=0",
     ),
+    BenchmarkCase(
+        "account_detail_transactions_page_2",
+        "GET",
+        "/books/{book_id}/accounts/{account_id}/transactions?limit=50&offset=50",
+    ),
+    BenchmarkCase(
+        "many_splits_transaction_detail",
+        "GET",
+        "/books/{book_id}/transactions/{many_split_transaction_id}",
+    ),
     BenchmarkCase("dashboard_summary", "GET", "/books/{book_id}/reports/summary?as_of_date=2026-12-31"),
     BenchmarkCase("csv_export_up_to_cap", "GET", "/books/{book_id}/transactions/export"),
 ]
@@ -74,6 +85,7 @@ BENCHMARK_CASES: list[BenchmarkCase] = [
 class BenchmarkConfig:
     transaction_count: int = 1_000
     expense_account_count: int = 12
+    many_split_count: int = 60
     repeats: int = 3
 
 
@@ -82,6 +94,7 @@ class FixtureMetadata:
     path: Path
     transaction_count: int
     expense_account_count: int
+    many_split_count: int
     synthetic: bool
     contains_real_data: bool
 
@@ -111,12 +124,15 @@ def create_large_synthetic_book(
     *,
     transaction_count: int = 1_000,
     expense_account_count: int = 12,
+    many_split_count: int = 60,
 ) -> FixtureMetadata:
     """Create a deterministic synthetic GnuCash SQLite book for benchmarks."""
-    if transaction_count < 1:
-        raise ValueError("transaction_count must be at least 1")
+    if transaction_count < 2:
+        raise ValueError("transaction_count must be at least 2 for the opening and many-splits transactions")
     if expense_account_count < 1:
         raise ValueError("expense_account_count must be at least 1")
+    if many_split_count < 2:
+        raise ValueError("many_split_count must be at least 2")
 
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -161,8 +177,22 @@ def create_large_synthetic_book(
         ],
     )
 
+    per_split_amount = Decimal("1.00")
+    Transaction(
+        currency=currency,
+        description="Synthetic benchmark transaction many splits",
+        post_date=date(2026, 1, 2),
+        splits=[
+            Split(account=checking, value=-(per_split_amount * (many_split_count - 1))),
+            *[
+                Split(account=expense_accounts[idx % expense_account_count], value=per_split_amount)
+                for idx in range(many_split_count - 1)
+            ],
+        ],
+    )
+
     start = date(2026, 1, 2)
-    for idx in range(1, transaction_count):
+    for idx in range(2, transaction_count):
         tx_date = start + timedelta(days=idx % 365)
         amount = Decimal((idx % 500) + 1).quantize(Decimal("0.01"))
         if idx % 10 == 0:
@@ -214,6 +244,7 @@ def create_large_synthetic_book(
         path=output,
         transaction_count=transaction_count,
         expense_account_count=expense_account_count,
+        many_split_count=many_split_count,
         synthetic=True,
         contains_real_data=False,
     )
@@ -304,6 +335,17 @@ def _select_account_id(client: TestClient, book_id: int, headers: dict[str, str]
     return account_id
 
 
+def _select_many_split_transaction_id(book_path: Path) -> str:
+    with sqlite3.connect(book_path) as conn:
+        row = conn.execute(
+            "select guid from transactions where description = ?",
+            ("Synthetic benchmark transaction many splits",),
+        ).fetchone()
+    if row is None:
+        raise RuntimeError("benchmark fixture did not expose a many-splits transaction id")
+    return str(row[0])
+
+
 def _summarize_response(case: BenchmarkCase, response: Any) -> tuple[int | None, int | None, bool | None]:
     item_count: int | None = None
     csv_total: int | None = None
@@ -326,6 +368,8 @@ def _summarize_response(case: BenchmarkCase, response: Any) -> tuple[int | None,
         item_count = len(payload)
     elif isinstance(payload, dict) and isinstance(payload.get("items"), list):
         item_count = len(payload["items"])
+    elif isinstance(payload, dict) and isinstance(payload.get("splits"), list):
+        item_count = len(payload["splits"])
     return item_count, None, None
 
 
@@ -340,9 +384,14 @@ def run_benchmark(
     client, book_id, headers, cleanup = _build_client(Path(book_path))
     try:
         account_id = _select_account_id(client, book_id, headers)
+        many_split_transaction_id = _select_many_split_transaction_id(Path(book_path))
         results: list[BenchmarkResult] = []
         for case in BENCHMARK_CASES:
-            path = case.path_template.format(book_id=book_id, account_id=account_id)
+            path = case.path_template.format(
+                book_id=book_id,
+                account_id=account_id,
+                many_split_transaction_id=many_split_transaction_id,
+            )
             durations: list[float] = []
             last_response = None
             for _ in range(repeats):
@@ -392,10 +441,11 @@ def write_results_json(path: str | Path, metadata: FixtureMetadata, results: lis
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Run Phase 87 large-book read-only benchmark v1")
+    parser = argparse.ArgumentParser(description="Run Phase 87/88 large-book and many-splits read-only benchmark")
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT_PATH)
     parser.add_argument("--transactions", type=int, default=BenchmarkConfig.transaction_count)
     parser.add_argument("--expense-accounts", type=int, default=BenchmarkConfig.expense_account_count)
+    parser.add_argument("--many-splits", type=int, default=BenchmarkConfig.many_split_count)
     parser.add_argument("--repeats", type=int, default=BenchmarkConfig.repeats)
     parser.add_argument("--json-output", type=Path, default=None)
     args = parser.parse_args(argv)
@@ -404,13 +454,15 @@ def main(argv: list[str] | None = None) -> int:
         args.output,
         transaction_count=args.transactions,
         expense_account_count=args.expense_accounts,
+        many_split_count=args.many_splits,
     )
     results = run_benchmark(metadata.path, repeats=args.repeats)
 
-    print("Phase 87 large-book read-only benchmark v1")
+    print("Phase 87/88 large-book and many-splits read-only benchmark")
     print(f"Synthetic fixture: {metadata.path}")
     print(f"Transactions: {metadata.transaction_count}")
     print(f"Expense accounts: {metadata.expense_account_count}")
+    print(f"Many-splits transaction splits: {metadata.many_split_count}")
     print("No private book data used; read-only API paths only.")
     for result in results:
         extra = ""
