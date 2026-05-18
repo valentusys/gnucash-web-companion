@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 74.
+Completed through Phase 75.
 
 Completed phases:
 
@@ -90,10 +90,11 @@ Completed phases:
 - Phase 72 — data model and money correctness audit
 - Phase 73 — multi-book access model audit
 - Phase 74 — controlled writes boundary audit
+- Phase 75 — v0.1.1 maintenance release audit
 
 Next planned phase:
 
-- Continue the auditor roadmap with Phase 75 only when explicitly requested. Do not create a v0.1 tag/GitHub release until #24/#25 are handled by an explicit later phase. Phase 74 confirmed controlled writes remain experimental/post-MVP and disabled by default: `GNUCASH_WRITES_ENABLED=false` remains the backend/default environment setting, backend validate/create/patch write routes are gated before write service construction, frontend write UI is hidden unless explicitly enabled and requires warning/acknowledgement, disposable-fixture write tests plus file-lock/backup-restore coverage exist, and GitHub #36 tracks remaining v0.2 write-readiness gates. Phase 74 did not publish a release, did not enable writes, did not expand write scope, and did not unblock v0.1 publication.
+- Continue the auditor roadmap with Phase 76 only when explicitly requested. Do not create a v0.1 tag/GitHub release until #24/#25 are handled by an explicit later phase. Phase 75 confirmed no `v0.1.1-readonly` maintenance release is needed/applicable because `v0.1.0-readonly` has not been published as a git tag or GitHub release. #24/#25 remain the initial v0.1 publication blockers; v0.1.1 should not be considered until after a real v0.1.0 release plus post-release maintenance change set exist. Phase 75 did not publish a release, did not prepare v0.1.1, did not enable writes, did not expand write scope, and did not unblock v0.1 publication.
 
 ## MVP product model
 
@@ -1340,6 +1341,27 @@ Controlled-writes boundary result: backend validate/create/patch routes call the
 Test results: static controlled-writes boundary audit checks, backend full suite, frontend check/auth-routes/build, Docker Compose config validation, and `git diff --check` are recorded in the Phase 74 handoff.
 
 Related issues: GitHub #36 was created for remaining controlled-write v0.2 readiness gates. GitHub #24 and #25 remain v0.1 release blockers; GitHub #22 remains open for real GnuCash version fixture coverage; GitHub #27 remains open for seed-log path redaction; GitHub #26, #28, #29, #30–#35 remain open for deployment/markdown/localization/performance/money/multi-book follow-up.
+
+## Phase 75 — v0.1.1 Maintenance Release Audit
+
+Status: complete. Phase commit pushed.
+
+Goal: audit whether a `v0.1.1-readonly` maintenance release is needed from the auditor roadmap without preparing or publishing any release, expanding write scope, or implying that `v0.1.0-readonly` already exists.
+
+Artifacts:
+
+- `docs/audits/phase-75-audit.md` — independent Phase 75 maintenance-release audit artifact with verdict: no release needed.
+- `README.md` — current status advanced through Phase 75 and latest-audit link updated.
+- `CHANGELOG.md` — Unreleased entry added for the release-facing Phase 75 audit result.
+- `docs/handoff/phase-75.md` — PM/auditor/engineer handoff and verification report.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default state; controlled writes remain experimental post-MVP and disabled by default. Phase 75 did not enable writes, expand write scope, publish a v0.1/v0.1.1 tag or release, prepare a maintenance release, claim production readiness/security audit, or add real financial/secrets artifacts.
+
+Maintenance-release result: no `v0.1.1-readonly` maintenance release is needed/applicable because `v0.1.0-readonly` has not been published as a git tag or GitHub release. There is no post-v0.1 dogfood bugfix/docs/small read-only UX fix stream to package. Initial v0.1 publication remains blocked by #24/#25.
+
+Test results: git/GitHub release/tag checks, static release/docs/write-boundary audit checks, backend full suite, frontend check/auth-routes/build, Docker Compose config validation, and `git diff --check` are recorded in the Phase 75 handoff.
+
+Related issues: no new issue was created because #24 and #25 already cover the meaningful initial v0.1 release blockers, and a v0.1.1 placeholder issue would be noisy before v0.1.0 exists. GitHub #36 remains open for controlled-write v0.2 readiness gates; GitHub #22 remains open for real GnuCash version fixture coverage; GitHub #27 remains open for seed-log path redaction; GitHub #26, #28, #29, #30–#35 remain open for deployment/markdown/localization/performance/money/multi-book follow-up.
 
 ## Standing constraints
 
