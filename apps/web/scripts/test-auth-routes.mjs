@@ -148,6 +148,11 @@ assert.ok(
 	transactionListPage.includes("/books/${bookId}/transactions/export${qs ? '?' + qs : ''}"),
 	'CSV export URL must include the active filter query string'
 );
+assert.match(
+	transactionListPage,
+	/Exports the current read-only filtered view[\s\S]*capped at 10,000 rows[\s\S]*Large exports run synchronously/,
+	'CSV export copy must tell users exports are read-only, filtered, capped, and synchronous'
+);
 const exportProxyRoute = read('src/routes/books/[bookId]/transactions/export/+server.ts');
 assert.match(exportProxyRoute, /getAuthToken\(cookies\)/, 'CSV export proxy must read the httpOnly auth cookie on the server');
 assert.match(exportProxyRoute, /authorization: `Bearer \$\{token\}`/, 'CSV export proxy must call the API with a bearer token');

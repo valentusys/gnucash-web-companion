@@ -128,6 +128,17 @@ class BenchmarkResult:
     csv_limit: int | None = None
     csv_total: int | None = None
     csv_truncated: bool | None = None
+    csv_expected_body_rows: int | None = None
+    csv_body_matches_expected: bool | None = None
+
+    def __post_init__(self) -> None:
+        if self.name != "csv_export_up_to_cap":
+            return
+        if self.csv_total is None or self.csv_limit is None or self.item_count is None:
+            return
+        expected_body_rows = min(self.csv_total, self.csv_limit)
+        object.__setattr__(self, "csv_expected_body_rows", expected_body_rows)
+        object.__setattr__(self, "csv_body_matches_expected", self.item_count == expected_body_rows)
 
 
 def benchmark_plan() -> list[BenchmarkCase]:
@@ -494,7 +505,9 @@ def main(argv: list[str] | None = None) -> int:
         if result.csv_total is not None:
             extra += (
                 f", csv_limit={result.csv_limit}, csv_total={result.csv_total}, "
-                f"truncated={result.csv_truncated}"
+                f"truncated={result.csv_truncated}, "
+                f"expected_body_rows={result.csv_expected_body_rows}, "
+                f"body_matches_expected={result.csv_body_matches_expected}"
             )
         print(
             f"{result.name}: status={result.status_code}, median={result.duration_ms_median:.2f} ms, "

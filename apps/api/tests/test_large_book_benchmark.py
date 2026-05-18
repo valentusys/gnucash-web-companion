@@ -9,9 +9,12 @@ from app.performance.large_book_benchmark import (
     BENCHMARK_CASES,
     BenchmarkCase,
     BenchmarkConfig,
+    BenchmarkResult,
+    FixtureMetadata,
+    _summarize_response,
     benchmark_plan,
     create_large_synthetic_book,
-    _summarize_response,
+    write_results_json,
 )
 
 
@@ -122,3 +125,34 @@ def test_csv_export_benchmark_summary_records_limit_header() -> None:
     assert csv_limit == 10000
     assert csv_total == 2
     assert csv_truncated is False
+
+
+def test_benchmark_json_records_csv_body_row_consistency(tmp_path: Path) -> None:
+    metadata = FixtureMetadata(
+        path=tmp_path / "synthetic.gnucash.sqlite",
+        transaction_count=1000,
+        expense_account_count=12,
+        many_split_count=60,
+        synthetic=True,
+        contains_real_data=False,
+    )
+    result = BenchmarkResult(
+        name="csv_export_up_to_cap",
+        method="GET",
+        path="/books/1/transactions/export",
+        status_code=200,
+        duration_ms_min=1.0,
+        duration_ms_median=1.0,
+        duration_ms_max=1.0,
+        response_bytes=1024,
+        item_count=1000,
+        csv_limit=10000,
+        csv_total=1000,
+        csv_truncated=False,
+    )
+
+    output = write_results_json(tmp_path / "benchmark.json", metadata, [result])
+
+    content = output.read_text(encoding="utf-8")
+    assert '"csv_expected_body_rows": 1000' in content
+    assert '"csv_body_matches_expected": true' in content

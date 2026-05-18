@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Phase 96 — confirmed the Phase 95 / GitHub #39 CSV export row-count fix through the synthetic large-book benchmark path and tightened user-visible export copy. A 1,000-transaction generated synthetic benchmark returned 1,000 CSV data rows with `csv_limit=10000`, `csv_total=1000`, `truncated=False`, `csv_expected_body_rows=1000`, and `csv_body_matches_expected=True`. Benchmark JSON now records the expected body-row consistency fields, and frontend route checks cover copy that export is read-only, filtered, capped, and synchronous. No real/private data was committed, writes remain disabled by default, and no tag/release was published.
 - Phase 95 — fixed GitHub #39, the read-only CSV export row-count/header mismatch above the historical 500-row service clamp. CSV export now fetches up to the documented 10,000-row export cap while normal list-style callers keep their existing pagination limits. Regression coverage proves a 501-row synthetic export returns 501 data rows with `X-CSV-Export-Limit: 10000`, `X-CSV-Export-Total: 501`, and `X-CSV-Export-Truncated: false`; a targeted 1,000-transaction synthetic benchmark returned 1,000 CSV data rows with `csv_limit=10000`, `csv_total=1000`, and `truncated=False`. No write-mode scope was added or enabled, no real/private data was committed, and no tag/release was published.
 
 ### Added

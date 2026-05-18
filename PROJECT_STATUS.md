@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 95.
+Completed through Phase 96.
 
 Completed phases:
 
@@ -111,6 +111,7 @@ Completed phases:
 - Phase 93 — Russian localization small slice
 - Phase 94 — post-v0.1 maintenance release decision
 - Phase 95 — CSV export row-count/header mismatch fix
+- Phase 96 — synthetic large-export benchmark and UX confirmation
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -130,9 +131,11 @@ Completed phases:
 
 - Phase 95 fixed the read-only CSV export row-count/header mismatch tracked by GitHub #39: CSV export now asks the service layer for up to the documented export cap instead of inheriting the historical 500-row service clamp used by normal list-style callers. Regression coverage proves a 501-row synthetic export returns 501 data rows with `X-CSV-Export-Limit: 10000`, `X-CSV-Export-Total: 501`, and `X-CSV-Export-Truncated: false`; the benchmark helper also records the CSV limit header. A targeted 1,000-transaction synthetic benchmark returned 1,000 CSV data rows with `csv_limit=10000`, `csv_total=1000`, and `truncated=False`. No frontend proxy change was needed because it already forwards CSV metadata headers; frontend route checks still verify that behavior. No real/private data was committed, no tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
+- Phase 96 confirmed the Phase 95 / GitHub #39 fix through the generated synthetic large-book benchmark path and a narrow frontend UX copy check. The 1,000-transaction synthetic benchmark returned 1,000 CSV data rows with `csv_limit=10000`, `csv_total=1000`, `truncated=False`, `csv_expected_body_rows=1000`, and `csv_body_matches_expected=True`; results are documented in `docs/performance/phase-96-large-export-benchmark.md`. Benchmark JSON now records expected body-row consistency fields, and the transaction export helper copy now states that export is read-only, filtered, capped at 10,000 rows, synchronous, and may require narrower filters if a request times out or is truncated. GitHub #39 remains closed; GitHub #38 remains open and separate for copied personal-book dogfood. No real/private data was committed, no tag/release was published, writes remain disabled by default, and no v0.2 work was started.
+
 Next planned phase:
 
-- Phase 96 is planned in `docs/handoff/phase-96-pm-brief.md`: synthetic large-export benchmark and UX confirmation after the Phase 95/#39 fix. The engineer should record >500-row synthetic CSV export evidence, keep UI copy honest about read-only filtered synchronous capped export behavior, and keep #38 open for the separate copied personal-book dogfood rerun when a safe copied SQL book is available.
+- Phase 97 should prepare conservative `v0.1.1-readonly` release notes/checklist after the confirmed Phase 95/#39 CSV export fix and Phase 96 synthetic benchmark evidence. Keep #38 separate and open unless a safe copied personal SQL book is available outside git; do not publish a tag/release in Phase 97.
 
 ## MVP product model
 
