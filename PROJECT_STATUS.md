@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 78.
+Completed through Phase 79.
 
 Completed phases:
 
@@ -94,10 +94,11 @@ Completed phases:
 - Phase 76 — v0.2 planning audit
 - Phase 77 — real read-only dogfood on copied/disposable GnuCash SQL book
 - Phase 78 — Docker `/login` redirect-loop fix and browser/UI dogfood rerun
+- Phase 79 — accept dogfood evidence, write v0.1 release notes, and final release gate
 
 Next planned phase:
 
-- Next phase should complete conservative `v0.1.0-readonly` release notes (#24) and then perform/accept the release gate for #25 using Phase 78 browser dogfood evidence, or explicitly record any remaining copied-real-book limitation. Do not publish a v0.1 tag/GitHub release until #24 is handled and #25 is accepted/closed. Controlled writes remain experimental/post-MVP and disabled by default.
+- If the maintainer explicitly wants to publish, the next phase should be a narrow `v0.1.0-readonly` publication step: verify the Phase 79 gate commit/CI, create and push tag `v0.1.0-readonly`, and create a GitHub pre-release using `docs/release/v0.1.0-readonly-notes.md`. Do not expand scope, enable writes, start v0.2 work, or change the conservative release language during publication.
 
 ## MVP product model
 
@@ -1434,6 +1435,28 @@ Release result: #37 fixed. #25 remains open pending PM/release-gate acceptance o
 Test results: backend full suite, frontend check/auth-routes/build, Docker Compose config validation, Docker browser dogfood through Caddy, API smoke, write-disabled probes, and `git diff --check` are recorded in the Phase 78 handoff.
 
 Related issues: GitHub #37 was closed/updated as fixed by Phase 78. GitHub #25 remains the copied/disposable-data runtime dogfood gate. GitHub #24 remains the release-notes blocker; #22, #26–#36 remain open as applicable follow-up.
+
+## Phase 79 — Accept Dogfood Evidence and Final v0.1.0-readonly Release Gate
+
+Status: complete. Phase commit pushed.
+
+Goal: accept Phase 78 copied/disposable-data dogfood evidence, create conservative `v0.1.0-readonly` release notes, run the final release gate, update release/status artifacts, and close satisfied release-blocker issues without publishing a tag or GitHub release.
+
+Artifacts:
+
+- `docs/release/v0.1.0-readonly-notes.md` — conservative release notes: pre-alpha, read-only by default, not production-ready, not security-audited, test copied/disposable books first, no SaaS/GnuCash replacement/collaborative-editing claim, no broad compatibility guarantee, writes disabled by default.
+- `docs/release/v0.1.0-readonly-checklist.md` — final checklist status and Phase 79 evidence.
+- `docs/release/v0.1.0-readonly-final-gate.md` — final gate verdict: ready for publication as a separate explicit next step.
+- `docs/handoff/phase-79.md` — PM/engineer handoff and verification report.
+- `README.md`, `CHANGELOG.md`, and `PROJECT_STATUS.md` — release/status sync.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/configured default; controlled writes remain experimental/post-MVP and disabled by default. Phase 79 did not enable writes, add features, start v0.2 work, publish a tag/release, claim production readiness/security audit, claim collaborative editing/SaaS/GnuCash replacement status, or add real financial/secrets/runtime artifacts.
+
+Release result: Phase 78 dogfood evidence was accepted for #25 because it used copied/disposable data and passed Docker/Caddy browser dogfood, API smoke, CSV export, hidden write UI, and disabled write probes. `v0.1.0-readonly` is ready for a separate explicit publication step. No v0.1 tag or GitHub release exists yet.
+
+Test results: backend full suite, frontend check/auth-routes/build, Docker Compose config validation, `git diff --check`, v0.1 tag lookup, and GitHub release lookup are recorded in the Phase 79 handoff/final gate.
+
+Related issues: GitHub #24 was closed as satisfied by release notes. GitHub #25 was closed as satisfied by accepted Phase 78 copied/disposable-data runtime dogfood. GitHub #37 remains closed/fixed. GitHub #22 and #26–#36 remain open as non-blocking follow-up for broader hardening/future releases.
 
 ## Standing constraints
 
