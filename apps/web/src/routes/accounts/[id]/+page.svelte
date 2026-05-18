@@ -3,11 +3,15 @@
 	import AccountBalance from '$lib/components/AccountBalance.svelte';
 	import TransactionTable from '$lib/components/TransactionTable.svelte';
 	import TransactionCard from '$lib/components/TransactionCard.svelte';
+	import TransactionFilters from '$lib/components/TransactionFilters.svelte';
 	import Pagination from '$lib/components/Pagination.svelte';
 
 	let { data } = $props();
 	const account = $derived(data.account);
 	const txs = $derived(data.txs);
+	const limit = $derived(txs.limit);
+	const offset = $derived(txs.offset);
+	const total = $derived(txs.total);
 	const accountPath = $derived.by(() =>
 		account.full_name
 			.split(':')
@@ -15,15 +19,83 @@
 			.filter(Boolean)
 	);
 
+	const activeFilterCount = $derived(
+		[
+			data.filters.query,
+			data.filters.dateFrom,
+			data.filters.dateTo,
+			data.filters.minAmount,
+			data.filters.maxAmount,
+			data.filters.transactionState
+		].filter(Boolean).length
+	);
+	const exportCsvUrl = $derived.by(() => {
+		const bookId = data.activeBook?.id;
+		if (!bookId) return '#';
+		const sp = new URLSearchParams({ account_id: account.id });
+		if (data.filters.query) sp.set('query', data.filters.query);
+		if (data.filters.dateFrom) sp.set('date_from', data.filters.dateFrom);
+		if (data.filters.dateTo) sp.set('date_to', data.filters.dateTo);
+		if (data.filters.minAmount) sp.set('min_amount', data.filters.minAmount);
+		if (data.filters.maxAmount) sp.set('max_amount', data.filters.maxAmount);
+		if (data.filters.transactionState) sp.set('transaction_state', data.filters.transactionState);
+		return `/books/${bookId}/transactions/export?${sp.toString()}`;
+	});
+	const transactionStatus = $derived(
+		activeFilterCount
+			? `${txs.total} transaction${txs.total !== 1 ? 's' : ''} match the active filters for this account.`
+			: `${txs.total} transaction${txs.total !== 1 ? 's' : ''} for this account.`
+	);
+
+	function paramsToUrl(params: {
+		query?: string;
+		dateFrom?: string;
+		dateTo?: string;
+		minAmount?: string;
+		maxAmount?: string;
+		transactionState?: string;
+		offset?: number;
+	}) {
+		const sp = new URLSearchParams();
+		if (params.query) sp.set('query', params.query);
+		if (params.dateFrom) sp.set('date_from', params.dateFrom);
+		if (params.dateTo) sp.set('date_to', params.dateTo);
+		if (params.minAmount) sp.set('min_amount', params.minAmount);
+		if (params.maxAmount) sp.set('max_amount', params.maxAmount);
+		if (params.transactionState) sp.set('transaction_state', params.transactionState);
+		sp.set('limit', String(limit));
+		sp.set('offset', String(params.offset ?? 0));
+		return `/accounts/${encodeURIComponent(account.id)}?${sp.toString()}`;
+	}
+
+	function handleFilter(params: {
+		query: string;
+		dateFrom: string;
+		dateTo: string;
+		accountId: string;
+		minAmount: string;
+		maxAmount: string;
+		transactionState: string;
+	}) {
+		goto(paramsToUrl({ ...params, offset: 0 }));
+	}
+
 	function handleSelect(id: string) {
 		goto(`/transactions/${encodeURIComponent(id)}`);
 	}
 
 	function handlePageChange(newOffset: number) {
-		const sp = new URLSearchParams();
-		sp.set('limit', String(txs.limit));
-		sp.set('offset', String(newOffset));
-		goto(`/accounts/${encodeURIComponent(account.id)}?${sp.toString()}`);
+		goto(
+			paramsToUrl({
+				query: data.filters.query,
+				dateFrom: data.filters.dateFrom,
+				dateTo: data.filters.dateTo,
+				minAmount: data.filters.minAmount,
+				maxAmount: data.filters.maxAmount,
+				transactionState: data.filters.transactionState,
+				offset: newOffset
+			})
+		);
 	}
 </script>
 
@@ -76,13 +148,49 @@
 	</section>
 
 	<section class="mt-6 rounded-2xl p-6" style="background-color: var(--app-panel); box-shadow: 0 1px 3px var(--app-panel-shadow); border: 1px solid var(--app-border);">
-		<h2 class="text-lg font-semibold" style="color: var(--app-text);">Transactions</h2>
-		<p class="mt-1 text-sm" style="color: var(--app-muted);">{txs.total} transaction{txs.total !== 1 ? 's' : ''}</p>
+		<div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+			<div>
+				<h2 class="text-lg font-semibold" style="color: var(--app-text);">Transactions</h2>
+				<p class="mt-1 text-sm" style="color: var(--app-muted);">{transactionStatus}</p>
+				{#if activeFilterCount && txs.total === 0}
+					<p class="mt-1 text-sm" style="color: var(--app-muted);">
+						No transactions match these filters for this account. Clear filters to return to the full read-only account transaction list.
+					</p>
+				{/if}
+			</div>
+			{#if data.activeBook}
+				<div class="flex flex-col gap-1 md:items-end">
+					<a
+						class="rounded-xl px-4 py-2 text-center text-sm font-semibold"
+						style="background: var(--app-panel); color: var(--app-text); border: 1px solid var(--app-border);"
+						href={exportCsvUrl}
+						aria-describedby="account-csv-export-status"
+						>Export account CSV{#if activeFilterCount} ({activeFilterCount} filter{activeFilterCount === 1 ? '' : 's'}){/if}</a
+					>
+					<p id="account-csv-export-status" class="max-w-xs text-xs" style="color: var(--app-muted);">
+						Exports this account-scoped read-only filtered view with the same search/date/amount/state filters.
+					</p>
+				</div>
+			{/if}
+		</div>
 
 		<div class="mt-4">
+			<TransactionFilters
+				query={data.filters.query}
+				dateFrom={data.filters.dateFrom}
+				dateTo={data.filters.dateTo}
+				accountId={account.id}
+				minAmount={data.filters.minAmount}
+				maxAmount={data.filters.maxAmount}
+				transactionState={data.filters.transactionState}
+				datePresets={data.datePresets}
+				clearFiltersHref={data.clearFiltersHref}
+				lockedAccountLabel={account.full_name}
+				onChange={handleFilter}
+			/>
 			<TransactionTable transactions={txs.items} onSelect={handleSelect} />
 			<TransactionCard transactions={txs.items} onSelect={handleSelect} />
-			<Pagination offset={txs.offset} limit={txs.limit} total={txs.total} onChange={handlePageChange} />
+			<Pagination {offset} {limit} {total} onChange={handlePageChange} />
 		</div>
 	</section>
 </main>

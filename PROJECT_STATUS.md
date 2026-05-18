@@ -11,7 +11,7 @@ Last updated: 2026-05-19
 
 ## Current baseline
 
-Completed through Phase 107.
+Completed through Phase 108.
 
 Current public release state:
 
@@ -130,6 +130,7 @@ Completed phases:
 - Phase 105 — v0.1.1-readonly release/docs correction after publication
 - Phase 106 — read-only transaction state/reconciliation filters from GitHub #11
 - Phase 107 — transaction filter URL presets and clear-all reset UX from GitHub #11
+- Phase 108 — account detail transaction filter/export parity from GitHub #11
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -171,9 +172,11 @@ Completed phases:
 
 - Phase 107 completed a narrow read-only transaction filter URL/reset UX slice from GitHub #11: the transactions page now exposes an explicit URL-based `Clear filters` link that removes search, account, date, amount, and state filters while resetting to `offset=0`, date preset URL construction is pinned to preserve `query`, `account_id`, `min_amount`, `max_amount`, and `transaction_state`, pagination still preserves active filters, and CSV export keeps the same active filter query string without pagination parameters. `docs/transactions-filters.md` now documents URL-only presets/reset behavior and states that transaction search strings, account IDs, amount ranges, dates, and state filters are not saved in localStorage/sessionStorage, app metadata, or user profiles. Frontend route/static checks cover Clear filters, date preset preservation, CSV parity, and browser-storage restrictions; backend disabled-write regression and full API tests passed. GitHub #11 was updated with evidence and remains open for remaining read-only search/filter scope. No backend write path was changed, no tag, GitHub release, package, GnuCash book, app DB, backup, `.env`, screenshot, CSV export, secret, token, cert, key, private path, account name, transaction description, memo, amount, or personal financial data was committed; writes remain disabled by default; controlled writes remain post-MVP/experimental; no v0.2 work was started.
 
+- Phase 108 completed account detail transaction filter/export parity from GitHub #11: the account detail page now reuses the approved read-only transaction filters for its fixed account scope, supports search, date presets/custom dates, amount range, and split reconciliation state filters, preserves those filters through pagination, shows filtered counts and a clear empty-state explanation, and exports the same account-scoped filtered view through the existing CSV export endpoint with a fixed `account_id`. `TransactionFilters` now supports a locked account scope so account detail cannot accidentally switch or leak to another account. Backend regression coverage proves combined account-scoped filters keep count/list parity and do not return matches from other accounts; frontend route/static checks pin account detail URL/export/filter behavior. GitHub #11 was updated with evidence and remains open for remaining roadmap search/filter scope. No backend write path was changed, no tag, release, package, GnuCash book, app DB, backup, `.env`, screenshot, CSV export, secret, token, cert, key, private path, account name, transaction description, memo, amount, or personal financial data was committed; writes remain disabled by default; controlled writes remain post-MVP/experimental; no v0.2 work was started.
+
 Next planned phase:
 
-- Phase 108 — continue the analyst roadmap with account detail transaction filter parity from GitHub #11: account-scoped transaction filters/search/export semantics should match the approved read-only transaction-list behavior without write-mode expansion, private data, tags, or releases.
+- Phase 109 — continue the analyst roadmap with scheduled/recurring transaction read-only awareness from GitHub #12, limited to safe metadata or honest unsupported UX without scheduling editor/write-mode expansion.
 
 ## MVP product model
 

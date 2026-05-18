@@ -13,6 +13,7 @@
 		accounts = [],
 		datePresets = [],
 		clearFiltersHref = '/transactions?limit=50&offset=0',
+		lockedAccountLabel = '',
 		onChange
 	}: {
 		query: string;
@@ -25,6 +26,7 @@
 		accounts?: Account[];
 		datePresets?: { label: string; href: string; active: boolean }[];
 		clearFiltersHref?: string;
+		lockedAccountLabel?: string;
 		onChange: (params: {
 			query: string;
 			dateFrom: string;
@@ -39,14 +41,15 @@
 	let dateError = $state('');
 	let amountError = $state('');
 	const hasActiveFilters = $derived(
-		Boolean(query || dateFrom || dateTo || accountId || minAmount || maxAmount || transactionState)
+		Boolean(query || dateFrom || dateTo || (!lockedAccountLabel && accountId) || minAmount || maxAmount || transactionState)
 	);
 	const activeFilterSummary = $derived.by(() => {
 		const filters: string[] = [];
 		const selectedAccount = accounts.find((account) => account.id === accountId);
 
 		if (query) filters.push(`Search: ${query}`);
-		if (selectedAccount) filters.push(`Account: ${selectedAccount.full_name}`);
+		if (lockedAccountLabel) filters.push(`Account scope: ${lockedAccountLabel}`);
+		else if (selectedAccount) filters.push(`Account: ${selectedAccount.full_name}`);
 		else if (accountId) filters.push(`Account ID: ${accountId}`);
 		if (dateFrom && dateTo) filters.push(`Dates: ${dateFrom} to ${dateTo}`);
 		else if (dateFrom) filters.push(`From: ${dateFrom}`);
@@ -177,17 +180,30 @@
 	</div>
 	<div>
 		<label for="tx-account" class="block text-xs font-semibold uppercase" style="color: var(--app-muted);">Account</label>
-		<select
-			id="tx-account"
-			name="account_id"
-			class="mt-1 block w-full rounded-lg border px-3 py-2 text-sm"
-			style="border-color: var(--app-input-border); background-color: var(--app-input-bg); color: var(--app-text);"
-		>
-			<option value="" selected={!accountId}>All accounts</option>
-			{#each accounts as account (account.id)}
-				<option value={account.id} selected={accountId === account.id}>{account.full_name}</option>
-			{/each}
-		</select>
+		{#if lockedAccountLabel}
+			<input id="tx-account" type="hidden" name="account_id" value={accountId} />
+			<p
+				class="mt-1 rounded-lg border px-3 py-2 text-sm"
+				style="border-color: var(--app-input-border); background-color: var(--app-elevated-bg); color: var(--app-text);"
+			>
+				{lockedAccountLabel}
+			</p>
+			<p class="mt-1 max-w-xs text-xs" style="color: var(--app-muted);">
+				This account detail view is fixed to this account; other filters narrow only this account's transactions.
+			</p>
+		{:else}
+			<select
+				id="tx-account"
+				name="account_id"
+				class="mt-1 block w-full rounded-lg border px-3 py-2 text-sm"
+				style="border-color: var(--app-input-border); background-color: var(--app-input-bg); color: var(--app-text);"
+			>
+				<option value="" selected={!accountId}>All accounts</option>
+				{#each accounts as account (account.id)}
+					<option value={account.id} selected={accountId === account.id}>{account.full_name}</option>
+				{/each}
+			</select>
+		{/if}
 	</div>
 	<div>
 		<p class="text-xs font-semibold uppercase" style="color: var(--app-muted);">Custom date range</p>

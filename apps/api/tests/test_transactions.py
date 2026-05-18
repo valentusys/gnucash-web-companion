@@ -687,6 +687,45 @@ class TestListBookAccountTransactions:
         data = response.json()
         assert data["total"] == 3
 
+    def test_filters_stay_account_scoped_and_counts_match_items(
+        self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory
+    ):
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(fake_book_with_transactions)
+            session.commit()
+
+        response = client.get(
+            f"/books/{sample_book}/accounts/food-guid/transactions?"
+            "query=salary&date_from=2026-05-18&date_to=2026-05-18&"
+            "transaction_state=reconciled&min_amount=1000&max_amount=6000",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == 1
+        assert [item["id"] for item in data["items"]] == ["tx-3"]
+        assert all(item["account_id"] == "food-guid" for item in data["items"])
+
+    def test_account_scope_filter_does_not_leak_other_account_matches(
+        self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory
+    ):
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(fake_book_with_transactions)
+            session.commit()
+
+        response = client.get(
+            f"/books/{sample_book}/accounts/tax-guid/transactions?query=salary",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == 0
+        assert data["items"] == []
+
     def test_unknown_account_returns_empty(
         self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory
     ):

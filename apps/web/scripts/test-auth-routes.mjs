@@ -169,6 +169,40 @@ assert.ok(
 	transactionListPage.includes("/books/${bookId}/transactions/export${qs ? '?' + qs : ''}"),
 	'CSV export URL must include the active filter query string'
 );
+
+const accountDetailServer = read('src/routes/accounts/[id]/+page.server.ts');
+assert.match(
+	accountDetailServer,
+	/appendAccountTransactionFilters[\s\S]*query[\s\S]*date_from[\s\S]*date_to[\s\S]*min_amount[\s\S]*max_amount[\s\S]*transaction_state/s,
+	'account detail server load must forward the approved account-scoped transaction filters'
+);
+assert.match(
+	accountDetailServer,
+	/buildAccountFilterUrl[\s\S]*sp\.set\('offset', '0'\)[\s\S]*\/accounts\/\$\{encodeURIComponent\(accountId\)\}/s,
+	'account detail date presets must build account-scoped URLs and reset to the first page'
+);
+assert.match(
+	accountDetailServer,
+	/buildClearFiltersUrl[\s\S]*\/accounts\/\$\{encodeURIComponent\(accountId\)\}[\s\S]*clearFiltersHref:\s*buildClearFiltersUrl/s,
+	'account detail clear-filters URL must stay on the account page without saved browser state'
+);
+
+const accountDetailPage = read('src/routes/accounts/[id]/+page.svelte');
+assert.match(
+	accountDetailPage,
+	/TransactionFilters[\s\S]*lockedAccountLabel=\{account\.full_name\}[\s\S]*onChange=\{handleFilter\}/s,
+	'account detail page must reuse transaction filters with a locked account scope'
+);
+assert.match(
+	accountDetailPage,
+	/new URLSearchParams\(\{ account_id: account\.id \}\)[\s\S]*query[\s\S]*date_from[\s\S]*date_to[\s\S]*min_amount[\s\S]*max_amount[\s\S]*transaction_state[\s\S]*\/books\/\$\{bookId\}\/transactions\/export/s,
+	'account detail CSV export URL must include the fixed account_id and the active filters'
+);
+assert.match(
+	accountDetailPage,
+	/No transactions match these filters for this account[\s\S]*Clear filters[\s\S]*TransactionTable[\s\S]*onSelect=\{handleSelect\}/s,
+	'account detail page must explain filtered empty states and keep transaction detail links'
+);
 assert.match(
 	transactionListPage,
 	/Exports the current read-only filtered view[\s\S]*capped at 10,000 rows[\s\S]*Large exports run synchronously/,
