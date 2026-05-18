@@ -93,10 +93,12 @@ PASS
 
 ### GitHub/release
 
-- GitHub #11 updated with Phase 90 evidence and kept open for future broader read-only search/filter improvements.
+- GitHub #11 updated with Phase 90 evidence and kept open for future broader read-only search/filter improvements: https://github.com/valentusys/gnucash-web-companion/issues/11#issuecomment-4476492874
 - Existing tags/releases verified: `v0.1.0-readonly`, `v0.0.2-prealpha`, `v0.0.1-prealpha`.
 - No new tag or GitHub release was created.
 
 ### Commit/push
 
-Pending final verification, commit, and push by the controller.
+Phase implementation commit: `a943720 feat: summarize active transaction filters`.
+
+Push evidence: `git push origin main` succeeded and remote `origin/main` advanced from `81bef46` to `a943720`.
