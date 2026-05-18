@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 81.
+Completed through Phase 82.
 
 Completed phases:
 
@@ -97,10 +97,11 @@ Completed phases:
 - Phase 79 — accept dogfood evidence, write v0.1 release notes, and final release gate
 - Phase 80 — publish v0.1.0-readonly pre-release
 - Phase 81 — redact default-book seed logs and close post-release security hardening issue #27
+- Phase 82 — expand read-only multi-book access boundary regression coverage and close #35
 
 Next planned phase:
 
-- Phase 81 completed a narrow post-release hardening fix for #27: default-book seeding still stores the configured path/URI in app metadata for runtime use, but startup seed logs now include only a sanitized book filename/label and regression tests prove full filesystem paths, connection URIs, hosts, usernames, passwords/tokens, and query parameters are not logged. Next work should be another narrow concrete post-release task from open issues/release-hardening backlog, preferably a tested read-only bug fix/user-facing UX improvement or real smoke/dogfood maintenance check. Do not publish another tag/release, expand writes, or start v0.2 work without explicit scope.
+- Phase 82 completed a narrow post-release read-only boundary hardening task for #35: backend regression tests now prove archived books are hidden/blocked and unauthorized access is denied across the book-aware accounts, transactions, CSV export, and reports route families. Next work should be another narrow concrete post-release task from open issues/release-hardening backlog, preferably a tested read-only bug fix/user-facing UX improvement or real smoke/dogfood maintenance check. Do not publish another tag/release, expand writes, or start v0.2 work without explicit scope.
 
 ## MVP product model
 
@@ -1510,6 +1511,26 @@ Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/configured 
 Verification result: backend tests, frontend check/auth-routes/build, Docker Compose config validation, `git diff --check`, release state verification, pushed commit verification, and clean working tree verification are recorded in `docs/handoff/phase-81.md`.
 
 Related issues: GitHub #27 closed as completed with evidence. Open follow-up issues #22, #26, #28–#36 remain non-blocking backlog for later narrow phases.
+
+## Phase 82 — Read-only Multi-book Boundary Regression Coverage
+
+Status: complete. Phase commit pushed.
+
+Goal: complete one narrow post-release concrete hardening task from the open read-only/release-hardening backlog by satisfying GitHub #35 with backend regression coverage, without starting audit-only work, write-mode work, a new tag/release, or v0.2 planning.
+
+PM decision: choose #35 because it is low-risk, concrete, testable, and protects the read-only multi-book boundary after the v0.1.0-readonly publication. The expected result is a tested safety/behavior guard: archived books must be hidden/blocked, and unauthorized users must be denied across book-aware read-only route families before any GnuCash data is exposed.
+
+Artifacts:
+
+- `apps/api/tests/test_multi_book_access.py` — added an archived-book fixture with explicit user access, regression coverage that `GET /books` excludes archived books, `GET /books/{book_id}` returns `404` for archived books, and parametrized coverage for unauthorized `403` / archived `404` behavior across accounts, transactions, CSV export, account transactions, and all book-aware report route families.
+- `docs/handoff/phase-82.md` — PM/engineer handoff and verification report.
+- `README.md`, `CHANGELOG.md`, and `PROJECT_STATUS.md` — post-release status sync.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/configured default. Phase 82 did not enable writes, add write scope, publish a new tag/release, start v0.2 work, claim production readiness/security audit, claim collaborative editing/SaaS/GnuCash replacement status, or add real financial/secrets/runtime artifacts.
+
+Verification result: targeted multi-book tests, backend tests, frontend check/auth-routes/build, Docker Compose config validation, `git diff --check`, release state verification, pushed commit verification, and clean working tree verification are recorded in `docs/handoff/phase-82.md`.
+
+Related issues: GitHub #35 closed as completed with evidence. Open follow-up issues #22, #26, #28–#34, and #36 remain non-blocking backlog for later narrow phases.
 
 ## Standing constraints
 

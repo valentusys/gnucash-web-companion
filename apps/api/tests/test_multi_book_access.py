@@ -131,10 +131,27 @@ def book_b(session_factory):
 
 
 @pytest.fixture
-def setup_access(session_factory, user_a, user_b, book_a, book_b):
+def archived_book(session_factory):
+    with session_factory() as session:
+        book = Book(
+            name="Archived Alice Book",
+            storage_type="sqlite",
+            uri_or_path="/data/books/archived-alice.gnucash.sqlite",
+            is_default=False,
+            is_archived=True,
+        )
+        session.add(book)
+        session.commit()
+        book_id = book.id
+    return book_id
+
+
+@pytest.fixture
+def setup_access(session_factory, user_a, user_b, book_a, book_b, archived_book):
     with session_factory() as session:
         session.add(UserBookAccess(user_id=user_a, book_id=book_a, role="owner"))
         session.add(UserBookAccess(user_id=user_b, book_id=book_b, role="owner"))
+        session.add(UserBookAccess(user_id=user_a, book_id=archived_book, role="owner"))
         session.commit()
 
 
@@ -166,14 +183,32 @@ def headers_b(token_b):
     return {"Authorization": f"Bearer {token_b}"}
 
 
+BOOK_AWARE_READ_ONLY_ROUTES = [
+    "/books/{book_id}/accounts",
+    "/books/{book_id}/accounts/tree",
+    "/books/{book_id}/accounts/checking",
+    "/books/{book_id}/accounts/checking/transactions",
+    "/books/{book_id}/transactions",
+    "/books/{book_id}/transactions/export",
+    "/books/{book_id}/transactions/tx-1",
+    "/books/{book_id}/reports/summary",
+    "/books/{book_id}/reports/cashflow",
+    "/books/{book_id}/reports/expenses-by-account",
+    "/books/{book_id}/reports/recent-transactions",
+]
+
+
 class TestMultiBookAccessFiltering:
-    def test_user_a_sees_only_book_a(self, client, headers_a, book_a, book_b):
+    def test_user_a_sees_only_active_book_a(
+        self, client, headers_a, book_a, book_b, archived_book
+    ):
         response = client.get("/books", headers=headers_a)
         assert response.status_code == 200
         data = response.json()
         ids = [b["id"] for b in data]
         assert book_a in ids
         assert book_b not in ids
+        assert archived_book not in ids
 
     def test_user_b_sees_only_book_b(self, client, headers_b, book_a, book_b):
         response = client.get("/books", headers=headers_b)
@@ -206,6 +241,29 @@ class TestMultiBookAccessFiltering:
         data = response.json()
         assert data["id"] == book_b
         assert data["name"] == "Bob Book"
+
+    def test_archived_book_detail_is_not_viewable_even_with_access(
+        self, client, headers_a, archived_book
+    ):
+        response = client.get(f"/books/{archived_book}", headers=headers_a)
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Book not found"
+
+    @pytest.mark.parametrize("route", BOOK_AWARE_READ_ONLY_ROUTES)
+    def test_unauthorized_book_is_blocked_for_every_read_only_route_family(
+        self, client, headers_a, book_b, route
+    ):
+        response = client.get(route.format(book_id=book_b), headers=headers_a)
+        assert response.status_code == 403
+        assert response.json()["detail"] == "Book access denied"
+
+    @pytest.mark.parametrize("route", BOOK_AWARE_READ_ONLY_ROUTES)
+    def test_archived_book_is_hidden_for_every_read_only_route_family(
+        self, client, headers_a, archived_book, route
+    ):
+        response = client.get(route.format(book_id=archived_book), headers=headers_a)
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Book not found"
 
     def test_user_with_no_access_sees_empty_list(self, client, session_factory, book_a, book_b):
         with session_factory() as session:
