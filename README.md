@@ -40,12 +40,12 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–76 are complete.
+- Phase 0–77 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by default.
 - First public pre-alpha release: `v0.0.1-prealpha`.
 - Current public pre-alpha release: [`v0.0.2-prealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.0.2-prealpha).
-- Latest audit: [docs/audits/phase-76-audit.md](docs/audits/phase-76-audit.md).
+- Latest audit: [docs/audits/phase-77-audit.md](docs/audits/phase-77-audit.md).
 - Russian localization/i18n foundation started in Phase 52; English documentation remains canonical. See [README.ru.md](README.ru.md) and [docs/localization.md](docs/localization.md).
 - Community announcement drafts and where-to-share guidance were refreshed in Phase 53 for cautious feedback collection, not production marketing.
 - Startup diagnostics, a richer non-sensitive health endpoint, and troubleshooting guidance were added in Phase 54 for self-hosted deployments.
@@ -71,6 +71,7 @@ This project is not a fit if you need:
 - Phase 74 completed a controlled-writes boundary audit: writes remain disabled by default, backend validate/create/patch routes are feature-gated before write service construction, write UI remains hidden unless explicitly enabled and requires warning/acknowledgement, disposable-fixture write tests plus lock/backup-restore coverage exist, and #36 tracks remaining v0.2 write-readiness gates; write mode remains experimental/post-MVP and v0.1 publication remains blocked by #24/#25.
 - Phase 75 completed a v0.1.1 maintenance-release audit and found no maintenance release is needed/applicable because `v0.1.0-readonly` has not been published; v0.1 publication remains blocked by #24/#25, and v0.1.1 should not be considered until after a real v0.1.0 release plus post-release maintenance change set exist.
 - Phase 76 completed a v0.2 planning audit and found the project is not ready to create/promote a controlled-writes planning milestone: `v0.1.0-readonly` remains unpublished and blocked by #24/#25, copied-book dogfood evidence is still missing, #36 remains open for v0.2 write-readiness gates, and controlled writes must stay experimental/post-MVP and disabled by default.
+- Phase 77 completed a real Docker read-only dogfood attempt on a copied/disposable GnuCash SQL book: API login, health, accounts, account detail, transactions, transaction detail, search/filter, CSV export, and disabled write-endpoint probes passed with `GNUCASH_WRITES_ENABLED=false`, but browser/UI dogfood is blocked by #37 because `/login` redirects to itself. `v0.1.0-readonly` remains not ready; #25 stays open until browser dogfood is rerun successfully.
 
 ## MVP scope: read-only first
 

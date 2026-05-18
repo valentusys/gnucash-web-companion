@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 76.
+Completed through Phase 77.
 
 Completed phases:
 
@@ -92,10 +92,11 @@ Completed phases:
 - Phase 74 — controlled writes boundary audit
 - Phase 75 — v0.1.1 maintenance release audit
 - Phase 76 — v0.2 planning audit
+- Phase 77 — real read-only dogfood on copied/disposable GnuCash SQL book
 
 Next planned phase:
 
-- Continue the auditor roadmap with Phase 77 only when explicitly requested. Do not create a v0.1 tag/GitHub release until #24/#25 are handled by an explicit later phase. Do not create or promote a v0.2 controlled-writes planning milestone until #24/#25 are resolved or explicitly accepted, copied/disposable-data dogfood evidence exists, and #36 write-readiness gates are intentionally handled. Phase 76 confirmed the project is not ready for v0.2 controlled-writes planning; controlled writes remain experimental/post-MVP and disabled by default.
+- Next phase should fix the Phase 77 web UI blocker (#37) and rerun copied/disposable-data browser dogfood before any `v0.1.0-readonly` publication. Do not create more audit-only phases unless explicitly requested. Do not create a v0.1 tag/GitHub release until #24 is handled and #25 is fully satisfied by successful browser/API dogfood evidence. Controlled writes remain experimental/post-MVP and disabled by default.
 
 ## MVP product model
 
@@ -1384,6 +1385,29 @@ Planning result: not ready to create or promote a v0.2 controlled-writes plannin
 Test results: git/GitHub release/tag checks, static release/docs/write-boundary audit checks, backend full suite, frontend check/auth-routes/build, Docker Compose config validation, and `git diff --check` are recorded in the Phase 76 handoff.
 
 Related issues: no new issue was created because #36 already tracks the meaningful v0.2 write-readiness gates. #36 was updated to record the Phase 76 planning-audit verdict and correct missing `GNUCASH_WRITES_ENABLED=false` wording. GitHub #24 and #25 remain initial v0.1 release blockers; GitHub #22 remains open for real GnuCash version fixture coverage; GitHub #27 remains open for seed-log path redaction; GitHub #26, #28, #29, #30–#35 remain open for deployment/markdown/localization/performance/money/multi-book follow-up.
+
+## Phase 77 — Real Read-only Dogfood on Copied/Disposable GnuCash Book
+
+Status: complete. Phase commit pushed.
+
+Goal: run the application locally against a copied/disposable GnuCash SQL book, record actual usability evidence, verify runtime writes-disabled behavior, identify release blockers, and avoid creating another audit-only phase.
+
+Artifacts:
+
+- `docs/dogfood/phase-77-readonly-dogfood.md` — dogfood environment, copied/disposable book source class, writes-disabled proof, API/browser checks, safe log snippets, issues, and release verdict.
+- `docs/audits/phase-77-audit.md` — independent evidence review and release verdict.
+- `docs/handoff/phase-77.md` — PM/engineer/auditor handoff and verification report.
+- `CHANGELOG.md` — Unreleased entry for the Phase 77 dogfood result.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` was verified in Docker Compose-resolved runtime config and `/api/health`; validate/create/patch write endpoint probes returned read-only 403 responses. Phase 77 did not enable writes, expand write scope, add features, write to the GnuCash book, touch a real/original book, commit runtime data/secrets, or publish a release.
+
+Dogfood result: Docker API-level dogfood passed against a copied/disposable SQL fixture: login, `/auth/me`, book discovery, accounts, account detail, transactions, transaction detail, reports summary, search/filter, CSV export, and disabled-write probes all worked. Browser/UI dogfood failed because `/login` redirects to itself and the web container is unhealthy.
+
+Release result: not ready for `v0.1.0-readonly`. GitHub #37 is a new release blocker for browser dogfood. GitHub #25 remains open because Phase 77 is API-success/browser-fail evidence, not a full copied/disposable-data browser dogfood pass. GitHub #24 remains open for conservative release notes.
+
+Test results: Docker config validation, Docker API runtime health, API smoke script, manual API dogfood, browser redirect-loop evidence, backend full suite, frontend check/auth-routes/build, Docker Compose config validation, and `git diff --check` are recorded in the Phase 77 handoff.
+
+Related issues: GitHub #37 was created for the `/login` redirect loop. GitHub #25 remains open as the umbrella copied/disposable-data runtime dogfood gate; #24 remains the release-notes blocker; #22, #26–#36 remain open as applicable follow-up.
 
 ## Standing constraints
 
