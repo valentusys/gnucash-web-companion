@@ -136,10 +136,10 @@ gh release view v0.1.0-readonly --json tagName,isPrerelease,url,targetCommitish,
 
 ### GitHub/release
 
-- GitHub #32 to be closed after implementation and passing checks.
+- GitHub #32 closed as completed after implementation and passing checks, with commit/check evidence in the closing comment.
 - No new release/tag was created.
 - Existing `v0.1.0-readonly` GitHub pre-release remains published at https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.0-readonly
 
 ### Commit/push
 
-Pending final required checks, commit, push, pushed HEAD verification, and clean working tree verification.
+Phase implementation commit `c0021760f5df25a68ac95e7181c94b89178d37f2` was pushed to `origin/main`. After the issue-close evidence update, the pushed HEAD was verified against `origin/main`, and the working tree was clean.
