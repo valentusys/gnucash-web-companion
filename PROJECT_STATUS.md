@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 77.
+Completed through Phase 78.
 
 Completed phases:
 
@@ -93,10 +93,11 @@ Completed phases:
 - Phase 75 — v0.1.1 maintenance release audit
 - Phase 76 — v0.2 planning audit
 - Phase 77 — real read-only dogfood on copied/disposable GnuCash SQL book
+- Phase 78 — Docker `/login` redirect-loop fix and browser/UI dogfood rerun
 
 Next planned phase:
 
-- Next phase should fix the Phase 77 web UI blocker (#37) and rerun copied/disposable-data browser dogfood before any `v0.1.0-readonly` publication. Do not create more audit-only phases unless explicitly requested. Do not create a v0.1 tag/GitHub release until #24 is handled and #25 is fully satisfied by successful browser/API dogfood evidence. Controlled writes remain experimental/post-MVP and disabled by default.
+- Next phase should complete conservative `v0.1.0-readonly` release notes (#24) and then perform/accept the release gate for #25 using Phase 78 browser dogfood evidence, or explicitly record any remaining copied-real-book limitation. Do not publish a v0.1 tag/GitHub release until #24 is handled and #25 is accepted/closed. Controlled writes remain experimental/post-MVP and disabled by default.
 
 ## MVP product model
 
@@ -1408,6 +1409,31 @@ Release result: not ready for `v0.1.0-readonly`. GitHub #37 is a new release blo
 Test results: Docker config validation, Docker API runtime health, API smoke script, manual API dogfood, browser redirect-loop evidence, backend full suite, frontend check/auth-routes/build, Docker Compose config validation, and `git diff --check` are recorded in the Phase 77 handoff.
 
 Related issues: GitHub #37 was created for the `/login` redirect loop. GitHub #25 remains open as the umbrella copied/disposable-data runtime dogfood gate; #24 remains the release-notes blocker; #22, #26–#36 remain open as applicable follow-up.
+
+## Phase 78 — Fix Docker /login Redirect Loop and Rerun Browser Dogfood
+
+Status: complete. Phase commit pushed.
+
+Goal: fix release blocker #37, verify the Docker web UI can load `/login` through Caddy, and rerun browser/UI dogfood on copied/disposable data with writes disabled.
+
+Artifacts:
+
+- `apps/web/src/routes/+layout.server.ts` — root layout now returns public unauthenticated layout data before token/book-context lookup, preventing `/login` self-redirects while preserving protected-route auth behavior.
+- `apps/web/src/routes/books/[bookId]/transactions/export/+server.ts` — server-side CSV export proxy for the existing UI export link, using the httpOnly auth cookie server-side and streaming the API CSV response.
+- `apps/web/scripts/test-auth-routes.mjs` — regression coverage for unauthenticated public layout behavior, protected-route redirect expectations, authenticated book-context loading, and CSV export proxy auth behavior.
+- `docs/dogfood/phase-78-browser-dogfood.md` — reproduction evidence, root cause, fix, Docker/browser dogfood, write-disabled runtime probes, and checks.
+- `docs/handoff/phase-78.md` — PM/engineer handoff and verification report.
+- `CHANGELOG.md` — Unreleased entry for the Phase 78 fix and dogfood result.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` was verified in Docker Compose-resolved runtime config and `/api/health`; validate/create/patch write endpoint probes returned read-only 403 responses with valid payloads. Browser UI showed the write entry point hidden (`new_button_visible=false`). Phase 78 did not enable writes, expand write scope, start v0.2 work, commit runtime data/secrets/real books, or publish a release.
+
+Dogfood result: Docker/browser dogfood through Caddy passed on the copied/disposable fixture. `/login` returned 200; unauthenticated `/dashboard` redirected to `/login?next=%2Fdashboard`; Chromium login reached dashboard; dashboard, accounts, account detail, transactions, transaction detail, and CSV export route loaded; API smoke passed.
+
+Release result: #37 fixed. #25 remains open pending PM/release-gate acceptance of Phase 78 browser dogfood evidence and any remaining copied-real-book limitation. #24 remains open because release notes were not completed in this phase. `v0.1.0-readonly` was not published.
+
+Test results: backend full suite, frontend check/auth-routes/build, Docker Compose config validation, Docker browser dogfood through Caddy, API smoke, write-disabled probes, and `git diff --check` are recorded in the Phase 78 handoff.
+
+Related issues: GitHub #37 was closed/updated as fixed by Phase 78. GitHub #25 remains the copied/disposable-data runtime dogfood gate. GitHub #24 remains the release-notes blocker; #22, #26–#36 remain open as applicable follow-up.
 
 ## Standing constraints
 

@@ -35,6 +35,25 @@ assert.match(logoutServer, /cookies\.delete\('access_token'/, 'logout must delet
 
 const layoutServer = read('src/routes/+layout.server.ts');
 assert.match(layoutServer, /localeFromCookie\(cookies\)/, 'layout must resolve UI locale from cookie with English default fallback');
+assert.match(
+	layoutServer,
+	/locals\.authenticated/,
+	'root layout must use hook-provided authentication state so public routes like /login can render without an auth cookie'
+);
+assert.match(
+	layoutServer,
+	/if \(!locals\.authenticated\)[\s\S]*books:\s*\[\][\s\S]*activeBook:\s*null/s,
+	'root layout must return a public unauthenticated state instead of redirecting /login to itself'
+);
+assert.match(
+	layoutServer,
+	/getAuthToken\(cookies\)[\s\S]*getActiveBookContext\(fetch, cookies, token\)/s,
+	'authenticated layout loads must still resolve the token and book context after login'
+);
+assert.ok(
+	layoutServer.indexOf('if (!locals.authenticated)') < layoutServer.indexOf('getAuthToken(cookies)'),
+	'root layout must not read the required auth token until after the unauthenticated public-route branch'
+);
 
 const localeRoute = read('src/routes/locale/+server.ts');
 assert.match(localeRoute, /LOCALE_COOKIE[\s\S]*httpOnly:\s*true[\s\S]*sameSite: 'lax'/, 'locale switch must use a sameSite cookie, not browser storage');
@@ -93,9 +112,13 @@ for (const filterParam of ['query', 'date_from', 'date_to', 'account_id', 'min_a
 	);
 }
 assert.ok(
-	transactionListPage.includes("/transactions/export${qs ? '?' + qs : ''}"),
+	transactionListPage.includes("/books/${bookId}/transactions/export${qs ? '?' + qs : ''}"),
 	'CSV export URL must include the active filter query string'
 );
+const exportProxyRoute = read('src/routes/books/[bookId]/transactions/export/+server.ts');
+assert.match(exportProxyRoute, /getAuthToken\(cookies\)/, 'CSV export proxy must read the httpOnly auth cookie on the server');
+assert.match(exportProxyRoute, /authorization: `Bearer \$\{token\}`/, 'CSV export proxy must call the API with a bearer token');
+assert.match(exportProxyRoute, /content-type.*text\/csv/is, 'CSV export proxy must stream CSV content back to the browser');
 assert.match(
 	transactionListPage,
 	/paramsToUrl[\s\S]*sp\.set\('limit'[\s\S]*sp\.set\('offset'/,
