@@ -31,7 +31,36 @@ Phase 93 extended the same limited approach, still without promising complete tr
 - `/books` metadata page headings, helper copy, read-only badges, access labels, empty state, and read-only safety note now use English/Russian catalog strings;
 - `README.ru.md` was refreshed to describe the real but limited Russian UI surface.
 
+Phase 113 adds a glossary and one high-value transaction UI slice:
+
+- transaction filter headings/help, active filter summary labels, date preset helper copy, split reconciliation state labels, reset action, and CSV export helper/button copy use the English/Russian catalog;
+- the same URL-only filter behavior remains in place: no search strings, account IDs, dates, amounts, or state filters are stored in `localStorage`/`sessionStorage`;
+- Russian copy keeps the read-only/export safety meaning instead of implying editing, production readiness, or complete translation.
+
 Russian safety copy was written manually. Do not machine-translate new safety warnings without human review.
+
+## Accounting and safety glossary
+
+English is canonical. Use these Russian terms consistently in the UI/docs when a narrow Russian slice is added:
+
+| Canonical English | Preferred Russian | Notes |
+| --- | --- | --- |
+| read-only / read-only by default | read-only / только чтение / только на чтение по умолчанию | Keep `read-only` where it reinforces the product boundary; do not translate it into a weaker “view mode” claim. |
+| GnuCash Desktop remains the authoritative editor | GnuCash Desktop остаётся главным редактором | Use for all write-boundary warnings. Do not imply the web UI is an editor in v0.1.x. |
+| not production-ready | не готово для production / не production-ready | Keep explicit for release/deployment warnings. |
+| not security-audited | не проходило security audit / не security-audited | Do not soften into “basic security included”. |
+| controlled writes are experimental and disabled by default | controlled writes экспериментальны и отключены по умолчанию | Controlled writes are post-MVP; do not call them normal editing. |
+| transaction | транзакция | Use for GnuCash transactions. |
+| split | split | Keep the GnuCash term when referring to split-level data such as memo or reconciliation state. |
+| split memo | split memo | Avoid implying it is the same as transaction description. |
+| split reconciliation state | состояние сверки split | Used by the transaction state filter. |
+| unreconciled | не сверено | Maps to GnuCash split `n`. |
+| cleared | очищено | Maps to GnuCash split `c`; do not translate as “удалено”. |
+| reconciled | сверено | Maps to GnuCash split `y`. |
+| voided | аннулировано | Maps to GnuCash split `v`; do not imply deletion. |
+| CSV export | CSV export / экспорт CSV | Export is read-only and filtered; do not call it import/sync. |
+| filtered view | отфильтрованный вид | Applies equally to list and CSV export. |
+| partial translation | частичный перевод | State that Russian is incomplete and English remains canonical. |
 
 ## Non-goals
 

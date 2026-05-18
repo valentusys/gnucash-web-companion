@@ -5,9 +5,9 @@
 	import TransactionFilters from '$lib/components/TransactionFilters.svelte';
 	import Pagination from '$lib/components/Pagination.svelte';
 	import WriteModeWarning from '$lib/components/WriteModeWarning.svelte';
-import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
+	import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 
-		let { data } = $props();
+	let { data } = $props();
 	let locale = $derived<Locale>(data.locale ?? DEFAULT_LOCALE);
 
 	const txs = $derived(data.txs);
@@ -41,10 +41,28 @@ import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 			data.filters.transactionState
 		].filter(Boolean).length
 	);
+	const filterLabel = $derived(
+		locale === 'ru'
+			? activeFilterCount === 1
+				? 'фильтр'
+				: activeFilterCount > 1 && activeFilterCount < 5
+					? 'фильтра'
+					: 'фильтров'
+			: activeFilterCount === 1
+				? 'filter'
+				: 'filters'
+	);
+	const exportButtonLabel = $derived(
+		activeFilterCount
+			? t(locale, 'transactions.export.buttonWithFilters')
+					.replace('{count}', String(activeFilterCount))
+					.replace('{filterLabel}', filterLabel)
+			: t(locale, 'transactions.export.button')
+	);
 	const csvStatus = $derived(
 		activeFilterCount
-			? `Exports the current read-only filtered view, capped at 10,000 rows. Large exports run synchronously; narrow filters if the request times out or the export is truncated.`
-			: 'Exports this read-only transaction list, capped at 10,000 rows. Large exports run synchronously; narrow filters if the request times out or the export is truncated.'
+			? t(locale, 'transactions.export.statusFiltered')
+			: t(locale, 'transactions.export.statusUnfiltered')
 	);
 
 	function paramsToUrl(params: {
@@ -122,7 +140,7 @@ import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 					style="background: var(--app-panel); color: var(--app-text); border: 1px solid var(--app-border);"
 					href={exportCsvUrl}
 					aria-describedby="csv-export-status"
-					>Export CSV{#if activeFilterCount} ({activeFilterCount} filter{activeFilterCount === 1 ? '' : 's'}){/if}</a
+					>{exportButtonLabel}</a
 				>
 				<p id="csv-export-status" class="max-w-xs text-xs" style="color: var(--app-muted);">{csvStatus}</p>
 			{/if}
@@ -154,6 +172,7 @@ import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 		accounts={data.accounts}
 		datePresets={data.datePresets}
 		clearFiltersHref={data.clearFiltersHref}
+		{locale}
 		onChange={handleFilter}
 	/>
 

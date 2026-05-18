@@ -11,7 +11,7 @@ Last updated: 2026-05-19
 
 ## Current baseline
 
-Completed through Phase 112.
+Completed through Phase 113.
 
 Current public release state:
 
@@ -135,6 +135,7 @@ Completed phases:
 - Phase 110 — books metadata UX hardening from GitHub #13
 - Phase 111 — compatibility fixture v4 safe Desktop-tooling evidence from GitHub #22
 - Phase 112 — LAN/VPN deployment safety behavior from GitHub #26
+- Phase 113 — Russian localization glossary and transaction filter/export UI slice from GitHub #17/#29
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -186,9 +187,11 @@ Completed phases:
 
 - Phase 112 completed LAN/VPN deployment safety behavior from GitHub #26: backend health/startup diagnostics now include a safe CORS deployment posture check, and startup logs emit a non-secret `cors_deployment_warning` when `CORS_ORIGINS` contains `*` while `APP_ENV` is not development-like. Local development/test defaults remain usable, `.env.example` and deployment/development docs now provide exact localhost/LAN/VPN origin examples, and the docs continue to warn that CORS narrowing is not production hardening and the pre-alpha app must not be exposed directly to the public internet. Regression tests cover risky wildcard warnings, narrowed-origin behavior, and log redaction. GitHub #26 was updated with evidence and closed. No tag, release, package, GnuCash book, app DB, backup, `.env`, screenshot, CSV export, secret, token, cert, key, private path, account name, transaction description, memo, amount, or personal financial data was committed; writes remain disabled by default; controlled writes remain post-MVP/experimental; no v0.2 work was started.
 
+- Phase 113 completed the Russian localization glossary and narrow transaction filter/export UI slice from GitHub #17/#29: `docs/localization.md` now includes an accounting/safety glossary with canonical English and preferred Russian terms for read-only boundaries, GnuCash Desktop authority, production/security caveats, split reconciliation states, CSV export, and partial translation. The transaction filter component and transaction/account CSV export copy now use the existing English/Russian message catalog for filter headings/help, active filter summaries, state labels, clear/reset, and export helper/button copy. English remains canonical, Russian remains opt-in/partial, URL-only filter behavior is unchanged, and no browser storage or write-mode behavior was added. No tag, release, package, GnuCash book, app DB, backup, `.env`, screenshot, CSV export, secret, token, cert, key, private path, account name, transaction description, memo, amount, or personal financial data was committed; writes remain disabled by default; controlled writes remain post-MVP/experimental; no v0.2 work was started.
+
 Next planned phase:
 
-- Phase 113 — continue the analyst roadmap with Russian localization glossary and a narrow UI slice from GitHub #17/#29 while keeping English canonical and warnings conservative.
+- Phase 114 — run the analyst roadmap synthetic browser dogfood refresh using generated/disposable data only, covering core read-only UI/API paths, CSV export/filter parity, and disabled-write probes without committing screenshots/exports/app DBs/private data.
 
 ## MVP product model
 

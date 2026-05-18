@@ -76,7 +76,15 @@ for (const phrase of [
 	"'transactions.title': 'Просмотр транзакций'",
 	"'books.title': 'Book management'",
 	"'books.title': 'Управление книгами'",
-	'Книги доступны только для просмотра метаданных'
+	'Книги доступны только для просмотра метаданных',
+	"'transactions.filters.title': 'Transaction filters'",
+	"'transactions.filters.title': 'Фильтры транзакций'",
+	'Сужают read-only список транзакций и CSV export',
+	"'transactions.filters.stateHelp'",
+	'Фильтрует по состоянию сверки split в GnuCash; транзакции не редактируются.',
+	"'transactions.export.statusFiltered'",
+	'Экспортирует текущий read-only отфильтрованный вид',
+	"'transactions.export.accountStatus'"
 ]) {
 	assert.ok(i18nMessages.includes(phrase), `i18n messages must include: ${phrase}`);
 }
@@ -243,8 +251,19 @@ assert.match(
 );
 assert.match(
 	transactionListPage,
-	/Exports the current read-only filtered view[\s\S]*capped at 10,000 rows[\s\S]*Large exports run synchronously/,
-	'CSV export copy must tell users exports are read-only, filtered, capped, and synchronous'
+	/t\(locale, 'transactions\.export\.statusFiltered'\)[\s\S]*t\(locale, 'transactions\.export\.statusUnfiltered'\)[\s\S]*exportButtonLabel/s,
+	'CSV export copy must come from the localized catalog while preserving filtered/unfiltered read-only status'
+);
+const transactionFiltersComponent = read('src/lib/components/TransactionFilters.svelte');
+assert.match(
+	transactionFiltersComponent,
+	/locale = DEFAULT_LOCALE[\s\S]*t\(locale, 'transactions\.filters\.subtitle'\)[\s\S]*t\(locale, 'transactions\.filters\.stateHelp'\)[\s\S]*t\(locale, 'transactions\.filters\.clear'\)/s,
+	'transaction filter UI must render localized read-only/filter/state/reset copy from the i18n catalog'
+);
+assert.doesNotMatch(
+	transactionFiltersComponent,
+	/localStorage|sessionStorage/,
+	'transaction filters must not persist private filter values in browser storage'
 );
 const exportProxyRoute = read('src/routes/books/[bookId]/transactions/export/+server.ts');
 assert.match(exportProxyRoute, /getAuthToken\(cookies\)/, 'CSV export proxy must read the httpOnly auth cookie on the server');
@@ -317,47 +336,47 @@ assert.doesNotMatch(
 const transactionFilters = read('src/lib/components/TransactionFilters.svelte');
 assert.match(
 	transactionFilters,
-	/validateDateRange[\s\S]*Start date must be earlier than or equal to end date/,
+	/validateDateRange[\s\S]*t\(locale, 'transactions\.filters\.startDateError'\)/,
 	'transaction filters must reject inverted date ranges before navigation'
 );
 assert.match(
 	transactionFilters,
-	/validateAmountRange[\s\S]*Minimum amount must be less than or equal to maximum amount/,
+	/validateAmountRange[\s\S]*t\(locale, 'transactions\.filters\.amountError'\)/,
 	'transaction filters must reject inverted amount ranges before navigation'
 );
 assert.match(
 	transactionFilters,
-	/activeFilterSummary[\s\S]*Search: \$\{query\}[\s\S]*Account: \$\{selectedAccount\.full_name\}[\s\S]*Amount: \$\{minAmount\} to \$\{maxAmount\}/,
+	/activeFilterSummary[\s\S]*transactions\.filters\.summary\.search[\s\S]*selectedAccount\.full_name[\s\S]*transactions\.filters\.summary\.amount/s,
 	'transaction filters must build a readable active filter summary for search, account, date, and amount filters'
 );
 assert.match(
 	transactionFilters,
-	/transactionState[\s\S]*State: \$\{transactionState\}[\s\S]*name="transaction_state"[\s\S]*Unreconciled[\s\S]*Cleared[\s\S]*Reconciled[\s\S]*Voided/s,
+	/transactionState[\s\S]*transactions\.filters\.summary\.state[\s\S]*name="transaction_state"[\s\S]*transactions\.filters\.stateUnreconciled[\s\S]*transactions\.filters\.stateCleared[\s\S]*transactions\.filters\.stateReconciled[\s\S]*transactions\.filters\.stateVoided/s,
 	'transaction filters must expose a safe split reconciliation state selector and active summary'
 );
 assert.match(
 	transactionFilters,
-	/Active filters applied to list and CSV export[\s\S]*aria-label="Active transaction filters"/,
+	/t\(locale, 'transactions\.filters\.activeSummaryTitle'\)[\s\S]*aria-label="Active transaction filters"/,
 	'active filter summary must tell users the same filters apply to list and CSV export'
 );
 assert.match(
 	transactionFilters,
-	/Search[\s\S]*Description or split memo\.\.\./,
+	/t\(locale, 'transactions\.filters\.search'\)[\s\S]*t\(locale, 'transactions\.filters\.searchPlaceholder'\)/,
 	'transaction search helper copy must honestly cover descriptions and split memos'
 );
 assert.match(
 	transactionFilters,
-	/Date presets[\s\S]*datePresets[\s\S]*preset\.href[\s\S]*aria-label=\{`Apply transaction date preset: \$\{preset\.label\}`\}/,
+	/t\(locale, 'transactions\.filters\.datePresets'\)[\s\S]*datePresets[\s\S]*preset\.href[\s\S]*transactions\.filters\.datePresetAria/s,
 	'transaction filters must render accessible date preset links from server-provided query URLs'
 );
 assert.match(
 	transactionFilters,
-	/clearFiltersHref[\s\S]*href=\{clearFiltersHref\}[\s\S]*Clear filters/,
+	/clearFiltersHref[\s\S]*href=\{clearFiltersHref\}[\s\S]*t\(locale, 'transactions\.filters\.clear'\)/,
 	'transaction filters must render an explicit URL-based Clear filters link'
 );
 assert.match(
 	transactionFilters,
-	/Custom date range[\s\S]*id="tx-date-from"[\s\S]*type="date"[\s\S]*id="tx-date-to"[\s\S]*type="date"/s,
+	/t\(locale, 'transactions\.filters\.customDateRange'\)[\s\S]*id="tx-date-from"[\s\S]*type="date"[\s\S]*id="tx-date-to"[\s\S]*type="date"/s,
 	'custom date inputs must remain visible alongside preset links'
 );
 

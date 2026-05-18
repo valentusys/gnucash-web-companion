@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Account } from '$lib/api/types';
+	import { DEFAULT_LOCALE, t, type Locale, type MessageKey } from '$lib/i18n';
 	import { compareDecimalStrings } from '$lib/money.js';
 
 	let {
@@ -14,6 +15,7 @@
 		datePresets = [],
 		clearFiltersHref = '/transactions?limit=50&offset=0',
 		lockedAccountLabel = '',
+		locale = DEFAULT_LOCALE,
 		onChange
 	}: {
 		query: string;
@@ -27,6 +29,7 @@
 		datePresets?: { label: string; href: string; active: boolean }[];
 		clearFiltersHref?: string;
 		lockedAccountLabel?: string;
+		locale?: Locale;
 		onChange: (params: {
 			query: string;
 			dateFrom: string;
@@ -46,18 +49,26 @@
 	const activeFilterSummary = $derived.by(() => {
 		const filters: string[] = [];
 		const selectedAccount = accounts.find((account) => account.id === accountId);
+		const stateLabelByValue: Record<string, MessageKey> = {
+			unreconciled: 'transactions.filters.stateUnreconciled',
+			cleared: 'transactions.filters.stateCleared',
+			reconciled: 'transactions.filters.stateReconciled',
+			voided: 'transactions.filters.stateVoided'
+		};
 
-		if (query) filters.push(`Search: ${query}`);
-		if (lockedAccountLabel) filters.push(`Account scope: ${lockedAccountLabel}`);
-		else if (selectedAccount) filters.push(`Account: ${selectedAccount.full_name}`);
-		else if (accountId) filters.push(`Account ID: ${accountId}`);
-		if (dateFrom && dateTo) filters.push(`Dates: ${dateFrom} to ${dateTo}`);
-		else if (dateFrom) filters.push(`From: ${dateFrom}`);
-		else if (dateTo) filters.push(`To: ${dateTo}`);
-		if (minAmount && maxAmount) filters.push(`Amount: ${minAmount} to ${maxAmount}`);
-		else if (minAmount) filters.push(`Min amount: ${minAmount}`);
-		else if (maxAmount) filters.push(`Max amount: ${maxAmount}`);
-		if (transactionState) filters.push(`State: ${transactionState}`);
+		if (query) filters.push(`${t(locale, 'transactions.filters.summary.search')}: ${query}`);
+		if (lockedAccountLabel) filters.push(`${t(locale, 'transactions.filters.accountScope')}: ${lockedAccountLabel}`);
+		else if (selectedAccount) filters.push(`${t(locale, 'transactions.filters.summary.account')}: ${selectedAccount.full_name}`);
+		else if (accountId) filters.push(`${t(locale, 'transactions.filters.accountId')}: ${accountId}`);
+		if (dateFrom && dateTo) filters.push(`${t(locale, 'transactions.filters.summary.dates')}: ${dateFrom} – ${dateTo}`);
+		else if (dateFrom) filters.push(`${t(locale, 'transactions.filters.summary.from')}: ${dateFrom}`);
+		else if (dateTo) filters.push(`${t(locale, 'transactions.filters.summary.to')}: ${dateTo}`);
+		if (minAmount && maxAmount) filters.push(`${t(locale, 'transactions.filters.summary.amount')}: ${minAmount} – ${maxAmount}`);
+		else if (minAmount) filters.push(`${t(locale, 'transactions.filters.summary.minAmount')}: ${minAmount}`);
+		else if (maxAmount) filters.push(`${t(locale, 'transactions.filters.summary.maxAmount')}: ${maxAmount}`);
+		if (transactionState) {
+			filters.push(`${t(locale, 'transactions.filters.summary.state')}: ${t(locale, stateLabelByValue[transactionState] ?? 'transactions.filters.summary.state')}`);
+		}
 
 		return filters;
 	});
@@ -68,14 +79,14 @@
 
 	function validateDateRange(from: string, to: string): string {
 		if (from && to && from > to) {
-			return 'Start date must be earlier than or equal to end date.';
+			return t(locale, 'transactions.filters.startDateError');
 		}
 		return '';
 	}
 
 	function validateAmountRange(min: string, max: string): string {
 		if (min && max && compareDecimalStrings(min, max) > 0) {
-			return 'Minimum amount must be less than or equal to maximum amount.';
+			return t(locale, 'transactions.filters.amountError');
 		}
 		return '';
 	}
@@ -112,19 +123,19 @@
 	<div class="basis-full">
 		<div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
 			<div>
-				<p class="text-sm font-semibold" style="color: var(--app-text);">Transaction filters</p>
+				<p class="text-sm font-semibold" style="color: var(--app-text);">{t(locale, 'transactions.filters.title')}</p>
 				<p class="text-xs" style="color: var(--app-muted);">
-					Narrow the read-only transaction list and CSV export; filters never modify your GnuCash book.
+					{t(locale, 'transactions.filters.subtitle')}
 				</p>
 			</div>
 			{#if hasActiveFilters}
-				<p class="text-xs font-medium" style="color: var(--app-accent);">Filtered view</p>
+				<p class="text-xs font-medium" style="color: var(--app-accent);">{t(locale, 'transactions.filters.filteredView')}</p>
 			{/if}
 		</div>
 		{#if datePresets.length}
 			<div class="mt-3">
-				<p class="text-xs font-semibold uppercase tracking-wide" style="color: var(--app-muted);">Date presets</p>
-				<div class="mt-2 flex flex-wrap gap-2" aria-label="Transaction date range presets">
+				<p class="text-xs font-semibold uppercase tracking-wide" style="color: var(--app-muted);">{t(locale, 'transactions.filters.datePresets')}</p>
+				<div class="mt-2 flex flex-wrap gap-2" aria-label={t(locale, 'transactions.filters.datePresetAria')}>
 					{#each datePresets as preset}
 						<a
 							href={preset.href}
@@ -132,7 +143,7 @@
 							style={preset.active
 								? 'border-color: var(--app-accent); color: var(--app-accent); background: var(--app-bg);'
 								: 'border-color: var(--app-border); color: var(--app-text); background: var(--app-panel);'}
-							aria-label={`Apply transaction date preset: ${preset.label}`}
+							aria-label={`${t(locale, 'transactions.filters.datePresetAria')}: ${preset.label}`}
 							aria-current={preset.active ? 'true' : undefined}
 						>
 							{preset.label}
@@ -140,7 +151,7 @@
 					{/each}
 				</div>
 				<p class="mt-2 text-xs" style="color: var(--app-muted);">
-					Presets update only the ordinary date_from/date_to filters; the list and CSV export stay read-only and use the same filtered view.
+					{t(locale, 'transactions.filters.datePresetHelp')}
 				</p>
 			</div>
 		{/if}
@@ -151,7 +162,7 @@
 				aria-live="polite"
 			>
 				<p class="text-xs font-semibold uppercase tracking-wide" style="color: var(--app-muted);">
-					Active filters applied to list and CSV export
+					{t(locale, 'transactions.filters.activeSummaryTitle')}
 				</p>
 				<ul class="mt-2 flex flex-wrap gap-2" aria-label="Active transaction filters">
 					{#each activeFilterSummary as filter}
@@ -167,19 +178,19 @@
 		{/if}
 	</div>
 	<div class="flex-1">
-		<label for="tx-query" class="block text-xs font-semibold uppercase" style="color: var(--app-muted);">Search</label>
+		<label for="tx-query" class="block text-xs font-semibold uppercase" style="color: var(--app-muted);">{t(locale, 'transactions.filters.search')}</label>
 		<input
 			id="tx-query"
 			name="query"
 			type="text"
 			value={query}
-			placeholder="Description or split memo..."
+			placeholder={t(locale, 'transactions.filters.searchPlaceholder')}
 			class="mt-1 block w-full rounded-lg border px-3 py-2 text-sm"
 			style="border-color: var(--app-input-border); background-color: var(--app-input-bg); color: var(--app-text);"
 		/>
 	</div>
 	<div>
-		<label for="tx-account" class="block text-xs font-semibold uppercase" style="color: var(--app-muted);">Account</label>
+		<label for="tx-account" class="block text-xs font-semibold uppercase" style="color: var(--app-muted);">{t(locale, 'transactions.filters.account')}</label>
 		{#if lockedAccountLabel}
 			<input id="tx-account" type="hidden" name="account_id" value={accountId} />
 			<p
@@ -189,7 +200,7 @@
 				{lockedAccountLabel}
 			</p>
 			<p class="mt-1 max-w-xs text-xs" style="color: var(--app-muted);">
-				This account detail view is fixed to this account; other filters narrow only this account's transactions.
+				{t(locale, 'transactions.filters.lockedAccountHelp')}
 			</p>
 		{:else}
 			<select
@@ -198,7 +209,7 @@
 				class="mt-1 block w-full rounded-lg border px-3 py-2 text-sm"
 				style="border-color: var(--app-input-border); background-color: var(--app-input-bg); color: var(--app-text);"
 			>
-				<option value="" selected={!accountId}>All accounts</option>
+				<option value="" selected={!accountId}>{t(locale, 'transactions.filters.allAccounts')}</option>
 				{#each accounts as account (account.id)}
 					<option value={account.id} selected={accountId === account.id}>{account.full_name}</option>
 				{/each}
@@ -206,8 +217,8 @@
 		{/if}
 	</div>
 	<div>
-		<p class="text-xs font-semibold uppercase" style="color: var(--app-muted);">Custom date range</p>
-		<label for="tx-date-from" class="block text-xs font-semibold uppercase" style="color: var(--app-muted);">From</label>
+		<p class="text-xs font-semibold uppercase" style="color: var(--app-muted);">{t(locale, 'transactions.filters.customDateRange')}</p>
+		<label for="tx-date-from" class="block text-xs font-semibold uppercase" style="color: var(--app-muted);">{t(locale, 'transactions.filters.from')}</label>
 		<input
 			id="tx-date-from"
 			name="date_from"
@@ -220,7 +231,7 @@
 		/>
 	</div>
 	<div>
-		<label for="tx-date-to" class="block text-xs font-semibold uppercase" style="color: var(--app-muted);">To</label>
+		<label for="tx-date-to" class="block text-xs font-semibold uppercase" style="color: var(--app-muted);">{t(locale, 'transactions.filters.to')}</label>
 		<input
 			id="tx-date-to"
 			name="date_to"
@@ -237,7 +248,7 @@
 	</div>
 
 	<div>
-		<label for="tx-state" class="block text-xs font-semibold uppercase" style="color: var(--app-muted);">State</label>
+		<label for="tx-state" class="block text-xs font-semibold uppercase" style="color: var(--app-muted);">{t(locale, 'transactions.filters.state')}</label>
 		<select
 			id="tx-state"
 			name="transaction_state"
@@ -245,16 +256,16 @@
 			style="border-color: var(--app-input-border); background-color: var(--app-input-bg); color: var(--app-text);"
 			aria-describedby="tx-state-help"
 		>
-			<option value="" selected={!transactionState}>Any state</option>
-			<option value="unreconciled" selected={transactionState === 'unreconciled'}>Unreconciled</option>
-			<option value="cleared" selected={transactionState === 'cleared'}>Cleared</option>
-			<option value="reconciled" selected={transactionState === 'reconciled'}>Reconciled</option>
-			<option value="voided" selected={transactionState === 'voided'}>Voided</option>
+			<option value="" selected={!transactionState}>{t(locale, 'transactions.filters.anyState')}</option>
+			<option value="unreconciled" selected={transactionState === 'unreconciled'}>{t(locale, 'transactions.filters.stateUnreconciled')}</option>
+			<option value="cleared" selected={transactionState === 'cleared'}>{t(locale, 'transactions.filters.stateCleared')}</option>
+			<option value="reconciled" selected={transactionState === 'reconciled'}>{t(locale, 'transactions.filters.stateReconciled')}</option>
+			<option value="voided" selected={transactionState === 'voided'}>{t(locale, 'transactions.filters.stateVoided')}</option>
 		</select>
-		<p id="tx-state-help" class="mt-1 max-w-xs text-xs" style="color: var(--app-muted);">Filters by the GnuCash split reconciliation state; it does not edit transactions.</p>
+		<p id="tx-state-help" class="mt-1 max-w-xs text-xs" style="color: var(--app-muted);">{t(locale, 'transactions.filters.stateHelp')}</p>
 	</div>
 	<div>
-		<label for="tx-min-amount" class="block text-xs font-semibold uppercase" style="color: var(--app-muted);">Min amount</label>
+		<label for="tx-min-amount" class="block text-xs font-semibold uppercase" style="color: var(--app-muted);">{t(locale, 'transactions.filters.minAmount')}</label>
 		<input
 			id="tx-min-amount"
 			name="min_amount"
@@ -270,7 +281,7 @@
 		/>
 	</div>
 	<div>
-		<label for="tx-max-amount" class="block text-xs font-semibold uppercase" style="color: var(--app-muted);">Max amount</label>
+		<label for="tx-max-amount" class="block text-xs font-semibold uppercase" style="color: var(--app-muted);">{t(locale, 'transactions.filters.maxAmount')}</label>
 		<input
 			id="tx-max-amount"
 			name="max_amount"
@@ -294,7 +305,7 @@
 			class="rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
 			style="background-color: var(--app-accent);"
 		>
-			Filter
+			{t(locale, 'transactions.filters.submit')}
 		</button>
 		<a
 			class="rounded-lg border px-4 py-2 text-sm font-medium transition-colors hover:opacity-80"
@@ -304,7 +315,7 @@
 			href={clearFiltersHref}
 			aria-disabled={!hasActiveFilters ? 'true' : undefined}
 		>
-			Clear filters
+			{t(locale, 'transactions.filters.clear')}
 		</a>
 	</div>
 </form>

@@ -5,8 +5,10 @@
 	import TransactionCard from '$lib/components/TransactionCard.svelte';
 	import TransactionFilters from '$lib/components/TransactionFilters.svelte';
 	import Pagination from '$lib/components/Pagination.svelte';
+	import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 
 	let { data } = $props();
+	let locale = $derived<Locale>(data.locale ?? DEFAULT_LOCALE);
 	const account = $derived(data.account);
 	const txs = $derived(data.txs);
 	const limit = $derived(txs.limit);
@@ -28,6 +30,24 @@
 			data.filters.maxAmount,
 			data.filters.transactionState
 		].filter(Boolean).length
+	);
+	const filterLabel = $derived(
+		locale === 'ru'
+			? activeFilterCount === 1
+				? 'фильтр'
+				: activeFilterCount > 1 && activeFilterCount < 5
+					? 'фильтра'
+					: 'фильтров'
+			: activeFilterCount === 1
+				? 'filter'
+				: 'filters'
+	);
+	const accountExportButtonLabel = $derived(
+		activeFilterCount
+			? t(locale, 'transactions.export.accountButtonWithFilters')
+					.replace('{count}', String(activeFilterCount))
+					.replace('{filterLabel}', filterLabel)
+			: t(locale, 'transactions.export.accountButton')
 	);
 	const exportCsvUrl = $derived.by(() => {
 		const bookId = data.activeBook?.id;
@@ -165,10 +185,10 @@
 						style="background: var(--app-panel); color: var(--app-text); border: 1px solid var(--app-border);"
 						href={exportCsvUrl}
 						aria-describedby="account-csv-export-status"
-						>Export account CSV{#if activeFilterCount} ({activeFilterCount} filter{activeFilterCount === 1 ? '' : 's'}){/if}</a
+						>{accountExportButtonLabel}</a
 					>
 					<p id="account-csv-export-status" class="max-w-xs text-xs" style="color: var(--app-muted);">
-						Exports this account-scoped read-only filtered view with the same search/date/amount/state filters.
+						{t(locale, 'transactions.export.accountStatus')}
 					</p>
 				</div>
 			{/if}
@@ -186,6 +206,7 @@
 				datePresets={data.datePresets}
 				clearFiltersHref={data.clearFiltersHref}
 				lockedAccountLabel={account.full_name}
+				{locale}
 				onChange={handleFilter}
 			/>
 			<TransactionTable transactions={txs.items} onSelect={handleSelect} />
