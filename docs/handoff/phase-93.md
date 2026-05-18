@@ -110,10 +110,14 @@ PASS
 ### GitHub/release
 
 - Open issues were inspected before implementation.
-- GitHub #17 is the relevant broad Russian localization tracking issue and was/will be updated with Phase 93 evidence.
+- GitHub #17 was updated with Phase 93 evidence and kept open for broader future localization/glossary/documentation work: https://github.com/valentusys/gnucash-web-companion/issues/17#issuecomment-4476836499
 - Existing tags/releases were verified as `v0.1.0-readonly`, `v0.0.2-prealpha`, and `v0.0.1-prealpha` only.
 - No new tag or GitHub release was created.
 
 ### Commit/push
 
-Phase implementation commit and push evidence are recorded in the final controller report after push.
+Phase implementation commits:
+
+- `165ed13 feat: extend russian localization slice`
+
+Push evidence: `git push origin main` succeeded and remote `origin/main` advanced from `01b78aa` to `165ed13`.
