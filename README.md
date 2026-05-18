@@ -40,11 +40,11 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–79 are complete.
+- Phase 0–80 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by default.
 - First public pre-alpha release: `v0.0.1-prealpha`.
-- Current public pre-alpha release: [`v0.0.2-prealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.0.2-prealpha).
+- Current public pre-alpha release: [`v0.1.0-readonly`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.0-readonly).
 - Latest release-gate artifact: [docs/release/v0.1.0-readonly-final-gate.md](docs/release/v0.1.0-readonly-final-gate.md).
 - Russian localization/i18n foundation started in Phase 52; English documentation remains canonical. See [README.ru.md](README.ru.md) and [docs/localization.md](docs/localization.md).
 - Community announcement drafts and where-to-share guidance were refreshed in Phase 53 for cautious feedback collection, not production marketing.
@@ -74,6 +74,7 @@ This project is not a fit if you need:
 - Phase 77 completed a real Docker read-only dogfood attempt on a copied/disposable GnuCash SQL book: API login, health, accounts, account detail, transactions, transaction detail, search/filter, CSV export, and disabled write-endpoint probes passed with `GNUCASH_WRITES_ENABLED=false`, but browser/UI dogfood was blocked by #37 because `/login` redirected to itself.
 - Phase 78 fixed #37 and reran Docker/Caddy browser dogfood on copied/disposable data: `/login`, dashboard, accounts, account detail, transactions, transaction detail, CSV export, hidden write UI, API smoke, and disabled write probes passed with `GNUCASH_WRITES_ENABLED=false`.
 - Phase 79 accepted the Phase 78 dogfood evidence for #25, created conservative `v0.1.0-readonly` release notes, ran the final release gate, and found `v0.1.0-readonly` ready for publication as a separate explicit next step. No v0.1 tag or GitHub release has been published yet.
+- Phase 80 published `v0.1.0-readonly` as an annotated git tag and GitHub pre-release on the Phase 79 gate commit, using `docs/release/v0.1.0-readonly-notes.md` as the release notes. This was a narrow publish-only phase: no scope expansion, writes remain disabled by default, and no v0.2 work was started.
 
 ## MVP scope: read-only first
 
@@ -165,22 +166,31 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.
 The current public pre-alpha tag/release is:
 
 ```text
-v0.0.2-prealpha
+v0.1.0-readonly
 ```
 
 Release checklist and notes:
 
-- [docs/release/v0.0.2-prealpha-checklist.md](docs/release/v0.0.2-prealpha-checklist.md)
-- [docs/release/v0.0.2-prealpha-notes.md](docs/release/v0.0.2-prealpha-notes.md)
-
-Current v0.1 read-only release artifacts:
-
-- [docs/release/v0.1.0-readonly-plan.md](docs/release/v0.1.0-readonly-plan.md)
 - [docs/release/v0.1.0-readonly-checklist.md](docs/release/v0.1.0-readonly-checklist.md)
 - [docs/release/v0.1.0-readonly-notes.md](docs/release/v0.1.0-readonly-notes.md)
 - [docs/release/v0.1.0-readonly-final-gate.md](docs/release/v0.1.0-readonly-final-gate.md)
 
 GitHub release:
+
+- <https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.0-readonly>
+
+The previous public pre-alpha tag/release is:
+
+```text
+v0.0.2-prealpha
+```
+
+Previous release checklist and notes:
+
+- [docs/release/v0.0.2-prealpha-checklist.md](docs/release/v0.0.2-prealpha-checklist.md)
+- [docs/release/v0.0.2-prealpha-notes.md](docs/release/v0.0.2-prealpha-notes.md)
+
+Previous GitHub release:
 
 - <https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.0.2-prealpha>
 

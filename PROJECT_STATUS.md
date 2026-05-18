@@ -7,11 +7,11 @@ Last updated: 2026-05-18
 - GitHub: `valentusys/gnucash-web-companion`
 - Local path: `/home/val/gnucash-web-companion`
 - Branch: `main`
-- Status: pre-alpha / MVP in progress
+- Status: pre-alpha / v0.1 read-only published
 
 ## Current baseline
 
-Completed through Phase 79.
+Completed through Phase 80.
 
 Completed phases:
 
@@ -95,10 +95,11 @@ Completed phases:
 - Phase 77 — real read-only dogfood on copied/disposable GnuCash SQL book
 - Phase 78 — Docker `/login` redirect-loop fix and browser/UI dogfood rerun
 - Phase 79 — accept dogfood evidence, write v0.1 release notes, and final release gate
+- Phase 80 — publish v0.1.0-readonly pre-release
 
 Next planned phase:
 
-- If the maintainer explicitly wants to publish, the next phase should be a narrow `v0.1.0-readonly` publication step: verify the Phase 79 gate commit/CI, create and push tag `v0.1.0-readonly`, and create a GitHub pre-release using `docs/release/v0.1.0-readonly-notes.md`. Do not expand scope, enable writes, start v0.2 work, or change the conservative release language during publication.
+- Phase 80 published `v0.1.0-readonly` as an annotated git tag and GitHub pre-release. The tag points to Phase 79 gate commit `8180d555d71feaaf008d3edafeaa24dffd3dcfdb`, and the release uses `docs/release/v0.1.0-readonly-notes.md`. Next work should be a narrow post-release concrete task from open issues/release-hardening backlog: a tested user-facing/read-only fix, release-link validation, or real post-release smoke/dogfood check. Do not publish another tag/release, expand writes, or start v0.2 work without explicit scope.
 
 ## MVP product model
 
@@ -1457,6 +1458,36 @@ Release result: Phase 78 dogfood evidence was accepted for #25 because it used c
 Test results: backend full suite, frontend check/auth-routes/build, Docker Compose config validation, `git diff --check`, GitHub Actions CI, v0.1 tag lookup, and GitHub release lookup are recorded in the Phase 79 handoff/final gate.
 
 Related issues: GitHub #24 was closed as satisfied by release notes. GitHub #25 was closed as satisfied by accepted Phase 78 copied/disposable-data runtime dogfood. GitHub #37 remains closed/fixed. GitHub #22 and #26–#36 remain open as non-blocking follow-up for broader hardening/future releases.
+
+## Phase 80 — Publish v0.1.0-readonly Pre-release
+
+Status: complete. Annotated tag and GitHub pre-release published; status docs committed and pushed.
+
+Goal: perform the narrow publish-only `v0.1.0-readonly` phase after the Phase 79 release gate verdict was ready for publication.
+
+PM decision: publish exactly the existing release artifact on the Phase 79 gate commit. Do not expand scope, add writes, start v0.2 work, create an audit-only phase, or change the conservative release language.
+
+Publication evidence:
+
+- Annotated git tag: `v0.1.0-readonly`.
+- Tagged commit: `8180d555d71feaaf008d3edafeaa24dffd3dcfdb` (`docs: record phase 79 ci result`).
+- Remote tag: `refs/tags/v0.1.0-readonly` pushed to `origin`.
+- GitHub pre-release: https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.0-readonly
+- Release notes source: `docs/release/v0.1.0-readonly-notes.md`.
+- Published at: `2026-05-18T06:04:26Z`.
+
+Artifacts updated after publication:
+
+- `README.md` — current release/status links now point to `v0.1.0-readonly`.
+- `CHANGELOG.md` — Unreleased Phase 80 publication evidence entry.
+- `PROJECT_STATUS.md` — baseline advanced through Phase 80 and next work guidance updated.
+- `docs/handoff/phase-80.md` — PM/engineer handoff and verification report.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/configured default; controlled writes remain experimental/post-MVP and disabled by default. Phase 80 did not enable writes, add application behavior beyond publishing the existing release, start v0.2 work, claim production readiness/security audit, claim collaborative editing/SaaS/GnuCash replacement status, or add real financial/secrets/runtime artifacts.
+
+Test and release verification results are recorded in `docs/handoff/phase-80.md`. Local required checks passed before publication, Phase 79 main-branch CI was green before tagging, the v0.1 tag/release absence was verified before publication, and the tag/release presence was verified after publication.
+
+Related issues: no issues were closed in Phase 80. Open follow-up issues #22 and #26–#36 remain non-blocking for this conservative pre-alpha read-only publication.
 
 ## Standing constraints
 
