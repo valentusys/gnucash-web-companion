@@ -147,7 +147,7 @@ Completed phases:
 
 Next planned phase:
 
-- If Val explicitly authorizes publication in a separate request, run a dedicated `v0.1.1-readonly` publish phase only after re-checking branch, HEAD, clean working tree, tag/release absence, recent GitHub Actions state, and release notes. If continuing without publication authorization, prefer Phase 101 copied personal-book dogfood only if Val provides a safe copied GnuCash SQL book path outside git; otherwise choose another practical non-publishing read-only maintenance/dogfood task and do not claim GitHub #38 success from synthetic evidence.
+- Phase 101 is planned in `docs/handoff/phase-101-pm-brief.md` as a copied personal-book dogfood rerun gate for GitHub #38. The engineer must proceed only with an explicitly provided safe copied GnuCash SQL book path outside git; if no safe path is provided, record a redacted blocked result and keep #38 open. Do not publish `v0.1.1-readonly` unless Val gives separate explicit authorization in a later request.
 
 ## MVP product model
 
