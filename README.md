@@ -40,12 +40,12 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–68 are complete.
+- Phase 0–69 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by default.
 - First public pre-alpha release: `v0.0.1-prealpha`.
 - Current public pre-alpha release: [`v0.0.2-prealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.0.2-prealpha).
-- Latest audit: [docs/audits/phase-68-audit.md](docs/audits/phase-68-audit.md).
+- Latest audit: [docs/audits/phase-69-audit.md](docs/audits/phase-69-audit.md).
 - Russian localization/i18n foundation started in Phase 52; English documentation remains canonical. See [README.ru.md](README.ru.md) and [docs/localization.md](docs/localization.md).
 - Community announcement drafts and where-to-share guidance were refreshed in Phase 53 for cautious feedback collection, not production marketing.
 - Startup diagnostics, a richer non-sensitive health endpoint, and troubleshooting guidance were added in Phase 54 for self-hosted deployments.
@@ -63,6 +63,7 @@ This project is not a fit if you need:
 - Phase 66 completed a security-posture audit without claiming professional security audit status: auth cookie/JWT/read-only defaults remain conservative, #27 tracks redacting full GnuCash book paths from seed logs, #26 continues to track CORS origin narrowing visibility, and v0.1 publication remains blocked by #24/#25.
 - Phase 67 completed an open-source hygiene audit: license/contributing/code-of-conduct/security/funding/templates/topics/issues are present and useful, the missing `needs-triage` label was created, the GitHub repository description now includes read-only positioning, and v0.1 publication remains blocked by #24/#25.
 - Phase 68 completed a documentation-formatting audit: markdown source readability is acceptable with non-blocking cleanup needed, small historical fence/link clarifications were fixed, #28 tracks broader gradual raw-markdown readability cleanup, and v0.1 publication remains blocked by #24/#25.
+- Phase 69 completed a localization/i18n audit: English remains canonical, Russian README/UI scope is conservative and opt-in, #29 tracks a non-blocking accounting/safety terminology glossary, and v0.1 publication remains blocked by #24/#25.
 
 ## MVP scope: read-only first
 

@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 68.
+Completed through Phase 69.
 
 Completed phases:
 
@@ -84,10 +84,11 @@ Completed phases:
 - Phase 66 — security posture audit
 - Phase 67 — open-source hygiene audit
 - Phase 68 — documentation formatting audit
+- Phase 69 — localization/i18n audit
 
 Next planned phase:
 
-- Continue the auditor roadmap with Phase 69 only when explicitly requested. Do not create a v0.1 tag/GitHub release until #24/#25 are handled by an explicit later phase. Phase 68 confirmed markdown source readability is acceptable with non-blocking cleanup needed, fixed small historical fence/link clarifications, and created #28 for gradual raw-markdown readability cleanup before wider announcement; it did not publish a release and did not unblock v0.1 publication.
+- Continue the auditor roadmap with Phase 70 only when explicitly requested. Do not create a v0.1 tag/GitHub release until #24/#25 are handled by an explicit later phase. Phase 69 confirmed English remains canonical, Russian localization remains conservative and opt-in, and #29 tracks a non-blocking localization glossary; it did not publish a release and did not unblock v0.1 publication.
 
 ## MVP product model
 
@@ -1205,6 +1206,27 @@ Documentation-formatting result: markdown source readability is acceptable for c
 Test results: custom markdown static scan and `git diff --check` are recorded in the Phase 68 handoff. Full backend/frontend/Docker suite was not rerun because this phase is audit/docs-only, changed no product code, and made no v0.1 release-readiness verdict.
 
 Related issues: GitHub #28 created for gradual markdown source readability cleanup. GitHub #24 and #25 remain v0.1 release blockers; GitHub #27 remains open for seed-log path redaction; GitHub #26 and #22 remain open for deployment/compatibility follow-up.
+
+## Phase 69 — Localization/i18n Audit
+
+Status: complete. Phase commit pushed.
+
+Goal: audit Russian localization planning and implementation from the auditor roadmap without adding product features, expanding write scope, making Russian the default locale, or publishing a release.
+
+Artifacts:
+
+- `docs/audits/phase-69-audit.md` — independent Phase 69 localization/i18n audit artifact with verdict: localization/i18n posture is acceptable for the current pre-alpha read-only scope, with non-blocking glossary follow-up required before localization grows.
+- `README.md` — current status advanced through Phase 69 and latest-audit link updated.
+- `CHANGELOG.md` — Unreleased entry added for the release-facing Phase 69 localization/i18n audit result.
+- `docs/handoff/phase-69.md` — PM/auditor/engineer handoff and verification report.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default state; controlled writes remain experimental post-MVP and disabled by default. Phase 69 did not enable writes, expand write scope, publish a v0.1 tag/release, claim production readiness/security audit, make Russian the default locale, or add real financial/secrets artifacts.
+
+Localization result: English remains canonical; `README.ru.md` is intentionally a short starter reference and does not contradict English safety/read-only positioning; Russian UI strings are opt-in and preserve the read-only/default-write/GnuCash Desktop authority boundary; complete translation remains non-blocking for v0.1 unless PM changes release criteria. GitHub #29 now tracks the non-blocking glossary gap for accounting/safety terminology.
+
+Test results: backend full suite, frontend check/auth-routes/build, Docker Compose config validation, and `git diff --check` are recorded in the Phase 69 handoff.
+
+Related issues: GitHub #29 created for a localization glossary. GitHub #17 remains open for broader Russian documentation/UI localization planning. GitHub #24 and #25 remain v0.1 release blockers; GitHub #27 remains open for seed-log path redaction; GitHub #26, #22, and #28 remain open for deployment/compatibility/markdown follow-up.
 
 ## Standing constraints
 
