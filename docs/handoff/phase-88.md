@@ -129,6 +129,6 @@ PASS
 
 ### Commit/push
 
-Phase implementation commit: `11021e2 feat: add many-splits performance benchmark`.
+Phase implementation commit: `96f435e feat: add many-splits performance benchmark`.
 
-Pushed to `origin/main`: pending until final controller push.
+Push evidence commit: pending until final controller push.
