@@ -156,7 +156,7 @@ Completed phases:
 
 Next planned phase:
 
-- Phase 104 — PM should choose the next narrow practical read-only roadmap slice, likely another GitHub #11 transaction search/filter improvement such as transaction state filtering or broader full-text semantics. Do not publish `v0.1.1-readonly`, create tags/releases/packages, run personal-book dogfood, or start v0.2/write-mode expansion without separate explicit Val authorization and safe input data.
+- Phase 104 — read-only transaction query semantics over split memos from GitHub #11. Engineer should broaden the existing `query` filter so transaction list/count/CSV export can match split memo text as well as transaction descriptions, with backend regression coverage and any honest frontend helper-copy update needed. Do not publish `v0.1.1-readonly`, create tags/releases/packages, run personal-book dogfood, or start v0.2/write-mode expansion without separate explicit Val authorization and safe input data. PM brief: `docs/handoff/phase-104-pm-brief.md`.
 
 ## MVP product model
 
