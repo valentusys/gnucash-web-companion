@@ -122,6 +122,8 @@ Phase 92 improves the test-copy procedure without committing a new binary fixtur
 4. Review `/tmp/compatibility-metadata.json` before sharing. It should contain only the redacted path (`"<redacted>"`), backend, declared GnuCash Desktop version, `versions` markers, and selected table counts. It must not contain account names, transaction descriptions, amounts, memos, split rows, private paths, screenshots, `.env`, app DB data, backups, or secrets.
 5. If this metadata is used to update `docs/gnucash-compatibility.md`, describe the row narrowly. A metadata row is evidence for that copied/test environment only; it is not proof of all GnuCash versions, all SQL backends, XML books, or production readiness.
 
+Phase 102 updates this metadata procedure so the JSON also records safe local runtime provenance: collector/generator version, operating system string, Python version, SQLite library version, and piecash package version. These fields help reproduce generated/disposable fixture evidence and are allowed to share after review because they do not include private paths or book row data.
+
 Phase 92 local procedure evidence:
 
 - `gnucash --version`: unavailable in this container (`gnucash: command not found`).
@@ -129,6 +131,16 @@ Phase 92 local procedure evidence:
 - Generated disposable source: `apps/api/scripts/create_compatibility_fixture_v1.py` into a temporary directory outside git.
 - Collector result: redacted path, `Gnucash = 3000000`, `Gnucash-Resave = 19920`, safe table counts only.
 - Regression coverage: `apps/api/tests/test_gnucash_compatibility_metadata.py` proves the collector does not serialize private path, account name, or transaction description values from a copied SQLite book.
+
+Phase 102 local procedure evidence:
+
+- `gnucash --version`: unavailable in this container (`gnucash: command not found`).
+- `piecash`: 1.2.1.
+- `python`: 3.11.15.
+- `sqlite`: 3.50.4.
+- Generated disposable source: `apps/api/scripts/create_compatibility_fixture_v1.py` into a temporary directory outside git.
+- Collector result: redacted path, `Gnucash = 3000000`, `Gnucash-Resave = 19920`, selected safe table counts (`accounts`, `books`, `commodities`, `splits`, `transactions`), and safe runtime context only.
+- Regression coverage: `apps/api/tests/test_gnucash_compatibility_metadata.py` and `apps/api/tests/test_compatibility_fixture_v1.py` assert safe runtime provenance is present while private path, account name, and transaction description values are not serialized by the copied-book collector.
 
 ## Storage and generation policy
 

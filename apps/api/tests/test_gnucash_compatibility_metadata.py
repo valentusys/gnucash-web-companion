@@ -53,6 +53,10 @@ def test_collector_reports_safe_schema_metadata_without_private_values(tmp_path:
     assert metadata["book_path"] == "<redacted>"
     assert metadata["versions"] == {"Gnucash": 3_000_000, "Gnucash-Resave": 19_920}
     assert metadata["table_counts"] == {"accounts": 2, "transactions": 1}
+    assert metadata["runtime_context"]["python_version"]
+    assert metadata["runtime_context"]["sqlite_version"] == sqlite3.sqlite_version
+    assert metadata["runtime_context"]["piecash_version"]
+    assert metadata["runtime_context"]["collector_version"] == "phase-102"
     serialized = json.dumps(metadata, sort_keys=True)
     assert str(book_path) not in serialized
     assert "Private Checking" not in serialized

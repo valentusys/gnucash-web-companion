@@ -18,7 +18,9 @@ Usage:
 from __future__ import annotations
 
 import hashlib
+from importlib import metadata as importlib_metadata
 import json
+import platform
 import sqlite3
 import sys
 from datetime import date
@@ -181,6 +183,25 @@ def sha256_file(path: str | Path) -> str:
     return digest.hexdigest()
 
 
+def _package_version(package_name: str) -> str:
+    try:
+        return importlib_metadata.version(package_name)
+    except importlib_metadata.PackageNotFoundError:
+        return "not installed"
+
+
+def runtime_context() -> dict[str, str]:
+    """Return safe local toolchain metadata for generated-fixture provenance."""
+
+    return {
+        "generator_version": "phase-102",
+        "os": platform.platform(),
+        "python_version": sys.version.split()[0],
+        "sqlite_version": sqlite3.sqlite_version,
+        "piecash_version": _package_version("piecash"),
+    }
+
+
 def fixture_metadata(output_path: str | Path) -> dict[str, Any]:
     """Return non-sensitive provenance metadata for a generated fixture."""
     path = Path(output_path)
@@ -194,6 +215,7 @@ def fixture_metadata(output_path: str | Path) -> dict[str, Any]:
         "contains_real_data": False,
         "account_count_expected": 15,
         "transaction_count_expected": 9,
+        "runtime_context": runtime_context(),
         "versions": read_versions(path),
         "sha256": sha256_file(path),
     }

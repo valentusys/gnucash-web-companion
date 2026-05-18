@@ -16,13 +16,35 @@ Usage:
 from __future__ import annotations
 
 import argparse
+from importlib import metadata as importlib_metadata
 import json
+import platform
 import sqlite3
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 SAFE_COUNT_TABLES = ("accounts", "transactions", "splits", "commodities", "books")
+
+
+def _package_version(package_name: str) -> str:
+    try:
+        return importlib_metadata.version(package_name)
+    except importlib_metadata.PackageNotFoundError:
+        return "not installed"
+
+
+def _runtime_context() -> dict[str, str]:
+    """Return safe local toolchain metadata for compatibility provenance."""
+
+    return {
+        "collector_version": "phase-102",
+        "os": platform.platform(),
+        "python_version": sys.version.split()[0],
+        "sqlite_version": sqlite3.sqlite_version,
+        "piecash_version": _package_version("piecash"),
+    }
 
 
 def _read_versions(conn: sqlite3.Connection) -> dict[str, int]:
@@ -64,6 +86,7 @@ def collect_metadata(book_path: str | Path, *, gnucash_version: str | None = Non
         "gnucash_desktop_version": gnucash_version or "not recorded",
         "backend": "SQLite",
         "collected_at_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+        "runtime_context": _runtime_context(),
         "versions": versions,
         "table_counts": table_counts,
         "safe_to_publish": (

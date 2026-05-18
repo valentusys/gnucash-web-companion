@@ -58,6 +58,10 @@ class TestCompatibilityFixtureV1Generation:
         assert metadata["desktop_version"] == "not desktop-generated in Phase 46 v1"
         assert metadata["account_count_expected"] == 15
         assert metadata["transaction_count_expected"] == 9
+        assert metadata["runtime_context"]["generator_version"] == "phase-102"
+        assert metadata["runtime_context"]["python_version"]
+        assert metadata["runtime_context"]["sqlite_version"]
+        assert metadata["runtime_context"]["piecash_version"]
         assert metadata["sha256"] == sha256_file(compatibility_fixture_path)
         assert metadata["versions"]["Gnucash"] >= 3000000
 

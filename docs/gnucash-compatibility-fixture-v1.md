@@ -38,6 +38,7 @@ python scripts/create_compatibility_fixture_v1.py /tmp/compatibility-v1.gnucash.
 - Desktop version: not desktop-generated in Phase 46 v1.
 - Base currency: SEK.
 - Real data: none.
+- Phase 102 metadata refresh: generated fixture metadata now includes safe runtime provenance (`generator_version`, OS, Python version, SQLite version, and piecash version) so local evidence is easier to reproduce without exposing row data or private paths.
 
 This is a compatibility implementation path beyond mocks because the read-only service opens and reads a real SQLite GnuCash book generated on demand. It is not yet a matrix of books saved by multiple GnuCash Desktop releases. That remains future compatibility work.
 
@@ -69,6 +70,7 @@ There are no real account numbers, addresses, customer/vendor names, private pat
 `apps/api/tests/test_compatibility_fixture_v1.py` generates the fixture in `tmp_path` and validates:
 
 - fixture generation and non-sensitive metadata;
+- safe runtime provenance in generated fixture metadata;
 - SQLite `versions` markers are readable;
 - read-only service access does not mutate the fixture checksum;
 - account tree;
