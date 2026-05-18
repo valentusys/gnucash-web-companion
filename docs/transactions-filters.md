@@ -40,6 +40,12 @@ The transactions page reflects active filters in the URL query string:
 
 Changing filters resets `offset` to `0`. Pagination preserves the active filters and changes only the offset.
 
+Date preset links are plain URLs. They update only `date_from` and `date_to`, preserve other active filters (`query`, `account_id`, `min_amount`, `max_amount`, and `transaction_state`), and reset `offset` to `0`.
+
+The transaction filter form also provides a one-click `Clear filters` link. It removes search, account, date, amount, and state filters, keeps only the current page size (`limit`) plus `offset=0`, and does not store the old filter values anywhere.
+
+Filter presets and reset behavior are URL-only. The app does not save transaction search strings, account IDs, amount ranges, dates, or state filters in `localStorage`, `sessionStorage`, app metadata, or user profiles.
+
 ## CSV export parity
 
 The CSV export link preserves the same active filters as the list view:

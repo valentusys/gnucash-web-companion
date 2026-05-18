@@ -12,6 +12,7 @@
 		transactionState = '',
 		accounts = [],
 		datePresets = [],
+		clearFiltersHref = '/transactions?limit=50&offset=0',
 		onChange
 	}: {
 		query: string;
@@ -23,6 +24,7 @@
 		transactionState?: string;
 		accounts?: Account[];
 		datePresets?: { label: string; href: string; active: boolean }[];
+		clearFiltersHref?: string;
 		onChange: (params: {
 			query: string;
 			dateFrom: string;
@@ -96,12 +98,6 @@
 			maxAmount: nextMaxAmount,
 			transactionState: String(data.get('transaction_state') ?? '')
 		});
-	}
-
-	function handleReset() {
-		dateError = '';
-		amountError = '';
-		onChange({ query: '', dateFrom: '', dateTo: '', accountId: '', minAmount: '', maxAmount: '', transactionState: '' });
 	}
 </script>
 
@@ -284,15 +280,15 @@
 		>
 			Filter
 		</button>
-		<button
-			type="button"
-			class="rounded-lg border px-4 py-2 text-sm font-medium transition-colors hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
-			style="border-color: var(--app-border); color: var(--app-text);"
-			onclick={handleReset}
-			disabled={!hasActiveFilters}
-			aria-label="Reset all transaction filters"
+		<a
+			class="rounded-lg border px-4 py-2 text-sm font-medium transition-colors hover:opacity-80"
+			style={hasActiveFilters
+				? 'border-color: var(--app-border); color: var(--app-text);'
+				: 'border-color: var(--app-border); color: var(--app-muted); pointer-events: none; opacity: 0.5;'}
+			href={clearFiltersHref}
+			aria-disabled={!hasActiveFilters ? 'true' : undefined}
 		>
-			Reset filters
-		</button>
+			Clear filters
+		</a>
 	</div>
 </form>

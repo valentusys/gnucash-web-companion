@@ -98,8 +98,13 @@ for (const requiredPreset of ['This month', 'Last month', 'Year to date', 'Clear
 }
 assert.match(
 	transactionsServer,
-	/buildTransactionFilterUrl[\s\S]*date_from[\s\S]*date_to[\s\S]*account_id[\s\S]*min_amount[\s\S]*max_amount/s,
-	'date preset URLs must preserve existing non-date transaction filters while using date_from/date_to query params'
+	/buildTransactionFilterUrl[\s\S]*date_from[\s\S]*date_to[\s\S]*account_id[\s\S]*min_amount[\s\S]*max_amount[\s\S]*transaction_state/s,
+	'date preset URLs must preserve existing non-date transaction filters, including state, while using date_from/date_to query params'
+);
+assert.match(
+	transactionsServer,
+	/buildClearFiltersUrl[\s\S]*limit[\s\S]*offset[\s\S]*clearFiltersHref:\s*buildClearFiltersUrl/,
+	'transactions server load must expose a clear-all filter URL that resets to the first page without private saved filters'
 );
 assert.match(
 	transactionsServer,
@@ -271,6 +276,11 @@ assert.match(
 	transactionFilters,
 	/Date presets[\s\S]*datePresets[\s\S]*preset\.href[\s\S]*aria-label=\{`Apply transaction date preset: \$\{preset\.label\}`\}/,
 	'transaction filters must render accessible date preset links from server-provided query URLs'
+);
+assert.match(
+	transactionFilters,
+	/clearFiltersHref[\s\S]*href=\{clearFiltersHref\}[\s\S]*Clear filters/,
+	'transaction filters must render an explicit URL-based Clear filters link'
 );
 assert.match(
 	transactionFilters,

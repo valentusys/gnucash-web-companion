@@ -153,6 +153,7 @@ import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 		transactionState={data.filters.transactionState}
 		accounts={data.accounts}
 		datePresets={data.datePresets}
+		clearFiltersHref={data.clearFiltersHref}
 		onChange={handleFilter}
 	/>
 

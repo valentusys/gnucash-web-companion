@@ -46,6 +46,11 @@ function buildTransactionFilterUrl(filters: TransactionFilters, dates: DatePrese
 	return `/transactions?${sp.toString()}`;
 }
 
+function buildClearFiltersUrl(limit: number): string {
+	const sp = new URLSearchParams({ limit: String(limit), offset: '0' });
+	return `/transactions?${sp.toString()}`;
+}
+
 function buildDatePresets(filters: TransactionFilters, now = new Date()) {
 	const year = now.getFullYear();
 	const month = now.getMonth();
@@ -110,6 +115,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 		activeBook,
 		filters: { query, dateFrom, dateTo, accountId, minAmount, maxAmount, transactionState },
 		datePresets: buildDatePresets(filters),
+		clearFiltersHref: buildClearFiltersUrl(limit),
 		writesEnabled: env.GNUCASH_WRITES_ENABLED === 'true'
 	};
 };
