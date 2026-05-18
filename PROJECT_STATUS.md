@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 85.
+Completed through Phase 86.
 
 Completed phases:
 
@@ -101,10 +101,11 @@ Completed phases:
 - Phase 83 — replace frontend `Number()` money display decisions and close #34
 - Phase 84 — define tested CSV export truncation/timeout behavior and close #32
 - Phase 85 — post-v0.1 copied personal-book dogfood attempt with safe blocker tracking
+- Phase 86 — Phase 85 dogfood blocker triage and safe copied-book preflight helper
 
 Next planned phase:
 
-- Phase 85 attempted the post-v0.1 copied personal-book dogfood pass. No safe copied personal GnuCash SQL book was available to this environment outside git, so no successful real-book pass is claimed; a redacted dogfood blocker/result artifact was recorded, GitHub #38 tracks rerunning the pass when a safe copied personal book is available, no private data was committed, and writes remain disabled by default. Next work should not assume Phase 85 passed on real personal data; either provide a safe copied personal book and rerun the dogfood checklist, or choose another narrow concrete post-release maintenance task from the roadmap/open backlog. Do not publish another tag/release, expand writes, or start v0.2 work without explicit scope.
+- Phase 86 triaged the Phase 85 findings and found no concrete application bug to fix: the only Phase 85 blocker was the absence of a safe copied personal GnuCash SQL book in this environment, tracked by GitHub #38. To prevent another ambiguous/no-evidence dogfood attempt, Phase 86 added a small tested operator preflight helper that classifies a candidate copied-book path without opening the book or leaking private paths. Next work should still not assume Phase 85 passed on real personal data; provide a safe copied personal book and rerun the dogfood checklist, or proceed to another narrow post-release maintenance phase from the roadmap. Do not publish another tag/release, expand writes, or start v0.2 work without explicit scope.
 
 ## MVP product model
 
@@ -1601,6 +1602,28 @@ Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/configured 
 Verification result: required backend tests, frontend check/auth-routes/build, Docker Compose config validation, `git diff --check`, release state verification, pushed commit verification, and clean working tree verification are recorded in `docs/handoff/phase-85.md`. Docker/browser/API smoke against the copied personal book is explicitly blocked because no safe copied personal SQL book is available in this environment.
 
 Related issues: GitHub #38 opened to track rerunning the copied personal-book dogfood checklist when a safe copied personal SQL book is available. No existing issue was closed without runtime evidence.
+
+## Phase 86 — Fix Phase 85 Dogfood Blockers
+
+Status: complete. Phase commit pushed.
+
+Goal: triage Phase 85 findings and fix only the highest-priority concrete dogfood blocker, without analyst/auditor involvement, new features, write-mode work, broad refactor, v0.2 work, or a new release/tag.
+
+PM decision: Phase 85 produced no reproducible application bug such as a dashboard crash, transaction-detail failure, filter crash, CSV export failure, wrong empty state, or account display bug. The only finding was a release-blocking dogfood input/environment blocker: no safe copied personal GnuCash SQL book was available outside git. Because there was no code bug to fix, Phase 86 used the allowed maintenance fallback and added a narrow tested preflight helper for #38 so future copied-book dogfood attempts can classify candidate availability safely before runtime work begins.
+
+Artifacts:
+
+- `apps/api/app/dogfood_preflight.py` — redacted helper that classifies a copied-book candidate as blocked/ready without opening the book or exposing full paths.
+- `apps/api/scripts/check_dogfood_book_candidate.py` — operator CLI wrapper that prints only filename-level safe summaries and exits non-zero when the candidate is blocked.
+- `apps/api/tests/test_dogfood_preflight.py` — regression tests for missing candidate, candidate inside git, and valid outside-repo candidate, including private-path redaction assertions.
+- `docs/handoff/phase-86.md` — PM/engineer handoff with triage, safety, verification, issue, commit, and push evidence.
+- `CHANGELOG.md` and `PROJECT_STATUS.md` — post-release status sync.
+
+Safety result: writes remain disabled by default. The helper does not parse, copy, export, screenshot, or commit any GnuCash book data; it only checks path existence and whether the candidate is outside the git working tree. No real financial data, `.env`, app DB, backup, secret, token, private key, private screenshot, CSV export, or real GnuCash book was committed. No v0.2 work or release publication was done.
+
+Verification result: the new regression test and required backend/frontend/docker/git checks are recorded in `docs/handoff/phase-86.md`. Docker/browser/API personal-book dogfood remains blocked until #38 has a safe copied book; Phase 86 does not claim a real-book pass.
+
+Related issues: GitHub #38 updated with Phase 86 triage and preflight-helper evidence, but kept open because the real copied personal-book dogfood rerun still requires a safe copied book.
 
 ## Standing constraints
 
