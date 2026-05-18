@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 99.
+Completed through Phase 100.
 
 Completed phases:
 
@@ -115,6 +115,7 @@ Completed phases:
 - Phase 97 — v0.1.1-readonly release-prep checklist and notes
 - Phase 98 — v0.1.1-readonly release-gate verification
 - Phase 99 — v0.1.1-readonly pre-publish dry-run and authorization guard
+- Phase 100 — non-publishing synthetic install/upgrade smoke
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -142,9 +143,11 @@ Completed phases:
 
 - Phase 99 completed a safe non-publishing `v0.1.1-readonly` pre-publish dry-run and authorization guard: `docs/release/v0.1.1-readonly-prepublish-dry-run.md` records the verdict `Ready for explicit authorized publish`, confirms release notes/checklist/final-gate artifact presence, confirms no local tag or GitHub release named `v0.1.1-readonly` exists, records recent GitHub Actions state, records would-run publish commands as `NOT EXECUTED`, and records that publication authorization is absent in this phase. GitHub #39 remains closed; GitHub #38 remains open/blocked for copied personal-book dogfood. No backend/frontend/config/write-mode code was changed; no tag, GitHub release, package, or release artifact was published; writes remain disabled by default; controlled writes remain post-MVP/experimental; no real/private financial data, GnuCash books, `.env`, app DBs, backups, screenshots, exports, secrets, tokens, certs, or keys were committed; no v0.2 work was started.
 
+- Phase 100 completed a non-publishing synthetic/disposable install smoke on current `main`: `docs/dogfood/phase-100-synthetic-install-upgrade-smoke.md` records branch/HEAD, tag/release absence, synthetic fixture source, Docker Compose config validation, local Docker startup with `GNUCASH_WRITES_ENABLED=false`, and read-only API smoke coverage for health, login/auth, books/default book, accounts, transactions, transaction detail, CSV export, reports summary, and disabled validate/create/patch write probes. The phase also fixed narrow smoke-tooling drift so `scripts/smoke/read-only-api-smoke.py --help` is non-mutating and added transaction-detail/CSV-export checks to the existing smoke script. A true upgrade from `v0.1.1-readonly` was not feasible because no such tag/release exists and publication remains unauthorized. GitHub #39 remains closed; GitHub #38 remains open/blocked for copied personal-book dogfood. No tag, GitHub release, package, or release artifact was published; writes remain disabled by default; controlled writes remain post-MVP/experimental; no real/private financial data, personal GnuCash books, `.env`, app DBs, backups, screenshots, exports, secrets, tokens, certs, keys, or private paths were committed; no v0.2 work was started.
+
 Next planned phase:
 
-- Phase 100 is planned in `docs/handoff/phase-100-pm-brief.md` as a non-publishing synthetic/disposable install/upgrade smoke on current `main`, because Val has not provided the separate explicit authorization required for `v0.1.1-readonly` publication. Do not create a tag, GitHub release, package, or release artifact in Phase 100. If Val explicitly authorizes publication in a separate request instead, re-check branch, HEAD, clean working tree, tag/release absence, recent GitHub Actions state, and release notes before any publish command.
+- If Val explicitly authorizes publication in a separate request, run a dedicated `v0.1.1-readonly` publish phase only after re-checking branch, HEAD, clean working tree, tag/release absence, recent GitHub Actions state, and release notes. If continuing without publication authorization, prefer Phase 101 copied personal-book dogfood only if Val provides a safe copied GnuCash SQL book path outside git; otherwise choose another practical non-publishing read-only maintenance/dogfood task and do not claim GitHub #38 success from synthetic evidence.
 
 ## MVP product model
 

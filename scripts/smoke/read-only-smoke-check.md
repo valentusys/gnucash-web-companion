@@ -53,9 +53,10 @@ With `GNUCASH_WRITES_ENABLED=false`:
 
 ## Automated API smoke path
 
-After the local Docker deployment is running with `GNUCASH_WRITES_ENABLED=false`, run:
+After the local Docker deployment is running with `GNUCASH_WRITES_ENABLED=false`, inspect script options if needed and run:
 
 ```bash
+scripts/smoke/read-only-api-smoke.py --help
 SMOKE_ADMIN_PASSWORD='<local-admin-password>' scripts/smoke/read-only-api-smoke.py
 ```
 

@@ -22,6 +22,7 @@ while GNUCASH_WRITES_ENABLED=false.
 
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import sys
@@ -39,6 +40,7 @@ class SmokeResponse:
     status: int
     body: Any
     raw: str
+    headers: dict[str, str]
 
 
 class SmokeFailure(RuntimeError):
@@ -75,9 +77,11 @@ class SmokeClient:
             with urllib.request.urlopen(request, timeout=15) as response:
                 raw = response.read().decode("utf-8")
                 status = response.status
+                response_headers = dict(response.headers.items())
         except urllib.error.HTTPError as exc:
             raw = exc.read().decode("utf-8")
             status = exc.code
+            response_headers = dict(exc.headers.items())
         except urllib.error.URLError as exc:
             raise SmokeFailure(f"{method} {path} could not connect: {exc}") from exc
 
@@ -87,7 +91,7 @@ class SmokeClient:
                 f"{method} {path} returned HTTP {status}, expected {expected}; body: {raw[:500]}"
             )
 
-        return SmokeResponse(status=status, body=_json_or_raw(raw), raw=raw)
+        return SmokeResponse(status=status, body=_json_or_raw(raw), raw=raw, headers=response_headers)
 
 
 def _json_or_raw(raw: str) -> Any:
@@ -156,10 +160,33 @@ def _assert_write_disabled(response: SmokeResponse, path: str) -> None:
     )
 
 
-def run() -> None:
-    base_url = os.environ.get("SMOKE_API_BASE_URL", DEFAULT_API_BASE_URL)
-    username = os.environ.get("SMOKE_ADMIN_USERNAME") or os.environ.get("APP_ADMIN_USERNAME") or "admin"
-    password = os.environ.get("SMOKE_ADMIN_PASSWORD") or os.environ.get("APP_ADMIN_PASSWORD")
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Run read-only API smoke checks against a local gnucash-web-companion deployment.",
+    )
+    parser.add_argument(
+        "--api-base-url",
+        default=os.environ.get("SMOKE_API_BASE_URL", DEFAULT_API_BASE_URL),
+        help=f"API base URL (default: $SMOKE_API_BASE_URL or {DEFAULT_API_BASE_URL})",
+    )
+    parser.add_argument(
+        "--username",
+        default=os.environ.get("SMOKE_ADMIN_USERNAME") or os.environ.get("APP_ADMIN_USERNAME") or "admin",
+        help="Admin username (default: $SMOKE_ADMIN_USERNAME, $APP_ADMIN_USERNAME, or admin)",
+    )
+    parser.add_argument(
+        "--password",
+        default=os.environ.get("SMOKE_ADMIN_PASSWORD") or os.environ.get("APP_ADMIN_PASSWORD"),
+        help="Admin password (default: $SMOKE_ADMIN_PASSWORD or $APP_ADMIN_PASSWORD; value is never printed)",
+    )
+    return parser.parse_args(argv)
+
+
+def run(args: argparse.Namespace | None = None) -> None:
+    args = args or parse_args([])
+    base_url = args.api_base_url
+    username = args.username
+    password = args.password
     if not password:
         raise SmokeFailure(
             "Set SMOKE_ADMIN_PASSWORD or APP_ADMIN_PASSWORD for the local deployment admin user."
@@ -192,7 +219,27 @@ def run() -> None:
     transactions = client.request("GET", f"/books/{book_id}/transactions?limit=5&offset=0", authenticated=True)
     transactions_body = _require_mapping(transactions.body, f"/books/{book_id}/transactions")
     _check("items" in transactions_body, "transactions response is missing items")
+    transaction_items = _require_list(transactions_body["items"], f"/books/{book_id}/transactions items")
     print("ok: transactions endpoint")
+
+    if transaction_items:
+        first_transaction = _require_mapping(transaction_items[0], "first transaction item")
+        transaction_id = first_transaction.get("id")
+        _check(isinstance(transaction_id, str) and bool(transaction_id), "first transaction item has no id")
+        detail = client.request("GET", f"/books/{book_id}/transactions/{transaction_id}", authenticated=True)
+        detail_body = _require_mapping(detail.body, f"/books/{book_id}/transactions/{transaction_id}")
+        _check(detail_body.get("id") == transaction_id, "transaction detail returned unexpected id")
+        _check(isinstance(detail_body.get("splits"), list), "transaction detail is missing splits")
+        print("ok: transaction detail endpoint")
+    else:
+        print("skip: transaction detail endpoint (no transactions in default book)")
+
+    export = client.request("GET", f"/books/{book_id}/transactions/export", authenticated=True)
+    _check(isinstance(export.body, str), "CSV export did not return text content")
+    _check(export.raw.startswith("id,date,description,amount,currency"), "CSV export header is unexpected")
+    export_headers = {key.lower(): value for key, value in export.headers.items()}
+    _check(export_headers.get("x-csv-export-limit") == "10000", "CSV export limit header is unexpected")
+    print("ok: CSV export endpoint")
 
     summary = client.request("GET", f"/books/{book_id}/reports/summary", authenticated=True)
     _require_mapping(summary.body, f"/books/{book_id}/reports/summary")
@@ -239,9 +286,9 @@ def run() -> None:
     print("PASS: read-only API smoke checks completed")
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     try:
-        run()
+        run(parse_args(argv))
     except SmokeFailure as exc:
         print(f"FAIL: {exc}", file=sys.stderr)
         return 1
