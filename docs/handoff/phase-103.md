@@ -76,7 +76,7 @@ Final full verification before commit/push:
 
 ## GitHub / backlog note
 
-- GitHub #11 was updated with non-sensitive Phase 103 evidence and left open.
+- GitHub #11 was updated with non-sensitive Phase 103 evidence and left open: https://github.com/valentusys/gnucash-web-companion/issues/11#issuecomment-4478196970
 - Remaining #11 scope includes broader future read-only search/filter improvements such as transaction state filtering, saved presets, and broader full-text/search semantics.
 - GitHub #38 remains open/blocked until Val provides an explicit safe copied/disposable GnuCash SQL book path outside git and confirms it is not the live authoritative book.
 - GitHub #22 remains open for future real GnuCash Desktop/generated version coverage.
@@ -106,5 +106,5 @@ PM should select the next narrow practical read-only roadmap slice, likely anoth
 
 ## Commit / push
 
-- Commit: pending before commit.
-- Push: pending before commit.
+- Implementation commit: `dcd9f83` (`feat: add transaction date presets`).
+- Push: PASS — pushed `main` to `origin/main` (`10d8d1e..dcd9f83`).
