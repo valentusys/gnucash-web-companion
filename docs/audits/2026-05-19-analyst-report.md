@@ -2,58 +2,53 @@
 
 ## Executive summary
 
-Проект остаётся в целом безопасным по read-only границе: `GNUCASH_WRITES_ENABLED=false` стоит в `.env.example`, backend default — `False`, write endpoints проверяют feature flag до доступа к write service, и targeted disabled-write tests проходят. Существенных признаков включённого write-mode, frontend auth storage в local/sessionStorage или закоммиченных приватных данных в tracked paths не найдено. Главная проблема текущего состояния — release/docs drift вокруг уже опубликованного `v0.1.1-readonly`: GitHub release существует и tag указывает на текущий HEAD, но README всё ещё называет текущим публичным релизом `v0.1.0-readonly`, а опубликованные release notes для `v0.1.1-readonly` начинаются как draft/prep artifact and “does not authorize publication”. Это не safety blocker GnuCash-записи, но это release-facing blocker: публичные артефакты вводят в заблуждение о состоянии релиза.
+Текущий `main` находится на `dac3252`, синхронизирован с `origin/main`; в рабочем дереве до этого задания был незакоммиченный черновик `docs/audits/2026-05-19-analyst-report.md`, он использован и обновлён как текущий audit/report artifact. После Phase 105 главный release/docs drift вокруг уже опубликованного `v0.1.1-readonly` исправлен: README, PROJECT_STATUS, CHANGELOG, локальные release notes и GitHub release state согласованы. Read-only safety boundary остаётся целым: `.env.example` и backend config держат `GNUCASH_WRITES_ENABLED=false`, write endpoints backend-gated до write service, targeted disabled-write tests проходят. Новых safety/release blockers в этом pass не найдено; проект готов к следующей практической read-only engineering phase, но не production-ready, не security-audited и не готов к включению write-mode. Следующие 10 фаз должны быть PM→программист, с практическими behavior/test/UX/dogfood/release artifacts, без audit-only фаз.
 
 ## Verdict
 
-Ready after blockers fixed
+Ready for next engineering phase
+
+Это значит: можно продолжать узкую read-only разработку после Phase 105. Это не означает production readiness, security-audited статус, broad compatibility или готовность включать `GNUCASH_WRITES_ENABLED=true`. Новый release/tag сейчас не нужен без отдельной команды Валентина.
 
 ## Top blockers
 
-1. `v0.1.1-readonly` уже опубликован как GitHub pre-release и локальный tag, но опубликованные release notes всё ещё являются draft notes: строка заголовка `# v0.1.1-readonly Draft Release Notes`, текст “does not create a git tag, publish a GitHub release, or authorize publication”, и раздел “Publication status: Not published yet”. Это публично неверно после фактической публикации.
-2. README/публичная release-readiness секция устарела: `README.md` называет current public pre-alpha release `v0.1.0-readonly`, хотя `gh release list` показывает latest `v0.1.1-readonly`, а `git tag --list 'v0.1.1-readonly'` возвращает tag.
-3. Scope релиза `v0.1.1-readonly` не синхронизирован с tag target: tag указывает на `a4d0415` после Phase 104, а `docs/release/v0.1.1-readonly-notes.md` описывает maintenance value в основном до Phase 96 и не отражает Phase 103/104 read-only transaction filter/search changes. Нужно либо честно обновить notes/README/status под фактический tag, либо явно зафиксировать, что Phase 103/104 included as extra read-only changes.
+None.
 
 ## Important non-blockers
 
-1. Read-only safety boundary на проверенных путях intact: backend default false, `.env.example` false, Docker Compose default false, write routes gated before `_write_service_for()`.
-2. Targeted disabled-write backend tests passed: `4 passed, 1 warning` for `tests/test_transaction_writes.py::TestWritesDisabledByDefault`.
-3. Frontend auth/write-route static checks passed: `npm run test:auth-routes` returned `auth route checks passed`.
-4. Docker Compose config validation passed with dummy safe env: `JWT_SECRET=dummy-validation-secret APP_ADMIN_PASSWORD=dummy docker compose config --quiet`.
-5. `localStorage` use found only for theme preference (`apps/web/src/lib/theme.ts`, `apps/web/src/app.html`), not auth token storage.
-6. GitHub Actions latest 10 runs on `main` are `completed/success`.
-7. GitHub #38 remains honestly open/blocked for personal copied-book dogfood; this is a known limitation, not a new regression.
-8. Open-source hygiene files exist: `LICENSE`, `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, issue templates, funding metadata, and CI workflow.
+1. GitHub #38 остаётся open/blocked: copied personal-book dogfood не выполнен, потому что безопасный copied/disposable book path не предоставлен. Это evidence gap, не blocker для продолжения read-only pre-alpha engineering.
+2. `.env.example` всё ещё содержит development-friendly `CORS_ORIGINS=["*"]`; это отслеживается #26 и должно стать практической deployment-safety phase, но текущие public-internet warnings достаточны для pre-alpha/LAN/VPN posture.
+3. Compatibility evidence остаётся узкой: synthetic/disposable SQLite fixtures, generated metadata и safe collector procedures; broad PostgreSQL/MySQL/MariaDB/XML/all-version compatibility не заявляется.
+4. Последние commits содержат много docs/planning/evidence, но это не чистая audit-only петля: внутри есть реальные read-only UX/search changes Phase 103/104, а Phase 105 была разовой correction phase.
+5. Исторические release-gate/checklist artifacts до публикации `v0.1.1-readonly` могут сохранять pre-publication контекст; это допустимо, потому что текущие публичные status/notes синхронизированы.
 
 ## Last 10 commits classification
 
 | commit | type | user impact |
 | --- | --- | --- |
-| `a4d0415` docs: record phase 104 push evidence | docs | No product behavior change; records pushed evidence for Phase 104. Also current `v0.1.1-readonly` tag target. |
-| `28c2619` docs: record phase 104 commit evidence | docs | No product behavior change; handoff evidence update. |
-| `0daca5b` feat: search split memos in transactions | code/tests/docs | Read-only transaction query now searches split memos as well as descriptions; tests and helper copy updated. |
+| `dac3252` docs: sync v0.1.1 readonly release state | release/docs | Исправляет публичную release-state правду после публикации `v0.1.1-readonly`; без product behavior change. |
+| `3572adc` docs: plan phase 105 release docs correction | docs | PM/phase planning for correction; no product behavior change. |
+| `a4d0415` docs: record phase 104 push evidence | docs/release | Evidence commit; also actual `v0.1.1-readonly` tag target. |
+| `28c2619` docs: record phase 104 commit evidence | docs | Handoff evidence; no product behavior change. |
+| `0daca5b` feat: search split memos in transactions | code/tests/docs | Read-only transaction query searches split memo text as well as descriptions; list/count/account-list/CSV parity covered. |
 | `c300f44` docs: plan phase 104 | docs | PM/phase planning only. |
-| `aeb0cd9` docs: record phase 103 evidence | docs | No product behavior change; handoff evidence update. |
-| `dcd9f83` feat: add transaction date presets | code/tests/docs | Read-only transaction UI adds date preset links preserving filters and CSV parity. |
+| `aeb0cd9` docs: record phase 103 evidence | docs | Handoff evidence; no product behavior change. |
+| `dcd9f83` feat: add transaction date presets | code/tests/docs | Read-only transaction UI adds date preset links preserving active filters and CSV parity. |
 | `10d8d1e` docs: plan phase 103 | docs | PM/phase planning only. |
-| `bb335f8` docs: record phase 102 push evidence | docs | No product behavior change; handoff evidence update. |
-| `7a8ed63` feat: refresh compatibility fixture provenance | code/tests/docs | Safe synthetic/disposable compatibility provenance improved; no broad compatibility claim. |
-| `3dce768` docs: plan phase 102 | docs | PM/phase planning only. |
-
-Recent work is mixed practical read-only engineering plus planning/evidence docs. It is not a pure audit loop, but release documentation is now stale after publication.
+| `bb335f8` docs: record phase 102 push evidence | docs | Handoff evidence; no product behavior change. |
 
 ## Safety boundary
 
 Findings:
 
-- `.env.example` line 26 keeps `GNUCASH_WRITES_ENABLED=false`.
+- `.env.example` keeps `GNUCASH_WRITES_ENABLED=false`.
 - `apps/api/app/config.py` sets `gnucash_writes_enabled: bool = False`.
-- `docker-compose.yml` passes `GNUCASH_WRITES_ENABLED=${GNUCASH_WRITES_ENABLED:-false}` to API and web services.
-- `apps/api/app/routers/transactions.py` defines `_ensure_writes_enabled(settings)` and raises HTTP 403 when writes are disabled.
-- The validate/create/patch controlled-write endpoints call `_ensure_writes_enabled(settings)` before `_resolve_viewable_book()`, `_require_book_edit_access()`, and `_write_service_for(book)`.
-- `apps/api/tests/test_transaction_writes.py::TestWritesDisabledByDefault` asserts default false and proves validate/create/patch return 403 without constructing `_write_service_for`.
-- Targeted verification run during this audit: `pytest -q tests/test_transaction_writes.py::TestWritesDisabledByDefault` passed with `4 passed, 1 warning`.
-- No evidence was found that write mode is enabled by default.
+- `apps/api/app/routers/transactions.py` has `_ensure_writes_enabled(settings)` returning HTTP 403 when writes are disabled.
+- Controlled write endpoints `validate_book_transaction`, `create_book_transaction`, and `patch_book_transaction` call `_ensure_writes_enabled(settings)` before `_resolve_viewable_book()`, `_require_book_edit_access()`, and `_write_service_for(book)`.
+- `apps/api/tests/test_transaction_writes.py::TestWritesDisabledByDefault` asserts default false and verifies disabled validate/create/patch return 403 without constructing `_write_service_for`.
+- Targeted verification in this audit: `pytest -q tests/test_transaction_writes.py::TestWritesDisabledByDefault` passed: `4 passed, 1 warning`.
+- Docker Compose config validation with safe dummy env passed: `JWT_SECRET=dummy-validation-secret APP_ADMIN_PASSWORD=dummy docker compose config --quiet`.
+- Tracked sensitive-path scan found no suspicious tracked sensitive paths outside allowed synthetic fixtures.
 
 No read-only safety blocker found.
 
@@ -61,23 +56,20 @@ No read-only safety blocker found.
 
 Findings:
 
-- Local branch: `main`; local and origin are in sync (`git rev-list --left-right --count main...origin/main` returned `0 0`).
-- Working tree was clean before this audit report write (`git status --short --branch` showed `## main...origin/main`).
-- GitHub releases list shows latest pre-release `v0.1.1-readonly` published at `2026-05-18T13:54:13Z`, followed by `v0.1.0-readonly`, `v0.0.2-prealpha`, and `v0.0.1-prealpha`.
-- Local tag `v0.1.1-readonly` exists and points to commit `a4d0415` (`docs: record phase 104 push evidence`).
-- GitHub release `v0.1.1-readonly` target commit is also `a4d04150c043ad4da3dea577b30ed7ffd2032df0`.
-- `README.md` still says current public pre-alpha release is `v0.1.0-readonly`; this is stale.
-- `docs/release/v0.1.1-readonly-notes.md` still says it is a draft and “Not published yet”; GitHub release body uses the same stale text.
-- `PROJECT_STATUS.md` says completed through Phase 104 and records v0.1.1 preparation/gate/dry-run, but the section around Phase 99/100 also says publication remained unauthorized/absent. Current reality is publication exists; status should be updated.
-- `CHANGELOG.md` has Unreleased entries through Phase 104 and historical release sections, but no `[0.1.1-readonly]` release section. That is not fatal by itself, but it contributes to release-state drift.
+- README says current public pre-alpha release is `v0.1.1-readonly`, keeps pre-alpha/read-only/not-production/not-security-audited warnings, and instructs users to keep `GNUCASH_WRITES_ENABLED=false`.
+- PROJECT_STATUS says “pre-alpha / v0.1.1 read-only published”, completed through Phase 105, and records the tag target `a4d04150c043ad4da3dea577b30ed7ffd2032df0`.
+- CHANGELOG has `[0.1.1-readonly] - 2026-05-18`, includes Phase 103/104 read-only transaction changes, and keeps known limitations/non-claims.
+- `docs/release/v0.1.1-readonly-notes.md` says the GitHub pre-release is published, states the same tag target, and keeps disabled-write/pre-alpha warnings.
+- GitHub release `v0.1.1-readonly` is not draft, is prerelease, published at `2026-05-18T13:54:13Z`, and targets `a4d04150c043ad4da3dea577b30ed7ffd2032df0`.
+- Current `HEAD` is `dac3252fb189bb5d742441afc733d7b3cd7d6a7b`; `origin/main` matches. `v0.1.1-readonly..HEAD` contains only Phase 105 docs/report correction commits.
 
-This is the main blocker category.
+Verdict on Phase 105 blocker: fixed.
 
 ## GitHub project state
 
-GitHub CLI is authenticated as `valentusys`. No issues were created or closed per task constraints.
+GitHub CLI is available/authenticated enough for issue/release/run inspection. Per task constraints, no GitHub issues were created/closed and no releases were published.
 
-Open issues listed by `gh issue list --state open --limit 50`:
+Open issues from `gh issue list --state open --limit 50`:
 
 - #38 — Run Phase 85 copied personal-book dogfood when safe book is available
 - #36 — Track remaining controlled-write v0.2 readiness gates
@@ -92,109 +84,182 @@ Open issues listed by `gh issue list --state open --limit 50`:
 
 Releases:
 
-- `v0.1.1-readonly` — Pre-release, published 2026-05-18, but notes are stale draft notes.
-- `v0.1.0-readonly` — Pre-release.
-- `v0.0.2-prealpha` — Pre-release.
-- `v0.0.1-prealpha` — Pre-release.
+- `v0.1.1-readonly` — GitHub pre-release, published 2026-05-18, target `a4d04150c043ad4da3dea577b30ed7ffd2032df0`.
+- `v0.1.0-readonly` — GitHub pre-release.
+- `v0.0.2-prealpha` — GitHub pre-release.
+- `v0.0.1-prealpha` — GitHub pre-release.
 
 Actions:
 
-- Latest 10 `main` CI runs are all `completed/success`.
+- Latest 10 `main` CI runs listed by `gh run list --limit 10` were all `completed/success`, including `dac3252 docs: sync v0.1.1 readonly release state`.
+
+Open-source hygiene:
+
+- Present: `LICENSE`, `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `.github/workflows/ci.yml`, issue templates, PR template, funding metadata.
+- CI includes required-file checks, tracked sensitive-file guard, frontend checks/build, backend pytest, and Docker Compose validation.
 
 ## Dogfood status
 
 Findings:
 
-- Phase 78 Docker/Caddy browser dogfood on copied/disposable synthetic data passed core UI/API read-only paths and disabled-write probes with `GNUCASH_WRITES_ENABLED=false`.
-- Phase 100 synthetic/disposable local Docker API smoke passed on current `main`: health, login/auth, books/default book, accounts, transactions, transaction detail, CSV export, reports summary, and disabled validate/create/patch write probes.
-- Phase 101 personal copied-book dogfood rerun is honestly blocked because no explicit safe copied/disposable book path was provided outside the repository. No private directories were searched, and no personal book pass is claimed.
-- GitHub #38 remains open for this copied personal-book dogfood gap.
+- Phase 78 Docker/Caddy browser dogfood on copied/disposable data passed core UI/API read-only paths and disabled-write probes with `GNUCASH_WRITES_ENABLED=false`.
+- Phase 100 synthetic/disposable local Docker API smoke passed health, login/auth, books/default book, accounts, transactions, transaction detail, CSV export, reports summary, and disabled validate/create/patch probes.
+- Phase 101 personal copied-book dogfood rerun remains blocked because no explicit safe copied/disposable book path was provided outside the repository. No private directories were searched and no personal-book success is claimed.
+- GitHub #38 remains the correct tracker for that evidence gap.
 
-This is acceptable for pre-alpha/read-only claims if release notes remain honest. It is not acceptable to claim personal-book dogfood success or broad real-world readiness.
+This is acceptable for current conservative read-only pre-alpha claims. Do not convert it into broad real-book/production-readiness claims.
 
 ## Security/auth notes
 
 Findings:
 
-- JWT secret is not hardcoded as a usable default: `apps/api/app/config.py` defaults to empty string, and `apps/api/app/services/auth.py` rejects empty/change-me placeholder values via `require_configured_jwt_secret()`.
-- Frontend login sets token in `access_token` cookie with `httpOnly: true`, `sameSite: 'lax'`, `path: '/'`, `maxAge`, and `secure` dependent on HTTPS protocol.
-- Search for `localStorage|sessionStorage` under `apps/web/src` found only theme preference storage, not auth token/session storage.
-- `SECURITY.md` and README explicitly say pre-alpha, not security-audited, not production-ready, do not expose directly to public internet, use copied/test data first.
-- `.env.example` still has `CORS_ORIGINS=["*"]`; this is already tracked as GitHub #26 for LAN/VPN origin narrowing docs. It is not a release blocker by itself because current docs warn against direct public exposure, but it remains a deployment-safety non-blocker.
-- `gh auth status` output masks token values; no token values were copied into this report.
+- JWT secret is not hardcoded as usable default: `Settings.jwt_secret` defaults to empty string; `.env.example` uses a placeholder and README says to replace it.
+- Frontend auth route static check passed: `npm run test:auth-routes` returned `auth route checks passed`.
+- The auth-route check asserts protected routes use `cookies.get('access_token')`, login sets the `access_token` cookie, `httpOnly: true` is present, logout deletes the cookie, and login does not use local/session storage.
+- Search for `localStorage|sessionStorage` under `apps/web/src` found theme preference storage only (`theme.ts` and `app.html`), not auth token/session storage.
+- README and SECURITY docs keep warnings: pre-alpha, not production-ready, not security-audited, test copied/disposable data first, do not expose directly to public internet.
+- `CORS_ORIGINS=["*"]` remains a known development-friendly default/non-blocker with issue #26 for narrowing docs/diagnostics.
+- No token values, secrets, private book paths, real screenshots, app DBs, backups, or financial exports were copied into this report.
 
-No professional security audit is claimed or implied.
+No professional security audit is claimed.
 
 ## Money/accounting notes
 
 Findings:
 
-- `docs/money-model.md` documents Decimal/string money rules, no float core money arithmetic, CSV decimal-string preservation, no fake currency conversion, and split transaction sign honesty.
-- Backend schemas expose money amounts as strings in `apps/api/app/schemas/gnucash.py`.
-- Transaction filters use `Decimal` query params for amount range validation.
-- Reports explicitly document base-currency-only/no-conversion behavior and expose `includes_currency_conversion=false` in schemas.
-- Multi-split transactions are represented as split details, and transaction-list counterparty language avoids pretending there is always one counter account.
-- Previous Phase 83 frontend money-display hardening reduced `Number()` use for money display decisions; this audit did not find new backend float money arithmetic in the inspected core paths.
+- Backend transaction filters use `Decimal` query params; core money paths use string/Decimal-style values.
+- CSV export writes existing string amount fields and forwards metadata headers for limit/total/truncation.
+- Reports expose base-currency-only/no-conversion limitations; no fake currency conversion claim was found in current release docs.
+- Split transactions are represented honestly through split details; Phase 104 added split memo search without changing write scope.
+- Phase 83 already hardened frontend money display decisions away from `Number()` on money strings; no new backend float money arithmetic was found in inspected core paths.
 
 No money/accounting correctness blocker found in this pass.
 
 ## Recommended next action
 
-Run one narrow release-docs correction phase: update README, PROJECT_STATUS, CHANGELOG, and `docs/release/v0.1.1-readonly-notes.md` / GitHub release notes so `v0.1.1-readonly` is honestly represented as already published at tag `a4d0415`, with scope including the actual Phase 103/104 read-only transaction-filter/search changes or an explicit explanation of why the tag target includes them.
+Phase 106 — implement one narrow practical read-only backlog slice from GitHub #11, preferably reconciled/cleared transaction filtering if the underlying GnuCash metadata can be represented honestly; otherwise implement an equally narrow URL/filter UX improvement. Do not create tags/releases/packages, do not run personal-book dogfood without an explicit safe copied book path, and do not start v0.2/write-mode work.
 
 ## Suggested GitHub issues
 
-No GitHub issues were created per task constraints. Suggested issue if you want to track the blocker instead of fixing immediately:
+None.
 
-Title: Sync v0.1.1-readonly public release notes and README after publication
-
-Labels: `documentation`, `release`, `audit`
-
-Body:
-
-```md
-## Problem
-`v0.1.1-readonly` is published as a GitHub pre-release and local tag, but public docs/release notes still describe it as a draft/not-published candidate.
-
-Evidence:
-- GitHub release `v0.1.1-readonly` exists and targets `a4d04150c043ad4da3dea577b30ed7ffd2032df0`.
-- Published release body starts with `# v0.1.1-readonly Draft Release Notes` and says it does not publish/authorize publication.
-- `README.md` still says the current public pre-alpha release is `v0.1.0-readonly`.
-- Release notes do not cover Phase 103/104 changes even though the tag points after Phase 104.
-
-## Acceptance criteria
-- README current release section names `v0.1.1-readonly` as latest, while preserving pre-alpha/read-only/not-production/security warnings.
-- `docs/release/v0.1.1-readonly-notes.md` no longer claims draft/not-published status.
-- GitHub release notes are updated to match the corrected file.
-- PROJECT_STATUS and CHANGELOG accurately reflect publication state and actual tag scope.
-- No product code changes, no new release publication, no write-mode enablement.
-```
+No new blocker needs an issue. Existing meaningful open issues already cover current work: #38 copied personal-book dogfood, #36 v0.2 write-readiness gates, #26 CORS origin narrowing, #22 compatibility fixtures, #17/#29 localization/glossary, #13 book management UI, #12 scheduled/recurring awareness, and #11 transaction search/filter improvements.
 
 ## What not to do next
 
 - Do not start v0.2 controlled writes or enable `GNUCASH_WRITES_ENABLED=true` by default.
-- Do not publish another release/tag/package until the current `v0.1.1-readonly` public-docs drift is fixed.
-- Do not claim production readiness, security-audited status, SaaS readiness, collaborative accounting, or safe write-mode for real books.
+- Do not publish another release/tag/package without separate explicit Val authorization.
+- Do not claim production readiness, security-audited status, hosted SaaS readiness, collaborative accounting, family-wallet positioning, broad compatibility, or safe production write mode.
 - Do not run personal-book dogfood unless Val provides an explicit safe copied/disposable GnuCash SQL book path outside the repository and confirms it is not the live authoritative book.
-- Do not create noisy backlog issues for every non-blocker; either fix the release-docs drift directly or track exactly one meaningful issue.
+- Do not continue audit-only churn; move to practical read-only engineering.
+
+## План на 10 фаз PM→программист
+
+Полный roadmap также записан отдельно: `/home/val/.hermes/logs/gnucash-web-companion/analyst-pm10-20260519-070631/analyst-10-phase-roadmap.md`.
+
+## Phase 1 — Reconciled/cleared transaction filters
+- Goal: Добавить практический read-only фильтр транзакций по состоянию split/transaction status, если доступные GnuCash поля позволяют это сделать честно без догадок.
+- PM brief focus: Узко продолжить GitHub #11: только read-only state/reconciled filtering, без write-mode, импорта, локального хранения фильтров или нового release.
+- Programmer work: Инвентаризировать доступные поля piecash для cleared/reconciled/void-подобного статуса; добавить backend query parameter, service-layer filtering/count/export parity и UI control только для подтверждённых значений.
+- Acceptance criteria: List/count/account-list/CSV export используют один контракт; UI показывает фильтр/подсказку; unsupported values не фейкуются; существующие фильтры сохраняются.
+- Safety checks: `GNUCASH_WRITES_ENABLED=false` не меняется; write endpoints не трогаются; реальные книги/экспорты/скриншоты не коммитятся.
+- Verification: Backend tests, frontend route/static checks, targeted disabled-write tests, Docker Compose config validation.
+- Expected artifacts: Code/tests, `docs/handoff/phase-106.md`, `PROJECT_STATUS.md`, optional #11 evidence update.
+
+## Phase 2 — Filter URL presets and reset UX
+- Goal: Улучшить UX поиска/фильтров транзакций через shareable URL presets/reset behavior без localStorage/sessionStorage.
+- PM brief focus: Продолжить #11 через поведение в URL: clear all, predictable filter preservation, no browser storage.
+- Programmer work: Добавить явную кнопку/ссылку “Clear filters”, улучшить preset URL construction, проверить сохранение параметров при навигации и CSV export.
+- Acceptance criteria: Пользователь может сбросить фильтры одним действием; параметры не теряются неожиданно; CSV export получает тот же query string.
+- Safety checks: Не хранить поисковые строки, account IDs или суммы в localStorage/sessionStorage; write UI behavior не менять.
+- Verification: Frontend route/static checks, backend query validation where needed, auth-route checks, targeted disabled-write tests.
+- Expected artifacts: UX code/tests, updated `docs/transactions-filters.md`, `docs/handoff/phase-107.md`, `PROJECT_STATUS.md`.
+
+## Phase 3 — Account detail transaction filter parity
+- Goal: Довести account detail transaction list до той же read-only filter/export семантики, что и общий transaction list.
+- PM brief focus: Account page should filter/search its own transactions consistently, без новых write/import/admin workflows.
+- Programmer work: Проверить текущую account detail страницу; добавить/синхронизировать filter controls; обеспечить count/list parity and links back to transaction detail.
+- Acceptance criteria: Account detail supports approved filters; pagination/counts correct; empty states explain active filters; no cross-account leakage.
+- Safety checks: Book access boundary remains enforced; archived/unauthorized books hidden/blocked; no direct GnuCash file access from frontend.
+- Verification: Backend account transaction tests; frontend route/static checks; multi-book access-boundary targeted tests.
+- Expected artifacts: Account detail UX/tests, `docs/handoff/phase-108.md`, `PROJECT_STATUS.md`, possible #11 evidence update.
+
+## Phase 4 — Scheduled/recurring transaction awareness
+- Goal: Добавить честное read-only awareness для scheduled/recurring transactions without editing, if safe metadata is available.
+- PM brief focus: Address #12 as read-only visibility/limitation, not scheduling editor.
+- Programmer work: Инвентаризировать metadata support; expose a conservative read-only endpoint/page or documented unsupported state; add UI copy that editing remains in GnuCash Desktop.
+- Acceptance criteria: If supported, UI lists safe summary fields only; if unsupported, UI clearly says not available; no fake next-run calculations.
+- Safety checks: Do not modify scheduled transaction tables; do not expose raw SQL/private data; no fake accounting predictions.
+- Verification: Synthetic fixture or unsupported-path tests, frontend empty/limitation checks, disabled-write regression.
+- Expected artifacts: Read-only scheduled/recurring awareness code/tests or explicit unsupported UX, `docs/handoff/phase-109.md`, docs limitation update, #12 evidence update.
+
+## Phase 5 — Books metadata UX hardening
+- Goal: Улучшить `/books` как read-only metadata/status page for accessible independent books.
+- PM brief focus: Safe subset of #13: no upload, deletion, registry editing, or multi-user admin UI.
+- Programmer work: Add clearer current/default markers, base currency/storage/read-only badges, inaccessible/empty states, and safe book-specific links.
+- Acceptance criteria: `/books` useful on single-book and multi-book fixtures; safe links preserve book context; no management controls exposed.
+- Safety checks: Access model remains authoritative; frontend never reads GnuCash directly; no family-wallet/collaborative framing.
+- Verification: Multi-book API tests, frontend route/static checks, auth-route checks, unauthorized/archived route tests.
+- Expected artifacts: `/books` UX/tests, `docs/book-switcher-readonly-model.md` update if needed, `docs/handoff/phase-110.md`, `PROJECT_STATUS.md`.
+
+## Phase 6 — Compatibility fixture v4 safe Desktop evidence
+- Goal: Получить следующий practical compatibility artifact without real/private books.
+- PM brief focus: Move #22 forward with synthetic/disposable Desktop-generated SQLite fixture evidence if tools are available.
+- Programmer work: Check `gnucash` tooling availability; generate or document disposable fixture; collect only redacted metadata; add collector/matrix tests.
+- Acceptance criteria: Docs distinguish generated/piecash/Desktop evidence; no broad all-version claims; metadata excludes private/financial details.
+- Safety checks: Do not search private directories; do not commit real books/backups; only synthetic fixture artifacts allowed.
+- Verification: Collector tests, fixture integrity/no-mutation checks, safe tracked-file scan, read-only fixture tests if produced.
+- Expected artifacts: Compatibility metadata/tests/docs, `docs/handoff/phase-111.md`, `PROJECT_STATUS.md`, #22 evidence update.
+
+## Phase 7 — LAN/VPN deployment safety behavior
+- Goal: Превратить CORS/public-exposure caveat into practical operator-facing behavior/tests, not just prose.
+- PM brief focus: Address #26 with safe diagnostics/warnings while preserving local dev defaults.
+- Programmer work: Add health/startup diagnostic warning when wildcard CORS is used outside development-like env; document LAN/VPN origin examples; add non-sensitive warning tests.
+- Acceptance criteria: Operators see clear non-secret warning for risky posture; `.env.example` remains usable; docs provide exact examples.
+- Safety checks: Do not log secrets/JWT/passwords/book full private paths; no public-internet readiness claim; writes remain disabled.
+- Verification: Backend config/health tests, Docker Compose config validation, log redaction tests if logging changes, auth checks.
+- Expected artifacts: Diagnostic behavior/tests, deployment doc update, `docs/handoff/phase-112.md`, `PROJECT_STATUS.md`, #26 evidence update.
+
+## Phase 8 — Russian localization glossary and narrow UI slice
+- Goal: Улучшить RU localization in a controlled way without making Russian canonical.
+- PM brief focus: Combine #17/#29: glossary plus one visible UI slice, warnings preserved.
+- Programmer work: Add accounting/safety glossary; localize one high-value read-only UI area such as transaction filters/export copy; ensure terminology consistency.
+- Acceptance criteria: RU strings consistent; language toggle stable; docs state translation is partial; no mistranslated write-mode safety claims.
+- Safety checks: Do not weaken Russian warnings; no new auth/session storage; no product-scope promises.
+- Verification: Frontend route/static checks for catalog keys, docs link checks if available, auth-route checks.
+- Expected artifacts: Glossary/doc update, localized UI strings/tests, `docs/handoff/phase-113.md`, `PROJECT_STATUS.md`, #17/#29 evidence update.
+
+## Phase 9 — Synthetic browser dogfood refresh
+- Goal: Rerun current browser/UI dogfood pass using synthetic/disposable data after UX/filter changes.
+- PM brief focus: Dogfood artifact only on generated/synthetic data; no personal books unless Val separately provides explicit copied path.
+- Programmer work: Start local Docker/Caddy with safe env; run browser/API smoke across login, dashboard, accounts, books, transactions filters, account detail, CSV export, disabled write probes; record redacted evidence.
+- Acceptance criteria: Core read-only UI paths pass; write UI hidden/disabled; CSV export/filter parity checked; failures become concrete bugs.
+- Safety checks: No real/private book data, screenshots, CSV exports, app DB, `.env`, secrets, tokens or private paths committed.
+- Verification: Docker Compose config, smoke script, browser route checks, disabled validate/create/patch probes return 403.
+- Expected artifacts: `docs/dogfood/phase-114-synthetic-browser-dogfood.md`, narrow bugfix/tests if needed, `docs/handoff/phase-114.md`, `PROJECT_STATUS.md`.
+
+## Phase 10 — v0.1.2-readonly maintenance release prep, no publish
+- Goal: Prepare a conservative release artifact for possible `v0.1.2-readonly` if Phases 1–9 produced meaningful read-only improvements.
+- PM brief focus: Release-prep/gate artifact only; do not publish tag/release/package without separate explicit Val authorization.
+- Programmer work: Summarize completed artifacts, update changelog/release notes/checklist, run appropriate checks, decide “ready for authorized publish” vs “more fixes required”.
+- Acceptance criteria: Release notes honest: pre-alpha, read-only default, not production-ready, not security-audited, no personal-book dogfood claim unless explicitly done later.
+- Safety checks: No tag, GitHub release, package publish, write-mode enablement, v0.2 scope, or private data; `GNUCASH_WRITES_ENABLED=false` remains posture.
+- Verification: Backend tests, frontend check/auth-routes/build, Docker Compose config, GitHub Actions state, sensitive tracked-file scan, disabled-write targeted tests.
+- Expected artifacts: `docs/release/v0.1.2-readonly-notes.md`, `docs/release/v0.1.2-readonly-checklist.md`, optional final-gate doc, `docs/handoff/phase-115.md`, `PROJECT_STATUS.md`, `CHANGELOG.md`.
 
 ## Checks run in this audit
 
-- `git status --short --branch`
-- `git log --oneline -20`
-- `git log --oneline -10 --decorate --stat --no-renames`
-- `git fetch --dry-run origin main`
-- `git rev-list --left-right --count main...origin/main`
-- `git tag --list 'v0.1.1-readonly'`
-- `git show --no-patch --format=fuller v0.1.1-readonly`
-- `gh auth status`
+- `git status --short && git log --oneline -20`
 - `gh issue list --state open --limit 50`
 - `gh release list --limit 10`
-- `gh release view v0.1.1-readonly --json ...`
 - `gh run list --limit 10`
-- `JWT_SECRET=dummy-validation-secret APP_ADMIN_PASSWORD=dummy docker compose config --quiet`
+- Repo/docs/code searches for `GNUCASH_WRITES_ENABLED`, `gnucash_writes_enabled`, `localStorage`, `sessionStorage`, `httpOnly`, CORS, Decimal/money paths
+- Read inspections: README, PROJECT_STATUS, CHANGELOG, `.env.example`, release notes, existing analyst report, API config/router/tests, docs/dogfood/release/audits/handoff listings
 - `pytest -q tests/test_transaction_writes.py::TestWritesDisabledByDefault`
 - `npm run test:auth-routes`
+- `JWT_SECRET=dummy-validation-secret APP_ADMIN_PASSWORD=dummy docker compose config --quiet`
+- `git status --short --branch; git rev-parse HEAD; git rev-parse origin/main; git rev-list -n 1 v0.1.1-readonly; git log --oneline v0.1.1-readonly..HEAD; git diff --stat v0.1.1-readonly..HEAD`
+- `gh release view v0.1.1-readonly --json tagName,targetCommitish,isPrerelease,isDraft,publishedAt,name,url`
 - tracked sensitive-path scan via `git ls-files` with safe path-name filtering
 
-Full heavy suites were not run because this was a read-only audit with a clear release-docs blocker, and recent CI already shows green full checks on `main`.
+Full heavy suites were not rerun because this task is report/roadmap generation only, recent GitHub CI for current `main` is green, and targeted disabled-write/auth/compose checks cover the main audit risk areas.
