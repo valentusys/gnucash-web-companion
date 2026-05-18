@@ -90,5 +90,6 @@ pytest -q tests/test_compatibility_fixture_v1.py
 
 - Do not commit generated `.gnucash.sqlite` files from this path.
 - Do not replace this fixture with a scrubbed real user book.
+- Phase 111 Desktop-tooling probe: if `gnucash` / `gnucash-cli` are not available, do not claim Desktop-generated evidence; install or provide tooling in a disposable environment first.
 - If a future phase adds desktop-generated fixtures, record GnuCash Desktop version, OS/source, SQL backend, schema markers, generator/manual steps, and SHA-256.
 - Keep compatibility claims conservative until desktop-generated fixtures and CI coverage exist.

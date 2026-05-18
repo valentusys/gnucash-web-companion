@@ -124,6 +124,14 @@ Phase 92 improves the test-copy procedure without committing a new binary fixtur
 
 Phase 102 updates this metadata procedure so the JSON also records safe local runtime provenance: collector/generator version, operating system string, Python version, SQLite library version, and piecash package version. These fields help reproduce generated/disposable fixture evidence and are allowed to share after review because they do not include private paths or book row data.
 
+Phase 111 adds a separate Desktop-tooling probe for environments where the maintainer wants to know whether a real Desktop-generated fixture can be produced locally:
+
+```bash
+python apps/api/scripts/probe_gnucash_desktop_tooling.py --output /tmp/gnucash-tooling-probe.json
+```
+
+This probe records only whether `gnucash` and `gnucash-cli` are available, redacts executable paths, and stores bounded `--version` output if a command exists. It does not open books, search home directories, or collect row data. If the probe reports `desktop_tooling_available=false`, do not add a Desktop-version matrix row; use the generated/disposable fixture path until a disposable environment with GnuCash Desktop/CLI is available.
+
 Phase 92 local procedure evidence:
 
 - `gnucash --version`: unavailable in this container (`gnucash: command not found`).
@@ -141,6 +149,14 @@ Phase 102 local procedure evidence:
 - Generated disposable source: `apps/api/scripts/create_compatibility_fixture_v1.py` into a temporary directory outside git.
 - Collector result: redacted path, `Gnucash = 3000000`, `Gnucash-Resave = 19920`, selected safe table counts (`accounts`, `books`, `commodities`, `splits`, `transactions`), and safe runtime context only.
 - Regression coverage: `apps/api/tests/test_gnucash_compatibility_metadata.py` and `apps/api/tests/test_compatibility_fixture_v1.py` assert safe runtime provenance is present while private path, account name, and transaction description values are not serialized by the copied-book collector.
+
+Phase 111 local procedure evidence:
+
+- `apps/api/scripts/probe_gnucash_desktop_tooling.py --output /tmp/phase-111-gnucash-tooling-probe.json` reported `desktop_tooling_available=false`.
+- `gnucash`: not found.
+- `gnucash-cli`: not found.
+- No GnuCash book was opened, no user private directories were searched, and no Desktop-generated fixture was produced.
+- Regression coverage: `apps/api/tests/test_gnucash_compatibility_metadata.py` asserts the probe redacts executable paths, handles unavailable commands, and records only safe availability/version metadata.
 
 ## Storage and generation policy
 

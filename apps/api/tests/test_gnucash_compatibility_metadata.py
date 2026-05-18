@@ -11,10 +11,20 @@ from types import ModuleType
 
 ROOT = Path(__file__).resolve().parents[3]
 SCRIPT = ROOT / "apps/api/scripts/collect_gnucash_compatibility_metadata.py"
+PROBE_SCRIPT = ROOT / "apps/api/scripts/probe_gnucash_desktop_tooling.py"
 
 
 def _load_collector() -> ModuleType:
     spec = importlib.util.spec_from_file_location("collect_gnucash_compatibility_metadata", SCRIPT)
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _load_probe() -> ModuleType:
+    spec = importlib.util.spec_from_file_location("probe_gnucash_desktop_tooling", PROBE_SCRIPT)
     assert spec is not None
     assert spec.loader is not None
     module = importlib.util.module_from_spec(spec)
@@ -78,3 +88,41 @@ def test_collector_cli_writes_safe_json(tmp_path: Path, capsys) -> None:
     assert data["gnucash_desktop_version"] == "GnuCash 5.10"
     assert data["versions"]["Gnucash"] == 3_000_000
     assert str(book_path) not in output_path.read_text(encoding="utf-8")
+
+
+def test_desktop_tooling_probe_records_only_safe_availability_metadata(monkeypatch) -> None:
+    probe = _load_probe()
+
+    monkeypatch.setattr(probe.shutil, "which", lambda command: f"/private/bin/{command}")
+
+    class Completed:
+        returncode = 0
+        stdout = "GnuCash 5.10\n"
+        stderr = ""
+
+    monkeypatch.setattr(probe.subprocess, "run", lambda *args, **kwargs: Completed())
+
+    metadata = probe.probe_tooling()
+    serialized = json.dumps(metadata, sort_keys=True)
+
+    assert metadata["probe"] == "gnucash-desktop-tooling"
+    assert metadata["probe_version"] == "phase-111"
+    assert metadata["desktop_tooling_available"] is True
+    assert metadata["commands"]["gnucash"]["version_output"] == "GnuCash 5.10"
+    assert metadata["commands"]["gnucash"]["executable_path_recorded"] == "<redacted>"
+    assert "/private/bin" not in serialized
+    assert "book" in metadata["privacy"].lower()
+
+
+def test_desktop_tooling_probe_handles_unavailable_tools_without_private_paths(monkeypatch) -> None:
+    probe = _load_probe()
+    monkeypatch.setattr(probe.shutil, "which", lambda command: None)
+
+    metadata = probe.probe_tooling()
+    serialized = json.dumps(metadata, sort_keys=True)
+
+    assert metadata["desktop_tooling_available"] is False
+    assert metadata["commands"]["gnucash"]["available"] is False
+    assert metadata["commands"]["gnucash-cli"]["available"] is False
+    assert "not found" in serialized
+    assert "/home" not in serialized
