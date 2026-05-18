@@ -1454,7 +1454,7 @@ Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/configured 
 
 Release result: Phase 78 dogfood evidence was accepted for #25 because it used copied/disposable data and passed Docker/Caddy browser dogfood, API smoke, CSV export, hidden write UI, and disabled write probes. `v0.1.0-readonly` is ready for a separate explicit publication step. No v0.1 tag or GitHub release exists yet.
 
-Test results: backend full suite, frontend check/auth-routes/build, Docker Compose config validation, `git diff --check`, v0.1 tag lookup, and GitHub release lookup are recorded in the Phase 79 handoff/final gate.
+Test results: backend full suite, frontend check/auth-routes/build, Docker Compose config validation, `git diff --check`, GitHub Actions CI, v0.1 tag lookup, and GitHub release lookup are recorded in the Phase 79 handoff/final gate.
 
 Related issues: GitHub #24 was closed as satisfied by release notes. GitHub #25 was closed as satisfied by accepted Phase 78 copied/disposable-data runtime dogfood. GitHub #37 remains closed/fixed. GitHub #22 and #26–#36 remain open as non-blocking follow-up for broader hardening/future releases.
 

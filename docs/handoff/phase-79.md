@@ -84,6 +84,16 @@ git diff --check
 passed
 ```
 
+GitHub CI for the pushed Phase 79 release-gate commit passed:
+
+```text
+CI run 26013867018
+Docker Compose validation: passed
+Backend tests: passed
+Frontend checks: passed
+Foundation checks: passed
+```
+
 Release publication check:
 
 ```text
