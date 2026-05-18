@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Phase 59 — post-release regression-risk audit, confirming that a true post-v0.1 regression audit is not applicable yet because no `v0.1.0-readonly` tag/GitHub release exists; publication remains blocked by the Phase 57/58 release-notes and copied/disposable-data smoke/dogfood evidence issues.
 - Phase 58 — `v0.1.0-readonly` release publication audit, confirming no v0.1 tag/GitHub release exists yet and publication remains blocked by the Phase 57 release-notes and copied/disposable-data smoke/dogfood evidence issues.
 - Phase 57 — `v0.1.0-readonly` release-gate audit, confirming the read-only/default-write safety boundary is intact while blocking release publication until conservative v0.1 release notes and copied/disposable-data runtime smoke/dogfood evidence are completed.
 - Phase 56 — `v0.1.0-readonly` release planning: conservative release plan and checklist defining included/excluded read-only scope, minimum checks, dogfood/runtime smoke gates, compatibility limits, upgrade path, blockers, rollback plan, and a required future release-gate audit before any tag/release.
