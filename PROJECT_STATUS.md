@@ -132,7 +132,7 @@ Completed phases:
 
 Next planned phase:
 
-- Phase 96 should be planned by PM from the analyst roadmap after confirming Phase 95/#39 evidence: likely a synthetic large-export benchmark/UX confirmation or the next release-value step toward `v0.1.1-readonly`. Keep #38 open for the separate copied personal-book dogfood rerun when a safe copied SQL book is available.
+- Phase 96 is planned in `docs/handoff/phase-96-pm-brief.md`: synthetic large-export benchmark and UX confirmation after the Phase 95/#39 fix. The engineer should record >500-row synthetic CSV export evidence, keep UI copy honest about read-only filtered synchronous capped export behavior, and keep #38 open for the separate copied personal-book dogfood rerun when a safe copied SQL book is available.
 
 ## MVP product model
 
