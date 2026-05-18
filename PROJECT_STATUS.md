@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 69.
+Completed through Phase 70.
 
 Completed phases:
 
@@ -85,10 +85,11 @@ Completed phases:
 - Phase 67 — open-source hygiene audit
 - Phase 68 — documentation formatting audit
 - Phase 69 — localization/i18n audit
+- Phase 70 — community announcement audit
 
 Next planned phase:
 
-- Continue the auditor roadmap with Phase 70 only when explicitly requested. Do not create a v0.1 tag/GitHub release until #24/#25 are handled by an explicit later phase. Phase 69 confirmed English remains canonical, Russian localization remains conservative and opt-in, and #29 tracks a non-blocking localization glossary; it did not publish a release and did not unblock v0.1 publication.
+- Continue the auditor roadmap with Phase 71 only when explicitly requested. Do not create a v0.1 tag/GitHub release until #24/#25 are handled by an explicit later phase. Phase 70 confirmed the project is ready only for limited feedback-oriented community sharing in narrow technical/GnuCash circles, not broad launch-style promotion; it did not publish a release and did not unblock v0.1 publication.
 
 ## MVP product model
 
@@ -1227,6 +1228,27 @@ Localization result: English remains canonical; `README.ru.md` is intentionally 
 Test results: backend full suite, frontend check/auth-routes/build, Docker Compose config validation, and `git diff --check` are recorded in the Phase 69 handoff.
 
 Related issues: GitHub #29 created for a localization glossary. GitHub #17 remains open for broader Russian documentation/UI localization planning. GitHub #24 and #25 remain v0.1 release blockers; GitHub #27 remains open for seed-log path redaction; GitHub #26, #22, and #28 remain open for deployment/compatibility/markdown follow-up.
+
+## Phase 70 — Community Announcement Audit
+
+Status: complete. Phase commit pushed.
+
+Goal: audit whether the project is ready to be shared with interested communities from the auditor roadmap without publishing a release, expanding write scope, or using production-style marketing.
+
+Artifacts:
+
+- `docs/audits/phase-70-audit.md` — independent Phase 70 community-announcement audit artifact with verdict: ready only in limited circles.
+- `README.md` — current status advanced through Phase 70 and latest-audit link updated.
+- `CHANGELOG.md` — Unreleased entry added for the release-facing Phase 70 community-announcement audit result.
+- `docs/handoff/phase-70.md` — PM/auditor/engineer handoff and verification report.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/default state; controlled writes remain experimental post-MVP and disabled by default. Phase 70 did not enable writes, expand write scope, publish a v0.1 tag/release, claim production readiness/security audit, or add real financial/secrets artifacts.
+
+Community-announcement result: README explains who the project is and is not for; README screenshots are labeled as synthetic fixture data; `docs/community/announcement-draft.md` exists and uses feedback-wanted conservative copy; `docs/community/where-to-share.md` limits ready-now sharing to narrow technical/GnuCash circles; README related-project comparison is fair and does not overclaim. Broad launch-style promotion remains inappropriate while #24/#25 are open.
+
+Test results: documentation/static announcement-readiness checks, backend full suite, frontend check/auth-routes/build, Docker Compose config validation, and `git diff --check` are recorded in the Phase 70 handoff.
+
+Related issues: no new issue created; existing #24, #25, #28, and #29 cover meaningful release/community follow-ups without adding noisy backlog theater. GitHub #24 and #25 remain v0.1 release blockers; GitHub #27 remains open for seed-log path redaction; GitHub #26, #22, #28, and #29 remain open for deployment/compatibility/markdown/localization follow-up.
 
 ## Standing constraints
 
