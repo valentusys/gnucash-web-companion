@@ -17,6 +17,7 @@ export type MessageKey =
 	| 'nav.dashboard'
 	| 'nav.accounts'
 	| 'nav.transactions'
+	| 'nav.books'
 	| 'nav.logout'
 	| 'safety.statusLabel'
 	| 'safety.badge'
@@ -25,7 +26,25 @@ export type MessageKey =
 	| 'accounts.kicker'
 	| 'accounts.title'
 	| 'transactions.kicker'
-	| 'transactions.title';
+	| 'transactions.title'
+	| 'books.kicker'
+	| 'books.title'
+	| 'books.subtitle'
+	| 'books.activeDefault'
+	| 'books.configuredTitle'
+	| 'books.hiddenPolicy'
+	| 'books.noMutationBadge'
+	| 'books.currentBook'
+	| 'books.defaultBook'
+	| 'books.readOnlyBadge'
+	| 'books.accessibleBadge'
+	| 'books.baseCurrency'
+	| 'books.storageType'
+	| 'books.readonlyStatus'
+	| 'books.safetyNote'
+	| 'books.noBooks'
+	| 'books.notConfigured'
+	| 'books.unknown';
 
 export const messages: Record<Locale, Record<MessageKey, string>> = {
 	en: {
@@ -40,6 +59,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'nav.dashboard': 'Dashboard',
 		'nav.accounts': 'Accounts',
 		'nav.transactions': 'Transactions',
+		'nav.books': 'Books',
 		'nav.logout': 'Logout',
 		'safety.statusLabel': 'Read-only safety status',
 		'safety.badge': 'Read-only by default',
@@ -49,7 +69,26 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'accounts.kicker': 'Accounts',
 		'accounts.title': 'Account tree',
 		'transactions.kicker': 'Transactions',
-		'transactions.title': 'Browse transactions'
+		'transactions.title': 'Browse transactions',
+		'books.kicker': 'Books',
+		'books.title': 'Book management',
+		'books.subtitle':
+			'Read-only view/manage metadata only. This page shows already configured books that your account can access; it does not provide book data editing workflows.',
+		'books.activeDefault': 'Active/default book',
+		'books.configuredTitle': 'Configured books',
+		'books.hiddenPolicy': 'Archived and unauthorized books are hidden or blocked by the API.',
+		'books.noMutationBadge': 'No upload, deletion, or GnuCash data editing here',
+		'books.currentBook': 'Current book',
+		'books.defaultBook': 'Active/default book',
+		'books.readOnlyBadge': 'Read-only',
+		'books.accessibleBadge': 'Access status: Accessible',
+		'books.baseCurrency': 'Base currency',
+		'books.storageType': 'Storage type',
+		'books.readonlyStatus': 'Read-only status',
+		'books.safetyNote': 'GnuCash Desktop remains the authoritative editor.',
+		'books.noBooks': 'No accessible configured books are available for this account.',
+		'books.notConfigured': 'Not configured',
+		'books.unknown': 'Unknown'
 	},
 	ru: {
 		'locale.english': 'Английский',
@@ -63,6 +102,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'nav.dashboard': 'Обзор',
 		'nav.accounts': 'Счета',
 		'nav.transactions': 'Транзакции',
+		'nav.books': 'Книги',
 		'nav.logout': 'Выйти',
 		'safety.statusLabel': 'Статус безопасности read-only режима',
 		'safety.badge': 'Read-only по умолчанию',
@@ -72,6 +112,25 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'accounts.kicker': 'Счета',
 		'accounts.title': 'Дерево счетов',
 		'transactions.kicker': 'Транзакции',
-		'transactions.title': 'Просмотр транзакций'
+		'transactions.title': 'Просмотр транзакций',
+		'books.kicker': 'Книги',
+		'books.title': 'Управление книгами',
+		'books.subtitle':
+			'Книги доступны только для просмотра метаданных. Эта страница показывает уже настроенные книги, доступные вашей учётной записи; она не добавляет редактирование данных GnuCash.',
+		'books.activeDefault': 'Активная/основная книга',
+		'books.configuredTitle': 'Настроенные книги',
+		'books.hiddenPolicy': 'Архивные и недоступные книги скрываются или блокируются API.',
+		'books.noMutationBadge': 'Без загрузки, удаления и редактирования данных GnuCash',
+		'books.currentBook': 'Текущая книга',
+		'books.defaultBook': 'Активная/основная книга',
+		'books.readOnlyBadge': 'Только чтение',
+		'books.accessibleBadge': 'Статус доступа: доступна',
+		'books.baseCurrency': 'Базовая валюта',
+		'books.storageType': 'Тип хранения',
+		'books.readonlyStatus': 'Read-only статус',
+		'books.safetyNote': 'GnuCash Desktop остаётся главным редактором.',
+		'books.noBooks': 'Для этой учётной записи нет доступных настроенных книг.',
+		'books.notConfigured': 'Не настроено',
+		'books.unknown': 'Неизвестно'
 	}
 };

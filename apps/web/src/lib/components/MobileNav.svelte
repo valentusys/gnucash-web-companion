@@ -15,7 +15,7 @@ import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 		{ href: '/dashboard', label: t(locale, 'nav.dashboard'), icon: 'home' },
 		{ href: '/accounts', label: t(locale, 'nav.accounts'), icon: 'accounts' },
 		{ href: '/transactions', label: t(locale, 'nav.transactions'), icon: 'transactions' },
-		{ href: '/books', label: 'Books', icon: 'books' }
+		{ href: '/books', label: t(locale, 'nav.books'), icon: 'books' }
 	] as const);
 
 	function iconFor(name: string, active: boolean) {

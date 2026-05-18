@@ -40,7 +40,7 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–92 are complete.
+- Phase 0–93 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by default.
 - First public pre-alpha release: `v0.0.1-prealpha`.
@@ -86,6 +86,8 @@ This project is not a fit if you need:
 - Phase 89 hardened dashboard aggregate correctness and benchmark coverage: summary responses now expose base-currency-only/no-conversion limitations, the dashboard UI displays them, report date errors are clearer, and the synthetic benchmark covers summary, cashflow-by-month, expenses-by-account, and recent-transactions. GitHub #33 was closed with evidence; #39 remains open.
 - Phase 90 improved transaction search/filter usability for #11: the web filter panel now shows a readable active filter summary for search, account, date range, and amount range, with copy clarifying that the same active filters apply to the list and CSV export. CSV export filter query parity remains unchanged, and no backend write changes were made.
 - Phase 91 added a read-only `/books` metadata page for the safe subset of #13: users can see accessible configured books, the current/default marker, base currency, storage type, read-only status, and access status, while archived/unauthorized books remain hidden/blocked by the API and no upload, deletion, registry editing, GnuCash data editing, collaborative, or family-wallet workflow is exposed.
+- Phase 92 moved compatibility fixture/version-matrix evidence forward with a safe metadata collector for copied/disposable GnuCash SQLite books and narrow docs updates, without broad compatibility claims or private data.
+- Phase 93 extended the limited Russian localization slice: desktop/mobile navigation now localizes the `/books` label, the read-only `/books` metadata page uses English/Russian catalog strings for headings/status/safety copy, and `README.ru.md`/`docs/localization.md` document that English remains canonical and translation is incomplete.
 
 ## MVP scope: read-only first
 

@@ -11,7 +11,7 @@ Last updated: 2026-05-18
 
 ## Current baseline
 
-Completed through Phase 92.
+Completed through Phase 93.
 
 Completed phases:
 
@@ -108,6 +108,7 @@ Completed phases:
 - Phase 90 — transaction active filter summary UX improvement
 - Phase 91 — read-only book management metadata UI
 - Phase 92 — compatibility fixture v2 / version matrix progress
+- Phase 93 — Russian localization small slice
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -121,9 +122,11 @@ Completed phases:
 
 - Phase 92 completed a narrow compatibility-fixture/version-matrix maintenance result: a tested metadata collector now records safe schema/version evidence from copied/disposable GnuCash SQLite books while redacting the input path and excluding account names, transaction descriptions, amounts, memos, split rows, screenshots, app DB data, and secrets. `docs/gnucash-compatibility.md` now includes a narrow Phase 92 matrix row for the local generated-fixture metadata procedure, and `docs/gnucash-version-fixture-plan.md` now documents the copied/test-book collection process. GnuCash Desktop was not installed in this environment, so no desktop-version compatibility pass is claimed. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
+- Phase 93 completed a narrow Russian localization slice: desktop/mobile navigation now localizes the `/books` label, the read-only `/books` metadata page uses English/Russian catalog strings for headings, helper copy, read-only badges, access/status labels, empty state, and the GnuCash Desktop authoritative-editor safety note, and `README.ru.md` plus `docs/localization.md` document that English remains canonical and translation is incomplete. Frontend route/static checks cover the new catalog strings and localized `/books` usage. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
+
 Next planned phase:
 
-- Phase 93 should remain a concrete small localization slice from the roadmap; English remains canonical, Russian safety wording must preserve the read-only/default-write boundary, and the phase must not enable writes, start v0.2, publish a release, or create an audit-only phase unless explicitly requested.
+- Phase 94 should make the post-v0.1 maintenance-release decision from the roadmap without launching an auditor unless explicitly requested. It must not publish a tag/release by default, must keep writes disabled, and should decide whether to prepare v0.1.1-readonly next, defer it, or require more fixes.
 
 ## MVP product model
 

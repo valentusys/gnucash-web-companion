@@ -65,12 +65,17 @@ for (const phrase of [
 	"supportedLocales = ['en', 'ru']",
 	"'login.title': 'Sign in'",
 	"'login.title': 'Вход'",
+	"'nav.books': 'Books'",
+	"'nav.books': 'Книги'",
 	"'safety.message'",
 	'MVP по умолчанию работает только на чтение',
 	"'dashboard.title': 'Dashboard'",
 	"'dashboard.title': 'Обзор'",
 	"'accounts.title': 'Дерево счетов'",
-	"'transactions.title': 'Просмотр транзакций'"
+	"'transactions.title': 'Просмотр транзакций'",
+	"'books.title': 'Book management'",
+	"'books.title': 'Управление книгами'",
+	'Книги доступны только для просмотра метаданных'
 ]) {
 	assert.ok(i18nMessages.includes(phrase), `i18n messages must include: ${phrase}`);
 }
@@ -110,24 +115,26 @@ assert.doesNotMatch(booksPageServer, /upload|delete|write|edit/i, '/books page s
 const booksPage = read('src/routes/books/+page.svelte');
 for (const requiredPhrase of [
 	'Book management',
-	'view/manage metadata only',
+	'Read-only view/manage metadata only',
 	'Active/default book',
 	'Base currency',
 	'Storage type',
 	'Read-only',
-	'Access status',
+	'Access status: Accessible',
 	'Archived and unauthorized books are hidden or blocked by the API'
 ]) {
-	assert.ok(booksPage.includes(requiredPhrase), `/books page must include: ${requiredPhrase}`);
+	assert.ok(i18nMessages.includes(requiredPhrase), `books i18n catalog must include canonical English phrase: ${requiredPhrase}`);
 }
+assert.match(booksPage, /DEFAULT_LOCALE[\s\S]*t\(locale, 'books\.title'\)[\s\S]*t\(locale, 'books\.readonlyStatus'\)/s, '/books page must render localized titles and read-only safety labels from the i18n catalog');
+assert.match(booksPage, /t\(locale, 'books\.safetyNote'\)/, '/books page must render localized read-only safety note');
 assert.match(booksPage, /data\.books[\s\S]*book\.name[\s\S]*book\.base_currency[\s\S]*book\.storage_type/s, '/books page must render book name, base currency, and storage type');
-assert.match(booksPage, /book\.is_default[\s\S]*Active\/default book/s, '/books page must clearly mark the active/default book');
+assert.match(booksPage, /book\.is_default[\s\S]*t\(locale, 'books\.defaultBook'\)/s, '/books page must clearly mark the active/default book');
 assert.doesNotMatch(booksPage, /<form|<input|type="file"|method="POST"|Upload book|Delete book|collaborative|shared wallet|family wallet/i, '/books page must not offer upload/delete controls or collaborative/family-wallet framing');
 
 const desktopNav = read('src/lib/components/DesktopNav.svelte');
 const mobileNav = read('src/lib/components/MobileNav.svelte');
-assert.match(desktopNav, /href: '\/books'[\s\S]*label: 'Books'/, 'desktop nav must expose the /books management page');
-assert.match(mobileNav, /href: '\/books'[\s\S]*label: 'Books'/, 'mobile nav must expose the /books management page');
+assert.match(desktopNav, /href: '\/books'[\s\S]*label: t\(locale, 'nav\.books'\)/, 'desktop nav must expose the localized /books management page');
+assert.match(mobileNav, /href: '\/books'[\s\S]*label: t\(locale, 'nav\.books'\)/, 'mobile nav must expose the localized /books management page');
 
 const transactionListPage = read('src/routes/transactions/+page.svelte');
 for (const filterParam of ['query', 'date_from', 'date_to', 'account_id', 'min_amount', 'max_amount']) {
