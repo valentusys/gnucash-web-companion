@@ -22,7 +22,7 @@
 
 ## Текущий публичный статус
 
-- Завершены Phase 0–149.
+- Завершены Phase 0–150.
 - MVP v0.1 остаётся **read-only by default**.
 - `GNUCASH_WRITES_ENABLED=false` — безопасный дефолт.
 - Controlled-write код, если присутствует, является experimental post-MVP/write-alpha, отключён по умолчанию и дополнительно ограничен backend `APP_ENV=test` gate при явном включении.
@@ -39,6 +39,7 @@
 - Phase 147 — уточнены dashboard/reporting ограничения: base-currency-only, no conversion, mixed-currency/`XXX` edge cases.
 - Phase 148 — улучшена `/books` self-hosting readiness без upload/delete/default-changing/registry-edit действий.
 - Phase 149 — расширено Russian localization coverage для нового read-only UX через существующий catalog; перевод остаётся частичным, English остаётся canonical.
+- Phase 150 — повторно пройден synthetic/disposable Docker/Caddy read-only API и headless browser dogfood с `GNUCASH_WRITES_ENABLED=false` после последних UX/localization изменений.
 
 ## Как пробовать безопасно
 
