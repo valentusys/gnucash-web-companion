@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Phase 163 — added a disposable Debian 12 container probe for GnuCash Desktop/CLI tooling as the next GitHub #22 compatibility-fixture step. The probe installs GnuCash packages only inside a temporary container and records bounded command/version/help/package metadata. Local evidence confirms GnuCash 4.13 tooling is available in that disposable container, but no safe noninteractive create/save-as SQLite fixture command was identified, so no Desktop-generated fixture or Desktop-version compatibility claim was added.
 - Phase 162 — synchronized stale roadmap baseline after `v0.1.6-readonly` publication and verified the published `v0.1.6-readonly` tag from a fresh Docker checkout with the committed synthetic fixture, dummy local-only `.env`, `GNUCASH_WRITES_ENABLED=false`, API smoke, browser dogfood, disabled validate/create/patch/delete write probes, and no raw screenshot/export/backup artifacts. The smoke helper now covers DELETE disabled-write probes for old tagged checkouts and future API smokes. No product behavior, release/tag/package/image, production deployment, write expansion, or real/private data artifact was added.
 
 ## [0.1.6-readonly] - 2026-05-20
