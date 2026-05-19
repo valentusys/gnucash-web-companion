@@ -41,6 +41,12 @@ class FakeScheduledTransaction:
     instance_count: int = 0
     template_act_guid: str | None = "template-account-guid"
     recurrence: list[FakeRecurrence] = field(default_factory=lambda: [FakeRecurrence()])
+    # Unsafe template/source fields must never appear in the public scheduled DTO.
+    template_transaction_description: str = "Private template description"
+    template_split_memo: str = "Private template memo"
+    template_split_amount: str = "123.45"
+    template_account_name: str = "Private:Account"
+    raw_sql: str = "select * from scheduled_template_splits"
 
 
 class FakeBookWithScheduledTransactions:
@@ -123,6 +129,37 @@ def test_default_scheduled_transactions_returns_safe_summary(
     assert "next" not in data[0]
     assert "splits" not in data[0]
     assert "template_act_guid" not in data[0]
+
+
+def test_scheduled_transactions_sort_and_redact_template_details(
+    client, auth_headers, sample_book, session_factory, monkeypatch, tmp_path
+):
+    book_path = install_fake_scheduled_book(
+        monkeypatch,
+        tmp_path,
+        [
+            FakeScheduledTransaction(guid="sx-late", name="Later disabled", enabled=False, start_date=date(2026, 9, 1)),
+            FakeScheduledTransaction(guid="sx-early", name="Early enabled", enabled=True, start_date=date(2026, 1, 1)),
+        ],
+    )
+    point_sample_book_at(session_factory, sample_book, book_path)
+
+    response = client.get(f"/books/{sample_book}/scheduled-transactions", headers=auth_headers)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert [item["id"] for item in data] == ["sx-early", "sx-late"]
+    for item in data:
+        serialized = str(item)
+        assert "Private template description" not in serialized
+        assert "Private template memo" not in serialized
+        assert "Private:Account" not in serialized
+        assert "123.45" not in serialized
+        assert "raw_sql" not in item
+        assert "template_transaction_description" not in item
+        assert "template_split_memo" not in item
+        assert "template_split_amount" not in item
+        assert "template_account_name" not in item
 
 
 def test_book_aware_scheduled_transactions_empty_state(

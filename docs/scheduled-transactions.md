@@ -1,8 +1,8 @@
 # Scheduled/recurring transactions
 
-Status: Phase 109 pre-alpha read-only awareness.
+Status: Phase 157 pre-alpha read-only awareness with URL-only display filtering.
 
-`gnucash-web-companion` can show a conservative read-only summary of GnuCash scheduled/recurring transaction metadata when the configured book exposes that metadata through the safe piecash adapter path.
+`gnucash-web-companion` can show a conservative read-only summary of GnuCash scheduled/recurring transaction metadata when the configured book exposes that metadata through the safe piecash adapter path. The `/scheduled` page can filter and sort the displayed safe metadata with URL query parameters only; it does not persist scheduled metadata or filter values in browser storage.
 
 ## What is shown
 
@@ -28,6 +28,16 @@ The pre-alpha view does not show or do any of the following:
 - enable write mode or change `GNUCASH_WRITES_ENABLED=false` default posture
 
 If no scheduled transactions are present, or if a book/schema cannot expose them through the safe adapter path, the UI shows an empty/limitation state. That is intentional; the app must not fake schedule predictions.
+
+## Display filtering and sorting
+
+The web page supports URL-only display controls for the already-safe metadata returned by the API:
+
+- status filter: all, enabled, or disabled
+- template-reference filter: all, template present, or no template reference
+- sort display: start date, name, or enabled first
+
+These controls do not call write routes, do not expose additional GnuCash template details, and do not use localStorage/sessionStorage. Filtered empty states explain that the current display filters hide the safe metadata rows and provide a clear-filters link.
 
 ## API endpoints
 

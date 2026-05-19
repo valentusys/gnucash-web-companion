@@ -296,22 +296,34 @@ assert.match(
 	/getActiveBookContext\(fetch, cookies, token\)[\s\S]*apiFetch<ScheduledTransaction\[\]>\(fetch, `\$\{bookPrefix\}\/scheduled-transactions`, token\)/s,
 	'scheduled page must load safe scheduled metadata for the active accessible book through the API'
 );
+assert.match(
+	scheduledServer,
+	/scheduledFilterHref[\s\S]*status[\s\S]*template[\s\S]*sort[\s\S]*filterScheduledTransactions[\s\S]*has_template_account[\s\S]*sortScheduledTransactions/s,
+	'scheduled server load must provide URL-only status/template filters and deterministic safe metadata sorting'
+);
 const scheduledPage = read('src/routes/scheduled/+page.svelte');
 for (const scheduledPhrase of [
 	'Scheduled transactions',
 	'Read-only scheduled transaction awareness',
 	'Use GnuCash Desktop as the authoritative editor',
 	'Template split details and private raw SQL are not exposed',
+	'Filters and sorting are URL-only display controls',
+	'Status filter',
+	'Template metadata filter',
+	'Sort display',
+	'No template split amounts, accounts, memos, transaction descriptions, or raw SQL are exposed',
 	'No scheduled transactions are available through the safe read-only adapter'
 ]) {
 	assert.ok(scheduledPage.includes(scheduledPhrase), `scheduled page must include conservative copy: ${scheduledPhrase}`);
 }
 assert.match(scheduledPage, /import EmptyState/, 'scheduled page must reuse EmptyState for no schedules');
+assert.match(scheduledPage, /data\.scheduledSummary\.shown[\s\S]*data\.scheduledSummary\.total[\s\S]*data\.filters\.links\.clear/s, 'scheduled page must show filtered counts and clear URL-only scheduled filters');
+assert.match(scheduledPage, /<EmptyState[\s\S]*title="No scheduled transactions match these display filters"[\s\S]*href=\{data\.filters\.links\.clear\}[\s\S]*Clear scheduled filters/s, 'scheduled filtered empty state must explain URL-only filters and offer a clear action');
 assert.match(scheduledPage, /<EmptyState[\s\S]*title="No scheduled transactions found"[\s\S]*href="\/transactions"[\s\S]*Browse transactions/s, 'scheduled empty state must include clear copy and keyboard-focusable navigation');
 assert.doesNotMatch(
 	scheduledPage,
-	/<form|method="POST"|New scheduled|Edit scheduled|Delete scheduled|next occurrence|next-run/i,
-	'scheduled page must not expose scheduling editor controls or fake next-run copy'
+	/<form|method="POST"|New scheduled|Edit scheduled|Delete scheduled|next occurrence|next-run|localStorage|sessionStorage/i,
+	'scheduled page must not expose scheduling editor controls, browser persistence, or fake next-run copy'
 );
 
 const transactionTable = read('src/lib/components/TransactionTable.svelte');

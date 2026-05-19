@@ -15,6 +15,14 @@
 		return value ? 'Yes' : 'No';
 	}
 
+	function activeClass(active: boolean): string {
+		return active ? 'border-transparent text-white' : 'border-[var(--app-border)]';
+	}
+
+	function activeStyle(active: boolean): string {
+		return active ? 'background-color: var(--app-accent);' : 'color: var(--app-text);';
+	}
+
 	function recurrenceSummary(item: { period_type: string; multiplier: number | null; period_start: string | null; weekend_adjust: string }): string {
 		const parts = [
 			item.multiplier === null ? null : `every ${item.multiplier}`,
@@ -56,11 +64,45 @@
 				<h2 class="text-lg font-semibold" style="color: var(--app-text);">Recurring metadata</h2>
 				<p class="text-sm" style="color: var(--app-muted);">
 					Only safe schedule fields are shown. Template split details and private raw SQL are not exposed.
+					Filters and sorting are URL-only display controls; they do not save scheduled metadata in browser storage.
 				</p>
 			</div>
 			<span class="inline-flex w-fit rounded-full border px-3 py-1 text-xs font-semibold" style="border-color: var(--app-border); color: var(--app-muted);">
 				Read-only · no scheduling editor
 			</span>
+		</div>
+
+		<div class="mb-4 grid gap-3 rounded-xl border p-3 text-sm md:grid-cols-3" style="border-color: var(--app-border); background-color: var(--app-bg);">
+			<div>
+				<p class="font-semibold" style="color: var(--app-text);">Status filter</p>
+				<div class="mt-2 flex flex-wrap gap-2">
+					<a class={`rounded-lg border px-3 py-2 ${activeClass(data.filters.status === 'all')}`} style={activeStyle(data.filters.status === 'all')} href={data.filters.links.all}>All ({data.scheduledSummary.total})</a>
+					<a class={`rounded-lg border px-3 py-2 ${activeClass(data.filters.status === 'enabled')}`} style={activeStyle(data.filters.status === 'enabled')} href={data.filters.links.enabled}>Enabled ({data.scheduledSummary.enabled})</a>
+					<a class={`rounded-lg border px-3 py-2 ${activeClass(data.filters.status === 'disabled')}`} style={activeStyle(data.filters.status === 'disabled')} href={data.filters.links.disabled}>Disabled ({data.scheduledSummary.disabled})</a>
+				</div>
+			</div>
+			<div>
+				<p class="font-semibold" style="color: var(--app-text);">Template metadata filter</p>
+				<div class="mt-2 flex flex-wrap gap-2">
+					<a class={`rounded-lg border px-3 py-2 ${activeClass(data.filters.template === 'all')}`} style={activeStyle(data.filters.template === 'all')} href={data.filters.links.allTemplates}>All ({data.scheduledSummary.total})</a>
+					<a class={`rounded-lg border px-3 py-2 ${activeClass(data.filters.template === 'with_template')}`} style={activeStyle(data.filters.template === 'with_template')} href={data.filters.links.withTemplate}>Template present ({data.scheduledSummary.withTemplate})</a>
+					<a class={`rounded-lg border px-3 py-2 ${activeClass(data.filters.template === 'without_template')}`} style={activeStyle(data.filters.template === 'without_template')} href={data.filters.links.withoutTemplate}>No template reference ({data.scheduledSummary.withoutTemplate})</a>
+				</div>
+			</div>
+			<div>
+				<p class="font-semibold" style="color: var(--app-text);">Sort display</p>
+				<div class="mt-2 flex flex-wrap gap-2">
+					<a class={`rounded-lg border px-3 py-2 ${activeClass(data.filters.sort === 'start_date')}`} style={activeStyle(data.filters.sort === 'start_date')} href={data.filters.links.startDate}>Start date</a>
+					<a class={`rounded-lg border px-3 py-2 ${activeClass(data.filters.sort === 'name')}`} style={activeStyle(data.filters.sort === 'name')} href={data.filters.links.name}>Name</a>
+					<a class={`rounded-lg border px-3 py-2 ${activeClass(data.filters.sort === 'enabled_first')}`} style={activeStyle(data.filters.sort === 'enabled_first')} href={data.filters.links.enabledFirst}>Enabled first</a>
+				</div>
+			</div>
+			<p class="md:col-span-3" style="color: var(--app-muted);">
+				Showing {data.scheduledSummary.shown} of {data.scheduledSummary.total} safe scheduled metadata rows. No template split amounts, accounts, memos, transaction descriptions, or raw SQL are exposed.
+				{#if data.filters.status !== 'all' || data.filters.template !== 'all' || data.filters.sort !== 'start_date'}
+					<a class="ml-2 font-semibold" style="color: var(--app-accent);" href={data.filters.links.clear}>Clear scheduled filters</a>
+				{/if}
+			</p>
 		</div>
 
 		{#if data.scheduledTransactions.length}
@@ -125,6 +167,28 @@
 					</article>
 				{/each}
 			</div>
+		{:else if data.scheduledSummary.total > 0}
+			<EmptyState
+				title="No scheduled transactions match these display filters"
+				message="The active book has scheduled metadata, but the current URL-only scheduled filters hide every row. Clear filters to return to the full safe read-only metadata view."
+				ariaLabel="No scheduled transactions match display filters"
+				icon="🗓️"
+			>
+				<a
+					href={data.filters.links.clear}
+					class="rounded-xl px-4 py-2 text-sm font-semibold text-white"
+					style="background-color: var(--app-accent);"
+				>
+					Clear scheduled filters
+				</a>
+				<a
+					href="/books"
+					class="rounded-xl border px-4 py-2 text-sm font-semibold"
+					style="border-color: var(--app-border); color: var(--app-text);"
+				>
+					Review books
+				</a>
+			</EmptyState>
 		{:else}
 			<EmptyState
 				title="No scheduled transactions found"
