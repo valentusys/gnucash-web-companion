@@ -619,7 +619,13 @@ async def create_book_transaction(
             detail=f"Could not acquire write lock: {exc}",
         ) from exc
     except GnuCashWriteError as exc:
-        audit_payload.update({"result": "failed", "error": str(exc)})
+        audit_payload.update(
+            {
+                "result": "failed",
+                "error": str(exc),
+                "backup_path": getattr(exc, "backup_path", None),
+            }
+        )
         _update_audit_log(session, log, audit_payload)
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

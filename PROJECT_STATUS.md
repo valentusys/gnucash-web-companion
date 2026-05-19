@@ -11,7 +11,7 @@ Last updated: 2026-05-19
 
 ## Current baseline
 
-Completed through Phase 127.
+Completed through Phase 128.
 
 Current public release state:
 
@@ -20,6 +20,7 @@ Current public release state:
 - The release scope includes the Phase 118–121 live-stand read-only fixes, Phase 122 release gate, and the disabled-by-default/test-fixture-only write-alpha safety hardening from Phases 123–124 without any production write-mode claim.
 - Phase 126 is an unreleased read-only polish/triage phase: transaction query search now also checks transaction notes when piecash exposes them; GitHub #11/#12 were resolved or de-scoped without changing write routes.
 - Phase 127 is an unreleased compatibility-evidence refresh for GitHub #22: local `gnucash`/`gnucash-cli` Desktop tooling is still unavailable, so docs record a safe blocker/manual procedure instead of claiming Desktop-generated fixture evidence; regression coverage pins the missing-tooling behavior.
+- Phase 128 is an unreleased write-alpha concurrency/error-path safety expansion for create only: copied/disposable fixture tests now prove two parallel create POSTs produce one success and one lock-contention failure, synthetic post-backup write failure releases the lock, records failed audit with intact backup, and leaves the book unmutated, and read-only/viewer book access returns 403 before write-service construction. Writes remain disabled by default and limited to `APP_ENV=test` copied/disposable fixture scope when explicitly enabled.
 - Previous public release `v0.1.2-readonly` remains available and points to its Phase 117 release commit.
 - Previous public release `v0.1.1-readonly` remains available and points to `a4d04150c043ad4da3dea577b30ed7ffd2032df0`, after Phase 104.
 
@@ -153,6 +154,7 @@ Completed phases:
 - Phase 125 — publish v0.1.3-readonly pre-release
 - Phase 126 — read-only transaction filter polish and GitHub #11/#12 triage
 - Phase 127 — GnuCash Desktop compatibility evidence refresh for GitHub #22
+- Phase 128 — Write-alpha concurrency and error-path expansion
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -228,9 +230,11 @@ Completed phases:
 
 - Phase 124 hardened the first write-alpha controlled transaction create safety flow without default enablement: enabled write routes are now additionally limited to `APP_ENV=test` copied/disposable fixture scope, so a casual `GNUCASH_WRITES_ENABLED=true` flip in normal development/runtime returns 403 before constructing the write service. Backend route-level integration coverage now exercises an enabled create against a copied synthetic GnuCash SQLite fixture and verifies book-state read-back, backup creation, audit success payload, released write lock, and validation failure with failed audit/no backup/no lock leak. `docs/v0.2-controlled-writes.md` labels the Phase 124 create path as test-environment-only write-alpha evidence. No edit/delete/import/scheduled/account-write capability was added, no frontend write UI was touched, no release/tag/package was published, no real/private data was committed, and `GNUCASH_WRITES_ENABLED=false` remains the default.
 
+- Phase 128 expanded write-alpha create-route safety evidence without default enablement: route-level tests use only copied/disposable `tmp_path` fixtures to cover two parallel POST creates with one success and one lock-contention failure, synthetic post-backup write failure with released lock, failed audit row, intact backup, and no book mutation, plus read-only/viewer access rejection before write-service construction. The file-based write lock now rejects same-process re-entrant acquisition for the same book key. `docs/v0.2-controlled-writes.md` records the updated create-only readiness snapshot. No PATCH/DELETE/import/scheduled/account write expansion, frontend write UI, release/tag/package publication, real/private data use, `GNUCASH_WRITES_ENABLED=false` default change, or `APP_ENV=test` gate weakening occurred.
+
 Next planned phase:
 
-- If Val explicitly authorizes publication, run a dedicated `v0.1.3-readonly` publish phase after re-checking clean `main`, HEAD/origin parity, tag/release absence, GitHub Actions, and sensitive-data hygiene. Otherwise continue with practical read-only MVP value or narrow safety-foundation work only if explicitly requested. Controlled writes remain post-MVP/experimental, test-fixture-only for write-alpha route execution, not safe for production books, and disabled by default.
+- Continue only with the next explicitly requested phase. Controlled writes remain post-MVP/experimental, disabled by default, constrained to `APP_ENV=test` copied/disposable fixtures when explicitly enabled, and not safe for production books. Phase 132 release/tag publication remains unauthorized; only release artifacts/gate would be allowed if that phase is requested.
 
 ## MVP product model
 

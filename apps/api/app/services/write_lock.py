@@ -63,6 +63,9 @@ class WriteLockService:
         Returns:
             True if the lock was acquired, False otherwise.
         """
+        if book_id in self._fds:
+            return False
+
         lock_path = self._lock_path(book_id)
         try:
             lock_path.parent.mkdir(parents=True, exist_ok=True)

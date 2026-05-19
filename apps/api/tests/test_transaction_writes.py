@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import json
 import shutil
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
@@ -1127,6 +1129,141 @@ class TestWriteAlphaCreateRouteDisposableFixture:
             assert payload["result"] == "failed"
             assert payload["backup_path"] is None
             assert "Validation failed" in payload["error"]
+
+    def test_concurrent_enabled_create_allows_one_success_and_one_lock_contention(
+        self,
+        client,
+        auth_headers,
+        disposable_sample_book,
+        disposable_fixture_book,
+        disposable_write_lock,
+        session_factory,
+        monkeypatch,
+    ):
+        """Two parallel POST writes against one disposable book are serialized by the lock."""
+        original_do_create = GnuCashWriteService._do_create_transaction
+        first_write_entered = threading.Event()
+        release_first_write = threading.Event()
+
+        def slow_do_create(service, book, request):
+            first_write_entered.set()
+            assert release_first_write.wait(timeout=5), "timed out waiting to release first write"
+            return original_do_create(service, book, request)
+
+        monkeypatch.setattr(GnuCashWriteService, "_do_create_transaction", slow_do_create)
+        txs_before = _read_written_transactions(disposable_fixture_book)
+
+        def post_create(description: str):
+            return client.post(
+                f"/books/{disposable_sample_book}/transactions",
+                json=self._fixture_create_payload(description),
+                headers=auth_headers,
+            )
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            first = executor.submit(post_create, "Concurrent write-alpha winner")
+            assert first_write_entered.wait(timeout=5), "first write did not enter service"
+            second = executor.submit(post_create, "Concurrent write-alpha contender")
+            second_response = second.result(timeout=5)
+            release_first_write.set()
+            first_response = first.result(timeout=5)
+
+        statuses = sorted([first_response.status_code, second_response.status_code])
+        assert statuses == [201, 409]
+        failed_response = first_response if first_response.status_code == 409 else second_response
+        assert "write lock" in failed_response.json()["detail"].lower()
+
+        txs_after = _read_written_transactions(disposable_fixture_book)
+        created = [tx for tx in txs_after if tx["description"] == "Concurrent write-alpha winner"]
+        assert len(txs_after) == len(txs_before) + 1
+        assert len(created) == 1
+        assert sum(split["value"] for split in created[0]["splits"]) == Decimal("0")
+
+        lock_key = str(disposable_fixture_book)
+        assert disposable_write_lock.acquire(lock_key) is True
+        disposable_write_lock.release(lock_key)
+
+        with session_factory() as session:
+            logs = session.query(AuditLog).filter_by(action="transaction.create").all()
+            payloads = [json.loads(log.payload_json) for log in logs]
+            assert any(payload["result"] == "success" for payload in payloads)
+            assert any(
+                payload["result"] == "failed" and "write lock" in payload.get("error", "").lower()
+                for payload in payloads
+            )
+
+    def test_failure_during_create_write_releases_lock_audits_failure_and_keeps_backup(
+        self,
+        client,
+        auth_headers,
+        disposable_sample_book,
+        disposable_fixture_book,
+        disposable_write_lock,
+        session_factory,
+        monkeypatch,
+    ):
+        """A post-backup write failure must leave a backup, failed audit row, and free lock."""
+
+        def fail_after_backup(self, book, request):
+            raise GnuCashWriteError("synthetic failure after backup")
+
+        monkeypatch.setattr(GnuCashWriteService, "_do_create_transaction", fail_after_backup)
+        txs_before = _read_written_transactions(disposable_fixture_book)
+
+        response = client.post(
+            f"/books/{disposable_sample_book}/transactions",
+            json=self._fixture_create_payload("Synthetic post-backup failure"),
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 422
+        assert "synthetic failure after backup" in response.json()["detail"]
+        txs_after = _read_written_transactions(disposable_fixture_book)
+        assert txs_after == txs_before
+
+        lock_key = str(disposable_fixture_book)
+        assert disposable_write_lock.acquire(lock_key) is True
+        disposable_write_lock.release(lock_key)
+
+        with session_factory() as session:
+            logs = session.query(AuditLog).filter_by(action="transaction.create").all()
+            assert logs
+            payload = json.loads(logs[-1].payload_json)
+            assert payload["result"] == "failed"
+            assert "synthetic failure after backup" in payload["error"]
+            backup_path = Path(payload["backup_path"])
+
+        assert backup_path.exists()
+        assert backup_path.is_file()
+        backup_txs = _read_written_transactions(backup_path)
+        assert backup_txs == txs_before
+
+    def test_read_only_book_access_rejects_create_before_write_service(
+        self,
+        client,
+        viewer_headers,
+        sample_book,
+        viewer_book_access,
+        monkeypatch,
+    ):
+        """A viewer/read-only book grant returns 403 before constructing the write service."""
+        calls = []
+
+        def forbidden_write_service(*args, **kwargs):
+            calls.append((args, kwargs))
+            raise AssertionError("write service must not be constructed for read-only book access")
+
+        monkeypatch.setattr("app.routers.transactions._write_service_for", forbidden_write_service)
+
+        response = client.post(
+            f"/books/{sample_book}/transactions",
+            json=self._fixture_create_payload("Viewer write attempt"),
+            headers=viewer_headers,
+        )
+
+        assert response.status_code == 403
+        assert response.json()["detail"] == "Book edit access denied"
+        assert calls == []
 
 
 class TestPatchTransaction:

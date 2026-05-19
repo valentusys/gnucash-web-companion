@@ -41,8 +41,9 @@ logger = logging.getLogger(__name__)
 class GnuCashWriteError(Exception):
     """Raised when a write operation on the GnuCash book fails."""
 
-    def __init__(self, detail: str):
+    def __init__(self, detail: str, backup_path: str | None = None):
         self.detail = detail
+        self.backup_path = backup_path
         super().__init__(f"GnuCash write error: {detail}")
 
 
@@ -192,6 +193,12 @@ class GnuCashWriteService(GnuCashBookService):
                 tx = self._do_create_transaction(book, request)
                 book.save()
                 transaction_id = _guid(tx)
+            except GnuCashWriteError as exc:
+                if exc.backup_path is None:
+                    exc.backup_path = backup_path
+                raise
+            except Exception as exc:
+                raise GnuCashWriteError(f"Write failed: {exc}", backup_path=backup_path) from exc
             finally:
                 if book is not None:
                     close = getattr(book, "close", None)
