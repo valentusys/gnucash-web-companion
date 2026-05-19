@@ -166,7 +166,7 @@
 		<div class="flex flex-col gap-2 md:items-end">
 			{#if data.activeBook}
 				<a
-					class="rounded-xl px-4 py-2 text-center text-sm font-semibold"
+					class="inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2 text-center text-sm font-semibold"
 					style="background: var(--app-panel); color: var(--app-text); border: 1px solid var(--app-border);"
 					href={exportCsvUrl}
 					aria-describedby="csv-export-status"
@@ -179,7 +179,7 @@
 					<p class="text-xs font-semibold" style="color: #b45309;">
 						Experimental post-MVP write mode is enabled. MVP v0.1 remains read-only by default; use only disposable/test copies with backups.
 					</p>
-					<a class="inline-flex rounded-xl px-4 py-2 text-sm font-semibold text-white" style="background: var(--app-accent);" href="/transactions/new">New transaction</a>
+					<a class="inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold text-white" style="background: var(--app-accent);" href="/transactions/new">New transaction</a>
 				</div>
 			{/if}
 		</div>
@@ -237,7 +237,7 @@
 					{#if hasActiveFilters}
 						<a
 							href={data.clearFiltersHref}
-							class="rounded-xl px-4 py-2 text-sm font-semibold text-white"
+							class="inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold text-white"
 							style="background-color: var(--app-accent);"
 						>
 							Clear filters
@@ -245,7 +245,7 @@
 					{/if}
 					<a
 						href="/books"
-						class="rounded-xl border px-4 py-2 text-sm font-semibold"
+						class="inline-flex min-h-11 items-center justify-center rounded-xl border px-4 py-2 text-sm font-semibold"
 						style="border-color: var(--app-border); color: var(--app-text);"
 					>
 						Review books

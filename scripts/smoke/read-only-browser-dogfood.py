@@ -314,6 +314,39 @@ def run(args: argparse.Namespace) -> list[CheckResult]:
         page.call("Page.enable")
         page.call("Runtime.enable")
         page.call("Browser.setDownloadBehavior", {"behavior": "deny"})
+        page.call(
+            "Emulation.setDeviceMetricsOverride",
+            {
+                "width": args.viewport_width,
+                "height": args.viewport_height,
+                "deviceScaleFactor": 2,
+                "mobile": True,
+            },
+        )
+        results.append(CheckResult("mobile_viewport", f"{args.viewport_width}x{args.viewport_height}"))
+
+        def assert_no_mobile_overflow(route_name: str) -> None:
+            metrics = page.evaluate(
+                "(() => ({"
+                "clientWidth: document.documentElement.clientWidth,"
+                "scrollWidth: document.documentElement.scrollWidth,"
+                "bodyScrollWidth: document.body ? document.body.scrollWidth : 0"
+                "}))()"
+            )
+            if not isinstance(metrics, dict):
+                raise DogfoodFailure(f"mobile overflow metrics unavailable on {route_name}: {metrics!r}")
+            client_width = int(metrics.get("clientWidth") or 0)
+            scroll_width = max(int(metrics.get("scrollWidth") or 0), int(metrics.get("bodyScrollWidth") or 0))
+            if client_width <= 0 or scroll_width > client_width + 1:
+                raise DogfoodFailure(f"mobile horizontal overflow on {route_name}: {metrics!r}")
+            short_touch_targets = page.evaluate(
+                "Array.from(document.querySelectorAll('a[href*=\"transactions/export\"]'))"
+                ".map((el) => ({ text: (el.innerText || '').trim(), height: Math.round(el.getBoundingClientRect().height) }))"
+                ".filter((item) => item.height > 0 && item.height < 44)"
+            )
+            if short_touch_targets:
+                raise DogfoodFailure(f"mobile export touch target below 44px on {route_name}: {short_touch_targets!r}")
+            results.append(CheckResult("mobile_no_overflow", f"{route_name}: scrollWidth={scroll_width} clientWidth={client_width}"))
 
         page.navigate(f"{base_url}/login")
         page.wait_for("document.body && document.body.innerText.includes('Sign in')")
@@ -362,6 +395,7 @@ def run(args: argparse.Namespace) -> list[CheckResult]:
             page.wait_for("document.body && document.body.innerText.length > 0")
             if page.evaluate("document.body.innerText.includes('New transaction')"):
                 raise DogfoodFailure(f"write UI unexpectedly visible on {route}")
+            assert_no_mobile_overflow(label)
             results.append(CheckResult(label, f"{route} loaded; write UI hidden"))
 
         page.navigate(f"{base_url}/accounts")
@@ -371,6 +405,7 @@ def run(args: argparse.Namespace) -> list[CheckResult]:
         if account_href:
             page.navigate(f"{base_url}{account_href}")
             page.wait_for("document.body && document.body.innerText.length > 0")
+            assert_no_mobile_overflow("account_detail")
             results.append(CheckResult("account_detail", "first account detail loaded"))
         else:
             results.append(CheckResult("account_detail", "skipped: no account detail link found"))
@@ -381,6 +416,7 @@ def run(args: argparse.Namespace) -> list[CheckResult]:
         page.wait_for("document.body && document.body.innerText.includes('Transactions')")
         if page.evaluate("document.body.innerText.includes('New transaction')"):
             raise DogfoodFailure("write UI unexpectedly visible on transactions page")
+        assert_no_mobile_overflow("transactions_filters")
         export_href = page.evaluate(
             "Array.from(document.querySelectorAll('a[href*=\"/transactions/export\"]')).map(a => a.getAttribute('href')).find(Boolean) || null"
         )
@@ -390,11 +426,12 @@ def run(args: argparse.Namespace) -> list[CheckResult]:
 
         page.navigate(f"{base_url}/transactions?limit=25&offset=0")
         row_clicked = page.evaluate(
-            "(() => { const row = document.querySelector('tr[role=\"button\"]'); if (!row) return false; row.click(); return true; })()"
+            "(() => { const row = document.querySelector('tr[role=\"button\"], div[role=\"button\"]'); if (!row) return false; row.click(); return true; })()"
         )
         if row_clicked:
             page.wait_for("location.pathname.startsWith('/transactions/')", timeout=10)
             page.wait_for("document.body && document.body.innerText.length > 0")
+            assert_no_mobile_overflow("transaction_detail")
             results.append(CheckResult("transaction_detail", "first transaction detail loaded"))
         else:
             results.append(CheckResult("transaction_detail", "skipped: no transaction row found"))
@@ -454,6 +491,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--chromium", default=os.environ.get("CHROMIUM_BIN"))
     parser.add_argument("--keep-temp", action="store_true", help="Keep temporary browser profile for debugging only")
     parser.add_argument("--fixture-path", default=None, help="Optional fixture path to hash/report without printing full path")
+    parser.add_argument("--viewport-width", type=int, default=320, help="Mobile/narrow viewport width for read-only UI dogfood")
+    parser.add_argument("--viewport-height", type=int, default=720, help="Mobile/narrow viewport height for read-only UI dogfood")
     return parser.parse_args(argv)
 
 

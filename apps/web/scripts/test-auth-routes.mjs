@@ -410,6 +410,11 @@ assert.ok(
 	transactionListPage.includes("/books/${bookId}/transactions/export${qs ? '?' + qs : ''}"),
 	'CSV export URL must include the active filter query string'
 );
+assert.match(
+	transactionListPage,
+	/inline-flex min-h-11 items-center justify-center rounded-xl[\s\S]*href=\{exportCsvUrl\}[\s\S]*href=\{data\.clearFiltersHref\}[\s\S]*inline-flex min-h-11 items-center justify-center/s,
+	'transactions page mobile CTA links must keep CSV export and clear-filter actions at least 44px tall'
+);
 
 const accountDetailServer = read('src/routes/accounts/[id]/+page.server.ts');
 assert.match(
@@ -438,6 +443,11 @@ assert.match(
 	accountDetailPage,
 	/new URLSearchParams\(\{ account_id: account\.id \}\)[\s\S]*query[\s\S]*date_from[\s\S]*date_to[\s\S]*min_amount[\s\S]*max_amount[\s\S]*transaction_state[\s\S]*\/books\/\$\{bookId\}\/transactions\/export/s,
 	'account detail CSV export URL must include the fixed account_id and the active filters'
+);
+assert.match(
+	accountDetailPage,
+	/inline-flex min-h-11 items-center justify-center rounded-xl[\s\S]*href=\{exportCsvUrl\}/s,
+	'account detail CSV export action must keep a touch-friendly 44px mobile target'
 );
 assert.match(
 	accountDetailPage,

@@ -181,7 +181,7 @@
 			{#if data.activeBook}
 				<div class="flex flex-col gap-1 md:items-end">
 					<a
-						class="rounded-xl px-4 py-2 text-center text-sm font-semibold"
+						class="inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2 text-center text-sm font-semibold"
 						style="background: var(--app-panel); color: var(--app-text); border: 1px solid var(--app-border);"
 						href={exportCsvUrl}
 						aria-describedby="account-csv-export-status"
