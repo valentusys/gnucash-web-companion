@@ -102,6 +102,9 @@ export type MessageKey =
 	| 'books.unknown'
 	| 'books.accessRole'
 	| 'books.status'
+	| 'books.storageDiagnostics'
+	| 'books.safeNextActions'
+	| 'books.privatePathRedacted'
 	| 'books.openSafeViews'
 	| 'books.viewAccounts'
 	| 'books.browseTransactions'
@@ -271,6 +274,9 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'books.unknown': 'Unknown',
 		'books.accessRole': 'Access role',
 		'books.status': 'Metadata status',
+		'books.storageDiagnostics': 'Storage diagnostics',
+		'books.safeNextActions': 'Safe next actions',
+		'books.privatePathRedacted': 'Private filesystem path is intentionally not shown.',
 		'books.openSafeViews': 'Open safe views',
 		'books.viewAccounts': 'View accounts',
 		'books.browseTransactions': 'Browse transactions',
@@ -448,6 +454,9 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'books.unknown': 'Неизвестно',
 		'books.accessRole': 'Роль доступа',
 		'books.status': 'Статус метаданных',
+		'books.storageDiagnostics': 'Диагностика хранения',
+		'books.safeNextActions': 'Безопасные следующие действия',
+		'books.privatePathRedacted': 'Приватный путь файловой системы намеренно не показан.',
 		'books.openSafeViews': 'Открыть безопасные разделы',
 		'books.viewAccounts': 'Счета',
 		'books.browseTransactions': 'Транзакции',

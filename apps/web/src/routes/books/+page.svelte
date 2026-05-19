@@ -21,7 +21,7 @@
 	}
 
 	function formatStatus(status: string): string {
-		return status || t(locale, 'books.unknown');
+		return status ? status.replaceAll('_', ' ') : t(locale, 'books.unknown');
 	}
 </script>
 
@@ -105,6 +105,20 @@
 								<dd class="mt-1" style="color: var(--app-text);">{book.read_only ? t(locale, 'books.safetyNote') : t(locale, 'books.unknown')}</dd>
 							</div>
 						</dl>
+
+						<section class="mt-4 rounded-xl border p-3 text-sm" style="border-color: var(--app-border); background-color: var(--app-card-bg);" aria-label={t(locale, 'books.storageDiagnostics')}>
+							<h4 class="font-semibold" style="color: var(--app-text);">{t(locale, 'books.storageDiagnostics')}</h4>
+							<p class="mt-2" style="color: var(--app-muted);">{book.storage_diagnostics.safe_summary}</p>
+							<p class="mt-2 text-xs" style="color: var(--app-muted);">{t(locale, 'books.privatePathRedacted')}</p>
+							{#if book.storage_diagnostics.safe_next_actions.length}
+								<p class="mt-3 font-medium" style="color: var(--app-muted);">{t(locale, 'books.safeNextActions')}</p>
+								<ul class="mt-2 list-disc space-y-1 pl-5" style="color: var(--app-muted);">
+									{#each book.storage_diagnostics.safe_next_actions as action}
+										<li>{action}</li>
+									{/each}
+								</ul>
+							{/if}
+						</section>
 
 						<section class="mt-4 rounded-xl border p-3 text-sm" style="border-color: var(--app-border); background-color: var(--app-card-bg);" aria-label={t(locale, 'books.operatorGuidanceTitle')}>
 							<h4 class="font-semibold" style="color: var(--app-text);">{t(locale, 'books.operatorGuidanceTitle')}</h4>

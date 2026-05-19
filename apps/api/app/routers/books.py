@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -28,6 +29,70 @@ UNSUPPORTED_MVP_MANAGEMENT_ACTIONS = [
     "registry_edit",
 ]
 
+SAFE_OPERATOR_NEXT_ACTIONS = {
+    "available": [
+        "Open a read-only view from this page.",
+        "Use GnuCash Desktop for any edits.",
+    ],
+    "not_configured": [
+        "Check the app metadata database and deployment configuration for this book entry.",
+        "Do not upload or browse GnuCash files from the web UI; configure storage from the host side.",
+    ],
+    "missing_file": [
+        "Verify the configured book is mounted on the host/container.",
+        "Check the app metadata database and deployment volumes without uploading or browsing files from the web UI.",
+    ],
+    "remote_or_unchecked": [
+        "Validate the configured storage from the host before relying on this read-only view.",
+        "Use GnuCash Desktop as the authoritative editor.",
+    ],
+}
+
+
+def _is_uri(value: str) -> bool:
+    return "://" in value
+
+
+def _storage_diagnostics_for(book: Book) -> dict[str, Any]:
+    """Return safe operator diagnostics without exposing the configured path."""
+    configured = bool((book.uri_or_path or "").strip())
+    storage_type = (book.storage_type or "").lower()
+
+    if not configured:
+        return {
+            "status": "not_configured",
+            "configured": False,
+            "checked": True,
+            "safe_summary": "No book location is configured in app metadata.",
+            "safe_next_actions": SAFE_OPERATOR_NEXT_ACTIONS["not_configured"],
+        }
+
+    if storage_type == "sqlite" and not _is_uri(book.uri_or_path):
+        exists = Path(book.uri_or_path).exists()
+        if exists:
+            return {
+                "status": "available",
+                "configured": True,
+                "checked": True,
+                "safe_summary": "A configured local SQLite book path is present and exists; the file is not opened by the metadata listing.",
+                "safe_next_actions": SAFE_OPERATOR_NEXT_ACTIONS["available"],
+            }
+        return {
+            "status": "missing_file",
+            "configured": True,
+            "checked": True,
+            "safe_summary": "A configured local SQLite book path is present, but the file was not found from this runtime.",
+            "safe_next_actions": SAFE_OPERATOR_NEXT_ACTIONS["missing_file"],
+        }
+
+    return {
+        "status": "remote_or_unchecked",
+        "configured": True,
+        "checked": False,
+        "safe_summary": "This storage type is configured, but listing metadata does not open or validate the GnuCash data source.",
+        "safe_next_actions": SAFE_OPERATOR_NEXT_ACTIONS["remote_or_unchecked"],
+    }
+
 
 def _access_role_for(book: Book, user: User | None) -> str | None:
     if user is None:
@@ -40,22 +105,25 @@ def _access_role_for(book: Book, user: User | None) -> str | None:
 
 def serialize_book(book: Book, user: User | None = None) -> dict[str, Any]:
     """Serialize app metadata for a book without opening its GnuCash data."""
+    storage_diagnostics = _storage_diagnostics_for(book)
     return {
         "id": book.id,
         "name": book.name,
         "storage_type": book.storage_type,
-        "uri_or_path": book.uri_or_path,
         "base_currency": book.base_currency,
         "is_default": book.is_default,
         "is_archived": book.is_archived,
         "access_role": _access_role_for(book, user),
         "read_only": True,
-        "status": "accessible",
+        "status": storage_diagnostics["status"],
+        "access_status": "accessible",
+        "storage_diagnostics": storage_diagnostics,
         "management_actions": [],
         "operator_guidance": {
             "metadata_source": "app_metadata_db",
             "data_access": "gnucash_not_opened_for_listing",
             "read_only_default": True,
+            "private_path_redacted": True,
             "storage_type_label": f"Read-only {book.storage_type} GnuCash book metadata",
             "unsupported_management_actions": UNSUPPORTED_MVP_MANAGEMENT_ACTIONS,
             "message": (

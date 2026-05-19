@@ -217,7 +217,10 @@ for (const requiredPhrase of [
 	'Metadata source',
 	'Listing data access',
 	'Unsupported MVP management actions',
-	'Use the host configuration and app metadata database to change registered books.'
+	'Use the host configuration and app metadata database to change registered books.',
+	'Storage diagnostics',
+	'Safe next actions',
+	'Private filesystem path is intentionally not shown.'
 ]) {
 	assert.ok(i18nMessages.includes(requiredPhrase), `books i18n catalog must include canonical English phrase: ${requiredPhrase}`);
 }
@@ -227,6 +230,7 @@ assert.match(booksPage, /DEFAULT_LOCALE[\s\S]*t\(locale, 'books\.title'\)[\s\S]*
 assert.match(booksPage, /t\(locale, 'books\.safetyNote'\)/, '/books page must render localized read-only safety note');
 assert.match(booksPage, /data\.books[\s\S]*book\.name[\s\S]*book\.base_currency[\s\S]*book\.storage_type[\s\S]*book\.access_role[\s\S]*book\.status/s, '/books page must render book name, base currency, storage type, access role, and status');
 assert.match(booksPage, /book\.operator_guidance\.metadata_source[\s\S]*book\.operator_guidance\.data_access[\s\S]*book\.operator_guidance\.read_only_default[\s\S]*book\.operator_guidance\.unsupported_management_actions/s, '/books page must render app-metadata-only operator guidance and unsupported MVP management actions');
+assert.match(booksPage, /book\.storage_diagnostics\.safe_summary[\s\S]*books\.privatePathRedacted[\s\S]*book\.storage_diagnostics\.safe_next_actions/s, '/books page must render safe storage diagnostics and next actions without private paths');
 assert.doesNotMatch(booksPage, /uri_or_path|book\.operator_guidance\.message/, '/books page must not render private book paths or raw backend guidance copy');
 assert.match(booksPage, /book\.is_default[\s\S]*t\(locale, 'books\.defaultBook'\)/s, '/books page must clearly mark the active/default book');
 assert.match(booksPage, /\/books\/\$\{book\.id\}\/select\?next=\/accounts[\s\S]*\/books\/\$\{book\.id\}\/select\?next=\/transactions[\s\S]*\/books\/\$\{book\.id\}\/select\?next=\/scheduled[\s\S]*\/books\/\$\{book\.id\}\/select\?next=\/dashboard/s, '/books page must expose safe book-context links to read-only views');

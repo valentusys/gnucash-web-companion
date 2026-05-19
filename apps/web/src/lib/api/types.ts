@@ -2,22 +2,32 @@ export type BookOperatorGuidance = {
 	metadata_source: string;
 	data_access: string;
 	read_only_default: boolean;
+	private_path_redacted: boolean;
 	storage_type_label: string;
 	unsupported_management_actions: string[];
 	message: string;
+};
+
+export type BookStorageDiagnostics = {
+	status: 'available' | 'missing_file' | 'not_configured' | 'remote_or_unchecked' | string;
+	configured: boolean;
+	checked: boolean;
+	safe_summary: string;
+	safe_next_actions: string[];
 };
 
 export type Book = {
 	id: number;
 	name: string;
 	storage_type: string;
-	uri_or_path: string;
 	base_currency: string | null;
 	is_default: boolean;
 	is_archived: boolean;
 	access_role: 'owner' | 'editor' | 'viewer' | null;
 	read_only: boolean;
 	status: string;
+	access_status: string;
+	storage_diagnostics: BookStorageDiagnostics;
 	management_actions: string[];
 	operator_guidance: BookOperatorGuidance;
 };

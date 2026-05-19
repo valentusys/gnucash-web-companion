@@ -245,6 +245,7 @@ class TestMultiBookAccessFiltering:
             "metadata_source": "app_metadata_db",
             "data_access": "gnucash_not_opened_for_listing",
             "read_only_default": True,
+            "private_path_redacted": True,
             "storage_type_label": "Read-only sqlite GnuCash book metadata",
             "unsupported_management_actions": [
                 "book_upload",
@@ -257,6 +258,18 @@ class TestMultiBookAccessFiltering:
                 "Upload, delete, default-book changes, and registry editing are intentionally unavailable."
             ),
         }
+        assert "uri_or_path" not in data
+        assert data["access_status"] == "accessible"
+        assert data["storage_diagnostics"] == {
+            "status": "missing_file",
+            "configured": True,
+            "checked": True,
+            "safe_summary": "A configured local SQLite book path is present, but the file was not found from this runtime.",
+            "safe_next_actions": [
+                "Verify the configured book is mounted on the host/container.",
+                "Check the app metadata database and deployment volumes without uploading or browsing files from the web UI.",
+            ],
+        }
 
     def test_user_b_can_access_own_book_detail(self, client, headers_b, book_b):
         response = client.get(f"/books/{book_b}", headers=headers_b)
@@ -264,6 +277,78 @@ class TestMultiBookAccessFiltering:
         data = response.json()
         assert data["id"] == book_b
         assert data["name"] == "Bob Book"
+
+    def test_default_book_marker_is_metadata_only(self, client, session_factory, headers_a, book_a):
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == book_a).one()
+            book.is_default = True
+            session.commit()
+
+        response = client.get(f"/books/{book_a}", headers=headers_a)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["is_default"] is True
+        assert data["access_status"] == "accessible"
+        assert data["status"] == "missing_file"
+        assert "uri_or_path" not in data
+
+    def test_existing_local_book_reports_available_without_opening_gnucash(
+        self, client, session_factory, headers_a, book_a, tmp_path
+    ):
+        book_path = tmp_path / "synthetic.gnucash.sqlite"
+        book_path.write_text("synthetic metadata probe only")
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == book_a).one()
+            book.uri_or_path = str(book_path)
+            session.commit()
+
+        response = client.get(f"/books/{book_a}", headers=headers_a)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "available"
+        assert data["storage_diagnostics"]["checked"] is True
+        assert data["storage_diagnostics"]["configured"] is True
+        assert "uri_or_path" not in data
+
+    def test_unconfigured_book_reports_not_configured_without_private_path(
+        self, client, session_factory, headers_a, book_a
+    ):
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == book_a).one()
+            book.uri_or_path = ""
+            session.commit()
+
+        response = client.get(f"/books/{book_a}", headers=headers_a)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "not_configured"
+        assert data["storage_diagnostics"] == {
+            "status": "not_configured",
+            "configured": False,
+            "checked": True,
+            "safe_summary": "No book location is configured in app metadata.",
+            "safe_next_actions": [
+                "Check the app metadata database and deployment configuration for this book entry.",
+                "Do not upload or browse GnuCash files from the web UI; configure storage from the host side.",
+            ],
+        }
+        assert "uri_or_path" not in data
+
+    def test_uri_book_reports_remote_or_unchecked_without_opening_gnucash(
+        self, client, session_factory, headers_a, book_a
+    ):
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == book_a).one()
+            book.uri_or_path = "postgresql://example.invalid/book"
+            session.commit()
+
+        response = client.get(f"/books/{book_a}", headers=headers_a)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "remote_or_unchecked"
+        assert data["storage_diagnostics"]["configured"] is True
+        assert data["storage_diagnostics"]["checked"] is False
+        assert "uri_or_path" not in data
 
     def test_archived_book_detail_is_not_viewable_even_with_access(
         self, client, headers_a, archived_book
