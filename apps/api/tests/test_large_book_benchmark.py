@@ -24,6 +24,7 @@ def test_benchmark_plan_covers_phase_87_read_only_scope() -> None:
 
     assert names == [
         "accounts_tree_load",
+        "accounts_tree_large_hierarchy_filter_seed",
         "transactions_list_first_page",
         "transaction_filters",
         "account_detail_transactions",
@@ -48,12 +49,17 @@ def test_create_large_synthetic_book_uses_only_disposable_data(tmp_path: Path) -
         output,
         transaction_count=24,
         expense_account_count=4,
+        account_branch_count=3,
+        account_depth=3,
         many_split_count=8,
     )
 
     assert metadata.path == output
     assert metadata.transaction_count == 24
     assert metadata.expense_account_count == 4
+    assert metadata.account_branch_count == 3
+    assert metadata.account_depth == 3
+    assert metadata.synthetic_account_count == 26
     assert metadata.many_split_count == 8
     assert metadata.synthetic is True
     assert metadata.contains_real_data is False
@@ -75,8 +81,12 @@ def test_create_large_synthetic_book_uses_only_disposable_data(tmp_path: Path) -
             "select count(*) from splits where tx_guid = ?",
             (many_split_tx_guid,),
         ).fetchone()[0]
+        hierarchy_count = conn.execute(
+            "select count(*) from accounts where name like 'Synthetic Hierarchy Branch %'"
+        ).fetchone()[0]
 
-    assert account_count >= 10
+    assert account_count >= metadata.synthetic_account_count
+    assert hierarchy_count == 12
     assert tx_count == 24
     assert many_split_count == 8
     assert all(description.startswith("Synthetic benchmark transaction") for description in descriptions)
@@ -107,6 +117,22 @@ def test_create_large_synthetic_book_rejects_too_few_many_splits(tmp_path: Path)
         assert "many_split_count" in str(exc)
     else:  # pragma: no cover - defensive assertion
         raise AssertionError("expected ValueError for too small many-splits scope")
+
+
+def test_create_large_synthetic_book_rejects_invalid_account_hierarchy(tmp_path: Path) -> None:
+    output = tmp_path / "invalid-account-hierarchy.gnucash.sqlite"
+
+    try:
+        create_large_synthetic_book(
+            output,
+            transaction_count=10,
+            expense_account_count=4,
+            account_branch_count=0,
+        )
+    except ValueError as exc:
+        assert "account_branch_count" in str(exc)
+    else:  # pragma: no cover - defensive assertion
+        raise AssertionError("expected ValueError for empty account hierarchy scope")
 
 
 def test_csv_export_benchmark_summary_records_limit_header() -> None:
@@ -172,6 +198,9 @@ def test_benchmark_json_records_csv_body_row_consistency(tmp_path: Path) -> None
         path=tmp_path / "synthetic.gnucash.sqlite",
         transaction_count=1000,
         expense_account_count=12,
+        account_branch_count=8,
+        account_depth=4,
+        synthetic_account_count=62,
         many_split_count=60,
         synthetic=True,
         contains_real_data=False,

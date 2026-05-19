@@ -414,6 +414,11 @@ assert.match(
 );
 assert.match(
 	accountTreeNode,
+	/visualDepth = \$derived\(Math\.min\(depth, 8\)\)[\s\S]*padding-left: \{visualDepth \* 1\.25\}rem[\s\S]*title=\{account\.full_name\}/,
+	'deep account hierarchy indentation must be capped while preserving full-path hover text'
+);
+assert.match(
+	accountTreeNode,
 	/overflow-hidden[\s\S]*truncate font-medium[\s\S]*truncate text-sm/s,
 	'account tree names and full names must truncate safely for narrow desktop layouts'
 );

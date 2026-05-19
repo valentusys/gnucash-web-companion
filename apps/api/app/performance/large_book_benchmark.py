@@ -55,6 +55,11 @@ class BenchmarkCase:
 
 BENCHMARK_CASES: list[BenchmarkCase] = [
     BenchmarkCase("accounts_tree_load", "GET", "/books/{book_id}/accounts/tree"),
+    BenchmarkCase(
+        "accounts_tree_large_hierarchy_filter_seed",
+        "GET",
+        "/books/{book_id}/accounts/tree",
+    ),
     BenchmarkCase("transactions_list_first_page", "GET", "/books/{book_id}/transactions?limit=50&offset=0"),
     BenchmarkCase(
         "transaction_filters",
@@ -110,6 +115,8 @@ BENCHMARK_CASES: list[BenchmarkCase] = [
 class BenchmarkConfig:
     transaction_count: int = 1_000
     expense_account_count: int = 12
+    account_branch_count: int = 8
+    account_depth: int = 4
     many_split_count: int = 60
     repeats: int = 3
 
@@ -119,6 +126,9 @@ class FixtureMetadata:
     path: Path
     transaction_count: int
     expense_account_count: int
+    account_branch_count: int
+    account_depth: int
+    synthetic_account_count: int
     many_split_count: int
     synthetic: bool
     contains_real_data: bool
@@ -161,6 +171,8 @@ def create_large_synthetic_book(
     *,
     transaction_count: int = 1_000,
     expense_account_count: int = 12,
+    account_branch_count: int = 8,
+    account_depth: int = 4,
     many_split_count: int = 60,
 ) -> FixtureMetadata:
     """Create a deterministic synthetic GnuCash SQLite book for benchmarks."""
@@ -168,6 +180,10 @@ def create_large_synthetic_book(
         raise ValueError("transaction_count must be at least 2 for the opening and many-splits transactions")
     if expense_account_count < 1:
         raise ValueError("expense_account_count must be at least 1")
+    if account_branch_count < 1:
+        raise ValueError("account_branch_count must be at least 1")
+    if account_depth < 1:
+        raise ValueError("account_depth must be at least 1")
     if many_split_count < 2:
         raise ValueError("many_split_count must be at least 2")
 
@@ -200,6 +216,24 @@ def create_large_synthetic_book(
         )
         for idx in range(1, expense_account_count + 1)
     ]
+
+    synthetic_hierarchy_accounts: list[Account] = []
+    for branch_idx in range(1, account_branch_count + 1):
+        parent = Account(
+            name=f"Synthetic Hierarchy Branch {branch_idx:02d}",
+            type="ASSET",
+            parent=assets,
+            commodity=currency,
+        )
+        synthetic_hierarchy_accounts.append(parent)
+        for depth_idx in range(1, account_depth + 1):
+            parent = Account(
+                name=f"Synthetic Hierarchy Branch {branch_idx:02d} Level {depth_idx:02d}",
+                type="ASSET",
+                parent=parent,
+                commodity=currency,
+            )
+            synthetic_hierarchy_accounts.append(parent)
 
     equity = Account(name="Synthetic Equity", type="EQUITY", parent=root, commodity=currency)
     opening = Account(name="Synthetic Opening Balances", type="EQUITY", parent=equity, commodity=currency)
@@ -281,6 +315,11 @@ def create_large_synthetic_book(
         path=output,
         transaction_count=transaction_count,
         expense_account_count=expense_account_count,
+        account_branch_count=account_branch_count,
+        account_depth=account_depth,
+        synthetic_account_count=10
+        + expense_account_count
+        + (account_branch_count * (account_depth + 1)),
         many_split_count=many_split_count,
         synthetic=True,
         contains_real_data=False,
@@ -489,6 +528,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT_PATH)
     parser.add_argument("--transactions", type=int, default=BenchmarkConfig.transaction_count)
     parser.add_argument("--expense-accounts", type=int, default=BenchmarkConfig.expense_account_count)
+    parser.add_argument("--account-branches", type=int, default=BenchmarkConfig.account_branch_count)
+    parser.add_argument("--account-depth", type=int, default=BenchmarkConfig.account_depth)
     parser.add_argument("--many-splits", type=int, default=BenchmarkConfig.many_split_count)
     parser.add_argument("--repeats", type=int, default=BenchmarkConfig.repeats)
     parser.add_argument("--json-output", type=Path, default=None)
@@ -498,6 +539,8 @@ def main(argv: list[str] | None = None) -> int:
         args.output,
         transaction_count=args.transactions,
         expense_account_count=args.expense_accounts,
+        account_branch_count=args.account_branches,
+        account_depth=args.account_depth,
         many_split_count=args.many_splits,
     )
     results = run_benchmark(metadata.path, repeats=args.repeats)
@@ -506,6 +549,9 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Synthetic fixture: {metadata.path}")
     print(f"Transactions: {metadata.transaction_count}")
     print(f"Expense accounts: {metadata.expense_account_count}")
+    print(f"Synthetic hierarchy branches: {metadata.account_branch_count}")
+    print(f"Synthetic hierarchy depth: {metadata.account_depth}")
+    print(f"Synthetic account count: {metadata.synthetic_account_count}")
     print(f"Many-splits transaction splits: {metadata.many_split_count}")
     print("No private book data used; read-only API paths only.")
     for result in results:

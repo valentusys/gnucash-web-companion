@@ -7,11 +7,11 @@ Last updated: 2026-05-19
 - GitHub: `valentusys/gnucash-web-companion`
 - Local path: `/home/val/gnucash-web-companion`
 - Branch: `main`
-- Status: pre-alpha / v0.1.6-readonly read-only pre-release published; post-release maintenance completed through Phase 164; v0.2.0-writealpha remains a separate experimental pre-release
+- Status: pre-alpha / v0.1.6-readonly read-only pre-release published; post-release maintenance completed through Phase 165; v0.2.0-writealpha remains a separate experimental pre-release
 
 ## Current baseline
 
-Completed through Phase 164.
+Completed through Phase 165.
 
 Current public release state:
 
@@ -60,6 +60,7 @@ Current public release state:
 - Phase 162 is a post-`v0.1.6-readonly` baseline sync and tagged smoke phase: `docs/ROADMAP.md` no longer says the current baseline is Phase 137/138 or `v0.1.3-readonly`, and the published `v0.1.6-readonly` tag was verified from a fresh checkout with the committed synthetic fixture, dummy local-only `.env`, Docker Compose/Caddy, API smoke, browser dogfood, `GNUCASH_WRITES_ENABLED=false` in rendered/runtime config, disabled validate/create/patch/delete write probes, and no raw screenshot/export/backup artifacts. Evidence is documented in `docs/dogfood/phase-162-v0.1.6-tagged-smoke.md`. The smoke helper now covers DELETE disabled-write probes for old tagged checkouts and future API smokes. No product behavior, write capability, release/tag/package/image, production deployment, real/private GnuCash book, app DB, backup, committed `.env`, screenshot/export, token, key, cert, private path, account name, transaction description, memo, amount, or production/security claim was added.
 - Phase 163 is a disposable GnuCash Desktop compatibility fixture path blocker phase for GitHub #22: `apps/api/scripts/probe_gnucash_desktop_disposable_container.py` now probes GnuCash Desktop/CLI tooling inside a temporary `debian:12-slim` Docker container instead of installing host packages; local evidence confirms Debian 12 can install GnuCash 4.13 tooling in isolation (`gnucash`/`gnucash-cli` available), but `gnucash-cli --help` exposes report/quote commands rather than a safe noninteractive create/save-as SQLite fixture path, so no Desktop-generated synthetic fixture was created and no Desktop-version compatibility row is claimed. `docs/gnucash-desktop-tooling-phase-163.md`, `docs/gnucash-compatibility.md`, and `docs/gnucash-version-fixture-plan.md` record the blocker and exact prerequisites for a future disposable GUI/manual or confirmed noninteractive creation path. No host package install, product behavior, write capability, release/tag/package/image, production deployment, real/private GnuCash book, app DB, backup, committed `.env`, screenshot/export, token, key, cert, private path, account name, transaction description, memo, amount, or broad all-version/PostgreSQL/MySQL/MariaDB/XML/Desktop support claim was added.
 - Phase 164 is a book-context and access edge-case hardening phase for GitHub #13: the web app now classifies invalid, stale/no-longer-accessible, and no-accessible-book selected-book cookie states, safely replaces the non-secret `selected_book_id` cookie with an accessible fallback or clears it when none exists, and redirects protected read-only views to `/books?book_context=...` so users can review current/default labels before opening dashboard/accounts/transactions/scheduled views. `/books` shows a localized recovery notice, while backend access rules continue to hide archived books, block unauthorized books, omit raw `uri_or_path`, and report missing/not-configured book storage only through redacted metadata diagnostics. `docs/book-switcher-readonly-model.md` documents the selected-book cookie, fallback order, recovery behavior, and no-management/no-write boundaries. No upload/delete/default-changing/registry-edit UI, direct file browser, collaborative/family-wallet workflow, GnuCash write path, release/tag/package, localStorage/sessionStorage book-sensitive state, real/private book, app DB, backup, `.env`, screenshot/export, token, key, cert, private path, or private financial data was added.
+- Phase 165 is a large account-tree usability/performance evidence phase: the synthetic benchmark helper can now generate wide/deep synthetic account hierarchies and record account hierarchy metadata, local benchmark evidence documents a 146-account synthetic hierarchy with successful read-only account-tree loads around 186–199 ms median in TestClient, and `AccountTreeNode.svelte` caps visual indentation for very deep hierarchies while preserving full-path hover text. Frontend static checks pin the overflow guard and browser-storage-free local filter contract. No cache layer, account editing, production scalability claim, release/tag/package, real/private account name/book, app DB, backup, `.env`, screenshot/export, token, key, cert, private path, or private financial data was added.
 - Previous public release `v0.1.2-readonly` remains available and points to its Phase 117 release commit.
 - Previous public release `v0.1.1-readonly` remains available and points to `a4d04150c043ad4da3dea577b30ed7ffd2032df0`, after Phase 104.
 
@@ -230,6 +231,7 @@ Completed phases:
 - Phase 162 — post-v0.1.6 baseline sync and tagged read-only smoke
 - Phase 163 — disposable GnuCash Desktop container tooling blocker for GitHub #22
 - Phase 164 — Book context and access edge-case hardening
+- Phase 165 — Large account tree usability and benchmark
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -309,7 +311,7 @@ Completed phases:
 
 Next planned phase:
 
-- Continue only with the next explicitly requested phase. Controlled writes remain post-MVP/experimental, disabled by default, constrained to `APP_ENV=test` copied/disposable fixtures when explicitly enabled, and not safe for production books. Phase 164 hardened read-only book-context recovery around invalid/stale selected-book cookies and kept `/books` metadata redacted/no-management; Phase 10 remains a separate future release gate and no new release was published in Phase 164.
+- Continue only with the next explicitly requested phase. Controlled writes remain post-MVP/experimental, disabled by default, constrained to `APP_ENV=test` copied/disposable fixtures when explicitly enabled, and not safe for production books. Phase 165 added synthetic large account hierarchy benchmark evidence and capped account-tree indentation for deep hierarchies; Phase 10 remains a separate future release gate and no new release was published in Phase 165.
 
 ## MVP product model
 

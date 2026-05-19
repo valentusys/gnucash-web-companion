@@ -4,6 +4,7 @@
 
 	let { account, depth = 0 }: { account: AccountTreeNode; depth?: number } = $props();
 	const muted = $derived(account.placeholder || account.hidden);
+	const visualDepth = $derived(Math.min(depth, 8));
 </script>
 
 <a
@@ -11,7 +12,7 @@
 	class="grid min-w-0 grid-cols-1 gap-2 border-b px-4 py-3 hover:opacity-80 md:grid-cols-[minmax(0,1fr)_7rem_9rem_4rem] md:items-center md:gap-3"
 	style="border-color: var(--app-border); background-color: {muted ? 'var(--app-elevated-bg)' : 'var(--app-panel)'}; color: {muted ? 'var(--app-muted)' : 'var(--app-text)'};"
 >
-	<div class="min-w-0 overflow-hidden" style="padding-left: {depth * 1.25}rem">
+	<div class="min-w-0 overflow-hidden" style="padding-left: {visualDepth * 1.25}rem" title={account.full_name}>
 		<div class="flex min-w-0 flex-wrap items-center gap-2">
 			<span class="truncate font-medium">{account.name}</span>
 			{#if account.placeholder}
