@@ -7,11 +7,11 @@ Last updated: 2026-05-19
 - GitHub: `valentusys/gnucash-web-companion`
 - Local path: `/home/val/gnucash-web-companion`
 - Branch: `main`
-- Status: pre-alpha / v0.2.0-writealpha published, v0.1.4-readonly maintenance readiness audit complete through Phase 140
+- Status: pre-alpha / v0.2.0-writealpha published, v0.1.4-readonly maintenance release artifacts prepared through Phase 141
 
 ## Current baseline
 
-Completed through Phase 140.
+Completed through Phase 141.
 
 Current public release state:
 
@@ -33,6 +33,7 @@ Current public release state:
 - Phase 138 is a docs-only public status synchronization phase after Phases 133–137: `README.md`, `README.ru.md`, `CHANGELOG.md`, and `docs/ROADMAP.md` now reflect the completed read-only UX polish, compatibility-documentation refresh, local deployment hardening guide, current release posture, synthetic/disposable evidence boundaries, and no-production/no-security-audit/no-real-book-write-safety limits. No backend/frontend product code, endpoint, write-alpha capability, release publication, real-book artifact, app DB, backup, `.env`, token, key, screenshot, export, or `GNUCASH_WRITES_ENABLED=false` default changed.
 - Phase 139 is a synthetic/disposable Docker/Caddy dogfood refresh after Phases 133–138: local Docker Compose was run with `GNUCASH_WRITES_ENABLED=false`, the read-only API smoke passed for health, login/auth, books/default book, accounts, transactions, transaction detail, CSV export, reports summary, and disabled validate/create/patch write probes, and the headless browser dogfood passed login, protected redirect, dashboard, accounts, books, scheduled, account detail, transaction filters, transaction detail, CSV export, hidden write UI, and no-artifact checks. Evidence is documented in `docs/dogfood/phase-139-synthetic-dogfood.md`. No backend/frontend product code, endpoint, write-alpha capability, release publication, real-book artifact, app DB, backup, `.env`, token, key, screenshot, export, or `GNUCASH_WRITES_ENABLED=false` default changed.
 - Phase 140 is a maintenance release readiness audit for a possible `v0.1.4-readonly`: write-gating tests, frontend route checks, Docker Compose config validation, recent GitHub CI, disabled-by-default write config, tracked sensitive-file hygiene, and Phases 133–135 documentation/test evidence were checked. Verdict: `not ready` because public release/status docs are not fully synchronized yet (`README.md` still says Phase 0–137 and `CHANGELOG.md` lacks Phase 138/139 entries). No product code, write-alpha behavior, release, tag, package, real/private data, or `GNUCASH_WRITES_ENABLED=false` default changed.
+- Phase 141 prepared conservative `v0.1.4-readonly` release artifacts without publication: `docs/release/v0.1.4-readonly-notes.md`, `docs/release/v0.1.4-readonly-checklist.md`, and `docs/release/v0.1.4-readonly-final-gate.md` now describe the candidate as pre-alpha, read-only by default, unpublished, not production-ready, not security-audited, and pending explicit authorization before any tag/GitHub release. `README.md`, `CHANGELOG.md`, `PROJECT_STATUS.md`, and `docs/handoff/phase-141.md` were synchronized. Verification passed for backend health/auth tests, frontend check, frontend auth-route checks, Docker Compose config validation, tag/release absence, diff whitespace, and tracked-file sensitive hygiene. No product code, write-alpha behavior, release, tag, package, real/private data, or `GNUCASH_WRITES_ENABLED=false` default changed.
 - Previous public release `v0.1.2-readonly` remains available and points to its Phase 117 release commit.
 - Previous public release `v0.1.1-readonly` remains available and points to `a4d04150c043ad4da3dea577b30ed7ffd2032df0`, after Phase 104.
 
@@ -179,6 +180,7 @@ Completed phases:
 - Phase 138 — public README/CHANGELOG/roadmap/status documentation sync
 - Phase 139 — synthetic dogfood refresh
 - Phase 140 — v0.1.4-readonly maintenance release readiness audit
+- Phase 141 — v0.1.4-readonly release artifact preparation
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -2123,6 +2125,27 @@ Audit result: the release-readiness verdict is `not ready`. Local write-gating c
 Safety result: audit/status docs only. No backend/frontend product code, endpoint, write route, write service, runtime default, release/tag/package, app DB, GnuCash book, backup, `.env`, secret, token, key, cert, screenshot, CSV/private export, private path, account name, transaction description, memo, amount, or private financial data was added. `GNUCASH_WRITES_ENABLED=false` remains the documented/configured default. Docs remain pre-alpha, test-copies-first, not production-ready, not security-audited, and with no real/private-book write-safety claim.
 
 Verification result: targeted disabled-write tests passed (`8 passed, 1 warning`); frontend `npm run test:auth-routes` passed; Docker Compose config validation passed; latest five GitHub Actions `main` CI runs were `completed success` after waiting for the Phase 139 run; tracked sensitive-file scan found only intentional test fixtures and `data/app/.gitkeep`; `git diff --check` passed before commit.
+
+## Phase 141 — v0.1.4-readonly Release Artifact Preparation
+
+Status: complete. Phase commit pushed after verification.
+
+Goal: prepare conservative release artifacts for a possible `v0.1.4-readonly` maintenance pre-release without creating a tag, GitHub release, package, upload, or write-mode change.
+
+Artifacts:
+
+- `docs/release/v0.1.4-readonly-notes.md` — pre-alpha/read-only release notes with explicit not-production-ready, not-security-audited, test-copy-first, no-public-internet, and no-safe-write-mode language.
+- `docs/release/v0.1.4-readonly-checklist.md` — checkable release-prep checklist, candidate scope, evidence, safety checks, and publish commands reserved for a later explicit authorization phase.
+- `docs/release/v0.1.4-readonly-final-gate.md` — final gate with verdict `Ready for later authorized publish phase — unpublished`.
+- `README.md` — current status and release-readiness links synchronized through Phase 141, while keeping `v0.1.3-readonly` as the current public read-only release until a later publish phase.
+- `CHANGELOG.md` — added the `[0.1.4-readonly]` candidate section and separated the existing published `v0.2.0-writealpha` write-alpha history.
+- `PROJECT_STATUS.md` and `docs/handoff/phase-141.md` — status and handoff synchronized.
+
+Release result: `v0.1.4-readonly` is prepared but unpublished. No tag, GitHub release, package, uploaded artifact, product code, write-alpha expansion, runtime default, real/private data, or release publication was created. Publication remains a separate future phase requiring explicit authorization and immediate re-check of clean `main`, `HEAD == origin/main`, tag/release absence, CI/local checks, `GNUCASH_WRITES_ENABLED=false`, and sensitive-data hygiene.
+
+Safety result: documentation/release-status only. No backend/frontend product code, endpoint, write route, write service, runtime default, app DB, GnuCash book, backup, `.env`, secret, token, key, cert, screenshot, CSV/private export, private path, account name, transaction description, memo, amount, or private financial data was added. `GNUCASH_WRITES_ENABLED=false` remains the documented/configured default. Docs remain pre-alpha, test-copies-first, not production-ready, not security-audited, and with no real/private-book write-safety claim.
+
+Verification result: `cd apps/api && pytest tests/test_health.py tests/test_auth.py -q` passed (`17 passed, 1 warning`); `cd apps/web && npm run check` passed (`0 errors and 0 warnings`); `cd apps/web && npm run test:auth-routes` passed; Docker Compose config validation passed; tag/release absence checks passed; `git diff --check` passed; tracked sensitive-file scan found only intentional allowlisted fixtures/placeholders.
 
 ## Standing constraints
 

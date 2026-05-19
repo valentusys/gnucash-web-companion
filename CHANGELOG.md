@@ -6,20 +6,52 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+No unreleased changes after the prepared `v0.1.4-readonly` candidate.
+
+## [0.1.4-readonly] - 2026-05-19
+
 ### Added
 
+- Phase 141 — prepared conservative `v0.1.4-readonly` release artifacts without publishing: release notes, release-prep checklist, final gate, README links, project status, and phase handoff now describe the candidate as pre-alpha, read-only by default, not production-ready, not security-audited, unpublished, and pending explicit authorization before any tag/GitHub release.
+- Phase 139 — reran synthetic/disposable Docker/Caddy dogfood with `GNUCASH_WRITES_ENABLED=false`; read-only API smoke covered health, login/auth, books/default book, accounts, transactions, transaction detail, CSV export, reports summary, and disabled validate/create/patch write probes; browser dogfood covered login, protected redirect, dashboard, accounts, books, scheduled awareness, account detail, transaction filters, transaction detail, CSV export, hidden write UI, and no-artifact checks.
+- Phase 138 — synchronized public README, Russian README, changelog, roadmap, project status, and handoff after the recent read-only maintenance and documentation phases.
 - Phase 137 — refreshed local secure deployment documentation without product-code changes: `docs/deployment/local-secure-deployment.md` now gives concrete localhost/LAN/VPN CORS recommendations, JWT secret generation and conservative rotation guidance, app metadata DB backup expectations for `data/app/app.db`, and a checkable self-hosting pre-deployment checklist; `.env.example` comments now point to fresh JWT secrets and exact CORS examples.
 - Phase 136 — refreshed GnuCash compatibility documentation without new fixture or Desktop-version claims: `docs/gnucash-compatibility.md` now makes synthetic/disposable evidence boundaries explicit and lists Desktop versions as not yet validated by automation, while `docs/gnucash-version-fixture-plan.md` inventories current synthetic/disposable fixture evidence and keeps future Desktop-generated fixture work gated on safe provenance.
 - Phase 135 — polished read-only mobile navigation: the desktop nav is hidden below the `md` breakpoint, the mobile shell owns touch-friendly book/locale/theme/logout controls, shared controls meet the 44px touch-target expectation, the shell reserves enough bottom space for fixed mobile navigation, and transaction-detail splits render as mobile cards at narrow widths.
 - Phase 134 — added shape-matched read-only loading skeletons for dashboard, accounts, transactions, and books during SvelteKit navigation/data reloads, including active-book switching.
 - Phase 133 — improved read-only empty and error states: accessible empty/error components now provide clearer labels/actions, the global error page maps API/network/403/404/server failures to user-safe retry/back actions, and books/scheduled/transactions/accounts routes show informative empty states for no accessible books, no schedules, no transactions, no matching filters, and no accounts.
-- Phase 132 — published `v0.2.0-writealpha` as an authorized pre-alpha GitHub pre-release: release notes, checklist, and final-gate docs now summarize write-alpha CRUD as experimental, disabled by default with `GNUCASH_WRITES_ENABLED=false`, executable only under the `APP_ENV=test` gate when explicitly enabled, supported only by synthetic/disposable fixture evidence, not production-ready, not security-audited, not safe for real/private books, and published as an authorized GitHub pre-release after final checks.
+
+### Release notes
+
+- `v0.1.4-readonly` is prepared only. Phase 141 did not create a git tag, GitHub release, package, or uploaded artifact.
+- This remains a conservative pre-alpha/read-only candidate. `GNUCASH_WRITES_ENABLED=false` remains the default; controlled-write code is experimental post-MVP/write-alpha work, test-fixture-only when enabled, and outside any safe production write-mode claim.
+
+### Known limitations
+
+- Not production-ready and not security-audited.
+- Do not expose early deployments directly to the public internet.
+- Test with disposable fixtures or copied GnuCash SQL books first, keep backups, and keep `.env`, app DBs, GnuCash books, backups, private exports/screenshots, secrets, tokens, keys, and certs out of git.
+- Compatibility evidence remains intentionally narrow; no broad PostgreSQL/MySQL/MariaDB/XML/all-version compatibility is claimed.
+- Phase 139 dogfood evidence is synthetic/disposable only and does not establish production or broad real-book readiness.
+- No hosted SaaS readiness, collaborative accounting, family-wallet positioning, real-time multi-user editing, CSV/OFX import, banking integration, or safe production write mode is claimed.
+
+## [0.2.0-writealpha] - 2026-05-19
+
+### Added
+
+- Phase 132 — published `v0.2.0-writealpha` as an authorized pre-alpha GitHub pre-release: release notes, checklist, and final-gate docs summarize write-alpha CRUD as experimental, disabled by default with `GNUCASH_WRITES_ENABLED=false`, executable only under the `APP_ENV=test` gate when explicitly enabled, supported only by synthetic/disposable fixture evidence, not production-ready, not security-audited, not safe for real/private books, and published after final checks.
 - Phase 131 — completed the authorized write-alpha DELETE transaction slice without default enablement: `DELETE /books/{book_id}/transactions/{transaction_id}` requires `GNUCASH_WRITES_ENABLED=true` plus `APP_ENV=test`, uses copied/disposable fixtures only in tests, creates a backup before deletion, holds/releases the per-book lock, records success/failure audit rows, returns 404 for missing transactions before backup/lock/mutation, rejects read-only/viewer access before write-service construction, and exposes a hidden-by-default frontend delete form with explicit acknowledgement and browser confirmation.
-- Phase 130 — hardened the experimental write-alpha PATCH transaction path without default enablement: `PATCH /books/{book_id}/transactions/{transaction_id}` remains limited to `GNUCASH_WRITES_ENABLED=true` plus `APP_ENV=test` copied/disposable fixtures, preserves description/date/split-memo-only edits, now reports missing transactions as 404 before lock/backup/mutation, records backup paths on failed post-backup PATCH audits, and adds disposable-fixture lifecycle coverage for successful PATCH, validation failure, missing transaction, synthetic post-backup failure, lock release, no backup leak, and concurrent PATCH+CREATE lock contention.
-- Phase 129 — added write-alpha recovery and maintainer-review documentation without product-code changes or default write enablement: `docs/write-alpha-recovery-procedure.md` now covers containment, backup selection, stale-lock cleanup, restore, integrity checks, and damaged-book triage for synthetic/disposable books only, while `docs/write-alpha-maintainer-checklist.md` provides a checkable gate for default-disabled config, `APP_ENV=test`, disposable fixtures, lifecycle evidence, recovery docs, and sensitive-data hygiene.
-- Phase 128 — expanded write-alpha create-route safety coverage without default enablement: added copied/disposable fixture concurrency coverage for two parallel POST writes (one success, one lock-contention failure), synthetic post-backup error-path coverage proving lock release/failed audit/intact backup/no book mutation, and read-only/viewer book-access rejection before write-service construction; write lock re-entrant same-process acquisition is now rejected instead of replacing the active descriptor.
-- Phase 127 — refreshed GnuCash Desktop compatibility evidence for GitHub #22: `gnucash`/`gnucash-cli` remain unavailable in the execution environment, so the matrix records a Desktop-tooling blocker rather than a fabricated Desktop-generated fixture claim; docs now include a manual synthetic Desktop-fixture procedure and regression coverage pins the missing-tooling path as a safe blocker.
-- Phase 126 — completed read-only GitHub #11/#12 triage: the transaction query matcher now includes transaction notes when exposed by the GnuCash/piecash object, the UI/docs clarify description/notes/split-memo search semantics, persistent saved filter presets are intentionally de-scoped in favor of URL-only presets for privacy, and the scheduled/recurring awareness issue was closed as already covered by the conservative Phase 109 implementation.
+- Phase 130 — hardened the experimental write-alpha PATCH transaction path without default enablement: `PATCH /books/{book_id}/transactions/{transaction_id}` remains limited to `GNUCASH_WRITES_ENABLED=true` plus `APP_ENV=test` copied/disposable fixtures, preserves description/date/split-memo-only edits, reports missing transactions as 404 before lock/backup/mutation, records backup paths on failed post-backup PATCH audits, and adds disposable-fixture lifecycle coverage for successful PATCH, validation failure, missing transaction, synthetic post-backup failure, lock release, no backup leak, and concurrent PATCH+CREATE lock contention.
+- Phase 129 — added write-alpha recovery and maintainer-review documentation without product-code changes or default write enablement: `docs/write-alpha-recovery-procedure.md` covers containment, backup selection, stale-lock cleanup, restore, integrity checks, and damaged-book triage for synthetic/disposable books only, while `docs/write-alpha-maintainer-checklist.md` provides a checkable gate for default-disabled config, `APP_ENV=test`, disposable fixtures, lifecycle evidence, recovery docs, and sensitive-data hygiene.
+- Phase 128 — expanded write-alpha create-route safety coverage without default enablement: added copied/disposable fixture concurrency coverage for two parallel POST writes, synthetic post-backup error-path coverage proving lock release/failed audit/intact backup/no book mutation, and read-only/viewer book-access rejection before write-service construction.
+- Phase 127 — refreshed GnuCash Desktop compatibility evidence for GitHub #22: `gnucash`/`gnucash-cli` remain unavailable in the execution environment, so the matrix records a Desktop-tooling blocker rather than a fabricated Desktop-generated fixture claim.
+- Phase 126 — completed read-only GitHub #11/#12 triage: transaction query matching now includes transaction notes when exposed by the GnuCash/piecash object, docs clarify description/notes/split-memo search semantics, saved filter presets are de-scoped in favor of URL-only presets for privacy, and scheduled/recurring awareness was closed as already covered.
+
+### Known limitations
+
+- Write-alpha remains experimental, disabled by default, and executable only with `APP_ENV=test` when explicitly enabled.
+- Real/private-book write safety is not established and not claimed.
+- Not production-ready and not security-audited.
 
 ## [0.1.3-readonly] - 2026-05-19
 

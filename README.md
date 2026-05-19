@@ -40,13 +40,14 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–137 are complete.
+- Phase 0–141 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by default.
 - First public pre-alpha release: `v0.0.1-prealpha`.
 - Current public read-only pre-alpha release: [`v0.1.3-readonly`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.3-readonly).
+- Prepared but unpublished read-only maintenance candidate: [`v0.1.4-readonly`](docs/release/v0.1.4-readonly-notes.md) ([checklist](docs/release/v0.1.4-readonly-checklist.md), [final gate](docs/release/v0.1.4-readonly-final-gate.md)).
 - Latest published release notes: [docs/release/v0.1.3-readonly-notes.md](docs/release/v0.1.3-readonly-notes.md).
-- Latest published release-gate artifact: [docs/release/v0.1.3-readonly-final-gate.md](docs/release/v0.1.3-readonly-final-gate.md).
+- Latest prepared release notes: [docs/release/v0.1.4-readonly-notes.md](docs/release/v0.1.4-readonly-notes.md).
 - `v0.2.0-writealpha` is published as a pre-alpha write-alpha GitHub pre-release after explicit authorization: [notes](docs/release/v0.2.0-writealpha-notes.md), [checklist](docs/release/v0.2.0-writealpha-checklist.md), [final gate](docs/release/v0.2.0-writealpha-final-gate.md).
 - Compatibility matrix: [docs/gnucash-compatibility.md](docs/gnucash-compatibility.md). Current compatibility evidence is synthetic/disposable fixture evidence only; no real GnuCash Desktop version support is claimed yet.
 - Recent post-release maintenance:
@@ -55,6 +56,10 @@ This project is not a fit if you need:
   - Phase 135 polished mobile navigation and small-screen transaction detail layout.
   - Phase 136 refreshed compatibility documentation while keeping synthetic/disposable evidence boundaries explicit.
   - Phase 137 refreshed local/LAN/VPN deployment hardening docs, JWT-secret guidance, CORS examples, app metadata DB backup expectations, and pre-deployment checks.
+  - Phase 138 synchronized public README/CHANGELOG/roadmap/status documentation.
+  - Phase 139 reran synthetic/disposable Docker/Caddy read-only dogfood with `GNUCASH_WRITES_ENABLED=false`.
+  - Phase 140 audited `v0.1.4-readonly` readiness and found a documentation-drift blocker.
+  - Phase 141 prepared conservative unpublished `v0.1.4-readonly` release artifacts and status updates.
 - Russian localization/i18n foundation started in Phase 52; English documentation remains canonical. See [README.ru.md](README.ru.md) and [docs/localization.md](docs/localization.md).
 - Community announcement drafts and where-to-share guidance were refreshed in Phase 53 for cautious feedback collection, not production marketing.
 - Startup diagnostics, a richer non-sensitive health endpoint, and troubleshooting guidance were added in Phase 54 for self-hosted deployments.
@@ -192,7 +197,7 @@ The current public read-only pre-alpha tag/release is:
 v0.1.3-readonly
 ```
 
-Current release checklist and notes:
+Current published release checklist and notes:
 
 - [docs/release/v0.1.3-readonly-checklist.md](docs/release/v0.1.3-readonly-checklist.md)
 - [docs/release/v0.1.3-readonly-notes.md](docs/release/v0.1.3-readonly-notes.md)
@@ -201,6 +206,20 @@ Current release checklist and notes:
 GitHub release:
 
 - <https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.3-readonly>
+
+Prepared but unpublished read-only maintenance candidate:
+
+```text
+v0.1.4-readonly
+```
+
+Prepared candidate artifacts:
+
+- [docs/release/v0.1.4-readonly-checklist.md](docs/release/v0.1.4-readonly-checklist.md)
+- [docs/release/v0.1.4-readonly-notes.md](docs/release/v0.1.4-readonly-notes.md)
+- [docs/release/v0.1.4-readonly-final-gate.md](docs/release/v0.1.4-readonly-final-gate.md)
+
+`v0.1.4-readonly` is not tagged or published yet. A later publish phase must re-check clean `main`, `HEAD == origin/main`, tag/release absence, CI/local checks, `GNUCASH_WRITES_ENABLED=false`, and sensitive-data hygiene before creating any tag or GitHub release.
 
 Published write-alpha pre-release artifacts:
 
