@@ -132,10 +132,10 @@ class TestCompatibilityFixtureV1ReadOnlyCoverage:
         assert detail.currency == "SEK"
         assert len(detail.splits) == 4
         split_accounts = {split.account_name for split in detail.splits}
-        assert "Root Account:Assets:Checking" in split_accounts
-        assert "Root Account:Expenses:Groceries" in split_accounts
-        assert "Root Account:Expenses:Utilities" in split_accounts
-        assert "Root Account:Expenses:Travel" in split_accounts
+        assert "Assets:Checking" in split_accounts
+        assert "Expenses:Groceries" in split_accounts
+        assert "Expenses:Utilities" in split_accounts
+        assert "Expenses:Travel" in split_accounts
 
     def test_reports_basic_values_are_available(self, svc: GnuCashBookService):
         summary = svc.get_summary()

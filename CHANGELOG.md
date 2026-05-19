@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Phase 119 — stripped the synthetic GnuCash `Root Account:` prefix from displayed account full-name paths in the service layer while preserving child paths, account IDs, parent references, and API response shape; backend fixture/regression tests now expect cleaned names such as `Assets:Bank:Checking`.
 - Phase 118 — stabilized the desktop transaction table with fixed full-width columns, safe truncation for long descriptions/account names, and no needless desktop horizontal scroll; also narrowed account-tree desktop grid sizing to avoid narrow-layout overflow. Frontend static route checks pin the CSS-only regression contract.
 
 

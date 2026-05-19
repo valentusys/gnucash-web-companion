@@ -124,10 +124,10 @@ class TestMultiCurrencyExpensesByAccount:
         """Only SEK expense accounts appear in expenses-by-account."""
         expenses = svc.get_expenses_by_account("2026-01-01", "2026-03-31")
         account_names = {e.account_name for e in expenses}
-        assert "Root Account:Expenses:Food" in account_names
-        assert "Root Account:Expenses:Transport" in account_names
+        assert "Expenses:Food" in account_names
+        assert "Expenses:Transport" in account_names
         # EUR Travel must NOT be present
-        assert "Root Account:EUR Expenses:EUR Travel" not in account_names
+        assert "EUR Expenses:EUR Travel" not in account_names
 
     def test_expenses_eur_travel_excluded(self, svc):
         """EUR Travel expense (120 EUR) is excluded from SEK expenses report."""

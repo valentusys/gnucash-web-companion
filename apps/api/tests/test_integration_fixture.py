@@ -163,10 +163,10 @@ class TestFixtureTransactionDetail:
         assert len(detail.splits) == 4
         # Verify split accounts
         split_accounts = {s.account_name for s in detail.splits}
-        assert "Root Account:Assets:Bank:Checking" in split_accounts
-        assert "Root Account:Expenses:Food" in split_accounts
-        assert "Root Account:Expenses:Transport" in split_accounts
-        assert "Root Account:Liabilities:Credit Card" in split_accounts
+        assert "Assets:Bank:Checking" in split_accounts
+        assert "Expenses:Food" in split_accounts
+        assert "Expenses:Transport" in split_accounts
+        assert "Liabilities:Credit Card" in split_accounts
 
     def test_fixture_two_split_detail(self, svc):
         """Two-split transaction (January salary) has 2 splits."""

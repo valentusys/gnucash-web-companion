@@ -91,7 +91,9 @@ def account_full_name(account: Any) -> str:
     while current is not None and id(current) not in seen:
         seen.add(id(current))
         name = getattr(current, "name", None)
-        if name:
+        account_type = str(getattr(current, "type", "") or "").upper()
+        is_root_account = account_type == "ROOT" and str(name or "") == "Root Account"
+        if name and not is_root_account:
             names.append(str(name))
         current = getattr(current, "parent", None)
     return ":".join(reversed(names))

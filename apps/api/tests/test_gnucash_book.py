@@ -59,7 +59,7 @@ class FakeBook:
 
 @pytest.fixture
 def fake_accounts():
-    root = FakeAccount(guid="root", name="Assets", type="ROOT")
+    root = FakeAccount(guid="root", name="Assets", type="ASSET")
     bank = FakeAccount(guid="bank", name="Bank", type="ASSET", parent=root)
     checking = FakeAccount(guid="checking", name="Checking", type="BANK", parent=bank, balance=Decimal("12345.67"))
     food = FakeAccount(guid="food", name="Food", type="EXPENSE")
@@ -120,6 +120,16 @@ def test_full_account_name_mapper(fake_accounts):
     assert account_full_name(root) == "Assets"
     assert account_full_name(bank) == "Assets:Bank"
     assert account_full_name(checking) == "Assets:Bank:Checking"
+
+
+def test_full_account_name_skips_gnucash_root_account():
+    root = FakeAccount(guid="root", name="Root Account", type="ROOT")
+    assets = FakeAccount(guid="assets", name="Assets", type="ASSET", parent=root)
+    bank = FakeAccount(guid="bank", name="Bank", type="ASSET", parent=assets)
+    checking = FakeAccount(guid="checking", name="Checking", type="BANK", parent=bank)
+
+    assert account_full_name(checking) == "Assets:Bank:Checking"
+    assert account_full_name(root) == ""
 
 
 def test_missing_book_path_raises_controlled_error():
