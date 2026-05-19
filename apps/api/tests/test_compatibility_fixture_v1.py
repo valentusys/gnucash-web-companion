@@ -8,6 +8,7 @@ created in pytest's tmp_path, so no binary GnuCash book is committed.
 from __future__ import annotations
 
 import importlib.util
+import json
 import shutil
 from pathlib import Path
 from types import ModuleType
@@ -20,6 +21,16 @@ from app.services.gnucash_book import GnuCashBookService
 def _load_generator() -> ModuleType:
     script_path = Path(__file__).resolve().parents[1] / "scripts" / "create_compatibility_fixture_v1.py"
     spec = importlib.util.spec_from_file_location("create_compatibility_fixture_v1", script_path)
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _load_desktop_tooling_probe() -> ModuleType:
+    script_path = Path(__file__).resolve().parents[1] / "scripts" / "probe_gnucash_desktop_tooling.py"
+    spec = importlib.util.spec_from_file_location("probe_gnucash_desktop_tooling", script_path)
     assert spec is not None
     assert spec.loader is not None
     module = importlib.util.module_from_spec(spec)
@@ -64,6 +75,21 @@ class TestCompatibilityFixtureV1Generation:
         assert metadata["runtime_context"]["piecash_version"]
         assert metadata["sha256"] == sha256_file(compatibility_fixture_path)
         assert metadata["versions"]["Gnucash"] >= 3000000
+
+    def test_desktop_tooling_absence_is_safe_blocker_not_desktop_evidence(self, monkeypatch):
+        probe = _load_desktop_tooling_probe()
+        monkeypatch.setattr(probe.shutil, "which", lambda command: None)
+
+        metadata = probe.probe_tooling()
+        serialized = json.dumps(metadata, sort_keys=True)
+
+        assert metadata["desktop_tooling_available"] is False
+        assert metadata["commands"]["gnucash"]["available"] is False
+        assert metadata["commands"]["gnucash-cli"]["available"] is False
+        assert metadata["safe_next_step"].startswith("Install or provide GnuCash Desktop/CLI")
+        assert "version_output" not in metadata["commands"]["gnucash"]
+        assert "/home" not in serialized
+        assert "<redacted>" not in serialized
 
     def test_read_only_service_does_not_mutate_fixture(self, compatibility_fixture_path: Path):
         before = sha256_file(compatibility_fixture_path)

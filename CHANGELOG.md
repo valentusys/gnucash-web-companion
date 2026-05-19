@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Phase 127 — refreshed GnuCash Desktop compatibility evidence for GitHub #22: `gnucash`/`gnucash-cli` remain unavailable in the execution environment, so the matrix records a Desktop-tooling blocker rather than a fabricated Desktop-generated fixture claim; docs now include a manual synthetic Desktop-fixture procedure and regression coverage pins the missing-tooling path as a safe blocker.
 - Phase 126 — completed read-only GitHub #11/#12 triage: the transaction query matcher now includes transaction notes when exposed by the GnuCash/piecash object, the UI/docs clarify description/notes/split-memo search semantics, persistent saved filter presets are intentionally de-scoped in favor of URL-only presets for privacy, and the scheduled/recurring awareness issue was closed as already covered by the conservative Phase 109 implementation.
 
 ## [0.1.3-readonly] - 2026-05-19

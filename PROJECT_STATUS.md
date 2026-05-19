@@ -11,7 +11,7 @@ Last updated: 2026-05-19
 
 ## Current baseline
 
-Completed through Phase 126.
+Completed through Phase 127.
 
 Current public release state:
 
@@ -19,6 +19,7 @@ Current public release state:
 - Local/GitHub tag `v0.1.3-readonly` is created by Phase 125 on the release-doc/status commit and published as a GitHub pre-release from `docs/release/v0.1.3-readonly-notes.md`.
 - The release scope includes the Phase 118–121 live-stand read-only fixes, Phase 122 release gate, and the disabled-by-default/test-fixture-only write-alpha safety hardening from Phases 123–124 without any production write-mode claim.
 - Phase 126 is an unreleased read-only polish/triage phase: transaction query search now also checks transaction notes when piecash exposes them; GitHub #11/#12 were resolved or de-scoped without changing write routes.
+- Phase 127 is an unreleased compatibility-evidence refresh for GitHub #22: local `gnucash`/`gnucash-cli` Desktop tooling is still unavailable, so docs record a safe blocker/manual procedure instead of claiming Desktop-generated fixture evidence; regression coverage pins the missing-tooling behavior.
 - Previous public release `v0.1.2-readonly` remains available and points to its Phase 117 release commit.
 - Previous public release `v0.1.1-readonly` remains available and points to `a4d04150c043ad4da3dea577b30ed7ffd2032df0`, after Phase 104.
 
@@ -151,6 +152,7 @@ Completed phases:
 - Phase 124 — write-alpha controlled transaction create hardening
 - Phase 125 — publish v0.1.3-readonly pre-release
 - Phase 126 — read-only transaction filter polish and GitHub #11/#12 triage
+- Phase 127 — GnuCash Desktop compatibility evidence refresh for GitHub #22
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -1944,6 +1946,28 @@ Artifacts:
 Safety result: frontend CSS/UI-only changes. No API, data model, GnuCash adapter, schema, write path, auth storage, release/tag/package, real/private book, app DB, backup, screenshot, CSV export, `.env`, secret, token, cert, key, private path, account name, transaction description, memo, amount, or personal financial data was added. `GNUCASH_WRITES_ENABLED=false` remains default and controlled writes remain post-MVP/experimental.
 
 Verification result: backend full tests, frontend check/auth-routes/build, Docker Compose config validation, and `git diff --check` passed.
+
+## Phase 127 — GnuCash Desktop Compatibility Evidence Refresh
+
+Status: complete. Phase commit pushed.
+
+Goal: refresh GitHub #22 GnuCash Desktop compatibility evidence, or document the exact blocker without fabricating Desktop-generated fixture claims.
+
+Artifacts:
+
+- `docs/gnucash-compatibility.md` — compatibility matrix now includes Phase 127 as a blocker row: no Desktop-generated fixture was produced because local `gnucash` and `gnucash-cli` tooling are unavailable.
+- `docs/gnucash-version-fixture-plan.md` — records Phase 127 local evidence and a manual synthetic Desktop-fixture procedure for a disposable environment with Desktop/CLI installed.
+- `apps/api/tests/test_compatibility_fixture_v1.py` — adds regression coverage that missing Desktop tooling is represented as a safe blocker, not Desktop evidence, and does not serialize private paths.
+- `docs/handoff/phase-127.md` — implementation/evidence/checks/results.
+- `CHANGELOG.md` and `PROJECT_STATUS.md` — status sync through Phase 127.
+
+Compatibility result: `gnucash --version` and `gnucash-cli --version` both returned command-not-found in this execution environment. The safe tooling probe reported `desktop_tooling_available=false`. Therefore no synthetic Desktop-generated GnuCash book was created, no new fixture binary was committed, and GitHub #22 remains blocked on a disposable environment that actually has GnuCash Desktop/CLI available.
+
+Safety result: no real/private GnuCash books were used or searched for. No app DB, backup, `.env`, secret, token, cert, key, screenshot, CSV/media/export, private path, account name, transaction description, memo, amount, SQL dump, fixture binary, tag, release, or package was committed. `GNUCASH_WRITES_ENABLED=false` remains default and `APP_ENV=test` write gate was not changed.
+
+Verification result: targeted compatibility test, backend full suite, frontend check/build, `git diff --check`, and sensitive tracked-file scan passed. Docker Compose config validation also passed as an extra safety check.
+
+Related issues: GitHub #22 updated with Phase 127 blocker/manual-procedure evidence and kept open until real Desktop-generated synthetic fixture evidence exists.
 
 ## Standing constraints
 
