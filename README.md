@@ -136,7 +136,7 @@ This repository may contain experimental post-MVP controlled-write code. It is d
 GNUCASH_WRITES_ENABLED=false
 ```
 
-Controlled writes are not part of MVP v0.1. Do not enable write mode against your only copy of a GnuCash book. See [docs/v0.2-controlled-writes.md](docs/v0.2-controlled-writes.md) for the design and safety requirements.
+Controlled writes are not part of MVP v0.1. They are experimental write-alpha code, disabled by default, and additionally constrained by the backend test-environment gate when explicitly enabled. Do not enable write mode against your only copy of a GnuCash book, and do not treat it as production-safe. Test only with synthetic/disposable or otherwise copied books that you can restore or delete. See [docs/v0.2-controlled-writes.md](docs/v0.2-controlled-writes.md) for the design and safety requirements, [docs/write-alpha-maintainer-checklist.md](docs/write-alpha-maintainer-checklist.md) for the maintainer review gate, and [docs/write-alpha-recovery-procedure.md](docs/write-alpha-recovery-procedure.md) for recovery steps.
 
 ## Quick start
 

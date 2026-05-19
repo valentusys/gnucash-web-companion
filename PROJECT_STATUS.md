@@ -11,7 +11,7 @@ Last updated: 2026-05-19
 
 ## Current baseline
 
-Completed through Phase 128.
+Completed through Phase 129.
 
 Current public release state:
 
@@ -21,6 +21,7 @@ Current public release state:
 - Phase 126 is an unreleased read-only polish/triage phase: transaction query search now also checks transaction notes when piecash exposes them; GitHub #11/#12 were resolved or de-scoped without changing write routes.
 - Phase 127 is an unreleased compatibility-evidence refresh for GitHub #22: local `gnucash`/`gnucash-cli` Desktop tooling is still unavailable, so docs record a safe blocker/manual procedure instead of claiming Desktop-generated fixture evidence; regression coverage pins the missing-tooling behavior.
 - Phase 128 is an unreleased write-alpha concurrency/error-path safety expansion for create only: copied/disposable fixture tests now prove two parallel create POSTs produce one success and one lock-contention failure, synthetic post-backup write failure releases the lock, records failed audit with intact backup, and leaves the book unmutated, and read-only/viewer book access returns 403 before write-service construction. Writes remain disabled by default and limited to `APP_ENV=test` copied/disposable fixture scope when explicitly enabled.
+- Phase 129 is an unreleased docs-only write-alpha recovery and maintainer-review gate: it adds a synthetic/disposable-scope recovery procedure for containment, backup selection, stale-lock cleanup, restore, integrity checks, and damaged-book triage, plus a maintainer checklist for default-disabled config, `APP_ENV=test` gating, disposable fixtures, lifecycle evidence, recovery docs, and sensitive-data hygiene. No product code changed, writes remain disabled by default, and no real-book write safety is claimed.
 - Previous public release `v0.1.2-readonly` remains available and points to its Phase 117 release commit.
 - Previous public release `v0.1.1-readonly` remains available and points to `a4d04150c043ad4da3dea577b30ed7ffd2032df0`, after Phase 104.
 
@@ -155,6 +156,7 @@ Completed phases:
 - Phase 126 — read-only transaction filter polish and GitHub #11/#12 triage
 - Phase 127 — GnuCash Desktop compatibility evidence refresh for GitHub #22
 - Phase 128 — Write-alpha concurrency and error-path expansion
+- Phase 129 — Write-alpha recovery documentation and maintainer review gate
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -1972,6 +1974,24 @@ Safety result: no real/private GnuCash books were used or searched for. No app D
 Verification result: targeted compatibility test, backend full suite, frontend check/build, `git diff --check`, and sensitive tracked-file scan passed. Docker Compose config validation also passed as an extra safety check.
 
 Related issues: GitHub #22 updated with Phase 127 blocker/manual-procedure evidence and kept open until real Desktop-generated synthetic fixture evidence exists.
+
+## Phase 129 — Write-alpha Recovery Documentation and Maintainer Review Gate
+
+Status: complete. Phase commit pushed.
+
+Goal: close the write-alpha documentation gap before any future real-user write consideration by adding recovery and maintainer-review documentation only.
+
+Artifacts:
+
+- `docs/write-alpha-recovery-procedure.md` — experimental write-alpha recovery procedure for synthetic/disposable books only, covering containment, backup selection, stale-lock cleanup, restore, read-only integrity checks, and damaged-book triage.
+- `docs/write-alpha-maintainer-checklist.md` — checkable maintainer gate for default-disabled config, `APP_ENV=test` route gating, disposable fixture scope, lifecycle evidence, recovery docs, and sensitive-data hygiene.
+- `README.md` — controlled-write warning now explicitly says write-alpha is experimental, disabled by default, test-environment-gated when enabled, synthetic/disposable-first, and not production-safe.
+- `docs/v0.2-controlled-writes.md` — readiness gate updated through Phase 129 and remaining gaps clarified.
+- `CHANGELOG.md`, `PROJECT_STATUS.md`, and `docs/handoff/phase-129.md` — status and handoff synchronized.
+
+Safety result: docs-only phase. No product code, runtime config, route, service, frontend behavior, write default, `APP_ENV=test` gate, tag, release, package, upload, app DB, GnuCash book, backup, `.env`, secret, token, credential, cert, key, screenshot, CSV/media/private export, private path, or real/private financial data was added or changed. No real-book write safety is claimed.
+
+Verification result: backend full tests, frontend check/build, `git diff --check`, sensitive tracked-file scan, and manual markdown review passed.
 
 ## Standing constraints
 
