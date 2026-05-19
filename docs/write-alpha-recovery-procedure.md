@@ -9,7 +9,7 @@ Write-alpha execution is intentionally limited to all of the following:
 - `GNUCASH_WRITES_ENABLED=true` explicitly set by the operator;
 - `APP_ENV=test` route gate still active;
 - copied, synthetic, or otherwise disposable GnuCash SQL books only;
-- pre-write backup, per-book lock, validation, audit, and unlock lifecycle;
+- pre-write backup, per-book lock, validation where applicable, audit, and unlock lifecycle;
 - no tag/release/publication claim that write mode is safe for real books.
 
 Keep the repository default at:
@@ -25,7 +25,7 @@ Do not use this procedure on the only copy of a GnuCash book. For real user data
 For a failed write-alpha attempt, collect only non-sensitive operational facts:
 
 - app version or commit SHA;
-- exact route family, for example `POST /books/{book_id}/transactions`;
+- exact route family, for example `POST /books/{book_id}/transactions`, `PATCH /books/{book_id}/transactions/{transaction_id}`, or `DELETE /books/{book_id}/transactions/{transaction_id}`;
 - HTTP status and non-sensitive error code/message;
 - UTC timestamp of the attempt;
 - anonymized book id, not a filesystem path;
@@ -133,6 +133,8 @@ Run read-only checks first. Do not re-enable writes as a recovery test.
    ```
 
 2. Log in through the UI and browse read-only pages: dashboard, accounts, transactions, and the affected transaction detail if known.
+
+   If the failed action was a DELETE that intentionally removed the affected transaction, verify instead that the transaction list loads read-only and that the deleted transaction id is absent from the disposable restored/regenerated state you expect.
 
 3. If local backend tooling is available, run the automated suite from the repository root:
 

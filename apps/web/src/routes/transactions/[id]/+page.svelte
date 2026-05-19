@@ -1,7 +1,7 @@
 <script lang="ts">
 	import TransactionSplits from '$lib/components/TransactionSplits.svelte';
 
-	let { data } = $props();
+	let { data, form }: { data: any; form?: { error?: string } } = $props();
 	const tx = $derived(data.transaction);
 </script>
 
@@ -28,5 +28,43 @@
 		</div>
 
 		<TransactionSplits splits={tx.splits} />
+
+		{#if form?.error}
+			<p class="mt-6 rounded-xl px-4 py-3 text-sm" style="background: #fef2f2; color: #991b1b; border: 1px solid #fecaca;">
+				{form.error}
+			</p>
+		{/if}
+
+		{#if data.writesEnabled && data.activeBook}
+			<form
+				method="POST"
+				action="?/delete"
+				class="mt-6 rounded-2xl p-4"
+				style="background: #fffbeb; border: 1px solid #fcd34d;"
+				onsubmit={(event) => {
+					if (!confirm('Delete this transaction from the disposable/test GnuCash book? This experimental write-alpha action creates a backup first and cannot be undone here.')) {
+						event.preventDefault();
+					}
+				}}
+			>
+				<input type="hidden" name="book_id" value={data.activeBook.id} />
+				<p class="text-sm font-semibold" style="color: #92400e;">Experimental delete transaction</p>
+				<p class="mt-2 text-sm" style="color: #92400e;">
+					This button is hidden unless write mode is explicitly enabled. Use only copied/disposable test books; GnuCash Desktop remains the authoritative editor.
+				</p>
+				<label class="mt-3 flex gap-2 text-sm" style="color: #92400e;">
+					<input
+						type="checkbox"
+						name="delete_acknowledgement"
+						value="experimental-delete-acknowledged"
+						required
+					/>
+					<span>I acknowledge this experimental DELETE is for disposable/test copies only and requires a backup.</span>
+				</label>
+				<button class="mt-4 rounded-xl px-4 py-2 text-sm font-semibold text-white" style="background: #b91c1c;" type="submit">
+					Delete transaction
+				</button>
+			</form>
+		{/if}
 	</section>
 </main>

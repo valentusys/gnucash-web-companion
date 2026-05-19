@@ -40,7 +40,7 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–130 are complete.
+- Phase 0–131 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by default.
 - First public pre-alpha release: `v0.0.1-prealpha`.
@@ -136,7 +136,7 @@ This repository may contain experimental post-MVP controlled-write code. It is d
 GNUCASH_WRITES_ENABLED=false
 ```
 
-Controlled writes are not part of MVP v0.1. They are experimental write-alpha code, disabled by default, and additionally constrained by the backend test-environment gate when explicitly enabled. Do not enable write mode against your only copy of a GnuCash book, and do not treat it as production-safe. Test only with synthetic/disposable or otherwise copied books that you can restore or delete. See [docs/v0.2-controlled-writes.md](docs/v0.2-controlled-writes.md) for the design and safety requirements, [docs/write-alpha-maintainer-checklist.md](docs/write-alpha-maintainer-checklist.md) for the maintainer review gate, and [docs/write-alpha-recovery-procedure.md](docs/write-alpha-recovery-procedure.md) for recovery steps.
+Controlled writes are not part of MVP v0.1. They are experimental write-alpha code, disabled by default, and additionally constrained by the backend test-environment gate when explicitly enabled. The current write-alpha CRUD surface includes create, patch metadata, and authorized DELETE transaction routes only for synthetic/disposable test scope. Do not enable write mode against your only copy of a GnuCash book, and do not treat it as production-safe. Test only with synthetic/disposable or otherwise copied books that you can restore or delete. See [docs/v0.2-controlled-writes.md](docs/v0.2-controlled-writes.md) for the design and safety requirements, [docs/write-alpha-maintainer-checklist.md](docs/write-alpha-maintainer-checklist.md) for the maintainer review gate, and [docs/write-alpha-recovery-procedure.md](docs/write-alpha-recovery-procedure.md) for recovery steps.
 
 ## Quick start
 

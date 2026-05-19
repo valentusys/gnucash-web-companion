@@ -330,6 +330,29 @@ assert.match(
 	'transactions page must show warning text near the enabled write entry point'
 );
 
+const transactionDetailServer = read('src/routes/transactions/[id]/+page.server.ts');
+const transactionDetailPage = read('src/routes/transactions/[id]/+page.svelte');
+assert.match(
+	transactionDetailServer,
+	/writesEnabled:\s*env\.GNUCASH_WRITES_ENABLED === 'true'/,
+	'transaction detail page must expose writesEnabled only when GNUCASH_WRITES_ENABLED is true'
+);
+assert.match(
+	transactionDetailServer,
+	/env\.GNUCASH_WRITES_ENABLED !== 'true'/,
+	'transaction delete action must be server-gated by GNUCASH_WRITES_ENABLED'
+);
+assert.match(
+	transactionDetailServer,
+	/delete_acknowledgement[\s\S]*experimental-delete-acknowledged/,
+	'transaction delete action must require explicit acknowledgement'
+);
+assert.match(
+	transactionDetailPage,
+	/data\.writesEnabled && data\.activeBook[\s\S]*action="\?\/delete"[\s\S]*confirm\([\s\S]*experimental DELETE is for disposable\/test copies only/s,
+	'transaction delete form must be hidden by default and require browser confirmation plus disposable/test acknowledgement'
+);
+
 const serverApi = read('src/lib/api/server.ts');
 assert.match(
 	serverApi,

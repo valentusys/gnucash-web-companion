@@ -11,7 +11,7 @@ Last updated: 2026-05-19
 
 ## Current baseline
 
-Completed through Phase 130.
+Completed through Phase 131.
 
 Current public release state:
 
@@ -23,6 +23,7 @@ Current public release state:
 - Phase 128 is an unreleased write-alpha concurrency/error-path safety expansion for create only: copied/disposable fixture tests now prove two parallel create POSTs produce one success and one lock-contention failure, synthetic post-backup write failure releases the lock, records failed audit with intact backup, and leaves the book unmutated, and read-only/viewer book access returns 403 before write-service construction. Writes remain disabled by default and limited to `APP_ENV=test` copied/disposable fixture scope when explicitly enabled.
 - Phase 129 is an unreleased docs-only write-alpha recovery and maintainer-review gate: it adds a synthetic/disposable-scope recovery procedure for containment, backup selection, stale-lock cleanup, restore, integrity checks, and damaged-book triage, plus a maintainer checklist for default-disabled config, `APP_ENV=test` gating, disposable fixtures, lifecycle evidence, recovery docs, and sensitive-data hygiene. No product code changed, writes remain disabled by default, and no real-book write safety is claimed.
 - Phase 130 is an unreleased write-alpha PATCH transaction hardening phase: experimental `PATCH /books/{book_id}/transactions/{transaction_id}` remains disabled by default and executable only with `GNUCASH_WRITES_ENABLED=true` plus `APP_ENV=test` against copied/disposable fixtures; backend hardening now returns 404 for missing transactions before lock/backup/mutation, preserves description/date/split-memo-only edits, records backup paths on failed post-backup PATCH audits, and adds disposable-fixture route tests for successful PATCH, validation failure, missing transaction, no backup leak, lock release, synthetic post-backup failure, intact backup, and concurrent PATCH+CREATE lock contention. No DELETE/import/recurring/account-write, tag, release, or real-book write claim was added.
+- Phase 131 is an unreleased authorized write-alpha DELETE transaction phase: experimental `DELETE /books/{book_id}/transactions/{transaction_id}` remains disabled by default and executable only with `GNUCASH_WRITES_ENABLED=true` plus `APP_ENV=test` against copied/disposable fixtures; backend implementation performs missing-transaction validation before lock/backup/mutation, then lock → backup → piecash delete → audit → unlock, records failed audits with backup path when a post-backup delete failure occurs, verifies successful deletion removes the transaction and preserves the original in backup evidence, rejects read-only/viewer access before write-service construction, and covers concurrent DELETE+CREATE lock contention. The frontend transaction detail delete form is hidden unless write mode is explicitly enabled and requires acknowledgement plus browser confirmation. No import/recurring/account-write, tag, release, or real-book write safety claim was added; Phase 132 publication remains pending separate authorization.
 - Previous public release `v0.1.2-readonly` remains available and points to its Phase 117 release commit.
 - Previous public release `v0.1.1-readonly` remains available and points to `a4d04150c043ad4da3dea577b30ed7ffd2032df0`, after Phase 104.
 
@@ -159,6 +160,7 @@ Completed phases:
 - Phase 128 — Write-alpha concurrency and error-path expansion
 - Phase 129 — Write-alpha recovery documentation and maintainer review gate
 - Phase 130 — Write-alpha PATCH transaction hardening
+- Phase 131 — Write-alpha DELETE transaction and validation hardening
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -238,7 +240,7 @@ Completed phases:
 
 Next planned phase:
 
-- Continue only with the next explicitly requested phase. Controlled writes remain post-MVP/experimental, disabled by default, constrained to `APP_ENV=test` copied/disposable fixtures when explicitly enabled, and not safe for production books. Phase 132 release/tag publication remains unauthorized; only release artifacts/gate would be allowed if that phase is requested.
+- Continue only with the next explicitly requested phase. Controlled writes remain post-MVP/experimental, disabled by default, constrained to `APP_ENV=test` copied/disposable fixtures when explicitly enabled, and not safe for production books. Phase 132 release/tag publication remains unauthorized; only release artifacts/gate would be allowed if that phase is requested, with publication status pending authorization.
 
 ## MVP product model
 

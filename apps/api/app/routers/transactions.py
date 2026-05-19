@@ -732,3 +732,77 @@ async def patch_book_transaction(
     result.audit_log_id = log.id
 
     return result
+
+
+@router.delete(
+    "/books/{book_id}/transactions/{transaction_id}",
+    response_model=TransactionWriteResultDTO,
+)
+async def delete_book_transaction(
+    book_id: int,
+    transaction_id: str,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> TransactionWriteResultDTO:
+    """Delete one existing transaction through the experimental write-alpha path."""
+    _ensure_writes_enabled(settings)
+    book = _resolve_viewable_book(book_id, user, session)
+    _require_book_edit_access(book, user, session)
+    _ensure_write_alpha_test_scope(settings)
+
+    service = _write_service_for(book)
+    audit_payload = {
+        "action": "transaction.delete",
+        "transaction_id": transaction_id,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "request_summary": {"transaction_id": transaction_id},
+        "backup_path": None,
+        "result": "started",
+    }
+    log = _audit_log(session, user.id, book.id, "transaction.delete", audit_payload)
+
+    try:
+        result = service.delete_transaction(
+            transaction_id=transaction_id,
+            user_id=user.id,
+            book_id=book.id,
+        )
+    except WriteLockError as exc:
+        audit_payload.update({"result": "failed", "error": str(exc)})
+        _update_audit_log(session, log, audit_payload)
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Could not acquire write lock: {exc}",
+        ) from exc
+    except GnuCashWriteError as exc:
+        audit_payload.update(
+            {
+                "result": "failed",
+                "error": str(exc),
+                "backup_path": getattr(exc, "backup_path", None),
+            }
+        )
+        _update_audit_log(session, log, audit_payload)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        ) from exc
+    except EntityNotFoundError as exc:
+        audit_payload.update({"result": "failed", "error": str(exc)})
+        _update_audit_log(session, log, audit_payload)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+    audit_payload.update(
+        {
+            "backup_path": result.backup_path,
+            "result": "success",
+        }
+    )
+    _update_audit_log(session, log, audit_payload)
+    result.audit_log_id = log.id
+
+    return result

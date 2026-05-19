@@ -480,6 +480,10 @@ class TestWritesDisabledByDefault:
                 json={"description": "Updated description"},
                 headers=auth_headers,
             ),
+            client.delete(
+                "/books/999/transactions/some-tx-id",
+                headers=auth_headers,
+            ),
         ]
 
         for response in responses:
@@ -536,6 +540,23 @@ class TestWritesDisabledByDefault:
         response = client.patch(
             f"/books/{sample_book}/transactions/some-tx-id",
             json={"description": "Updated description"},
+            headers=auth_headers,
+        )
+        self._assert_read_only_response_without_write_service(
+            response,
+            fail_if_write_service_is_constructed,
+        )
+
+    def test_delete_is_forbidden_when_writes_disabled_without_constructing_write_service(
+        self,
+        client,
+        auth_headers,
+        sample_book,
+        fail_if_write_service_is_constructed,
+    ):
+        self._force_read_only_settings()
+        response = client.delete(
+            f"/books/{sample_book}/transactions/some-tx-id",
             headers=auth_headers,
         )
         self._assert_read_only_response_without_write_service(
@@ -1570,6 +1591,228 @@ class TestWriteAlphaPatchRouteDisposableFixture:
             patch_payloads = [json.loads(log.payload_json) for log in session.query(AuditLog).filter_by(action="transaction.patch").all()]
             create_payloads = [json.loads(log.payload_json) for log in session.query(AuditLog).filter_by(action="transaction.create").all()]
             assert any(payload["result"] == "success" for payload in patch_payloads)
+            assert any(
+                payload["result"] == "failed" and "write lock" in payload.get("error", "").lower()
+                for payload in create_payloads
+            )
+
+
+class TestWriteAlphaDeleteRouteDisposableFixture:
+    """Enabled-mode DELETE route coverage on a copied/disposable GnuCash fixture."""
+
+    def _first_fixture_transaction(self, book_path: Path) -> dict:
+        transactions = _read_written_transactions(book_path)
+        assert transactions, "fixture must contain at least one transaction"
+        return transactions[0]
+
+    def test_enabled_delete_route_deletes_transaction_with_backup_audit_and_lock(
+        self,
+        client,
+        auth_headers,
+        disposable_sample_book,
+        disposable_fixture_book,
+        disposable_write_lock,
+        session_factory,
+    ):
+        tx_before = self._first_fixture_transaction(disposable_fixture_book)
+        txs_before = _read_written_transactions(disposable_fixture_book)
+
+        response = client.delete(
+            f"/books/{disposable_sample_book}/transactions/{tx_before['guid']}",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["transaction_id"] == tx_before["guid"]
+        backup_path = Path(data["backup_path"])
+        assert backup_path.exists()
+        assert backup_path.is_file()
+        assert backup_path.parent.name == disposable_fixture_book.stem
+        assert data["audit_log_id"] is not None
+
+        txs_after = _read_written_transactions(disposable_fixture_book)
+        assert len(txs_after) == len(txs_before) - 1
+        assert all(tx["guid"] != tx_before["guid"] for tx in txs_after)
+
+        backup_txs = _read_written_transactions(backup_path)
+        backup_original = next(tx for tx in backup_txs if tx["guid"] == tx_before["guid"])
+        assert backup_original["splits"] == tx_before["splits"]
+
+        lock_key = str(disposable_fixture_book)
+        assert disposable_write_lock.acquire(lock_key) is True
+        disposable_write_lock.release(lock_key)
+
+        with session_factory() as session:
+            audit_log = session.get(AuditLog, data["audit_log_id"])
+            assert audit_log is not None
+            payload = json.loads(audit_log.payload_json)
+            assert audit_log.action == "transaction.delete"
+            assert payload["result"] == "success"
+            assert payload["transaction_id"] == tx_before["guid"]
+            assert payload["backup_path"] == str(backup_path)
+
+    def test_delete_missing_transaction_returns_404_without_backup_or_lock_leak(
+        self,
+        client,
+        auth_headers,
+        disposable_sample_book,
+        disposable_fixture_book,
+        disposable_write_lock,
+        session_factory,
+    ):
+        txs_before = _read_written_transactions(disposable_fixture_book)
+
+        response = client.delete(
+            f"/books/{disposable_sample_book}/transactions/missing-delete-write-alpha-tx",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 404
+        assert _read_written_transactions(disposable_fixture_book) == txs_before
+        backups_root = disposable_fixture_book.parent.parent / "backups"
+        assert not backups_root.exists()
+        lock_key = str(disposable_fixture_book)
+        assert disposable_write_lock.acquire(lock_key) is True
+        disposable_write_lock.release(lock_key)
+
+        with session_factory() as session:
+            logs = session.query(AuditLog).filter_by(action="transaction.delete").all()
+            assert logs
+            payload = json.loads(logs[-1].payload_json)
+            assert payload["result"] == "failed"
+            assert payload["backup_path"] is None
+            assert "missing-delete-write-alpha-tx" in payload["error"]
+
+    def test_failure_during_delete_write_releases_lock_audits_failure_and_keeps_backup(
+        self,
+        client,
+        auth_headers,
+        disposable_sample_book,
+        disposable_fixture_book,
+        disposable_write_lock,
+        session_factory,
+        monkeypatch,
+    ):
+        def fail_after_backup(self, book, transaction_id):
+            raise GnuCashWriteError("synthetic delete failure after backup")
+
+        monkeypatch.setattr(GnuCashWriteService, "_do_delete_transaction", fail_after_backup)
+        tx_before = self._first_fixture_transaction(disposable_fixture_book)
+        txs_before = _read_written_transactions(disposable_fixture_book)
+
+        response = client.delete(
+            f"/books/{disposable_sample_book}/transactions/{tx_before['guid']}",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 422
+        assert "synthetic delete failure after backup" in response.json()["detail"]
+        assert _read_written_transactions(disposable_fixture_book) == txs_before
+        lock_key = str(disposable_fixture_book)
+        assert disposable_write_lock.acquire(lock_key) is True
+        disposable_write_lock.release(lock_key)
+
+        with session_factory() as session:
+            logs = session.query(AuditLog).filter_by(action="transaction.delete").all()
+            assert logs
+            payload = json.loads(logs[-1].payload_json)
+            assert payload["result"] == "failed"
+            assert "synthetic delete failure after backup" in payload["error"]
+            backup_path = Path(payload["backup_path"])
+
+        assert backup_path.exists()
+        assert _read_written_transactions(backup_path) == txs_before
+
+    def test_read_only_book_access_rejects_delete_before_write_service(
+        self,
+        client,
+        viewer_headers,
+        sample_book,
+        viewer_book_access,
+        monkeypatch,
+    ):
+        calls = []
+
+        def forbidden_write_service(*args, **kwargs):
+            calls.append((args, kwargs))
+            raise AssertionError("write service must not be constructed for read-only book access")
+
+        monkeypatch.setattr("app.routers.transactions._write_service_for", forbidden_write_service)
+
+        response = client.delete(
+            f"/books/{sample_book}/transactions/some-tx-id",
+            headers=viewer_headers,
+        )
+
+        assert response.status_code == 403
+        assert response.json()["detail"] == "Book edit access denied"
+        assert calls == []
+
+    def test_concurrent_delete_and_create_allows_one_success_and_one_lock_contention(
+        self,
+        client,
+        auth_headers,
+        disposable_sample_book,
+        disposable_fixture_book,
+        disposable_write_lock,
+        session_factory,
+        monkeypatch,
+    ):
+        original_do_delete = GnuCashWriteService._do_delete_transaction
+        delete_entered = threading.Event()
+        release_delete = threading.Event()
+
+        def slow_do_delete(service, book, transaction_id):
+            delete_entered.set()
+            assert release_delete.wait(timeout=5), "timed out waiting to release delete"
+            return original_do_delete(service, book, transaction_id)
+
+        monkeypatch.setattr(GnuCashWriteService, "_do_delete_transaction", slow_do_delete)
+        tx_before = self._first_fixture_transaction(disposable_fixture_book)
+        txs_before = _read_written_transactions(disposable_fixture_book)
+        create_payload = TestWriteAlphaCreateRouteDisposableFixture()._fixture_create_payload(
+            "Concurrent write-alpha create blocked by delete"
+        )
+
+        def delete_tx():
+            return client.delete(
+                f"/books/{disposable_sample_book}/transactions/{tx_before['guid']}",
+                headers=auth_headers,
+            )
+
+        def create_tx():
+            return client.post(
+                f"/books/{disposable_sample_book}/transactions",
+                json=create_payload,
+                headers=auth_headers,
+            )
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            first = executor.submit(delete_tx)
+            assert delete_entered.wait(timeout=5), "delete write did not enter service"
+            second = executor.submit(create_tx)
+            second_response = second.result(timeout=5)
+            release_delete.set()
+            first_response = first.result(timeout=5)
+
+        statuses = sorted([first_response.status_code, second_response.status_code])
+        assert statuses == [200, 409]
+        failed_response = first_response if first_response.status_code == 409 else second_response
+        assert "write lock" in failed_response.json()["detail"].lower()
+
+        txs_after = _read_written_transactions(disposable_fixture_book)
+        assert all(tx["guid"] != tx_before["guid"] for tx in txs_after)
+        assert len(txs_after) == len(txs_before) - 1
+
+        lock_key = str(disposable_fixture_book)
+        assert disposable_write_lock.acquire(lock_key) is True
+        disposable_write_lock.release(lock_key)
+
+        with session_factory() as session:
+            delete_payloads = [json.loads(log.payload_json) for log in session.query(AuditLog).filter_by(action="transaction.delete").all()]
+            create_payloads = [json.loads(log.payload_json) for log in session.query(AuditLog).filter_by(action="transaction.create").all()]
+            assert any(payload["result"] == "success" for payload in delete_payloads)
             assert any(
                 payload["result"] == "failed" and "write lock" in payload.get("error", "").lower()
                 for payload in create_payloads

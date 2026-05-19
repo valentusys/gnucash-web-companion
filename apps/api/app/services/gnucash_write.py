@@ -397,3 +397,70 @@ class GnuCashWriteService(GnuCashBookService):
                     split.memo = request.split_memos[split_guid]
 
         return transaction
+
+    def delete_transaction(
+        self,
+        transaction_id: str,
+        user_id: int,
+        book_id: int,
+    ) -> TransactionWriteResultDTO:
+        """Delete an existing transaction following the write-alpha safety flow."""
+        # Missing transactions are reported before lock/backup/mutation so a
+        # typo cannot create an unnecessary backup or lock contention.
+        uri_or_path = self._validate_configured_book()
+        read_book = self._open_piecash_book(uri_or_path)
+        try:
+            transaction = self._find_transaction(read_book, transaction_id)
+            if transaction is None:
+                raise EntityNotFoundError("transaction", transaction_id)
+        finally:
+            close = getattr(read_book, "close", None)
+            if callable(close):
+                close()
+
+        book_key = str(self.uri_or_path or book_id)
+        backup_path = None
+
+        if not write_lock_service.acquire(book_key):
+            raise WriteLockError(book_key)
+
+        try:
+            try:
+                backup_path = create_book_backup(self.book_config)
+            except BackupError as exc:
+                raise GnuCashWriteError(f"Backup failed: {exc}") from exc
+
+            book = None
+            try:
+                book = self._open_piecash_book_for_write(uri_or_path)
+                self._do_delete_transaction(book, transaction_id)
+                book.save()
+            except GnuCashWriteError as exc:
+                if exc.backup_path is None:
+                    exc.backup_path = backup_path
+                raise
+            except Exception as exc:
+                raise GnuCashWriteError(f"Write failed: {exc}", backup_path=backup_path) from exc
+            finally:
+                if book is not None:
+                    close = getattr(book, "close", None)
+                    if callable(close):
+                        close()
+
+            return TransactionWriteResultDTO(
+                transaction_id=transaction_id,
+                backup_path=backup_path or "",
+                audit_log_id=None,
+            )
+        finally:
+            write_lock_service.release(book_key)
+
+    def _do_delete_transaction(self, book: Any, transaction_id: str) -> None:
+        """Delete one transaction from an already-open writeable book."""
+        transaction = self._find_transaction(book, transaction_id)
+        if transaction is None:
+            raise EntityNotFoundError("transaction", transaction_id)
+        delete = getattr(book, "delete", None)
+        if not callable(delete):
+            raise GnuCashWriteError("piecash book does not support delete")
+        delete(transaction)
