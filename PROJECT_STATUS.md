@@ -7,11 +7,11 @@ Last updated: 2026-05-19
 - GitHub: `valentusys/gnucash-web-companion`
 - Local path: `/home/val/gnucash-web-companion`
 - Branch: `main`
-- Status: pre-alpha / v0.1.5-readonly read-only pre-release published; post-release maintenance completed through Phase 153; v0.2.0-writealpha remains a separate experimental pre-release
+- Status: pre-alpha / v0.1.5-readonly read-only pre-release published; post-release maintenance completed through Phase 154; v0.2.0-writealpha remains a separate experimental pre-release
 
 ## Current baseline
 
-Completed through Phase 153.
+Completed through Phase 154.
 
 Current public release state:
 
@@ -48,6 +48,7 @@ Current public release state:
 - Phase 151 is a post-`v0.1.4-readonly` maintenance release readiness artifact phase for possible `v0.1.5-readonly`: `docs/release/v0.1.5-readonly-notes.md`, `docs/release/v0.1.5-readonly-checklist.md`, and `docs/release/v0.1.5-readonly-final-gate.md` summarized Phases 143–150, kept conservative pre-alpha/read-only/default-write-disabled safety language, and recorded the candidate as ready for a later authorized publish phase but still unpublished. README, CHANGELOG, PROJECT_STATUS, and `docs/handoff/phase-151.md` were synchronized. No product code, write endpoint, write-mode UI expansion, release/tag/package, browser-storage persistence, screenshot/export/raw financial artifact, app DB, backup, real/private GnuCash book, `.env`, token, key, cert, or `GNUCASH_WRITES_ENABLED=false` default changed.
 - Phase 152 is the authorized publication phase for `v0.1.5-readonly`: the final gate was re-run from clean `main` at `a94a0a3`, local backend/frontend/Docker checks passed, rendered Compose config kept `GNUCASH_WRITES_ENABLED=false`, tracked sensitive-file hygiene passed, GitHub Actions for the release commit passed, and `v0.1.5-readonly` was published as an annotated tag and GitHub pre-release. README, CHANGELOG, release notes/checklist/final-gate, publication evidence, PROJECT_STATUS, and `docs/handoff/phase-152.md` were synchronized. No package, binary artifact, Docker image, production deployment, product code, write endpoint, write-mode UI expansion, runtime default change, browser-storage persistence, screenshot/export/raw financial artifact, app DB, backup, real/private GnuCash book, `.env`, token, key, cert, or production-readiness/security-audit claim was added.
 - Phase 153 is a fresh-clone Docker install smoke phase after the `v0.1.5-readonly` publication: `scripts/smoke/fresh-clone-docker-smoke.sh` now provides a reproducible clean-checkout command path that clones the repo to a temporary directory, copies only the committed synthetic fixture into ignored runtime data, writes dummy local-only `.env` values with `GNUCASH_WRITES_ENABLED=false`, validates and starts Docker Compose on a non-conflicting local port, runs the existing API smoke and headless browser dogfood helpers, verifies hidden write UI and disabled validate/create/patch probes, checks for no new raw screenshot/export/backup artifacts, then tears down Docker and removes the temporary clone by default. Evidence is documented in `docs/dogfood/phase-153-fresh-clone-docker-smoke.md`. No product code, release/tag/package/image, production deployment hardening claim, public-internet exposure claim, write expansion, runtime default change, real/private book, committed `.env`, app DB, backup, screenshot, raw CSV export, token, key, cert, private path, or private financial data was added.
+- Phase 154 is a GnuCash compatibility fixture path v5 blocker refresh for GitHub #22: the safe Desktop tooling probe now records phase-154 metadata, missing-command reasons, `desktop_generated_fixture_possible_now=false`, and optional non-mutating `apt-cache policy` package-candidate hints. Local evidence confirms `gnucash` and `gnucash-cli` are absent on `PATH`; package metadata shows a candidate but no package was installed, no book was opened, no private directories were searched, and no Desktop-generated synthetic SQLite fixture was produced. Compatibility docs and tests now make clear that package availability alone is not compatibility evidence; future Desktop rows require a disposable Desktop/CLI environment, a synthetic SQLite book, redacted metadata collection, and read-only service validation. No PostgreSQL/MySQL/MariaDB/XML support claim, broad all-version compatibility claim, release/tag/package, write behavior, real/private book, `.env`, app DB, backup, screenshot/export, token, key, cert, path, account name, description, memo, amount, or private data was added.
 - Previous public release `v0.1.2-readonly` remains available and points to its Phase 117 release commit.
 - Previous public release `v0.1.1-readonly` remains available and points to `a4d04150c043ad4da3dea577b30ed7ffd2032df0`, after Phase 104.
 
@@ -207,6 +208,7 @@ Completed phases:
 - Phase 151 — v0.1.5-readonly maintenance release readiness artifacts
 - Phase 152 — Conditional v0.1.5-readonly release publication
 - Phase 153 — Fresh-clone Docker install smoke
+- Phase 154 — GnuCash compatibility fixture path v5 blocker refresh
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -286,7 +288,7 @@ Completed phases:
 
 Next planned phase:
 
-- Continue only with the next explicitly requested phase. Controlled writes remain post-MVP/experimental, disabled by default, constrained to `APP_ENV=test` copied/disposable fixtures when explicitly enabled, and not safe for production books. Phase 153 refreshed fresh-clone Docker install smoke evidence with synthetic/disposable data and `GNUCASH_WRITES_ENABLED=false`; API and headless browser checks passed from a temporary checkout, no release/publication change was made, no write behavior or write UI was expanded, no browser-storage persistence was added, no raw CSV/screenshot/export artifact or real/private data was committed, and write-alpha scope was not expanded.
+- Continue only with the next explicitly requested phase. Controlled writes remain post-MVP/experimental, disabled by default, constrained to `APP_ENV=test` copied/disposable fixtures when explicitly enabled, and not safe for production books. Phase 154 refreshed GitHub #22 compatibility blocker evidence: Desktop tooling is still absent on `PATH`, package metadata alone is not fixture evidence, and no Desktop-generated synthetic SQLite fixture or broad compatibility claim was added.
 
 ## MVP product model
 

@@ -3,7 +3,8 @@
 
 This helper records only command availability and version output. It never scans
 user directories, never opens a book, and never serializes paths beyond the
-fixed executable command names being probed.
+fixed executable command names being probed. Optional install hints only query
+non-mutating package-manager metadata for known GnuCash package names.
 """
 
 from __future__ import annotations
@@ -16,7 +17,9 @@ from datetime import datetime, timezone
 from typing import Any
 
 COMMANDS = ("gnucash", "gnucash-cli")
+APT_PACKAGES = ("gnucash", "gnucash-common")
 MAX_VERSION_OUTPUT_CHARS = 500
+MAX_PACKAGE_POLICY_CHARS = 1200
 
 
 def _safe_version_output(command: str) -> tuple[bool, str]:
@@ -40,7 +43,57 @@ def _safe_version_output(command: str) -> tuple[bool, str]:
     return False, output or f"--version exited {completed.returncode}"
 
 
-def probe_tooling() -> dict[str, Any]:
+def _apt_policy_for(package_name: str) -> dict[str, Any]:
+    """Return bounded, non-mutating apt-cache candidate metadata for a package."""
+
+    record: dict[str, Any] = {
+        "query": f"apt-cache policy {package_name}",
+        "candidate": "unknown",
+        "raw_policy_excerpt": "",
+    }
+    try:
+        completed = subprocess.run(
+            ["apt-cache", "policy", package_name],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        record["status"] = f"unavailable: {exc.__class__.__name__}"
+        return record
+
+    output = "\n".join(part for part in (completed.stdout.strip(), completed.stderr.strip()) if part)
+    output = output[:MAX_PACKAGE_POLICY_CHARS]
+    record["status"] = "ok" if completed.returncode == 0 else f"exited {completed.returncode}"
+    record["raw_policy_excerpt"] = output
+    for line in output.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("Candidate:"):
+            record["candidate"] = stripped.split(":", 1)[1].strip()
+            break
+    return record
+
+
+def _install_hints() -> dict[str, Any]:
+    """Return safe package availability hints without installing anything."""
+
+    if shutil.which("apt-cache") is None:
+        return {
+            "checked": False,
+            "package_manager": "apt-cache",
+            "reason": "apt-cache not found on PATH",
+            "packages": {},
+        }
+    return {
+        "checked": True,
+        "package_manager": "apt-cache",
+        "privacy": "Package metadata only; no install performed, no files or books opened.",
+        "packages": {package_name: _apt_policy_for(package_name) for package_name in APT_PACKAGES},
+    }
+
+
+def probe_tooling(*, include_install_hints: bool = False) -> dict[str, Any]:
     """Collect non-sensitive GnuCash Desktop/CLI availability metadata."""
 
     commands: dict[str, dict[str, Any]] = {}
@@ -55,12 +108,14 @@ def probe_tooling() -> dict[str, Any]:
             record["version_command"] = f"{command} --version"
             record["version_command_succeeded"] = version_ok
             record["version_output"] = version_output
+        else:
+            record["missing_reason"] = f"{command} not found on PATH"
         commands[command] = record
 
     any_available = any(record["available"] for record in commands.values())
-    return {
+    payload: dict[str, Any] = {
         "probe": "gnucash-desktop-tooling",
-        "probe_version": "phase-111",
+        "probe_version": "phase-154",
         "collected_at_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
         "privacy": (
             "No GnuCash book was opened. No user directories were searched. "
@@ -68,13 +123,17 @@ def probe_tooling() -> dict[str, Any]:
         ),
         "commands": commands,
         "desktop_tooling_available": any_available,
+        "desktop_generated_fixture_possible_now": False,
         "safe_next_step": (
             "Generate a synthetic/disposable SQLite fixture with the detected GnuCash Desktop tooling, "
-            "then run collect_gnucash_compatibility_metadata.py on that disposable file."
+            "then run collect_gnucash_compatibility_metadata.py and read-only integration checks on that disposable file."
             if any_available
             else "Install or provide GnuCash Desktop/CLI in a disposable environment before claiming Desktop-generated fixture evidence."
         ),
     }
+    if include_install_hints:
+        payload["install_hints"] = _install_hints()
+    return payload
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -82,12 +141,19 @@ def _parser() -> argparse.ArgumentParser:
         description="Safely probe local GnuCash Desktop/CLI tooling availability without opening any books."
     )
     parser.add_argument("--output", help="Write JSON probe result to this path instead of stdout")
+    parser.add_argument(
+        "--include-install-hints",
+        action="store_true",
+        help="Also run non-mutating apt-cache policy checks for known GnuCash packages.",
+    )
     return parser
 
 
 def main(argv: list[str] | None = None) -> None:
     args = _parser().parse_args(argv)
-    payload = json.dumps(probe_tooling(), indent=2, sort_keys=True) + "\n"
+    payload = json.dumps(
+        probe_tooling(include_install_hints=args.include_install_hints), indent=2, sort_keys=True
+    ) + "\n"
     if args.output:
         from pathlib import Path
 

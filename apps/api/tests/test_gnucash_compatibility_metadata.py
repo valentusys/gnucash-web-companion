@@ -106,7 +106,7 @@ def test_desktop_tooling_probe_records_only_safe_availability_metadata(monkeypat
     serialized = json.dumps(metadata, sort_keys=True)
 
     assert metadata["probe"] == "gnucash-desktop-tooling"
-    assert metadata["probe_version"] == "phase-111"
+    assert metadata["probe_version"] == "phase-154"
     assert metadata["desktop_tooling_available"] is True
     assert metadata["commands"]["gnucash"]["version_output"] == "GnuCash 5.10"
     assert metadata["commands"]["gnucash"]["executable_path_recorded"] == "<redacted>"
@@ -122,7 +122,34 @@ def test_desktop_tooling_probe_handles_unavailable_tools_without_private_paths(m
     serialized = json.dumps(metadata, sort_keys=True)
 
     assert metadata["desktop_tooling_available"] is False
+    assert metadata["desktop_generated_fixture_possible_now"] is False
     assert metadata["commands"]["gnucash"]["available"] is False
     assert metadata["commands"]["gnucash-cli"]["available"] is False
+    assert metadata["commands"]["gnucash"]["missing_reason"] == "gnucash not found on PATH"
     assert "not found" in serialized
+    assert "/home" not in serialized
+
+
+def test_desktop_tooling_probe_can_add_non_mutating_install_hints(monkeypatch) -> None:
+    probe = _load_probe()
+    monkeypatch.setattr(
+        probe.shutil,
+        "which",
+        lambda command: "/usr/bin/apt-cache" if command == "apt-cache" else None,
+    )
+
+    class Completed:
+        returncode = 0
+        stdout = "gnucash:\n  Installed: (none)\n  Candidate: 1:5.14-1build1\n"
+        stderr = ""
+
+    monkeypatch.setattr(probe.subprocess, "run", lambda *args, **kwargs: Completed())
+
+    metadata = probe.probe_tooling(include_install_hints=True)
+    serialized = json.dumps(metadata, sort_keys=True)
+
+    assert metadata["install_hints"]["checked"] is True
+    assert metadata["install_hints"]["packages"]["gnucash"]["candidate"] == "1:5.14-1build1"
+    assert "apt-cache policy gnucash" in serialized
+    assert "No GnuCash book was opened" in metadata["privacy"]
     assert "/home" not in serialized

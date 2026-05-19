@@ -43,7 +43,7 @@ As of Phase 136, every compatibility evidence row in `docs/gnucash-compatibility
 | `apps/api/tests/fixtures/test-book-multicurrency.gnucash.sqlite` | committed synthetic SQLite test fixture | No | Covers read-only multi-currency limitation behavior; same documented schema markers. |
 | `apps/api/scripts/create_compatibility_fixture_v1.py` | generated synthetic/disposable SQLite fixture path | No | Generated through `piecash`; binary output remains local/ignored. |
 | Redacted metadata collector | tested safe metadata procedure | No by itself | Operator-supplied `--gnucash-version` values document a copied/disposable fixture only; they do not independently prove support for that Desktop release. |
-| Desktop-tooling probes from Phases 111 and 127 | safe blocker evidence | No | `gnucash` and `gnucash-cli` were unavailable in this environment, so no Desktop-generated fixture was produced. |
+| Desktop-tooling probes from Phases 111, 127, and 154 | safe blocker evidence | No | `gnucash` and `gnucash-cli` were unavailable in this environment, so no Desktop-generated fixture was produced. Phase 154 adds missing-command reasons plus optional non-mutating package-candidate hints. |
 
 Therefore the current tested GnuCash Desktop version list is empty: no real GnuCash Desktop release has been validated by the automated suite. Future rows must remain narrow until a synthetic book is generated/saved by the named Desktop version and read-only tests pass against that fixture.
 
@@ -148,6 +148,16 @@ This probe records only whether `gnucash` and `gnucash-cli` are available, redac
 
 Phase 127 repeats this check and keeps the same rule: if both `gnucash --version` and `gnucash-cli --version` are unavailable, document the blocker in GitHub #22/docs and do not fabricate Desktop-generated evidence.
 
+Phase 154 updates the probe to version `phase-154` and adds an optional non-mutating package metadata check:
+
+```bash
+python apps/api/scripts/probe_gnucash_desktop_tooling.py \
+  --include-install-hints \
+  --output /tmp/gnucash-tooling-probe.json
+```
+
+The optional hints are allowed only because they query known package names with `apt-cache policy`; they do not install packages, open books, search user directories, or serialize private paths. Package availability is not Desktop-generated fixture evidence by itself. A future Desktop row still requires a disposable environment, an actually created synthetic SQLite book, redacted metadata collection, and read-only service validation.
+
 Phase 136 keeps that boundary explicit: all current compatibility evidence is synthetic-only, and the Desktop-tested version list is empty until a future disposable Desktop environment produces a synthetic SQLite book and tests cover it. The manual procedure for that future work is:
 
 1. Use a disposable VM/container or other non-private environment with GnuCash Desktop/CLI installed.
@@ -204,6 +214,16 @@ Phase 127 local procedure evidence:
 - `apps/api/scripts/probe_gnucash_desktop_tooling.py --output /tmp/phase-127-gnucash-tooling-probe.json` reported `desktop_tooling_available=false`.
 - No GnuCash book was opened, no user private directories were searched, no real/private book was used, and no Desktop-generated fixture was produced.
 - Regression coverage: `apps/api/tests/test_compatibility_fixture_v1.py` asserts missing Desktop tooling is represented as a safe blocker, not Desktop-generated evidence, and does not serialize private paths.
+
+Phase 154 local procedure evidence:
+
+- `apps/api/scripts/probe_gnucash_desktop_tooling.py --include-install-hints --output /tmp/phase-154-gnucash-tooling-probe.json` reported `desktop_tooling_available=false` and `desktop_generated_fixture_possible_now=false`.
+- `gnucash`: not found on `PATH`.
+- `gnucash-cli`: not found on `PATH`.
+- `apt-cache policy gnucash`: candidate `1:5.14-1build1`, installed `(none)`; this is package metadata only, not fixture evidence.
+- No package was installed, no GnuCash book was opened, no user private directories were searched, no real/private book was used, and no Desktop-generated fixture was produced.
+- Evidence summary: `docs/gnucash-desktop-tooling-phase-154.md`.
+- Regression coverage: `apps/api/tests/test_gnucash_compatibility_metadata.py` asserts phase-154 probe metadata, missing-command reasons, optional non-mutating install hints, and private-path omission; `apps/api/tests/test_compatibility_fixture_v1.py` continues to assert missing Desktop tooling is a safe blocker.
 
 ## Storage and generation policy
 
