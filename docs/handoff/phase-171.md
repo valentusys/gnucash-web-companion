@@ -1,7 +1,7 @@
 # Phase 171 — v0.1.7-readonly release gate and authorized publication
 
 Date: 2026-05-20
-Status: IN PROGRESS — release artifacts committed; tag/GitHub release publication pending Phase 171 release commit CI
+Status: COMPLETE — release artifacts committed, release commit CI passed, tag/GitHub pre-release published and verified
 Roadmap source: `/home/val/.hermes/logs/gnucash-web-companion/triple-analyst-10phase-resume-20260520-003549/cycle-2-roadmap.md` (cycle 2/3, phase 10/10 only)
 
 ## Goal
@@ -34,6 +34,11 @@ Prepare the next read-only maintenance release artifact after Phases 162–170 a
   - `CHANGELOG.md`;
   - `PROJECT_STATUS.md`;
   - this handoff.
+- Committed and pushed the Phase 171 release-gate artifacts to `origin/main` at `d248b5a355ed2b57913d0c408e643b5f6cfcfe5b`.
+- Waited for GitHub Actions on the exact release commit to pass (`run 26116039298`).
+- Re-checked final publication gates before tagging: clean `main`, `HEAD == origin/main`, tag/release absence, write-disabled defaults, and sensitive tracked-file hygiene.
+- Published annotated tag and GitHub pre-release `v0.1.7-readonly`.
+- Updated post-publication release/status artifacts to record the published state.
 
 ## Safety boundaries
 
@@ -81,13 +86,14 @@ Results:
 
 ## Publication state
 
-Publication is authorized by the Phase 171 task only if all gates are green. At handoff creation time, tag/GitHub release creation remains gated on:
+Publication completed in Phase 171 after all gates were green:
 
-1. commit and push this Phase 171 release artifact/status update;
-2. wait for GitHub Actions CI on the exact Phase 171 release commit to complete successfully;
-3. immediately re-check clean tracked tree, `HEAD == origin/main`, local/remote tag absence, GitHub release absence, `GNUCASH_WRITES_ENABLED=false`, and sensitive tracked-file hygiene;
-4. create the annotated tag and GitHub pre-release from the committed notes file;
-5. verify local/remote tag, GitHub release prerelease/draft state, target commit, and clean tree.
+1. Phase 171 release artifact/status update was committed and pushed: `d248b5a355ed2b57913d0c408e643b5f6cfcfe5b`.
+2. GitHub Actions CI on the exact Phase 171 release commit completed successfully (`run 26116039298`).
+3. Final checks confirmed clean tracked tree, `HEAD == origin/main`, local/remote tag absence, GitHub release absence, `GNUCASH_WRITES_ENABLED=false`, and sensitive tracked-file hygiene before publication.
+4. Annotated tag `v0.1.7-readonly` was created and pushed.
+5. GitHub pre-release was created and verified: https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.7-readonly
+6. No package, binary artifact, Docker image, or production deployment was created.
 
 ## Files changed
 
