@@ -7,11 +7,11 @@ Last updated: 2026-05-19
 - GitHub: `valentusys/gnucash-web-companion`
 - Local path: `/home/val/gnucash-web-companion`
 - Branch: `main`
-- Status: pre-alpha / v0.1.6-readonly read-only pre-release published; post-release maintenance completed through Phase 167; v0.2.0-writealpha remains a separate experimental pre-release
+- Status: pre-alpha / v0.1.6-readonly read-only pre-release published; post-release maintenance completed through Phase 168; v0.2.0-writealpha remains a separate experimental pre-release
 
 ## Current baseline
 
-Completed through Phase 167.
+Completed through Phase 168.
 
 Current public release state:
 
@@ -63,6 +63,7 @@ Current public release state:
 - Phase 165 is a large account-tree usability/performance evidence phase: the synthetic benchmark helper can now generate wide/deep synthetic account hierarchies and record account hierarchy metadata, local benchmark evidence documents a 146-account synthetic hierarchy with successful read-only account-tree loads around 186–199 ms median in TestClient, and `AccountTreeNode.svelte` caps visual indentation for very deep hierarchies while preserving full-path hover text. Frontend static checks pin the overflow guard and browser-storage-free local filter contract. No cache layer, account editing, production scalability claim, release/tag/package, real/private account name/book, app DB, backup, `.env`, screenshot/export, token, key, cert, private path, or private financial data was added.
 - Phase 166 is a synchronous read-only CSV export reliability and user-feedback hardening phase: backend regression tests now pin header-only empty filtered exports, account-scoped filtered export parity, and consistent advisory CSV metadata headers, while transaction and account-detail export controls show localized row-count, header-only empty-export, 10,000-row cap/truncation, string-amount, and no-currency-conversion guidance derived from existing read-only list/count metadata. `docs/transactions-filters.md` documents the UX behavior and account-scoped parity. No import, background export queue, cap change, raw CSV artifact, browser filter persistence, fake currency conversion, write behavior, release/tag/package, real/private book, app DB, backup, `.env`, screenshot/export, token, key, cert, private path, or private financial data was added; `GNUCASH_WRITES_ENABLED=false` remains the default.
 - Phase 167 is a local/LAN auth/session hardening phase: SvelteKit now rejects unsafe state-changing app-route requests with a mismatched browser `Origin` header, while allowing safe methods and originless local probes; the web auth cookie lifetime now follows `JWT_TOKEN_EXPIRE_MINUTES` from Docker Compose with a 30-minute fallback instead of staying hard-coded; backend auth tests pin expired JWT rejection; and `docs/security/auth-cookie-deployment.md` documents the conservative pre-alpha cookie/session/same-origin model without claiming a production security audit. Auth tokens remain httpOnly cookies only, no auth localStorage/sessionStorage was added, placeholder JWT secrets remain rejected, wildcard CORS warnings remain documented for non-development LAN/VPN use, no OAuth/SSO/multi-user role expansion was added, and `GNUCASH_WRITES_ENABLED=false` remains the default.
+- Phase 168 is a first-run and broken-configuration operator UX phase: `/health` now includes redacted auth-bootstrap diagnostics for placeholder/missing `JWT_SECRET` and missing `APP_ADMIN_PASSWORD_HASH`/`APP_ADMIN_PASSWORD`, default-book diagnostics distinguish unreadable files from missing mounts without exposing full paths, startup logs emit safe first-run configuration warnings, `/login` reports backend auth-configuration failures as operator-fixable setup problems, `/books` and the global error page point operators toward safe `.env`, book-volume, and `/health` checks, and `docs/operations/troubleshooting.md` documents the troubleshooting path. No setup wizard, config-writing UI, secret display, book upload/management, public-hosting hardening claim, production-readiness claim, real/private data artifact, `.env`, app DB, backup, token, key, cert, screenshot/export, or `GNUCASH_WRITES_ENABLED=false` default change was added.
 - Previous public release `v0.1.2-readonly` remains available and points to its Phase 117 release commit.
 - Previous public release `v0.1.1-readonly` remains available and points to `a4d04150c043ad4da3dea577b30ed7ffd2032df0`, after Phase 104.
 
@@ -236,6 +237,7 @@ Completed phases:
 - Phase 165 — Large account tree usability and benchmark
 - Phase 166 — CSV export reliability and user feedback hardening
 - Phase 167 — Auth/session hardening for local/LAN pre-alpha
+- Phase 168 — First-run and broken-configuration operator UX
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from pathlib import Path
 from typing import Any, cast
 
@@ -11,6 +12,7 @@ from sqlalchemy import text
 from sqlalchemy.engine import Engine, URL, make_url
 
 from app.config import Settings
+from app.services.auth import INSECURE_JWT_SECRET_VALUES
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +69,17 @@ def _safe_book_path_status(path_value: str) -> dict[str, Any]:
     path = Path(path_value)
     exists = path.is_file()
     parent_exists = path.parent.exists()
-    readable = exists
+    readable = exists and os.access(path, os.R_OK)
+
+    if exists and not readable:
+        message = (
+            "Default GnuCash book file exists but is not readable by this runtime. "
+            "Check host/container file permissions and mount ownership."
+        )
+    elif exists:
+        message = "Default GnuCash book file is present."
+    else:
+        message = "Default GnuCash book file is missing or not mounted. Check GNUCASH_DEFAULT_BOOK_PATH and the books volume."
 
     return {
         "configured": True,
@@ -75,11 +87,40 @@ def _safe_book_path_status(path_value: str) -> dict[str, Any]:
         "readable": readable,
         "filename": path.name,
         "parent_exists": parent_exists,
-        "message": (
-            "Default GnuCash book file is present."
-            if exists
-            else "Default GnuCash book file is missing or not mounted. Check GNUCASH_DEFAULT_BOOK_PATH and the books volume."
-        ),
+        "message": message,
+    }
+
+
+def auth_configuration_posture(settings: Settings) -> dict[str, Any]:
+    """Return safe login/JWT bootstrap diagnostics without exposing secrets."""
+    jwt_secret_configured = settings.jwt_secret.strip() not in INSECURE_JWT_SECRET_VALUES
+    admin_password_hash_configured = bool(settings.app_admin_password_hash.strip())
+    admin_password_configured = bool(settings.app_admin_password.strip())
+    admin_credentials_configured = admin_password_hash_configured or admin_password_configured
+
+    issues: list[str] = []
+    safe_next_actions: list[str] = []
+    if not jwt_secret_configured:
+        issues.append("JWT_SECRET is missing or still uses a placeholder value.")
+        safe_next_actions.append("Set JWT_SECRET to a long random value in the local .env/deployment environment.")
+    if not admin_credentials_configured:
+        issues.append("No admin bootstrap credentials are configured.")
+        safe_next_actions.append("Set APP_ADMIN_PASSWORD_HASH or APP_ADMIN_PASSWORD for first-run admin bootstrap.")
+
+    if not issues:
+        message = "Login bootstrap configuration is present."
+        safe_next_actions.append("Sign in with the configured local admin account.")
+    else:
+        message = "Login is not fully configured for first run. Fix the listed environment settings and restart the service."
+
+    return {
+        "jwt_secret_configured": jwt_secret_configured,
+        "admin_credentials_configured": admin_credentials_configured,
+        "admin_password_hash_configured": admin_password_hash_configured,
+        "plaintext_admin_password_configured": admin_password_configured,
+        "message": message,
+        "issues": issues,
+        "safe_next_actions": safe_next_actions,
     }
 
 
@@ -120,13 +161,21 @@ def build_health_payload(settings: Settings, engine: Engine) -> dict[str, Any]:
     """Build the public health payload using only non-sensitive diagnostics."""
     default_book = _safe_book_path_status(settings.gnucash_default_book_path)
     cors = cors_deployment_posture(settings)
+    auth_config = auth_configuration_posture(settings)
     app_database = {
         **_safe_app_database_config(settings.app_database_url),
         **check_app_database(engine),
     }
 
-    degraded = not default_book["exists"] or not app_database["reachable"]
+    degraded = (
+        not default_book["exists"]
+        or not default_book["readable"]
+        or not app_database["reachable"]
+        or not auth_config["jwt_secret_configured"]
+        or not auth_config["admin_credentials_configured"]
+    )
     warnings = [cors["message"]] if cors["risk_level"] == "warning" else []
+    warnings.extend(auth_config["issues"])
 
     return {
         "status": "degraded" if degraded else "ok",
@@ -134,6 +183,7 @@ def build_health_payload(settings: Settings, engine: Engine) -> dict[str, Any]:
         "warnings": warnings,
         "checks": {
             "app_database": app_database,
+            "auth_configuration": auth_config,
             "cors": cors,
             "default_book": default_book,
             "writes_enabled": settings.gnucash_writes_enabled,
@@ -171,6 +221,20 @@ def log_startup_diagnostics(settings: Settings, engine: Engine) -> None:
                     "app_env": settings.app_env,
                     "wildcard_enabled": cors["wildcard_enabled"],
                     "message": cors["message"],
+                },
+                sort_keys=True,
+            ),
+        )
+    auth_config = diagnostics["checks"]["auth_configuration"]
+    if auth_config["issues"]:
+        logger.warning(
+            "first_run_configuration_warning %s",
+            json.dumps(
+                {
+                    "event": "first_run_configuration_warning",
+                    "service": "api",
+                    "issues": auth_config["issues"],
+                    "safe_next_actions": auth_config["safe_next_actions"],
                 },
                 sort_keys=True,
             ),

@@ -364,7 +364,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'books.noBooks': 'No accessible configured books are available for this account.',
 		'books.emptyTitle': 'No accessible books found',
 		'books.emptyMessage':
-			'No configured books are available to this account. Confirm the book registry and access metadata, then sign in again or ask the administrator to grant read-only access.',
+			'No configured books are available to this account. Confirm the book registry and access metadata, then sign in again or ask the administrator to grant read-only access. For first run, also verify GNUCASH_DEFAULT_BOOK_PATH points to a mounted readable test-copy book and check /health for redacted diagnostics.',
 		'books.notConfigured': 'Not configured',
 		'books.unknown': 'Unknown',
 		'books.accessRole': 'Access role',
@@ -628,7 +628,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'books.noBooks': 'Для этой учётной записи нет доступных настроенных книг.',
 		'books.emptyTitle': 'Нет доступных книг',
 		'books.emptyMessage':
-			'Для этой учётной записи нет настроенных доступных книг. Проверьте реестр книг и права доступа, затем войдите снова или попросите администратора выдать read-only доступ.',
+			'Для этой учётной записи нет настроенных доступных книг. Проверьте реестр книг и права доступа, затем войдите снова или попросите администратора выдать read-only доступ. При первом запуске также проверьте, что GNUCASH_DEFAULT_BOOK_PATH указывает на смонтированную читаемую test-copy книгу, и используйте /health для redacted diagnostics.',
 		'books.notConfigured': 'Не настроено',
 		'books.unknown': 'Неизвестно',
 		'books.accessRole': 'Роль доступа',

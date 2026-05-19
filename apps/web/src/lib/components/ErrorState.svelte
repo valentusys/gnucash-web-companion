@@ -37,7 +37,7 @@
 			: statusCode === 404
 				? 'The requested page, book, account, or transaction was not found. It may be unavailable, archived, or hidden by access rules.'
 				: statusCode && statusCode >= 500
-					? 'The API or network request failed while loading this read-only view. Verify the service is running and try again.'
+					? 'The API or network request failed while loading this read-only view. Verify the service is running, check /health for redacted first-run diagnostics, then review local .env and book volume settings before trying again.'
 					: 'An unexpected API or network error occurred. Please try again or return to a safe read-only page.'
 	);
 </script>

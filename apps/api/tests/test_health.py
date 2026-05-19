@@ -7,9 +7,15 @@ from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
 
 import app.database as database_module
+import app.diagnostics as diagnostics_module
 import app.main as main_module
 from app.config import Settings
-from app.diagnostics import build_health_payload, cors_deployment_posture, log_startup_diagnostics
+from app.diagnostics import (
+    auth_configuration_posture,
+    build_health_payload,
+    cors_deployment_posture,
+    log_startup_diagnostics,
+)
 from app.main import app
 
 client = TestClient(app)
@@ -58,6 +64,15 @@ def test_health_returns_richer_non_sensitive_payload(monkeypatch, tmp_path):
         "risk_level": "ok",
         "message": "CORS_ORIGINS uses the development wildcard default. This is acceptable for local development, but narrow it to exact LAN/VPN origins before shared deployment.",
     }
+    assert payload["checks"]["auth_configuration"] == {
+        "jwt_secret_configured": True,
+        "admin_credentials_configured": True,
+        "admin_password_hash_configured": False,
+        "plaintext_admin_password_configured": True,
+        "message": "Login bootstrap configuration is present.",
+        "issues": [],
+        "safe_next_actions": ["Sign in with the configured local admin account."],
+    }
     assert payload["checks"]["default_book"] == {
         "configured": True,
         "exists": True,
@@ -83,8 +98,53 @@ def test_health_explains_missing_default_book_without_full_path(tmp_path):
     default_book = payload["checks"]["default_book"]
     assert default_book["configured"] is True
     assert default_book["exists"] is False
+    assert default_book["readable"] is False
     assert default_book["filename"] == "missing.gnucash.sqlite"
     assert "missing or not mounted" in default_book["message"]
+    assert str(tmp_path) not in str(payload)
+
+
+def test_health_explains_unreadable_default_book_without_full_path(monkeypatch, tmp_path):
+    book_path = tmp_path / "unreadable-book.gnucash.sqlite"
+    book_path.write_bytes(b"synthetic test fixture placeholder")
+    settings = _settings(tmp_path, book_path)
+    monkeypatch.setattr(diagnostics_module.os, "access", lambda path, mode: False)
+
+    payload = build_health_payload(settings, _in_memory_engine())
+
+    assert payload["status"] == "degraded"
+    default_book = payload["checks"]["default_book"]
+    assert default_book["configured"] is True
+    assert default_book["exists"] is True
+    assert default_book["readable"] is False
+    assert default_book["filename"] == "unreadable-book.gnucash.sqlite"
+    assert "not readable" in default_book["message"]
+    assert "permissions" in default_book["message"]
+    assert str(tmp_path) not in str(payload)
+
+
+def test_auth_configuration_posture_explains_first_run_login_blockers_without_secrets(tmp_path):
+    settings = Settings(
+        app_env="test",
+        app_database_url=f"sqlite:///{tmp_path / 'app.db'}",
+        gnucash_default_book_path=str(tmp_path / "sample.gnucash.sqlite"),
+        jwt_secret="change-me-use-a-long-random-secret",
+        app_admin_password="",
+        app_admin_password_hash="",
+    )
+
+    posture = auth_configuration_posture(settings)
+    payload = build_health_payload(settings, _in_memory_engine())
+
+    assert posture["jwt_secret_configured"] is False
+    assert posture["admin_credentials_configured"] is False
+    assert "JWT_SECRET is missing" in posture["issues"][0]
+    assert "No admin bootstrap credentials" in posture["issues"][1]
+    assert "Set JWT_SECRET" in posture["safe_next_actions"][0]
+    assert "APP_ADMIN_PASSWORD_HASH or APP_ADMIN_PASSWORD" in posture["safe_next_actions"][1]
+    assert payload["status"] == "degraded"
+    assert payload["checks"]["auth_configuration"] == posture
+    assert "change-me-use-a-long-random-secret" not in str(payload)
     assert str(tmp_path) not in str(payload)
 
 
@@ -181,3 +241,27 @@ def test_startup_logs_warning_for_risky_cors_without_secrets(caplog, tmp_path):
     assert str(tmp_path) not in log_text
     assert secret not in log_text
     assert "admin-password-secret" not in log_text
+
+
+def test_startup_logs_first_run_configuration_warning_without_secret_values(caplog, tmp_path):
+    placeholder_secret = "change-me"
+    settings = Settings(
+        app_env="test",
+        app_database_url=f"sqlite:///{tmp_path / 'app.db'}",
+        gnucash_default_book_path=str(tmp_path / "missing.gnucash.sqlite"),
+        jwt_secret=placeholder_secret,
+        app_admin_password="",
+        app_admin_password_hash="",
+    )
+
+    with caplog.at_level(logging.INFO, logger="app.diagnostics"):
+        log_startup_diagnostics(settings, _in_memory_engine())
+
+    log_text = caplog.text
+    assert "first_run_configuration_warning" in log_text
+    assert '\"event\": \"first_run_configuration_warning\"' in log_text
+    assert "JWT_SECRET is missing" in log_text
+    assert "No admin bootstrap credentials" in log_text
+    assert "APP_ADMIN_PASSWORD_HASH or APP_ADMIN_PASSWORD" in log_text
+    assert placeholder_secret not in log_text
+    assert str(tmp_path) not in log_text

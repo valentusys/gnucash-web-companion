@@ -3,6 +3,8 @@ import { fail, redirect, type Actions } from '@sveltejs/kit';
 
 const AUTH_COOKIE = 'access_token';
 const DEFAULT_COOKIE_MAX_AGE_SECONDS = 60 * 30;
+const OPERATOR_LOGIN_CONFIGURATION_ERROR =
+	'Login is not fully configured. Check JWT_SECRET and APP_ADMIN_PASSWORD_HASH or APP_ADMIN_PASSWORD in your local .env/deployment environment, restart the service, and keep GnuCash data read-only.';
 
 type LoginResponse = {
 	access_token: string;
@@ -53,6 +55,9 @@ export const actions: Actions = {
 		}
 
 		if (!response.ok) {
+			if (response.status === 503) {
+				return fail(503, { error: OPERATOR_LOGIN_CONFIGURATION_ERROR, username });
+			}
 			return fail(401, { error: 'Invalid username or password.', username });
 		}
 

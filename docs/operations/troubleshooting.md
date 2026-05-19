@@ -5,6 +5,10 @@ It focuses on safe diagnostics only: do not paste secrets, `.env` contents, real
 GnuCash books, app databases, backups, real screenshots, or real exports into
 public issues.
 
+GnuCash Desktop remains the authoritative editor. The web app does not provide a
+setup wizard, config-writing UI, book upload flow, or book-management UI for
+first-run recovery.
+
 ## First safety checks
 
 Before debugging a deployment, confirm:
@@ -54,6 +58,15 @@ Example healthy shape:
       "reachable": true,
       "message": "App metadata database is reachable."
     },
+    "auth_configuration": {
+      "jwt_secret_configured": true,
+      "admin_credentials_configured": true,
+      "admin_password_hash_configured": true,
+      "plaintext_admin_password_configured": false,
+      "message": "Login bootstrap configuration is present.",
+      "issues": [],
+      "safe_next_actions": ["Sign in with the configured local admin account."]
+    },
     "default_book": {
       "configured": true,
       "exists": true,
@@ -68,10 +81,11 @@ Example healthy shape:
 ```
 
 `status: degraded` means the API process is running but at least one required
-runtime check needs attention. The most common cause is a missing or unmounted
-default book file.
+runtime check needs attention. Common first-run causes are a missing/unreadable
+default book file, placeholder JWT secret, missing admin bootstrap credential, or
+an unreachable app metadata DB.
 
-## Missing default book
+## Missing or unreadable default book
 
 If the health endpoint shows:
 
@@ -99,6 +113,36 @@ docker compose exec api sh -lc 'ls -l /data/books && test -f "$GNUCASH_DEFAULT_B
 
 Do not paste the resulting real filenames publicly if they reveal personal data.
 Use a generic description or rename the copied test file first.
+
+If the health endpoint says the file exists but is not readable, keep the same
+book path and fix host/container ownership or read permissions. The health
+payload intentionally returns only the filename and generic permission guidance,
+not the full host path.
+
+## Placeholder JWT secret or missing admin bootstrap credential
+
+If `/login` reports an operator-fixable configuration problem, check
+`checks.auth_configuration` in `/health`.
+
+For a missing or placeholder JWT secret:
+
+1. Set `JWT_SECRET` to a long random value in the local `.env` or deployment
+   environment.
+2. Do not use placeholder values from `.env.example`.
+3. Restart the service after changing the value.
+
+For a missing first-admin bootstrap credential:
+
+1. Prefer `APP_ADMIN_PASSWORD_HASH` for durable deployments.
+2. `APP_ADMIN_PASSWORD` is accepted as a local bootstrap convenience and is
+   hashed before storage.
+3. Restart after setting the credential. For disposable local testing only,
+   recreate the ignored app metadata DB if the first-run seed already ran with
+   incomplete settings.
+
+The health endpoint and startup logs report boolean/config-key diagnostics only.
+They must not include JWT secret values, admin passwords, password hashes, or
+full `.env` contents.
 
 ## App metadata DB not reachable
 
