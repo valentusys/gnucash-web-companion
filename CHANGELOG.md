@@ -6,13 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-No unreleased changes after the prepared `v0.1.4-readonly` candidate.
+No unreleased changes after the published `v0.1.4-readonly` pre-release.
 
 ## [0.1.4-readonly] - 2026-05-19
 
 ### Added
 
-- Phase 141 — prepared conservative `v0.1.4-readonly` release artifacts without publishing: release notes, release-prep checklist, final gate, README links, project status, and phase handoff now describe the candidate as pre-alpha, read-only by default, not production-ready, not security-audited, unpublished, and pending explicit authorization before any tag/GitHub release.
+- Phase 142 — published `v0.1.4-readonly` as an authorized GitHub pre-release after the final release gate confirmed clean `main`, `HEAD == origin/main`, successful GitHub Actions, local backend/frontend/Docker checks, `GNUCASH_WRITES_ENABLED=false`, and tracked sensitive-file hygiene.
+- Phase 141 — prepared conservative `v0.1.4-readonly` release artifacts without publishing: release notes, release-prep checklist, final gate, README links, project status, and phase handoff described the candidate as pre-alpha, read-only by default, not production-ready, not security-audited, unpublished, and pending explicit authorization before any tag/GitHub release.
 - Phase 139 — reran synthetic/disposable Docker/Caddy dogfood with `GNUCASH_WRITES_ENABLED=false`; read-only API smoke covered health, login/auth, books/default book, accounts, transactions, transaction detail, CSV export, reports summary, and disabled validate/create/patch write probes; browser dogfood covered login, protected redirect, dashboard, accounts, books, scheduled awareness, account detail, transaction filters, transaction detail, CSV export, hidden write UI, and no-artifact checks.
 - Phase 138 — synchronized public README, Russian README, changelog, roadmap, project status, and handoff after the recent read-only maintenance and documentation phases.
 - Phase 137 — refreshed local secure deployment documentation without product-code changes: `docs/deployment/local-secure-deployment.md` now gives concrete localhost/LAN/VPN CORS recommendations, JWT secret generation and conservative rotation guidance, app metadata DB backup expectations for `data/app/app.db`, and a checkable self-hosting pre-deployment checklist; `.env.example` comments now point to fresh JWT secrets and exact CORS examples.
@@ -23,7 +24,7 @@ No unreleased changes after the prepared `v0.1.4-readonly` candidate.
 
 ### Release notes
 
-- `v0.1.4-readonly` is prepared only. Phase 141 did not create a git tag, GitHub release, package, or uploaded artifact.
+- `v0.1.4-readonly` was published as a GitHub pre-release on 2026-05-19 after Phase 142 final-gate verification. No package, binary artifact, Docker image, or production deployment was published.
 - This remains a conservative pre-alpha/read-only candidate. `GNUCASH_WRITES_ENABLED=false` remains the default; controlled-write code is experimental post-MVP/write-alpha work, test-fixture-only when enabled, and outside any safe production write-mode claim.
 
 ### Known limitations
