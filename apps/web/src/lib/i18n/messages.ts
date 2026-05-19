@@ -23,6 +23,9 @@ export type MessageKey =
 	| 'safety.statusLabel'
 	| 'safety.badge'
 	| 'safety.message'
+	| 'safety.currentBook'
+	| 'safety.noActiveBook'
+	| 'safety.reviewBooks'
 	| 'dashboard.title'
 	| 'accounts.kicker'
 	| 'accounts.title'
@@ -122,7 +125,10 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'safety.statusLabel': 'Read-only safety status',
 		'safety.badge': 'Read-only by default',
 		'safety.message':
-			'Read-only MVP by default. GnuCash Desktop remains the authoritative editor; web writes require an explicit post-MVP feature flag.',
+			'Read-only MVP by default. GNUCASH_WRITES_ENABLED=false is the safe default; GnuCash Desktop remains the authoritative editor.',
+		'safety.currentBook': 'Current book',
+		'safety.noActiveBook': 'No active book selected',
+		'safety.reviewBooks': 'Review books',
 		'dashboard.title': 'Dashboard',
 		'accounts.kicker': 'Accounts',
 		'accounts.title': 'Account tree',
@@ -230,7 +236,10 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'safety.statusLabel': 'Статус безопасности read-only режима',
 		'safety.badge': 'Read-only по умолчанию',
 		'safety.message':
-			'MVP по умолчанию работает только на чтение. GnuCash Desktop остаётся главным редактором; любые web-записи требуют отдельного post-MVP feature flag.',
+			'MVP по умолчанию работает только на чтение. GNUCASH_WRITES_ENABLED=false — безопасное значение по умолчанию; GnuCash Desktop остаётся главным редактором.',
+		'safety.currentBook': 'Текущая книга',
+		'safety.noActiveBook': 'Активная книга не выбрана',
+		'safety.reviewBooks': 'Проверить книги',
 		'dashboard.title': 'Обзор',
 		'accounts.kicker': 'Счета',
 		'accounts.title': 'Дерево счетов',

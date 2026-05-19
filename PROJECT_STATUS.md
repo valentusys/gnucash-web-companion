@@ -7,11 +7,11 @@ Last updated: 2026-05-19
 - GitHub: `valentusys/gnucash-web-companion`
 - Local path: `/home/val/gnucash-web-companion`
 - Branch: `main`
-- Status: pre-alpha / v0.1.4-readonly read-only pre-release published through Phase 142; v0.2.0-writealpha remains a separate experimental pre-release
+- Status: pre-alpha / v0.1.4-readonly read-only pre-release published through Phase 143; v0.2.0-writealpha remains a separate experimental pre-release
 
 ## Current baseline
 
-Completed through Phase 142.
+Completed through Phase 143.
 
 Current public release state:
 
@@ -36,6 +36,7 @@ Current public release state:
 - Phase 140 is a maintenance release readiness audit for a possible `v0.1.4-readonly`: write-gating tests, frontend route checks, Docker Compose config validation, recent GitHub CI, disabled-by-default write config, tracked sensitive-file hygiene, and Phases 133–135 documentation/test evidence were checked. Verdict: `not ready` because public release/status docs are not fully synchronized yet (`README.md` still says Phase 0–137 and `CHANGELOG.md` lacks Phase 138/139 entries). No product code, write-alpha behavior, release, tag, package, real/private data, or `GNUCASH_WRITES_ENABLED=false` default changed.
 - Phase 141 prepared conservative `v0.1.4-readonly` release artifacts without publication: `docs/release/v0.1.4-readonly-notes.md`, `docs/release/v0.1.4-readonly-checklist.md`, and `docs/release/v0.1.4-readonly-final-gate.md` described the candidate as pre-alpha, read-only by default, unpublished, not production-ready, not security-audited, and pending explicit authorization before any tag/GitHub release. `README.md`, `CHANGELOG.md`, `PROJECT_STATUS.md`, and `docs/handoff/phase-141.md` were synchronized. Verification passed for backend health/auth tests, frontend check, frontend auth-route checks, Docker Compose config validation, tag/release absence, diff whitespace, and tracked-file sensitive hygiene. No product code, write-alpha behavior, release, tag, package, real/private data, or `GNUCASH_WRITES_ENABLED=false` default changed.
 - Phase 142 published `v0.1.4-readonly` as an authorized GitHub pre-release after final release-gate checks. The phase re-confirmed clean `main`, `HEAD == origin/main`, release artifacts present, tag/release absence before publication, GitHub CI success, Docker Compose config validity, disabled-write tests, frontend checks, `GNUCASH_WRITES_ENABLED=false` default, diff whitespace, and sensitive tracked-file hygiene. Publication created only the annotated git tag and GitHub pre-release; docs/status/handoff/publication evidence were synchronized. No product code, write-alpha expansion, runtime default change, package, binary artifact, Docker image, production deployment, real/private data, or production-readiness claim was added.
+- Phase 143 is a post-`v0.1.4-readonly` read-only runtime status banner v2 phase: the app shell now passes the active accessible book into `ReadOnlyStatusBanner`, and the banner displays compact mobile-safe chips for read-only default status, current book name/fallback, and a safe `/books` review link. Localized safety copy now explicitly states `GNUCASH_WRITES_ENABLED=false` as the safe default, and frontend route/static checks pin active-book wiring, `/books` navigation, and no browser-storage persistence. No backend API, write endpoint, write-mode UI expansion, release/tag/package, localStorage-sensitive state, real/private book, screenshot, export, `.env`, app DB, backup, token, key, cert, or `GNUCASH_WRITES_ENABLED=false` default changed.
 - Previous public release `v0.1.2-readonly` remains available and points to its Phase 117 release commit.
 - Previous public release `v0.1.1-readonly` remains available and points to `a4d04150c043ad4da3dea577b30ed7ffd2032df0`, after Phase 104.
 
@@ -184,6 +185,7 @@ Completed phases:
 - Phase 140 — v0.1.4-readonly maintenance release readiness audit
 - Phase 141 — v0.1.4-readonly release artifact preparation
 - Phase 142 — v0.1.4-readonly release gate and authorized publication
+- Phase 143 — read-only runtime status banner v2
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -263,7 +265,7 @@ Completed phases:
 
 Next planned phase:
 
-- Continue only with the next explicitly requested phase. Controlled writes remain post-MVP/experimental, disabled by default, constrained to `APP_ENV=test` copied/disposable fixtures when explicitly enabled, and not safe for production books. Phase 139 made no release/publication change, added no backend/frontend code, added no screenshots/exports, used only synthetic/disposable data, tested no real GnuCash Desktop versions, and did not expand write-alpha scope.
+- Continue only with the next explicitly requested phase. Controlled writes remain post-MVP/experimental, disabled by default, constrained to `APP_ENV=test` copied/disposable fixtures when explicitly enabled, and not safe for production books. Phase 143 made only frontend read-only status/banner and documentation changes, added no release/publication change, no backend write behavior, no screenshots/exports, no real/private data, and did not expand write-alpha scope.
 
 ## MVP product model
 

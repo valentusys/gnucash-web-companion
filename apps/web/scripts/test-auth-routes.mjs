@@ -220,6 +220,11 @@ assert.match(mobileNav, /min-h-\[44px\][\s\S]*min-w-\[44px\]/s, 'mobile menu con
 assert.doesNotMatch(mobileNav, /overflow-x-auto|min-w-full/, 'mobile navigation must not introduce horizontal scrolling at 320px widths');
 const layoutPage = read('src/routes/+layout.svelte');
 assert.match(layoutPage, /overflow-x-hidden[\s\S]*max-w-full[\s\S]*pb-32 md:pb-0/s, 'app shell must prevent mobile horizontal scroll and reserve enough space for the fixed mobile navigation');
+assert.match(layoutPage, /<ReadOnlyStatusBanner \{locale\} \{activeBook\}/, 'app shell must pass the active book into the read-only runtime status banner');
+const readOnlyStatusBanner = read('src/lib/components/ReadOnlyStatusBanner.svelte');
+assert.match(readOnlyStatusBanner, /activeBook\?: Book \| null[\s\S]*activeBook\?\.name[\s\S]*safety\.currentBook/s, 'read-only status banner must show the current active book name');
+assert.match(readOnlyStatusBanner, /href="\/books"[\s\S]*safety\.reviewBooks/s, 'read-only status banner must provide a safe link to review books');
+assert.match(i18nMessages, /GNUCASH_WRITES_ENABLED=false[\s\S]*safety\.currentBook[\s\S]*safety\.reviewBooks/s, 'localized safety copy must state the default-disabled write flag and expose current-book/books labels');
 const bookSwitcherComponent = read('src/lib/components/BookSwitcher.svelte');
 assert.match(bookSwitcherComponent, /compact = false[\s\S]*min-h-11[\s\S]*max-w-full[\s\S]*truncate/s, 'book switcher must support compact mobile rendering with 44px touch height and no overflow');
 const localeSwitcherComponentForMobile = read('src/lib/components/LocaleSwitcher.svelte');
