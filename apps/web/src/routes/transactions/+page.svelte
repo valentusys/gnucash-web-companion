@@ -1,9 +1,11 @@
 <script lang="ts">
+	import { navigating } from '$app/state';
 	import { goto } from '$app/navigation';
 	import TransactionTable from '$lib/components/TransactionTable.svelte';
 	import TransactionCard from '$lib/components/TransactionCard.svelte';
 	import TransactionFilters from '$lib/components/TransactionFilters.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
+	import LoadingState from '$lib/components/LoadingState.svelte';
 	import Pagination from '$lib/components/Pagination.svelte';
 	import WriteModeWarning from '$lib/components/WriteModeWarning.svelte';
 	import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
@@ -15,6 +17,7 @@
 	const limit = $derived(txs.limit);
 	const offset = $derived(txs.offset);
 	const total = $derived(txs.total);
+	let isRouteLoading = $derived(navigating.to?.url.pathname === '/transactions');
 
 	const exportCsvUrl = $derived.by(() => {
 		const bookId = data.activeBook?.id;
@@ -171,45 +174,49 @@
 		</div>
 	{/if}
 
-	<TransactionFilters
-		query={data.filters.query}
-		dateFrom={data.filters.dateFrom}
-		dateTo={data.filters.dateTo}
-		accountId={data.filters.accountId}
-		minAmount={data.filters.minAmount}
-		maxAmount={data.filters.maxAmount}
-		transactionState={data.filters.transactionState}
-		accounts={data.accounts}
-		datePresets={data.datePresets}
-		clearFiltersHref={data.clearFiltersHref}
-		{locale}
-		onChange={handleFilter}
-	/>
+	{#if isRouteLoading}
+		<LoadingState variant="transactions" message="Loading transactions for the selected read-only book…" />
+	{:else}
+		<TransactionFilters
+			query={data.filters.query}
+			dateFrom={data.filters.dateFrom}
+			dateTo={data.filters.dateTo}
+			accountId={data.filters.accountId}
+			minAmount={data.filters.minAmount}
+			maxAmount={data.filters.maxAmount}
+			transactionState={data.filters.transactionState}
+			accounts={data.accounts}
+			datePresets={data.datePresets}
+			clearFiltersHref={data.clearFiltersHref}
+			{locale}
+			onChange={handleFilter}
+		/>
 
-	<div class="rounded-2xl p-4" style="background-color: var(--app-panel); box-shadow: 0 1px 3px var(--app-panel-shadow); border: 1px solid var(--app-border);">
-		{#if txs.items.length}
-			<TransactionTable transactions={txs.items} onSelect={handleSelect} />
-			<TransactionCard transactions={txs.items} onSelect={handleSelect} />
-			<Pagination {offset} {limit} {total} onChange={handlePageChange} />
-		{:else}
-			<EmptyState title={emptyTitle} message={emptyMessage} ariaLabel={emptyTitle} icon="🔎">
-				{#if hasActiveFilters}
+		<div class="rounded-2xl p-4" style="background-color: var(--app-panel); box-shadow: 0 1px 3px var(--app-panel-shadow); border: 1px solid var(--app-border);">
+			{#if txs.items.length}
+				<TransactionTable transactions={txs.items} onSelect={handleSelect} />
+				<TransactionCard transactions={txs.items} onSelect={handleSelect} />
+				<Pagination {offset} {limit} {total} onChange={handlePageChange} />
+			{:else}
+				<EmptyState title={emptyTitle} message={emptyMessage} ariaLabel={emptyTitle} icon="🔎">
+					{#if hasActiveFilters}
+						<a
+							href={data.clearFiltersHref}
+							class="rounded-xl px-4 py-2 text-sm font-semibold text-white"
+							style="background-color: var(--app-accent);"
+						>
+							Clear filters
+						</a>
+					{/if}
 					<a
-						href={data.clearFiltersHref}
-						class="rounded-xl px-4 py-2 text-sm font-semibold text-white"
-						style="background-color: var(--app-accent);"
+						href="/books"
+						class="rounded-xl border px-4 py-2 text-sm font-semibold"
+						style="border-color: var(--app-border); color: var(--app-text);"
 					>
-						Clear filters
+						Review books
 					</a>
-				{/if}
-				<a
-					href="/books"
-					class="rounded-xl border px-4 py-2 text-sm font-semibold"
-					style="border-color: var(--app-border); color: var(--app-text);"
-				>
-					Review books
-				</a>
-			</EmptyState>
-		{/if}
-	</div>
+				</EmptyState>
+			{/if}
+		</div>
+	{/if}
 </main>

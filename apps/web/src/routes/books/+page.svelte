@@ -1,9 +1,12 @@
 <script lang="ts">
+	import { navigating } from '$app/state';
 	import EmptyState from '$lib/components/EmptyState.svelte';
+	import LoadingState from '$lib/components/LoadingState.svelte';
 	import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 
 	let { data } = $props();
 	let locale = $derived<Locale>(data.locale ?? DEFAULT_LOCALE);
+	let isRouteLoading = $derived(navigating.to?.url.pathname === '/books');
 
 	function formatBaseCurrency(currency: string | null): string {
 		return currency?.trim() || t(locale, 'books.notConfigured');
@@ -58,7 +61,9 @@
 			</span>
 		</div>
 
-		{#if data.books.length}
+		{#if isRouteLoading}
+			<LoadingState variant="books" message="Loading accessible read-only books…" />
+		{:else if data.books.length}
 			<div class="grid gap-3">
 				{#each data.books as book (book.id)}
 					<article class="rounded-xl border p-4" style="border-color: var(--app-border); background-color: var(--app-bg);">

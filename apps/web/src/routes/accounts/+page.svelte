@@ -1,10 +1,13 @@
 <script lang="ts">
+	import { navigating } from '$app/state';
 	import AccountTree from '$lib/components/AccountTree.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
+	import LoadingState from '$lib/components/LoadingState.svelte';
 	import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 
 	let { data } = $props();
 	let locale = $derived<Locale>(data.locale ?? DEFAULT_LOCALE);
+	let isRouteLoading = $derived(navigating.to?.url.pathname === '/accounts');
 </script>
 
 <svelte:head>
@@ -35,7 +38,9 @@
 		{/if}
 	</div>
 
-	{#if data.accounts.length}
+	{#if isRouteLoading}
+		<LoadingState variant="accounts" message="Loading account tree for the selected read-only book…" />
+	{:else if data.accounts.length}
 		<AccountTree accounts={data.accounts} />
 	{:else}
 		<EmptyState

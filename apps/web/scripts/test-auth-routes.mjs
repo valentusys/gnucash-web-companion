@@ -30,6 +30,27 @@ assert.match(errorStateComponent, /retryHref[\s\S]*backHref[\s\S]*aria-label/s, 
 const errorPage = read('src/routes/+error.svelte');
 assert.match(errorPage, /import ErrorState/, 'global error page must reuse ErrorState');
 assert.match(errorPage, /statusCode=\{page\.status\}[\s\S]*retryHref=\{page\.url\.pathname \+ page\.url\.search\}[\s\S]*backHref="\/dashboard"/s, 'global error page must pass status and retry/back actions');
+const loadingStateComponent = read('src/lib/components/LoadingState.svelte');
+assert.match(
+	loadingStateComponent,
+	/variant[\s\S]*dashboard[\s\S]*accounts[\s\S]*transactions[\s\S]*books/s,
+	'LoadingState must expose structured skeleton variants for dashboard, accounts, transactions, and books'
+);
+assert.match(
+	loadingStateComponent,
+	/aria-busy="true"[\s\S]*data-skeleton-variant=\{variant\}[\s\S]*animate-pulse/s,
+	'LoadingState skeletons must be accessible, animated, and identifiable by variant'
+);
+for (const [routeName, relativePath, variant] of [
+	['dashboard', 'src/routes/dashboard/+page.svelte', 'dashboard'],
+	['accounts', 'src/routes/accounts/+page.svelte', 'accounts'],
+	['transactions', 'src/routes/transactions/+page.svelte', 'transactions'],
+	['books', 'src/routes/books/+page.svelte', 'books']
+]) {
+	const routePage = read(relativePath);
+	assert.match(routePage, /import \{ navigating \} from '\$app\/state';[\s\S]*import LoadingState/s, `${routeName} page must watch SvelteKit navigation and import LoadingState`);
+	assert.match(routePage, new RegExp(`isRouteLoading[\\s\\S]*navigating\\.to[\\s\\S]*<LoadingState[\\s\\S]*variant="${variant}"`, 's'), `${routeName} page must show its ${variant} skeleton while route data is loading`);
+}
 assert.match(hooks, /PROTECTED_PREFIXES[\s\S]*'\/dashboard'[\s\S]*'\/accounts'[\s\S]*'\/scheduled'/, 'dashboard, accounts, and scheduled routes must be protected');
 assert.match(hooks, /redirect\(303, `\/login\?next=/, 'protected routes must redirect to /login');
 assert.match(hooks, /cookies\.get\('access_token'\)/, 'protected routes must use the httpOnly cookie');
