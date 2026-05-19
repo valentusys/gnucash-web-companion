@@ -432,6 +432,107 @@ class TestReportSummaryMVP:
         # Expenses this month: rent 12000 + food 1470 + utilities 1530 = -15000
         assert data["expenses_this_month"] == "-15000.00"
 
+    def test_summary_falls_back_to_current_base_currency_splits_when_balances_are_zero(
+        self, client, auth_headers, sample_book, fake_book_for_reports, session_factory, monkeypatch
+    ):
+        sek = FakeCommodity(mnemonic="SEK")
+        root = FakeAccount(guid="root", name="Root Account", type="ROOT", commodity=sek)
+        checking = FakeAccount(guid="checking", name="Checking", type="BANK", commodity=sek, parent=root)
+        credit_card = FakeAccount(guid="cc", name="Credit Card", type="CREDIT", commodity=sek, parent=root)
+        salary = FakeAccount(guid="salary", name="Salary", type="INCOME", commodity=sek, parent=root)
+        food = FakeAccount(guid="food", name="Food", type="EXPENSE", commodity=sek, parent=root)
+        equity = FakeAccount(guid="equity", name="Equity", type="EQUITY", commodity=sek, parent=root)
+        old_expense = FakeAccount(guid="old-food", name="Old Food", type="EXPENSE", commodity=sek, parent=root)
+        eur = FakeCommodity(mnemonic="EUR")
+        eur_bank = FakeAccount(guid="eur-bank", name="EUR Bank", type="BANK", commodity=eur, parent=root)
+        accounts = [root, checking, credit_card, salary, food, equity, old_expense, eur_bank]
+        transactions = [
+            FakeTransaction(
+                guid="opening-cash",
+                post_date=date(2026, 5, 1),
+                description="Opening checking balance",
+                splits=[
+                    FakeSplit(account=checking, value=Decimal("1000.00")),
+                    FakeSplit(account=equity, value=Decimal("-1000.00")),
+                ],
+            ),
+            FakeTransaction(
+                guid="opening-card",
+                post_date=date(2026, 5, 1),
+                description="Opening credit card balance",
+                splits=[
+                    FakeSplit(account=credit_card, value=Decimal("-200.00")),
+                    FakeSplit(account=equity, value=Decimal("200.00")),
+                ],
+            ),
+            FakeTransaction(
+                guid="salary-current",
+                post_date=date(2026, 5, 10),
+                description="Current salary",
+                splits=[
+                    FakeSplit(account=checking, value=Decimal("500.00")),
+                    FakeSplit(account=salary, value=Decimal("-500.00")),
+                ],
+            ),
+            FakeTransaction(
+                guid="food-current",
+                post_date=date(2026, 5, 11),
+                description="Current groceries",
+                splits=[
+                    FakeSplit(account=checking, value=Decimal("-50.00")),
+                    FakeSplit(account=food, value=Decimal("50.00")),
+                ],
+            ),
+            FakeTransaction(
+                guid="old-food",
+                post_date=date(2026, 4, 30),
+                description="Prior month groceries",
+                splits=[
+                    FakeSplit(account=checking, value=Decimal("-30.00")),
+                    FakeSplit(account=old_expense, value=Decimal("30.00")),
+                ],
+            ),
+            FakeTransaction(
+                guid="future-salary",
+                post_date=date(2026, 6, 1),
+                description="Future salary",
+                splits=[
+                    FakeSplit(account=checking, value=Decimal("700.00")),
+                    FakeSplit(account=salary, value=Decimal("-700.00")),
+                ],
+            ),
+            FakeTransaction(
+                guid="eur-transfer",
+                post_date=date(2026, 5, 12),
+                description="Foreign currency transfer",
+                splits=[FakeSplit(account=eur_bank, value=Decimal("999.00"))],
+            ),
+        ]
+
+        def fake_open_book(path, readonly=False):
+            return FakeBookForReports(accounts=accounts, transactions=transactions)
+
+        import app.services.gnucash_book as gb_module
+
+        monkeypatch.setattr(gb_module.piecash, "open_book", fake_open_book)
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(fake_book_for_reports)
+            session.commit()
+
+        response = client.get(
+            "/reports/summary?as_of_date=2026-05-16",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["assets"] == "1420.00"
+        assert data["liabilities"] == "-200.00"
+        assert data["net_worth"] == "1220.00"
+        assert data["income_this_month"] == "500.00"
+        assert data["expenses_this_month"] == "-50.00"
+
     def test_multi_currency_accounts_are_excluded_from_base_currency_summary(
         self,
         client,

@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Phase 121 — fixed Conservative dashboard summary zero-value fallback when base-currency transactions exist but account balance fields report zero: summary now falls back to split-derived asset/liability totals through `as_of_date` only when account-balance asset/liability totals are both zero, while preserving legitimate empty zero summaries, Decimal/string money handling, and no-conversion behavior.
 - Phase 120 — optimized read-only account-detail transaction list/count by selecting account-scoped transaction candidates through splits before applying existing filters/pagination/CSV semantics; added synthetic account-detail filtered-list and CSV benchmark evidence without production scalability claims.
 - Phase 119 — stripped the synthetic GnuCash `Root Account:` prefix from displayed account full-name paths in the service layer while preserving child paths, account IDs, parent references, and API response shape; backend fixture/regression tests now expect cleaned names such as `Assets:Bank:Checking`.
 - Phase 118 — stabilized the desktop transaction table with fixed full-width columns, safe truncation for long descriptions/account names, and no needless desktop horizontal scroll; also narrowed account-tree desktop grid sizing to avoid narrow-layout overflow. Frontend static route checks pin the CSS-only regression contract.

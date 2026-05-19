@@ -334,8 +334,13 @@ class GnuCashBookService:
         as_of = _coerce_date(as_of_date) or date.today()
         today = as_of
         month_start = date(today.year, today.month, 1)
+        asset_account_types = {"ASSET", "BANK", "CASH", "RECEIVABLE", "STOCK", "MUTUAL"}
+        liability_account_types = {"LIABILITY", "CREDIT", "PAYABLE"}
         assets = Decimal("0")
         liabilities = Decimal("0")
+        split_assets = Decimal("0")
+        split_liabilities = Decimal("0")
+        saw_base_currency_balance_split = False
         income_this_month = Decimal("0")
         expenses_this_month = Decimal("0")
         with self._open_book() as book:
@@ -344,14 +349,15 @@ class GnuCashBookService:
                 currency = self._account_currency(account)
                 if currency != self.base_currency:
                     continue
-                if account_type in {"ASSET", "BANK", "CASH", "RECEIVABLE", "STOCK", "MUTUAL"}:
+                if account_type in asset_account_types:
                     assets += self._account_balance(account)
-                elif account_type in {"LIABILITY", "CREDIT", "PAYABLE"}:
+                elif account_type in liability_account_types:
                     liabilities += self._account_balance(account)
             for transaction in self._transactions(book):
                 tx_date = _coerce_date(self._transaction_date(transaction))
-                if tx_date is None or tx_date < month_start or tx_date > today:
+                if tx_date is None or tx_date > today:
                     continue
+                in_current_month = tx_date >= month_start
                 for split in self._splits(transaction):
                     account = getattr(split, "account", None)
                     if account is None:
@@ -361,6 +367,14 @@ class GnuCashBookService:
                     if currency != self.base_currency:
                         continue
                     amount = self._split_amount(split)
+                    if account_type in asset_account_types:
+                        split_assets += amount
+                        saw_base_currency_balance_split = True
+                    elif account_type in liability_account_types:
+                        split_liabilities += amount
+                        saw_base_currency_balance_split = True
+                    if not in_current_month:
+                        continue
                     if account_type == "INCOME":
                         if amount < 0:
                             income_this_month += abs(amount)
@@ -371,6 +385,9 @@ class GnuCashBookService:
                             expenses_this_month += amount
                         else:
                             income_this_month += abs(amount)
+        if assets == 0 and liabilities == 0 and saw_base_currency_balance_split:
+            assets = split_assets
+            liabilities = split_liabilities
         net_worth = assets + liabilities  # liabilities are already negative
         return ReportSummaryDTO(
             currency=self.base_currency,
