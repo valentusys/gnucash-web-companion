@@ -40,6 +40,8 @@ The transactions page reflects active filters in the URL query string:
 
 Changing filters resets `offset` to `0`. Pagination preserves the active filters and changes only the offset.
 
+The transactions page shows a compact current-view summary above the table: the visible page range, newest-first date ordering, whether filters are active, and a reminder that list pagination and CSV export share the same URL filters. This summary is display-only and does not store filter values in browser storage or app metadata.
+
 Date preset links are plain URLs. They update only `date_from` and `date_to`, preserve other active filters (`query`, `account_id`, `min_amount`, `max_amount`, and `transaction_state`), and reset `offset` to `0`.
 
 The transaction filter form also provides a one-click `Clear filters` link. It removes search, account, date, amount, and state filters, keeps only the current page size (`limit`) plus `offset=0`, and does not store the old filter values anywhere.

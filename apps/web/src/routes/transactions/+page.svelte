@@ -68,6 +68,23 @@
 			? t(locale, 'transactions.export.statusFiltered')
 			: t(locale, 'transactions.export.statusUnfiltered')
 	);
+	const pageStart = $derived(total > 0 ? offset + 1 : 0);
+	const pageEnd = $derived(Math.min(offset + txs.items.length, total));
+	const pageRangeStatus = $derived(
+		txs.items.length
+			? t(locale, 'transactions.listStatus.pageRange')
+					.replace('{start}', String(pageStart))
+					.replace('{end}', String(pageEnd))
+					.replace('{total}', String(total))
+			: t(locale, 'transactions.listStatus.emptyPage')
+	);
+	const filterParityStatus = $derived(
+		activeFilterCount
+			? t(locale, 'transactions.listStatus.filtersApplied')
+					.replace('{count}', String(activeFilterCount))
+					.replace('{filterLabel}', filterLabel)
+			: t(locale, 'transactions.listStatus.noFilters')
+	);
 	const hasActiveFilters = $derived(activeFilterCount > 0);
 	const emptyTitle = $derived(
 		hasActiveFilters ? 'No transactions match the current filters' : 'No transactions yet'
@@ -191,6 +208,24 @@
 			{locale}
 			onChange={handleFilter}
 		/>
+
+		<section
+			class="mb-4 rounded-xl border p-4"
+			style="border-color: var(--app-border); background: var(--app-panel);"
+			aria-label={t(locale, 'transactions.listStatus.title')}
+		>
+			<div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+				<div>
+					<p class="text-sm font-semibold" style="color: var(--app-text);">{t(locale, 'transactions.listStatus.title')}</p>
+					<p class="mt-1 text-xs" style="color: var(--app-muted);">{pageRangeStatus}</p>
+					<p class="mt-1 text-xs" style="color: var(--app-muted);">{t(locale, 'transactions.listStatus.order')}</p>
+				</div>
+				<div class="max-w-xl text-xs" style="color: var(--app-muted);">
+					<p>{filterParityStatus}</p>
+					<p class="mt-1">{t(locale, 'transactions.listStatus.exportParity')}</p>
+				</div>
+			</div>
+		</section>
 
 		<div class="rounded-2xl p-4" style="background-color: var(--app-panel); box-shadow: 0 1px 3px var(--app-panel-shadow); border: 1px solid var(--app-border);">
 			{#if txs.items.length}

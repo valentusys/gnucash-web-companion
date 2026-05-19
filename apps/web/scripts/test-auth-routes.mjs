@@ -381,6 +381,16 @@ assert.match(
 	/t\(locale, 'transactions\.export\.statusFiltered'\)[\s\S]*t\(locale, 'transactions\.export\.statusUnfiltered'\)[\s\S]*exportButtonLabel/s,
 	'CSV export copy must come from the localized catalog while preserving filtered/unfiltered read-only status'
 );
+assert.match(
+	transactionListPage,
+	/pageStart[\s\S]*pageEnd[\s\S]*transactions\.listStatus\.pageRange[\s\S]*transactions\.listStatus\.exportParity/s,
+	'transactions page must show a read-only list status summary with page range, order, and CSV cap/parity copy'
+);
+assert.match(
+	i18nMessages,
+	/transactions\.listStatus\.title[\s\S]*Current read-only view[\s\S]*transactions\.listStatus\.exportParity[\s\S]*capped at 10,000 rows[\s\S]*Текущий read-only вид[\s\S]*ограничен 10 000 строк/s,
+	'localized transaction list status copy must explain active view, filter/export parity, and CSV cap'
+);
 const transactionFiltersComponent = read('src/lib/components/TransactionFilters.svelte');
 assert.match(
 	transactionFiltersComponent,

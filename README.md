@@ -40,7 +40,7 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–142 are complete.
+- Phase 0–145 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by default.
 - First public pre-alpha release: `v0.0.1-prealpha`.
@@ -59,6 +59,9 @@ This project is not a fit if you need:
   - Phase 140 audited `v0.1.4-readonly` readiness and found a documentation-drift blocker.
   - Phase 141 prepared conservative unpublished `v0.1.4-readonly` release artifacts and status updates.
   - Phase 142 passed the final publication gate and published `v0.1.4-readonly` as an authorized GitHub pre-release.
+  - Phase 143 made active-book/read-only status visible in the app shell.
+  - Phase 144 added a local read-only account-tree filter for large account trees.
+  - Phase 145 added a transaction current-view summary that explains page range, newest-first order, filter parity, and the 10,000-row CSV export cap.
 - Russian localization/i18n foundation started in Phase 52; English documentation remains canonical. See [README.ru.md](README.ru.md) and [docs/localization.md](docs/localization.md).
 - Community announcement drafts and where-to-share guidance were refreshed in Phase 53 for cautious feedback collection, not production marketing.
 - Startup diagnostics, a richer non-sensitive health endpoint, and troubleshooting guidance were added in Phase 54 for self-hosted deployments.

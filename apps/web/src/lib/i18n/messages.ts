@@ -98,6 +98,13 @@ export type MessageKey =
 	| 'transactions.filters.summary.minAmount'
 	| 'transactions.filters.summary.maxAmount'
 	| 'transactions.filters.summary.state'
+	| 'transactions.listStatus.title'
+	| 'transactions.listStatus.order'
+	| 'transactions.listStatus.pageRange'
+	| 'transactions.listStatus.emptyPage'
+	| 'transactions.listStatus.filtersApplied'
+	| 'transactions.listStatus.noFilters'
+	| 'transactions.listStatus.exportParity'
 	| 'transactions.export.button'
 	| 'transactions.export.buttonWithFilters'
 	| 'transactions.export.statusFiltered'
@@ -207,6 +214,13 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'transactions.filters.summary.minAmount': 'Min amount',
 		'transactions.filters.summary.maxAmount': 'Max amount',
 		'transactions.filters.summary.state': 'State',
+		'transactions.listStatus.title': 'Current read-only view',
+		'transactions.listStatus.order': 'Sorted newest first by transaction date.',
+		'transactions.listStatus.pageRange': 'Showing {start}–{end} of {total} matching transactions on this page.',
+		'transactions.listStatus.emptyPage': 'No matching transactions on this page.',
+		'transactions.listStatus.filtersApplied': '{count} active {filterLabel}; the list, pagination, and CSV export use the same URL filters.',
+		'transactions.listStatus.noFilters': 'No transaction filters are active; CSV export uses the current unfiltered read-only view.',
+		'transactions.listStatus.exportParity': 'CSV export ignores page offset, starts from the first matching row, and is capped at 10,000 rows.',
 		'transactions.export.button': 'Export CSV',
 		'transactions.export.buttonWithFilters': 'Export CSV ({count} {filterLabel})',
 		'transactions.export.statusFiltered':
@@ -318,6 +332,13 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'transactions.filters.summary.minAmount': 'Мин. сумма',
 		'transactions.filters.summary.maxAmount': 'Макс. сумма',
 		'transactions.filters.summary.state': 'Состояние',
+		'transactions.listStatus.title': 'Текущий read-only вид',
+		'transactions.listStatus.order': 'Сортировка: новые транзакции сначала по дате.',
+		'transactions.listStatus.pageRange': 'Показаны {start}–{end} из {total} подходящих транзакций на этой странице.',
+		'transactions.listStatus.emptyPage': 'На этой странице нет подходящих транзакций.',
+		'transactions.listStatus.filtersApplied': '{count} активных {filterLabel}; список, пагинация и CSV export используют те же URL-фильтры.',
+		'transactions.listStatus.noFilters': 'Активных фильтров транзакций нет; CSV export использует текущий нефильтрованный read-only вид.',
+		'transactions.listStatus.exportParity': 'CSV export игнорирует page offset, начинает с первой подходящей строки и ограничен 10 000 строк.',
 		'transactions.export.button': 'Экспорт CSV',
 		'transactions.export.buttonWithFilters': 'Экспорт CSV ({count} {filterLabel})',
 		'transactions.export.statusFiltered':
