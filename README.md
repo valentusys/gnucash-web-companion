@@ -40,12 +40,13 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–150 are complete.
+- Phase 0–151 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by default.
 - First public pre-alpha release: `v0.0.1-prealpha`.
 - Current public read-only pre-alpha release: [`v0.1.4-readonly`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.4-readonly).
 - Latest published read-only release notes: [docs/release/v0.1.4-readonly-notes.md](docs/release/v0.1.4-readonly-notes.md) ([checklist](docs/release/v0.1.4-readonly-checklist.md), [final gate](docs/release/v0.1.4-readonly-final-gate.md), [publication evidence](docs/release/v0.1.4-readonly-publication-evidence.md)).
+- Unpublished maintenance candidate prepared for a later authorized phase: [docs/release/v0.1.5-readonly-notes.md](docs/release/v0.1.5-readonly-notes.md) ([checklist](docs/release/v0.1.5-readonly-checklist.md), [final gate](docs/release/v0.1.5-readonly-final-gate.md)).
 - `v0.2.0-writealpha` is published as a pre-alpha write-alpha GitHub pre-release after explicit authorization: [notes](docs/release/v0.2.0-writealpha-notes.md), [checklist](docs/release/v0.2.0-writealpha-checklist.md), [final gate](docs/release/v0.2.0-writealpha-final-gate.md).
 - Compatibility matrix: [docs/gnucash-compatibility.md](docs/gnucash-compatibility.md). Current compatibility evidence is synthetic/disposable fixture evidence only; no real GnuCash Desktop version support is claimed yet.
 - Recent post-release maintenance:
@@ -67,6 +68,7 @@ This project is not a fit if you need:
   - Phase 148 improved `/books` self-hosting readiness with app-metadata-only operator guidance, current/default/read-only/access/storage/status clarity, explicit unsupported MVP management actions, and no private path rendering in the UI.
   - Phase 149 expanded Russian localization coverage for the new read-only UX from Phases 143–148 through the existing catalog and static route checks.
   - Phase 150 reran synthetic/disposable Docker/Caddy read-only API and headless browser dogfood with `GNUCASH_WRITES_ENABLED=false` after the latest UX/localization work.
+  - Phase 151 prepared unpublished `v0.1.5-readonly` maintenance release notes, checklist, and final gate; the candidate is ready for a later authorized publish phase after local checks and CI passed, but no tag/release was created.
 - Russian localization/i18n foundation started in Phase 52; English documentation remains canonical. See [README.ru.md](README.ru.md) and [docs/localization.md](docs/localization.md).
 - Community announcement drafts and where-to-share guidance were refreshed in Phase 53 for cautious feedback collection, not production marketing.
 - Startup diagnostics, a richer non-sensitive health endpoint, and troubleshooting guidance were added in Phase 54 for self-hosted deployments.
@@ -216,6 +218,14 @@ GitHub release:
 - <https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.4-readonly>
 
 `v0.1.4-readonly` was published as a GitHub pre-release after an authorized Phase 142 publication gate. No packages or binary artifacts were published.
+
+Unpublished read-only maintenance candidate for a later authorized phase:
+
+- [docs/release/v0.1.5-readonly-checklist.md](docs/release/v0.1.5-readonly-checklist.md)
+- [docs/release/v0.1.5-readonly-notes.md](docs/release/v0.1.5-readonly-notes.md)
+- [docs/release/v0.1.5-readonly-final-gate.md](docs/release/v0.1.5-readonly-final-gate.md)
+
+`v0.1.5-readonly` was prepared in Phase 151 but not published. No tag or GitHub release exists for it yet; publication is reserved for a later authorized phase after green release-commit CI and final safety checks.
 
 Published write-alpha pre-release artifacts:
 

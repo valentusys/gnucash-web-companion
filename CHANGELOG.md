@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Phase 151 — prepared unpublished `v0.1.5-readonly` maintenance release readiness artifacts: release notes, release-prep checklist, final gate, README/CHANGELOG/PROJECT_STATUS sync, and handoff summarize Phases 143–150, keep conservative pre-alpha/read-only/default-write-disabled language, confirm no tag/release/package publication, and record that the candidate is ready for a later authorized publish phase after local checks and CI passed.
 - Phase 150 — reran synthetic/disposable Docker/Caddy read-only dogfood after the Phase 143–149 UX/localization work: API smoke covered health, login/auth, books/default book, accounts, transactions, transaction detail, CSV export, reports summary, and disabled validate/create/patch write probes; browser dogfood covered login, protected redirect, dashboard, accounts, books, scheduled, account detail, transaction filters, transaction detail, CSV export, hidden write UI, and no-artifact checks with `GNUCASH_WRITES_ENABLED=false`.
 - Phase 149 — expanded the existing English/Russian i18n catalog for the post-`v0.1.4-readonly` read-only UX: account-tree filtering, dashboard/reporting limitation labels, transaction detail/split readability copy, and hidden-by-default write-alpha DELETE warnings now have Russian equivalents while English remains canonical and translation remains partial/opt-in.
 - Phase 148 — improved `/books` self-hosting readiness: book metadata now exposes app-metadata-only operator guidance that listing does not open GnuCash data and that upload/delete/default-changing/registry-edit actions are intentionally unavailable in MVP; the page renders current/default/read-only/access/storage/status clarity and localized safe operator guidance without private path rendering.
@@ -16,6 +17,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Phase 145 — improved read-only transaction list/export confidence: the transactions page now shows a localized current-view summary with page range, newest-first ordering, active-filter parity for list/pagination/CSV export, and the 10,000-row CSV cap reminder; docs/tests pin the URL-only, no-browser-storage behavior.
 - Phase 144 — added a local account-tree filter for large read-only account trees, with filtered counts and no browser-storage/API/write behavior.
 - Phase 143 — added an app-shell read-only/current-book status banner v2 after `v0.1.4-readonly`.
+
+## [0.1.5-readonly] - Unpublished candidate
+
+### Added
+
+- Prepared release notes, checklist, and final-gate artifacts for a possible `v0.1.5-readonly` maintenance pre-release without creating a tag, GitHub release, package, Docker image, binary artifact, production deployment, or write-mode change.
+- Candidate scope covers Phases 143–150: app-shell read-only/current-book banner, account-tree filtering, transaction list/export clarity, transaction detail/split readability, dashboard/reporting limitation clarity, `/books` self-hosting guidance, Russian localization coverage, and synthetic Docker/browser dogfood refresh.
+
+### Release notes
+
+- `v0.1.5-readonly` is not published yet. `v0.1.4-readonly` remains the current public read-only pre-alpha release.
+- The candidate remains pre-alpha and read-only by default. `GNUCASH_WRITES_ENABLED=false` remains the default; controlled-write code is experimental post-MVP/write-alpha work and outside any safe production write-mode claim.
+- Publication is reserved for a later authorized phase after clean `main`, `HEAD == origin/main`, tag/release absence, green GitHub CI for the release HEAD, local checks, disabled-write defaults, and sensitive-data hygiene are re-confirmed.
+
+### Known limitations
+
+- Not production-ready and not security-audited.
+- Do not expose early deployments directly to the public internet.
+- Test with disposable fixtures or copied GnuCash SQL books first, keep backups, and keep `.env`, app DBs, GnuCash books, backups, private exports/screenshots, secrets, tokens, keys, and certs out of git.
+- Compatibility evidence remains intentionally narrow; no broad PostgreSQL/MySQL/MariaDB/XML/all-version compatibility is claimed.
+- Phase 150 dogfood evidence is synthetic/disposable only and does not establish production or broad real-book readiness.
+- No hosted SaaS readiness, collaborative accounting, family-wallet positioning, real-time multi-user editing, CSV/OFX import, banking integration, or safe production write mode is claimed.
 
 ## [0.1.4-readonly] - 2026-05-19
 
