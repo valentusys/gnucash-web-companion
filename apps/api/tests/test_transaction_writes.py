@@ -23,8 +23,12 @@ from app.database import Base
 from app.main import app
 from app.models import User, Book, UserBookAccess, AuditLog
 from app.routers.auth import get_db
+from app.schemas.gnucash_writes import TransactionCreateRequestDTO, TransactionSplitWriteDTO
 from app.services.auth import hash_password
 from app.services.gnucash_write import GnuCashWriteService, GnuCashWriteError
+from app.services.write_lock import WriteLockError
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
 
 TEST_SETTINGS = Settings(
     app_env="test",
@@ -326,6 +330,13 @@ class TestWritesDisabledByDefault:
     def test_settings_default_keeps_writes_disabled(self):
         assert Settings().gnucash_writes_enabled is False
 
+    def test_repository_default_configuration_keeps_writes_disabled(self):
+        env_example = (REPO_ROOT / ".env.example").read_text()
+        compose = (REPO_ROOT / "docker-compose.yml").read_text()
+
+        assert "GNUCASH_WRITES_ENABLED=false" in env_example
+        assert "GNUCASH_WRITES_ENABLED=${GNUCASH_WRITES_ENABLED:-false}" in compose
+
     @pytest.fixture
     def fail_if_write_service_is_constructed(self, monkeypatch):
         calls = []
@@ -347,6 +358,50 @@ class TestWritesDisabledByDefault:
 
     def _force_read_only_settings(self):
         app.dependency_overrides[get_settings] = lambda: READ_ONLY_TEST_SETTINGS
+
+    def test_disabled_write_routes_short_circuit_before_book_resolution(
+        self,
+        client,
+        auth_headers,
+        fail_if_write_service_is_constructed,
+        monkeypatch,
+    ):
+        resolved_books = []
+
+        def forbidden_book_resolution(*args, **kwargs):
+            resolved_books.append((args, kwargs))
+            raise AssertionError("write routes must not resolve books when writes are disabled")
+
+        self._force_read_only_settings()
+        monkeypatch.setattr(
+            "app.routers.transactions._resolve_viewable_book",
+            forbidden_book_resolution,
+        )
+
+        responses = [
+            client.post(
+                "/books/999/transactions/validate",
+                json=_balanced_transaction_payload(),
+                headers=auth_headers,
+            ),
+            client.post(
+                "/books/999/transactions",
+                json=_balanced_transaction_payload(),
+                headers=auth_headers,
+            ),
+            client.patch(
+                "/books/999/transactions/some-tx-id",
+                json={"description": "Updated description"},
+                headers=auth_headers,
+            ),
+        ]
+
+        for response in responses:
+            self._assert_read_only_response_without_write_service(
+                response,
+                fail_if_write_service_is_constructed,
+            )
+        assert resolved_books == []
 
     def test_validate_is_forbidden_when_writes_disabled(
         self,
@@ -562,6 +617,77 @@ class TestValidateTransaction:
         assert len(balance_errors) == 0
 
 
+class TestWriteServiceValidationRules:
+    """Regression coverage for the write-alpha validation safety foundation."""
+
+    def _service_with_fake_accounts(self, accounts):
+        fake_book = FakeBookForWrite(accounts=accounts, transactions=[])
+        service = GnuCashWriteService({"uri_or_path": "/tmp/disposable-write-alpha.gnucash.sqlite"})
+        service._validate_configured_book = lambda: "/tmp/disposable-write-alpha.gnucash.sqlite"
+        service._open_piecash_book = lambda uri_or_path: fake_book
+        return service
+
+    def test_validation_reports_all_core_create_guards(self, fake_accounts):
+        service = self._service_with_fake_accounts(fake_accounts)
+
+        result = service.validate_transaction_create(
+            TransactionCreateRequestDTO.model_construct(
+                date="bad-date",
+                description="Invalid write-alpha validation probe",
+                splits=[
+                    TransactionSplitWriteDTO.model_construct(
+                        account_id="missing-guid",
+                        amount="not-decimal",
+                        currency="SEK",
+                        memo="",
+                    ),
+                ],
+            )
+        )
+
+        assert result.valid is False
+        joined_errors = "\n".join(result.errors)
+        assert "At least two splits" in joined_errors
+        assert "Invalid amount 'not-decimal'" in joined_errors
+        assert "Account not found: missing-guid" in joined_errors
+        assert "Invalid date format: bad-date" in joined_errors
+
+    def test_validation_rejects_non_zero_sum_per_currency_and_placeholder_accounts(self, fake_accounts):
+        placeholder = FakeAccount(
+            guid="placeholder-guid",
+            name="Placeholder",
+            type="ASSET",
+            placeholder=True,
+        )
+        service = self._service_with_fake_accounts([*fake_accounts, placeholder])
+
+        result = service.validate_transaction_create(
+            TransactionCreateRequestDTO(
+                date="2026-05-16",
+                description="Placeholder write-alpha validation probe",
+                splits=[
+                    TransactionSplitWriteDTO(
+                        account_id="placeholder-guid",
+                        amount="-100.00",
+                        currency="SEK",
+                        memo="",
+                    ),
+                    TransactionSplitWriteDTO(
+                        account_id="food-guid",
+                        amount="99.99",
+                        currency="SEK",
+                        memo="",
+                    ),
+                ],
+            )
+        )
+
+        assert result.valid is False
+        joined_errors = "\n".join(result.errors)
+        assert "Splits do not balance to zero for currency SEK" in joined_errors
+        assert "placeholder account and cannot receive postings" in joined_errors
+
+
 # ---------------------------------------------------------------------------
 # Tests: POST /books/{book_id}/transactions
 # ---------------------------------------------------------------------------
@@ -754,6 +880,40 @@ class TestCreateTransaction:
             logs = session.query(AuditLog).filter_by(action="transaction.create").all()
             assert logs
             assert any('"result": "failed"' in log.payload_json for log in logs)
+
+    def test_create_write_lock_failure_writes_failed_audit_log(
+        self,
+        client,
+        auth_headers,
+        sample_book,
+        session_factory,
+        monkeypatch,
+    ):
+        """Attempts that enter the create route must be audited even when the lock fails."""
+
+        class LockFailingWriteService:
+            def create_transaction(self, request, user_id, book_id):
+                raise WriteLockError(str(book_id))
+
+        monkeypatch.setattr(
+            "app.routers.transactions._write_service_for",
+            lambda book: LockFailingWriteService(),
+        )
+
+        response = client.post(
+            f"/books/{sample_book}/transactions",
+            json=_balanced_transaction_payload(),
+            headers=auth_headers,
+        )
+        assert response.status_code == 409
+
+        with session_factory() as session:
+            logs = session.query(AuditLog).filter_by(action="transaction.create").all()
+            assert logs
+            latest_payload = json.loads(logs[-1].payload_json)
+            assert latest_payload["result"] == "failed"
+            assert "write lock" in latest_payload["error"].lower()
+            assert latest_payload["backup_path"] is None
 
 class TestPatchTransaction:
     """TDD: patch transaction metadata endpoint must exist."""

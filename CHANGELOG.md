@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Phase 123 — started the post-MVP/write-alpha safety foundation without enabling writes by default: added regression coverage for disabled-by-default config and route short-circuiting, write-lock-failure audit evidence, and explicit create-validation guards, and updated controlled-write readiness gates. No write capability was enabled or broadened.
 - Phase 122 — prepared unpublished `v0.1.3-readonly` maintenance release artifacts and reran the read-only stability gate across backend tests, frontend checks/build, Docker Compose config validation, tag/release absence checks, and sensitive tracked-file hygiene. Publication remains pending explicit authorization; no tag, GitHub release, package, or write-mode change was made.
 
 ### Fixed
