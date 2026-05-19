@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Phase 122 — prepared unpublished `v0.1.3-readonly` maintenance release artifacts and reran the read-only stability gate across backend tests, frontend checks/build, Docker Compose config validation, tag/release absence checks, and sensitive tracked-file hygiene. Publication remains pending explicit authorization; no tag, GitHub release, package, or write-mode change was made.
+
 ### Fixed
 
 - Phase 121 — fixed Conservative dashboard summary zero-value fallback when base-currency transactions exist but account balance fields report zero: summary now falls back to split-derived asset/liability totals through `as_of_date` only when account-balance asset/liability totals are both zero, while preserving legitimate empty zero summaries, Decimal/string money handling, and no-conversion behavior.
