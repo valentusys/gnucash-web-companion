@@ -1,3 +1,12 @@
+export type BookOperatorGuidance = {
+	metadata_source: string;
+	data_access: string;
+	read_only_default: boolean;
+	storage_type_label: string;
+	unsupported_management_actions: string[];
+	message: string;
+};
+
 export type Book = {
 	id: number;
 	name: string;
@@ -10,6 +19,7 @@ export type Book = {
 	read_only: boolean;
 	status: string;
 	management_actions: string[];
+	operator_guidance: BookOperatorGuidance;
 };
 
 export type Account = {

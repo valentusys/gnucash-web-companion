@@ -59,6 +59,14 @@ export type MessageKey =
 	| 'books.viewScheduled'
 	| 'books.dashboardSummary'
 	| 'books.noManagementActions'
+	| 'books.operatorGuidanceTitle'
+	| 'books.metadataSource'
+	| 'books.dataAccess'
+	| 'books.readOnlyDefault'
+	| 'books.unsupportedActions'
+	| 'books.noUnsupportedActions'
+	| 'books.currentDefaultExplanation'
+	| 'books.safeOperatorGuidance'
 	| 'transactions.filters.title'
 	| 'transactions.filters.subtitle'
 	| 'transactions.filters.filteredView'
@@ -171,6 +179,16 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'books.viewScheduled': 'View scheduled metadata',
 		'books.dashboardSummary': 'Dashboard summary',
 		'books.noManagementActions': 'No registry management actions are available on this read-only page.',
+		'books.operatorGuidanceTitle': 'Self-hosting operator guidance',
+		'books.metadataSource': 'Metadata source',
+		'books.dataAccess': 'Listing data access',
+		'books.readOnlyDefault': 'Read-only default',
+		'books.unsupportedActions': 'Unsupported MVP management actions',
+		'books.noUnsupportedActions': 'No management actions are exposed for this book.',
+		'books.currentDefaultExplanation':
+			'Current marks the book selected for this browser session; default marks the configured fallback book. Both are read-only context labels, not management controls.',
+		'books.safeOperatorGuidance':
+			'Use the host configuration and app metadata database to change registered books. This page intentionally does not expose upload, delete, default-changing, or registry-edit actions in the MVP.',
 		'transactions.filters.title': 'Transaction filters',
 		'transactions.filters.subtitle':
 			'Narrow the read-only transaction list and CSV export; filters never modify your GnuCash book.',
@@ -289,6 +307,16 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'books.viewScheduled': 'Плановые метаданные',
 		'books.dashboardSummary': 'Обзор',
 		'books.noManagementActions': 'На этой read-only странице нет действий управления реестром книг.',
+		'books.operatorGuidanceTitle': 'Подсказки для self-hosting оператора',
+		'books.metadataSource': 'Источник метаданных',
+		'books.dataAccess': 'Доступ к данным при списке',
+		'books.readOnlyDefault': 'Read-only по умолчанию',
+		'books.unsupportedActions': 'Неподдерживаемые действия управления в MVP',
+		'books.noUnsupportedActions': 'Для этой книги не показаны действия управления.',
+		'books.currentDefaultExplanation':
+			'Текущая книга выбрана для этой браузерной сессии; основная книга — настроенный fallback. Оба статуса являются read-only метками контекста, а не элементами управления.',
+		'books.safeOperatorGuidance':
+			'Меняйте зарегистрированные книги через конфигурацию хоста и app metadata database. Эта MVP-страница намеренно не даёт загрузку, удаление, смену основной книги или редактирование реестра.',
 		'transactions.filters.title': 'Фильтры транзакций',
 		'transactions.filters.subtitle':
 			'Сужают read-only список транзакций и CSV export; фильтры никогда не изменяют вашу книгу GnuCash.',

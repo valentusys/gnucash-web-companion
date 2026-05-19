@@ -7,11 +7,11 @@ Last updated: 2026-05-19
 - GitHub: `valentusys/gnucash-web-companion`
 - Local path: `/home/val/gnucash-web-companion`
 - Branch: `main`
-- Status: pre-alpha / v0.1.4-readonly read-only pre-release published through Phase 143; v0.2.0-writealpha remains a separate experimental pre-release
+- Status: pre-alpha / v0.1.4-readonly read-only pre-release published through Phase 148; v0.2.0-writealpha remains a separate experimental pre-release
 
 ## Current baseline
 
-Completed through Phase 147.
+Completed through Phase 148.
 
 Current public release state:
 
@@ -41,6 +41,7 @@ Current public release state:
 - Phase 145 is a post-`v0.1.4-readonly` transaction list usability and filter/export confidence phase: the transactions page now shows a localized current-view summary above the table with visible page range, newest-first date ordering, active-filter/no-filter status, explicit list/pagination/CSV filter parity, and the 10,000-row CSV export cap reminder. `docs/transactions-filters.md` documents the display-only URL-filter behavior, and frontend route/static checks pin the status summary plus localized cap/parity copy. Backend transaction/export regression tests still pass. No backend API, write endpoint, CSV export body/header behavior, write-mode UI expansion, release/tag/package, browser-storage persistence, raw CSV artifact, real/private transaction data, `.env`, app DB, backup, token, key, cert, or `GNUCASH_WRITES_ENABLED=false` default changed.
 - Phase 146 is a post-`v0.1.4-readonly` transaction detail and split readability polish phase: the transaction detail page now uses a bounded responsive metadata layout for date/currency/split count/short ID, split rows expose read-only account, memo, short account ID, amount, and raw GnuCash reconciliation state as readable mobile cards and a fixed desktop table, and zero-split responses render a safe empty state instead of inventing balancing data. The API split DTO now includes read-only `reconcile_state` for detail visibility; backend regression coverage pins that value and frontend route/static checks pin no horizontal overflow and hidden-by-default write controls. No write endpoint, write-mode UI expansion, release/tag/package, browser-storage persistence, screenshot/export/raw financial artifact, real/private book data, `.env`, app DB, backup, token, key, cert, or `GNUCASH_WRITES_ENABLED=false` default changed.
 - Phase 147 is a post-`v0.1.4-readonly` dashboard/reporting limitation clarity phase: dashboard summary limitations now explicitly state `reporting_basis=base_currency_only`, no currency conversion, and base-currency-only account/split inclusion; mixed-currency books name detected excluded currencies instead of implying conversion, and unknown `XXX` base-currency/zero-total cases explain that zero may reflect no matching base-currency accounts rather than an empty book. The dashboard UI displays reporting basis and conversion status before rendering backend limitations, and backend/frontend tests pin the no-conversion wording. No FX conversion, external rates, production accounting guarantee, write endpoint, release/tag/package, browser-storage persistence, screenshot/export/raw financial artifact, real/private book data, `.env`, app DB, backup, token, key, cert, or `GNUCASH_WRITES_ENABLED=false` default changed.
+- Phase 148 is a post-`v0.1.4-readonly` books page self-hosting readiness slice: `/books` metadata now includes app-metadata-only operator guidance that states listing does not open GnuCash data and that upload/delete/default-changing/registry-edit actions are intentionally unsupported in MVP; the UI shows current vs default labels, read-only/access/storage/status metadata, safe read-only view links, and localized self-hosting guidance without rendering private `uri_or_path` values or raw backend guidance copy. Backend and frontend tests pin the metadata/read-only/no-management-action behavior. No book upload/delete/default-change/registry edit, write endpoint, release/tag/package, browser-storage persistence, screenshot/export/raw financial artifact, real/private book data, `.env`, app DB, backup, token, key, cert, or `GNUCASH_WRITES_ENABLED=false` default changed.
 - Previous public release `v0.1.2-readonly` remains available and points to its Phase 117 release commit.
 - Previous public release `v0.1.1-readonly` remains available and points to `a4d04150c043ad4da3dea577b30ed7ffd2032df0`, after Phase 104.
 
@@ -194,6 +195,7 @@ Completed phases:
 - Phase 145 — transaction list usability and filter/export confidence
 - Phase 146 — transaction detail and split readability polish
 - Phase 147 — dashboard/reporting limitation clarity
+- Phase 148 — books page self-hosting readiness slice
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -273,7 +275,7 @@ Completed phases:
 
 Next planned phase:
 
-- Continue only with the next explicitly requested phase. Controlled writes remain post-MVP/experimental, disabled by default, constrained to `APP_ENV=test` copied/disposable fixtures when explicitly enabled, and not safe for production books. Phase 147 made dashboard/reporting limitation copy and tests more honest for base-currency-only/no-conversion/mixed-currency/unknown-base cases, added no release/publication change, no write behavior, no raw CSV/screenshot/export artifact, no real/private data, and did not expand write-alpha scope.
+- Continue only with the next explicitly requested phase. Controlled writes remain post-MVP/experimental, disabled by default, constrained to `APP_ENV=test` copied/disposable fixtures when explicitly enabled, and not safe for production books. Phase 148 improved `/books` self-hosting readiness with app-metadata-only operator guidance, unsupported MVP management-action clarity, current/default/read-only metadata visibility, and no private path rendering; it added no release/publication change, no book upload/delete/default-change/registry edit, no write behavior, no raw CSV/screenshot/export artifact, no real/private data, and did not expand write-alpha scope.
 
 ## MVP product model
 

@@ -21,6 +21,13 @@ from app.services.gnucash_exceptions import (
 
 router = APIRouter(prefix="/books", tags=["books"])
 
+UNSUPPORTED_MVP_MANAGEMENT_ACTIONS = [
+    "book_upload",
+    "book_delete",
+    "default_book_change",
+    "registry_edit",
+]
+
 
 def _access_role_for(book: Book, user: User | None) -> str | None:
     if user is None:
@@ -45,6 +52,17 @@ def serialize_book(book: Book, user: User | None = None) -> dict[str, Any]:
         "read_only": True,
         "status": "accessible",
         "management_actions": [],
+        "operator_guidance": {
+            "metadata_source": "app_metadata_db",
+            "data_access": "gnucash_not_opened_for_listing",
+            "read_only_default": True,
+            "storage_type_label": f"Read-only {book.storage_type} GnuCash book metadata",
+            "unsupported_management_actions": UNSUPPORTED_MVP_MANAGEMENT_ACTIONS,
+            "message": (
+                "This MVP lists configured accessible book metadata only. "
+                "Upload, delete, default-book changes, and registry editing are intentionally unavailable."
+            ),
+        },
     }
 
 

@@ -235,6 +235,29 @@ class TestMultiBookAccessFiltering:
         assert data["id"] == book_a
         assert data["name"] == "Alice Book"
 
+    def test_book_metadata_operator_guidance_is_app_metadata_only(self, client, headers_a, book_a):
+        response = client.get(f"/books/{book_a}", headers=headers_a)
+        assert response.status_code == 200
+        data = response.json()
+
+        assert data["management_actions"] == []
+        assert data["operator_guidance"] == {
+            "metadata_source": "app_metadata_db",
+            "data_access": "gnucash_not_opened_for_listing",
+            "read_only_default": True,
+            "storage_type_label": "Read-only sqlite GnuCash book metadata",
+            "unsupported_management_actions": [
+                "book_upload",
+                "book_delete",
+                "default_book_change",
+                "registry_edit",
+            ],
+            "message": (
+                "This MVP lists configured accessible book metadata only. "
+                "Upload, delete, default-book changes, and registry editing are intentionally unavailable."
+            ),
+        }
+
     def test_user_b_can_access_own_book_detail(self, client, headers_b, book_b):
         response = client.get(f"/books/{book_b}", headers=headers_b)
         assert response.status_code == 200

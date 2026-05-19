@@ -106,6 +106,38 @@
 							</div>
 						</dl>
 
+						<section class="mt-4 rounded-xl border p-3 text-sm" style="border-color: var(--app-border); background-color: var(--app-card-bg);" aria-label={t(locale, 'books.operatorGuidanceTitle')}>
+							<h4 class="font-semibold" style="color: var(--app-text);">{t(locale, 'books.operatorGuidanceTitle')}</h4>
+							<p class="mt-2" style="color: var(--app-muted);">{t(locale, 'books.currentDefaultExplanation')}</p>
+							<p class="mt-2" style="color: var(--app-muted);">{t(locale, 'books.safeOperatorGuidance')}</p>
+							<dl class="mt-3 grid gap-2 md:grid-cols-3">
+								<div>
+									<dt class="font-medium" style="color: var(--app-muted);">{t(locale, 'books.metadataSource')}</dt>
+									<dd class="mt-1 font-mono text-xs" style="color: var(--app-text);">{book.operator_guidance.metadata_source}</dd>
+								</div>
+								<div>
+									<dt class="font-medium" style="color: var(--app-muted);">{t(locale, 'books.dataAccess')}</dt>
+									<dd class="mt-1 font-mono text-xs" style="color: var(--app-text);">{book.operator_guidance.data_access}</dd>
+								</div>
+								<div>
+									<dt class="font-medium" style="color: var(--app-muted);">{t(locale, 'books.readOnlyDefault')}</dt>
+									<dd class="mt-1" style="color: var(--app-text);">{book.operator_guidance.read_only_default ? 'true' : 'false'}</dd>
+								</div>
+							</dl>
+							<div class="mt-3">
+								<p class="font-medium" style="color: var(--app-muted);">{t(locale, 'books.unsupportedActions')}</p>
+								{#if book.operator_guidance.unsupported_management_actions.length}
+									<ul class="mt-2 flex flex-wrap gap-2">
+										{#each book.operator_guidance.unsupported_management_actions as action}
+											<li class="rounded-full px-2 py-1 font-mono text-xs" style="background-color: var(--app-hover-bg); color: var(--app-muted);">{action}</li>
+										{/each}
+									</ul>
+								{:else}
+									<p class="mt-1" style="color: var(--app-muted);">{t(locale, 'books.noUnsupportedActions')}</p>
+								{/if}
+							</div>
+						</section>
+
 						<div class="mt-4 rounded-xl border p-3" style="border-color: var(--app-border); background-color: var(--app-card-bg);">
 							<p class="text-sm font-semibold" style="color: var(--app-text);">{t(locale, 'books.openSafeViews')}</p>
 							<div class="mt-3 flex flex-wrap gap-2 text-sm">
