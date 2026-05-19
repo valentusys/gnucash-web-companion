@@ -292,6 +292,31 @@ assert.match(
 	'account tree desktop header must use bounded columns that can shrink safely'
 );
 assert.match(
+	accountTree,
+	/id="account-tree-filter"[\s\S]*type="search"[\s\S]*bind:value=\{accountQuery\}[\s\S]*aria-describedby="account-tree-filter-status"/s,
+	'account tree must expose an accessible URL-free search filter for large read-only trees'
+);
+assert.match(
+	accountTree,
+	/filterAccounts\(nodes: AccountTreeNodeType\[\], query: string\)[\s\S]*accountMatches\(node, query\)[\s\S]*children\.length > 0[\s\S]*return \{ \.\.\.node, children \}/s,
+	'account tree filter must preserve parent paths when a descendant account matches'
+);
+assert.match(
+	accountTree,
+	/name, account\.full_name, account\.type, account\.currency[\s\S]*Showing \{filteredAccountCount\} of \{totalAccountCount\} accounts/s,
+	'account tree filter must search names/full paths/type/currency and report filtered counts'
+);
+assert.match(
+	accountTree,
+	/Use the filter to narrow large read-only account trees without changing the book/s,
+	'account tree filter helper copy must frame filtering as local read-only discoverability only'
+);
+assert.doesNotMatch(
+	accountTree,
+	/localStorage|sessionStorage|fetch\(|apiFetch|method="POST"/,
+	'account tree filter must not persist private account searches or call write/API paths'
+);
+assert.match(
 	accountTreeNode,
 	/min-w-0 grid-cols-1[\s\S]*md:grid-cols-\[minmax\(0,1fr\)_7rem_9rem_4rem\]/,
 	'account tree rows must allow the name column to shrink instead of causing desktop overflow'
