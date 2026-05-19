@@ -100,10 +100,13 @@ assert.match(
 assert.match(hooks, /PROTECTED_PREFIXES[\s\S]*'\/dashboard'[\s\S]*'\/accounts'[\s\S]*'\/scheduled'/, 'dashboard, accounts, and scheduled routes must be protected');
 assert.match(hooks, /redirect\(303, `\/login\?next=/, 'protected routes must redirect to /login');
 assert.match(hooks, /cookies\.get\('access_token'\)/, 'protected routes must use the httpOnly cookie');
+assert.match(hooks, /SAFE_METHODS[\s\S]*GET[\s\S]*HEAD[\s\S]*OPTIONS/, 'safe methods must be exempt from same-origin state-change checks');
+assert.match(hooks, /headers\.get\('origin'\)[\s\S]*new URL\(origin\)\.origin === event\.url\.origin[\s\S]*Cross-origin state-changing requests are not allowed/s, 'unsafe state-changing app routes must reject mismatched Origin headers');
 
 const loginServer = read('src/routes/login/+page.server.ts');
 assert.match(loginServer, /cookies\.set\(AUTH_COOKIE, data\.access_token/, 'login must store token in cookie');
 assert.match(loginServer, /httpOnly:\s*true/, 'auth cookie must be httpOnly');
+assert.match(loginServer, /env\.JWT_TOKEN_EXPIRE_MINUTES[\s\S]*authCookieMaxAgeSeconds\(\)/s, 'auth cookie lifetime must follow the configured JWT session lifetime with a safe fallback');
 assert.doesNotMatch(loginServer, /localStorage|sessionStorage/, 'login must not use browser storage');
 
 const logoutServer = read('src/routes/logout/+server.ts');

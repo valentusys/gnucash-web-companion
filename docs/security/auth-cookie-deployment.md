@@ -16,11 +16,28 @@ The `access_token` cookie is set by the SvelteKit login handler
 | `secure`    | `true` on HTTPS, `false` on HTTP       | On `https:` origins the cookie is only sent over TLS.  |
 | `sameSite`  | `lax`                                   | Cookie is not sent on cross-origin POST requests.      |
 | `path`      | `/`                                     | Cookie is sent with every request to the application.   |
-| `maxAge`    | `1800` (30 minutes, matching JWT expiry)| Browser deletes the cookie after the JWT expires.       |
+| `maxAge`    | `JWT_TOKEN_EXPIRE_MINUTES * 60` (30 minutes by default) | Browser deletes the cookie on the same schedule as the JWT expiry; invalid values fall back to 30 minutes. |
 
 The cookie stores a JWT issued by the FastAPI `/auth/login` endpoint. The JWT
 is signed with `JWT_SECRET` and expires after `jwt_token_expire_minutes`
 (default 30).
+
+The Docker Compose web service receives the same `JWT_TOKEN_EXPIRE_MINUTES`
+value as the API so the browser cookie lifetime tracks the signed token
+lifetime instead of silently staying at a hard-coded 30 minutes.
+
+## Same-origin state-changing routes
+
+SvelteKit rejects unsafe state-changing app requests (`POST`, `PUT`, `PATCH`,
+`DELETE`, and other non-safe methods) when a browser `Origin` header is present
+and does not match the current app origin. This is a narrow pre-alpha local/LAN
+guard for form actions such as login, logout, locale switching, and hidden
+write-alpha routes. It complements `sameSite=lax`; it is not a production CSRF
+certification or a substitute for keeping the app off the public internet.
+
+Requests without an `Origin` header are allowed to avoid breaking local probes
+and reverse-proxy health checks, but browser form submissions are expected to
+send an origin.
 
 ## Stateless JWT logout model
 

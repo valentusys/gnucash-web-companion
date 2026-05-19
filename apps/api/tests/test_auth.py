@@ -13,6 +13,7 @@ from app.models import User
 from app.routers.auth import get_db
 from app.services.auth import (
     AuthConfigurationError,
+    create_access_token,
     hash_password,
     require_configured_jwt_secret,
     seed_admin_user,
@@ -145,6 +146,21 @@ class TestMeEndpoint:
         )
 
         assert response.status_code == 401
+
+    def test_me_with_expired_token_returns_401(self, client):
+        expired_token = create_access_token(
+            data={"sub": "1"},
+            secret=TEST_SETTINGS.jwt_secret,
+            expire_minutes=-1,
+        )
+
+        response = client.get(
+            "/auth/me",
+            headers={"Authorization": f"Bearer {expired_token}"},
+        )
+
+        assert response.status_code == 401
+        assert response.json()["detail"] == "Invalid or expired token"
 
 
 class TestLogoutEndpoint:

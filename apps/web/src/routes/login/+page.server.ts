@@ -1,7 +1,8 @@
+import { env } from '$env/dynamic/private';
 import { fail, redirect, type Actions } from '@sveltejs/kit';
 
 const AUTH_COOKIE = 'access_token';
-const COOKIE_MAX_AGE_SECONDS = 60 * 30;
+const DEFAULT_COOKIE_MAX_AGE_SECONDS = 60 * 30;
 
 type LoginResponse = {
 	access_token: string;
@@ -18,6 +19,14 @@ function safeNext(value: string | null): string {
 		return '/dashboard';
 	}
 	return value;
+}
+
+function authCookieMaxAgeSeconds(): number {
+	const minutes = Number(env.JWT_TOKEN_EXPIRE_MINUTES ?? '30');
+	if (!Number.isFinite(minutes) || minutes <= 0) {
+		return DEFAULT_COOKIE_MAX_AGE_SECONDS;
+	}
+	return Math.floor(minutes * 60);
 }
 
 export const actions: Actions = {
@@ -53,7 +62,7 @@ export const actions: Actions = {
 			secure: url.protocol === 'https:',
 			sameSite: 'lax',
 			path: '/',
-			maxAge: COOKIE_MAX_AGE_SECONDS
+			maxAge: authCookieMaxAgeSeconds()
 		});
 
 		throw redirect(303, safeNext(url.searchParams.get('next')));

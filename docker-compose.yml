@@ -31,6 +31,7 @@ services:
     environment:
       - PUBLIC_APP_NAME=${PUBLIC_APP_NAME:-GnuCash Web Companion}
       - API_INTERNAL_URL=${API_INTERNAL_URL:-http://api:8000}
+      - JWT_TOKEN_EXPIRE_MINUTES=${JWT_TOKEN_EXPIRE_MINUTES:-30}
       - GNUCASH_WRITES_ENABLED=${GNUCASH_WRITES_ENABLED:-false}
       - ORIGIN=${ORIGIN:-http://localhost:8080}
     expose:
