@@ -11,7 +11,7 @@ Last updated: 2026-05-19
 
 ## Current baseline
 
-Completed through Phase 131.
+Completed through Phase 132.
 
 Current public release state:
 
@@ -24,6 +24,7 @@ Current public release state:
 - Phase 129 is an unreleased docs-only write-alpha recovery and maintainer-review gate: it adds a synthetic/disposable-scope recovery procedure for containment, backup selection, stale-lock cleanup, restore, integrity checks, and damaged-book triage, plus a maintainer checklist for default-disabled config, `APP_ENV=test` gating, disposable fixtures, lifecycle evidence, recovery docs, and sensitive-data hygiene. No product code changed, writes remain disabled by default, and no real-book write safety is claimed.
 - Phase 130 is an unreleased write-alpha PATCH transaction hardening phase: experimental `PATCH /books/{book_id}/transactions/{transaction_id}` remains disabled by default and executable only with `GNUCASH_WRITES_ENABLED=true` plus `APP_ENV=test` against copied/disposable fixtures; backend hardening now returns 404 for missing transactions before lock/backup/mutation, preserves description/date/split-memo-only edits, records backup paths on failed post-backup PATCH audits, and adds disposable-fixture route tests for successful PATCH, validation failure, missing transaction, no backup leak, lock release, synthetic post-backup failure, intact backup, and concurrent PATCH+CREATE lock contention. No DELETE/import/recurring/account-write, tag, release, or real-book write claim was added.
 - Phase 131 is an unreleased authorized write-alpha DELETE transaction phase: experimental `DELETE /books/{book_id}/transactions/{transaction_id}` remains disabled by default and executable only with `GNUCASH_WRITES_ENABLED=true` plus `APP_ENV=test` against copied/disposable fixtures; backend implementation performs missing-transaction validation before lock/backup/mutation, then lock → backup → piecash delete → audit → unlock, records failed audits with backup path when a post-backup delete failure occurs, verifies successful deletion removes the transaction and preserves the original in backup evidence, rejects read-only/viewer access before write-service construction, and covers concurrent DELETE+CREATE lock contention. The frontend transaction detail delete form is hidden unless write mode is explicitly enabled and requires acknowledgement plus browser confirmation. No import/recurring/account-write, tag, release, or real-book write safety claim was added; Phase 132 publication remains pending separate authorization.
+- Phase 132 is an unreleased `v0.2.0-writealpha` release-gate artifacts phase: release notes, checklist, final-gate, README, CHANGELOG, PROJECT_STATUS, and handoff now record the write-alpha candidate as pre-alpha/experimental, disabled by default with `GNUCASH_WRITES_ENABLED=false`, executable only under the existing `APP_ENV=test` gate when explicitly enabled, based only on synthetic/disposable fixture evidence, not production-ready, not security-audited, not safe for real/private-book writes, and pending separate explicit Val authorization. No tag, GitHub release, package, upload, publication, write default change, gate weakening, product-code change, or real/private data artifact was added.
 - Previous public release `v0.1.2-readonly` remains available and points to its Phase 117 release commit.
 - Previous public release `v0.1.1-readonly` remains available and points to `a4d04150c043ad4da3dea577b30ed7ffd2032df0`, after Phase 104.
 
@@ -161,6 +162,7 @@ Completed phases:
 - Phase 129 — Write-alpha recovery documentation and maintainer review gate
 - Phase 130 — Write-alpha PATCH transaction hardening
 - Phase 131 — Write-alpha DELETE transaction and validation hardening
+- Phase 132 — v0.2.0-writealpha release gate artifacts without publication
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -2014,6 +2016,23 @@ Artifacts:
 Safety result: `GNUCASH_WRITES_ENABLED=false` remains the default and the `APP_ENV=test` write-alpha gate was not weakened. Tests use only copied/disposable fixtures under `tmp_path`; no real/private GnuCash books, app DBs, backups, `.env`, secrets, tokens, certs, keys, CSV/media/private exports, screenshots, or private financial data were committed. No DELETE/import/recurring/account-write, tag, GitHub release, package, upload, production-readiness claim, audited-security claim, or real-book write-safety claim was added.
 
 Verification result: targeted transaction write tests, backend full tests, frontend check/auth-routes/build, Docker Compose config validation, `git diff --check`, and sensitive tracked-file scan passed.
+
+## Phase 132 — v0.2.0-writealpha Release Gate Artifacts Without Publication
+
+Status: complete. Phase commit pushed after local verification.
+
+Goal: prepare release-gate artifacts for a possible future `v0.2.0-writealpha` pre-release without publishing a tag/release and without changing write-mode defaults or product code.
+
+Artifacts:
+
+- `docs/release/v0.2.0-writealpha-notes.md` — conservative draft notes for a future authorized pre-release; clearly states pre-alpha, experimental, disabled by default, `APP_ENV=test` write gate, synthetic/disposable fixture evidence only, not production-ready, not security-audited, no direct public-internet exposure, and no real-book write-safety claim.
+- `docs/release/v0.2.0-writealpha-checklist.md` — release-prep checklist with candidate scope, evidence from Phases 126–131, required checks, reserved publish commands, safety checklist, and known limitations.
+- `docs/release/v0.2.0-writealpha-final-gate.md` — final-gate artifact recording clean tracked tree/HEAD-origin parity before Phase 132 artifacts, tag/release absence, recent GitHub Actions status, backend/frontend/docker/git checks, sensitive tracked-file scan, and verdict `Prepared for later authorization — unpublished / no tag / no release`.
+- `README.md`, `CHANGELOG.md`, `PROJECT_STATUS.md`, and `docs/handoff/phase-132.md` — status and handoff synchronized.
+
+Safety result: docs/release/status-only phase. No git tag, GitHub release, package, upload, publication, backend/frontend/config/product-code change, write default change, `APP_ENV=test` gate weakening, app DB, GnuCash book, backup, `.env`, secret, token, credential, cert, key, CSV/private export, screenshot, private path, or real/private financial data was added. `GNUCASH_WRITES_ENABLED=false` remains default and `v0.2.0-writealpha` publication remains pending separate explicit Val authorization.
+
+Verification result: backend full tests, frontend check/auth-routes/build, Docker Compose config validation, `git diff --check`, refined sensitive tracked-file scan, tag/release absence checks, and recent GitHub Actions state check passed.
 
 ## Standing constraints
 
