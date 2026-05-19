@@ -7,18 +7,18 @@ Last updated: 2026-05-19
 - GitHub: `valentusys/gnucash-web-companion`
 - Local path: `/home/val/gnucash-web-companion`
 - Branch: `main`
-- Status: pre-alpha / v0.1.1 read-only published
+- Status: pre-alpha / v0.1.2 read-only publish phase
 
 ## Current baseline
 
-Completed through Phase 116.
+Completed through Phase 117.
 
 Current public release state:
 
-- `v0.1.1-readonly` is the current published public read-only pre-alpha GitHub pre-release.
-- Local/GitHub tag `v0.1.1-readonly` exists and points to `a4d04150c043ad4da3dea577b30ed7ffd2032df0`, after Phase 104.
-- The release scope includes the Phase 103/104 read-only transaction date-preset and split-memo search changes in addition to the Phase 95/96 CSV export maintenance fixes.
-- Phase 105 corrected the release/docs drift found by the analyst report: README, PROJECT_STATUS, CHANGELOG, local release notes, and the existing GitHub release body now describe `v0.1.1-readonly` as published instead of release-prep-only.
+- `v0.1.2-readonly` is the authorized next public read-only pre-alpha GitHub pre-release, published in Phase 117 after preflight PASS.
+- Local/GitHub tag `v0.1.2-readonly` is created by Phase 117 on the release-doc/status commit and published as a GitHub pre-release from `docs/release/v0.1.2-readonly-notes.md`.
+- The release scope includes the Phase 106–114 read-only UX/operator improvements, Phase 115 release gate, and Phase 116 redacted copied personal-book dogfood PASS for GitHub #38.
+- Previous public release `v0.1.1-readonly` remains available and points to `a4d04150c043ad4da3dea577b30ed7ffd2032df0`, after Phase 104.
 
 Completed phases:
 
@@ -139,6 +139,7 @@ Completed phases:
 - Phase 114 — synthetic browser dogfood refresh after UX/filter changes
 - Phase 115 — v0.1.2-readonly maintenance release prep and final gate without publication
 - Phase 116 — GitHub #38 copied personal-book dogfood with redacted read-only evidence
+- Phase 117 — publish v0.1.2-readonly pre-release
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -198,9 +199,11 @@ Completed phases:
 
 - Phase 116 completed GitHub #38 copied personal-book dogfood with Val's provided safe copied archive: the archive was unpacked only to private temporary storage outside git, mounted read-only into local Docker/Caddy with `GNUCASH_WRITES_ENABLED=false`, and verified through API and headless browser dogfood. `/api/health`, login, dashboard, accounts, account detail, transactions, transaction detail, filters, CSV export, hidden write UI, and disabled write endpoints all passed; redacted evidence is documented in `docs/dogfood/phase-116-personal-book-dogfood.md`. GitHub #38 was closed after redacted evidence. No tag, release, package, GnuCash book, source zip, app DB, backup, `.env`, screenshot, CSV export, secret, token, cert, key, private path, account name, transaction description, memo, amount, or real/private financial data was committed; writes remain disabled by default; no v0.2 work was started.
 
+- Phase 117 publishes `v0.1.2-readonly` as the next read-only maintenance pre-release after the Phase 116/#38 PASS. The release executor re-checked clean tree, `HEAD == origin/main`, issue #38 closed, tag/release absence, recent GitHub Actions success, Docker Compose config validity, diff whitespace, and sensitive tracked-file hygiene before committing release/status documentation, pushing `main`, creating the annotated tag, pushing the tag, and creating the GitHub pre-release from `docs/release/v0.1.2-readonly-notes.md`. No packages, GnuCash books, source zip, app DB, backup, `.env`, screenshot, CSV export, secret, token, cert, key, private path, account name, transaction description, memo, amount, or real/private financial data were committed; `GNUCASH_WRITES_ENABLED=false` remains default; no v0.2 work was started.
+
 Next planned phase:
 
-- If Val explicitly authorizes publication, run a dedicated non-ambiguous publish phase for `v0.1.2-readonly`: re-check clean tree, checks/CI, tag/release absence, then create the annotated tag and GitHub pre-release from the prepared notes. Without publication authorization, continue with practical read-only MVP value such as deployment polish, compatibility evidence, localization slices, or remaining read-only UX/filter backlog.
+- After `v0.1.2-readonly` publication, continue with practical read-only MVP value such as deployment polish, compatibility evidence, localization slices, or remaining read-only UX/filter backlog. Keep controlled writes post-MVP/experimental and disabled by default.
 
 ## MVP product model
 

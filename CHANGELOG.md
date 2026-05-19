@@ -6,13 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+No unreleased changes yet after `v0.1.2-readonly`.
+
+## [0.1.2-readonly] - 2026-05-19
+
 ### Added
 
+- Phase 117 — published `v0.1.2-readonly` as an annotated git tag and GitHub pre-release after preflight confirmed clean `main`, `HEAD == origin/main`, GitHub #38 closed, tag/release absence, recent GitHub Actions success, Docker Compose config validity, whitespace diff check, and sensitive tracked-file hygiene. No packages were published.
 - Phase 116 — completed GitHub #38 copied personal-book dogfood with a local-only Docker/Caddy read-only run against Val's provided safe copied book archive, recording only redacted route/status evidence and no private book data, app DB, screenshots, CSV exports, `.env`, paths, names, descriptions, memos, amounts, secrets, tags, releases, or packages.
-- Phase 115 — prepared conservative `v0.1.2-readonly` release notes, release-prep checklist, and final-gate artifact for a possible future maintenance pre-release without publishing a tag, GitHub release, package, or changing the default read-only/write-disabled posture.
+- Phase 115 — prepared conservative `v0.1.2-readonly` release notes, release-prep checklist, and final-gate artifact for the maintenance pre-release without publishing a tag, GitHub release, package, or changing the default read-only/write-disabled posture.
 - Phase 114 — added a durable headless Chromium/CDP browser dogfood helper and recorded a synthetic/disposable Docker/Caddy UI/API dogfood refresh covering login, dashboard, accounts, books, scheduled awareness, transaction filters, account/transaction detail, CSV export, and disabled-write probes with `GNUCASH_WRITES_ENABLED=false`.
 - Phase 113 — added a Russian accounting/safety glossary and localized the transaction filter/CSV export UI slice through the existing message catalog, while keeping English canonical, translation partial, URL-only filters, and read-only/export warnings intact.
-- Phase 112 — added safe CORS deployment posture diagnostics to `/health` and startup logs, warning when wildcard `CORS_ORIGINS` is used outside development-like environments while documenting exact localhost/LAN/VPN origin examples without production-readiness claims.
+- Phase 112 — added safe CORS deployment posture diagnostics to `/health` and startup logs, warning when `CORS_ORIGINS` contains `*` while `APP_ENV` is not development-like, and documented exact localhost/LAN/VPN origin examples without production-readiness claims.
 - Phase 111 — added a safe GnuCash Desktop/CLI tooling availability probe for compatibility evidence, documented that the local environment has no `gnucash`/`gnucash-cli`, and kept Desktop-generated compatibility claims explicitly blocked until a disposable Desktop environment exists.
 - Phase 110 — hardened the read-only `/books` metadata UX with explicit access role/status/read-only metadata, safe book-context links to existing read-only views, stronger no-management-action copy, and regression coverage that archived/unauthorized books remain hidden or blocked.
 - Phase 109 — added a conservative read-only scheduled/recurring transaction awareness API and `/scheduled` UI page that expose only safe summary metadata, avoid next-run predictions and template split details, and keep GnuCash Desktop as the authoritative editor.
@@ -20,6 +25,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Fixed
 
 - Phase 105 — synchronized local release/status documentation and the existing GitHub release body for the already published `v0.1.1-readonly` pre-release. This corrected stale release-prep-only wording, updated README/PROJECT_STATUS/release notes to name `v0.1.1-readonly` as the current public read-only pre-alpha release, and documented the guardrail that release/status docs must be updated in the same phase as factual release-state changes. No product code, tag, release, package, write-mode setting, private data, or real GnuCash book was changed.
+
+### Release notes
+
+- `v0.1.2-readonly` was published as a GitHub pre-release on 2026-05-19 after Phase 116 copied personal-book dogfood passed with redacted evidence and GitHub #38 was closed.
+- This remains a conservative pre-alpha/read-only release. `GNUCASH_WRITES_ENABLED=false` remains the default; controlled-write code is experimental post-MVP work outside this release scope.
+
+### Known limitations
+
+- Not production-ready and not security-audited.
+- Do not expose early deployments directly to the public internet.
+- Test with disposable fixtures or copied GnuCash SQL books first, keep backups, and keep `.env`, app DBs, GnuCash books, backups, private exports/screenshots, secrets, tokens, keys, and certs out of git.
+- Compatibility evidence remains intentionally narrow; no broad PostgreSQL/MySQL/MariaDB/XML/all-version compatibility is claimed.
+- Phase 116 personal copied-book dogfood evidence is intentionally redacted and does not include private paths, account names, transaction descriptions, memos, amounts, SQL dumps, screenshots, CSV bodies, app DB contents, tokens, or secrets.
+- No hosted SaaS readiness, collaborative accounting, family-wallet positioning, real-time multi-user editing, CSV/OFX import, banking integration, or safe production write mode is claimed.
 
 ## [0.1.1-readonly] - 2026-05-18
 
