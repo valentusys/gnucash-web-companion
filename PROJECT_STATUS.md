@@ -7,17 +7,17 @@ Last updated: 2026-05-20
 - GitHub: `valentusys/gnucash-web-companion`
 - Local path: `/home/val/gnucash-web-companion`
 - Branch: `main`
-- Status: pre-alpha / v0.1.6-readonly read-only pre-release published; post-release maintenance completed through Phase 170; v0.2.0-writealpha remains a separate experimental pre-release
+- Status: pre-alpha / v0.1.7-readonly read-only pre-release authorized in Phase 171; post-release maintenance completed through Phase 171; v0.2.0-writealpha remains a separate experimental pre-release
 
 ## Current baseline
 
-Completed through Phase 170.
+Completed through Phase 171.
 
 Current public release state:
 
-- `v0.1.6-readonly` is the current public read-only pre-alpha GitHub pre-release, published in Phase 161 after Val authorization and final release-gate checks.
-- `v0.1.5-readonly` remains available as the previous public read-only pre-alpha GitHub pre-release, published in Phase 152 after Val authorization and final release-gate checks.
-- `v0.1.4-readonly` remains available as an earlier public read-only pre-alpha GitHub pre-release, published in Phase 142 after Val authorization and final release-gate checks.
+- `v0.1.7-readonly` is the current public read-only pre-alpha GitHub pre-release after Phase 171 publication, prepared/published only after Val authorization and final release-gate checks.
+- `v0.1.6-readonly` remains available as the previous public read-only pre-alpha GitHub pre-release, published in Phase 161 after Val authorization and final release-gate checks.
+- `v0.1.5-readonly` remains available as an earlier public read-only pre-alpha GitHub pre-release, published in Phase 152 after Val authorization and final release-gate checks.
 - Previous public read-only pre-release `v0.1.3-readonly` remains available and was published in Phase 125 after Val authorization and cleanup of the temporary live personal-book deployment.
 - Local/GitHub tag `v0.1.3-readonly` is created by Phase 125 on the release-doc/status commit and published as a GitHub pre-release from `docs/release/v0.1.3-readonly-notes.md`.
 - The release scope includes the Phase 118–121 live-stand read-only fixes, Phase 122 release gate, and the disabled-by-default/test-fixture-only write-alpha safety hardening from Phases 123–124 without any production write-mode claim.
@@ -66,6 +66,7 @@ Current public release state:
 - Phase 168 is a first-run and broken-configuration operator UX phase: `/health` now includes redacted auth-bootstrap diagnostics for placeholder/missing `JWT_SECRET` and missing `APP_ADMIN_PASSWORD_HASH`/`APP_ADMIN_PASSWORD`, default-book diagnostics distinguish unreadable files from missing mounts without exposing full paths, startup logs emit safe first-run configuration warnings, `/login` reports backend auth-configuration failures as operator-fixable setup problems, `/books` and the global error page point operators toward safe `.env`, book-volume, and `/health` checks, and `docs/operations/troubleshooting.md` documents the troubleshooting path. No setup wizard, config-writing UI, secret display, book upload/management, public-hosting hardening claim, production-readiness claim, real/private data artifact, `.env`, app DB, backup, token, key, cert, screenshot/export, or `GNUCASH_WRITES_ENABLED=false` default change was added.
 - Phase 169 is a release-critical Russian localization completion slice: login validation/auth/service-configuration failures now use the existing English/Russian catalog via the `ui_locale` cookie, and the global error component/page localize 403, 404, generic API/network, and 5xx first-run operator guidance while preserving safe `/health`, local `.env`, book-volume, read-only, English-canonical, partial/opt-in localization wording. Existing CSV export states and book-context recovery notices remain catalog-backed. No backend API localization rewrite, marketing/full-translation claim, write behavior, release/tag/package, browser-storage persistence, real/private book, app DB, backup, `.env`, screenshot/export, token, key, cert, private path, or `GNUCASH_WRITES_ENABLED=false` default change was added.
 - Phase 170 is a full cycle 2 synthetic/disposable Docker/Caddy dogfood pass after Phases 162–169: local Compose ran with the committed synthetic fixture copied into ignored runtime data and `GNUCASH_WRITES_ENABLED=false`; `/api/health` confirmed the default book was present/readable and writes disabled; API smoke passed for health, login/auth, books/default book, accounts, transactions, transaction detail, CSV export, reports summary, and disabled validate/create/patch/delete write probes; headless browser dogfood passed at both 320x720 and 1280x900 for login, protected redirect, dashboard, accounts, books, scheduled, account detail, transaction filters, transaction detail, CSV export, hidden write UI, auth-cookie no-readability, no-overflow checks, and no-artifact checks. Evidence is documented in `docs/dogfood/phase-170-cycle-2-release-candidate-dogfood.md`. No copied-book dogfood was run because no explicit safe copied book path was provided. No release/tag/package/image, write expansion, real/private book, app DB, backup, committed `.env`, screenshot/export, token, key, cert, private path, or production/security claim was added.
+- Phase 171 is the authorized publication phase for `v0.1.7-readonly`: the final read-only maintenance release gate was re-run from clean `main` at `cec8e5e`, local backend/frontend/Docker checks passed, rendered Compose config kept `GNUCASH_WRITES_ENABLED=false`, tracked sensitive-file hygiene passed, starting-head GitHub Actions passed, and publication is gated on the Phase 171 release commit CI before creating the annotated tag and GitHub pre-release. README, CHANGELOG, release notes/checklist/final-gate, publication evidence, PROJECT_STATUS, and `docs/handoff/phase-171.md` were synchronized. No package, binary artifact, Docker image, production deployment, product code, write endpoint, write-mode UI expansion, runtime default change, browser-storage persistence, screenshot/export/raw financial artifact, app DB, backup, real/private GnuCash book, `.env`, token, key, cert, or production-readiness/security-audit claim was added.
 - Previous public release `v0.1.2-readonly` remains available and points to its Phase 117 release commit.
 - Previous public release `v0.1.1-readonly` remains available and points to `a4d04150c043ad4da3dea577b30ed7ffd2032df0`, after Phase 104.
 
@@ -242,6 +243,7 @@ Completed phases:
 - Phase 168 — First-run and broken-configuration operator UX
 - Phase 169 — Russian localization release-critical completion slice
 - Phase 170 — Full synthetic dogfood after cycle 2 changes
+- Phase 171 — v0.1.7-readonly release gate and authorized publication
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -321,7 +323,7 @@ Completed phases:
 
 Next planned phase:
 
-- Continue only with the next explicitly requested phase. Controlled writes remain post-MVP/experimental, disabled by default, constrained to `APP_ENV=test` copied/disposable fixtures when explicitly enabled, and not safe for production books. Phase 170 completed the cycle 2 synthetic/disposable dogfood gate; roadmap phase 10 remains a separate future release gate and no new release was published in Phase 170.
+- Continue only with the next explicitly requested phase. Controlled writes remain post-MVP/experimental, disabled by default, constrained to `APP_ENV=test` copied/disposable fixtures when explicitly enabled, and not safe for production books. Phase 171 prepared the `v0.1.7-readonly` release gate and publication artifacts; no cycle 3 work starts until explicitly requested.
 
 ## MVP product model
 
