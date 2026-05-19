@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 import piecash
+from sqlalchemy.orm import joinedload
 
 from app.schemas.gnucash import (
     AccountDTO,
@@ -206,7 +207,7 @@ class GnuCashBookService:
         max_decimal = self._optional_decimal(max_amount)
         with self._open_book() as book:
             items: list[TransactionListItemDTO] = []
-            for transaction in self._transactions(book):
+            for transaction in self._candidate_transactions(book, account_id):
                 if not self._transaction_matches(
                     transaction,
                     account_id,
@@ -259,7 +260,7 @@ class GnuCashBookService:
         with self._open_book() as book:
             return sum(
                 1
-                for transaction in self._transactions(book)
+                for transaction in self._candidate_transactions(book, account_id)
                 if self._transaction_matches(
                     transaction,
                     account_id,
@@ -498,6 +499,50 @@ class GnuCashBookService:
 
     def _transactions(self, book: Any) -> Iterable[Any]:
         return getattr(book, "transactions", []) or []
+
+    def _candidate_transactions(self, book: Any, account_id: str | None = None) -> Iterable[Any]:
+        """Return the narrowest safe transaction iterable for list/count filters.
+
+        Account detail/list/export paths can use the target account's split
+        collection instead of scanning every transaction in the book. If the
+        account does not exist, the historical API behavior is an empty result,
+        not a 404. Test doubles that do not model split.transaction fall back to
+        the full book iterable so existing behavior remains covered.
+        """
+        if not account_id:
+            return self._transactions(book)
+
+        session = getattr(book, "session", None)
+        query = getattr(session, "query", None) if session is not None else None
+        if callable(query):
+            transactions = (
+                query(piecash.Transaction)
+                .join(piecash.Split, piecash.Transaction.guid == piecash.Split.transaction_guid)
+                .options(joinedload(piecash.Transaction.splits).joinedload(piecash.Split.account))
+                .filter(piecash.Split.account_guid == account_id)
+                .all()
+            )
+            return list(transactions)
+
+        account = self._find_account(book, account_id)
+        if account is None:
+            return []
+
+        splits = list(getattr(account, "splits", []) or [])
+        candidates: list[Any] = []
+        seen: set[str] = set()
+        for split in splits:
+            transaction = getattr(split, "transaction", None)
+            if transaction is None:
+                continue
+            transaction_id = _guid(transaction)
+            if transaction_id in seen:
+                continue
+            seen.add(transaction_id)
+            candidates.append(transaction)
+        if candidates:
+            return candidates
+        return self._transactions(book)
 
     def _scheduled_transactions(self, book: Any) -> Iterable[Any]:
         scheduled = getattr(book, "scheduled_transactions", None)

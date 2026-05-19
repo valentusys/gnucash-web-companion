@@ -28,6 +28,8 @@ def test_benchmark_plan_covers_phase_87_read_only_scope() -> None:
         "transaction_filters",
         "account_detail_transactions",
         "account_detail_transactions_page_2",
+        "account_detail_transactions_filtered",
+        "account_detail_csv_export",
         "many_splits_transaction_detail",
         "dashboard_summary",
         "dashboard_cashflow_monthly",
@@ -125,6 +127,44 @@ def test_csv_export_benchmark_summary_records_limit_header() -> None:
     assert csv_limit == 10000
     assert csv_total == 2
     assert csv_truncated is False
+
+
+def test_account_detail_csv_benchmark_summary_records_limit_header() -> None:
+    class Response:
+        headers = {
+            "X-CSV-Export-Limit": "10000",
+            "X-CSV-Export-Total": "2",
+            "X-CSV-Export-Truncated": "false",
+        }
+        text = "id,date\ntx-1,2026-05-01\ntx-2,2026-05-02\n"
+
+    item_count, csv_limit, csv_total, csv_truncated = _summarize_response(
+        BenchmarkCase(
+            "account_detail_csv_export",
+            "GET",
+            "/books/{book_id}/transactions/export?account_id={account_id}",
+        ),
+        Response(),
+    )
+    result = BenchmarkResult(
+        name="account_detail_csv_export",
+        method="GET",
+        path="/books/1/transactions/export?account_id=checking",
+        status_code=200,
+        duration_ms_min=1.0,
+        duration_ms_median=1.0,
+        duration_ms_max=1.0,
+        response_bytes=128,
+        item_count=item_count,
+        csv_limit=csv_limit,
+        csv_total=csv_total,
+        csv_truncated=csv_truncated,
+    )
+
+    assert result.csv_limit == 10000
+    assert result.csv_total == 2
+    assert result.csv_expected_body_rows == 2
+    assert result.csv_body_matches_expected is True
 
 
 def test_benchmark_json_records_csv_body_row_consistency(tmp_path: Path) -> None:

@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -37,6 +38,7 @@ class FakeSplit:
     account: FakeAccount
     value: Decimal
     memo: str = ""
+    transaction: Any = None
 
 
 @dataclass
@@ -222,6 +224,54 @@ def test_transaction_query_matches_split_memo_case_insensitively(service):
 def test_transaction_query_without_description_or_memo_match_returns_empty(service):
     assert service.list_transactions(query="not-present") == []
     assert service.count_transactions(query="not-present") == 0
+
+
+def test_account_scoped_transactions_use_account_splits_without_global_scan(monkeypatch, tmp_path):
+    checking = FakeAccount(guid="checking", name="Checking")
+    food = FakeAccount(guid="food", name="Food", type="EXPENSE")
+    old_split = FakeSplit(account=checking, value=Decimal("-10.00"), memo="old scoped memo")
+    old_counter = FakeSplit(account=food, value=Decimal("10.00"))
+    new_split = FakeSplit(account=checking, value=Decimal("-20.00"), memo="new scoped memo")
+    new_counter = FakeSplit(account=food, value=Decimal("20.00"))
+    old_tx = FakeTransaction(
+        guid="tx-old",
+        post_date=date(2026, 5, 1),
+        description="Old scoped transaction",
+        splits=[old_split, old_counter],
+    )
+    new_tx = FakeTransaction(
+        guid="tx-new",
+        post_date=date(2026, 5, 2),
+        description="New scoped transaction",
+        splits=[new_split, new_counter],
+    )
+    old_split.transaction = old_tx
+    old_counter.transaction = old_tx
+    new_split.transaction = new_tx
+    new_counter.transaction = new_tx
+    checking.splits = [old_split, new_split]
+
+    class BookWithForbiddenGlobalTransactions:
+        accounts = [checking, food]
+
+        @property
+        def transactions(self):  # pragma: no cover - failure path only
+            raise AssertionError("account-scoped listing must not scan the whole book")
+
+        def close(self):
+            pass
+
+    book_path = tmp_path / "book.gnucash"
+    book_path.write_text("fixture")
+    monkeypatch.setattr("app.services.gnucash_book.piecash.open_book", lambda path, readonly=False: BookWithForbiddenGlobalTransactions())
+    scoped_service = GnuCashBookService({"uri_or_path": str(book_path), "base_currency": "SEK"})
+
+    page = scoped_service.list_transactions(account_id="checking", query="scoped", limit=1, offset=0)
+
+    assert [item.id for item in page] == ["tx-new"]
+    assert scoped_service.count_transactions(account_id="checking", query="scoped") == 2
+    assert scoped_service.list_transactions(account_id="missing") == []
+    assert scoped_service.count_transactions(account_id="missing") == 0
 
 
 def test_get_transaction_detail_maps_splits(service):

@@ -72,6 +72,16 @@ BENCHMARK_CASES: list[BenchmarkCase] = [
         "/books/{book_id}/accounts/{account_id}/transactions?limit=50&offset=50",
     ),
     BenchmarkCase(
+        "account_detail_transactions_filtered",
+        "GET",
+        "/books/{book_id}/accounts/{account_id}/transactions?limit=50&offset=0&query=synthetic&date_from=2026-01-01&date_to=2026-12-31&min_amount=1&max_amount=1500",
+    ),
+    BenchmarkCase(
+        "account_detail_csv_export",
+        "GET",
+        "/books/{book_id}/transactions/export?account_id={account_id}&query=synthetic&date_from=2026-01-01&date_to=2026-12-31&min_amount=1&max_amount=1500",
+    ),
+    BenchmarkCase(
         "many_splits_transaction_detail",
         "GET",
         "/books/{book_id}/transactions/{many_split_transaction_id}",
@@ -132,7 +142,7 @@ class BenchmarkResult:
     csv_body_matches_expected: bool | None = None
 
     def __post_init__(self) -> None:
-        if self.name != "csv_export_up_to_cap":
+        if self.name not in {"csv_export_up_to_cap", "account_detail_csv_export"}:
             return
         if self.csv_total is None or self.csv_limit is None or self.item_count is None:
             return
@@ -381,7 +391,7 @@ def _summarize_response(
     csv_total: int | None = None
     csv_truncated: bool | None = None
 
-    if case.name == "csv_export_up_to_cap":
+    if case.name in {"csv_export_up_to_cap", "account_detail_csv_export"}:
         csv_limit_header = response.headers.get("X-CSV-Export-Limit")
         if csv_limit_header is not None:
             csv_limit = int(csv_limit_header)

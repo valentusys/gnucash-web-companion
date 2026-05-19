@@ -11,7 +11,7 @@ Last updated: 2026-05-19
 
 ## Current baseline
 
-Completed through Phase 119.
+Completed through Phase 120.
 
 Current public release state:
 
@@ -142,6 +142,7 @@ Completed phases:
 - Phase 117 — publish v0.1.2-readonly pre-release
 - Phase 118 — transaction table column width and horizontal scroll fix
 - Phase 119 — strip Root Account prefix from displayed account full names
+- Phase 120 — account detail performance optimization
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -206,6 +207,8 @@ Completed phases:
 - Phase 118 completed a narrow frontend CSS/static-regression fix for desktop transaction table sizing: `TransactionTable.svelte` now uses a fixed full-width desktop table with predictable Date/Description/Account/Counter account/Amount column widths, no desktop `overflow-x-auto`/`min-w-full` horizontal shifting, and safe truncation/title text for long descriptions and account names while preserving separate mobile card behavior. The account tree desktop grid was also narrowed to shrink safely with `minmax(0,1fr)` and truncating account-name cells. Static frontend route checks pin the table/account-tree sizing contract. No API/data/schema/write behavior changed, no release/tag/package was published, and `GNUCASH_WRITES_ENABLED=false` remains default.
 
 - Phase 119 completed a narrow read-only account display cleanup: backend `account_full_name()` now omits the synthetic GnuCash ROOT account named `Root Account` from colon-separated paths while preserving the child account path and existing IDs/parent references/API shape. Account tree, transaction list/detail split names, counter account names, account detail labels, expenses-by-account reports, and CSV/account fields continue to consume the same cleaned `full_name`/`account_name`/`counter_account_name` strings. Backend regression and fixture tests were updated so expected values are `Assets:Bank:Checking`, `Expenses:Food`, etc. rather than `Root Account:...`. No write path, schema, DTO, frontend auth/storage, release/tag/package, private data, or `GNUCASH_WRITES_ENABLED=false` default changed.
+
+- Phase 120 completed a read-only account-detail performance optimization: account-scoped transaction list/count now uses a scoped piecash SQLAlchemy transaction candidate query through `splits.account_guid` instead of iterating the full book transaction collection when `account_id` is present, while preserving existing query/date/amount/state/pagination and CSV export semantics. Regression coverage proves the account-scoped service path does not touch `book.transactions`, unknown account scope still returns empty results, and the benchmark plan now includes account filtered list plus account CSV export evidence. Synthetic 1,000-transaction benchmark evidence is documented in `docs/performance/phase-120-account-detail-benchmark.md`: account detail page medians were about 292–297 ms locally versus historical Phase 88 medians above one second, and account-scoped CSV returned `csv_total=961` with matching body rows. This is bounded local synthetic evidence only, not a production scalability claim. No global dashboard/list optimization, cache layer, API contract change, write path, release/tag/package, private data, or `GNUCASH_WRITES_ENABLED=false` default changed.
 
 Next planned phase:
 
