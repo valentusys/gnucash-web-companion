@@ -11,7 +11,7 @@ Last updated: 2026-05-19
 
 ## Current baseline
 
-Completed through Phase 136.
+Completed through Phase 137.
 
 Current public release state:
 
@@ -29,6 +29,7 @@ Current public release state:
 - Phase 134 is a post-release read-only UX loading-state polish phase: `LoadingState.svelte` now provides structured skeleton variants for `/dashboard`, `/accounts`, `/transactions`, and `/books`; those pages show shape-matched skeleton placeholders during SvelteKit navigation/data reloads, including active-book switches, so users see stable read-only layouts while data for the selected accessible book loads. Frontend route checks pin the skeleton variants and navigation loading wiring. No backend API, write endpoint, write-mode UI expansion, release publication, real-book artifact, export, screenshot, `.env`, app DB, backup, token, key, or `GNUCASH_WRITES_ENABLED=false` default changed.
 - Phase 135 is a post-release read-only mobile navigation polish phase: `DesktopNav.svelte` is hidden below the `md` breakpoint, `MobileNav.svelte` owns the small-screen shell with a touch-friendly open/close menu for book, locale, theme, and logout controls, primary mobile links and shared switchers now declare at least 44px touch targets, the app shell reserves enough bottom space for the fixed mobile navigation, and transaction detail splits use mobile cards instead of horizontal table scrolling at 320px widths. Frontend route checks pin the mobile/desktop breakpoint split, menu controls, touch-target classes, layout overflow guard, and transaction split mobile cards. No backend API, write endpoint, write-mode UI expansion, release publication, real-book artifact, export, screenshot, `.env`, app DB, backup, token, key, or `GNUCASH_WRITES_ENABLED=false` default changed.
 - Phase 136 is a docs-only GnuCash compatibility matrix refresh: `docs/gnucash-compatibility.md` now makes the matrix evidence boundaries explicit, adds a dedicated GnuCash Desktop versions tested section, and states that no real Desktop release has been validated by the automated suite yet; `docs/gnucash-version-fixture-plan.md` now inventories all current synthetic/disposable fixture evidence and keeps future Desktop-generated fixture work gated on disposable provenance plus tests; `README.md` links to the compatibility matrix from current status and repeats the synthetic-only evidence warning. No fixture generation, Desktop-version testing, backend/frontend code, write-alpha expansion, release publication, real-book artifact, export, screenshot, `.env`, app DB, backup, token, key, or `GNUCASH_WRITES_ENABLED=false` default changed.
+- Phase 137 is a docs-only local secure deployment hardening refresh: `docs/deployment/local-secure-deployment.md` now covers localhost, LAN, and VPN deployment-mode CORS recommendations, JWT secret generation and conservative rotation, app metadata DB backup/restore expectations, and a concrete self-hosting pre-deployment checklist; `.env.example` comments now point operators toward fresh JWT secrets and exact CORS origins for LAN/VPN. No backend/frontend product code, endpoint, write-alpha capability, release publication, real-book artifact, app DB, backup, `.env`, token, key, screenshot, export, or `GNUCASH_WRITES_ENABLED=false` default changed.
 - Previous public release `v0.1.2-readonly` remains available and points to its Phase 117 release commit.
 - Previous public release `v0.1.1-readonly` remains available and points to `a4d04150c043ad4da3dea577b30ed7ffd2032df0`, after Phase 104.
 
@@ -171,6 +172,7 @@ Completed phases:
 - Phase 134 — read-only UX skeleton loading states
 - Phase 135 — read-only UX mobile navigation polish
 - Phase 136 — GnuCash compatibility matrix documentation refresh
+- Phase 137 — local secure deployment hardening guide
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -2061,6 +2063,23 @@ Artifacts:
 Safety result: frontend read-only UX only. No backend API, service, schema, GnuCash adapter, write route, write service, write lock, audit, backup, runtime config, release/tag/package, real/private book, app DB, backup, screenshot, CSV/private export, `.env`, secret, token, cert, key, private path, account name, transaction description, memo, amount, or private financial data was added. `GNUCASH_WRITES_ENABLED=false` remains default and controlled writes remain post-MVP/experimental.
 
 Verification result: frontend route checks, frontend `svelte-check`, Docker Compose config validation, `git diff --check`, and sensitive tracked-file scan passed.
+
+## Phase 137 — Local Secure Deployment Hardening Guide
+
+Status: complete. Phase commit pushed.
+
+Goal: update and expand the safe deployment guide for localhost, LAN, and VPN self-hosting scenarios without changing backend/frontend code or making production-readiness claims.
+
+Artifacts:
+
+- `docs/deployment/local-secure-deployment.md` — expanded CORS recommendations for localhost/LAN/VPN, JWT secret generation and conservative rotation guidance, app metadata DB backup procedure, and a concrete pre-deployment checklist.
+- `.env.example` — comments now recommend fresh JWT secrets, rotation after exposure/shared-environment changes, and exact CORS origins for LAN/VPN testing.
+- `docs/handoff/phase-137.md` — implementation/evidence/checks/results.
+- `PROJECT_STATUS.md` — status sync through Phase 137.
+
+Safety result: docs/config-example comments only. No backend/frontend product code, endpoint, write route, write service, runtime default, release/tag/package, app DB, GnuCash book, backup, `.env`, secret, token, cert, key, screenshot, CSV/private export, private path, account name, transaction description, memo, amount, or private financial data was added. `GNUCASH_WRITES_ENABLED=false` remains the documented default. The guide stays limited to pre-alpha localhost/LAN/VPN self-hosted testing with test copies first and no production guarantee.
+
+Verification result: targeted backend health tests passed, full backend suite passed (`377 passed, 32 warnings`), Docker Compose config validation passed, `git diff --check` passed, and safety grep for production-readiness claims / real secret patterns in changed docs passed.
 
 ## Standing constraints
 

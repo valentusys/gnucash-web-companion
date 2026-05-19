@@ -93,11 +93,31 @@ GNUCASH_WRITES_ENABLED=false
 ORIGIN=http://localhost:8080
 ```
 
-Generate a secret:
+### JWT secret setup and rotation
+
+`JWT_SECRET` signs login sessions. It is not stored in the GnuCash book, but anyone who knows it could mint valid app tokens until the secret is changed. Generate it locally and store it only in your private `.env` or secret manager:
 
 ```bash
 openssl rand -hex 32
 ```
+
+Recommended practice:
+
+- use at least 32 random bytes, for example the 64-character hex output above;
+- do not use names, hostnames, book names, passwords, or copied examples as the secret;
+- do not paste the real value into issues, logs, screenshots, handoff docs, shell history shared with others, or committed files;
+- keep a private offline copy only if you need deterministic restart/recovery of existing sessions;
+- rotate the secret after any suspected `.env` exposure, after sharing a test environment, or before moving from localhost-only testing to LAN/VPN testing.
+
+Rotation procedure:
+
+1. Stop the deployment: `docker compose down`.
+2. Replace `JWT_SECRET` in `.env` with a new `openssl rand -hex 32` value.
+3. Start the deployment again: `docker compose up -d --build`.
+4. Log in again from each browser. Existing auth cookies should be treated as invalid after rotation.
+5. If exposure was suspected, also rotate the admin bootstrap password/hash and review reverse-proxy/container logs for leaked request or environment data.
+
+There is currently no multi-key graceful JWT rotation or centralized session revocation workflow. Rotation is intentionally simple and conservative for the pre-alpha self-hosted deployment model.
 
 For non-local deployments, prefer `APP_ADMIN_PASSWORD_HASH` instead of keeping a plaintext bootstrap password in `.env` after the initial setup path is mature enough for your environment. Treat `.env` as a secret file either way.
 
@@ -111,6 +131,13 @@ Important:
 ## CORS origin narrowing for LAN/VPN
 
 CORS is not a public-internet security boundary, but wildcard browser origins are still too loose for shared LAN/VPN testing. Before a LAN/VPN deployment, set `CORS_ORIGINS` to the exact browser origins that should call the API through the web/proxy URL.
+
+Recommended values by deployment mode:
+
+- localhost-only: `CORS_ORIGINS=["http://localhost:8080"]` or the exact loopback host/port you actually open in the browser;
+- trusted LAN HTTP: include only the private DNS name and/or static private IP that users type in the browser, for example `http://gnucash.lan:8080` and `http://192.168.1.50:8080`;
+- VPN/private HTTPS: prefer one private HTTPS hostname and list only that origin, for example `https://gnucash.vpn.example`;
+- avoid `CORS_ORIGINS=["*"]` outside single-machine development.
 
 Examples:
 
@@ -245,6 +272,35 @@ Before testing with any copied real data:
 
 This is basic operational guidance, not a production backup system. See `docs/operations/backup-and-recovery.md` for the fuller manual backup and recovery runbook.
 
+### App metadata DB backup
+
+`data/app/app.db` stores app metadata such as the local admin user, registered books, access metadata, and session/audit placeholders. It is separate from the GnuCash book under `data/books/`; backing up one does not back up the other.
+
+Conservative backup approach for self-hosted testing:
+
+1. Stop containers before copying the SQLite file to avoid a partial live copy:
+   ```bash
+   docker compose down
+   ```
+2. Copy the app metadata DB to private storage outside the repository working tree:
+   ```bash
+   mkdir -p /private/backup/location/gnucash-web-companion/app
+   cp data/app/app.db /private/backup/location/gnucash-web-companion/app/app-$(date +%Y%m%d-%H%M%S).db
+   ```
+3. Restrict permissions on the backup directory because metadata can reveal usernames, book registry state, and operational history:
+   ```bash
+   chmod 700 /private/backup/location/gnucash-web-companion/app
+   ```
+4. Start containers again:
+   ```bash
+   docker compose up -d
+   ```
+5. Periodically test restore into a disposable checkout or VM, never over your only working copy first.
+
+Do not commit `data/app/app.db` or app metadata backups. Do not include real usernames, private book names, paths, or logs from the DB in public issues or handoff docs.
+
+If you need a consistent backup without stopping containers, use SQLite online backup tooling from a controlled maintenance shell and verify the restore result before relying on it; this guide keeps the default procedure stop-copy-start because it is easier to reason about for pre-alpha self-hosting.
+
 ## Shutdown and cleanup
 
 Stop containers:
@@ -263,14 +319,21 @@ rm -rf data/backups/* data/locks/*
 
 Do not delete your original GnuCash book or external backups.
 
-## Pre-flight checklist
+## Pre-deployment checklist for self-hosting
 
-- [ ] Running on localhost, LAN, or VPN only.
-- [ ] HTTPS used for any non-localhost browser access.
-- [ ] `.env` exists locally and is not committed.
-- [ ] `JWT_SECRET` is long and random.
-- [ ] Admin bootstrap credential is treated as secret.
-- [ ] `GNUCASH_WRITES_ENABLED=false` is set and verified through `docker compose config`.
-- [ ] `data/books/` contains only a copied/disposable book for first tests.
-- [ ] `data/app/`, `data/books/`, `data/backups/`, and `.env` remain untracked by git.
-- [ ] Public reports/issues do not include real account names, balances, screenshots, CSV rows, book files, `.env`, or logs containing secrets.
+- [ ] Deployment URL is localhost, a trusted LAN hostname/IP, or a VPN-only hostname; no direct public-internet exposure is planned.
+- [ ] Host firewall, router rules, or VPN ACLs restrict access to the intended devices/subnets.
+- [ ] HTTPS is used for any non-localhost browser access, or the remaining LAN HTTP risk is explicitly accepted for short-lived testing only.
+- [ ] `.env` exists only locally, is not committed, and does not contain copied example secrets.
+- [ ] `JWT_SECRET` is freshly generated with `openssl rand -hex 32` or equivalent random tooling.
+- [ ] Admin bootstrap credential or `APP_ADMIN_PASSWORD_HASH` is unique for this deployment and treated as secret.
+- [ ] `ORIGIN` exactly matches the browser URL, including scheme and port.
+- [ ] `CORS_ORIGINS` is narrowed to exact localhost/LAN/VPN origins; wildcard CORS is used only for single-machine development.
+- [ ] `GNUCASH_WRITES_ENABLED=false` is set in `.env` and verified through `JWT_SECRET=dummy-validation-secret APP_ADMIN_PASSWORD=dummy docker compose config --quiet` plus a `docker compose config` review.
+- [ ] `data/books/` contains only a copied/disposable GnuCash SQL book for first tests; the authoritative original remains outside this repository.
+- [ ] `data/app/app.db` backup/restore expectations are understood; any backup target is private and outside git.
+- [ ] `data/app/`, `data/books/`, `data/backups/`, `data/locks/`, `.env`, secrets, keys, screenshots, CSV exports, and logs with private data remain untracked by git.
+- [ ] Reverse-proxy logs are configured not to capture cookies, request bodies, CSV responses, account names, transaction descriptions, balances, or `.env` values.
+- [ ] The read-only smoke script passes after startup, including disabled-write probes returning 403.
+- [ ] Public reports/issues/handoffs contain only synthetic or redacted evidence and do not include real account names, balances, screenshots, CSV rows, book files, `.env`, private paths, secrets, or logs containing secrets.
+- [ ] Everyone using the deployment understands this is pre-alpha/private testing with test copies first and no production guarantee.
