@@ -140,6 +140,9 @@ export type MessageKey =
 	| 'books.noUnsupportedActions'
 	| 'books.currentDefaultExplanation'
 	| 'books.safeOperatorGuidance'
+	| 'books.contextRecoveryTitle'
+	| 'books.contextRecoveryStale'
+	| 'books.contextRecoveryNoBooks'
 	| 'transactions.filters.title'
 	| 'transactions.filters.subtitle'
 	| 'transactions.filters.filteredView'
@@ -382,6 +385,11 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 			'Current marks the book selected for this browser session; default marks the configured fallback book. Both are read-only context labels, not management controls.',
 		'books.safeOperatorGuidance':
 			'Use the host configuration and app metadata database to change registered books. This page intentionally does not expose upload, delete, default-changing, or registry-edit actions in the MVP.',
+		'books.contextRecoveryTitle': 'Book context reviewed',
+		'books.contextRecoveryStale':
+			'The selected-book cookie was invalid or no longer accessible, so this browser session was safely moved to an accessible read-only book. Review the current/default labels before opening a view.',
+		'books.contextRecoveryNoBooks':
+			'No accessible configured books are available for this account. The selected-book cookie was cleared; archived and unauthorized books remain hidden or blocked.',
 		'transactions.filters.title': 'Transaction filters',
 		'transactions.filters.subtitle':
 			'Narrow the read-only transaction list and CSV export; filters never modify your GnuCash book.',
@@ -635,6 +643,11 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 			'Текущая книга выбрана для этой браузерной сессии; основная книга — настроенный fallback. Оба статуса являются read-only метками контекста, а не элементами управления.',
 		'books.safeOperatorGuidance':
 			'Меняйте зарегистрированные книги через конфигурацию хоста и app metadata database. Эта MVP-страница намеренно не даёт загрузку, удаление, смену основной книги или редактирование реестра.',
+		'books.contextRecoveryTitle': 'Контекст книги проверен',
+		'books.contextRecoveryStale':
+			'Cookie выбранной книги был некорректным или больше недоступен, поэтому браузерная сессия безопасно переключена на доступную read-only книгу. Проверьте метки текущей/основной книги перед открытием разделов.',
+		'books.contextRecoveryNoBooks':
+			'Для этой учётной записи нет доступных настроенных книг. Cookie выбранной книги очищен; архивные и неавторизованные книги остаются скрыты или заблокированы.',
 		'transactions.filters.title': 'Фильтры транзакций',
 		'transactions.filters.subtitle':
 			'Сужают read-only список транзакций и CSV export; фильтры никогда не изменяют вашу книгу GnuCash.',

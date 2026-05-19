@@ -4,6 +4,29 @@ import type { Book } from '$lib/api/types';
 const SELECTED_BOOK_COOKIE = 'selected_book_id';
 const SELECTED_BOOK_MAX_AGE = 60 * 60 * 24 * 30;
 
+export type BookContextRecoveryReason =
+	| 'invalid_selected_book_cookie'
+	| 'stale_selected_book_cookie'
+	| 'no_accessible_books';
+
+export type BookContextRecovery = {
+	reason: BookContextRecoveryReason;
+	selectedBookId: number | null;
+	activeBookId: number | null;
+};
+
+export type ActiveBookContext = {
+	books: Book[];
+	activeBook: Book | null;
+	bookPrefix: string;
+	recovery: BookContextRecovery | null;
+};
+
+type SelectedBookCookieState = {
+	selectedBookId: number | null;
+	invalid: boolean;
+};
+
 export function getAuthToken(cookies: Cookies): string {
 	const token = cookies.get('access_token');
 	if (!token) {
@@ -12,11 +35,18 @@ export function getAuthToken(cookies: Cookies): string {
 	return token;
 }
 
-export function getActiveBookId(cookies: Cookies): number | null {
-	const raw = cookies.get(SELECTED_BOOK_COOKIE);
-	if (!raw) return null;
+function getSelectedBookCookieState(cookies: Cookies): SelectedBookCookieState {
+	const raw = cookies.get(SELECTED_BOOK_COOKIE) ?? null;
+	if (!raw) return { selectedBookId: null, invalid: false };
 	const parsed = Number(raw);
-	return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+	if (!Number.isInteger(parsed) || parsed <= 0) {
+		return { selectedBookId: null, invalid: true };
+	}
+	return { selectedBookId: parsed, invalid: false };
+}
+
+export function getActiveBookId(cookies: Cookies): number | null {
+	return getSelectedBookCookieState(cookies).selectedBookId;
 }
 
 export function resolveActiveBook(books: Book[], selectedBookId: number | null): Book | null {
@@ -32,12 +62,33 @@ export async function getActiveBookContext(
 	fetchFn: typeof fetch,
 	cookies: Cookies,
 	token: string
-): Promise<{ books: Book[]; activeBook: Book | null; bookPrefix: string }> {
+): Promise<ActiveBookContext> {
 	const books = await apiFetch<Book[]>(fetchFn, '/books', token);
-	const selectedBookId = getActiveBookId(cookies);
-	const activeBook = resolveActiveBook(books, selectedBookId);
+	const selectedCookie = getSelectedBookCookieState(cookies);
+	const activeBook = resolveActiveBook(books, selectedCookie.selectedBookId);
+	let recovery: BookContextRecovery | null = null;
 
-	if (selectedBookId !== null && activeBook?.id !== selectedBookId) {
+	if (selectedCookie.invalid) {
+		recovery = {
+			reason: 'invalid_selected_book_cookie',
+			selectedBookId: null,
+			activeBookId: activeBook?.id ?? null
+		};
+	} else if (selectedCookie.selectedBookId !== null && activeBook?.id !== selectedCookie.selectedBookId) {
+		recovery = {
+			reason: 'stale_selected_book_cookie',
+			selectedBookId: selectedCookie.selectedBookId,
+			activeBookId: activeBook?.id ?? null
+		};
+	} else if (books.length === 0) {
+		recovery = {
+			reason: 'no_accessible_books',
+			selectedBookId: selectedCookie.selectedBookId,
+			activeBookId: null
+		};
+	}
+
+	if (recovery) {
 		if (activeBook) {
 			cookies.set(SELECTED_BOOK_COOKIE, String(activeBook.id), {
 				path: '/',
@@ -52,7 +103,8 @@ export async function getActiveBookContext(
 	return {
 		books,
 		activeBook,
-		bookPrefix: activeBook ? `/books/${activeBook.id}` : ''
+		bookPrefix: activeBook ? `/books/${activeBook.id}` : '',
+		recovery
 	};
 }
 

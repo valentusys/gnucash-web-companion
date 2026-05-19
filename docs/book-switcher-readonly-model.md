@@ -1,68 +1,51 @@
 # Book switcher read-only model
 
-Phase 50 stabilizes the existing multi-book UI foundation without turning the app into collaborative accounting or a book-management system.
+Last updated: 2026-05-20 (Phase 164)
 
-## Scope
+## Purpose
 
-The book switcher is a read-only navigation aid for books that the signed-in user can already access through the app metadata database.
+The web UI can show multiple configured GnuCash books, but each book remains an independent read-only accounting ledger. The book switcher and `/books` page only choose which already-configured accessible book to view in this browser session.
 
-It does:
+This is not a collaborative editor, family wallet, file browser, upload workflow, or registry-management UI.
 
-- show the current book clearly in the authenticated app shell;
-- list only books returned by `GET /books`, which is already scoped by `UserBookAccess`;
-- show read-only metadata/status for accessible books, including base currency, storage type, access role, access status, current/default markers, safe storage diagnostics, private-path-redaction copy, and explicit no-management-action copy;
-- switch the active book by storing a non-secret `selected_book_id` cookie;
-- preserve the current route and query string on switch so list/filter pages stay book-aware;
-- provide `/books` safe links that first verify the target book against the authenticated accessible list, then set `selected_book_id` and redirect only to approved read-only views (`/dashboard`, `/accounts`, `/transactions`, `/scheduled`);
-- fall back to the accessible default book, then the first accessible book, when the selected cookie is invalid or points to a book no longer visible to the user.
+## Selected-book state
 
-It does not:
+- The selected book is stored only as the non-secret `selected_book_id` cookie.
+- The cookie is scoped to the web app path and uses `SameSite=Lax`.
+- The selected-book state is not stored in `localStorage`, `sessionStorage`, app profiles, or the GnuCash book.
+- Invalid, stale, archived, or no-longer-accessible selected-book cookies are treated as recoverable browser context drift, not as permission to expose hidden books.
 
-- upload or import GnuCash books;
-- create, edit, delete, or register books through the UI;
-- grant access to unauthorized books;
-- imply shared-wallet, family-wallet, or collaborative editing semantics;
-- change `GNUCASH_WRITES_ENABLED=false` or expand controlled-write scope.
+## Recovery behavior
 
-## Access boundary
+When the authenticated user has an invalid or stale selected-book cookie:
 
-The frontend never trusts `selected_book_id` as authorization. Each server-side page load resolves the selected book against the accessible list from `GET /books` before constructing book-aware API routes.
+1. the server asks the backend only for the authenticated `/books` list;
+2. unauthorized and archived books remain hidden or blocked by the backend;
+3. the UI selects the first safe fallback in this order:
+   - selected accessible book, if still valid;
+   - accessible default book;
+   - first accessible configured book;
+4. the cookie is replaced with that accessible fallback, or cleared when no accessible books exist;
+5. protected read-only views redirect to `/books?book_context=...` so the user can review the current/default labels before opening dashboard/accounts/transactions/scheduled views.
 
-The backend remains authoritative:
+The `/books` page shows a safe recovery notice for:
 
-- `GET /books` returns only books visible to the current user and includes only app metadata/status for those visible books (`access_role`, `read_only`, `access_status`, safe `status`/`storage_diagnostics`, and an empty `management_actions` list), without opening a GnuCash file or returning raw `uri_or_path` values;
-- book-aware account, transaction, report, scheduled metadata, and export endpoints resolve the book and enforce `UserBookAccess`;
-- `/books/{bookId}/select` verifies the requested book id against the authenticated `GET /books` result before setting the selected-book cookie;
-- unauthorized or archived book ids return `403`/`404` or are excluded from the visible list.
+- invalid selected-book cookie;
+- stale/no-longer-accessible selected-book cookie;
+- no accessible books.
 
-## Fallback behavior
+## Safety boundaries
 
-If the selected book cookie is missing, malformed, stale, or points to a book outside the user's accessible list, the app resolves the active book in this order:
+- `/books` lists app metadata for accessible books only.
+- The metadata listing does not open GnuCash data.
+- Raw `uri_or_path` values and private filesystem paths are not returned by the book metadata API and are not rendered by the web UI.
+- Missing configured local book paths are reported only as safe operator diagnostics (`missing_file`) with redacted paths.
+- No upload, delete, default-book change, registry edit, direct file browser, collaborative workflow, or GnuCash write is exposed.
+- `GNUCASH_WRITES_ENABLED=false` remains the default.
 
-1. selected accessible book;
-2. accessible default book;
-3. first accessible book;
-4. no active book if the user has no book access.
+## Tests
 
-When fallback occurs, the server refreshes or clears the `selected_book_id` cookie so subsequent page loads stay aligned with the visible read-only context.
+Phase 164 pins this behavior through:
 
-## Storage diagnostics
-
-The `/books` metadata response may report safe operator-facing storage diagnostics:
-
-- `available` — a local SQLite path is configured and exists from this runtime; listing still does not open the GnuCash data.
-- `missing_file` — a local SQLite path is configured but not found from this runtime; operators should check host/container mounts and app metadata outside the web UI.
-- `not_configured` — no book location is configured in app metadata.
-- `remote_or_unchecked` — non-local/URI storage is configured but not validated by the metadata listing.
-
-The diagnostics intentionally return safe summaries and next actions only. They must not expose raw filesystem paths, private hostnames, credentials, account names, descriptions, memos, balances, screenshots, or exports.
-
-## Archive and visibility semantics
-
-Archived books are not visible in the read-only switcher because `GET /books` returns only non-archived books that the signed-in user can view. Direct requests for archived books are treated as not found by the backend route resolver before any GnuCash data is opened.
-
-The current app has no book-management UI. Any future archive/unarchive or visibility-management work must keep these semantics explicit and add regression tests before it is presented as safe multi-book administration.
-
-## Safety position
-
-Multi-book support means multiple independent GnuCash books with scoped access. GnuCash Desktop remains the authoritative editor for each book. Phase 50 does not add book upload, book registration UI, write capability, import/sync, or collaborative editing.
+- backend multi-book access tests for unauthorized/archived/missing/not-configured book metadata and private path redaction;
+- frontend static route checks for selected-book recovery classification, `/books` review redirect, safe notices, and absence of browser storage for book-sensitive state.

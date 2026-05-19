@@ -567,8 +567,33 @@ assert.match(
 );
 assert.match(
 	serverApi,
+	/invalid_selected_book_cookie[\s\S]*stale_selected_book_cookie[\s\S]*no_accessible_books/,
+	'book context must classify invalid, stale, and empty accessible-book recovery cases'
+);
+assert.match(
+	serverApi,
 	/cookies\.set\(SELECTED_BOOK_COOKIE[\s\S]*sameSite: 'lax'/,
 	'invalid selected book cookies must be replaced with an accessible fallback cookie'
+);
+assert.match(
+	serverApi,
+	/cookies\.delete\(SELECTED_BOOK_COOKIE/,
+	'book context must clear the selected-book cookie when no accessible fallback exists'
+);
+assert.match(
+	layoutServer,
+	/book_context=\$\{recovery\.reason\}/,
+	'stale or invalid selected-book context must redirect users to /books for safe review'
+);
+assert.match(
+	booksPageServer,
+	/BOOK_CONTEXT_NOTICE_KEYS[\s\S]*invalid_selected_book_cookie[\s\S]*stale_selected_book_cookie[\s\S]*no_accessible_books/,
+	'/books must accept only known book-context recovery notices'
+);
+assert.match(
+	booksPage,
+	/books\.contextRecoveryTitle[\s\S]*books\.contextRecoveryNoBooks[\s\S]*books\.contextRecoveryStale/s,
+	'/books must show a safe recovery notice for stale/invalid selected-book cookies and no accessible books'
 );
 for (const routeFile of [
 	'src/routes/+layout.server.ts',

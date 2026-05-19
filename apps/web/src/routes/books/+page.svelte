@@ -30,6 +30,19 @@
 </svelte:head>
 
 <main class="mx-auto max-w-6xl px-4 py-8">
+	{#if data.bookContextNotice}
+		<section class="mb-6 rounded-2xl border p-4 text-sm" style="border-color: var(--app-border); background-color: var(--app-card-bg);" aria-label={t(locale, 'books.contextRecoveryTitle')}>
+			<p class="font-semibold" style="color: var(--app-text);">{t(locale, 'books.contextRecoveryTitle')}</p>
+			<p class="mt-1" style="color: var(--app-muted);">
+				{#if data.bookContextNotice === 'no_accessible_books'}
+					{t(locale, 'books.contextRecoveryNoBooks')}
+				{:else}
+					{t(locale, 'books.contextRecoveryStale')}
+				{/if}
+			</p>
+		</section>
+	{/if}
+
 	<div class="mb-6 space-y-3">
 		<p class="text-sm font-medium uppercase tracking-wide" style="color: var(--app-accent);">{t(locale, 'books.kicker')}</p>
 		<div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
