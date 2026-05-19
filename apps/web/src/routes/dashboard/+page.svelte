@@ -37,17 +37,23 @@
 
 		<section class="mt-6" aria-labelledby="summary-heading">
 			<h2 id="summary-heading" class="mb-3 text-sm font-medium uppercase tracking-wide" style="color: var(--app-muted);">Summary</h2>
-			{#if data.summary?.limitations?.length}
+			{#if data.summary}
 				<div
 					class="mb-3 rounded-lg p-3 text-sm"
 					style="background-color: color-mix(in srgb, var(--app-warning) 10%, var(--app-panel)); color: var(--app-text); border: 1px solid color-mix(in srgb, var(--app-warning) 55%, var(--app-border));"
 				>
 					<p class="font-semibold">Conservative dashboard totals</p>
-					<ul class="mt-1 list-disc pl-5" style="color: var(--app-muted);">
-						{#each data.summary.limitations as limitation}
-							<li>{limitation}</li>
-						{/each}
-					</ul>
+					<p class="mt-1" style="color: var(--app-muted);">
+						Reporting basis: <code>{data.summary.reporting_basis}</code>. Currency conversion:
+						{data.summary.includes_currency_conversion ? 'included' : 'not included'}.
+					</p>
+					{#if data.summary.limitations?.length}
+						<ul class="mt-1 list-disc pl-5" style="color: var(--app-muted);">
+							{#each data.summary.limitations as limitation}
+								<li>{limitation}</li>
+							{/each}
+						</ul>
+					{/if}
 				</div>
 			{/if}
 			<SummaryGrid summary={data.summary} />

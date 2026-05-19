@@ -88,6 +88,35 @@ class TestMultiCurrencyReportSummary:
         # Feb SEK expenses: Bus pass (150) + Monthly expenses splits (350+200) = 700
         assert report.expenses_this_month == "-700.00"
 
+    def test_summary_reports_base_currency_only_no_conversion_basis(self, svc):
+        """Dashboard summary metadata must not imply converted multi-currency totals."""
+        report = svc.get_report_summary("2026-02-28")
+
+        assert report.reporting_basis == "base_currency_only"
+        assert report.includes_currency_conversion is False
+        limitations = " ".join(report.limitations)
+        assert "reporting_basis=base_currency_only" in limitations
+        assert "no currency conversion" in limitations
+        assert "EUR" in limitations
+        assert "excluded rather than converted or combined" in limitations
+
+    def test_summary_unknown_base_currency_limitations_explain_zero_totals(self):
+        """Unknown base-currency summaries must explain XXX/zero-total limitations."""
+        unknown_base_svc = GnuCashBookService({"uri_or_path": FIXTURE_PATH, "base_currency": None})
+
+        report = unknown_base_svc.get_report_summary("2026-02-28")
+
+        assert report.currency == "XXX"
+        assert report.reporting_basis == "base_currency_only"
+        assert report.includes_currency_conversion is False
+        assert report.assets == "0.00"
+        assert report.liabilities == "0.00"
+        limitations = " ".join(report.limitations)
+        assert "unknown (XXX)" in limitations
+        assert "zero totals may mean no matching base-currency accounts" in limitations
+        assert "rather than an empty book" in limitations
+        assert "no currency conversion" in limitations
+
 
 # --- Cashflow report (excludes non-base-currency splits) ---
 

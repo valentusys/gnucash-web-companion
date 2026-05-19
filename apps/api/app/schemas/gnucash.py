@@ -121,9 +121,10 @@ class CashflowDTO(BaseModel):
 class ReportSummaryDTO(BaseModel):
     """Dashboard summary: net worth, assets, liabilities, income/expenses this month.
 
-    Multi-currency limitation: only accounts whose commodity matches the book's
-    base currency are included. Accounts in other currencies are excluded with an
-    explicit limitation message; no currency conversion is performed.
+    Multi-currency limitation: reporting_basis is base_currency_only. Only
+    accounts/splits whose commodity matches the configured base currency are
+    included, other currencies are reported as limitations, and no currency
+    conversion is performed.
     """
 
     currency: str

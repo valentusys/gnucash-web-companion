@@ -341,6 +341,8 @@ class GnuCashBookService:
         split_assets = Decimal("0")
         split_liabilities = Decimal("0")
         saw_base_currency_balance_split = False
+        excluded_currencies: set[str] = set()
+        base_currency_account_count = 0
         income_this_month = Decimal("0")
         expenses_this_month = Decimal("0")
         with self._open_book() as book:
@@ -348,7 +350,9 @@ class GnuCashBookService:
                 account_type = str(getattr(account, "type", "")).upper()
                 currency = self._account_currency(account)
                 if currency != self.base_currency:
+                    excluded_currencies.add(currency or "unknown")
                     continue
+                base_currency_account_count += 1
                 if account_type in asset_account_types:
                     assets += self._account_balance(account)
                 elif account_type in liability_account_types:
@@ -389,6 +393,11 @@ class GnuCashBookService:
             assets = split_assets
             liabilities = split_liabilities
         net_worth = assets + liabilities  # liabilities are already negative
+        limitations = self._report_summary_limitations(
+            base_currency=self.base_currency,
+            excluded_currencies=excluded_currencies,
+            base_currency_account_count=base_currency_account_count,
+        )
         return ReportSummaryDTO(
             currency=self.base_currency,
             net_worth=format_money(net_worth),
@@ -399,10 +408,40 @@ class GnuCashBookService:
             as_of_date=today.isoformat(),
             reporting_basis="base_currency_only",
             includes_currency_conversion=False,
-            limitations=[
-                f"Only {self.base_currency} accounts and splits are included; other currencies are excluded without conversion."
-            ],
+            limitations=limitations,
         )
+
+    @staticmethod
+    def _report_summary_limitations(
+        *,
+        base_currency: str,
+        excluded_currencies: set[str],
+        base_currency_account_count: int,
+    ) -> list[str]:
+        """Return user-facing limitations for dashboard/reporting totals.
+
+        Keep wording explicit so API consumers cannot mistake the summary for a
+        converted multi-currency net worth. The money values remain Decimal/string
+        formatted elsewhere; this helper only builds copy from currency codes.
+        """
+        limitations = [
+            "Dashboard totals use reporting_basis=base_currency_only and include no currency conversion.",
+            f"Only accounts and splits whose commodity is {base_currency} are included in reported totals.",
+        ]
+        if excluded_currencies:
+            currencies = ", ".join(sorted(excluded_currencies))
+            limitations.append(
+                f"Other detected currencies ({currencies}) are excluded rather than converted or combined."
+            )
+        if base_currency == "XXX":
+            limitations.append(
+                "The configured base currency is unknown (XXX), so zero totals may mean no matching base-currency accounts rather than an empty book."
+            )
+        elif base_currency_account_count == 0:
+            limitations.append(
+                f"No accounts with base currency {base_currency} were detected; zero totals may reflect a currency-configuration mismatch."
+            )
+        return limitations
 
     def get_expenses_by_account(
         self,

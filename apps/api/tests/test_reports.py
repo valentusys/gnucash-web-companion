@@ -371,9 +371,11 @@ class TestReportSummaryMVP:
         assert data["liabilities"] == "0.00"
         assert data["income_this_month"] == "0.00"
         assert data["expenses_this_month"] == "0.00"
-        assert data["limitations"] == [
-            "Only SEK accounts and splits are included; other currencies are excluded without conversion."
-        ]
+        limitations = " ".join(data["limitations"])
+        assert "reporting_basis=base_currency_only" in limitations
+        assert "no currency conversion" in limitations
+        assert "commodity is SEK" in limitations
+        assert "No accounts with base currency SEK were detected" in limitations
 
     def test_returns_summary_shape(
         self, client, auth_headers, sample_book, fake_book_for_reports, session_factory
@@ -403,9 +405,10 @@ class TestReportSummaryMVP:
         assert data["as_of_date"] == "2026-05-16"
         assert data["reporting_basis"] == "base_currency_only"
         assert data["includes_currency_conversion"] is False
-        assert data["limitations"] == [
-            "Only SEK accounts and splits are included; other currencies are excluded without conversion."
-        ]
+        limitations = " ".join(data["limitations"])
+        assert "reporting_basis=base_currency_only" in limitations
+        assert "no currency conversion" in limitations
+        assert "commodity is SEK" in limitations
 
     def test_summary_values(
         self, client, auth_headers, sample_book, fake_book_for_reports, session_factory

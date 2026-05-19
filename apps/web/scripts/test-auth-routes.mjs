@@ -51,6 +51,17 @@ for (const [routeName, relativePath, variant] of [
 	assert.match(routePage, /import \{ navigating \} from '\$app\/state';[\s\S]*import LoadingState/s, `${routeName} page must watch SvelteKit navigation and import LoadingState`);
 	assert.match(routePage, new RegExp(`isRouteLoading[\\s\\S]*navigating\\.to[\\s\\S]*<LoadingState[\\s\\S]*variant="${variant}"`, 's'), `${routeName} page must show its ${variant} skeleton while route data is loading`);
 }
+const dashboardPage = read('src/routes/dashboard/+page.svelte');
+assert.match(
+	dashboardPage,
+	/Conservative dashboard totals[\s\S]*Reporting basis:[\s\S]*data\.summary\.reporting_basis[\s\S]*Currency conversion:[\s\S]*data\.summary\.includes_currency_conversion/s,
+	'dashboard must show reporting_basis and whether currency conversion is included'
+);
+assert.match(
+	dashboardPage,
+	/data\.summary\.limitations[\s\S]*\{#each data\.summary\.limitations as limitation\}/s,
+	'dashboard must render backend reporting limitations instead of implying converted totals'
+);
 assert.match(hooks, /PROTECTED_PREFIXES[\s\S]*'\/dashboard'[\s\S]*'\/accounts'[\s\S]*'\/scheduled'/, 'dashboard, accounts, and scheduled routes must be protected');
 assert.match(hooks, /redirect\(303, `\/login\?next=/, 'protected routes must redirect to /login');
 assert.match(hooks, /cookies\.get\('access_token'\)/, 'protected routes must use the httpOnly cookie');
