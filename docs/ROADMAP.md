@@ -5,22 +5,28 @@ This roadmap is intentionally conservative. Safety and trust come before feature
 ## Current release posture
 
 - Status: pre-alpha / MVP in progress.
-- Completed through Phase 137; Phase 138 is a documentation/status synchronization phase after the Phase 133–137 maintenance work.
-- Current public read-only pre-release: `v0.1.3-readonly`.
+- Completed through Phase 162.
+- Current public read-only pre-release: `v0.1.6-readonly`.
 - Current published write-alpha pre-release: `v0.2.0-writealpha`, published after explicit authorization as pre-alpha/experimental and disabled by default.
 - MVP v0.1 remains read-only by default.
 - `GNUCASH_WRITES_ENABLED=false` remains the default.
 - Controlled writes, where present, are post-MVP/write-alpha, disabled by default, constrained by the existing backend test-environment gate when explicitly enabled, and not safe for real/private production books.
 - Current compatibility evidence is synthetic/disposable fixture evidence only; broad GnuCash Desktop version support is not claimed.
+- Latest tagged read-only smoke: Phase 162 verified published tag `v0.1.6-readonly` from a fresh checkout with synthetic/disposable data, dummy local-only secrets, Docker Compose, API smoke, browser dogfood, disabled validate/create/patch/delete write probes, and no raw screenshot/export/backup artifacts.
 - No further tag, GitHub release, package, or publication is planned by this roadmap page unless a later explicit release phase and authorization say so.
 
 ## Recently completed maintenance phases
 
-- Phase 133 — read-only empty/error state polish for books, scheduled transactions, transactions, accounts, and user-safe global error handling.
-- Phase 134 — read-only loading skeletons for dashboard, accounts, transactions, and books during navigation/data reloads.
-- Phase 135 — read-only mobile navigation polish, touch-target cleanup, mobile shell spacing, and transaction-detail split cards for narrow screens.
-- Phase 136 — GnuCash compatibility documentation refresh with explicit synthetic/disposable evidence boundaries and no real Desktop-version validation claim.
-- Phase 137 — local secure deployment hardening guide refresh for localhost/LAN/VPN CORS examples, JWT secret handling/rotation, app metadata DB backups, and pre-deployment checks.
+- Phase 153 — fresh-clone Docker smoke helper and synthetic/disposable clean-checkout evidence.
+- Phase 154 — GnuCash Desktop compatibility blocker evidence refresh without broad Desktop/version claims.
+- Phase 155 — multi-book read-only operator diagnostics and private-path redaction hardening.
+- Phase 156 — dashboard drilldown links to existing read-only transaction filters.
+- Phase 157 — scheduled/recurring transaction read-only clarity with URL-only filters and safe metadata.
+- Phase 158 — mobile dogfood touch-target/no-overflow fix pass.
+- Phase 159 — release-critical English/Russian frontend catalog coverage without claiming full localization.
+- Phase 160 — full synthetic/disposable Docker/Caddy release-candidate dogfood with `GNUCASH_WRITES_ENABLED=false`.
+- Phase 161 — authorized `v0.1.6-readonly` GitHub pre-release publication after final gate.
+- Phase 162 — post-release baseline sync plus tagged `v0.1.6-readonly` fresh-checkout smoke.
 
 ## Completed phase groups
 

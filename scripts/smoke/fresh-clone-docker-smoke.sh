@@ -194,6 +194,55 @@ PY
   SMOKE_API_BASE_URL="${BASE_URL}/api" \
     scripts/smoke/read-only-api-smoke.py
 
+  log "run DELETE disabled-write probe for tagged checkouts whose smoke helper predates it"
+  SMOKE_API_BASE_URL="${BASE_URL}/api" \
+  SMOKE_ADMIN_PASSWORD="$ADMIN_PASSWORD" \
+  python3 - <<'PY'
+import json
+import os
+import urllib.error
+import urllib.request
+
+base_url = os.environ["SMOKE_API_BASE_URL"].rstrip("/")
+password = os.environ["SMOKE_ADMIN_PASSWORD"]
+
+
+def request(method, path, payload=None, token=None, expected=200):
+    data = None if payload is None else json.dumps(payload).encode("utf-8")
+    headers = {"Accept": "application/json"}
+    if payload is not None:
+        headers["Content-Type"] = "application/json"
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    req = urllib.request.Request(f"{base_url}{path}", data=data, headers=headers, method=method)
+    try:
+        with urllib.request.urlopen(req, timeout=15) as response:
+            raw = response.read().decode("utf-8")
+            status = response.status
+    except urllib.error.HTTPError as exc:
+        raw = exc.read().decode("utf-8")
+        status = exc.code
+    if status != expected:
+        raise SystemExit(f"{method} {path} returned HTTP {status}, expected {expected}; body={raw[:300]}")
+    return json.loads(raw) if raw else None
+
+login = request("POST", "/auth/login", {"username": "admin", "password": password})
+token = login.get("access_token")
+books = request("GET", "/books", token=token)
+book = next((item for item in books if item.get("is_default")), books[0])
+book_id = book["id"]
+body = request(
+    "DELETE",
+    f"/books/{book_id}/transactions/smoke-nonexistent-transaction",
+    token=token,
+    expected=403,
+)
+detail = str(body.get("detail", "")).lower()
+if "writes are disabled" not in detail and "read-only" not in detail:
+    raise SystemExit(f"DELETE disabled-write response did not explain read-only/write-disabled state: {body!r}")
+print("ok: delete endpoint is write-disabled")
+PY
+
   log "run browser dogfood"
   SMOKE_ADMIN_PASSWORD="$ADMIN_PASSWORD" \
     scripts/smoke/read-only-browser-dogfood.py \

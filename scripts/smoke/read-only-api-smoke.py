@@ -283,6 +283,15 @@ def run(args: argparse.Namespace | None = None) -> None:
     _assert_write_disabled(patch, f"/books/{book_id}/transactions/{{transaction_id}}")
     print("ok: patch endpoint is write-disabled")
 
+    delete = client.request(
+        "DELETE",
+        f"/books/{book_id}/transactions/smoke-nonexistent-transaction",
+        expected_status=403,
+        authenticated=True,
+    )
+    _assert_write_disabled(delete, f"/books/{book_id}/transactions/{{transaction_id}}")
+    print("ok: delete endpoint is write-disabled")
+
     print("PASS: read-only API smoke checks completed")
 
 

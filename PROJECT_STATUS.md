@@ -7,11 +7,11 @@ Last updated: 2026-05-19
 - GitHub: `valentusys/gnucash-web-companion`
 - Local path: `/home/val/gnucash-web-companion`
 - Branch: `main`
-- Status: pre-alpha / v0.1.6-readonly read-only pre-release published; post-release maintenance completed through Phase 161; v0.2.0-writealpha remains a separate experimental pre-release
+- Status: pre-alpha / v0.1.6-readonly read-only pre-release published; post-release maintenance completed through Phase 162; v0.2.0-writealpha remains a separate experimental pre-release
 
 ## Current baseline
 
-Completed through Phase 161.
+Completed through Phase 162.
 
 Current public release state:
 
@@ -57,6 +57,7 @@ Current public release state:
 - Phase 159 is a release-critical localization pass that routes additional web frontend user-facing copy through the typed English/Russian catalog: dashboard report cards, drilldown helper copy, recent transactions, expenses-by-account, cashflow widgets, `/scheduled` title/safety copy/URL-only filters/safe metadata labels/empty states, and landing-page sign-in copy now use `t(locale, key)` with simple named interpolation where needed. Frontend static checks and Svelte checks pin the localization surface. English remains canonical, Russian remains partial/opt-in, backend/API errors are not localized, and no write behavior, release/tag/package, browser-storage persistence, real/private book, `.env`, app DB, backup, screenshot/export, token, key, cert, private path, or private financial data was added.
 - Phase 160 is a full release-candidate synthetic/disposable Docker/Caddy dogfood pass after Phases 153–159: local Compose ran with the committed synthetic fixture copied into ignored runtime data and `GNUCASH_WRITES_ENABLED=false`; API smoke passed for health, login/auth, books/default book, accounts, transactions, transaction detail, CSV export, reports summary, and disabled validate/create/patch probes; an additional DELETE write probe returned HTTP 403; headless browser dogfood at 320x720 passed login, protected redirect, dashboard, accounts, books, scheduled, account detail, transaction filters, transaction detail, CSV export, hidden write UI, no-overflow checks, and no-artifact checks. Evidence is documented in `docs/dogfood/phase-160-release-candidate-dogfood.md`. No copied-book dogfood was run because no explicit safe copied book path was provided. No release/tag/package/image, write expansion, real/private book, `.env`, app DB, backup, screenshot/export, token, key, cert, private path, or private financial data was added.
 - Phase 161 is the authorized publication phase for `v0.1.6-readonly`: the final read-only maintenance release gate was re-run from clean `main` at `d56c335`, local backend/frontend/Docker checks passed, rendered Compose config kept `GNUCASH_WRITES_ENABLED=false`, tracked sensitive-file hygiene passed, GitHub Actions for the release commit passed, and `v0.1.6-readonly` was published as an annotated tag and GitHub pre-release. README, CHANGELOG, release notes/checklist/final-gate, publication evidence, PROJECT_STATUS, and `docs/handoff/phase-161.md` were synchronized. No package, binary artifact, Docker image, production deployment, product code, write endpoint, write-mode UI expansion, runtime default change, browser-storage persistence, screenshot/export/raw financial artifact, app DB, backup, real/private GnuCash book, `.env`, token, key, cert, or production-readiness/security-audit claim was added.
+- Phase 162 is a post-`v0.1.6-readonly` baseline sync and tagged smoke phase: `docs/ROADMAP.md` no longer says the current baseline is Phase 137/138 or `v0.1.3-readonly`, and the published `v0.1.6-readonly` tag was verified from a fresh checkout with the committed synthetic fixture, dummy local-only `.env`, Docker Compose/Caddy, API smoke, browser dogfood, `GNUCASH_WRITES_ENABLED=false` in rendered/runtime config, disabled validate/create/patch/delete write probes, and no raw screenshot/export/backup artifacts. Evidence is documented in `docs/dogfood/phase-162-v0.1.6-tagged-smoke.md`. The smoke helper now covers DELETE disabled-write probes for old tagged checkouts and future API smokes. No product behavior, write capability, release/tag/package/image, production deployment, real/private GnuCash book, app DB, backup, committed `.env`, screenshot/export, token, key, cert, private path, account name, transaction description, memo, amount, or production/security claim was added.
 - Previous public release `v0.1.2-readonly` remains available and points to its Phase 117 release commit.
 - Previous public release `v0.1.1-readonly` remains available and points to `a4d04150c043ad4da3dea577b30ed7ffd2032df0`, after Phase 104.
 
@@ -224,6 +225,7 @@ Completed phases:
 - Phase 159 — Release-critical frontend localization pass
 - Phase 160 — Release-candidate synthetic Docker/browser dogfood
 - Phase 161 — v0.1.6-readonly maintenance release gate and authorized publication
+- Phase 162 — post-v0.1.6 baseline sync and tagged read-only smoke
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -303,7 +305,7 @@ Completed phases:
 
 Next planned phase:
 
-- Continue only with the next explicitly requested phase. Controlled writes remain post-MVP/experimental, disabled by default, constrained to `APP_ENV=test` copied/disposable fixtures when explicitly enabled, and not safe for production books. Phase 160 completed the full release-candidate synthetic/disposable Docker/Caddy dogfood after Phases 153–159 with `GNUCASH_WRITES_ENABLED=false`, passing API smoke, browser dogfood, disabled write probes, no-artifact checks, and sensitive tracked-file hygiene; Phase 10 remains a separate release gate and no release was published.
+- Continue only with the next explicitly requested phase. Controlled writes remain post-MVP/experimental, disabled by default, constrained to `APP_ENV=test` copied/disposable fixtures when explicitly enabled, and not safe for production books. Phase 162 confirmed the already-published `v0.1.6-readonly` tag starts from a fresh checkout with synthetic/disposable data and `GNUCASH_WRITES_ENABLED=false`; Phase 10 remains a separate future release gate and no new release was published in Phase 162.
 
 ## MVP product model
 
@@ -794,7 +796,7 @@ Goal: add a minimal automated API smoke script for local read-only Docker deploy
 
 Artifacts:
 
-- `scripts/smoke/read-only-api-smoke.py` — stdlib-only Python smoke script for local API deployments; checks `/health`, login, `/auth/me`, default book discovery through `/books`, book metadata, accounts, transactions, reports summary, and disabled-write 403 responses for validate/create/patch controlled-write endpoints.
+- `scripts/smoke/read-only-api-smoke.py` — stdlib-only Python smoke script for local API deployments; checks `/health`, login, `/auth/me`, default book discovery through `/books`, book metadata, accounts, transactions, reports summary, and disabled-write 403 responses for validate/create/patch/delete controlled-write endpoints.
 - `scripts/smoke/read-only-smoke-check.md` — updated manual checklist with the Phase 39 automated API smoke command and environment variables.
 - `CHANGELOG.md` — added Phase 39 Unreleased entry.
 - `docs/handoff/phase-39.md` — PM/engineer handoff and verification report.
