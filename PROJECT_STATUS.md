@@ -7,11 +7,11 @@ Last updated: 2026-05-19
 - GitHub: `valentusys/gnucash-web-companion`
 - Local path: `/home/val/gnucash-web-companion`
 - Branch: `main`
-- Status: pre-alpha / v0.2.0-writealpha published, post-release documentation synchronized through Phase 138
+- Status: pre-alpha / v0.2.0-writealpha published, post-release synthetic dogfood refreshed through Phase 139
 
 ## Current baseline
 
-Completed through Phase 138.
+Completed through Phase 139.
 
 Current public release state:
 
@@ -31,6 +31,7 @@ Current public release state:
 - Phase 136 is a docs-only GnuCash compatibility matrix refresh: `docs/gnucash-compatibility.md` now makes the matrix evidence boundaries explicit, adds a dedicated GnuCash Desktop versions tested section, and states that no real Desktop release has been validated by the automated suite yet; `docs/gnucash-version-fixture-plan.md` now inventories all current synthetic/disposable fixture evidence and keeps future Desktop-generated fixture work gated on disposable provenance plus tests; `README.md` links to the compatibility matrix from current status and repeats the synthetic-only evidence warning. No fixture generation, Desktop-version testing, backend/frontend code, write-alpha expansion, release publication, real-book artifact, export, screenshot, `.env`, app DB, backup, token, key, or `GNUCASH_WRITES_ENABLED=false` default changed.
 - Phase 137 is a docs-only local secure deployment hardening refresh: `docs/deployment/local-secure-deployment.md` now covers localhost, LAN, and VPN deployment-mode CORS recommendations, JWT secret generation and conservative rotation, app metadata DB backup/restore expectations, and a concrete self-hosting pre-deployment checklist; `.env.example` comments now point operators toward fresh JWT secrets and exact CORS origins for LAN/VPN. No backend/frontend product code, endpoint, write-alpha capability, release publication, real-book artifact, app DB, backup, `.env`, token, key, screenshot, export, or `GNUCASH_WRITES_ENABLED=false` default changed.
 - Phase 138 is a docs-only public status synchronization phase after Phases 133–137: `README.md`, `README.ru.md`, `CHANGELOG.md`, and `docs/ROADMAP.md` now reflect the completed read-only UX polish, compatibility-documentation refresh, local deployment hardening guide, current release posture, synthetic/disposable evidence boundaries, and no-production/no-security-audit/no-real-book-write-safety limits. No backend/frontend product code, endpoint, write-alpha capability, release publication, real-book artifact, app DB, backup, `.env`, token, key, screenshot, export, or `GNUCASH_WRITES_ENABLED=false` default changed.
+- Phase 139 is a synthetic/disposable Docker/Caddy dogfood refresh after Phases 133–138: local Docker Compose was run with `GNUCASH_WRITES_ENABLED=false`, the read-only API smoke passed for health, login/auth, books/default book, accounts, transactions, transaction detail, CSV export, reports summary, and disabled validate/create/patch write probes, and the headless browser dogfood passed login, protected redirect, dashboard, accounts, books, scheduled, account detail, transaction filters, transaction detail, CSV export, hidden write UI, and no-artifact checks. Evidence is documented in `docs/dogfood/phase-139-synthetic-dogfood.md`. No backend/frontend product code, endpoint, write-alpha capability, release publication, real-book artifact, app DB, backup, `.env`, token, key, screenshot, export, or `GNUCASH_WRITES_ENABLED=false` default changed.
 - Previous public release `v0.1.2-readonly` remains available and points to its Phase 117 release commit.
 - Previous public release `v0.1.1-readonly` remains available and points to `a4d04150c043ad4da3dea577b30ed7ffd2032df0`, after Phase 104.
 
@@ -175,6 +176,7 @@ Completed phases:
 - Phase 136 — GnuCash compatibility matrix documentation refresh
 - Phase 137 — local secure deployment hardening guide
 - Phase 138 — public README/CHANGELOG/roadmap/status documentation sync
+- Phase 139 — synthetic dogfood refresh
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -254,7 +256,7 @@ Completed phases:
 
 Next planned phase:
 
-- Continue only with the next explicitly requested phase. Controlled writes remain post-MVP/experimental, disabled by default, constrained to `APP_ENV=test` copied/disposable fixtures when explicitly enabled, and not safe for production books. Phase 138 made no release/publication change, added no backend/frontend code, added no screenshots/exports, generated no fixtures, tested no real GnuCash Desktop versions, and did not expand write-alpha scope.
+- Continue only with the next explicitly requested phase. Controlled writes remain post-MVP/experimental, disabled by default, constrained to `APP_ENV=test` copied/disposable fixtures when explicitly enabled, and not safe for production books. Phase 139 made no release/publication change, added no backend/frontend code, added no screenshots/exports, used only synthetic/disposable data, tested no real GnuCash Desktop versions, and did not expand write-alpha scope.
 
 ## MVP product model
 
