@@ -21,7 +21,7 @@ import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 	] as const);
 </script>
 
-<header class="sticky top-0 z-30 border-b" style="background-color: var(--app-nav-bg); border-color: var(--app-nav-border);">
+<header class="hidden sticky top-0 z-30 border-b md:block" style="background-color: var(--app-nav-bg); border-color: var(--app-nav-border);">
 	<div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
 		<a href="/dashboard" class="text-sm font-semibold" style="color: var(--app-text);">
 			GnuCash Web Companion

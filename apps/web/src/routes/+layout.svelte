@@ -13,13 +13,13 @@ import { DEFAULT_LOCALE, type Locale } from '$lib/i18n';
 	let locale = $derived<Locale>(data.locale ?? DEFAULT_LOCALE);
 </script>
 
-<div class="min-h-screen" style="background-color: var(--app-bg); color: var(--app-text);">
+<div class="min-h-screen overflow-x-hidden max-w-full" style="background-color: var(--app-bg); color: var(--app-text);">
 	{#if showAppShell}
 		<DesktopNav {books} {activeBook} {locale} returnTo={data.pathname} />
 		<ReadOnlyStatusBanner {locale} />
 		<MobileNav {books} {activeBook} {locale} returnTo={data.pathname} />
 		<!-- Bottom nav spacer: prevents content from being hidden behind fixed bottom nav on mobile -->
-		<div class="pb-16 md:pb-0">
+		<div class="pb-32 md:pb-0">
 			{@render children()}
 		</div>
 	{:else}

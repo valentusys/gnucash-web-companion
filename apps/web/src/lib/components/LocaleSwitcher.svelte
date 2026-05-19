@@ -14,7 +14,7 @@
 	<select
 		id="locale-switcher"
 		name="locale"
-		class="rounded-lg border px-2 py-1 text-xs"
+		class="min-h-11 min-w-[44px] rounded-lg border px-3 py-2 text-xs"
 		style="border-color: var(--app-input-border); background-color: var(--app-input-bg); color: var(--app-text);"
 		aria-label={t(locale, 'locale.switcherLabel')}
 		onchange={(event) => event.currentTarget.form?.requestSubmit()}

@@ -20,7 +20,7 @@
 
 <button
 	type="button"
-	class="inline-flex items-center justify-center rounded-lg border px-2 py-2 text-sm transition-colors hover:bg-[var(--app-hover-bg)] focus-visible:ring-2 focus-visible:ring-[var(--app-accent)] focus-visible:ring-offset-2"
+	class="inline-flex min-h-11 min-w-[44px] items-center justify-center rounded-lg border px-2 py-2 text-sm transition-colors hover:bg-[var(--app-hover-bg)] focus-visible:ring-2 focus-visible:ring-[var(--app-accent)] focus-visible:ring-offset-2"
 	style="border-color: var(--app-border);"
 	aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
 	title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}

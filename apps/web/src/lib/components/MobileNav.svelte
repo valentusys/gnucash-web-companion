@@ -1,8 +1,9 @@
 <script lang="ts">
 	import BookSwitcher from '$lib/components/BookSwitcher.svelte';
 	import LocaleSwitcher from '$lib/components/LocaleSwitcher.svelte';
+	import ThemeSwitcher from '$lib/components/ThemeSwitcher.svelte';
 	import type { Book } from '$lib/api/types';
-import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
+	import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 
 	let {
 		books,
@@ -11,6 +12,8 @@ import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 		returnTo = '/dashboard'
 	}: { books: Book[]; activeBook: Book | null; locale?: Locale; returnTo?: string } = $props();
 
+	let menuOpen = $state(false);
+
 	const navLinks = $derived([
 		{ href: '/dashboard', label: t(locale, 'nav.dashboard'), icon: 'home' },
 		{ href: '/accounts', label: t(locale, 'nav.accounts'), icon: 'accounts' },
@@ -18,6 +21,14 @@ import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 		{ href: '/scheduled', label: t(locale, 'nav.scheduled'), icon: 'scheduled' },
 		{ href: '/books', label: t(locale, 'nav.books'), icon: 'books' }
 	] as const);
+
+	function toggleMenu() {
+		menuOpen = !menuOpen;
+	}
+
+	function closeMenu() {
+		menuOpen = false;
+	}
 
 	function iconFor(name: string, active: boolean) {
 		const c = active ? 'var(--app-accent)' : 'var(--app-muted)';
@@ -39,26 +50,71 @@ import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 </script>
 
 <nav
-	class="fixed bottom-0 left-0 right-0 z-40 border-t md:hidden"
+	class="fixed inset-x-0 bottom-0 z-40 max-w-full overflow-x-hidden border-t md:hidden"
 	style="background-color: var(--app-nav-bg); border-color: var(--app-nav-border);"
 	aria-label="Mobile navigation"
 >
-	<!-- Book switcher row above the nav links on mobile -->
-	<div class="flex items-center justify-center gap-3 border-b px-3 py-2" style="border-color: var(--app-nav-border);">
-		<BookSwitcher {books} {activeBook} />
-		<LocaleSwitcher {locale} {returnTo} compact />
+	{#if menuOpen}
+		<div
+			id="mobile-nav-menu"
+			data-mobile-menu
+			class="border-b px-3 py-3 shadow-lg"
+			style="border-color: var(--app-nav-border); background-color: var(--app-nav-bg);"
+		>
+			<div class="mx-auto flex max-w-full flex-col gap-3">
+				<div class="min-w-0">
+					<BookSwitcher {books} {activeBook} compact />
+				</div>
+				<div class="flex max-w-full flex-wrap items-center gap-2">
+					<LocaleSwitcher {locale} {returnTo} compact />
+					<ThemeSwitcher />
+					<form method="POST" action="/logout" class="min-w-0">
+						<button
+							type="submit"
+							class="min-h-[44px] min-w-[44px] rounded-lg border px-3 py-2 text-sm font-medium transition-colors hover:bg-[var(--app-hover-bg)]"
+							style="border-color: var(--app-border); color: var(--app-muted);"
+						>
+							{t(locale, 'nav.logout')}
+						</button>
+					</form>
+				</div>
+			</div>
+		</div>
+	{/if}
+
+	<div class="flex max-w-full items-center justify-between gap-2 border-b px-3 py-2" style="border-color: var(--app-nav-border);">
+		<div class="min-w-0 flex-1 truncate text-xs font-medium" style="color: var(--app-muted);">
+			{#if activeBook}
+				<span class="sr-only">Current book:</span>{activeBook.name}
+			{:else}
+				GnuCash Web Companion
+			{/if}
+		</div>
+		<button
+			type="button"
+			class="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border px-3 text-sm font-medium transition-colors hover:bg-[var(--app-hover-bg)]"
+			style="border-color: var(--app-border); color: var(--app-text);"
+			aria-expanded={menuOpen}
+			aria-controls="mobile-nav-menu"
+			onclick={toggleMenu}
+		>
+			<span aria-hidden="true">☰</span>
+			<span class="sr-only">{menuOpen ? 'Close mobile menu' : 'Open mobile menu'}</span>
+		</button>
 	</div>
-	<div class="flex items-stretch justify-around safe-bottom">
+
+	<div class="safe-bottom flex max-w-full items-stretch justify-around">
 		{#each navLinks as link}
 			<a
 				href={link.href}
-				class="flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors"
+				class="flex min-h-[44px] min-w-[44px] flex-1 flex-col items-center justify-center gap-0.5 px-1 py-2 text-[10px] font-medium transition-colors"
 				style="color: var(--app-muted);"
+				onclick={closeMenu}
 			>
 				<span class="h-[22px] w-[22px]" aria-hidden="true">
 					{@html iconFor(link.icon, false)}
 				</span>
-				<span>{link.label}</span>
+				<span class="max-w-full truncate">{link.label}</span>
 			</a>
 		{/each}
 	</div>

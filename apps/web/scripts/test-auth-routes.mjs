@@ -212,6 +212,22 @@ assert.match(desktopNav, /href: '\/scheduled'[\s\S]*label: t\(locale, 'nav\.sche
 assert.match(mobileNav, /href: '\/scheduled'[\s\S]*label: t\(locale, 'nav\.scheduled'\)/, 'mobile nav must expose the localized /scheduled page');
 assert.match(desktopNav, /href: '\/books'[\s\S]*label: t\(locale, 'nav\.books'\)/, 'desktop nav must expose the localized /books management page');
 assert.match(mobileNav, /href: '\/books'[\s\S]*label: t\(locale, 'nav\.books'\)/, 'mobile nav must expose the localized /books management page');
+assert.match(desktopNav, /<header class="hidden[^"]*md:block/s, 'desktop header must be hidden below the md breakpoint so mobile navigation is not duplicated');
+assert.match(mobileNav, /md:hidden[\s\S]*aria-label="Mobile navigation"/, 'mobile navigation must be the only app navigation below the md breakpoint');
+assert.match(mobileNav, /let menuOpen = \$state\(false\)[\s\S]*aria-expanded=\{menuOpen\}[\s\S]*onclick=\{toggleMenu\}/s, 'mobile nav must expose a touch-friendly menu button that opens and closes the mobile menu');
+assert.match(mobileNav, /data-mobile-menu[\s\S]*BookSwitcher[\s\S]*LocaleSwitcher[\s\S]*ThemeSwitcher[\s\S]*method="POST" action="\/logout"/s, 'mobile menu must contain book, locale, theme, and logout touch controls');
+assert.match(mobileNav, /min-h-\[44px\][\s\S]*min-w-\[44px\]/s, 'mobile menu controls and nav links must declare at least 44px touch targets');
+assert.doesNotMatch(mobileNav, /overflow-x-auto|min-w-full/, 'mobile navigation must not introduce horizontal scrolling at 320px widths');
+const layoutPage = read('src/routes/+layout.svelte');
+assert.match(layoutPage, /overflow-x-hidden[\s\S]*max-w-full[\s\S]*pb-32 md:pb-0/s, 'app shell must prevent mobile horizontal scroll and reserve enough space for the fixed mobile navigation');
+const bookSwitcherComponent = read('src/lib/components/BookSwitcher.svelte');
+assert.match(bookSwitcherComponent, /compact = false[\s\S]*min-h-11[\s\S]*max-w-full[\s\S]*truncate/s, 'book switcher must support compact mobile rendering with 44px touch height and no overflow');
+const localeSwitcherComponentForMobile = read('src/lib/components/LocaleSwitcher.svelte');
+assert.match(localeSwitcherComponentForMobile, /min-h-11[\s\S]*min-w-\[44px\]/, 'locale switcher select must expose a 44px touch target');
+const transactionSplitsComponent = read('src/lib/components/TransactionSplits.svelte');
+assert.match(transactionSplitsComponent, /md:hidden[\s\S]*split\.account_name[\s\S]*split\.memo[\s\S]*Money/s, 'transaction detail splits must render mobile cards instead of forcing a horizontal table at 320px');
+assert.match(transactionSplitsComponent, /hidden md:block[\s\S]*overflow-x-hidden[\s\S]*table-fixed/s, 'transaction detail split table must be desktop-only and bounded without horizontal scroll');
+assert.doesNotMatch(transactionSplitsComponent, /overflow-x-auto|min-w-full/, 'transaction detail splits must not introduce mobile horizontal scrolling');
 
 const scheduledServer = read('src/routes/scheduled/+page.server.ts');
 assert.match(
