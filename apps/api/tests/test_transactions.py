@@ -170,6 +170,7 @@ class FakeTransaction:
     post_date: date
     description: str
     splits: list[FakeSplit]
+    notes: str = ""
 
 
 class FakeBookWithTransactions:
@@ -213,6 +214,7 @@ def fake_transaction_data():
         post_date=date(2026, 5, 17),
         description="Split transaction test",
         splits=[split2_checking, split2_tax, split2_food],
+        notes="Utility bill follow-up",
     )
 
     tx3 = FakeTransaction(
@@ -324,6 +326,21 @@ class TestListTransactionsMVP:
         data = response.json()
         assert data["total"] == 1
         assert [item["id"] for item in data["items"]] == ["tx-1"]
+
+    def test_filter_by_query_matches_transaction_notes_and_counts_consistently(
+        self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory
+    ):
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(fake_book_with_transactions)
+            session.commit()
+
+        response = client.get("/transactions?query=utility", headers=auth_headers)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == 1
+        assert [item["id"] for item in data["items"]] == ["tx-2"]
 
     def test_filter_by_date_range(
         self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory

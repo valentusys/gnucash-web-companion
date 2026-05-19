@@ -10,7 +10,7 @@ Transaction filters only narrow read-only views and exports. They never create, 
 
 The transactions page and API support these filters:
 
-- `query` — text search over transaction descriptions and related split/account context as implemented by the backend service layer.
+- `query` — case-insensitive substring search over transaction descriptions, transaction notes when exposed by the GnuCash/piecash object, and split memos. The same service-layer matcher is used for list, count, account-scoped, and CSV export paths.
 - `date_from` — inclusive lower date bound, formatted as `YYYY-MM-DD`.
 - `date_to` — inclusive upper date bound, formatted as `YYYY-MM-DD`.
 - `account_id` — account GUID filter.
@@ -46,6 +46,8 @@ The transaction filter form also provides a one-click `Clear filters` link. It r
 
 Filter presets and reset behavior are URL-only. The app does not save transaction search strings, account IDs, amount ranges, dates, or state filters in `localStorage`, `sessionStorage`, app metadata, or user profiles.
 
+Persistent named/saved presets are intentionally not implemented in the current pre-alpha read-only line because they would store potentially private financial search terms and account identifiers. Use bookmarkable/shareable-by-the-user URLs instead; do not add browser or app-DB persistence for filter values without a separate privacy review.
+
 ## CSV export parity
 
 The CSV export link preserves the same active filters as the list view:
@@ -75,6 +77,7 @@ When `X-CSV-Export-Truncated` is `true`, the CSV contains only the first 10,000 
 
 - Export is read-only.
 - Export files may contain sensitive financial data; do not commit real exports.
+- Query search is deliberately a simple read-only substring matcher over description/notes/split memo fields, not a database full-text index and not a promise to expose every raw GnuCash text column.
 - State filtering is read-only and reflects the split reconciliation state stored by GnuCash; it does not infer a new transaction workflow or edit cleared/reconciled flags.
 - No currency conversion is performed or implied.
 - Amounts remain string/Decimal-style values; do not use floats for money in new code.

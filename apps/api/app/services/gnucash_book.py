@@ -685,8 +685,18 @@ class GnuCashBookService:
         return True
 
     def _transaction_text_matches(self, transaction: Any, query: str) -> bool:
-        description = str(getattr(transaction, "description", "")).lower()
-        if query in description:
+        """Match the public query filter against safe transaction text fields.
+
+        GnuCash exposes transaction descriptions, optional transaction notes, and
+        split memos as distinct user-entered text fields. Keep the semantics as a
+        simple case-insensitive substring match shared by list/count/export paths;
+        do not introduce a separate full-text index or persistence layer here.
+        """
+        transaction_text = [
+            getattr(transaction, "description", ""),
+            getattr(transaction, "notes", ""),
+        ]
+        if any(query in str(value or "").lower() for value in transaction_text):
             return True
         return any(query in str(getattr(split, "memo", "") or "").lower() for split in self._splits(transaction))
 

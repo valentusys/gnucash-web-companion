@@ -37,6 +37,8 @@ Phase 113 adds a glossary and one high-value transaction UI slice:
 - the same URL-only filter behavior remains in place: no search strings, account IDs, dates, amounts, or state filters are stored in `localStorage`/`sessionStorage`;
 - Russian copy keeps the read-only/export safety meaning instead of implying editing, production readiness, or complete translation.
 
+Phase 126 updates that narrow transaction search label to mention description, transaction notes, and split memo semantics. The Russian placeholder keeps the GnuCash terms `notes` and `split memo` explicit because the underlying fields are technical GnuCash concepts and the translation surface remains partial.
+
 Russian safety copy was written manually. Do not machine-translate new safety warnings without human review.
 
 ## Accounting and safety glossary
