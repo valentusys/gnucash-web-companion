@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { decimalBarWidthPercent } from '$lib/money.js';
+	import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 
 	type Expense = import('$lib/api/types').ExpenseByAccount;
 
-	let { expenses, loading = false, drilldownHrefs = {} }: { expenses: Expense[]; loading?: boolean; drilldownHrefs?: Record<string, string> } = $props();
+	let { expenses, loading = false, drilldownHrefs = {}, locale = DEFAULT_LOCALE }: { expenses: Expense[]; loading?: boolean; drilldownHrefs?: Record<string, string>; locale?: Locale } = $props();
 
 	function barWidth(total: string, all: Expense[]): string {
 		return decimalBarWidthPercent(
@@ -14,8 +15,8 @@
 </script>
 
 <section class="rounded-xl p-5" style="background-color: var(--app-panel); box-shadow: 0 1px 3px var(--app-panel-shadow); border: 1px solid var(--app-border);">
-	<h2 class="text-lg font-semibold" style="color: var(--app-text);">Expenses by Account</h2>
-	<p class="mt-1 text-xs" style="color: var(--app-muted);">Base-currency-only reporting; account links open the same read-only date/account filter used for CSV parity.</p>
+	<h2 class="text-lg font-semibold" style="color: var(--app-text);">{t(locale, 'dashboard.expensesByAccount')}</h2>
+	<p class="mt-1 text-xs" style="color: var(--app-muted);">{t(locale, 'dashboard.expensesByAccountHelp')}</p>
 
 	{#if loading}
 		<div class="mt-4 space-y-3">
@@ -27,7 +28,7 @@
 			{/each}
 		</div>
 	{:else if expenses.length === 0}
-		<p class="mt-4 text-sm" style="color: var(--app-muted);">No expenses found for the selected period.</p>
+		<p class="mt-4 text-sm" style="color: var(--app-muted);">{t(locale, 'dashboard.noExpenses')}</p>
 	{:else}
 		<ul class="mt-4 space-y-3">
 			{#each expenses as exp (exp.account_id)}

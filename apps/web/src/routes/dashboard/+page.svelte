@@ -56,17 +56,17 @@
 					{/if}
 				</div>
 			{/if}
-			<SummaryGrid summary={data.summary} drilldowns={data.drilldowns} />
+			<SummaryGrid summary={data.summary} drilldowns={data.drilldowns} {locale} />
 		</section>
 
 		<div class="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-			<RecentTransactions transactions={data.recentTransactions} drilldownHref={data.drilldowns.recent} />
-			<ExpensesByAccount expenses={data.expenses} drilldownHrefs={data.drilldowns.expensesByAccount} />
+			<RecentTransactions transactions={data.recentTransactions} drilldownHref={data.drilldowns.recent} {locale} />
+			<ExpensesByAccount expenses={data.expenses} drilldownHrefs={data.drilldowns.expensesByAccount} {locale} />
 		</div>
 
 		<section class="mt-6" aria-labelledby="cashflow-heading">
-			<h2 id="cashflow-heading" class="sr-only">Cashflow</h2>
-			<CashflowSummary periods={data.cashflowPeriods} drilldownHrefs={data.drilldowns.cashflowByMonth} />
+			<h2 id="cashflow-heading" class="sr-only">{t(locale, 'dashboard.cashflow')}</h2>
+			<CashflowSummary periods={data.cashflowPeriods} drilldownHrefs={data.drilldowns.cashflowByMonth} {locale} />
 		</section>
 		{/if}
 </main>

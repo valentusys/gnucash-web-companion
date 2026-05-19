@@ -7,11 +7,11 @@ Last updated: 2026-05-19
 - GitHub: `valentusys/gnucash-web-companion`
 - Local path: `/home/val/gnucash-web-companion`
 - Branch: `main`
-- Status: pre-alpha / v0.1.5-readonly read-only pre-release published; post-release maintenance completed through Phase 158; v0.2.0-writealpha remains a separate experimental pre-release
+- Status: pre-alpha / v0.1.5-readonly read-only pre-release published; post-release maintenance completed through Phase 159; v0.2.0-writealpha remains a separate experimental pre-release
 
 ## Current baseline
 
-Completed through Phase 158.
+Completed through Phase 159.
 
 Current public release state:
 
@@ -53,6 +53,7 @@ Current public release state:
 - Phase 156 is a dashboard drilldown and reporting-evidence slice: dashboard summary, recent transactions, expenses-by-account, and cashflow sections now expose active-book-preserving read-only `/transactions` links built from existing URL filters (`date_from`, `date_to`, `account_id`, `limit=50`, `offset=0`), with copy that keeps dashboard totals base-currency-only and no-conversion. Frontend route checks pin URL construction, component wiring, no invented totals/recomputation copy, expense account filter links, and cashflow month date-range links; `docs/money-model.md` documents the drilldown limitations and CSV parity. No new accounting engine, FX conversion, forecasting, write route, browser filter persistence, release/tag/package, real/private book, `.env`, app DB, backup, screenshot/export, token, key, cert, or private financial data was added.
 - Phase 157 is a scheduled/recurring transaction read-only clarity v2 slice: `/scheduled` now exposes URL-only display filters for enabled/disabled and template-reference metadata, deterministic safe sorting by start date/name/enabled-first, filtered-empty vs true-empty states, and stronger no-leak/no-browser-storage copy for template split amounts, accounts, memos, transaction descriptions, and raw SQL. Backend regression coverage pins deterministic ordering and DTO redaction of unsafe template/source attributes, while frontend route checks pin the filters, counts, clear-filter link, and no editor/persistence/fake-next-run behavior. No scheduled editor, next-run prediction, template split exposure, write path, browser persistence, release/tag/package, real/private book, `.env`, app DB, backup, screenshot/export, token, key, cert, or private financial data was added.
 - Phase 158 is a transaction/account mobile dogfood fix pass: transaction/account CSV export actions and transaction empty-state recovery links now declare touch-friendly `inline-flex min-h-11` controls, and `scripts/smoke/read-only-browser-dogfood.py` defaults to a 320x720 mobile viewport with horizontal-overflow and CSV export touch-target assertions across dashboard, accounts, books, scheduled, account detail, transactions, and transaction detail. Synthetic Docker/Caddy browser dogfood passed at 320px width with `GNUCASH_WRITES_ENABLED=false`, hidden write UI, CSV export success, and no screenshot/download/export artifacts. No redesign, heavy UI library, write-mode expansion, release/tag/package, real/private book, `.env`, app DB, backup, screenshot/export, token, key, cert, private path, or private financial data was added.
+- Phase 159 is a release-critical localization pass that routes additional web frontend user-facing copy through the typed English/Russian catalog: dashboard report cards, drilldown helper copy, recent transactions, expenses-by-account, cashflow widgets, `/scheduled` title/safety copy/URL-only filters/safe metadata labels/empty states, and landing-page sign-in copy now use `t(locale, key)` with simple named interpolation where needed. Frontend static checks and Svelte checks pin the localization surface. English remains canonical, Russian remains partial/opt-in, backend/API errors are not localized, and no write behavior, release/tag/package, browser-storage persistence, real/private book, `.env`, app DB, backup, screenshot/export, token, key, cert, private path, or private financial data was added.
 - Previous public release `v0.1.2-readonly` remains available and points to its Phase 117 release commit.
 - Previous public release `v0.1.1-readonly` remains available and points to `a4d04150c043ad4da3dea577b30ed7ffd2032df0`, after Phase 104.
 
@@ -217,6 +218,7 @@ Completed phases:
 - Phase 156 — Dashboard drilldown and reporting evidence
 - Phase 157 — Scheduled transactions read-only clarity v2
 - Phase 158 — Transaction/account mobile dogfood fix pass
+- Phase 159 — Release-critical frontend localization pass
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 

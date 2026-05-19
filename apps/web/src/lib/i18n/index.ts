@@ -13,6 +13,10 @@ export function localeFromCookie(cookies: Cookies): Locale {
 	return isLocale(cookieLocale) ? cookieLocale : DEFAULT_LOCALE;
 }
 
-export function t(locale: Locale, key: MessageKey): string {
-	return messages[locale]?.[key] ?? messages[DEFAULT_LOCALE][key];
+export function t(locale: Locale, key: MessageKey, replacements: Record<string, string | number> = {}): string {
+	const template = messages[locale]?.[key] ?? messages[DEFAULT_LOCALE][key];
+	return Object.entries(replacements).reduce(
+		(result, [name, value]) => result.replaceAll(`{${name}}`, String(value)),
+		template
+	);
 }

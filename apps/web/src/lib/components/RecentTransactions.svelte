@@ -1,18 +1,19 @@
 <script lang="ts">
 	import { isNonNegativeDecimalString } from '$lib/money.js';
+	import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 
 	type Transaction = import('$lib/api/types').TransactionListItem;
 
-	let { transactions, loading = false, drilldownHref = '/transactions?limit=50&offset=0' }: { transactions: Transaction[]; loading?: boolean; drilldownHref?: string } = $props();
+	let { transactions, loading = false, drilldownHref = '/transactions?limit=50&offset=0', locale = DEFAULT_LOCALE }: { transactions: Transaction[]; loading?: boolean; drilldownHref?: string; locale?: Locale } = $props();
 </script>
 
 <section class="rounded-xl p-5" style="background-color: var(--app-panel); box-shadow: 0 1px 3px var(--app-panel-shadow); border: 1px solid var(--app-border);">
 	<div class="flex items-start justify-between gap-3">
 		<div>
-			<h2 class="text-lg font-semibold" style="color: var(--app-text);">Recent Transactions</h2>
-			<p class="mt-1 text-xs" style="color: var(--app-muted);">Same read-only transaction list, newest first; CSV export uses matching filters.</p>
+			<h2 class="text-lg font-semibold" style="color: var(--app-text);">{t(locale, 'dashboard.recentTransactions')}</h2>
+			<p class="mt-1 text-xs" style="color: var(--app-muted);">{t(locale, 'dashboard.recentTransactionsHelp')}</p>
 		</div>
-		<a class="text-sm font-semibold" style="color: var(--app-accent);" href={drilldownHref}>View transactions</a>
+		<a class="text-sm font-semibold" style="color: var(--app-accent);" href={drilldownHref}>{t(locale, 'dashboard.viewTransactions')}</a>
 	</div>
 
 	{#if loading}
@@ -28,7 +29,7 @@
 			{/each}
 		</div>
 	{:else if transactions.length === 0}
-		<p class="mt-4 text-sm" style="color: var(--app-muted);">No transactions found.</p>
+		<p class="mt-4 text-sm" style="color: var(--app-muted);">{t(locale, 'dashboard.noRecentTransactions')}</p>
 	{:else}
 		<ul class="mt-4 divide-y" style="border-color: var(--app-border);">
 			{#each transactions as tx (tx.id)}

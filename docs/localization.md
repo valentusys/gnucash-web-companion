@@ -47,6 +47,14 @@ Phase 149 covers the new read-only UX copy added after `v0.1.4-readonly` without
 - `/books`, transaction list/filter/export, and the app-shell read-only/current-book banner remain covered by the existing catalog entries;
 - English remains canonical, Russian remains partial/opt-in, and the safety wording continues to state read-only/default-disabled/write-alpha boundaries conservatively.
 
+Phase 159 reduces release-critical partial-localization friction without claiming full translation:
+
+- dashboard report cards, dashboard drilldown helper copy, recent transactions, expenses-by-account, and cashflow labels now use English/Russian catalog entries;
+- `/scheduled` title, safety copy, URL-only filters/sorting, safe metadata labels, and empty states now use the catalog;
+- the unauthenticated landing page subtitle/sign-in action uses the catalog fallback while `/login`, `/accounts`, `/transactions`, `/books`, and the app-shell safety banner remain covered by earlier catalog entries;
+- `t(locale, key, replacements)` now supports simple named interpolation for localized counts and recurrence summaries;
+- Russian remains partial/opt-in, English remains canonical, and no backend/API localization rewrite or production/readiness claim was added.
+
 Russian safety copy was written manually. Do not machine-translate new safety warnings without human review.
 
 ## Accounting and safety glossary

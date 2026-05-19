@@ -52,6 +52,27 @@ export type MessageKey =
 	| 'dashboard.currencyConversion'
 	| 'dashboard.currencyConversionIncluded'
 	| 'dashboard.currencyConversionNotIncluded'
+	| 'dashboard.netWorth'
+	| 'dashboard.assets'
+	| 'dashboard.liabilities'
+	| 'dashboard.incomeThisMonth'
+	| 'dashboard.expensesThisMonth'
+	| 'dashboard.viewMonthlyFilter'
+	| 'dashboard.drilldownSafety'
+	| 'dashboard.recentTransactions'
+	| 'dashboard.recentTransactionsHelp'
+	| 'dashboard.viewTransactions'
+	| 'dashboard.noRecentTransactions'
+	| 'dashboard.expensesByAccount'
+	| 'dashboard.expensesByAccountHelp'
+	| 'dashboard.noExpenses'
+	| 'dashboard.cashflow'
+	| 'dashboard.cashflowHelp'
+	| 'dashboard.noCashflow'
+	| 'dashboard.cashflowIn'
+	| 'dashboard.cashflowOut'
+	| 'dashboard.cashflowNet'
+	| 'home.subtitle'
 	| 'transactions.kicker'
 	| 'transactions.title'
 	| 'transactionDetail.back'
@@ -171,7 +192,53 @@ export type MessageKey =
 	| 'transactions.export.statusUnfiltered'
 	| 'transactions.export.accountButton'
 	| 'transactions.export.accountButtonWithFilters'
-	| 'transactions.export.accountStatus';
+	| 'transactions.export.accountStatus'
+	| 'scheduled.title'
+	| 'scheduled.kicker'
+	| 'scheduled.subtitle'
+	| 'scheduled.activeBook'
+	| 'scheduled.recurringMetadata'
+	| 'scheduled.metadataHelp'
+	| 'scheduled.readOnlyBadge'
+	| 'scheduled.statusFilter'
+	| 'scheduled.templateFilter'
+	| 'scheduled.sortDisplay'
+	| 'scheduled.all'
+	| 'scheduled.enabled'
+	| 'scheduled.disabled'
+	| 'scheduled.templatePresent'
+	| 'scheduled.noTemplateReference'
+	| 'scheduled.startDate'
+	| 'scheduled.endDate'
+	| 'scheduled.lastOccurred'
+	| 'scheduled.name'
+	| 'scheduled.enabledFirst'
+	| 'scheduled.shownStatus'
+	| 'scheduled.clearFilters'
+	| 'scheduled.unnamed'
+	| 'scheduled.templateAccount'
+	| 'scheduled.occurrences'
+	| 'scheduled.occurrencesValue'
+	| 'scheduled.autoCreateNotify'
+	| 'scheduled.advanceDays'
+	| 'scheduled.advanceDaysValue'
+	| 'scheduled.recurrenceMetadata'
+	| 'scheduled.noRecurrenceMetadata'
+	| 'scheduled.noMatchesTitle'
+	| 'scheduled.noMatchesMessage'
+	| 'scheduled.noMatchesAria'
+	| 'scheduled.emptyTitle'
+	| 'scheduled.emptyMessage'
+	| 'scheduled.emptyAria'
+	| 'scheduled.browseTransactions'
+	| 'scheduled.reviewBooks'
+	| 'scheduled.notConfigured'
+	| 'scheduled.yes'
+	| 'scheduled.no'
+	| 'scheduled.recurrenceEvery'
+	| 'scheduled.recurrenceFrom'
+	| 'scheduled.recurrenceWeekend'
+	| 'scheduled.recurrenceUnavailable';
 
 export const messages: Record<Locale, Record<MessageKey, string>> = {
 	en: {
@@ -222,6 +289,28 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'dashboard.currencyConversion': 'Currency conversion',
 		'dashboard.currencyConversionIncluded': 'included',
 		'dashboard.currencyConversionNotIncluded': 'not included',
+		'dashboard.netWorth': 'Net Worth',
+		'dashboard.assets': 'Assets',
+		'dashboard.liabilities': 'Liabilities',
+		'dashboard.incomeThisMonth': 'Income This Month',
+		'dashboard.expensesThisMonth': 'Expenses This Month',
+		'dashboard.viewMonthlyFilter': "View this month's transaction filter",
+		'dashboard.drilldownSafety':
+			'Drilldowns preserve the active book and use existing read-only transaction URL filters. Dashboard totals remain base-currency-only with no FX conversion; transaction filter views are evidence for the same period/account context, not invented recomputations.',
+		'dashboard.recentTransactions': 'Recent Transactions',
+		'dashboard.recentTransactionsHelp': 'Same read-only transaction list, newest first; CSV export uses matching filters.',
+		'dashboard.viewTransactions': 'View transactions',
+		'dashboard.noRecentTransactions': 'No transactions found.',
+		'dashboard.expensesByAccount': 'Expenses by Account',
+		'dashboard.expensesByAccountHelp': 'Base-currency-only reporting; account links open the same read-only date/account filter used for CSV parity.',
+		'dashboard.noExpenses': 'No expenses found for the selected period.',
+		'dashboard.cashflow': 'Cashflow',
+		'dashboard.cashflowHelp': 'Monthly drilldowns use date_from/date_to transaction filters for the active book. No FX conversion is inferred.',
+		'dashboard.noCashflow': 'No cashflow data for the selected period.',
+		'dashboard.cashflowIn': 'In',
+		'dashboard.cashflowOut': 'Out',
+		'dashboard.cashflowNet': 'Net',
+		'home.subtitle': 'Modern self-hosted read-only companion for existing GnuCash books.',
 		'transactions.kicker': 'Transactions',
 		'transactions.title': 'Browse transactions',
 		'transactionDetail.back': 'Back to transactions',
@@ -352,7 +441,58 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'transactions.export.accountButton': 'Export account CSV',
 		'transactions.export.accountButtonWithFilters': 'Export account CSV ({count} {filterLabel})',
 		'transactions.export.accountStatus':
-			'Exports this account-scoped read-only filtered view with the same search/date/amount/state filters.'
+			'Exports this account-scoped read-only filtered view with the same search/date/amount/state filters.',
+		'scheduled.title': 'Scheduled transactions',
+		'scheduled.kicker': 'Read-only scheduled transaction awareness',
+		'scheduled.subtitle':
+			'Safe summary metadata from the active GnuCash book. This pre-alpha page does not create, edit, delete, or calculate upcoming schedule predictions for scheduled transactions. Use GnuCash Desktop as the authoritative editor.',
+		'scheduled.activeBook': 'Active book',
+		'scheduled.recurringMetadata': 'Recurring metadata',
+		'scheduled.metadataHelp':
+			'Only safe schedule fields are shown. Template split details and private raw SQL are not exposed. Filters and sorting are URL-only display controls; they do not save scheduled metadata in browser storage.',
+		'scheduled.readOnlyBadge': 'Read-only · no scheduling editor',
+		'scheduled.statusFilter': 'Status filter',
+		'scheduled.templateFilter': 'Template metadata filter',
+		'scheduled.sortDisplay': 'Sort display',
+		'scheduled.all': 'All',
+		'scheduled.enabled': 'Enabled',
+		'scheduled.disabled': 'Disabled',
+		'scheduled.templatePresent': 'Template present',
+		'scheduled.noTemplateReference': 'No template reference',
+		'scheduled.startDate': 'Start date',
+		'scheduled.endDate': 'End date',
+		'scheduled.lastOccurred': 'Last occurred',
+		'scheduled.name': 'Name',
+		'scheduled.enabledFirst': 'Enabled first',
+		'scheduled.shownStatus':
+			'Showing {shown} of {total} safe scheduled metadata rows. No template split amounts, accounts, memos, transaction descriptions, or raw SQL are exposed.',
+		'scheduled.clearFilters': 'Clear scheduled filters',
+		'scheduled.unnamed': 'Unnamed scheduled transaction',
+		'scheduled.templateAccount': 'Template account',
+		'scheduled.occurrences': 'Occurrences',
+		'scheduled.occurrencesValue': 'total {total} · remaining {remaining}',
+		'scheduled.autoCreateNotify': 'Auto-create / notify',
+		'scheduled.advanceDays': 'Advance days',
+		'scheduled.advanceDaysValue': 'create {create} · notify {notify}',
+		'scheduled.recurrenceMetadata': 'Recurrence metadata',
+		'scheduled.noRecurrenceMetadata': 'No safe recurrence metadata is available through the adapter.',
+		'scheduled.noMatchesTitle': 'No scheduled transactions match these display filters',
+		'scheduled.noMatchesMessage':
+			'The active book has scheduled metadata, but the current URL-only scheduled filters hide every row. Clear filters to return to the full safe read-only metadata view.',
+		'scheduled.noMatchesAria': 'No scheduled transactions match display filters',
+		'scheduled.emptyTitle': 'No scheduled transactions found',
+		'scheduled.emptyMessage':
+			'No scheduled transactions are available through the safe read-only adapter for this book. If the book uses scheduled transactions, manage and review them in GnuCash Desktop.',
+		'scheduled.emptyAria': 'No scheduled transactions found',
+		'scheduled.browseTransactions': 'Browse transactions',
+		'scheduled.reviewBooks': 'Review books',
+		'scheduled.notConfigured': 'Not configured',
+		'scheduled.yes': 'Yes',
+		'scheduled.no': 'No',
+		'scheduled.recurrenceEvery': 'every {count}',
+		'scheduled.recurrenceFrom': 'from {date}',
+		'scheduled.recurrenceWeekend': 'weekend: {value}',
+		'scheduled.recurrenceUnavailable': 'Raw recurrence metadata unavailable'
 	},
 	ru: {
 		'locale.english': 'Английский',
@@ -402,6 +542,28 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'dashboard.currencyConversion': 'Конвертация валют',
 		'dashboard.currencyConversionIncluded': 'включена',
 		'dashboard.currencyConversionNotIncluded': 'не включена',
+		'dashboard.netWorth': 'Чистая стоимость',
+		'dashboard.assets': 'Активы',
+		'dashboard.liabilities': 'Обязательства',
+		'dashboard.incomeThisMonth': 'Доходы за месяц',
+		'dashboard.expensesThisMonth': 'Расходы за месяц',
+		'dashboard.viewMonthlyFilter': 'Открыть фильтр транзакций за месяц',
+		'dashboard.drilldownSafety':
+			'Drilldown-ссылки сохраняют активную книгу и используют существующие read-only URL-фильтры транзакций. Итоги обзора остаются только в базовой валюте без FX-конвертации; виды транзакций — это evidence для того же периода/счёта, а не заново рассчитанные итоги.',
+		'dashboard.recentTransactions': 'Последние транзакции',
+		'dashboard.recentTransactionsHelp': 'Тот же read-only список транзакций, новые сначала; CSV export использует совпадающие фильтры.',
+		'dashboard.viewTransactions': 'Открыть транзакции',
+		'dashboard.noRecentTransactions': 'Транзакции не найдены.',
+		'dashboard.expensesByAccount': 'Расходы по счетам',
+		'dashboard.expensesByAccountHelp': 'Отчёт только в базовой валюте; ссылки по счетам открывают тот же read-only фильтр даты/счёта для parity с CSV.',
+		'dashboard.noExpenses': 'За выбранный период расходы не найдены.',
+		'dashboard.cashflow': 'Денежный поток',
+		'dashboard.cashflowHelp': 'Месячные drilldown-ссылки используют фильтры транзакций date_from/date_to для активной книги. FX-конвертация не предполагается.',
+		'dashboard.noCashflow': 'За выбранный период нет данных денежного потока.',
+		'dashboard.cashflowIn': 'Вход',
+		'dashboard.cashflowOut': 'Выход',
+		'dashboard.cashflowNet': 'Итого',
+		'home.subtitle': 'Современный self-hosted read-only companion для существующих книг GnuCash.',
 		'transactions.kicker': 'Транзакции',
 		'transactions.title': 'Просмотр транзакций',
 		'transactionDetail.back': 'Назад к транзакциям',
@@ -532,6 +694,57 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'transactions.export.accountButton': 'Экспорт CSV по счёту',
 		'transactions.export.accountButtonWithFilters': 'Экспорт CSV по счёту ({count} {filterLabel})',
 		'transactions.export.accountStatus':
-			'Экспортирует read-only отфильтрованный вид в рамках этого счёта с теми же фильтрами поиска/дат/сумм/состояния.'
+			'Экспортирует read-only отфильтрованный вид в рамках этого счёта с теми же фильтрами поиска/дат/сумм/состояния.',
+		'scheduled.title': 'Плановые транзакции',
+		'scheduled.kicker': 'Read-only просмотр плановых транзакций',
+		'scheduled.subtitle':
+			'Безопасные сводные метаданные из активной книги GnuCash. Эта pre-alpha страница не создаёт, не редактирует, не удаляет и не рассчитывает будущие выполнения плановых транзакций. GnuCash Desktop остаётся главным редактором.',
+		'scheduled.activeBook': 'Активная книга',
+		'scheduled.recurringMetadata': 'Recurring metadata',
+		'scheduled.metadataHelp':
+			'Показываются только безопасные поля расписаний. Детали template split и приватный raw SQL не раскрываются. Фильтры и сортировка — только URL display controls; они не сохраняют scheduled metadata в browser storage.',
+		'scheduled.readOnlyBadge': 'Read-only · без редактора расписаний',
+		'scheduled.statusFilter': 'Фильтр статуса',
+		'scheduled.templateFilter': 'Фильтр template metadata',
+		'scheduled.sortDisplay': 'Сортировка отображения',
+		'scheduled.all': 'Все',
+		'scheduled.enabled': 'Включено',
+		'scheduled.disabled': 'Выключено',
+		'scheduled.templatePresent': 'Template есть',
+		'scheduled.noTemplateReference': 'Без ссылки на template',
+		'scheduled.startDate': 'Дата начала',
+		'scheduled.endDate': 'Дата окончания',
+		'scheduled.lastOccurred': 'Последнее выполнение',
+		'scheduled.name': 'Название',
+		'scheduled.enabledFirst': 'Включённые первыми',
+		'scheduled.shownStatus':
+			'Показано {shown} из {total} безопасных строк scheduled metadata. Template split amounts, accounts, memos, transaction descriptions и raw SQL не раскрываются.',
+		'scheduled.clearFilters': 'Сбросить фильтры плановых',
+		'scheduled.unnamed': 'Плановая транзакция без названия',
+		'scheduled.templateAccount': 'Template account',
+		'scheduled.occurrences': 'Повторы',
+		'scheduled.occurrencesValue': 'всего {total} · осталось {remaining}',
+		'scheduled.autoCreateNotify': 'Auto-create / notify',
+		'scheduled.advanceDays': 'Advance days',
+		'scheduled.advanceDaysValue': 'создать {create} · уведомить {notify}',
+		'scheduled.recurrenceMetadata': 'Recurrence metadata',
+		'scheduled.noRecurrenceMetadata': 'Безопасные recurrence metadata недоступны через adapter.',
+		'scheduled.noMatchesTitle': 'Плановые транзакции не подходят под эти display filters',
+		'scheduled.noMatchesMessage':
+			'В активной книге есть scheduled metadata, но текущие URL-only фильтры скрывают все строки. Сбросьте фильтры, чтобы вернуться к полному безопасному read-only виду метаданных.',
+		'scheduled.noMatchesAria': 'Плановые транзакции не подходят под display filters',
+		'scheduled.emptyTitle': 'Плановые транзакции не найдены',
+		'scheduled.emptyMessage':
+			'Для этой книги через безопасный read-only adapter не доступны плановые транзакции. Если книга использует плановые транзакции, управляйте ими и проверяйте их в GnuCash Desktop.',
+		'scheduled.emptyAria': 'Плановые транзакции не найдены',
+		'scheduled.browseTransactions': 'Открыть транзакции',
+		'scheduled.reviewBooks': 'Проверить книги',
+		'scheduled.notConfigured': 'Не настроено',
+		'scheduled.yes': 'Да',
+		'scheduled.no': 'Нет',
+		'scheduled.recurrenceEvery': 'каждые {count}',
+		'scheduled.recurrenceFrom': 'с {date}',
+		'scheduled.recurrenceWeekend': 'выходные: {value}',
+		'scheduled.recurrenceUnavailable': 'Raw recurrence metadata недоступны'
 	}
 };

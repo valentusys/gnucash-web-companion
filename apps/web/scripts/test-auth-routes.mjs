@@ -74,8 +74,13 @@ assert.match(
 );
 assert.match(
 	read('src/lib/components/SummaryGrid.svelte'),
-	/drilldowns\?\.incomeThisMonth[\s\S]*drilldowns\?\.expensesThisMonth[\s\S]*transaction URL filters[\s\S]*base-currency-only with no FX conversion/s,
-	'summary cards must expose conservative no-conversion drilldown copy and URLs'
+	/drilldowns\?\.incomeThisMonth[\s\S]*drilldowns\?\.expensesThisMonth[\s\S]*dashboard\.drilldownSafety/s,
+	'summary cards must expose conservative no-conversion drilldown copy and URLs through the i18n catalog'
+);
+assert.match(
+	read('src/lib/i18n/messages.ts'),
+	/transaction URL filters[\s\S]*base-currency-only with no FX conversion/s,
+	'summary drilldown i18n copy must preserve conservative no-conversion wording'
 );
 assert.match(
 	read('src/lib/components/ExpensesByAccount.svelte'),
@@ -84,8 +89,13 @@ assert.match(
 );
 assert.match(
 	read('src/lib/components/CashflowSummary.svelte'),
-	/date_from\/date_to transaction filters[\s\S]*No FX conversion[\s\S]*drilldownHrefs\[period\.month\]/s,
-	'cashflow rows must link to existing date-range transaction filters without implying conversion'
+	/dashboard\.cashflowHelp[\s\S]*drilldownHrefs\[period\.month\]/s,
+	'cashflow rows must link to existing date-range transaction filters through localized no-conversion copy'
+);
+assert.match(
+	read('src/lib/i18n/messages.ts'),
+	/date_from\/date_to transaction filters[\s\S]*No FX conversion/s,
+	'cashflow i18n copy must preserve no-conversion wording'
 );
 assert.match(hooks, /PROTECTED_PREFIXES[\s\S]*'\/dashboard'[\s\S]*'\/accounts'[\s\S]*'\/scheduled'/, 'dashboard, accounts, and scheduled routes must be protected');
 assert.match(hooks, /redirect\(303, `\/login\?next=/, 'protected routes must redirect to /login');
@@ -140,6 +150,12 @@ for (const phrase of [
 	"'dashboard.title': 'Обзор'",
 	"'dashboard.conservativeTotals': 'Conservative dashboard totals'",
 	"'dashboard.conservativeTotals': 'Консервативные итоги dashboard'",
+	"'dashboard.netWorth': 'Net Worth'",
+	"'dashboard.netWorth': 'Чистая стоимость'",
+	"'dashboard.recentTransactions': 'Recent Transactions'",
+	"'dashboard.recentTransactions': 'Последние транзакции'",
+	"'home.subtitle': 'Modern self-hosted read-only companion for existing GnuCash books.'",
+	"'home.subtitle': 'Современный self-hosted read-only companion для существующих книг GnuCash.'",
 	"'accounts.title': 'Дерево счетов'",
 	"'accounts.filter.label': 'Filter accounts'",
 	"'accounts.filter.label': 'Фильтр счетов'",
@@ -158,7 +174,13 @@ for (const phrase of [
 	'Фильтрует по состоянию сверки split в GnuCash; транзакции не редактируются.',
 	"'transactions.export.statusFiltered'",
 	'Экспортирует текущий read-only отфильтрованный вид',
-	"'transactions.export.accountStatus'"
+	"'transactions.export.accountStatus'",
+	"'scheduled.title': 'Scheduled transactions'",
+	"'scheduled.title': 'Плановые транзакции'",
+	"'scheduled.subtitle'",
+	'GnuCash Desktop остаётся главным редактором',
+	"'scheduled.noMatchesTitle'",
+	"'scheduled.emptyTitle'"
 ]) {
 	assert.ok(i18nMessages.includes(phrase), `i18n messages must include: ${phrase}`);
 }
@@ -314,12 +336,13 @@ for (const scheduledPhrase of [
 	'No template split amounts, accounts, memos, transaction descriptions, or raw SQL are exposed',
 	'No scheduled transactions are available through the safe read-only adapter'
 ]) {
-	assert.ok(scheduledPage.includes(scheduledPhrase), `scheduled page must include conservative copy: ${scheduledPhrase}`);
+	assert.ok(i18nMessages.includes(scheduledPhrase), `scheduled i18n catalog must include conservative copy: ${scheduledPhrase}`);
 }
+assert.match(scheduledPage, /DEFAULT_LOCALE[\s\S]*t\(locale, 'scheduled\.title'\)[\s\S]*t\(locale, 'scheduled\.metadataHelp'\)/s, 'scheduled page must render release-critical copy through the localized catalog');
 assert.match(scheduledPage, /import EmptyState/, 'scheduled page must reuse EmptyState for no schedules');
 assert.match(scheduledPage, /data\.scheduledSummary\.shown[\s\S]*data\.scheduledSummary\.total[\s\S]*data\.filters\.links\.clear/s, 'scheduled page must show filtered counts and clear URL-only scheduled filters');
-assert.match(scheduledPage, /<EmptyState[\s\S]*title="No scheduled transactions match these display filters"[\s\S]*href=\{data\.filters\.links\.clear\}[\s\S]*Clear scheduled filters/s, 'scheduled filtered empty state must explain URL-only filters and offer a clear action');
-assert.match(scheduledPage, /<EmptyState[\s\S]*title="No scheduled transactions found"[\s\S]*href="\/transactions"[\s\S]*Browse transactions/s, 'scheduled empty state must include clear copy and keyboard-focusable navigation');
+assert.match(scheduledPage, /<EmptyState[\s\S]*title=\{t\(locale, 'scheduled\.noMatchesTitle'\)\}[\s\S]*href=\{data\.filters\.links\.clear\}[\s\S]*scheduled\.clearFilters/s, 'scheduled filtered empty state must explain URL-only filters and offer a localized clear action');
+assert.match(scheduledPage, /<EmptyState[\s\S]*title=\{t\(locale, 'scheduled\.emptyTitle'\)\}[\s\S]*href="\/transactions"[\s\S]*scheduled\.browseTransactions/s, 'scheduled empty state must include localized copy and keyboard-focusable navigation');
 assert.doesNotMatch(
 	scheduledPage,
 	/<form|method="POST"|New scheduled|Edit scheduled|Delete scheduled|next occurrence|next-run|localStorage|sessionStorage/i,
