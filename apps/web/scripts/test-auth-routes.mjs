@@ -203,6 +203,48 @@ assert.doesNotMatch(
 	'scheduled page must not expose scheduling editor controls or fake next-run copy'
 );
 
+const transactionTable = read('src/lib/components/TransactionTable.svelte');
+assert.match(
+	transactionTable,
+	/<div class="hidden overflow-x-hidden md:block">[\s\S]*<table class="w-full table-fixed text-left text-sm">/s,
+	'transaction table desktop layout must use fixed full-width columns without a needless horizontal scroll container'
+);
+for (const requiredClass of [
+	'w-28 px-4 py-3',
+	'w-[32%] px-4 py-3',
+	'w-[22%] px-4 py-3',
+	'w-[22%] px-4 py-3',
+	'w-36 px-4 py-3 text-right',
+	'truncate font-medium',
+	'truncate text-sm',
+	'whitespace-nowrap text-right'
+]) {
+	assert.ok(transactionTable.includes(requiredClass), `transaction table must include stable/truncating class: ${requiredClass}`);
+}
+assert.doesNotMatch(
+	transactionTable,
+	/min-w-full|overflow-x-auto/,
+	'transaction table must not force desktop horizontal shifting with min-width or overflow-x-auto'
+);
+
+const accountTree = read('src/lib/components/AccountTree.svelte');
+const accountTreeNode = read('src/lib/components/AccountTreeNode.svelte');
+assert.match(
+	accountTree,
+	/grid-cols-\[minmax\(0,1fr\)_7rem_9rem_4rem\]/,
+	'account tree desktop header must use bounded columns that can shrink safely'
+);
+assert.match(
+	accountTreeNode,
+	/min-w-0 grid-cols-1[\s\S]*md:grid-cols-\[minmax\(0,1fr\)_7rem_9rem_4rem\]/,
+	'account tree rows must allow the name column to shrink instead of causing desktop overflow'
+);
+assert.match(
+	accountTreeNode,
+	/overflow-hidden[\s\S]*truncate font-medium[\s\S]*truncate text-sm/s,
+	'account tree names and full names must truncate safely for narrow desktop layouts'
+);
+
 const transactionListPage = read('src/routes/transactions/+page.svelte');
 for (const filterParam of ['query', 'date_from', 'date_to', 'account_id', 'min_amount', 'max_amount', 'transaction_state']) {
 	assert.ok(

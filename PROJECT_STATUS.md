@@ -11,7 +11,7 @@ Last updated: 2026-05-19
 
 ## Current baseline
 
-Completed through Phase 117.
+Completed through Phase 118.
 
 Current public release state:
 
@@ -140,6 +140,7 @@ Completed phases:
 - Phase 115 — v0.1.2-readonly maintenance release prep and final gate without publication
 - Phase 116 — GitHub #38 copied personal-book dogfood with redacted read-only evidence
 - Phase 117 — publish v0.1.2-readonly pre-release
+- Phase 118 — transaction table column width and horizontal scroll fix
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -201,9 +202,11 @@ Completed phases:
 
 - Phase 117 publishes `v0.1.2-readonly` as the next read-only maintenance pre-release after the Phase 116/#38 PASS. The release executor re-checked clean tree, `HEAD == origin/main`, issue #38 closed, tag/release absence, recent GitHub Actions success, Docker Compose config validity, diff whitespace, and sensitive tracked-file hygiene before committing release/status documentation, pushing `main`, creating the annotated tag, pushing the tag, and creating the GitHub pre-release from `docs/release/v0.1.2-readonly-notes.md`. No packages, GnuCash books, source zip, app DB, backup, `.env`, screenshot, CSV export, secret, token, cert, key, private path, account name, transaction description, memo, amount, or real/private financial data were committed; `GNUCASH_WRITES_ENABLED=false` remains default; no v0.2 work was started.
 
+- Phase 118 completed a narrow frontend CSS/static-regression fix for desktop transaction table sizing: `TransactionTable.svelte` now uses a fixed full-width desktop table with predictable Date/Description/Account/Counter account/Amount column widths, no desktop `overflow-x-auto`/`min-w-full` horizontal shifting, and safe truncation/title text for long descriptions and account names while preserving separate mobile card behavior. The account tree desktop grid was also narrowed to shrink safely with `minmax(0,1fr)` and truncating account-name cells. Static frontend route checks pin the table/account-tree sizing contract. No API/data/schema/write behavior changed, no release/tag/package was published, and `GNUCASH_WRITES_ENABLED=false` remains default.
+
 Next planned phase:
 
-- After `v0.1.2-readonly` publication, continue with practical read-only MVP value such as deployment polish, compatibility evidence, localization slices, or remaining read-only UX/filter backlog. Keep controlled writes post-MVP/experimental and disabled by default.
+- Continue with practical read-only MVP value such as deployment polish, compatibility evidence, localization slices, or remaining read-only UX/filter backlog. Keep controlled writes post-MVP/experimental and disabled by default.
 
 ## MVP product model
 
@@ -1902,6 +1905,23 @@ Safety result: no personal/private book was used or searched for. No screenshot,
 Verification result: Docker Compose config validation, API smoke, browser dogfood, backend full tests, frontend route checks/check/build, and `git diff --check` are recorded in `docs/handoff/phase-114.md`.
 
 Related issues: GitHub #11/#12/#13 updated with Phase 114 synthetic dogfood evidence for the recently touched surfaces. GitHub #38 remains open/blocked because this was not personal copied-book dogfood.
+
+## Phase 118 — Transaction Table Column Width and Horizontal Scroll Fix
+
+Status: complete. Phase commit pushed.
+
+Goal: stabilize desktop transaction table columns and remove needless horizontal shifting while keeping mobile transaction cards usable.
+
+Artifacts:
+
+- `apps/web/src/lib/components/TransactionTable.svelte` — fixed-width desktop column contract for Date, Description, Account, Counter account, and Amount; long descriptions/account names truncate safely with title text; mobile table remains hidden in favor of existing cards.
+- `apps/web/src/lib/components/AccountTree.svelte` and `apps/web/src/lib/components/AccountTreeNode.svelte` — desktop account tree columns now use bounded shrinkable grid sizing and truncation to avoid narrow desktop overflow.
+- `apps/web/scripts/test-auth-routes.mjs` — static regression checks for transaction table no-scroll sizing and account tree narrow-layout safeguards.
+- `PROJECT_STATUS.md`, `CHANGELOG.md`, and `docs/handoff/phase-118.md` — phase status and handoff synchronized.
+
+Safety result: frontend CSS/UI-only changes. No API, data model, GnuCash adapter, schema, write path, auth storage, release/tag/package, real/private book, app DB, backup, screenshot, CSV export, `.env`, secret, token, cert, key, private path, account name, transaction description, memo, amount, or personal financial data was added. `GNUCASH_WRITES_ENABLED=false` remains default and controlled writes remain post-MVP/experimental.
+
+Verification result: backend full tests, frontend check/auth-routes/build, Docker Compose config validation, and `git diff --check` passed.
 
 ## Standing constraints
 

@@ -8,11 +8,11 @@
 
 <a
 	href={`/accounts/${account.id}`}
-	class="grid grid-cols-1 gap-2 border-b px-4 py-3 hover:opacity-80 md:grid-cols-[1fr_8rem_10rem_5rem] md:items-center"
+	class="grid min-w-0 grid-cols-1 gap-2 border-b px-4 py-3 hover:opacity-80 md:grid-cols-[minmax(0,1fr)_7rem_9rem_4rem] md:items-center md:gap-3"
 	style="border-color: var(--app-border); background-color: {muted ? 'var(--app-elevated-bg)' : 'var(--app-panel)'}; color: {muted ? 'var(--app-muted)' : 'var(--app-text)'};"
 >
-	<div class="min-w-0" style="padding-left: {depth * 1.25}rem">
-		<div class="flex flex-wrap items-center gap-2">
+	<div class="min-w-0 overflow-hidden" style="padding-left: {depth * 1.25}rem">
+		<div class="flex min-w-0 flex-wrap items-center gap-2">
 			<span class="truncate font-medium">{account.name}</span>
 			{#if account.placeholder}
 				<span class="rounded-full px-2 py-0.5 text-xs font-medium" style="background-color: color-mix(in srgb, var(--app-accent) 15%, transparent); color: var(--app-accent);">placeholder</span>

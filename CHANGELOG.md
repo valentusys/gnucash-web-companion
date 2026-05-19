@@ -6,7 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-No unreleased changes yet after `v0.1.2-readonly`.
+### Fixed
+
+- Phase 118 — stabilized the desktop transaction table with fixed full-width columns, safe truncation for long descriptions/account names, and no needless desktop horizontal scroll; also narrowed account-tree desktop grid sizing to avoid narrow-layout overflow. Frontend static route checks pin the CSS-only regression contract.
+
 
 ## [0.1.2-readonly] - 2026-05-19
 
