@@ -49,6 +49,13 @@
 					.replace('{filterLabel}', filterLabel)
 			: t(locale, 'transactions.export.accountButton')
 	);
+	const accountCsvReliabilityStatus = $derived(
+		total === 0
+			? t(locale, 'transactions.export.emptyStatus')
+			: total > 10000
+				? t(locale, 'transactions.export.truncatedStatus').replace('{total}', String(total))
+				: t(locale, 'transactions.export.countStatus').replace('{total}', String(total))
+	);
 	const exportCsvUrl = $derived.by(() => {
 		const bookId = data.activeBook?.id;
 		if (!bookId) return '#';
@@ -184,11 +191,14 @@
 						class="inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2 text-center text-sm font-semibold"
 						style="background: var(--app-panel); color: var(--app-text); border: 1px solid var(--app-border);"
 						href={exportCsvUrl}
-						aria-describedby="account-csv-export-status"
+						aria-describedby="account-csv-export-status account-csv-export-reliability-status"
 						>{accountExportButtonLabel}</a
 					>
 					<p id="account-csv-export-status" class="max-w-xs text-xs" style="color: var(--app-muted);">
 						{t(locale, 'transactions.export.accountStatus')}
+					</p>
+					<p id="account-csv-export-reliability-status" class="max-w-xs text-xs" style="color: var(--app-muted);">
+						{accountCsvReliabilityStatus}
 					</p>
 				</div>
 			{/if}

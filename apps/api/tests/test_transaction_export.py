@@ -581,6 +581,60 @@ class TestExportTransactionsCSV:
         assert response.headers["X-CSV-Export-Truncated"] == "false"
         assert response.headers["X-CSV-Export-Timeout-Policy"] == "synchronous-request-timeout"
 
+    def test_empty_filtered_export_returns_header_only_with_consistent_metadata(
+        self, client, auth_headers, sample_book, fake_book_for_export, session_factory
+    ):
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(fake_book_for_export)
+            session.commit()
+
+        response = client.get(
+            f"/books/{sample_book}/transactions/export?query=no-such-transaction",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        rows = _parse_csv_response(response)
+        assert rows == [
+            [
+                "id",
+                "date",
+                "description",
+                "amount",
+                "currency",
+                "account_id",
+                "account_name",
+                "counter_account_name",
+            ]
+        ]
+        assert response.headers["X-CSV-Export-Limit"] == "10000"
+        assert response.headers["X-CSV-Export-Total"] == "0"
+        assert response.headers["X-CSV-Export-Truncated"] == "false"
+        assert response.headers["X-CSV-Export-Timeout-Policy"] == "synchronous-request-timeout"
+
+    def test_account_scoped_export_reports_filter_parity_metadata(
+        self, client, auth_headers, sample_book, fake_book_for_export, session_factory
+    ):
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(fake_book_for_export)
+            session.commit()
+
+        response = client.get(
+            f"/books/{sample_book}/transactions/export?account_id=tax-guid&query=split",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        rows = _parse_csv_response(response)
+        assert len(rows) == 2
+        assert rows[1][0] == "tx-2"
+        assert response.headers["X-CSV-Export-Limit"] == "10000"
+        assert response.headers["X-CSV-Export-Total"] == "1"
+        assert response.headers["X-CSV-Export-Truncated"] == "false"
+        assert response.headers["X-CSV-Export-Timeout-Policy"] == "synchronous-request-timeout"
+
     def test_export_above_service_page_clamp_returns_all_rows_and_consistent_headers(
         self,
         client,

@@ -193,6 +193,9 @@ export type MessageKey =
 	| 'transactions.export.buttonWithFilters'
 	| 'transactions.export.statusFiltered'
 	| 'transactions.export.statusUnfiltered'
+	| 'transactions.export.emptyStatus'
+	| 'transactions.export.countStatus'
+	| 'transactions.export.truncatedStatus'
 	| 'transactions.export.accountButton'
 	| 'transactions.export.accountButtonWithFilters'
 	| 'transactions.export.accountStatus'
@@ -446,6 +449,12 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 			'Exports the current read-only filtered view, capped at 10,000 rows. Large exports run synchronously; narrow filters if the request times out or the export is truncated.',
 		'transactions.export.statusUnfiltered':
 			'Exports this read-only transaction list, capped at 10,000 rows. Large exports run synchronously; narrow filters if the request times out or the export is truncated.',
+		'transactions.export.emptyStatus':
+			'The current export would contain only the CSV header because no matching transactions are visible.',
+		'transactions.export.countStatus':
+			'Current matching rows before the cap: {total}. CSV amounts stay string values; no currency conversion is performed.',
+		'transactions.export.truncatedStatus':
+			'Current matching rows before the cap: {total}; export will include only the first 10,000 rows. Narrow filters for a complete subset.',
 		'transactions.export.accountButton': 'Export account CSV',
 		'transactions.export.accountButtonWithFilters': 'Export account CSV ({count} {filterLabel})',
 		'transactions.export.accountStatus':
@@ -704,6 +713,12 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 			'Экспортирует текущий read-only отфильтрованный вид, максимум 10 000 строк. Большие экспорты выполняются синхронно; сузьте фильтры, если запрос истёк по времени или export был обрезан.',
 		'transactions.export.statusUnfiltered':
 			'Экспортирует этот read-only список транзакций, максимум 10 000 строк. Большие экспорты выполняются синхронно; сузьте фильтры, если запрос истёк по времени или export был обрезан.',
+		'transactions.export.emptyStatus':
+			'Текущий export содержал бы только CSV header, потому что подходящие транзакции не видны.',
+		'transactions.export.countStatus':
+			'Текущих подходящих строк до ограничения: {total}. CSV amounts остаются string values; currency conversion не выполняется.',
+		'transactions.export.truncatedStatus':
+			'Текущих подходящих строк до ограничения: {total}; export включит только первые 10 000 строк. Сузьте фильтры для полного поднабора.',
 		'transactions.export.accountButton': 'Экспорт CSV по счёту',
 		'transactions.export.accountButtonWithFilters': 'Экспорт CSV по счёту ({count} {filterLabel})',
 		'transactions.export.accountStatus':

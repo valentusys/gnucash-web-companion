@@ -489,6 +489,16 @@ assert.match(
 );
 assert.match(
 	transactionListPage,
+	/csvReliabilityStatus[\s\S]*transactions\.export\.emptyStatus[\s\S]*transactions\.export\.truncatedStatus[\s\S]*transactions\.export\.countStatus[\s\S]*csv-export-reliability-status/s,
+	'transactions page CSV export UX must explain empty, counted, and capped/truncated export states'
+);
+assert.match(
+	accountDetailPage,
+	/accountCsvReliabilityStatus[\s\S]*transactions\.export\.emptyStatus[\s\S]*transactions\.export\.truncatedStatus[\s\S]*transactions\.export\.countStatus[\s\S]*account-csv-export-reliability-status/s,
+	'account detail CSV export UX must explain empty, counted, and capped/truncated account-scoped export states'
+);
+assert.match(
+	transactionListPage,
 	/pageStart[\s\S]*pageEnd[\s\S]*transactions\.listStatus\.pageRange[\s\S]*transactions\.listStatus\.exportParity/s,
 	'transactions page must show a read-only list status summary with page range, order, and CSV cap/parity copy'
 );
@@ -496,6 +506,11 @@ assert.match(
 	i18nMessages,
 	/transactions\.listStatus\.title[\s\S]*Current read-only view[\s\S]*transactions\.listStatus\.exportParity[\s\S]*capped at 10,000 rows[\s\S]*Текущий read-only вид[\s\S]*ограничен 10 000 строк/s,
 	'localized transaction list status copy must explain active view, filter/export parity, and CSV cap'
+);
+assert.match(
+	i18nMessages,
+	/transactions\.export\.emptyStatus[\s\S]*only the CSV header[\s\S]*transactions\.export\.countStatus[\s\S]*CSV amounts stay string values[\s\S]*transactions\.export\.truncatedStatus[\s\S]*first 10,000 rows/s,
+	'localized CSV export status copy must explain empty exports, row counts, Decimal/string money, no conversion, and cap truncation'
 );
 const transactionFiltersComponent = read('src/lib/components/TransactionFilters.svelte');
 assert.match(

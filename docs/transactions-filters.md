@@ -75,6 +75,10 @@ X-CSV-Export-Timeout-Policy: synchronous-request-timeout
 
 When `X-CSV-Export-Truncated` is `true`, the CSV contains only the first 10,000 matching transactions for the current filters. Apply narrower filters if a complete subset is needed.
 
+The transaction list and account-detail pages now show the current matching row count before export. If the matching set is empty, the UI warns that the downloaded CSV would contain only the header row. If the matching set is above the 10,000-row cap, the UI warns that the export will be truncated and recommends narrower filters. These messages are advisory display copy derived from the same read-only list/count metadata; no CSV body is stored in the browser or committed by the app.
+
+Account-detail CSV export is the same endpoint with a fixed `account_id` filter. The account page preserves the account scope plus active query/date/amount/state filters, and the same row-count/empty/truncation guidance applies.
+
 ## Safety notes
 
 - Export is read-only.

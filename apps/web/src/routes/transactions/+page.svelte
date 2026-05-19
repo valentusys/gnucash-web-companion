@@ -68,6 +68,13 @@
 			? t(locale, 'transactions.export.statusFiltered')
 			: t(locale, 'transactions.export.statusUnfiltered')
 	);
+	const csvReliabilityStatus = $derived(
+		total === 0
+			? t(locale, 'transactions.export.emptyStatus')
+			: total > 10000
+				? t(locale, 'transactions.export.truncatedStatus').replace('{total}', String(total))
+				: t(locale, 'transactions.export.countStatus').replace('{total}', String(total))
+	);
 	const pageStart = $derived(total > 0 ? offset + 1 : 0);
 	const pageEnd = $derived(Math.min(offset + txs.items.length, total));
 	const pageRangeStatus = $derived(
@@ -169,10 +176,11 @@
 					class="inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2 text-center text-sm font-semibold"
 					style="background: var(--app-panel); color: var(--app-text); border: 1px solid var(--app-border);"
 					href={exportCsvUrl}
-					aria-describedby="csv-export-status"
+					aria-describedby="csv-export-status csv-export-reliability-status"
 					>{exportButtonLabel}</a
 				>
 				<p id="csv-export-status" class="max-w-xs text-xs" style="color: var(--app-muted);">{csvStatus}</p>
+				<p id="csv-export-reliability-status" class="max-w-xs text-xs" style="color: var(--app-muted);">{csvReliabilityStatus}</p>
 			{/if}
 			{#if data.writesEnabled}
 				<div class="max-w-sm space-y-2">
