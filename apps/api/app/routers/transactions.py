@@ -535,6 +535,18 @@ def _ensure_writes_enabled(settings: Settings) -> None:
         )
 
 
+def _ensure_write_alpha_test_scope(settings: Settings) -> None:
+    """Limit experimental write-alpha routes to automated test fixtures only."""
+    if settings.app_env.lower() != "test":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                "Controlled write-alpha routes are limited to explicit test-environment "
+                "copied/disposable fixtures. Keep GNUCASH_WRITES_ENABLED=false for normal runtime."
+            ),
+        )
+
+
 # ---------------------------------------------------------------------------
 # Phase 12: Controlled write endpoints
 # ---------------------------------------------------------------------------
@@ -555,6 +567,7 @@ async def validate_book_transaction(
     _ensure_writes_enabled(settings)
     book = _resolve_viewable_book(book_id, user, session)
     _require_book_edit_access(book, user, session)
+    _ensure_write_alpha_test_scope(settings)
 
     service = _write_service_for(book)
     return service.validate_transaction_create(request)
@@ -579,6 +592,7 @@ async def create_book_transaction(
     _ensure_writes_enabled(settings)
     book = _resolve_viewable_book(book_id, user, session)
     _require_book_edit_access(book, user, session)
+    _ensure_write_alpha_test_scope(settings)
 
     service = _write_service_for(book)
     audit_payload = {
@@ -644,6 +658,7 @@ async def patch_book_transaction(
     _ensure_writes_enabled(settings)
     book = _resolve_viewable_book(book_id, user, session)
     _require_book_edit_access(book, user, session)
+    _ensure_write_alpha_test_scope(settings)
 
     service = _write_service_for(book)
     fields_updated = {

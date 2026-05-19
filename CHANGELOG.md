@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - Phase 123 — started the post-MVP/write-alpha safety foundation without enabling writes by default: added regression coverage for disabled-by-default config and route short-circuiting, write-lock-failure audit evidence, and explicit create-validation guards, and updated controlled-write readiness gates. No write capability was enabled or broadened.
+- Phase 124 — hardened the write-alpha controlled transaction create path without default enablement: enabled write routes are now limited to `APP_ENV=test` copied/disposable fixture scope, route-level integration coverage verifies create book-state read-back, backup, audit success, lock release, and validation-failure audit/no-backup behavior, and controlled-write docs now label this as experimental test-fixture-only evidence.
 - Phase 122 — prepared unpublished `v0.1.3-readonly` maintenance release artifacts and reran the read-only stability gate across backend tests, frontend checks/build, Docker Compose config validation, tag/release absence checks, and sensitive tracked-file hygiene. Publication remains pending explicit authorization; no tag, GitHub release, package, or write-mode change was made.
 
 ### Fixed

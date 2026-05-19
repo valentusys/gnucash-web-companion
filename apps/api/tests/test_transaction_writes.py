@@ -6,12 +6,14 @@ Strict TDD: these tests are written first and must fail before implementation.
 from __future__ import annotations
 
 import json
+import shutil
 from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
+import piecash
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -29,6 +31,7 @@ from app.services.gnucash_write import GnuCashWriteService, GnuCashWriteError
 from app.services.write_lock import WriteLockError
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
+SYNTHETIC_FIXTURE_PATH = Path(__file__).resolve().parent / "fixtures" / "test-book.gnucash.sqlite"
 
 TEST_SETTINGS = Settings(
     app_env="test",
@@ -48,6 +51,16 @@ READ_ONLY_TEST_SETTINGS = Settings(
     app_admin_username="admin",
     app_admin_password="testpassword123",
     gnucash_writes_enabled=False,
+)
+
+WRITE_ENABLED_DEVELOPMENT_SETTINGS = Settings(
+    app_env="development",
+    app_database_url="sqlite:///:memory:",
+    jwt_secret="test-secret-key-for-unit-tests-32-bytes-minimum",
+    jwt_token_expire_minutes=30,
+    app_admin_username="admin",
+    app_admin_password="testpassword123",
+    gnucash_writes_enabled=True,
 )
 
 
@@ -268,6 +281,75 @@ def fake_book_path(tmp_path):
     return book_path
 
 
+@pytest.fixture
+def disposable_fixture_book(tmp_path: Path) -> Path:
+    book_dir = tmp_path / "books"
+    book_dir.mkdir()
+    book_path = book_dir / "write-alpha-disposable.gnucash.sqlite"
+    shutil.copy2(SYNTHETIC_FIXTURE_PATH, book_path)
+    return book_path
+
+
+@pytest.fixture
+def disposable_sample_book(session_factory, disposable_fixture_book: Path) -> int:
+    with session_factory() as session:
+        book = Book(
+            name="Disposable write-alpha fixture",
+            storage_type="sqlite",
+            uri_or_path=str(disposable_fixture_book),
+            base_currency="SEK",
+            is_default=True,
+        )
+        session.add(book)
+        session.flush()
+        admin = session.query(User).filter(User.username == "admin").one()
+        session.add(UserBookAccess(user_id=admin.id, book_id=book.id, role="owner"))
+        session.commit()
+        book_id = book.id
+    return book_id
+
+
+@pytest.fixture
+def disposable_write_lock(tmp_path: Path):
+    import app.services.write_lock as wl_module
+    import app.services.gnucash_write as gw_module
+
+    original_wl_service = wl_module.write_lock_service
+    original_gw_service = gw_module.write_lock_service
+    tmp_lock_svc = wl_module.WriteLockService(lock_dir=tmp_path / "locks")
+    wl_module.write_lock_service = tmp_lock_svc
+    gw_module.write_lock_service = tmp_lock_svc
+    try:
+        yield tmp_lock_svc
+    finally:
+        wl_module.write_lock_service = original_wl_service
+        gw_module.write_lock_service = original_gw_service
+
+
+def _read_written_transactions(book_path: Path) -> list[dict]:
+    book = piecash.open_book(str(book_path), readonly=True)
+    try:
+        return [
+            {
+                "guid": tx.guid,
+                "description": tx.description,
+                "post_date": tx.post_date,
+                "splits": [
+                    {
+                        "account_guid": split.account.guid,
+                        "account_name": split.account.name,
+                        "value": Decimal(str(split.value)),
+                        "memo": split.memo,
+                    }
+                    for split in tx.splits
+                ],
+            }
+            for tx in book.transactions
+        ]
+    finally:
+        book.close()
+
+
 def _make_mock_piecash(fake_book, fake_accounts):
     """Create a mock piecash module for write tests."""
     mock_piecash = MagicMock()
@@ -456,6 +538,27 @@ class TestWritesDisabledByDefault:
             response,
             fail_if_write_service_is_constructed,
         )
+
+    def test_write_alpha_create_requires_test_environment_even_when_flag_is_true(
+        self,
+        client,
+        auth_headers,
+        sample_book,
+        fail_if_write_service_is_constructed,
+    ):
+        """A casual non-test runtime flag flip must not enter the write service."""
+        app.dependency_overrides[get_settings] = lambda: WRITE_ENABLED_DEVELOPMENT_SETTINGS
+
+        response = client.post(
+            f"/books/{sample_book}/transactions",
+            json=_balanced_transaction_payload(),
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 403
+        assert "write-alpha" in response.json()["detail"]
+        assert "test" in response.json()["detail"]
+        assert fail_if_write_service_is_constructed == []
 
 
 # ---------------------------------------------------------------------------
@@ -914,6 +1017,117 @@ class TestCreateTransaction:
             assert latest_payload["result"] == "failed"
             assert "write lock" in latest_payload["error"].lower()
             assert latest_payload["backup_path"] is None
+
+class TestWriteAlphaCreateRouteDisposableFixture:
+    """Enabled-mode create route coverage on a copied/disposable GnuCash fixture."""
+
+    def _fixture_create_payload(self, description: str = "Route write-alpha create"):
+        return {
+            "date": "2026-05-17",
+            "description": description,
+            "splits": [
+                {
+                    "account_id": "c73e8aa01e6345288662b556f2f866f3",
+                    "amount": "-42.00",
+                    "currency": "SEK",
+                    "memo": "route checking memo",
+                },
+                {
+                    "account_id": "388a85676d4a4643ae6cd28166c34e79",
+                    "amount": "42.00",
+                    "currency": "SEK",
+                    "memo": "route food memo",
+                },
+            ],
+        }
+
+    def test_enabled_create_route_writes_disposable_fixture_with_backup_audit_and_lock(
+        self,
+        client,
+        auth_headers,
+        disposable_sample_book,
+        disposable_fixture_book,
+        disposable_write_lock,
+        session_factory,
+    ):
+        txs_before = _read_written_transactions(disposable_fixture_book)
+
+        response = client.post(
+            f"/books/{disposable_sample_book}/transactions",
+            json=self._fixture_create_payload(),
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 201
+        data = response.json()
+        assert data["transaction_id"]
+        backup_path = Path(data["backup_path"])
+        assert backup_path.exists()
+        assert backup_path.is_file()
+        assert backup_path.parent.name == disposable_fixture_book.stem
+        assert data["audit_log_id"] is not None
+
+        txs_after = _read_written_transactions(disposable_fixture_book)
+        created = next(tx for tx in txs_after if tx["guid"] == data["transaction_id"])
+        assert len(txs_after) == len(txs_before) + 1
+        assert created["description"] == "Route write-alpha create"
+        assert created["post_date"] == date(2026, 5, 17)
+        assert sum(split["value"] for split in created["splits"]) == Decimal("0")
+        assert {split["memo"] for split in created["splits"]} == {
+            "route checking memo",
+            "route food memo",
+        }
+
+        lock_key = str(disposable_fixture_book)
+        assert disposable_write_lock.acquire(lock_key) is True
+        disposable_write_lock.release(lock_key)
+
+        with session_factory() as session:
+            audit_log = session.get(AuditLog, data["audit_log_id"])
+            assert audit_log is not None
+            payload = json.loads(audit_log.payload_json)
+            assert audit_log.action == "transaction.create"
+            assert payload["result"] == "success"
+            assert payload["transaction_id"] == data["transaction_id"]
+            assert payload["backup_path"] == str(backup_path)
+            assert payload["request_summary"]["split_count"] == 2
+
+    def test_enabled_create_validation_failure_is_audited_without_backup_or_lock_leak(
+        self,
+        client,
+        auth_headers,
+        disposable_sample_book,
+        disposable_fixture_book,
+        disposable_write_lock,
+        session_factory,
+    ):
+        invalid_payload = self._fixture_create_payload("Route write-alpha invalid")
+        invalid_payload["splits"][1]["amount"] = "41.99"
+
+        response = client.post(
+            f"/books/{disposable_sample_book}/transactions",
+            json=invalid_payload,
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 422
+        assert "Validation failed" in response.json()["detail"]
+        assert "balance" in response.json()["detail"] or "sum" in response.json()["detail"]
+
+        backups_root = disposable_fixture_book.parent.parent / "backups"
+        assert not backups_root.exists()
+        lock_key = str(disposable_fixture_book)
+        assert disposable_write_lock.acquire(lock_key) is True
+        disposable_write_lock.release(lock_key)
+
+        with session_factory() as session:
+            logs = session.query(AuditLog).filter_by(action="transaction.create").all()
+            assert logs
+            payload = json.loads(logs[-1].payload_json)
+            assert payload["result"] == "failed"
+            assert payload["backup_path"] is None
+            assert "Validation failed" in payload["error"]
+
 
 class TestPatchTransaction:
     """TDD: patch transaction metadata endpoint must exist."""

@@ -11,7 +11,7 @@ Last updated: 2026-05-19
 
 ## Current baseline
 
-Completed through Phase 123.
+Completed through Phase 124.
 
 Current public release state:
 
@@ -147,6 +147,7 @@ Completed phases:
 - Phase 121 — dashboard summary zero-value fallback fix
 - Phase 122 — read-only stability gate and v0.1.3-readonly prep
 - Phase 123 — write-alpha safety foundation without default enablement
+- Phase 124 — write-alpha controlled transaction create hardening
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -220,9 +221,11 @@ Completed phases:
 
 - Phase 123 started the post-MVP/write-alpha safety foundation without enabling writes by default: backend regression coverage now proves default write-disabled configuration in `Settings`, `.env.example`, and Docker Compose; disabled validate/create/patch routes return 403 before resolving books or constructing a write service; write-lock failures after entering the create route are audited as failed attempts with no backup path; and service validation explicitly covers split count, zero-sum, invalid decimal, missing account, invalid date, and placeholder-account rejection. `docs/v0.2-controlled-writes.md` now records a Phase 123 readiness gate snapshot and remaining BLOCKED gaps before any real-user write enablement. No frontend/write UI was touched, no write feature was enabled or broadened, no release/tag/package was published, no real/private data was committed, and `GNUCASH_WRITES_ENABLED=false` remains the default.
 
+- Phase 124 hardened the first write-alpha controlled transaction create safety flow without default enablement: enabled write routes are now additionally limited to `APP_ENV=test` copied/disposable fixture scope, so a casual `GNUCASH_WRITES_ENABLED=true` flip in normal development/runtime returns 403 before constructing the write service. Backend route-level integration coverage now exercises an enabled create against a copied synthetic GnuCash SQLite fixture and verifies book-state read-back, backup creation, audit success payload, released write lock, and validation failure with failed audit/no backup/no lock leak. `docs/v0.2-controlled-writes.md` labels the Phase 124 create path as test-environment-only write-alpha evidence. No edit/delete/import/scheduled/account-write capability was added, no frontend write UI was touched, no release/tag/package was published, no real/private data was committed, and `GNUCASH_WRITES_ENABLED=false` remains the default.
+
 Next planned phase:
 
-- If Val explicitly authorizes publication, run a dedicated `v0.1.3-readonly` publish phase after re-checking clean `main`, HEAD/origin parity, tag/release absence, GitHub Actions, and sensitive-data hygiene. Otherwise continue with practical read-only MVP value or narrow safety-foundation work only if explicitly requested. Controlled writes remain post-MVP/experimental, not safe for production books, and disabled by default.
+- If Val explicitly authorizes publication, run a dedicated `v0.1.3-readonly` publish phase after re-checking clean `main`, HEAD/origin parity, tag/release absence, GitHub Actions, and sensitive-data hygiene. Otherwise continue with practical read-only MVP value or narrow safety-foundation work only if explicitly requested. Controlled writes remain post-MVP/experimental, test-fixture-only for write-alpha route execution, not safe for production books, and disabled by default.
 
 ## MVP product model
 
