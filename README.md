@@ -40,13 +40,13 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–152 are complete.
+- Phase 0–161 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by default.
 - First public pre-alpha release: `v0.0.1-prealpha`.
-- Current public read-only pre-alpha release: [`v0.1.5-readonly`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.5-readonly).
-- Latest published read-only release notes: [docs/release/v0.1.5-readonly-notes.md](docs/release/v0.1.5-readonly-notes.md) ([checklist](docs/release/v0.1.5-readonly-checklist.md), [final gate](docs/release/v0.1.5-readonly-final-gate.md), [publication evidence](docs/release/v0.1.5-readonly-publication-evidence.md)).
-- Previous public read-only release: [`v0.1.4-readonly`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.4-readonly) ([notes](docs/release/v0.1.4-readonly-notes.md), [checklist](docs/release/v0.1.4-readonly-checklist.md), [final gate](docs/release/v0.1.4-readonly-final-gate.md), [publication evidence](docs/release/v0.1.4-readonly-publication-evidence.md)).
+- Current public read-only pre-alpha release: [`v0.1.6-readonly`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.6-readonly).
+- Latest published read-only release notes: [docs/release/v0.1.6-readonly-notes.md](docs/release/v0.1.6-readonly-notes.md) ([checklist](docs/release/v0.1.6-readonly-checklist.md), [final gate](docs/release/v0.1.6-readonly-final-gate.md), [publication evidence](docs/release/v0.1.6-readonly-publication-evidence.md)).
+- Previous public read-only release: [`v0.1.5-readonly`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.5-readonly) ([notes](docs/release/v0.1.5-readonly-notes.md), [checklist](docs/release/v0.1.5-readonly-checklist.md), [final gate](docs/release/v0.1.5-readonly-final-gate.md), [publication evidence](docs/release/v0.1.5-readonly-publication-evidence.md)).
 - `v0.2.0-writealpha` is published as a pre-alpha write-alpha GitHub pre-release after explicit authorization: [notes](docs/release/v0.2.0-writealpha-notes.md), [checklist](docs/release/v0.2.0-writealpha-checklist.md), [final gate](docs/release/v0.2.0-writealpha-final-gate.md).
 - Compatibility matrix: [docs/gnucash-compatibility.md](docs/gnucash-compatibility.md). Current compatibility evidence is synthetic/disposable fixture evidence only; no real GnuCash Desktop version support is claimed yet.
 - Recent post-release maintenance:
@@ -70,6 +70,15 @@ This project is not a fit if you need:
   - Phase 150 reran synthetic/disposable Docker/Caddy read-only API and headless browser dogfood with `GNUCASH_WRITES_ENABLED=false` after the latest UX/localization work.
   - Phase 151 prepared unpublished `v0.1.5-readonly` maintenance release notes, checklist, and final gate; the candidate was ready for a later authorized publish phase after local checks and CI passed, but no tag/release was created in that phase.
   - Phase 152 re-ran the final release gate and published `v0.1.5-readonly` as an authorized GitHub pre-release after clean `main`, `HEAD == origin/main`, green local checks, green GitHub CI for the release commit, tag/release absence, write-disabled Compose defaults, and sensitive tracked-file hygiene were confirmed.
+  - Phase 153 added a reproducible fresh-clone Docker smoke helper and documented a synthetic/disposable clean-checkout pass with dummy local-only secrets and `GNUCASH_WRITES_ENABLED=false`.
+  - Phase 154 refreshed GnuCash Desktop compatibility blocker evidence for GitHub #22 without broad Desktop/version/backend claims.
+  - Phase 155 improved multi-book read-only operator diagnostics with safe storage/access metadata, private-path redaction, and no upload/delete/default-changing/registry-edit actions.
+  - Phase 156 added dashboard drilldown links to existing read-only transaction filters while preserving base-currency-only/no-conversion limitations.
+  - Phase 157 improved scheduled/recurring transaction read-only clarity with URL-only filters, deterministic safe sorting, stronger no-template-split-leak copy, and backend/frontend regression coverage.
+  - Phase 158 fixed and pinned a narrow-width mobile account/transaction dogfood issue, including 320x720 no-overflow and CSV export touch-target assertions.
+  - Phase 159 expanded release-critical English/Russian frontend catalog coverage without claiming full localization.
+  - Phase 160 reran full synthetic/disposable Docker/Caddy API and browser release-candidate dogfood with `GNUCASH_WRITES_ENABLED=false`.
+  - Phase 161 re-ran the final release gate and published `v0.1.6-readonly` as an authorized GitHub pre-release after clean `main`, `HEAD == origin/main`, green local checks, green GitHub CI for the release commit, tag/release absence, write-disabled Compose defaults, and sensitive tracked-file hygiene were confirmed.
 - Russian localization/i18n foundation started in Phase 52; English documentation remains canonical. See [README.ru.md](README.ru.md) and [docs/localization.md](docs/localization.md).
 - Community announcement drafts and where-to-share guidance were refreshed in Phase 53 for cautious feedback collection, not production marketing.
 - Startup diagnostics, a richer non-sensitive health endpoint, and troubleshooting guidance were added in Phase 54 for self-hosted deployments.
@@ -204,30 +213,32 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.
 The current public read-only pre-alpha tag/release is:
 
 ```text
-v0.1.4-readonly
+v0.1.6-readonly
 ```
 
 Current published release checklist, notes, and evidence:
+
+- [docs/release/v0.1.6-readonly-checklist.md](docs/release/v0.1.6-readonly-checklist.md)
+- [docs/release/v0.1.6-readonly-notes.md](docs/release/v0.1.6-readonly-notes.md)
+- [docs/release/v0.1.6-readonly-final-gate.md](docs/release/v0.1.6-readonly-final-gate.md)
+- [docs/release/v0.1.6-readonly-publication-evidence.md](docs/release/v0.1.6-readonly-publication-evidence.md)
+
+GitHub release:
+
+- <https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.6-readonly>
+
+`v0.1.6-readonly` was published as a GitHub pre-release after an authorized Phase 161 publication gate. No packages or binary artifacts were published.
+
+Previous read-only release `v0.1.5-readonly` remains available at <https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.5-readonly>.
+
+Previous published read-only maintenance release artifacts:
 
 - [docs/release/v0.1.5-readonly-checklist.md](docs/release/v0.1.5-readonly-checklist.md)
 - [docs/release/v0.1.5-readonly-notes.md](docs/release/v0.1.5-readonly-notes.md)
 - [docs/release/v0.1.5-readonly-final-gate.md](docs/release/v0.1.5-readonly-final-gate.md)
 - [docs/release/v0.1.5-readonly-publication-evidence.md](docs/release/v0.1.5-readonly-publication-evidence.md)
 
-GitHub release:
-
-- <https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.5-readonly>
-
-`v0.1.5-readonly` was published as a GitHub pre-release after an authorized Phase 152 publication gate. No packages or binary artifacts were published.
-
-Previous published read-only maintenance release artifacts:
-
-- [docs/release/v0.1.4-readonly-checklist.md](docs/release/v0.1.4-readonly-checklist.md)
-- [docs/release/v0.1.4-readonly-notes.md](docs/release/v0.1.4-readonly-notes.md)
-- [docs/release/v0.1.4-readonly-final-gate.md](docs/release/v0.1.4-readonly-final-gate.md)
-- [docs/release/v0.1.4-readonly-publication-evidence.md](docs/release/v0.1.4-readonly-publication-evidence.md)
-
-`v0.1.4-readonly` remains available as the previous GitHub pre-release after an authorized Phase 142 publication gate.
+`v0.1.5-readonly` remains available as the previous GitHub pre-release after an authorized Phase 152 publication gate.
 
 Published write-alpha pre-release artifacts:
 
@@ -239,6 +250,11 @@ Published write-alpha pre-release artifacts:
 
 Previous public read-only pre-alpha tag/releases:
 
+- [`v0.1.4-readonly`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.4-readonly)
+  - [checklist](docs/release/v0.1.4-readonly-checklist.md)
+  - [notes](docs/release/v0.1.4-readonly-notes.md)
+  - [final gate](docs/release/v0.1.4-readonly-final-gate.md)
+  - [publication evidence](docs/release/v0.1.4-readonly-publication-evidence.md)
 - [`v0.1.3-readonly`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.3-readonly)
   - [checklist](docs/release/v0.1.3-readonly-checklist.md)
   - [notes](docs/release/v0.1.3-readonly-notes.md)
