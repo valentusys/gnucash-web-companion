@@ -55,6 +55,13 @@ Phase 159 reduces release-critical partial-localization friction without claimin
 - `t(locale, key, replacements)` now supports simple named interpolation for localized counts and recurrence summaries;
 - Russian remains partial/opt-in, English remains canonical, and no backend/API localization rewrite or production/readiness claim was added.
 
+Phase 169 closes the most visible RU/EN mismatch on recent release-critical read-only/operator paths without claiming complete localization:
+
+- login form validation, invalid-credentials, service-unavailable, and first-run auth-configuration failures now use the English/Russian catalog based on the existing `ui_locale` cookie;
+- the global error component/page now localize 403, 404, generic API/network, and 5xx first-run operator guidance, including safe `/health`, local `.env`, and book-volume next actions;
+- existing CSV export states and book-context recovery notices remain catalog-backed from earlier phases;
+- English remains canonical, Russian remains partial/opt-in, and backend/API localization is still not a full rewrite.
+
 Russian safety copy was written manually. Do not machine-translate new safety warnings without human review.
 
 ## Accounting and safety glossary
@@ -86,7 +93,7 @@ English is canonical. Use these Russian terms consistently in the UI/docs when a
 - English remains canonical for documentation, release notes, safety docs, and security docs.
 - No claim of complete Russian translation is made.
 - v0.1/v0.1.x maintenance is not blocked on complete translation.
-- Backend/API error messages are not localized yet.
+- Backend/API payloads are not localized as a full rewrite; only selected web-facing release-critical proxy/error/login messages are localized.
 - Full documentation translation is not promised.
 - Controlled-write scope is not expanded by localization work.
 

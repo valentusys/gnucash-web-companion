@@ -21,12 +21,14 @@ function walk(dir, files = []) {
 }
 
 const hooks = read('src/hooks.server.ts');
+const i18nMessages = read('src/lib/i18n/messages.ts');
 const emptyStateComponent = read('src/lib/components/EmptyState.svelte');
 assert.match(emptyStateComponent, /role=\{role\}/, 'EmptyState must expose an overridable accessible status role');
 assert.match(emptyStateComponent, /aria-label=\{ariaLabel\}/, 'EmptyState must expose an aria-label for screen-reader context');
 const errorStateComponent = read('src/lib/components/ErrorState.svelte');
 assert.match(errorStateComponent, /statusCode[\s\S]*403[\s\S]*404[\s\S]*defaultTitle/s, 'ErrorState must map 403, 404, and generic API/network failures to helpful copy');
-assert.match(errorStateComponent, /check \/health for redacted first-run diagnostics[\s\S]*local \.env and book volume settings/s, 'ErrorState 5xx copy must give safe first-run operator next actions without private paths');
+assert.match(errorStateComponent, /locale = DEFAULT_LOCALE[\s\S]*error\.serviceMessage[\s\S]*error\.badgeWithCode/s, 'ErrorState default copy and badges must come from the localized catalog');
+assert.match(i18nMessages, /check \/health for redacted first-run diagnostics[\s\S]*local \.env and book volume settings/s, 'ErrorState 5xx copy must give safe first-run operator next actions without private paths');
 assert.match(errorStateComponent, /retryHref[\s\S]*backHref[\s\S]*aria-label/s, 'ErrorState must offer keyboard-focusable retry/back actions with labels');
 const errorPage = read('src/routes/+error.svelte');
 assert.match(errorPage, /import ErrorState/, 'global error page must reuse ErrorState');
@@ -108,7 +110,8 @@ const loginServer = read('src/routes/login/+page.server.ts');
 assert.match(loginServer, /cookies\.set\(AUTH_COOKIE, data\.access_token/, 'login must store token in cookie');
 assert.match(loginServer, /httpOnly:\s*true/, 'auth cookie must be httpOnly');
 assert.match(loginServer, /env\.JWT_TOKEN_EXPIRE_MINUTES[\s\S]*authCookieMaxAgeSeconds\(\)/s, 'auth cookie lifetime must follow the configured JWT session lifetime with a safe fallback');
-assert.match(loginServer, /OPERATOR_LOGIN_CONFIGURATION_ERROR[\s\S]*JWT_SECRET[\s\S]*APP_ADMIN_PASSWORD_HASH or APP_ADMIN_PASSWORD[\s\S]*response\.status === 503/s, 'login must show safe first-run operator guidance for backend auth configuration failures');
+assert.match(loginServer, /localeFromCookie\(cookies\)[\s\S]*response\.status === 503[\s\S]*login\.error\.operatorConfiguration/s, 'login must show localized safe first-run operator guidance for backend auth configuration failures');
+assert.match(i18nMessages, /login\.error\.operatorConfiguration[\s\S]*JWT_SECRET[\s\S]*APP_ADMIN_PASSWORD_HASH or APP_ADMIN_PASSWORD[\s\S]*Вход настроен не полностью/s, 'login operator configuration guidance must preserve canonical English and Russian safety wording');
 assert.doesNotMatch(loginServer, /localStorage|sessionStorage/, 'login must not use browser storage');
 
 const logoutServer = read('src/routes/logout/+server.ts');
@@ -140,7 +143,6 @@ const localeRoute = read('src/routes/locale/+server.ts');
 assert.match(localeRoute, /LOCALE_COOKIE[\s\S]*httpOnly:\s*true[\s\S]*sameSite: 'lax'/, 'locale switch must use a sameSite cookie, not browser storage');
 assert.doesNotMatch(localeRoute, /access_token/, 'locale route must not touch auth tokens');
 
-const i18nMessages = read('src/lib/i18n/messages.ts');
 for (const phrase of [
 	"DEFAULT_LOCALE = 'en'",
 	"supportedLocales = ['en', 'ru']",

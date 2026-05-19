@@ -22,11 +22,11 @@
 
 ## Текущий публичный статус
 
-- Завершены Phase 0–159.
+- Завершены Phase 0–169.
 - MVP v0.1 остаётся **read-only by default**.
 - `GNUCASH_WRITES_ENABLED=false` — безопасный дефолт.
 - Controlled-write код, если присутствует, является experimental post-MVP/write-alpha, отключён по умолчанию и дополнительно ограничен backend `APP_ENV=test` gate при явном включении.
-- Текущий публичный read-only pre-alpha release: [`v0.1.5-readonly`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.5-readonly).
+- Текущий публичный read-only pre-alpha release: [`v0.1.6-readonly`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.6-readonly).
 - Опубликованный write-alpha pre-release: `v0.2.0-writealpha`; он pre-alpha/experimental, disabled by default, не production-ready, не security-audited и не заявляет безопасность записей в real/private books.
 - Compatibility matrix: [docs/gnucash-compatibility.md](docs/gnucash-compatibility.md). Текущие evidence boundaries — synthetic/disposable fixtures only; broad real GnuCash Desktop version support не заявлен.
 
@@ -41,6 +41,7 @@
 - Phase 149 — расширено Russian localization coverage для нового read-only UX через существующий catalog; перевод остаётся частичным, English остаётся canonical.
 - Phase 150 — повторно пройден synthetic/disposable Docker/Caddy read-only API и headless browser dogfood с `GNUCASH_WRITES_ENABLED=false` после последних UX/localization изменений.
 - Phase 159 — расширен release-critical Russian localization slice: dashboard report cards/drilldowns, recent/expense/cashflow widgets, `/scheduled` filters/metadata/empty states, and landing-page sign-in copy now use the English/Russian catalog; перевод всё ещё частичный, English остаётся canonical.
+- Phase 169 — закрыт заметный RU/EN mismatch на release-critical login/error/operator paths: login validation/auth-configuration failures and global 403/404/API/network/5xx guidance now use the English/Russian catalog; перевод остаётся частичным, English остаётся canonical.
 
 ## Как пробовать безопасно
 
@@ -65,8 +66,9 @@
 - transaction filter/export copy, transaction detail/split metadata labels and empty states;
 - страница `/books` для просмотра метаданных книг, без загрузки, удаления или редактирования данных GnuCash;
 - страница `/scheduled`: safe metadata headings, URL-only filters/sorting, counts, labels, and empty states.
+- login error states and global 403/404/API/network/5xx operator guidance for safe `/health`, local `.env`, and book-volume checks.
 
-Это не полный перевод приложения. Backend/API ошибки, release-документы и большинство safety/security документов остаются на английском.
+Это не полный перевод приложения. Backend/API payloads не переведены как полный слой; release-документы и большинство safety/security документов остаются на английском.
 
 ## English canonical docs
 

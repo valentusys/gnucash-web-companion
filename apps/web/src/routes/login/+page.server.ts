@@ -1,11 +1,9 @@
 import { env } from '$env/dynamic/private';
+import { localeFromCookie, t } from '$lib/i18n';
 import { fail, redirect, type Actions } from '@sveltejs/kit';
 
 const AUTH_COOKIE = 'access_token';
 const DEFAULT_COOKIE_MAX_AGE_SECONDS = 60 * 30;
-const OPERATOR_LOGIN_CONFIGURATION_ERROR =
-	'Login is not fully configured. Check JWT_SECRET and APP_ADMIN_PASSWORD_HASH or APP_ADMIN_PASSWORD in your local .env/deployment environment, restart the service, and keep GnuCash data read-only.';
-
 type LoginResponse = {
 	access_token: string;
 	token_type: 'bearer';
@@ -33,12 +31,13 @@ function authCookieMaxAgeSeconds(): number {
 
 export const actions: Actions = {
 	default: async ({ cookies, fetch, request, url }) => {
+		const locale = localeFromCookie(cookies);
 		const form = await request.formData();
 		const username = String(form.get('username') ?? '').trim();
 		const password = String(form.get('password') ?? '');
 
 		if (!username || !password) {
-			return fail(400, { error: 'Enter username and password.', username });
+			return fail(400, { error: t(locale, 'login.error.missingCredentials'), username });
 		}
 
 		const apiBase = process.env.API_INTERNAL_URL ?? 'http://localhost:8000';
@@ -51,14 +50,14 @@ export const actions: Actions = {
 				body: JSON.stringify({ username, password })
 			});
 		} catch {
-			return fail(502, { error: 'Authentication service is unavailable.', username });
+			return fail(502, { error: t(locale, 'login.error.serviceUnavailable'), username });
 		}
 
 		if (!response.ok) {
 			if (response.status === 503) {
-				return fail(503, { error: OPERATOR_LOGIN_CONFIGURATION_ERROR, username });
+				return fail(503, { error: t(locale, 'login.error.operatorConfiguration'), username });
 			}
-			return fail(401, { error: 'Invalid username or password.', username });
+			return fail(401, { error: t(locale, 'login.error.invalidCredentials'), username });
 		}
 
 		const data = (await response.json()) as LoginResponse;

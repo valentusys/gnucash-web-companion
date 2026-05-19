@@ -14,6 +14,10 @@ export type MessageKey =
 	| 'login.username'
 	| 'login.password'
 	| 'login.submit'
+	| 'login.error.missingCredentials'
+	| 'login.error.serviceUnavailable'
+	| 'login.error.invalidCredentials'
+	| 'login.error.operatorConfiguration'
 	| 'nav.dashboard'
 	| 'nav.accounts'
 	| 'nav.transactions'
@@ -26,6 +30,19 @@ export type MessageKey =
 	| 'safety.currentBook'
 	| 'safety.noActiveBook'
 	| 'safety.reviewBooks'
+	| 'error.badgeWithCode'
+	| 'error.badgeNetwork'
+	| 'error.forbiddenTitle'
+	| 'error.forbiddenMessage'
+	| 'error.notFoundTitle'
+	| 'error.notFoundMessage'
+	| 'error.serviceTitle'
+	| 'error.serviceMessage'
+	| 'error.genericTitle'
+	| 'error.genericMessage'
+	| 'error.retry'
+	| 'error.retryPage'
+	| 'error.backDashboard'
 	| 'dashboard.title'
 	| 'accounts.kicker'
 	| 'accounts.title'
@@ -256,6 +273,11 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'login.username': 'Username',
 		'login.password': 'Password',
 		'login.submit': 'Sign in',
+		'login.error.missingCredentials': 'Enter username and password.',
+		'login.error.serviceUnavailable': 'Authentication service is unavailable.',
+		'login.error.invalidCredentials': 'Invalid username or password.',
+		'login.error.operatorConfiguration':
+			'Login is not fully configured. Check JWT_SECRET and APP_ADMIN_PASSWORD_HASH or APP_ADMIN_PASSWORD in your local .env/deployment environment, restart the service, and keep GnuCash data read-only.',
 		'nav.dashboard': 'Dashboard',
 		'nav.accounts': 'Accounts',
 		'nav.transactions': 'Transactions',
@@ -269,6 +291,20 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'safety.currentBook': 'Current book',
 		'safety.noActiveBook': 'No active book selected',
 		'safety.reviewBooks': 'Review books',
+		'error.badgeWithCode': 'Error {statusCode}',
+		'error.badgeNetwork': 'API/network error',
+		'error.forbiddenTitle': 'Access denied',
+		'error.forbiddenMessage': 'Your account cannot access this read-only view or book. Check the selected book or sign in with an account that has access.',
+		'error.notFoundTitle': 'Page or book not found',
+		'error.notFoundMessage': 'The requested page, book, account, or transaction was not found. It may be unavailable, archived, or hidden by access rules.',
+		'error.serviceTitle': 'Service temporarily unavailable',
+		'error.serviceMessage':
+			'The API or network request failed while loading this read-only view. Verify the service is running, check /health for redacted first-run diagnostics, then review local .env and book volume settings before trying again.',
+		'error.genericTitle': 'Something went wrong',
+		'error.genericMessage': 'An unexpected API or network error occurred. Please try again or return to a safe read-only page.',
+		'error.retry': 'Retry',
+		'error.retryPage': 'Retry this page',
+		'error.backDashboard': 'Back to dashboard',
 		'dashboard.title': 'Dashboard',
 		'accounts.kicker': 'Accounts',
 		'accounts.title': 'Account tree',
@@ -520,6 +556,11 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'login.username': 'Имя пользователя',
 		'login.password': 'Пароль',
 		'login.submit': 'Войти',
+		'login.error.missingCredentials': 'Введите имя пользователя и пароль.',
+		'login.error.serviceUnavailable': 'Сервис аутентификации недоступен.',
+		'login.error.invalidCredentials': 'Неверное имя пользователя или пароль.',
+		'login.error.operatorConfiguration':
+			'Вход настроен не полностью. Проверьте JWT_SECRET и APP_ADMIN_PASSWORD_HASH или APP_ADMIN_PASSWORD в локальном .env/deployment окружении, перезапустите сервис и оставьте данные GnuCash в read-only режиме.',
 		'nav.dashboard': 'Обзор',
 		'nav.accounts': 'Счета',
 		'nav.transactions': 'Транзакции',
@@ -533,6 +574,20 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'safety.currentBook': 'Текущая книга',
 		'safety.noActiveBook': 'Активная книга не выбрана',
 		'safety.reviewBooks': 'Проверить книги',
+		'error.badgeWithCode': 'Ошибка {statusCode}',
+		'error.badgeNetwork': 'Ошибка API/сети',
+		'error.forbiddenTitle': 'Доступ запрещён',
+		'error.forbiddenMessage': 'Эта учётная запись не может открыть этот read-only раздел или книгу. Проверьте выбранную книгу или войдите под учётной записью с доступом.',
+		'error.notFoundTitle': 'Страница или книга не найдена',
+		'error.notFoundMessage': 'Запрошенная страница, книга, счёт или транзакция не найдены. Объект может быть недоступен, архивирован или скрыт правилами доступа.',
+		'error.serviceTitle': 'Сервис временно недоступен',
+		'error.serviceMessage':
+			'API или сетевой запрос не сработал при загрузке этого read-only раздела. Убедитесь, что сервис запущен, проверьте /health для редактированной first-run диагностики, затем проверьте локальный .env и volume с книгой перед повторной попыткой.',
+		'error.genericTitle': 'Что-то пошло не так',
+		'error.genericMessage': 'Произошла неожиданная ошибка API или сети. Повторите попытку или вернитесь к безопасной read-only странице.',
+		'error.retry': 'Повторить',
+		'error.retryPage': 'Повторить эту страницу',
+		'error.backDashboard': 'Назад к обзору',
 		'dashboard.title': 'Обзор',
 		'accounts.kicker': 'Счета',
 		'accounts.title': 'Дерево счетов',

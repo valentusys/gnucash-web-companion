@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
+
 	interface Props {
 		statusCode?: number;
 		title?: string;
@@ -7,6 +9,7 @@
 		backHref?: string;
 		retryLabel?: string;
 		backLabel?: string;
+		locale?: Locale;
 		children?: import('svelte').Snippet;
 	}
 
@@ -16,29 +19,35 @@
 		message,
 		retryHref,
 		backHref = '/dashboard',
-		retryLabel = 'Retry',
-		backLabel = 'Back to dashboard',
+		retryLabel,
+		backLabel,
+		locale = DEFAULT_LOCALE,
 		children
 	}: Props = $props();
 
 	const defaultTitle = $derived(
 		statusCode === 403
-			? 'Access denied'
+			? t(locale, 'error.forbiddenTitle')
 			: statusCode === 404
-				? 'Page or book not found'
+				? t(locale, 'error.notFoundTitle')
 				: statusCode && statusCode >= 500
-					? 'Service temporarily unavailable'
-					: 'Something went wrong'
+					? t(locale, 'error.serviceTitle')
+					: t(locale, 'error.genericTitle')
 	);
 
 	const defaultMessage = $derived(
 		statusCode === 403
-			? 'Your account cannot access this read-only view or book. Check the selected book or sign in with an account that has access.'
+			? t(locale, 'error.forbiddenMessage')
 			: statusCode === 404
-				? 'The requested page, book, account, or transaction was not found. It may be unavailable, archived, or hidden by access rules.'
+				? t(locale, 'error.notFoundMessage')
 				: statusCode && statusCode >= 500
-					? 'The API or network request failed while loading this read-only view. Verify the service is running, check /health for redacted first-run diagnostics, then review local .env and book volume settings before trying again.'
-					: 'An unexpected API or network error occurred. Please try again or return to a safe read-only page.'
+					? t(locale, 'error.serviceMessage')
+					: t(locale, 'error.genericMessage')
+	);
+	const defaultRetryLabel = $derived(retryLabel ?? t(locale, 'error.retry'));
+	const defaultBackLabel = $derived(backLabel ?? t(locale, 'error.backDashboard'));
+	const statusBadge = $derived(
+		statusCode ? t(locale, 'error.badgeWithCode', { statusCode }) : t(locale, 'error.badgeNetwork')
 	);
 </script>
 
@@ -50,7 +59,7 @@
 >
 	<div class="mb-3 text-4xl" aria-hidden="true">⚠️</div>
 	<p class="text-sm font-semibold uppercase tracking-wide" style="color: var(--app-muted);">
-		{statusCode ? `Error ${statusCode}` : 'API/network error'}
+		{statusBadge}
 	</p>
 	<h1 class="mt-2 text-2xl font-bold" style="color: var(--app-danger);">{title ?? defaultTitle}</h1>
 	<p class="mt-2 max-w-2xl text-sm" style="color: var(--app-muted);">{message ?? defaultMessage}</p>
@@ -58,21 +67,21 @@
 		{#if retryHref}
 			<a
 				href={retryHref}
-				aria-label={`${retryLabel}: ${title ?? defaultTitle}`}
+				aria-label={`${defaultRetryLabel}: ${title ?? defaultTitle}`}
 				class="rounded-xl px-4 py-2 text-sm font-semibold text-white"
 				style="background-color: var(--app-accent);"
 			>
-				{retryLabel}
+				{defaultRetryLabel}
 			</a>
 		{/if}
 		{#if backHref}
 			<a
 				href={backHref}
-				aria-label={`${backLabel}: ${title ?? defaultTitle}`}
+				aria-label={`${defaultBackLabel}: ${title ?? defaultTitle}`}
 				class="rounded-xl border px-4 py-2 text-sm font-semibold"
 				style="border-color: var(--app-border); color: var(--app-text);"
 			>
-				{backLabel}
+				{defaultBackLabel}
 			</a>
 		{/if}
 		{#if children}
