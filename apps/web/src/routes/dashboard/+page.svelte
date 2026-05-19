@@ -21,7 +21,7 @@
 
 	{#if isRouteLoading}
 		<div class="mt-6">
-			<LoadingState variant="dashboard" message="Loading dashboard summary for the selected read-only book…" />
+			<LoadingState variant="dashboard" message={t(locale, 'dashboard.loading')} />
 		</div>
 	{:else}
 		{#if data.loadError}
@@ -30,22 +30,22 @@
 				style="background-color: color-mix(in srgb, var(--app-danger) 8%, var(--app-panel)); color: var(--app-danger); border: 1px solid var(--app-danger);"
 				role="alert"
 			>
-				<p class="font-semibold">Failed to load dashboard data</p>
+				<p class="font-semibold">{t(locale, 'dashboard.loadFailed')}</p>
 				<p class="mt-1">{data.loadError}</p>
 			</div>
 		{/if}
 
 		<section class="mt-6" aria-labelledby="summary-heading">
-			<h2 id="summary-heading" class="mb-3 text-sm font-medium uppercase tracking-wide" style="color: var(--app-muted);">Summary</h2>
+			<h2 id="summary-heading" class="mb-3 text-sm font-medium uppercase tracking-wide" style="color: var(--app-muted);">{t(locale, 'dashboard.summary')}</h2>
 			{#if data.summary}
 				<div
 					class="mb-3 rounded-lg p-3 text-sm"
 					style="background-color: color-mix(in srgb, var(--app-warning) 10%, var(--app-panel)); color: var(--app-text); border: 1px solid color-mix(in srgb, var(--app-warning) 55%, var(--app-border));"
 				>
-					<p class="font-semibold">Conservative dashboard totals</p>
+					<p class="font-semibold">{t(locale, 'dashboard.conservativeTotals')}</p>
 					<p class="mt-1" style="color: var(--app-muted);">
-						Reporting basis: <code>{data.summary.reporting_basis}</code>. Currency conversion:
-						{data.summary.includes_currency_conversion ? 'included' : 'not included'}.
+						{t(locale, 'dashboard.reportingBasis')}: <code>{data.summary.reporting_basis}</code>. {t(locale, 'dashboard.currencyConversion')}:
+						{data.summary.includes_currency_conversion ? t(locale, 'dashboard.currencyConversionIncluded') : t(locale, 'dashboard.currencyConversionNotIncluded')}.
 					</p>
 					{#if data.summary.limitations?.length}
 						<ul class="mt-1 list-disc pl-5" style="color: var(--app-muted);">

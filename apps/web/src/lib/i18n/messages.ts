@@ -29,8 +29,57 @@ export type MessageKey =
 	| 'dashboard.title'
 	| 'accounts.kicker'
 	| 'accounts.title'
+	| 'accounts.bookLabel'
+	| 'accounts.loading'
+	| 'accounts.filter.label'
+	| 'accounts.filter.placeholder'
+	| 'accounts.filter.filteredStatus'
+	| 'accounts.filter.allStatus'
+	| 'accounts.filter.noMatchesTitle'
+	| 'accounts.filter.noMatchesMessage'
+	| 'accounts.column.name'
+	| 'accounts.column.type'
+	| 'accounts.column.balance'
+	| 'accounts.column.currency'
+	| 'accounts.emptyTitle'
+	| 'accounts.emptyMessage'
+	| 'accounts.emptyAction'
+	| 'dashboard.loading'
+	| 'dashboard.loadFailed'
+	| 'dashboard.summary'
+	| 'dashboard.conservativeTotals'
+	| 'dashboard.reportingBasis'
+	| 'dashboard.currencyConversion'
+	| 'dashboard.currencyConversionIncluded'
+	| 'dashboard.currencyConversionNotIncluded'
 	| 'transactions.kicker'
 	| 'transactions.title'
+	| 'transactionDetail.back'
+	| 'transactionDetail.kicker'
+	| 'transactionDetail.noDescription'
+	| 'transactionDetail.helper'
+	| 'transactionDetail.date'
+	| 'transactionDetail.currency'
+	| 'transactionDetail.splits'
+	| 'transactionDetail.id'
+	| 'transactionDetail.splitSingular'
+	| 'transactionDetail.splitPlural'
+	| 'transactionDetail.deleteTitle'
+	| 'transactionDetail.deleteHelper'
+	| 'transactionDetail.deleteAcknowledgement'
+	| 'transactionDetail.deleteButton'
+	| 'transactionDetail.deleteConfirm'
+	| 'transactionSplits.title'
+	| 'transactionSplits.helper'
+	| 'transactionSplits.empty'
+	| 'transactionSplits.splitAccount'
+	| 'transactionSplits.memo'
+	| 'transactionSplits.noMemo'
+	| 'transactionSplits.reconciliation'
+	| 'transactionSplits.accountId'
+	| 'transactionSplits.caption'
+	| 'transactionSplits.stateNotProvided'
+	| 'transactionSplits.stateUnknown'
 	| 'books.kicker'
 	| 'books.title'
 	| 'books.subtitle'
@@ -147,8 +196,57 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'dashboard.title': 'Dashboard',
 		'accounts.kicker': 'Accounts',
 		'accounts.title': 'Account tree',
+		'accounts.bookLabel': 'Book',
+		'accounts.loading': 'Loading account tree for the selected read-only book…',
+		'accounts.filter.label': 'Filter accounts',
+		'accounts.filter.placeholder': 'Search by account name, full path, type, or currency',
+		'accounts.filter.filteredStatus': 'Showing {filtered} of {total} accounts. Matching descendants stay grouped with their parent path.',
+		'accounts.filter.allStatus': 'Showing all {total} accounts. Use the filter to narrow large read-only account trees without changing the book.',
+		'accounts.filter.noMatchesTitle': 'No accounts match this filter.',
+		'accounts.filter.noMatchesMessage': 'Clear the account filter to return to the full read-only account tree.',
+		'accounts.column.name': 'Name',
+		'accounts.column.type': 'Type',
+		'accounts.column.balance': 'Balance',
+		'accounts.column.currency': 'Currency',
+		'accounts.emptyTitle': 'No accounts found',
+		'accounts.emptyMessage': 'The selected read-only book did not return any accounts. Verify the active test-copy book and accessible book metadata before relying on this view.',
+		'accounts.emptyAction': 'Review available books',
+		'dashboard.loading': 'Loading dashboard summary for the selected read-only book…',
+		'dashboard.loadFailed': 'Failed to load dashboard data',
+		'dashboard.summary': 'Summary',
+		'dashboard.conservativeTotals': 'Conservative dashboard totals',
+		'dashboard.reportingBasis': 'Reporting basis',
+		'dashboard.currencyConversion': 'Currency conversion',
+		'dashboard.currencyConversionIncluded': 'included',
+		'dashboard.currencyConversionNotIncluded': 'not included',
 		'transactions.kicker': 'Transactions',
 		'transactions.title': 'Browse transactions',
+		'transactionDetail.back': 'Back to transactions',
+		'transactionDetail.kicker': 'Transaction detail',
+		'transactionDetail.noDescription': 'No description',
+		'transactionDetail.helper': 'Read-only view of the selected GnuCash transaction. Split rows below show memo and reconciliation metadata when available.',
+		'transactionDetail.date': 'Date',
+		'transactionDetail.currency': 'Currency',
+		'transactionDetail.splits': 'Splits',
+		'transactionDetail.id': 'ID',
+		'transactionDetail.splitSingular': 'split',
+		'transactionDetail.splitPlural': 'splits',
+		'transactionDetail.deleteTitle': 'Experimental delete transaction',
+		'transactionDetail.deleteHelper': 'This button is hidden unless write mode is explicitly enabled. Use only copied/disposable test books; GnuCash Desktop remains the authoritative editor.',
+		'transactionDetail.deleteAcknowledgement': 'I acknowledge this experimental DELETE is for disposable/test copies only and requires a backup.',
+		'transactionDetail.deleteButton': 'Delete transaction',
+		'transactionDetail.deleteConfirm': 'Delete this transaction from the disposable/test GnuCash book? This experimental write-alpha action creates a backup first and cannot be undone here.',
+		'transactionSplits.title': 'Splits',
+		'transactionSplits.helper': 'Read-only split metadata from GnuCash: account, memo, reconciliation state, and amount.',
+		'transactionSplits.empty': 'No split rows were returned for this transaction. The read-only detail view does not invent balancing data.',
+		'transactionSplits.splitAccount': 'Split {index} account',
+		'transactionSplits.memo': 'Memo',
+		'transactionSplits.noMemo': 'No memo',
+		'transactionSplits.reconciliation': 'Reconciliation',
+		'transactionSplits.accountId': 'Account ID',
+		'transactionSplits.caption': 'Transaction split rows with account, memo, reconciliation state, and amount',
+		'transactionSplits.stateNotProvided': 'Not provided',
+		'transactionSplits.stateUnknown': 'State {state}',
 		'books.kicker': 'Books',
 		'books.title': 'Book management',
 		'books.subtitle':
@@ -275,8 +373,57 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'dashboard.title': 'Обзор',
 		'accounts.kicker': 'Счета',
 		'accounts.title': 'Дерево счетов',
+		'accounts.bookLabel': 'Книга',
+		'accounts.loading': 'Загрузка дерева счетов для выбранной read-only книги…',
+		'accounts.filter.label': 'Фильтр счетов',
+		'accounts.filter.placeholder': 'Поиск по названию счёта, полному пути, типу или валюте',
+		'accounts.filter.filteredStatus': 'Показано {filtered} из {total} счетов. Совпадающие дочерние счета остаются вместе с родительским путём.',
+		'accounts.filter.allStatus': 'Показаны все счета: {total}. Используйте фильтр, чтобы сузить большое read-only дерево счетов без изменения книги.',
+		'accounts.filter.noMatchesTitle': 'Нет счетов по этому фильтру.',
+		'accounts.filter.noMatchesMessage': 'Очистите фильтр счетов, чтобы вернуться к полному read-only дереву счетов.',
+		'accounts.column.name': 'Название',
+		'accounts.column.type': 'Тип',
+		'accounts.column.balance': 'Баланс',
+		'accounts.column.currency': 'Валюта',
+		'accounts.emptyTitle': 'Счета не найдены',
+		'accounts.emptyMessage': 'Выбранная read-only книга не вернула счета. Проверьте активную test-copy книгу и доступные метаданные книги, прежде чем полагаться на этот вид.',
+		'accounts.emptyAction': 'Проверить доступные книги',
+		'dashboard.loading': 'Загрузка dashboard summary для выбранной read-only книги…',
+		'dashboard.loadFailed': 'Не удалось загрузить данные обзора',
+		'dashboard.summary': 'Сводка',
+		'dashboard.conservativeTotals': 'Консервативные итоги dashboard',
+		'dashboard.reportingBasis': 'База отчёта',
+		'dashboard.currencyConversion': 'Конвертация валют',
+		'dashboard.currencyConversionIncluded': 'включена',
+		'dashboard.currencyConversionNotIncluded': 'не включена',
 		'transactions.kicker': 'Транзакции',
 		'transactions.title': 'Просмотр транзакций',
+		'transactionDetail.back': 'Назад к транзакциям',
+		'transactionDetail.kicker': 'Детали транзакции',
+		'transactionDetail.noDescription': 'Без описания',
+		'transactionDetail.helper': 'Read-only просмотр выбранной транзакции GnuCash. Строки split ниже показывают memo и metadata сверки, если они доступны.',
+		'transactionDetail.date': 'Дата',
+		'transactionDetail.currency': 'Валюта',
+		'transactionDetail.splits': 'Splits',
+		'transactionDetail.id': 'ID',
+		'transactionDetail.splitSingular': 'split',
+		'transactionDetail.splitPlural': 'splits',
+		'transactionDetail.deleteTitle': 'Экспериментальное удаление транзакции',
+		'transactionDetail.deleteHelper': 'Эта кнопка скрыта, если write mode явно не включён. Используйте только скопированные/disposable тестовые книги; GnuCash Desktop остаётся главным редактором.',
+		'transactionDetail.deleteAcknowledgement': 'Я понимаю, что экспериментальный DELETE предназначен только для disposable/test копий и требует backup.',
+		'transactionDetail.deleteButton': 'Удалить транзакцию',
+		'transactionDetail.deleteConfirm': 'Удалить эту транзакцию из disposable/test книги GnuCash? Это экспериментальное write-alpha действие сначала создаёт backup и не может быть отменено здесь.',
+		'transactionSplits.title': 'Splits',
+		'transactionSplits.helper': 'Read-only metadata split из GnuCash: счёт, memo, состояние сверки и сумма.',
+		'transactionSplits.empty': 'Для этой транзакции не вернулись строки split. Read-only просмотр деталей не придумывает балансирующие данные.',
+		'transactionSplits.splitAccount': 'Split {index}: счёт',
+		'transactionSplits.memo': 'Memo',
+		'transactionSplits.noMemo': 'Нет memo',
+		'transactionSplits.reconciliation': 'Сверка',
+		'transactionSplits.accountId': 'ID счёта',
+		'transactionSplits.caption': 'Строки split транзакции со счётом, memo, состоянием сверки и суммой',
+		'transactionSplits.stateNotProvided': 'Не указано',
+		'transactionSplits.stateUnknown': 'Состояние {state}',
 		'books.kicker': 'Книги',
 		'books.title': 'Управление книгами',
 		'books.subtitle':

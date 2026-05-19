@@ -39,6 +39,14 @@ Phase 113 adds a glossary and one high-value transaction UI slice:
 
 Phase 126 updates that narrow transaction search label to mention description, transaction notes, and split memo semantics. The Russian placeholder keeps the GnuCash terms `notes` and `split memo` explicit because the underlying fields are technical GnuCash concepts and the translation surface remains partial.
 
+Phase 149 covers the new read-only UX copy added after `v0.1.4-readonly` without turning localization into a full-app rewrite:
+
+- account-tree filtering labels, counts, empty states, and loading copy now use English/Russian catalog strings;
+- dashboard/reporting limitation labels for conservative totals, reporting basis, and currency-conversion status now use the catalog;
+- transaction detail and split-readability labels, helper copy, empty split state, reconciliation labels, and hidden-by-default write-alpha DELETE warnings now use the catalog;
+- `/books`, transaction list/filter/export, and the app-shell read-only/current-book banner remain covered by the existing catalog entries;
+- English remains canonical, Russian remains partial/opt-in, and the safety wording continues to state read-only/default-disabled/write-alpha boundaries conservatively.
+
 Russian safety copy was written manually. Do not machine-translate new safety warnings without human review.
 
 ## Accounting and safety glossary

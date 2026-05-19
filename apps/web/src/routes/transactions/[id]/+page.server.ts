@@ -2,6 +2,7 @@ import { env } from '$env/dynamic/private';
 import { redirect, type Actions } from '@sveltejs/kit';
 import { apiFetch, getAuthToken, getActiveBookContext } from '$lib/api/server';
 import type { TransactionDetail, TransactionWriteResult } from '$lib/api/types';
+import { localeFromCookie } from '$lib/i18n';
 import type { PageServerLoad } from './$types';
 
 type ApiDeleteResult<T> = {
@@ -42,7 +43,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, params }) => {
 		token
 	);
 
-	return { transaction, activeBook, writesEnabled: env.GNUCASH_WRITES_ENABLED === 'true' };
+	return { transaction, activeBook, locale: localeFromCookie(cookies), writesEnabled: env.GNUCASH_WRITES_ENABLED === 'true' };
 };
 
 export const actions: Actions = {

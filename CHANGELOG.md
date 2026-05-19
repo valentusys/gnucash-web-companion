@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Phase 149 — expanded the existing English/Russian i18n catalog for the post-`v0.1.4-readonly` read-only UX: account-tree filtering, dashboard/reporting limitation labels, transaction detail/split readability copy, and hidden-by-default write-alpha DELETE warnings now have Russian equivalents while English remains canonical and translation remains partial/opt-in.
 - Phase 148 — improved `/books` self-hosting readiness: book metadata now exposes app-metadata-only operator guidance that listing does not open GnuCash data and that upload/delete/default-changing/registry-edit actions are intentionally unavailable in MVP; the page renders current/default/read-only/access/storage/status clarity and localized safe operator guidance without private path rendering.
 - Phase 147 — clarified dashboard/reporting limitation copy and tests: summary metadata now explains `reporting_basis=base_currency_only`, explicitly states that currency conversion is not included, names excluded non-base currencies, and warns that `XXX`/zero totals may reflect unknown base-currency configuration rather than an empty book.
 - Phase 146 — polished read-only transaction detail/split readability: the detail page now shows bounded responsive transaction metadata, split rows expose memo, account-id preview, and GnuCash reconciliation state, empty split rows render a safe no-invented-data state, and tests pin no horizontal overflow/write-UI expansion.

@@ -22,21 +22,23 @@
 
 ## Текущий публичный статус
 
-- Завершены Phase 0–137.
+- Завершены Phase 0–149.
 - MVP v0.1 остаётся **read-only by default**.
 - `GNUCASH_WRITES_ENABLED=false` — безопасный дефолт.
 - Controlled-write код, если присутствует, является experimental post-MVP/write-alpha, отключён по умолчанию и дополнительно ограничен backend `APP_ENV=test` gate при явном включении.
-- Текущий публичный read-only pre-alpha release: [`v0.1.3-readonly`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.3-readonly).
+- Текущий публичный read-only pre-alpha release: [`v0.1.4-readonly`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.4-readonly).
 - Опубликованный write-alpha pre-release: `v0.2.0-writealpha`; он pre-alpha/experimental, disabled by default, не production-ready, не security-audited и не заявляет безопасность записей в real/private books.
 - Compatibility matrix: [docs/gnucash-compatibility.md](docs/gnucash-compatibility.md). Текущие evidence boundaries — synthetic/disposable fixtures only; broad real GnuCash Desktop version support не заявлен.
 
 ## Последние post-release фазы
 
-- Phase 133 — улучшены read-only empty/error states.
-- Phase 134 — добавлены shape-matched loading skeletons для dashboard/accounts/transactions/books.
-- Phase 135 — отполирована mobile navigation и small-screen transaction detail layout.
-- Phase 136 — обновлены compatibility docs с честными границами synthetic/disposable evidence.
-- Phase 137 — обновлены local/LAN/VPN deployment hardening docs: CORS examples, JWT secret guidance/rotation, app metadata DB backups, pre-deployment checklist.
+- Phase 143 — добавлен app-shell read-only/current-book status banner.
+- Phase 144 — добавлен локальный read-only фильтр дерева счетов.
+- Phase 145 — добавлена сводка текущего вида транзакций с filter/export parity и CSV cap.
+- Phase 146 — улучшена читаемость transaction detail/split rows на mobile/desktop.
+- Phase 147 — уточнены dashboard/reporting ограничения: base-currency-only, no conversion, mixed-currency/`XXX` edge cases.
+- Phase 148 — улучшена `/books` self-hosting readiness без upload/delete/default-changing/registry-edit действий.
+- Phase 149 — расширено Russian localization coverage для нового read-only UX через существующий catalog; перевод остаётся частичным, English остаётся canonical.
 
 ## Как пробовать безопасно
 
@@ -54,8 +56,11 @@
 
 - экран входа;
 - основная навигация, включая `/books`;
-- read-only safety banner;
+- read-only safety banner и current-book link на `/books`;
 - заголовки Dashboard / Accounts / Transactions;
+- account-tree filter labels/statuses/empty states;
+- dashboard/reporting limitation labels;
+- transaction filter/export copy, transaction detail/split metadata labels and empty states;
 - страница `/books` для просмотра метаданных книг, без загрузки, удаления или редактирования данных GnuCash.
 
 Это не полный перевод приложения. Backend/API ошибки, большая часть отчётных таблиц, release-документы и safety/security документы остаются на английском.

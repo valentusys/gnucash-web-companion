@@ -20,12 +20,12 @@
 			<p class="text-sm font-medium uppercase tracking-wide" style="color: var(--app-accent);">{t(locale, 'accounts.kicker')}</p>
 			<h1 class="mt-1 text-3xl font-bold" style="color: var(--app-text);">{t(locale, 'accounts.title')}</h1>
 			{#if data.activeBook}
-				<p class="mt-2 text-sm" style="color: var(--app-muted);">Book: {data.activeBook.name}</p>
+				<p class="mt-2 text-sm" style="color: var(--app-muted);">{t(locale, 'accounts.bookLabel')}: {data.activeBook.name}</p>
 			{/if}
 		</div>
 		{#if data.showBookSelector}
 			<label class="text-sm font-medium" style="color: var(--app-text);">
-				Book
+				{t(locale, 'accounts.bookLabel')}
 				<select
 					class="mt-1 block rounded-lg border px-3 py-2"
 					style="border-color: var(--app-input-border); background-color: var(--app-input-bg); color: var(--app-text);"
@@ -39,14 +39,14 @@
 	</div>
 
 	{#if isRouteLoading}
-		<LoadingState variant="accounts" message="Loading account tree for the selected read-only book…" />
+		<LoadingState variant="accounts" message={t(locale, 'accounts.loading')} />
 	{:else if data.accounts.length}
-		<AccountTree accounts={data.accounts} />
+		<AccountTree accounts={data.accounts} {locale} />
 	{:else}
 		<EmptyState
-			title="No accounts found"
-			message="The selected read-only book did not return any accounts. Verify the active test-copy book and accessible book metadata before relying on this view."
-			ariaLabel="No accounts found"
+			title={t(locale, 'accounts.emptyTitle')}
+			message={t(locale, 'accounts.emptyMessage')}
+			ariaLabel={t(locale, 'accounts.emptyTitle')}
 			icon="🧾"
 		>
 			<a
@@ -54,7 +54,7 @@
 				class="rounded-xl px-4 py-2 text-sm font-semibold text-white"
 				style="background-color: var(--app-accent);"
 			>
-				Review available books
+				{t(locale, 'accounts.emptyAction')}
 			</a>
 		</EmptyState>
 	{/if}

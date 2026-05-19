@@ -54,8 +54,8 @@ for (const [routeName, relativePath, variant] of [
 const dashboardPage = read('src/routes/dashboard/+page.svelte');
 assert.match(
 	dashboardPage,
-	/Conservative dashboard totals[\s\S]*Reporting basis:[\s\S]*data\.summary\.reporting_basis[\s\S]*Currency conversion:[\s\S]*data\.summary\.includes_currency_conversion/s,
-	'dashboard must show reporting_basis and whether currency conversion is included'
+	/dashboard\.conservativeTotals[\s\S]*dashboard\.reportingBasis[\s\S]*data\.summary\.reporting_basis[\s\S]*dashboard\.currencyConversion[\s\S]*data\.summary\.includes_currency_conversion/s,
+	'dashboard must show localized reporting_basis and whether currency conversion is included'
 );
 assert.match(
 	dashboardPage,
@@ -113,8 +113,16 @@ for (const phrase of [
 	'MVP по умолчанию работает только на чтение',
 	"'dashboard.title': 'Dashboard'",
 	"'dashboard.title': 'Обзор'",
+	"'dashboard.conservativeTotals': 'Conservative dashboard totals'",
+	"'dashboard.conservativeTotals': 'Консервативные итоги dashboard'",
 	"'accounts.title': 'Дерево счетов'",
+	"'accounts.filter.label': 'Filter accounts'",
+	"'accounts.filter.label': 'Фильтр счетов'",
 	"'transactions.title': 'Просмотр транзакций'",
+	"'transactionDetail.helper': 'Read-only view of the selected GnuCash transaction",
+	"'transactionDetail.helper': 'Read-only просмотр выбранной транзакции GnuCash",
+	"'transactionSplits.helper': 'Read-only split metadata from GnuCash",
+	"'transactionSplits.helper': 'Read-only metadata split из GnuCash",
 	"'books.title': 'Book management'",
 	"'books.title': 'Управление книгами'",
 	'Книги доступны только для просмотра метаданных',
@@ -248,9 +256,9 @@ assert.match(bookSwitcherComponent, /compact = false[\s\S]*min-h-11[\s\S]*max-w-
 const localeSwitcherComponentForMobile = read('src/lib/components/LocaleSwitcher.svelte');
 assert.match(localeSwitcherComponentForMobile, /min-h-11[\s\S]*min-w-\[44px\]/, 'locale switcher select must expose a 44px touch target');
 const transactionSplitsComponent = read('src/lib/components/TransactionSplits.svelte');
-assert.match(transactionSplitsComponent, /md:hidden[\s\S]*split\.account_name[\s\S]*Money[\s\S]*split\.memo[\s\S]*reconcileLabel\(split\.reconcile_state\)/s, 'transaction detail splits must render mobile cards with account, amount, memo, and reconciliation metadata instead of forcing a horizontal table at 320px');
-assert.match(transactionSplitsComponent, /hidden overflow-x-hidden md:block[\s\S]*table-fixed[\s\S]*Reconciliation[\s\S]*reconcileLabel\(split\.reconcile_state\)/s, 'transaction detail split table must be desktop-only, bounded, and expose reconciliation state');
-assert.match(transactionSplitsComponent, /splits\.length === 0[\s\S]*No split rows were returned[\s\S]*does not invent balancing data/s, 'transaction detail splits must show a safe empty state instead of inventing data');
+assert.match(transactionSplitsComponent, /md:hidden[\s\S]*split\.account_name[\s\S]*Money[\s\S]*transactionSplits\.memo[\s\S]*reconcileLabel\(split\.reconcile_state\)/s, 'transaction detail splits must render localized mobile cards with account, amount, memo, and reconciliation metadata instead of forcing a horizontal table at 320px');
+assert.match(transactionSplitsComponent, /hidden overflow-x-hidden md:block[\s\S]*table-fixed[\s\S]*transactionSplits\.reconciliation[\s\S]*reconcileLabel\(split\.reconcile_state\)/s, 'transaction detail split table must be desktop-only, bounded, and expose localized reconciliation state');
+assert.match(transactionSplitsComponent, /splits\.length === 0[\s\S]*transactionSplits\.empty/s, 'transaction detail splits must show a safe localized empty state instead of inventing data');
 assert.doesNotMatch(transactionSplitsComponent, /overflow-x-auto|min-w-full/, 'transaction detail splits must not introduce mobile horizontal scrolling');
 
 const scheduledServer = read('src/routes/scheduled/+page.server.ts');
@@ -303,7 +311,7 @@ assert.doesNotMatch(
 
 const accountTree = read('src/lib/components/AccountTree.svelte');
 const accountsPage = read('src/routes/accounts/+page.svelte');
-assert.match(accountsPage, /<EmptyState[\s\S]*title="No accounts found"[\s\S]*href="\/books"[\s\S]*Review available books/s, 'accounts empty state must clearly explain unavailable accounts and link to books');
+assert.match(accountsPage, /<EmptyState[\s\S]*title=\{t\(locale, 'accounts\.emptyTitle'\)\}[\s\S]*href="\/books"[\s\S]*accounts\.emptyAction/s, 'accounts empty state must clearly explain unavailable accounts and link to books through localized copy');
 const accountTreeNode = read('src/lib/components/AccountTreeNode.svelte');
 assert.match(
 	accountTree,
@@ -322,13 +330,13 @@ assert.match(
 );
 assert.match(
 	accountTree,
-	/name, account\.full_name, account\.type, account\.currency[\s\S]*Showing \{filteredAccountCount\} of \{totalAccountCount\} accounts/s,
-	'account tree filter must search names/full paths/type/currency and report filtered counts'
+	/name, account\.full_name, account\.type, account\.currency[\s\S]*accounts\.filter\.filteredStatus[\s\S]*filteredAccountCount[\s\S]*totalAccountCount/s,
+	'account tree filter must search names/full paths/type/currency and report localized filtered counts'
 );
 assert.match(
 	accountTree,
-	/Use the filter to narrow large read-only account trees without changing the book/s,
-	'account tree filter helper copy must frame filtering as local read-only discoverability only'
+	/accounts\.filter\.allStatus/s,
+	'account tree filter helper copy must frame filtering as local read-only discoverability only through the i18n catalog'
 );
 assert.doesNotMatch(
 	accountTree,
@@ -463,7 +471,7 @@ assert.match(
 );
 assert.match(
 	transactionDetailPage,
-	/id="transaction-detail-heading"[\s\S]*Read-only view of the selected GnuCash transaction[\s\S]*splitCountLabel/s,
+	/id="transaction-detail-heading"[\s\S]*transactionDetail\.helper[\s\S]*splitCountLabel/s,
 	'transaction detail page must expose a readable heading, read-only helper copy, and split count metadata'
 );
 assert.match(
@@ -473,7 +481,7 @@ assert.match(
 );
 assert.match(
 	transactionDetailPage,
-	/data\.writesEnabled && data\.activeBook[\s\S]*action="\?\/delete"[\s\S]*confirm\([\s\S]*experimental DELETE is for disposable\/test copies only/s,
+	/data\.writesEnabled && data\.activeBook[\s\S]*action="\?\/delete"[\s\S]*confirm\(t\(locale, 'transactionDetail\.deleteConfirm'\)[\s\S]*transactionDetail\.deleteAcknowledgement/s,
 	'transaction delete form must be hidden by default and require browser confirmation plus disposable/test acknowledgement'
 );
 
