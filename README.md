@@ -47,7 +47,7 @@ This project is not a fit if you need:
 - Current public pre-alpha release: [`v0.1.3-readonly`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.3-readonly).
 - Latest published release notes: [docs/release/v0.1.3-readonly-notes.md](docs/release/v0.1.3-readonly-notes.md).
 - Latest published release-gate artifact: [docs/release/v0.1.3-readonly-final-gate.md](docs/release/v0.1.3-readonly-final-gate.md).
-- `v0.2.0-writealpha` release-gate artifacts are prepared but unpublished and pending separate explicit authorization: [notes](docs/release/v0.2.0-writealpha-notes.md), [checklist](docs/release/v0.2.0-writealpha-checklist.md), [final gate](docs/release/v0.2.0-writealpha-final-gate.md).
+- `v0.2.0-writealpha` is published as a pre-alpha write-alpha GitHub pre-release after explicit authorization: [notes](docs/release/v0.2.0-writealpha-notes.md), [checklist](docs/release/v0.2.0-writealpha-checklist.md), [final gate](docs/release/v0.2.0-writealpha-final-gate.md).
 - Russian localization/i18n foundation started in Phase 52; English documentation remains canonical. See [README.ru.md](README.ru.md) and [docs/localization.md](docs/localization.md).
 - Community announcement drafts and where-to-share guidance were refreshed in Phase 53 for cautious feedback collection, not production marketing.
 - Startup diagnostics, a richer non-sensitive health endpoint, and troubleshooting guidance were added in Phase 54 for self-hosted deployments.
@@ -195,13 +195,13 @@ GitHub release:
 
 - <https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.3-readonly>
 
-Prepared but unpublished write-alpha candidate artifacts:
+Published write-alpha pre-release artifacts:
 
 - [docs/release/v0.2.0-writealpha-checklist.md](docs/release/v0.2.0-writealpha-checklist.md)
 - [docs/release/v0.2.0-writealpha-notes.md](docs/release/v0.2.0-writealpha-notes.md)
 - [docs/release/v0.2.0-writealpha-final-gate.md](docs/release/v0.2.0-writealpha-final-gate.md)
 
-`v0.2.0-writealpha` publication is pending separate explicit Val authorization. Do not create its tag or GitHub release from this phase.
+`v0.2.0-writealpha` is published as a GitHub pre-release after explicit Val authorization. The release remains pre-alpha/experimental; write mode remains disabled by default and real/private-book write safety is not claimed.
 
 Previous public read-only pre-alpha tag/releases:
 
