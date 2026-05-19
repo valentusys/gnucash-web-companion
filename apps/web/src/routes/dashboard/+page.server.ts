@@ -1,5 +1,25 @@
 import { getAuthToken, getActiveBookContext, apiFetch } from '$lib/api/server';
-import type { ReportSummary, ExpenseByAccount, CashflowPeriod, TransactionListItem } from '$lib/api/types';
+import type { DashboardDrilldownLinks, ReportSummary, ExpenseByAccount, CashflowPeriod, TransactionListItem } from '$lib/api/types';
+
+function transactionFilterHref(params: Record<string, string>): string {
+	const sp = new URLSearchParams({ limit: '50', offset: '0' });
+	for (const [key, value] of Object.entries(params)) {
+		if (value) sp.set(key, value);
+	}
+	return `/transactions?${sp.toString()}`;
+}
+
+function monthRange(month: string): { date_from: string; date_to: string } {
+	const [year, monthIndex] = month.split('-').map((part) => Number(part));
+	if (!Number.isInteger(year) || !Number.isInteger(monthIndex) || monthIndex < 1 || monthIndex > 12) {
+		return { date_from: '', date_to: '' };
+	}
+	const lastDay = new Date(year, monthIndex, 0).getDate();
+	return {
+		date_from: `${year}-${String(monthIndex).padStart(2, '0')}-01`,
+		date_to: `${year}-${String(monthIndex).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+	};
+}
 
 export async function load({ cookies, fetch: fetchFn }: { cookies: any; fetch: any }) {
 	const token = getAuthToken(cookies);
@@ -52,5 +72,20 @@ export async function load({ cookies, fetch: fetchFn }: { cookies: any; fetch: a
 		recentTransactions = [];
 	}
 
-	return { summary, expenses, cashflowPeriods, recentTransactions, loadError, activeBook };
+	const drilldowns: DashboardDrilldownLinks = {
+		recent: transactionFilterHref({}),
+		incomeThisMonth: transactionFilterHref({ date_from: dateFrom, date_to: dateTo }),
+		expensesThisMonth: transactionFilterHref({ date_from: dateFrom, date_to: dateTo }),
+		cashflowByMonth: Object.fromEntries(
+			cashflowPeriods.map((period) => [period.month, transactionFilterHref(monthRange(period.month))])
+		),
+		expensesByAccount: Object.fromEntries(
+			expenses.map((expense) => [
+				expense.account_id,
+				transactionFilterHref({ account_id: expense.account_id, date_from: dateFrom, date_to: dateTo })
+			])
+		)
+	};
+
+	return { summary, expenses, cashflowPeriods, recentTransactions, loadError, activeBook, drilldowns };
 }

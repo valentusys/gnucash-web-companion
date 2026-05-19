@@ -3,11 +3,12 @@
 
 	type Period = import('$lib/api/types').CashflowPeriod;
 
-	let { periods, loading = false }: { periods: Period[]; loading?: boolean } = $props();
+	let { periods, loading = false, drilldownHrefs = {} }: { periods: Period[]; loading?: boolean; drilldownHrefs?: Record<string, string> } = $props();
 </script>
 
 <section class="rounded-xl p-5" style="background-color: var(--app-panel); box-shadow: 0 1px 3px var(--app-panel-shadow); border: 1px solid var(--app-border);">
 	<h2 class="text-lg font-semibold" style="color: var(--app-text);">Cashflow</h2>
+	<p class="mt-1 text-xs" style="color: var(--app-muted);">Monthly drilldowns use date_from/date_to transaction filters for the active book. No FX conversion is inferred.</p>
 
 	{#if loading}
 		<div class="mt-4 space-y-3">
@@ -25,7 +26,7 @@
 		<div class="mt-4 space-y-3">
 			{#each periods as period (period.month)}
 				<div class="rounded-lg p-3" style="background-color: var(--app-elevated-bg);">
-					<p class="text-xs font-medium uppercase tracking-wide" style="color: var(--app-muted);">{period.month}</p>
+					<a class="text-xs font-medium uppercase tracking-wide" style="color: var(--app-accent);" href={drilldownHrefs[period.month] ?? '/transactions?limit=50&offset=0'}>{period.month}</a>
 					<div class="mt-2 grid grid-cols-3 gap-2 text-sm">
 						<div>
 							<span style="color: var(--app-muted);">In</span>

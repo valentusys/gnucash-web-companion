@@ -62,6 +62,31 @@ assert.match(
 	/data\.summary\.limitations[\s\S]*\{#each data\.summary\.limitations as limitation\}/s,
 	'dashboard must render backend reporting limitations instead of implying converted totals'
 );
+assert.match(
+	read('src/routes/dashboard/+page.server.ts'),
+	/transactionFilterHref[\s\S]*new URLSearchParams\(\{ limit: '50', offset: '0' \}\)[\s\S]*date_from[\s\S]*cashflowByMonth[\s\S]*expensesByAccount[\s\S]*account_id/s,
+	'dashboard server load must build read-only drilldown URLs from existing transaction filter parameters'
+);
+assert.match(
+	dashboardPage,
+	/<SummaryGrid summary=\{data\.summary\} drilldowns=\{data\.drilldowns\}[\s\S]*<RecentTransactions transactions=\{data\.recentTransactions\} drilldownHref=\{data\.drilldowns\.recent\}[\s\S]*<ExpensesByAccount expenses=\{data\.expenses\} drilldownHrefs=\{data\.drilldowns\.expensesByAccount\}[\s\S]*<CashflowSummary periods=\{data\.cashflowPeriods\} drilldownHrefs=\{data\.drilldowns\.cashflowByMonth\}/s,
+	'dashboard must pass active-book-preserving transaction drilldown URLs into report sections'
+);
+assert.match(
+	read('src/lib/components/SummaryGrid.svelte'),
+	/drilldowns\?\.incomeThisMonth[\s\S]*drilldowns\?\.expensesThisMonth[\s\S]*transaction URL filters[\s\S]*base-currency-only with no FX conversion/s,
+	'summary cards must expose conservative no-conversion drilldown copy and URLs'
+);
+assert.match(
+	read('src/lib/components/ExpensesByAccount.svelte'),
+	/drilldownHrefs\[exp\.account_id\][\s\S]*account_id=\$\{encodeURIComponent\(exp\.account_id\)\}/s,
+	'expense account rows must link to existing account_id transaction filters'
+);
+assert.match(
+	read('src/lib/components/CashflowSummary.svelte'),
+	/date_from\/date_to transaction filters[\s\S]*No FX conversion[\s\S]*drilldownHrefs\[period\.month\]/s,
+	'cashflow rows must link to existing date-range transaction filters without implying conversion'
+);
 assert.match(hooks, /PROTECTED_PREFIXES[\s\S]*'\/dashboard'[\s\S]*'\/accounts'[\s\S]*'\/scheduled'/, 'dashboard, accounts, and scheduled routes must be protected');
 assert.match(hooks, /redirect\(303, `\/login\?next=/, 'protected routes must redirect to /login');
 assert.match(hooks, /cookies\.get\('access_token'\)/, 'protected routes must use the httpOnly cookie');

@@ -122,6 +122,14 @@ export type ReportSummary = {
 	limitations: string[];
 };
 
+export type DashboardDrilldownLinks = {
+	recent: string;
+	incomeThisMonth: string;
+	expensesThisMonth: string;
+	cashflowByMonth: Record<string, string>;
+	expensesByAccount: Record<string, string>;
+};
+
 export type ExpenseByAccount = {
 	account_id: string;
 	account_name: string;

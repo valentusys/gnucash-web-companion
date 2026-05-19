@@ -3,7 +3,7 @@
 
 	type Expense = import('$lib/api/types').ExpenseByAccount;
 
-	let { expenses, loading = false }: { expenses: Expense[]; loading?: boolean } = $props();
+	let { expenses, loading = false, drilldownHrefs = {} }: { expenses: Expense[]; loading?: boolean; drilldownHrefs?: Record<string, string> } = $props();
 
 	function barWidth(total: string, all: Expense[]): string {
 		return decimalBarWidthPercent(
@@ -15,6 +15,7 @@
 
 <section class="rounded-xl p-5" style="background-color: var(--app-panel); box-shadow: 0 1px 3px var(--app-panel-shadow); border: 1px solid var(--app-border);">
 	<h2 class="text-lg font-semibold" style="color: var(--app-text);">Expenses by Account</h2>
+	<p class="mt-1 text-xs" style="color: var(--app-muted);">Base-currency-only reporting; account links open the same read-only date/account filter used for CSV parity.</p>
 
 	{#if loading}
 		<div class="mt-4 space-y-3">
@@ -32,7 +33,7 @@
 			{#each expenses as exp (exp.account_id)}
 				<li>
 					<div class="flex items-center justify-between text-sm">
-						<span class="truncate font-medium" style="color: var(--app-text);">{exp.account_name}</span>
+						<a class="truncate font-medium" style="color: var(--app-accent);" href={drilldownHrefs[exp.account_id] ?? `/transactions?account_id=${encodeURIComponent(exp.account_id)}&limit=50&offset=0`}>{exp.account_name}</a>
 						<span class="ml-4 whitespace-nowrap tabular-nums" style="color: var(--app-text);">
 							{exp.total}
 							<span class="ml-0.5 text-xs" style="color: var(--app-muted);">{exp.currency}</span>

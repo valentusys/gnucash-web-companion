@@ -55,3 +55,11 @@ Future multi-currency reporting must define an explicit exchange-rate source, da
 ## Frontend display note
 
 Frontend components should treat backend money values as strings for display. If the UI needs sign styling or proportional bars, prefer string/sign helpers or a decimal-safe utility over JavaScript floating-point arithmetic. Backend `Decimal` validation remains authoritative for filtering and API behavior.
+
+## Dashboard drilldowns
+
+Dashboard report-card drilldowns are read-only navigation helpers. They preserve the active book through the existing selected-book context and open `/transactions` with URL filters such as `date_from`, `date_to`, `account_id`, `limit=50`, and `offset=0`.
+
+These links do not add a new accounting engine and do not recompute totals in the browser. Summary income/expense links expose the same current-month transaction period behind the card; expense-by-account links add the report account id; cashflow month links add the exact month date range. CSV export remains parity-compatible because the transactions page builds exports from the same URL filter state.
+
+Dashboard totals remain base-currency-only and no FX conversion is inferred from a drilldown transaction view.

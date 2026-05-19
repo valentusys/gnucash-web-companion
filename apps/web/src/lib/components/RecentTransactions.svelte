@@ -3,11 +3,17 @@
 
 	type Transaction = import('$lib/api/types').TransactionListItem;
 
-	let { transactions, loading = false }: { transactions: Transaction[]; loading?: boolean } = $props();
+	let { transactions, loading = false, drilldownHref = '/transactions?limit=50&offset=0' }: { transactions: Transaction[]; loading?: boolean; drilldownHref?: string } = $props();
 </script>
 
 <section class="rounded-xl p-5" style="background-color: var(--app-panel); box-shadow: 0 1px 3px var(--app-panel-shadow); border: 1px solid var(--app-border);">
-	<h2 class="text-lg font-semibold" style="color: var(--app-text);">Recent Transactions</h2>
+	<div class="flex items-start justify-between gap-3">
+		<div>
+			<h2 class="text-lg font-semibold" style="color: var(--app-text);">Recent Transactions</h2>
+			<p class="mt-1 text-xs" style="color: var(--app-muted);">Same read-only transaction list, newest first; CSV export uses matching filters.</p>
+		</div>
+		<a class="text-sm font-semibold" style="color: var(--app-accent);" href={drilldownHref}>View transactions</a>
+	</div>
 
 	{#if loading}
 		<div class="mt-4 space-y-3">
