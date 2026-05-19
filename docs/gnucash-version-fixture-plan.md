@@ -1,6 +1,6 @@
 # GnuCash Version Fixture Plan
 
-Status: Phase 45 planning document for future compatibility fixture work. This is a plan only; it does not add fixture binaries or broaden compatibility guarantees.
+Status: Phase 136 compatibility fixture planning document. This is a plan only; it does not add fixture binaries, run GnuCash Desktop, test real user books, or broaden compatibility guarantees.
 
 `gnucash-web-companion` remains read-only by default for the MVP. GnuCash Desktop remains the authoritative editor. Any compatibility fixtures must be synthetic/disposable and must never contain real financial data.
 
@@ -32,6 +32,20 @@ Start with versions that are realistic for self-hosted/Linux users and easy to r
 | 4 | macOS/Windows desktop-generated SQLite books | Manual generation only, if contributor can verify provenance | Useful user coverage, but not required for automated Linux CI in v1. |
 
 The first implementation phase should pick one reproducible Linux path only. Additional version families should be added incrementally after safety review.
+
+## Current fixture/evidence inventory
+
+As of Phase 136, every compatibility evidence row in `docs/gnucash-compatibility.md` is synthetic/disposable only:
+
+| Evidence source | Status | Desktop version tested? | Notes |
+|---|---|---|---|
+| `apps/api/tests/fixtures/test-book.gnucash.sqlite` | committed synthetic SQLite test fixture | No | Automated tests pin `Gnucash = 3000000` and `Gnucash-Resave = 19920`; fixture is not a broad Desktop-version claim. |
+| `apps/api/tests/fixtures/test-book-multicurrency.gnucash.sqlite` | committed synthetic SQLite test fixture | No | Covers read-only multi-currency limitation behavior; same documented schema markers. |
+| `apps/api/scripts/create_compatibility_fixture_v1.py` | generated synthetic/disposable SQLite fixture path | No | Generated through `piecash`; binary output remains local/ignored. |
+| Redacted metadata collector | tested safe metadata procedure | No by itself | Operator-supplied `--gnucash-version` values document a copied/disposable fixture only; they do not independently prove support for that Desktop release. |
+| Desktop-tooling probes from Phases 111 and 127 | safe blocker evidence | No | `gnucash` and `gnucash-cli` were unavailable in this environment, so no Desktop-generated fixture was produced. |
+
+Therefore the current tested GnuCash Desktop version list is empty: no real GnuCash Desktop release has been validated by the automated suite. Future rows must remain narrow until a synthetic book is generated/saved by the named Desktop version and read-only tests pass against that fixture.
 
 ## OS and source of fixtures
 
@@ -99,7 +113,7 @@ sqlite3 fixture.gnucash.sqlite 'select count(*) from transactions;'
 
 Do not print or publish real descriptions, account names, transaction memos, private paths, or balances from user books.
 
-## Phase 92 copied/test-book metadata procedure
+## Phase 92+ copied/test-book metadata procedure
 
 Phase 92 improves the test-copy procedure without committing a new binary fixture. Use this when a contributor has a generated disposable fixture or a copied book outside git and wants to provide compatibility evidence safely.
 
@@ -132,7 +146,9 @@ python apps/api/scripts/probe_gnucash_desktop_tooling.py --output /tmp/gnucash-t
 
 This probe records only whether `gnucash` and `gnucash-cli` are available, redacts executable paths, and stores bounded `--version` output if a command exists. It does not open books, search home directories, or collect row data. If the probe reports `desktop_tooling_available=false`, do not add a Desktop-version matrix row; use the generated/disposable fixture path until a disposable environment with GnuCash Desktop/CLI is available.
 
-Phase 127 repeats this check and keeps the same rule: if both `gnucash --version` and `gnucash-cli --version` are unavailable, document the blocker in GitHub #22/docs and do not fabricate Desktop-generated evidence. The manual procedure is:
+Phase 127 repeats this check and keeps the same rule: if both `gnucash --version` and `gnucash-cli --version` are unavailable, document the blocker in GitHub #22/docs and do not fabricate Desktop-generated evidence.
+
+Phase 136 keeps that boundary explicit: all current compatibility evidence is synthetic-only, and the Desktop-tested version list is empty until a future disposable Desktop environment produces a synthetic SQLite book and tests cover it. The manual procedure for that future work is:
 
 1. Use a disposable VM/container or other non-private environment with GnuCash Desktop/CLI installed.
 2. Confirm the tool version:
@@ -230,7 +246,7 @@ For manual fixtures, at minimum the handoff must include the generation steps, v
 
 ## Relationship to existing compatibility docs
 
-The current compatibility matrix remains intentionally narrow and is documented in `docs/gnucash-compatibility.md`. Until Phase 46 or later adds real version fixtures or generation scripts, compatibility claims must stay limited to the already committed synthetic fixtures and their recorded schema markers.
+The current compatibility matrix remains intentionally narrow and is documented in `docs/gnucash-compatibility.md`. Compatibility claims must stay limited to the already committed/generated synthetic fixtures, redacted metadata/probe procedures, and their recorded schema markers until a future explicit phase adds a Desktop-generated synthetic fixture with provenance and tests. A declared GnuCash Desktop version string in metadata is not enough by itself to claim that the release is supported.
 
 ## GitHub tracking
 
