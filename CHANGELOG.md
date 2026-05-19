@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Phase 146 — polished read-only transaction detail/split readability: the detail page now shows bounded responsive transaction metadata, split rows expose memo, account-id preview, and GnuCash reconciliation state, empty split rows render a safe no-invented-data state, and tests pin no horizontal overflow/write-UI expansion.
 - Phase 145 — improved read-only transaction list/export confidence: the transactions page now shows a localized current-view summary with page range, newest-first ordering, active-filter parity for list/pagination/CSV export, and the 10,000-row CSV cap reminder; docs/tests pin the URL-only, no-browser-storage behavior.
 - Phase 144 — added a local account-tree filter for large read-only account trees, with filtered counts and no browser-storage/API/write behavior.
 - Phase 143 — added an app-shell read-only/current-book status banner v2 after `v0.1.4-readonly`.

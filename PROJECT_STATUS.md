@@ -11,7 +11,7 @@ Last updated: 2026-05-19
 
 ## Current baseline
 
-Completed through Phase 145.
+Completed through Phase 146.
 
 Current public release state:
 
@@ -39,6 +39,7 @@ Current public release state:
 - Phase 143 is a post-`v0.1.4-readonly` read-only runtime status banner v2 phase: the app shell now passes the active accessible book into `ReadOnlyStatusBanner`, and the banner displays compact mobile-safe chips for read-only default status, current book name/fallback, and a safe `/books` review link. Localized safety copy now explicitly states `GNUCASH_WRITES_ENABLED=false` as the safe default, and frontend route/static checks pin active-book wiring, `/books` navigation, and no browser-storage persistence. No backend API, write endpoint, write-mode UI expansion, release/tag/package, localStorage-sensitive state, real/private book, screenshot, export, `.env`, app DB, backup, token, key, cert, or `GNUCASH_WRITES_ENABLED=false` default changed.
 - Phase 144 is a post-`v0.1.4-readonly` account tree discoverability and heavy-account UX polish phase: the accounts tree now provides a local accessible search filter over account name, full path, type, and currency; filtered results preserve matching descendants under their parent paths and show filtered/total counts so large read-only account trees can be narrowed without changing the book or calling backend write/API paths. Frontend route/static checks pin the filter behavior, count/status copy, parent-path preservation, and no browser-storage persistence. No backend API, write endpoint, write-mode UI expansion, release/tag/package, localStorage-sensitive state, real/private account names, screenshot, export, `.env`, app DB, backup, token, key, cert, or `GNUCASH_WRITES_ENABLED=false` default changed.
 - Phase 145 is a post-`v0.1.4-readonly` transaction list usability and filter/export confidence phase: the transactions page now shows a localized current-view summary above the table with visible page range, newest-first date ordering, active-filter/no-filter status, explicit list/pagination/CSV filter parity, and the 10,000-row CSV export cap reminder. `docs/transactions-filters.md` documents the display-only URL-filter behavior, and frontend route/static checks pin the status summary plus localized cap/parity copy. Backend transaction/export regression tests still pass. No backend API, write endpoint, CSV export body/header behavior, write-mode UI expansion, release/tag/package, browser-storage persistence, raw CSV artifact, real/private transaction data, `.env`, app DB, backup, token, key, cert, or `GNUCASH_WRITES_ENABLED=false` default changed.
+- Phase 146 is a post-`v0.1.4-readonly` transaction detail and split readability polish phase: the transaction detail page now uses a bounded responsive metadata layout for date/currency/split count/short ID, split rows expose read-only account, memo, short account ID, amount, and raw GnuCash reconciliation state as readable mobile cards and a fixed desktop table, and zero-split responses render a safe empty state instead of inventing balancing data. The API split DTO now includes read-only `reconcile_state` for detail visibility; backend regression coverage pins that value and frontend route/static checks pin no horizontal overflow and hidden-by-default write controls. No write endpoint, write-mode UI expansion, release/tag/package, browser-storage persistence, screenshot/export/raw financial artifact, real/private book data, `.env`, app DB, backup, token, key, cert, or `GNUCASH_WRITES_ENABLED=false` default changed.
 - Previous public release `v0.1.2-readonly` remains available and points to its Phase 117 release commit.
 - Previous public release `v0.1.1-readonly` remains available and points to `a4d04150c043ad4da3dea577b30ed7ffd2032df0`, after Phase 104.
 
@@ -190,6 +191,7 @@ Completed phases:
 - Phase 143 — read-only runtime status banner v2
 - Phase 144 — account tree discoverability and heavy-account UX polish
 - Phase 145 — transaction list usability and filter/export confidence
+- Phase 146 — transaction detail and split readability polish
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -269,7 +271,7 @@ Completed phases:
 
 Next planned phase:
 
-- Continue only with the next explicitly requested phase. Controlled writes remain post-MVP/experimental, disabled by default, constrained to `APP_ENV=test` copied/disposable fixtures when explicitly enabled, and not safe for production books. Phase 145 made only frontend read-only transaction current-view/filter/export confidence and documentation changes, added no release/publication change, no backend write behavior, no raw CSV/screenshot/export artifact, no real/private data, and did not expand write-alpha scope.
+- Continue only with the next explicitly requested phase. Controlled writes remain post-MVP/experimental, disabled by default, constrained to `APP_ENV=test` copied/disposable fixtures when explicitly enabled, and not safe for production books. Phase 146 made read-only transaction detail/split readability and metadata visibility changes, added no release/publication change, no write behavior, no raw CSV/screenshot/export artifact, no real/private data, and did not expand write-alpha scope.
 
 ## MVP product model
 

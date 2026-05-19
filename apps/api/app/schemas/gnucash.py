@@ -38,6 +38,7 @@ class TransactionSplitDTO(BaseModel):
     account_id: str = Field(..., description="Account GUID for this split")
     account_name: str = Field(..., description="Full account name for this split")
     memo: str = Field("", description="Split memo")
+    reconcile_state: str = Field("", description="Raw GnuCash split reconciliation state code")
     amount: str = Field(..., description="Split amount as decimal string")
     currency: str = Field(..., description="ISO 4217 currency code")
 

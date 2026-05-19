@@ -791,6 +791,7 @@ class GnuCashBookService:
             account_id=self._account_id(account),
             account_name=account_full_name(account),
             memo=str(getattr(split, "memo", "") or ""),
+            reconcile_state=str(getattr(split, "reconcile_state", "") or ""),
             amount=money.amount,
             currency=money.currency,
         )

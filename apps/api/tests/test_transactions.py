@@ -509,7 +509,9 @@ class TestGetTransactionMVP:
         assert len(data["splits"]) == 2
         assert data["splits"][0]["account_name"] == "Assets:Bank:Checking"
         assert data["splits"][0]["amount"] == "-320.00"
+        assert data["splits"][0]["reconcile_state"] == "c"
         assert data["splits"][1]["memo"] == "groceries"
+        assert data["splits"][1]["reconcile_state"] == "c"
 
     def test_unknown_transaction_returns_404(
         self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory

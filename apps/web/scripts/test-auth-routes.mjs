@@ -230,8 +230,9 @@ assert.match(bookSwitcherComponent, /compact = false[\s\S]*min-h-11[\s\S]*max-w-
 const localeSwitcherComponentForMobile = read('src/lib/components/LocaleSwitcher.svelte');
 assert.match(localeSwitcherComponentForMobile, /min-h-11[\s\S]*min-w-\[44px\]/, 'locale switcher select must expose a 44px touch target');
 const transactionSplitsComponent = read('src/lib/components/TransactionSplits.svelte');
-assert.match(transactionSplitsComponent, /md:hidden[\s\S]*split\.account_name[\s\S]*split\.memo[\s\S]*Money/s, 'transaction detail splits must render mobile cards instead of forcing a horizontal table at 320px');
-assert.match(transactionSplitsComponent, /hidden md:block[\s\S]*overflow-x-hidden[\s\S]*table-fixed/s, 'transaction detail split table must be desktop-only and bounded without horizontal scroll');
+assert.match(transactionSplitsComponent, /md:hidden[\s\S]*split\.account_name[\s\S]*Money[\s\S]*split\.memo[\s\S]*reconcileLabel\(split\.reconcile_state\)/s, 'transaction detail splits must render mobile cards with account, amount, memo, and reconciliation metadata instead of forcing a horizontal table at 320px');
+assert.match(transactionSplitsComponent, /hidden overflow-x-hidden md:block[\s\S]*table-fixed[\s\S]*Reconciliation[\s\S]*reconcileLabel\(split\.reconcile_state\)/s, 'transaction detail split table must be desktop-only, bounded, and expose reconciliation state');
+assert.match(transactionSplitsComponent, /splits\.length === 0[\s\S]*No split rows were returned[\s\S]*does not invent balancing data/s, 'transaction detail splits must show a safe empty state instead of inventing data');
 assert.doesNotMatch(transactionSplitsComponent, /overflow-x-auto|min-w-full/, 'transaction detail splits must not introduce mobile horizontal scrolling');
 
 const scheduledServer = read('src/routes/scheduled/+page.server.ts');
@@ -441,6 +442,16 @@ assert.match(
 	transactionDetailServer,
 	/delete_acknowledgement[\s\S]*experimental-delete-acknowledged/,
 	'transaction delete action must require explicit acknowledgement'
+);
+assert.match(
+	transactionDetailPage,
+	/id="transaction-detail-heading"[\s\S]*Read-only view of the selected GnuCash transaction[\s\S]*splitCountLabel/s,
+	'transaction detail page must expose a readable heading, read-only helper copy, and split count metadata'
+);
+assert.match(
+	transactionDetailPage,
+	/min-w-0 rounded-2xl[\s\S]*grid min-w-0 grid-cols-2[\s\S]*font-mono text-xs/s,
+	'transaction detail page must use bounded responsive metadata layout with truncating transaction id'
 );
 assert.match(
 	transactionDetailPage,

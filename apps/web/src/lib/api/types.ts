@@ -32,6 +32,7 @@ export type TransactionSplit = {
 	account_id: string;
 	account_name: string;
 	memo: string;
+	reconcile_state?: string;
 	amount: string;
 	currency: string;
 };
