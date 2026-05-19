@@ -7,18 +7,18 @@ Last updated: 2026-05-19
 - GitHub: `valentusys/gnucash-web-companion`
 - Local path: `/home/val/gnucash-web-companion`
 - Branch: `main`
-- Status: pre-alpha / v0.1.3-readonly release-prep phase (unpublished)
+- Status: pre-alpha / v0.1.3-readonly published read-only maintenance pre-release
 
 ## Current baseline
 
-Completed through Phase 124.
+Completed through Phase 125.
 
 Current public release state:
 
-- `v0.1.2-readonly` is the authorized next public read-only pre-alpha GitHub pre-release, published in Phase 117 after preflight PASS.
-- Local/GitHub tag `v0.1.2-readonly` is created by Phase 117 on the release-doc/status commit and published as a GitHub pre-release from `docs/release/v0.1.2-readonly-notes.md`.
-- The release scope includes the Phase 106–114 read-only UX/operator improvements, Phase 115 release gate, and Phase 116 redacted copied personal-book dogfood PASS for GitHub #38.
-- `v0.1.3-readonly` is prepared only as an unpublished maintenance release candidate in Phase 122. No local/GitHub tag or GitHub release named `v0.1.3-readonly` has been created; publication requires separate explicit Val authorization.
+- `v0.1.3-readonly` is the current public read-only pre-alpha GitHub pre-release, published in Phase 125 after Val authorization and cleanup of the temporary live personal-book deployment.
+- Local/GitHub tag `v0.1.3-readonly` is created by Phase 125 on the release-doc/status commit and published as a GitHub pre-release from `docs/release/v0.1.3-readonly-notes.md`.
+- The release scope includes the Phase 118–121 live-stand read-only fixes, Phase 122 release gate, and the disabled-by-default/test-fixture-only write-alpha safety hardening from Phases 123–124 without any production write-mode claim.
+- Previous public release `v0.1.2-readonly` remains available and points to its Phase 117 release commit.
 - Previous public release `v0.1.1-readonly` remains available and points to `a4d04150c043ad4da3dea577b30ed7ffd2032df0`, after Phase 104.
 
 Completed phases:
@@ -148,6 +148,7 @@ Completed phases:
 - Phase 122 — read-only stability gate and v0.1.3-readonly prep
 - Phase 123 — write-alpha safety foundation without default enablement
 - Phase 124 — write-alpha controlled transaction create hardening
+- Phase 125 — publish v0.1.3-readonly pre-release
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 

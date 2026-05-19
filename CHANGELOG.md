@@ -6,11 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+No unreleased changes yet.
+
+## [0.1.3-readonly] - 2026-05-19
+
 ### Added
 
+- Phase 122 — prepared and verified the `v0.1.3-readonly` maintenance release gate across backend tests, frontend checks/build, Docker Compose config validation, tag/release absence checks, GitHub Actions state, and sensitive tracked-file hygiene.
 - Phase 123 — started the post-MVP/write-alpha safety foundation without enabling writes by default: added regression coverage for disabled-by-default config and route short-circuiting, write-lock-failure audit evidence, and explicit create-validation guards, and updated controlled-write readiness gates. No write capability was enabled or broadened.
 - Phase 124 — hardened the write-alpha controlled transaction create path without default enablement: enabled write routes are now limited to `APP_ENV=test` copied/disposable fixture scope, route-level integration coverage verifies create book-state read-back, backup, audit success, lock release, and validation-failure audit/no-backup behavior, and controlled-write docs now label this as experimental test-fixture-only evidence.
-- Phase 122 — prepared unpublished `v0.1.3-readonly` maintenance release artifacts and reran the read-only stability gate across backend tests, frontend checks/build, Docker Compose config validation, tag/release absence checks, and sensitive tracked-file hygiene. Publication remains pending explicit authorization; no tag, GitHub release, package, or write-mode change was made.
+- Phase 125 — published `v0.1.3-readonly` as a GitHub pre-release after stopping the live personal-book Docker deployment, removing ignored local runtime `.env`/copied-book/tmp artifacts, re-checking clean `main`, `HEAD == origin/main`, tag/release absence, recent GitHub Actions success, Docker Compose config validity, whitespace diff check, and sensitive tracked-file hygiene. No packages were published.
 
 ### Fixed
 
@@ -19,6 +24,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Phase 119 — stripped the synthetic GnuCash `Root Account:` prefix from displayed account full-name paths in the service layer while preserving child paths, account IDs, parent references, and API response shape; backend fixture/regression tests now expect cleaned names such as `Assets:Bank:Checking`.
 - Phase 118 — stabilized the desktop transaction table with fixed full-width columns, safe truncation for long descriptions/account names, and no needless desktop horizontal scroll; also narrowed account-tree desktop grid sizing to avoid narrow-layout overflow. Frontend static route checks pin the CSS-only regression contract.
 
+### Release notes
+
+- `v0.1.3-readonly` was published as a GitHub pre-release on 2026-05-19 after the owner live-stand review and cleanup of the temporary local personal-book deployment.
+- This remains a conservative pre-alpha/read-only release. `GNUCASH_WRITES_ENABLED=false` remains the default; controlled-write code is experimental post-MVP work, test-fixture-only when enabled, and outside any safe production write-mode claim.
+
+### Known limitations
+
+- Not production-ready and not security-audited.
+- Do not expose early deployments directly to the public internet.
+- Test with disposable fixtures or copied GnuCash SQL books first, keep backups, and keep `.env`, app DBs, GnuCash books, backups, private exports/screenshots, secrets, tokens, keys, and certs out of git.
+- Compatibility evidence remains intentionally narrow; no broad PostgreSQL/MySQL/MariaDB/XML/all-version compatibility is claimed.
+- No hosted SaaS readiness, collaborative accounting, family-wallet positioning, real-time multi-user editing, CSV/OFX import, banking integration, or safe production write mode is claimed.
 
 ## [0.1.2-readonly] - 2026-05-19
 
