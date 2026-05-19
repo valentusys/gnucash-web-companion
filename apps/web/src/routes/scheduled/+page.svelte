@@ -1,4 +1,6 @@
 <script lang="ts">
+	import EmptyState from '$lib/components/EmptyState.svelte';
+
 	let { data } = $props();
 
 	function formatDate(value: string | null): string {
@@ -124,9 +126,27 @@
 				{/each}
 			</div>
 		{:else}
-			<div class="rounded-xl border border-dashed p-6 text-sm" style="border-color: var(--app-border); color: var(--app-muted);">
-				No scheduled transactions are available through the safe read-only adapter for this book. If the book uses scheduled transactions, manage and review them in GnuCash Desktop.
-			</div>
+			<EmptyState
+				title="No scheduled transactions found"
+				message="No scheduled transactions are available through the safe read-only adapter for this book. If the book uses scheduled transactions, manage and review them in GnuCash Desktop."
+				ariaLabel="No scheduled transactions found"
+				icon="🗓️"
+			>
+				<a
+					href="/transactions"
+					class="rounded-xl px-4 py-2 text-sm font-semibold text-white"
+					style="background-color: var(--app-accent);"
+				>
+					Browse transactions
+				</a>
+				<a
+					href="/books"
+					class="rounded-xl border px-4 py-2 text-sm font-semibold"
+					style="border-color: var(--app-border); color: var(--app-text);"
+				>
+					Review books
+				</a>
+			</EmptyState>
 		{/if}
 	</section>
 </main>

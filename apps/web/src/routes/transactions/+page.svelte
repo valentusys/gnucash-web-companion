@@ -3,6 +3,7 @@
 	import TransactionTable from '$lib/components/TransactionTable.svelte';
 	import TransactionCard from '$lib/components/TransactionCard.svelte';
 	import TransactionFilters from '$lib/components/TransactionFilters.svelte';
+	import EmptyState from '$lib/components/EmptyState.svelte';
 	import Pagination from '$lib/components/Pagination.svelte';
 	import WriteModeWarning from '$lib/components/WriteModeWarning.svelte';
 	import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
@@ -63,6 +64,15 @@
 		activeFilterCount
 			? t(locale, 'transactions.export.statusFiltered')
 			: t(locale, 'transactions.export.statusUnfiltered')
+	);
+	const hasActiveFilters = $derived(activeFilterCount > 0);
+	const emptyTitle = $derived(
+		hasActiveFilters ? 'No transactions match the current filters' : 'No transactions yet'
+	);
+	const emptyMessage = $derived(
+		hasActiveFilters
+			? 'The read-only API returned no transactions for this filter combination. Clear filters or broaden the search/date/account/amount/state criteria.'
+			: 'The selected read-only book has no transactions available through the current adapter. Review the book in GnuCash Desktop or choose another accessible book.'
 	);
 
 	function paramsToUrl(params: {
@@ -177,8 +187,29 @@
 	/>
 
 	<div class="rounded-2xl p-4" style="background-color: var(--app-panel); box-shadow: 0 1px 3px var(--app-panel-shadow); border: 1px solid var(--app-border);">
-		<TransactionTable transactions={txs.items} onSelect={handleSelect} />
-		<TransactionCard transactions={txs.items} onSelect={handleSelect} />
-		<Pagination {offset} {limit} {total} onChange={handlePageChange} />
+		{#if txs.items.length}
+			<TransactionTable transactions={txs.items} onSelect={handleSelect} />
+			<TransactionCard transactions={txs.items} onSelect={handleSelect} />
+			<Pagination {offset} {limit} {total} onChange={handlePageChange} />
+		{:else}
+			<EmptyState title={emptyTitle} message={emptyMessage} ariaLabel={emptyTitle} icon="🔎">
+				{#if hasActiveFilters}
+					<a
+						href={data.clearFiltersHref}
+						class="rounded-xl px-4 py-2 text-sm font-semibold text-white"
+						style="background-color: var(--app-accent);"
+					>
+						Clear filters
+					</a>
+				{/if}
+				<a
+					href="/books"
+					class="rounded-xl border px-4 py-2 text-sm font-semibold"
+					style="border-color: var(--app-border); color: var(--app-text);"
+				>
+					Review books
+				</a>
+			</EmptyState>
+		{/if}
 	</div>
 </main>

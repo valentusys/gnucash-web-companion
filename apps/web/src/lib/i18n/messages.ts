@@ -44,6 +44,8 @@ export type MessageKey =
 	| 'books.readonlyStatus'
 	| 'books.safetyNote'
 	| 'books.noBooks'
+	| 'books.emptyTitle'
+	| 'books.emptyMessage'
 	| 'books.notConfigured'
 	| 'books.unknown'
 	| 'books.accessRole'
@@ -143,6 +145,9 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'books.readonlyStatus': 'Read-only status',
 		'books.safetyNote': 'GnuCash Desktop remains the authoritative editor.',
 		'books.noBooks': 'No accessible configured books are available for this account.',
+		'books.emptyTitle': 'No accessible books found',
+		'books.emptyMessage':
+			'No configured books are available to this account. Confirm the book registry and access metadata, then sign in again or ask the administrator to grant read-only access.',
 		'books.notConfigured': 'Not configured',
 		'books.unknown': 'Unknown',
 		'books.accessRole': 'Access role',
@@ -248,6 +253,9 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'books.readonlyStatus': 'Read-only статус',
 		'books.safetyNote': 'GnuCash Desktop остаётся главным редактором.',
 		'books.noBooks': 'Для этой учётной записи нет доступных настроенных книг.',
+		'books.emptyTitle': 'Нет доступных книг',
+		'books.emptyMessage':
+			'Для этой учётной записи нет настроенных доступных книг. Проверьте реестр книг и права доступа, затем войдите снова или попросите администратора выдать read-only доступ.',
 		'books.notConfigured': 'Не настроено',
 		'books.unknown': 'Неизвестно',
 		'books.accessRole': 'Роль доступа',

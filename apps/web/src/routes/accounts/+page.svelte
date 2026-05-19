@@ -1,7 +1,7 @@
 <script lang="ts">
 	import AccountTree from '$lib/components/AccountTree.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
-import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
+	import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 
 	let { data } = $props();
 	let locale = $derived<Locale>(data.locale ?? DEFAULT_LOCALE);
@@ -39,8 +39,18 @@ import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 		<AccountTree accounts={data.accounts} />
 	{:else}
 		<EmptyState
-			title="No accounts available"
-			message="Verify the selected test-copy GnuCash book path and reload this read-only view."
-		/>
+			title="No accounts found"
+			message="The selected read-only book did not return any accounts. Verify the active test-copy book and accessible book metadata before relying on this view."
+			ariaLabel="No accounts found"
+			icon="🧾"
+		>
+			<a
+				href="/books"
+				class="rounded-xl px-4 py-2 text-sm font-semibold text-white"
+				style="background-color: var(--app-accent);"
+			>
+				Review available books
+			</a>
+		</EmptyState>
 	{/if}
 </main>

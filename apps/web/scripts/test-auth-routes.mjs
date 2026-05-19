@@ -21,6 +21,15 @@ function walk(dir, files = []) {
 }
 
 const hooks = read('src/hooks.server.ts');
+const emptyStateComponent = read('src/lib/components/EmptyState.svelte');
+assert.match(emptyStateComponent, /role=\{role\}/, 'EmptyState must expose an overridable accessible status role');
+assert.match(emptyStateComponent, /aria-label=\{ariaLabel\}/, 'EmptyState must expose an aria-label for screen-reader context');
+const errorStateComponent = read('src/lib/components/ErrorState.svelte');
+assert.match(errorStateComponent, /statusCode[\s\S]*403[\s\S]*404[\s\S]*defaultTitle/s, 'ErrorState must map 403, 404, and generic API/network failures to helpful copy');
+assert.match(errorStateComponent, /retryHref[\s\S]*backHref[\s\S]*aria-label/s, 'ErrorState must offer keyboard-focusable retry/back actions with labels');
+const errorPage = read('src/routes/+error.svelte');
+assert.match(errorPage, /import ErrorState/, 'global error page must reuse ErrorState');
+assert.match(errorPage, /statusCode=\{page\.status\}[\s\S]*retryHref=\{page\.url\.pathname \+ page\.url\.search\}[\s\S]*backHref="\/dashboard"/s, 'global error page must pass status and retry/back actions');
 assert.match(hooks, /PROTECTED_PREFIXES[\s\S]*'\/dashboard'[\s\S]*'\/accounts'[\s\S]*'\/scheduled'/, 'dashboard, accounts, and scheduled routes must be protected');
 assert.match(hooks, /redirect\(303, `\/login\?next=/, 'protected routes must redirect to /login');
 assert.match(hooks, /cookies\.get\('access_token'\)/, 'protected routes must use the httpOnly cookie');
@@ -167,6 +176,8 @@ for (const requiredPhrase of [
 ]) {
 	assert.ok(i18nMessages.includes(requiredPhrase), `books i18n catalog must include canonical English phrase: ${requiredPhrase}`);
 }
+assert.match(booksPage, /import EmptyState/, '/books page must reuse the accessible EmptyState component for no accessible books');
+assert.match(booksPage, /<EmptyState[\s\S]*title=\{t\(locale, 'books\.emptyTitle'\)\}[\s\S]*message=\{t\(locale, 'books\.emptyMessage'\)\}[\s\S]*href="\/login"[\s\S]*Sign in again/s, '/books page must give no-books users clear copy and a keyboard-focusable recovery action');
 assert.match(booksPage, /DEFAULT_LOCALE[\s\S]*t\(locale, 'books\.title'\)[\s\S]*t\(locale, 'books\.readonlyStatus'\)/s, '/books page must render localized titles and read-only safety labels from the i18n catalog');
 assert.match(booksPage, /t\(locale, 'books\.safetyNote'\)/, '/books page must render localized read-only safety note');
 assert.match(booksPage, /data\.books[\s\S]*book\.name[\s\S]*book\.base_currency[\s\S]*book\.storage_type[\s\S]*book\.access_role[\s\S]*book\.status/s, '/books page must render book name, base currency, storage type, access role, and status');
@@ -197,6 +208,8 @@ for (const scheduledPhrase of [
 ]) {
 	assert.ok(scheduledPage.includes(scheduledPhrase), `scheduled page must include conservative copy: ${scheduledPhrase}`);
 }
+assert.match(scheduledPage, /import EmptyState/, 'scheduled page must reuse EmptyState for no schedules');
+assert.match(scheduledPage, /<EmptyState[\s\S]*title="No scheduled transactions found"[\s\S]*href="\/transactions"[\s\S]*Browse transactions/s, 'scheduled empty state must include clear copy and keyboard-focusable navigation');
 assert.doesNotMatch(
 	scheduledPage,
 	/<form|method="POST"|New scheduled|Edit scheduled|Delete scheduled|next occurrence|next-run/i,
@@ -228,6 +241,8 @@ assert.doesNotMatch(
 );
 
 const accountTree = read('src/lib/components/AccountTree.svelte');
+const accountsPage = read('src/routes/accounts/+page.svelte');
+assert.match(accountsPage, /<EmptyState[\s\S]*title="No accounts found"[\s\S]*href="\/books"[\s\S]*Review available books/s, 'accounts empty state must clearly explain unavailable accounts and link to books');
 const accountTreeNode = read('src/lib/components/AccountTreeNode.svelte');
 assert.match(
 	accountTree,
@@ -246,6 +261,9 @@ assert.match(
 );
 
 const transactionListPage = read('src/routes/transactions/+page.svelte');
+assert.match(transactionListPage, /import EmptyState/, 'transactions page must reuse EmptyState for empty result sets');
+assert.match(transactionListPage, /hasActiveFilters[\s\S]*No transactions match the current filters[\s\S]*No transactions yet/s, 'transactions page must distinguish no data from filters with no matches');
+assert.match(transactionListPage, /<EmptyState[\s\S]*href=\{data\.clearFiltersHref\}[\s\S]*Clear filters/s, 'filtered transaction empty state must offer a keyboard-focusable clear-filters action');
 for (const filterParam of ['query', 'date_from', 'date_to', 'account_id', 'min_amount', 'max_amount', 'transaction_state']) {
 	assert.ok(
 		transactionListPage.includes(`sp.set('${filterParam}'`) ||
