@@ -28,6 +28,7 @@ from app.schemas.gnucash_writes import (
     TransactionSplitWriteDTO,
 )
 from app.services import gnucash_write as gw_mod
+from app.services.gnucash_exceptions import EntityNotFoundError
 from app.services.gnucash_write import GnuCashWriteService, GnuCashWriteError
 from app.services.write_lock import WriteLockError, WriteLockService
 
@@ -680,7 +681,7 @@ class TestPatchValidationRejections:
         """Patching a non-existent transaction must be rejected."""
         svc, _ = service_and_path
         request = TransactionPatchRequestDTO(description="Ghost tx")
-        with pytest.raises(GnuCashWriteError, match="Validation failed"):
+        with pytest.raises(EntityNotFoundError, match="transaction not found"):
             svc.patch_transaction_metadata(
                 "nonexistent-tx-guid-1234567890abcdef", request, user_id=1, book_id=1
             )

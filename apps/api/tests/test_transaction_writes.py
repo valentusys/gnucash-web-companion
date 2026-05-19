@@ -30,6 +30,7 @@ from app.routers.auth import get_db
 from app.schemas.gnucash_writes import TransactionCreateRequestDTO, TransactionSplitWriteDTO
 from app.services.auth import hash_password
 from app.services.gnucash_write import GnuCashWriteService, GnuCashWriteError
+from app.services.gnucash_book import _guid
 from app.services.write_lock import WriteLockError
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -338,6 +339,7 @@ def _read_written_transactions(book_path: Path) -> list[dict]:
                 "post_date": tx.post_date,
                 "splits": [
                     {
+                        "guid": _guid(split),
                         "account_guid": split.account.guid,
                         "account_name": split.account.name,
                         "value": Decimal(str(split.value)),
@@ -1327,6 +1329,251 @@ class TestPatchTransaction:
         if response.status_code != 404:
             assert response.status_code == 422
 
+
+class TestWriteAlphaPatchRouteDisposableFixture:
+    """Enabled-mode PATCH route coverage on a copied/disposable GnuCash fixture."""
+
+    def _first_fixture_transaction(self, book_path: Path) -> dict:
+        transactions = _read_written_transactions(book_path)
+        assert transactions, "fixture must contain at least one transaction"
+        return transactions[0]
+
+    def _create_payload(self, description: str):
+        return TestWriteAlphaCreateRouteDisposableFixture()._fixture_create_payload(description)
+
+    def test_enabled_patch_route_updates_disposable_fixture_with_backup_audit_and_lock(
+        self,
+        client,
+        auth_headers,
+        disposable_sample_book,
+        disposable_fixture_book,
+        disposable_write_lock,
+        session_factory,
+    ):
+        tx_before = self._first_fixture_transaction(disposable_fixture_book)
+        split_guid = tx_before["splits"][0]["guid"]
+
+        response = client.patch(
+            f"/books/{disposable_sample_book}/transactions/{tx_before['guid']}",
+            json={
+                "description": "Route write-alpha patched",
+                "date": "2026-05-18",
+                "split_memos": {split_guid: "patched memo from route"},
+            },
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["transaction_id"] == tx_before["guid"]
+        backup_path = Path(data["backup_path"])
+        assert backup_path.exists()
+        assert backup_path.is_file()
+        assert backup_path.parent.name == disposable_fixture_book.stem
+        assert data["audit_log_id"] is not None
+
+        txs_after = _read_written_transactions(disposable_fixture_book)
+        patched = next(tx for tx in txs_after if tx["guid"] == tx_before["guid"])
+        assert patched["description"] == "Route write-alpha patched"
+        assert patched["post_date"] == date(2026, 5, 18)
+        assert any(split["memo"] == "patched memo from route" for split in patched["splits"])
+        assert [split["value"] for split in patched["splits"]] == [split["value"] for split in tx_before["splits"]]
+
+        backup_txs = _read_written_transactions(backup_path)
+        backup_original = next(tx for tx in backup_txs if tx["guid"] == tx_before["guid"])
+        assert backup_original["description"] == tx_before["description"]
+        assert backup_original["post_date"] == tx_before["post_date"]
+
+        lock_key = str(disposable_fixture_book)
+        assert disposable_write_lock.acquire(lock_key) is True
+        disposable_write_lock.release(lock_key)
+
+        with session_factory() as session:
+            audit_log = session.get(AuditLog, data["audit_log_id"])
+            assert audit_log is not None
+            payload = json.loads(audit_log.payload_json)
+            assert audit_log.action == "transaction.patch"
+            assert payload["result"] == "success"
+            assert payload["transaction_id"] == tx_before["guid"]
+            assert payload["backup_path"] == str(backup_path)
+            assert set(payload["request_summary"]["fields_updated"]) == {"description", "date", "split_memos"}
+
+    def test_patch_missing_transaction_returns_404_without_backup_or_lock_leak(
+        self,
+        client,
+        auth_headers,
+        disposable_sample_book,
+        disposable_fixture_book,
+        disposable_write_lock,
+        session_factory,
+    ):
+        txs_before = _read_written_transactions(disposable_fixture_book)
+
+        response = client.patch(
+            f"/books/{disposable_sample_book}/transactions/missing-write-alpha-tx",
+            json={"description": "should not write"},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 404
+        assert _read_written_transactions(disposable_fixture_book) == txs_before
+        backups_root = disposable_fixture_book.parent.parent / "backups"
+        assert not backups_root.exists()
+        lock_key = str(disposable_fixture_book)
+        assert disposable_write_lock.acquire(lock_key) is True
+        disposable_write_lock.release(lock_key)
+
+        with session_factory() as session:
+            logs = session.query(AuditLog).filter_by(action="transaction.patch").all()
+            assert logs
+            payload = json.loads(logs[-1].payload_json)
+            assert payload["result"] == "failed"
+            assert payload["backup_path"] is None
+            assert "missing-write-alpha-tx" in payload["error"]
+
+    def test_patch_validation_error_causes_no_mutation_no_backup_and_failed_audit(
+        self,
+        client,
+        auth_headers,
+        disposable_sample_book,
+        disposable_fixture_book,
+        disposable_write_lock,
+        session_factory,
+    ):
+        tx_before = self._first_fixture_transaction(disposable_fixture_book)
+        txs_before = _read_written_transactions(disposable_fixture_book)
+
+        response = client.patch(
+            f"/books/{disposable_sample_book}/transactions/{tx_before['guid']}",
+            json={"date": "not-a-date"},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 422
+        assert "Validation failed" in response.json()["detail"]
+        assert _read_written_transactions(disposable_fixture_book) == txs_before
+        backups_root = disposable_fixture_book.parent.parent / "backups"
+        assert not backups_root.exists()
+        lock_key = str(disposable_fixture_book)
+        assert disposable_write_lock.acquire(lock_key) is True
+        disposable_write_lock.release(lock_key)
+
+        with session_factory() as session:
+            logs = session.query(AuditLog).filter_by(action="transaction.patch").all()
+            assert logs
+            payload = json.loads(logs[-1].payload_json)
+            assert payload["result"] == "failed"
+            assert payload["backup_path"] is None
+            assert "Invalid date format" in payload["error"]
+
+    def test_failure_during_patch_write_releases_lock_audits_failure_and_keeps_backup(
+        self,
+        client,
+        auth_headers,
+        disposable_sample_book,
+        disposable_fixture_book,
+        disposable_write_lock,
+        session_factory,
+        monkeypatch,
+    ):
+        def fail_after_backup(self, book, transaction_id, request):
+            raise GnuCashWriteError("synthetic patch failure after backup")
+
+        monkeypatch.setattr(GnuCashWriteService, "_do_patch_transaction", fail_after_backup)
+        tx_before = self._first_fixture_transaction(disposable_fixture_book)
+        txs_before = _read_written_transactions(disposable_fixture_book)
+
+        response = client.patch(
+            f"/books/{disposable_sample_book}/transactions/{tx_before['guid']}",
+            json={"description": "should fail after backup"},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 422
+        assert "synthetic patch failure after backup" in response.json()["detail"]
+        assert _read_written_transactions(disposable_fixture_book) == txs_before
+        lock_key = str(disposable_fixture_book)
+        assert disposable_write_lock.acquire(lock_key) is True
+        disposable_write_lock.release(lock_key)
+
+        with session_factory() as session:
+            logs = session.query(AuditLog).filter_by(action="transaction.patch").all()
+            assert logs
+            payload = json.loads(logs[-1].payload_json)
+            assert payload["result"] == "failed"
+            assert "synthetic patch failure after backup" in payload["error"]
+            backup_path = Path(payload["backup_path"])
+
+        assert backup_path.exists()
+        assert _read_written_transactions(backup_path) == txs_before
+
+    def test_concurrent_patch_and_create_allows_one_success_and_one_lock_contention(
+        self,
+        client,
+        auth_headers,
+        disposable_sample_book,
+        disposable_fixture_book,
+        disposable_write_lock,
+        session_factory,
+        monkeypatch,
+    ):
+        original_do_patch = GnuCashWriteService._do_patch_transaction
+        patch_entered = threading.Event()
+        release_patch = threading.Event()
+
+        def slow_do_patch(service, book, transaction_id, request):
+            patch_entered.set()
+            assert release_patch.wait(timeout=5), "timed out waiting to release patch"
+            return original_do_patch(service, book, transaction_id, request)
+
+        monkeypatch.setattr(GnuCashWriteService, "_do_patch_transaction", slow_do_patch)
+        tx_before = self._first_fixture_transaction(disposable_fixture_book)
+        txs_before = _read_written_transactions(disposable_fixture_book)
+
+        def patch_tx():
+            return client.patch(
+                f"/books/{disposable_sample_book}/transactions/{tx_before['guid']}",
+                json={"description": "Concurrent write-alpha patch winner"},
+                headers=auth_headers,
+            )
+
+        def create_tx():
+            return client.post(
+                f"/books/{disposable_sample_book}/transactions",
+                json=self._create_payload("Concurrent write-alpha create contender"),
+                headers=auth_headers,
+            )
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            first = executor.submit(patch_tx)
+            assert patch_entered.wait(timeout=5), "patch write did not enter service"
+            second = executor.submit(create_tx)
+            second_response = second.result(timeout=5)
+            release_patch.set()
+            first_response = first.result(timeout=5)
+
+        statuses = sorted([first_response.status_code, second_response.status_code])
+        assert statuses == [200, 409]
+        failed_response = first_response if first_response.status_code == 409 else second_response
+        assert "write lock" in failed_response.json()["detail"].lower()
+
+        txs_after = _read_written_transactions(disposable_fixture_book)
+        patched = next(tx for tx in txs_after if tx["guid"] == tx_before["guid"])
+        assert patched["description"] == "Concurrent write-alpha patch winner"
+        assert len(txs_after) == len(txs_before)
+
+        lock_key = str(disposable_fixture_book)
+        assert disposable_write_lock.acquire(lock_key) is True
+        disposable_write_lock.release(lock_key)
+
+        with session_factory() as session:
+            patch_payloads = [json.loads(log.payload_json) for log in session.query(AuditLog).filter_by(action="transaction.patch").all()]
+            create_payloads = [json.loads(log.payload_json) for log in session.query(AuditLog).filter_by(action="transaction.create").all()]
+            assert any(payload["result"] == "success" for payload in patch_payloads)
+            assert any(
+                payload["result"] == "failed" and "write lock" in payload.get("error", "").lower()
+                for payload in create_payloads
+            )
 
 # ---------------------------------------------------------------------------
 # Tests: Backup service

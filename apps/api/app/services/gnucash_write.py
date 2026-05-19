@@ -318,9 +318,13 @@ class GnuCashWriteService(GnuCashBookService):
 
         Does NOT allow editing split amounts or accounts.
         """
-        # Step 1: Validate
+        # Step 1: Validate. Missing transactions are reported as 404 by the
+        # route and must be detected before acquiring a lock or creating a
+        # backup, so keep that case distinct from normal 422 validation errors.
         validation = self.validate_transaction_patch(transaction_id, request)
         if not validation.valid:
+            if any(error == f"Transaction not found: {transaction_id}" for error in validation.errors):
+                raise EntityNotFoundError("transaction", transaction_id)
             raise GnuCashWriteError(
                 f"Validation failed: {'; '.join(validation.errors)}"
             )
@@ -344,22 +348,14 @@ class GnuCashWriteService(GnuCashBookService):
             book = None
             try:
                 book = self._open_piecash_book_for_write(uri_or_path)
-                transaction = self._find_transaction(book, transaction_id)
-                if transaction is None:
-                    raise EntityNotFoundError("transaction", transaction_id)
-
-                # Apply patches
-                if request.description is not None:
-                    transaction.description = request.description
-                if request.date is not None:
-                    transaction.post_date = date.fromisoformat(request.date)
-                if request.split_memos is not None:
-                    for split in transaction.splits:
-                        split_guid = _guid(split)
-                        if split_guid in request.split_memos:
-                            split.memo = request.split_memos[split_guid]
-
+                self._do_patch_transaction(book, transaction_id, request)
                 book.save()
+            except GnuCashWriteError as exc:
+                if exc.backup_path is None:
+                    exc.backup_path = backup_path
+                raise
+            except Exception as exc:
+                raise GnuCashWriteError(f"Write failed: {exc}", backup_path=backup_path) from exc
             finally:
                 if book is not None:
                     close = getattr(book, "close", None)
@@ -374,3 +370,30 @@ class GnuCashWriteService(GnuCashBookService):
         finally:
             # Step 9: Release lock
             write_lock_service.release(book_key)
+
+    def _do_patch_transaction(
+        self,
+        book: Any,
+        transaction_id: str,
+        request: TransactionPatchRequestDTO,
+    ) -> Any:
+        """Patch an existing transaction in an already-open writeable book.
+
+        This intentionally limits PATCH to transaction metadata and split memos;
+        split accounts and split amounts are not editable through write-alpha.
+        """
+        transaction = self._find_transaction(book, transaction_id)
+        if transaction is None:
+            raise EntityNotFoundError("transaction", transaction_id)
+
+        if request.description is not None:
+            transaction.description = request.description
+        if request.date is not None:
+            transaction.post_date = date.fromisoformat(request.date)
+        if request.split_memos is not None:
+            for split in transaction.splits:
+                split_guid = _guid(split)
+                if split_guid in request.split_memos:
+                    split.memo = request.split_memos[split_guid]
+
+        return transaction

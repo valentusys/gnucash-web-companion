@@ -11,7 +11,7 @@ Last updated: 2026-05-19
 
 ## Current baseline
 
-Completed through Phase 129.
+Completed through Phase 130.
 
 Current public release state:
 
@@ -22,6 +22,7 @@ Current public release state:
 - Phase 127 is an unreleased compatibility-evidence refresh for GitHub #22: local `gnucash`/`gnucash-cli` Desktop tooling is still unavailable, so docs record a safe blocker/manual procedure instead of claiming Desktop-generated fixture evidence; regression coverage pins the missing-tooling behavior.
 - Phase 128 is an unreleased write-alpha concurrency/error-path safety expansion for create only: copied/disposable fixture tests now prove two parallel create POSTs produce one success and one lock-contention failure, synthetic post-backup write failure releases the lock, records failed audit with intact backup, and leaves the book unmutated, and read-only/viewer book access returns 403 before write-service construction. Writes remain disabled by default and limited to `APP_ENV=test` copied/disposable fixture scope when explicitly enabled.
 - Phase 129 is an unreleased docs-only write-alpha recovery and maintainer-review gate: it adds a synthetic/disposable-scope recovery procedure for containment, backup selection, stale-lock cleanup, restore, integrity checks, and damaged-book triage, plus a maintainer checklist for default-disabled config, `APP_ENV=test` gating, disposable fixtures, lifecycle evidence, recovery docs, and sensitive-data hygiene. No product code changed, writes remain disabled by default, and no real-book write safety is claimed.
+- Phase 130 is an unreleased write-alpha PATCH transaction hardening phase: experimental `PATCH /books/{book_id}/transactions/{transaction_id}` remains disabled by default and executable only with `GNUCASH_WRITES_ENABLED=true` plus `APP_ENV=test` against copied/disposable fixtures; backend hardening now returns 404 for missing transactions before lock/backup/mutation, preserves description/date/split-memo-only edits, records backup paths on failed post-backup PATCH audits, and adds disposable-fixture route tests for successful PATCH, validation failure, missing transaction, no backup leak, lock release, synthetic post-backup failure, intact backup, and concurrent PATCH+CREATE lock contention. No DELETE/import/recurring/account-write, tag, release, or real-book write claim was added.
 - Previous public release `v0.1.2-readonly` remains available and points to its Phase 117 release commit.
 - Previous public release `v0.1.1-readonly` remains available and points to `a4d04150c043ad4da3dea577b30ed7ffd2032df0`, after Phase 104.
 
@@ -157,6 +158,7 @@ Completed phases:
 - Phase 127 — GnuCash Desktop compatibility evidence refresh for GitHub #22
 - Phase 128 — Write-alpha concurrency and error-path expansion
 - Phase 129 — Write-alpha recovery documentation and maintainer review gate
+- Phase 130 — Write-alpha PATCH transaction hardening
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -1992,6 +1994,24 @@ Artifacts:
 Safety result: docs-only phase. No product code, runtime config, route, service, frontend behavior, write default, `APP_ENV=test` gate, tag, release, package, upload, app DB, GnuCash book, backup, `.env`, secret, token, credential, cert, key, screenshot, CSV/media/private export, private path, or real/private financial data was added or changed. No real-book write safety is claimed.
 
 Verification result: backend full tests, frontend check/build, `git diff --check`, sensitive tracked-file scan, and manual markdown review passed.
+
+## Phase 130 — Write-alpha PATCH Transaction Hardening
+
+Status: complete. Phase commit pushed.
+
+Goal: harden the experimental transaction edit/PATCH write-alpha path with the full safety lifecycle while keeping writes disabled by default and test-fixture-only when explicitly enabled.
+
+Artifacts:
+
+- `apps/api/app/services/gnucash_write.py` — PATCH now distinguishes missing transactions from validation failures before lock/backup, exposes a narrow `_do_patch_transaction` helper for description/date/split-memo-only metadata edits, and preserves backup-path propagation for post-backup PATCH failures.
+- `apps/api/app/routers/transactions.py` — failed PATCH audits now record backup paths from `GnuCashWriteError` when failures occur after backup creation.
+- `apps/api/tests/test_transaction_writes.py` — route-level copied/disposable fixture coverage for successful PATCH backup/audit/lock lifecycle, 404 missing transaction before mutation/backup, validation failure with no mutation/no backup/no lock leak/failed audit, synthetic post-backup failure with intact backup and released lock, and concurrent PATCH+CREATE lock contention.
+- `docs/v0.2-controlled-writes.md` — Phase 130 readiness gate and PATCH lifecycle evidence documented without any real-book safety claim.
+- `README.md`, `CHANGELOG.md`, `PROJECT_STATUS.md`, and `docs/handoff/phase-130.md` — status and handoff synchronized.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the default and the `APP_ENV=test` write-alpha gate was not weakened. Tests use only copied/disposable fixtures under `tmp_path`; no real/private GnuCash books, app DBs, backups, `.env`, secrets, tokens, certs, keys, CSV/media/private exports, screenshots, or private financial data were committed. No DELETE/import/recurring/account-write, tag, GitHub release, package, upload, production-readiness claim, audited-security claim, or real-book write-safety claim was added.
+
+Verification result: targeted transaction write tests, backend full tests, frontend check/auth-routes/build, Docker Compose config validation, `git diff --check`, and sensitive tracked-file scan passed.
 
 ## Standing constraints
 
