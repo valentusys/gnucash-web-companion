@@ -7,11 +7,11 @@ Last updated: 2026-05-19
 - GitHub: `valentusys/gnucash-web-companion`
 - Local path: `/home/val/gnucash-web-companion`
 - Branch: `main`
-- Status: pre-alpha / v0.2.0-writealpha published, post-release compatibility documentation refresh
+- Status: pre-alpha / v0.2.0-writealpha published, post-release documentation synchronized through Phase 138
 
 ## Current baseline
 
-Completed through Phase 137.
+Completed through Phase 138.
 
 Current public release state:
 
@@ -30,6 +30,7 @@ Current public release state:
 - Phase 135 is a post-release read-only mobile navigation polish phase: `DesktopNav.svelte` is hidden below the `md` breakpoint, `MobileNav.svelte` owns the small-screen shell with a touch-friendly open/close menu for book, locale, theme, and logout controls, primary mobile links and shared switchers now declare at least 44px touch targets, the app shell reserves enough bottom space for the fixed mobile navigation, and transaction detail splits use mobile cards instead of horizontal table scrolling at 320px widths. Frontend route checks pin the mobile/desktop breakpoint split, menu controls, touch-target classes, layout overflow guard, and transaction split mobile cards. No backend API, write endpoint, write-mode UI expansion, release publication, real-book artifact, export, screenshot, `.env`, app DB, backup, token, key, or `GNUCASH_WRITES_ENABLED=false` default changed.
 - Phase 136 is a docs-only GnuCash compatibility matrix refresh: `docs/gnucash-compatibility.md` now makes the matrix evidence boundaries explicit, adds a dedicated GnuCash Desktop versions tested section, and states that no real Desktop release has been validated by the automated suite yet; `docs/gnucash-version-fixture-plan.md` now inventories all current synthetic/disposable fixture evidence and keeps future Desktop-generated fixture work gated on disposable provenance plus tests; `README.md` links to the compatibility matrix from current status and repeats the synthetic-only evidence warning. No fixture generation, Desktop-version testing, backend/frontend code, write-alpha expansion, release publication, real-book artifact, export, screenshot, `.env`, app DB, backup, token, key, or `GNUCASH_WRITES_ENABLED=false` default changed.
 - Phase 137 is a docs-only local secure deployment hardening refresh: `docs/deployment/local-secure-deployment.md` now covers localhost, LAN, and VPN deployment-mode CORS recommendations, JWT secret generation and conservative rotation, app metadata DB backup/restore expectations, and a concrete self-hosting pre-deployment checklist; `.env.example` comments now point operators toward fresh JWT secrets and exact CORS origins for LAN/VPN. No backend/frontend product code, endpoint, write-alpha capability, release publication, real-book artifact, app DB, backup, `.env`, token, key, screenshot, export, or `GNUCASH_WRITES_ENABLED=false` default changed.
+- Phase 138 is a docs-only public status synchronization phase after Phases 133–137: `README.md`, `README.ru.md`, `CHANGELOG.md`, and `docs/ROADMAP.md` now reflect the completed read-only UX polish, compatibility-documentation refresh, local deployment hardening guide, current release posture, synthetic/disposable evidence boundaries, and no-production/no-security-audit/no-real-book-write-safety limits. No backend/frontend product code, endpoint, write-alpha capability, release publication, real-book artifact, app DB, backup, `.env`, token, key, screenshot, export, or `GNUCASH_WRITES_ENABLED=false` default changed.
 - Previous public release `v0.1.2-readonly` remains available and points to its Phase 117 release commit.
 - Previous public release `v0.1.1-readonly` remains available and points to `a4d04150c043ad4da3dea577b30ed7ffd2032df0`, after Phase 104.
 
@@ -173,6 +174,7 @@ Completed phases:
 - Phase 135 — read-only UX mobile navigation polish
 - Phase 136 — GnuCash compatibility matrix documentation refresh
 - Phase 137 — local secure deployment hardening guide
+- Phase 138 — public README/CHANGELOG/roadmap/status documentation sync
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -252,7 +254,7 @@ Completed phases:
 
 Next planned phase:
 
-- Continue only with the next explicitly requested phase. Controlled writes remain post-MVP/experimental, disabled by default, constrained to `APP_ENV=test` copied/disposable fixtures when explicitly enabled, and not safe for production books. Phase 136 made no release/publication change, generated no new fixtures, tested no real GnuCash Desktop versions, and did not expand write-alpha scope.
+- Continue only with the next explicitly requested phase. Controlled writes remain post-MVP/experimental, disabled by default, constrained to `APP_ENV=test` copied/disposable fixtures when explicitly enabled, and not safe for production books. Phase 138 made no release/publication change, added no backend/frontend code, added no screenshots/exports, generated no fixtures, tested no real GnuCash Desktop versions, and did not expand write-alpha scope.
 
 ## MVP product model
 
@@ -2080,6 +2082,25 @@ Artifacts:
 Safety result: docs/config-example comments only. No backend/frontend product code, endpoint, write route, write service, runtime default, release/tag/package, app DB, GnuCash book, backup, `.env`, secret, token, cert, key, screenshot, CSV/private export, private path, account name, transaction description, memo, amount, or private financial data was added. `GNUCASH_WRITES_ENABLED=false` remains the documented default. The guide stays limited to pre-alpha localhost/LAN/VPN self-hosted testing with test copies first and no production guarantee.
 
 Verification result: targeted backend health tests passed, full backend suite passed (`377 passed, 32 warnings`), Docker Compose config validation passed, `git diff --check` passed, and safety grep for production-readiness claims / real secret patterns in changed docs passed.
+
+## Phase 138 — Public README/CHANGELOG/Roadmap Status Sync
+
+Status: complete. Phase commit pushed.
+
+Goal: synchronize README, Russian README, CHANGELOG, roadmap, project status, and handoff after Phases 133–137 without changing backend/frontend code or publishing a release.
+
+Artifacts:
+
+- `README.md` — current status now says Phase 0–137 are complete, distinguishes the current read-only pre-alpha release from the published write-alpha pre-release, links current release/compatibility docs, and summarizes Phases 133–137.
+- `README.ru.md` — synchronized public Russian status with the English README at summary level: current release posture, recent phases, safety boundaries, partial localization scope, and canonical docs links.
+- `CHANGELOG.md` — added Unreleased entries for Phases 133–137.
+- `docs/ROADMAP.md` — refreshed current release posture, recent maintenance phases, completed groups, near-term backlog posture, and explicit non-MVP boundaries.
+- `docs/handoff/phase-138.md` — implementation/evidence/checks/results.
+- `PROJECT_STATUS.md` — status sync through Phase 138.
+
+Safety result: documentation/status only. No backend/frontend product code, endpoint, write route, write service, runtime default, release/tag/package, app DB, GnuCash book, backup, `.env`, secret, token, cert, key, screenshot, CSV/private export, private path, account name, transaction description, memo, amount, or private financial data was added. `GNUCASH_WRITES_ENABLED=false` remains the documented default. Docs remain pre-alpha, test-copies-first, not production-ready, not security-audited, and with no real/private-book write-safety claim.
+
+Verification result: targeted backend health tests passed, frontend `npm run check` passed, README local-link check passed, README external public-link check passed with localhost example URLs intentionally skipped, `git diff --check` passed, and safety scans over changed docs found no private-data artifact or new production-readiness claim.
 
 ## Standing constraints
 

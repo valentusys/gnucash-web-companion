@@ -5,12 +5,22 @@ This roadmap is intentionally conservative. Safety and trust come before feature
 ## Current release posture
 
 - Status: pre-alpha / MVP in progress.
-- Latest published pre-release: `v0.0.2-prealpha`.
-- Published release notes: `docs/release/v0.0.2-prealpha-notes.md`.
-- Phase 55 scope-freeze audit verdict: ready to prepare a `v0.1.0-readonly` milestone plan, not ready to publish v0.1 yet.
-- Phase 56 created the `v0.1.0-readonly` plan and checklist.
-- Phase 57 completed the dedicated release-gate audit and found v0.1 publication blocked until conservative release notes and copied/disposable-data runtime smoke/dogfood evidence are completed.
-- MVP v0.1 remains read-only by default; controlled writes are experimental, post-MVP, and disabled by `GNUCASH_WRITES_ENABLED=false` unless explicitly enabled in a disposable environment.
+- Completed through Phase 137; Phase 138 is a documentation/status synchronization phase after the Phase 133–137 maintenance work.
+- Current public read-only pre-release: `v0.1.3-readonly`.
+- Current published write-alpha pre-release: `v0.2.0-writealpha`, published after explicit authorization as pre-alpha/experimental and disabled by default.
+- MVP v0.1 remains read-only by default.
+- `GNUCASH_WRITES_ENABLED=false` remains the default.
+- Controlled writes, where present, are post-MVP/write-alpha, disabled by default, constrained by the existing backend test-environment gate when explicitly enabled, and not safe for real/private production books.
+- Current compatibility evidence is synthetic/disposable fixture evidence only; broad GnuCash Desktop version support is not claimed.
+- No further tag, GitHub release, package, or publication is planned by this roadmap page unless a later explicit release phase and authorization say so.
+
+## Recently completed maintenance phases
+
+- Phase 133 — read-only empty/error state polish for books, scheduled transactions, transactions, accounts, and user-safe global error handling.
+- Phase 134 — read-only loading skeletons for dashboard, accounts, transactions, and books during navigation/data reloads.
+- Phase 135 — read-only mobile navigation polish, touch-target cleanup, mobile shell spacing, and transaction-detail split cards for narrow screens.
+- Phase 136 — GnuCash compatibility documentation refresh with explicit synthetic/disposable evidence boundaries and no real Desktop-version validation claim.
+- Phase 137 — local secure deployment hardening guide refresh for localhost/LAN/VPN CORS examples, JWT secret handling/rotation, app metadata DB backups, and pre-deployment checks.
 
 ## Completed phase groups
 
@@ -26,77 +36,71 @@ Key artifacts:
 - `docs/GNUCASH_SAFETY.md`
 - `docs/handoff/phase-0.md` through `docs/handoff/phase-11.md`
 
-### Controlled-write safety groundwork, still post-MVP — Phases 12–14, 21–23, and 32
+### Controlled-write safety groundwork, still post-MVP
 
 Implemented controlled write code and safety tests only as future/post-MVP work. The MVP remains read-only by default.
 
-Completed:
+Completed safety foundations include:
 
-- feature flag gating for writes with default `GNUCASH_WRITES_ENABLED=false`
-- file-based per-book write locking
-- disposable-book write integration tests
-- backup restore smoke tests
-- disabled-write bypass regression coverage for validate/create/patch routes
+- feature flag gating for writes with default `GNUCASH_WRITES_ENABLED=false`;
+- file-based per-book write locking;
+- disposable-book write integration tests;
+- backup restore smoke tests;
+- disabled-write bypass regression coverage;
+- write-alpha create/PATCH/DELETE hardening only under explicit test/disposable fixture scope.
 
 Do not treat this as production-safe write support.
 
-### Release governance and agent continuity — Phases 15–16, 25–29, 33–35, 40–42, and 55
+### Release governance and public status synchronization
 
-Completed public pre-alpha release setup, Project Lead context, release/status documentation synchronization, audit-driven fixes, discoverability docs, compatibility matrix, Phase 29 audit documentation refresh, Phase 33/34 public status baseline cleanup, Phase 35 audit-driven controlled-writes limitation cleanup, `v0.0.2-prealpha` release governance/publication, and the Phase 55 v0.1 read-only scope-freeze audit.
+Completed release/status documentation synchronization, project-lead context, conservative pre-alpha release gates, public pre-release publication phases, and post-release documentation/status correction phases.
 
-Key artifacts:
+Key release artifacts:
 
-- `docs/release/v0.0.1-prealpha-checklist.md`
 - `docs/release/v0.0.1-prealpha-notes.md`
-- `docs/release/v0.0.2-prealpha-checklist.md`
 - `docs/release/v0.0.2-prealpha-notes.md`
-- `docs/audits/2026-05-17-audit.md`
-- `docs/audits/2026-05-18-phase-55-v0.1-readonly-scope-freeze.md`
-- `docs/agents/project-lead.md`
-- `docs/handoff/phase-15.md` through `docs/handoff/phase-16.md`
-- `docs/handoff/phase-25.md` through `docs/handoff/phase-29.md`
-- `docs/handoff/phase-33.md` through `docs/handoff/phase-35.md`
+- `docs/release/v0.1.0-readonly-notes.md`
+- `docs/release/v0.1.1-readonly-notes.md`
+- `docs/release/v0.1.2-readonly-notes.md`
+- `docs/release/v0.1.3-readonly-notes.md`
+- `docs/release/v0.2.0-writealpha-notes.md`
+- `CHANGELOG.md`
+- `PROJECT_STATUS.md`
 
-### Read-only release-value improvements — Phases 17–20, 24, 27–28, and 30–31
+### Read-only release-value improvements
 
-Completed:
+Completed read-only value work includes:
 
-- synthetic disposable GnuCash SQLite fixtures
-- real read-only adapter validation against fixtures
-- README screenshots using synthetic data only
-- multi-currency limitation tests/docs
-- multi-book UI foundation
-- read-only transaction CSV export
-- transaction amount range filters for browsing and CSV export
-- global read-only safety status banner in the authenticated web shell
-- community announcement readiness docs
-- GnuCash compatibility matrix for committed synthetic fixtures
+- synthetic/disposable GnuCash SQLite fixtures;
+- read-only adapter validation against fixtures;
+- README screenshots using synthetic data only;
+- multi-currency limitation tests/docs;
+- multi-book UI foundation and read-only book metadata UX;
+- transaction search/filtering, URL-only presets, account-scoped filter/export parity, and CSV export;
+- scheduled/recurring transaction read-only awareness;
+- dashboard/report correctness and known no-conversion limitations;
+- read-only safety banner, empty/error states, skeleton loading states, and mobile navigation polish;
+- conservative local/LAN/VPN deployment and backup/recovery documentation.
 
-## Completed: v0.0.2 pre-alpha publication
+## Near-term backlog posture
 
-`v0.0.2-prealpha` was published in Phase 42 after the Phase 41 release-gate audit, green local checks, and green GitHub CI. Do not publish further tags or releases unless a later explicit release phase says so.
+Continue only with explicitly requested phases. Good next work should be concrete and bounded, such as:
 
-## Next: v0.1 read-only release gate
+- read-only UX fixes from real/synthetic dogfood;
+- safe copied/disposable-book compatibility evidence if an explicit safe source is provided;
+- local/LAN/VPN deployment smoke evidence with redacted artifacts;
+- documentation updates that are tied to a real status/release/safety change.
 
-Target: safe private self-hosted read-only browsing and reporting over one configured GnuCash book. Phase 55 found the project ready to prepare a `v0.1.0-readonly` plan/checklist, Phase 56 created those planning artifacts, and Phase 57 blocked publication until release notes and runtime smoke/dogfood evidence are completed. The project is still not approved to publish v0.1.
-
-Remaining likely work:
-
-- conservative `v0.1.0-readonly` release notes
-- end-to-end Docker runtime testing on a clean machine or explicitly accepted limitation
-- UI polish based on synthetic/sample books only
-- privacy mode for sensitive numbers
-- deployment hardening documentation
-- conservative release notes with no production/security-audit claims
+Avoid audit-only loops unless explicitly requested. Avoid expanding write-alpha code unless a phase explicitly authorizes it and preserves disabled-by-default/test-disposable boundaries.
 
 ## Later / explicitly not MVP
 
-Possible future areas after v0.1, only with explicit design and safety review:
+Possible future areas after explicit design and safety review:
 
-- full book management UI
-- advanced reports and charting
-- improved multi-currency reports with explicit exchange-rate policy
-- optional integrations
-- carefully designed write mode after compatibility and recovery review
+- full book management UI;
+- advanced reports and charting;
+- improved multi-currency reports with explicit exchange-rate policy;
+- optional integrations;
+- carefully designed write mode after compatibility, recovery, and maintainer review gates.
 
-Collaborative multi-user editing is not a core roadmap item. Banking integrations, CSV/OFX import, hosted SaaS positioning, and family-wallet baseline positioning remain out of MVP scope.
+Collaborative multi-user editing is not a core roadmap item. Banking integrations, CSV/OFX import, hosted SaaS positioning, direct public-internet deployment posture, and family-wallet baseline positioning remain out of MVP scope.

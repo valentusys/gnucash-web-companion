@@ -1,21 +1,54 @@
 # gnucash-web-companion (RU)
 
-> Статус: pre-alpha / v0.1 read-only опубликован. Английская документация в `README.md` остаётся канонической; этот русский файл — ограниченная справка и не является полным переводом.
+> Статус: pre-alpha / MVP in progress. Английская документация в `README.md` остаётся канонической; этот русский файл синхронизирует публичный статус, но не является полным переводом.
 
 `gnucash-web-companion` — self-hosted web companion для существующих GnuCash SQL books. Цель текущего MVP — безопасный read-only просмотр в браузере/на мобильном устройстве, пока GnuCash Desktop остаётся главным редактором.
 
-## Что уже важно знать
+## Что это
 
-- MVP v0.1 остаётся read-only by default.
+- Read-only-first веб-приложение для существующих GnuCash SQL books через `piecash`.
+- Self-hosted приложение для своей инфраструктуры.
+- Companion, а не замена GnuCash: GnuCash Desktop остаётся источником правды для редактирования.
+- Single-book by default, с read-only foundation для будущих независимых книг и scoped access.
+
+## Что это не
+
+- Не GnuCash replacement.
+- Не hosted personal-finance SaaS.
+- Не collaborative multi-user accounting.
+- Не family-wallet baseline.
+- Не production-ready и не security-audited accounting software.
+- Не безопасный write mode для единственной реальной книги.
+
+## Текущий публичный статус
+
+- Завершены Phase 0–137.
+- MVP v0.1 остаётся **read-only by default**.
 - `GNUCASH_WRITES_ENABLED=false` — безопасный дефолт.
-- Любой controlled-write код является experimental post-MVP и отключён по умолчанию.
-- Не используйте pre-alpha сборку с единственной реальной книгой GnuCash: сначала тестовая копия или synthetic fixture.
-- Не публикуйте early build напрямую в интернет.
-- Английские safety/security тексты считаются источником правды; переводы требуют ручной проверки.
+- Controlled-write код, если присутствует, является experimental post-MVP/write-alpha, отключён по умолчанию и дополнительно ограничен backend `APP_ENV=test` gate при явном включении.
+- Текущий публичный read-only pre-alpha release: [`v0.1.3-readonly`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.3-readonly).
+- Опубликованный write-alpha pre-release: `v0.2.0-writealpha`; он pre-alpha/experimental, disabled by default, не production-ready, не security-audited и не заявляет безопасность записей в real/private books.
+- Compatibility matrix: [docs/gnucash-compatibility.md](docs/gnucash-compatibility.md). Текущие evidence boundaries — synthetic/disposable fixtures only; broad real GnuCash Desktop version support не заявлен.
+
+## Последние post-release фазы
+
+- Phase 133 — улучшены read-only empty/error states.
+- Phase 134 — добавлены shape-matched loading skeletons для dashboard/accounts/transactions/books.
+- Phase 135 — отполирована mobile navigation и small-screen transaction detail layout.
+- Phase 136 — обновлены compatibility docs с честными границами synthetic/disposable evidence.
+- Phase 137 — обновлены local/LAN/VPN deployment hardening docs: CORS examples, JWT secret guidance/rotation, app metadata DB backups, pre-deployment checklist.
+
+## Как пробовать безопасно
+
+- Сначала используйте test copy или synthetic/disposable fixture, а не единственную реальную книгу.
+- Держите регулярные tested backups GnuCash files и `data/app/app.db`.
+- Не коммитьте `.env`, app DB, GnuCash books, backups, private screenshots/exports, tokens, keys, certs или реальные финансовые данные.
+- Не публикуйте early build напрямую в интернет; используйте local/LAN/VPN-only testing.
+- Держите `GNUCASH_WRITES_ENABLED=false`, если только вы явно не тестируете post-MVP write-alpha на disposable fixture.
 
 ## Ограниченный русский UI
 
-Русский язык включается вручную через переключатель языка в UI. Английский остаётся дефолтом.
+Русский язык включается вручную через переключатель языка в UI. Английский остаётся дефолтом и каноническим источником для safety/release wording.
 
 Сейчас переведён только небольшой проверенный срез:
 
@@ -27,22 +60,15 @@
 
 Это не полный перевод приложения. Backend/API ошибки, большая часть отчётных таблиц, release-документы и safety/security документы остаются на английском.
 
-## Read-only смысл русских предупреждений
-
-Русские предупреждения должны сохранять тот же смысл, что и английские:
-
-- приложение по умолчанию только читает данные GnuCash;
-- GnuCash Desktop остаётся главным редактором;
-- web-записи требуют отдельного post-MVP feature flag;
-- включать write mode против единственной реальной книги нельзя.
-
 ## English canonical docs
 
 Основные документы:
 
-- `README.md`
-- `docs/GNUCASH_SAFETY.md`
-- `docs/deployment/local-secure-deployment.md`
-- `docs/operations/backup-and-recovery.md`
-- `docs/v0.2-controlled-writes.md`
-- `docs/localization.md`
+- [README.md](README.md)
+- [docs/GNUCASH_SAFETY.md](docs/GNUCASH_SAFETY.md)
+- [docs/deployment/local-secure-deployment.md](docs/deployment/local-secure-deployment.md)
+- [docs/operations/backup-and-recovery.md](docs/operations/backup-and-recovery.md)
+- [docs/v0.2-controlled-writes.md](docs/v0.2-controlled-writes.md)
+- [docs/localization.md](docs/localization.md)
+- [CHANGELOG.md](CHANGELOG.md)
+- [docs/ROADMAP.md](docs/ROADMAP.md)
