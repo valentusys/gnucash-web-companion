@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Phase 152 — published `v0.1.5-readonly` as an authorized GitHub pre-release after re-running the final release gate: clean `main`, `HEAD == origin/main`, local backend/frontend/Docker checks, rendered `GNUCASH_WRITES_ENABLED=false`, tag/release absence, sensitive tracked-file hygiene, and GitHub Actions for the release commit passed. Publication created only the annotated tag and GitHub pre-release; no package, image, production deployment, write expansion, runtime default change, or real/private data artifact was added.
 - Phase 151 — prepared unpublished `v0.1.5-readonly` maintenance release readiness artifacts: release notes, release-prep checklist, final gate, README/CHANGELOG/PROJECT_STATUS sync, and handoff summarize Phases 143–150, keep conservative pre-alpha/read-only/default-write-disabled language, confirm no tag/release/package publication, and record that the candidate is ready for a later authorized publish phase after local checks and CI passed.
 - Phase 150 — reran synthetic/disposable Docker/Caddy read-only dogfood after the Phase 143–149 UX/localization work: API smoke covered health, login/auth, books/default book, accounts, transactions, transaction detail, CSV export, reports summary, and disabled validate/create/patch write probes; browser dogfood covered login, protected redirect, dashboard, accounts, books, scheduled, account detail, transaction filters, transaction detail, CSV export, hidden write UI, and no-artifact checks with `GNUCASH_WRITES_ENABLED=false`.
 - Phase 149 — expanded the existing English/Russian i18n catalog for the post-`v0.1.4-readonly` read-only UX: account-tree filtering, dashboard/reporting limitation labels, transaction detail/split readability copy, and hidden-by-default write-alpha DELETE warnings now have Russian equivalents while English remains canonical and translation remains partial/opt-in.
@@ -18,18 +19,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Phase 144 — added a local account-tree filter for large read-only account trees, with filtered counts and no browser-storage/API/write behavior.
 - Phase 143 — added an app-shell read-only/current-book status banner v2 after `v0.1.4-readonly`.
 
-## [0.1.5-readonly] - Unpublished candidate
+## [0.1.5-readonly] - 2026-05-19
 
 ### Added
 
+- Published `v0.1.5-readonly` as an authorized GitHub pre-release in Phase 152 after the final release gate passed.
 - Prepared release notes, checklist, and final-gate artifacts for a possible `v0.1.5-readonly` maintenance pre-release without creating a tag, GitHub release, package, Docker image, binary artifact, production deployment, or write-mode change.
 - Candidate scope covers Phases 143–150: app-shell read-only/current-book banner, account-tree filtering, transaction list/export clarity, transaction detail/split readability, dashboard/reporting limitation clarity, `/books` self-hosting guidance, Russian localization coverage, and synthetic Docker/browser dogfood refresh.
 
 ### Release notes
 
-- `v0.1.5-readonly` is not published yet. `v0.1.4-readonly` remains the current public read-only pre-alpha release.
+- `v0.1.5-readonly` was published as a GitHub pre-release on 2026-05-19 after Phase 152 final-gate verification. No package, binary artifact, Docker image, or production deployment was published.
 - The candidate remains pre-alpha and read-only by default. `GNUCASH_WRITES_ENABLED=false` remains the default; controlled-write code is experimental post-MVP/write-alpha work and outside any safe production write-mode claim.
-- Publication is reserved for a later authorized phase after clean `main`, `HEAD == origin/main`, tag/release absence, green GitHub CI for the release HEAD, local checks, disabled-write defaults, and sensitive-data hygiene are re-confirmed.
+- Publication was performed only after clean `main`, `HEAD == origin/main`, tag/release absence, green GitHub CI for the release HEAD, local checks, disabled-write defaults, and sensitive-data hygiene were re-confirmed.
 
 ### Known limitations
 
