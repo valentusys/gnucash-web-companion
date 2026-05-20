@@ -185,7 +185,7 @@
 			{#if data.writesEnabled}
 				<div class="max-w-sm space-y-2">
 					<p class="text-xs font-semibold" style="color: #b45309;">
-						Experimental post-MVP write mode is enabled. MVP v0.1 remains read-only by default; use only disposable/test copies with backups.
+						Experimental post-MVP write mode is enabled. MVP v0.1 remains read-only by default; continue only in APP_ENV=test with an ignored disposable copy, backups, audit, and lock-release evidence.
 					</p>
 					<a class="inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold text-white" style="background: var(--app-accent);" href="/transactions/new">New transaction</a>
 				</div>

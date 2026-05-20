@@ -14,11 +14,13 @@
 	<p class="font-semibold">Experimental controlled write mode — not part of MVP v0.1</p>
 	<p class="mt-2">
 		MVP v0.1 remains read-only by default and <code>GNUCASH_WRITES_ENABLED=false</code> is the safe default.
-		This write form is experimental post-MVP functionality only.
+		This write form is experimental post-MVP functionality only and should be reachable only in an explicit
+		<code>APP_ENV=test</code> disposable run.
 	</p>
 	<ul class="mt-2 list-disc space-y-1 pl-5">
 		<li>GnuCash Desktop remains the authoritative editor.</li>
-		<li>Use only disposable/test copies of a book and make backups first.</li>
+		<li>Use only disposable/test copies copied into ignored runtime storage; never point this at the source or only copy.</li>
+		<li>Confirm backup, audit, and lock-release evidence before treating a write-alpha run as complete.</li>
 		<li>Never use this experimental path with your only real financial book.</li>
 	</ul>
 </div>

@@ -44,11 +44,14 @@ async function apiPost<T>(fetchFn: typeof fetch, path: string, token: string, pa
 	return { ok: response.ok, status: response.status, body };
 }
 
-function detailMessage(body: unknown): string {
+function detailMessage(body: unknown, fallback = 'Write-alpha request failed safely. Check local operator logs and redacted audit/backup/lock evidence before retrying.'): string {
 	if (typeof body === 'object' && body !== null && 'detail' in body && typeof body.detail === 'string') {
-		return body.detail;
+		const detail = body.detail.trim();
+		if (detail && detail.length <= 180 && !/[\\/]/.test(detail)) {
+			return detail;
+		}
 	}
-	return 'API request failed.';
+	return fallback;
 }
 
 function formToPayload(formData: FormData): CreatePayload {
@@ -111,7 +114,7 @@ export const actions: Actions = {
 				payload
 			);
 			if (!result.ok) {
-				return { error: detailMessage(result.body), payload };
+				return { error: detailMessage(result.body, 'Validation failed safely. Check the selected disposable copy and redacted operator logs before retrying.'), payload };
 			}
 			return { validation: result.body as TransactionValidationResult, payload };
 		} catch (err) {
@@ -142,7 +145,7 @@ export const actions: Actions = {
 				payload
 			);
 			if (!validationResult.ok) {
-				return { error: detailMessage(validationResult.body), payload };
+				return { error: detailMessage(validationResult.body, 'Validation failed safely. Check the selected disposable copy and redacted operator logs before retrying.'), payload };
 			}
 			const validation = validationResult.body as TransactionValidationResult;
 			if (!validation.valid) return { validation, payload };

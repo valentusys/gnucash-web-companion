@@ -550,8 +550,8 @@ assert.match(
 );
 assert.match(
 	transactionListPage,
-	/data\.writesEnabled[\s\S]*Experimental post-MVP write mode[\s\S]*New transaction/,
-	'transactions page must show warning text near the enabled write entry point'
+	/data\.writesEnabled[\s\S]*Experimental post-MVP write mode[\s\S]*APP_ENV=test[\s\S]*lock-release evidence[\s\S]*New transaction/,
+	'transactions page must show disposable APP_ENV/test and evidence warning text near the enabled write entry point'
 );
 
 const transactionDetailServer = read('src/routes/transactions/[id]/+page.server.ts');
@@ -585,6 +585,11 @@ assert.match(
 	transactionDetailPage,
 	/data\.writesEnabled && data\.activeBook[\s\S]*action="\?\/delete"[\s\S]*confirm\(t\(locale, 'transactionDetail\.deleteConfirm'\)[\s\S]*transactionDetail\.deleteAcknowledgement/s,
 	'transaction delete form must be hidden by default and require browser confirmation plus disposable/test acknowledgement'
+);
+assert.match(
+	i18nMessages,
+	/transactionDetail\.deleteHelper[\s\S]*APP_ENV=test[\s\S]*transactionDetail\.deleteAcknowledgement[\s\S]*backup, audit, and lock-release checks[\s\S]*Экспериментальное удаление транзакции[\s\S]*APP_ENV=test/s,
+	'localized delete write-alpha guardrails must mention ignored disposable copies, APP_ENV=test, and backup/audit/lock-release checks'
 );
 
 const serverApi = read('src/lib/api/server.ts');
@@ -721,12 +726,35 @@ for (const phrase of [
 	'experimental post-MVP',
 	'MVP v0.1 remains read-only by default',
 	'GNUCASH_WRITES_ENABLED=false',
+	'APP_ENV=test',
 	'GnuCash Desktop remains the authoritative editor',
 	'disposable/test copies',
+	'ignored runtime storage',
+	'backup, audit, and lock-release evidence',
 	'Never use this experimental path with your only real financial book'
 ]) {
 	assert.ok(writeModeWarning.includes(phrase), `write warning must include: ${phrase}`);
 }
+assert.match(
+	newTransactionPage,
+	/write_acknowledgement[\s\S]*ignored disposable\/test copy with backup, audit, and lock-release checks/s,
+	'new transaction acknowledgement must pin disposable copy and evidence checks'
+);
+assert.match(
+	newTransactionPage,
+	/Final warning:[\s\S]*APP_ENV=test[\s\S]*ignored disposable copy[\s\S]*Never use a source or only copy/s,
+	'new transaction browser confirmation must warn against source or only-copy writes'
+);
+assert.ok(
+	newTransactionServer.includes('detail.length <= 180 && !/[\\\\/]/.test(detail)') &&
+		newTransactionServer.includes('Write-alpha request failed safely'),
+	'new transaction server errors must avoid rendering raw path-like API details'
+);
+assert.ok(
+	transactionDetailServer.includes('detail.length <= 180 && !/[\\\\/]/.test(detail)') &&
+		transactionDetailServer.includes('Write-alpha request failed safely'),
+	'transaction delete server errors must avoid rendering raw path-like API details'
+);
 
 for (const file of walk(join(root, 'src'))) {
 	const content = readFileSync(file, 'utf8');

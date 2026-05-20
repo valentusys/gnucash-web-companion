@@ -27,7 +27,7 @@
 		if (hasBlockingErrors) return false;
 		if (!writeAcknowledged) return true;
 		confirmed = window.confirm(
-			'Final warning: this experimental post-MVP action will write to a GnuCash book copy. Use only disposable/test copies with backups. Continue?'
+			'Final warning: this experimental post-MVP action will write to a GnuCash book copy. Continue only in APP_ENV=test with an ignored disposable copy, backups, audit, and lock-release checks. Never use a source or only copy. Continue?'
 		);
 		return confirmed;
 	}
@@ -144,7 +144,7 @@
 				required
 			/>
 			<span>
-				I acknowledge that controlled writes are experimental post-MVP functionality, MVP v0.1 remains read-only by default, <code>GNUCASH_WRITES_ENABLED=false</code> is the safe default, GnuCash Desktop remains the authoritative editor, and I am using only a disposable/test copy with backups.
+				I acknowledge that controlled writes are experimental post-MVP functionality, MVP v0.1 remains read-only by default, <code>GNUCASH_WRITES_ENABLED=false</code> is the safe default, GnuCash Desktop remains the authoritative editor, and I am using only an ignored disposable/test copy with backup, audit, and lock-release checks.
 			</span>
 		</label>
 

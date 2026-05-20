@@ -24,9 +24,12 @@ async function apiDelete<T>(fetchFn: typeof fetch, path: string, token: string):
 
 function detailMessage(body: unknown): string {
 	if (typeof body === 'object' && body !== null && 'detail' in body && typeof body.detail === 'string') {
-		return body.detail;
+		const detail = body.detail.trim();
+		if (detail && detail.length <= 180 && !/[\\/]/.test(detail)) {
+			return detail;
+		}
 	}
-	return 'API request failed.';
+	return 'Write-alpha request failed safely. Check local operator logs and redacted audit/backup/lock evidence before retrying.';
 }
 
 function hasDeleteAcknowledgement(formData: FormData): boolean {
