@@ -22,14 +22,14 @@
 
 ## Текущий публичный статус
 
-- Завершены Phase 0–191.
+- Завершены Phase 0–201.
 - MVP v0.1 остаётся **read-only by default**.
 - `GNUCASH_WRITES_ENABLED=false` — безопасный дефолт.
 - Controlled-write код, если присутствует, является experimental post-MVP/write-alpha, отключён по умолчанию и дополнительно ограничен backend `APP_ENV=test` gate при явном включении.
 - Текущий публичный read-only pre-alpha release: [`v0.1.7-readonly`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.7-readonly).
 - Предыдущий публичный read-only pre-alpha release: [`v0.1.6-readonly`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.6-readonly).
-- Предыдущие write-alpha pre-release: [`v0.2.1-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.1-writealpha) и [`v0.2.0-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.0-writealpha); они pre-alpha/experimental, disabled by default, не production-ready, не security-audited и не заявляют безопасность записей в real/private books.
-- Текущий опубликованный write-alpha pre-release: [`v0.2.2-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.2-writealpha), опубликован в Phase 191 после cycle-2 release-readiness gate и green exact-commit CI: [notes](docs/release/v0.2.2-writealpha-notes.md), [checklist](docs/release/v0.2.2-writealpha-checklist.md), [final gate](docs/release/v0.2.2-writealpha-final-gate.md), [publication evidence](docs/release/v0.2.2-writealpha-publication-evidence.md). Write-alpha нельзя использовать на real/private books или единственной копии книги; только synthetic/disposable или copied test books, которые можно восстановить или удалить.
+- Предыдущие write-alpha pre-release: [`v0.2.2-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.2-writealpha), [`v0.2.1-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.1-writealpha) и [`v0.2.0-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.0-writealpha); они pre-alpha/experimental, disabled by default, не production-ready, не security-audited и не заявляют безопасность записей в real/private books.
+- Текущий опубликованный write-alpha pre-release: [`v0.2.3-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.3-writealpha), опубликован в Phase 201 после cycle-3 release-readiness gate и green exact-commit CI: [notes](docs/release/v0.2.3-writealpha-notes.md), [checklist](docs/release/v0.2.3-writealpha-checklist.md), [final gate](docs/release/v0.2.3-writealpha-final-gate.md), [publication evidence](docs/release/v0.2.3-writealpha-publication-evidence.md). Write-alpha нельзя использовать на real/private books или единственной копии книги; только synthetic/disposable или copied test books, которые можно восстановить или удалить.
 - Compatibility matrix: [docs/gnucash-compatibility.md](docs/gnucash-compatibility.md). Текущие evidence boundaries — synthetic/disposable fixtures only; broad real GnuCash Desktop version support не заявлен.
 
 ## Последние post-release фазы
@@ -66,6 +66,16 @@
 - Phase 189 — fresh-clone Docker smokes пройдены для current read-only tag, current write-alpha tag и `main` с default disabled writes.
 - Phase 190 — пройден combined cycle-2 release-candidate dogfood: default read-only API/browser plus separate explicit local-only create/PATCH/DELETE write-alpha evidence.
 - Phase 191 — cycle-2 release-readiness gate пройден; `v0.2.2-writealpha` опубликован как authorized GitHub pre-release после green exact-commit CI.
+- Phase 192 — убраны GitHub Actions Node.js 20 action deprecation warnings без изменения product/runtime defaults.
+- Phase 193 — добавлен stopped-runtime-only cleanup/recovery helper для ignored root-owned runtime artifacts и stale/unreadable locks.
+- Phase 194 — write-alpha smoke helpers стали устойчивыми к root-owned host-side artifacts без повторного запуска mutating routes.
+- Phase 195 — усилен read-only write-alpha audit-summary operator UX с safe filters и redacted count/status metadata.
+- Phase 196 — добавлены redacted first-run/read-only deployment diagnostics для JWT/admin/default-book/CORS/write-mode triage.
+- Phase 197 — обновлён GnuCash Desktop fixture compatibility blocker evidence через disposable tooling probe и redaction/provenance tests.
+- Phase 198 — усилены multi-book read-only registry diagnostics и selected-book recovery без raw paths и management/write controls.
+- Phase 199 — пройден full default-read-only Docker/Caddy API/browser regression dogfood; disabled validate/create/PATCH/DELETE probes вернули 403.
+- Phase 200 — пройден bounded write-alpha create/PATCH/DELETE disposable CRUD/restore dogfood, stack returned to default false, ignored runtime artifacts cleaned.
+- Phase 201 — cycle-3 release-readiness gate пройден; `v0.2.3-writealpha` опубликован как authorized GitHub pre-release после green exact-commit CI.
 
 ## Как пробовать безопасно
 

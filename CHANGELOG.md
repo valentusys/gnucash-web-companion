@@ -6,9 +6,35 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-### Changed
+No unreleased changes yet.
 
-- Phase 192 — updated GitHub Actions JavaScript-action wiring to Node 24-compatible major versions (`actions/checkout@v5`, `actions/setup-node@v6`, and `actions/setup-python@v6`) in the existing foundation, frontend, backend, and Docker Compose jobs to remove the known non-blocking Node.js 20 deprecation warnings seen after `v0.2.2-writealpha`; product behavior, Docker runtime defaults, release state, and `GNUCASH_WRITES_ENABLED=false` remain unchanged.
+## [0.2.3-writealpha] - 2026-05-20
+
+### Added
+
+- Phase 201 — published `v0.2.3-writealpha` as a conservative pre-alpha write-alpha GitHub pre-release after the cycle-3 release-readiness gate passed, local backend/frontend/Docker checks passed, rendered `GNUCASH_WRITES_ENABLED=false` was confirmed, sensitive tracked-file hygiene passed, and GitHub Actions on the exact release/status commit completed successfully. Publication created only the annotated tag and GitHub pre-release.
+- Phase 200 — completed bounded cycle-3 write-alpha create/PATCH/DELETE disposable route-family dogfood on fresh ignored synthetic runtime copies, with backup/audit evidence, DELETE restore proof, stale-released/non-active lock evidence, default-disabled reset, and clean teardown.
+- Phase 199 — completed full default-read-only Docker/Caddy API and browser regression dogfood at mobile and desktop widths, with validate/create/PATCH/DELETE probes returning 403 and no committed runtime artifacts.
+- Phase 198 — hardened multi-book read-only registry diagnostics, role/status copy, unavailable-book actions, and selected-book recovery without exposing raw paths or adding registry/write management.
+- Phase 197 — refreshed GnuCash Desktop fixture compatibility blocker evidence with disposable GnuCash 4.13 container tooling and redacted metadata/provenance tests, without claiming broad Desktop support.
+- Phase 196 — added redacted first-run/read-only deployment diagnostics for JWT/admin/default-book/CORS/write-disabled triage through `/health` and `/login`.
+- Phase 195 — hardened the read-only write-alpha audit-summary operator UX with safe action/result/time-window filters and bounded redacted counts/status metadata.
+- Phase 194 — made write-alpha create/PATCH/DELETE smoke helpers resilient to root-owned host-side runtime artifacts by collecting redacted backup/audit/lock evidence inside the API container without rerunning mutating routes.
+- Phase 193 — added stopped-runtime-only cleanup and lock recovery tooling for ignored root-owned runtime artifacts and stale/unreadable locks.
+- Phase 192 — updated GitHub Actions JavaScript-action wiring to Node 24-compatible major versions to remove the known non-blocking Node.js 20 deprecation warnings seen after `v0.2.2-writealpha`; product behavior, Docker runtime defaults, release state, and `GNUCASH_WRITES_ENABLED=false` remain unchanged.
+
+### Release notes
+
+- `v0.2.3-writealpha` remains pre-alpha and experimental. `GNUCASH_WRITES_ENABLED=false` remains the default; write-alpha execution remains gated by explicit local enablement plus `APP_ENV=test`.
+- New write-alpha evidence is synthetic/disposable only. It does not establish safe writes for real/private or only-copy books.
+- Publication created only a GitHub pre-release and annotated git tag; no package, binary artifact, Docker image, production deployment, write default change, write-scope expansion, or real/private data artifact was published.
+
+### Known limitations
+
+- Not production-ready and not security-audited.
+- Do not expose early deployments directly to the public internet.
+- Write-alpha remains unsafe for real/private or only-copy books; evidence is synthetic/disposable only for this cycle.
+- No broad GnuCash Desktop/backend compatibility, hosted SaaS readiness, collaborative accounting, CSV/OFX import, banking integration, or production-safe write mode is claimed.
 
 ## [0.2.2-writealpha] - 2026-05-20
 
