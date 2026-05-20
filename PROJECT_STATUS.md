@@ -7,11 +7,11 @@ Last updated: 2026-05-21
 - GitHub: `valentusys/gnucash-web-companion`
 - Local path: `/home/val/gnucash-web-companion`
 - Branch: `main`
-- Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release; Phase 211 published `v0.2.4-writealpha` as the current experimental write-alpha pre-release after cycle-1 release checks, exact release/status commit GitHub Actions, tag/release absence checks, rendered `GNUCASH_WRITES_ENABLED=false`, and sensitive tracked-file hygiene. Phase 212 synchronized stale public roadmap/status wording after `v0.2.4-writealpha` and added a public status drift guard. Phase 213 verified the published `v0.2.4-writealpha` tag from a fresh clone with the committed synthetic fixture, dummy local-only secrets, Docker/Caddy, read-only API smoke, mobile/desktop browser dogfood, and disabled validate/create/PATCH/DELETE probes returning 403; Phase 214 added and passed a synthetic local upgrade smoke from `v0.2.4-writealpha` runtime state to current `main`, preserving dummy app metadata DB access, default book access, selected-book recovery, read-only routes, audit-summary metadata, and disabled writes; Phase 215 hardened unavailable/missing/not-configured book read-only error contracts across API and web routes and passed synthetic unavailable-book API/browser dogfood; Phase 216 added read-only CSV/list parity regressions for transaction-note queries, account-scoped header-only empty exports, advisory export metadata, URL-only/mobile export UI, and no browser money coercion/storage guards, then passed synthetic CSV fetch dogfood without writing export artifacts; Phase 217 added write-alpha backup-failure/no-mutation drill coverage for create/PATCH/DELETE route families, proving backup creation failures stop before mutation/write-open, write post-backup injected failures keep backup evidence, failed audit rows stay path-safe, locks are released, and default-disabled validate/create/PATCH/DELETE remain 403; no release was published. Phase 218 added bounded read-only audit-summary limit/offset pagination and mobile-safe operator review controls with large synthetic app-metadata tests, redacted page metadata, owner/editor access, viewer/unauthorized blocking, URL-only filters, and no browser storage; Phase 219 added a glossary-backed EN/RU operator-safety/accounting wording slice for read-only/write-alpha safety terms, tightened `/books` metadata wording, and added static checks rejecting softened production/security/safe-write claims; no release was published. Phase 220 completed default-read-only release-candidate dogfood but found a bounded write-alpha DELETE backup-count anomaly after a successful synthetic/disposable DELETE route execution. Phase 221 ran the `v0.2.5-writealpha` release gate and recorded an explicit no-release verdict; no tag/GitHub release was created. Write-alpha remains disabled by default, gated by `APP_ENV=test` when explicitly enabled, synthetic/disposable-evidence-only, not production-ready, not security-audited, and not safe for real/private or only-copy books.
+- Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release; `v0.2.4-writealpha` remains the current public experimental write-alpha pre-release. Completed through Phase 226. Phase 226 confirmed the full Docker/Caddy default-read-only synthetic path after write-alpha backup/evidence remediation: rendered API/web `GNUCASH_WRITES_ENABLED=false`, read-only API smoke passed health/login/books/accounts/transactions/details/CSV/reports/scheduled/audit-summary plus disabled validate/create/PATCH/DELETE 403 probes, browser dogfood passed at `320x720` and `1280x900` with hidden write UI, auth-cookie no-readability, CSV fetch, no horizontal overflow, and cleanup/no-artifact checks. No write-enabled run, release/tag, or real/private-book safety claim was added.
 
 ## Current baseline
 
-Completed through Phase 224.
+Completed through Phase 226.
 
 Current public release state:
 
@@ -3050,6 +3050,24 @@ Finding: create, PATCH, and DELETE each passed once on isolated ignored syntheti
 Safety result: `GNUCASH_WRITES_ENABLED=false` remains default and `APP_ENV=test` was not weakened. Write-enabled runs were explicit, local, synthetic/disposable only, and cleaned afterward. No write endpoint, write feature expansion, release/tag/package/image, real/private/only-copy book, committed runtime book, app DB, backup artifact, `.env`, screenshot/export, token, key, cert, raw path, account name, memo, amount, production/security claim, or real/private-book write-safety claim was added.
 
 Verification result: write-alpha create, PATCH, and DELETE smoke helpers passed; redacted per-run count checks showed one backup and one success-audit per successful route-family write; default read-only API smoke passed after reset with validate/create/PATCH/DELETE returning 403; stopped-runtime cleanup passed and final dry-run reported zero runtime artifacts; targeted backend route-family pytest passed; full backend/frontend/Docker/diff/sensitive-file checks passed.
+
+## Phase 226 — Read-only regression after write-alpha remediation
+
+Status: complete. Default-read-only Docker/Caddy API and browser regression passed after write-alpha backup/evidence remediation.
+
+Goal: confirm that write-alpha backup/evidence remediation did not regress the default read-only product path.
+
+Artifacts:
+
+- `docs/dogfood/phase-226-default-readonly-regression.md` — redacted default-read-only regression evidence.
+- `docs/handoff/phase-226.md` — phase handoff.
+- `CHANGELOG.md` and `PROJECT_STATUS.md` — status synchronized.
+
+Finding: Docker/Caddy ran with the committed synthetic fixture copied into ignored runtime storage and `GNUCASH_WRITES_ENABLED=false` rendered for API and web. API smoke passed health, login/auth, books/default book, accounts, transactions, transaction detail, CSV export, reports summary, scheduled transaction metadata, write-alpha audit summary, and validate/create/PATCH/DELETE disabled-write probes returning 403. Browser dogfood passed at `320x720` and `1280x900` with write UI hidden, auth cookie not readable from `document.cookie`, CSV fetch success without saved raw artifact, no horizontal overflow, and no screenshot/download/CSV artifacts.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains default. No write-enabled run was performed. Runtime used only a committed synthetic fixture copied into ignored `data/books/`; smoke app DB/runtime book artifacts were removed by stopped-runtime cleanup. No real/private/only-copy book, committed runtime book, app DB, backup artifact, `.env`, screenshot/export, token, key, cert, raw path, account name, memo, amount, production/security claim, or real/private-book write-safety claim was added.
+
+Verification result: Docker Compose config validation passed with rendered false for API/web; read-only API smoke passed; mobile and desktop browser dogfood passed; stopped-runtime cleanup final dry-run reported zero runtime artifacts; full backend pytest passed; frontend check/auth-routes/build passed; `git diff --check` passed; tracked sensitive-file hygiene scan passed.
 
 ## Standing constraints
 
