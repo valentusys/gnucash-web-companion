@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -119,12 +120,14 @@ def outsider_headers(client):
 
 
 @pytest.fixture
-def sample_book_with_audit(session_factory) -> int:
+def sample_book_with_audit(session_factory, tmp_path: Path) -> int:
+    synthetic_book = tmp_path / "disposable-audit-fixture.gnucash.sqlite"
+    synthetic_book.touch()
     with session_factory() as session:
         book = Book(
             name="Disposable audit fixture",
             storage_type="sqlite",
-            uri_or_path="/data/books/disposable.gnucash.sqlite",
+            uri_or_path=str(synthetic_book),
             base_currency="SEK",
             is_default=True,
         )

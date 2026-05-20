@@ -11,8 +11,8 @@
 		statusCode={page.status}
 		{locale}
 		retryHref={page.url.pathname + page.url.search}
-		backHref="/dashboard"
+		backHref={page.status === 503 ? '/books' : '/dashboard'}
 		retryLabel={t(locale, 'error.retryPage')}
-		backLabel={t(locale, 'error.backDashboard')}
+		backLabel={page.status === 503 ? t(locale, 'error.reviewBooks') : t(locale, 'error.backDashboard')}
 	/>
 </main>

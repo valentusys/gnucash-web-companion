@@ -87,7 +87,7 @@ async def list_book_transactions(
 ) -> dict[str, Any]:
     """List transactions for a viewable book with pagination and filters."""
     _validate_transaction_filters(date_from, date_to, min_amount, max_amount, transaction_state)
-    book = _resolve_viewable_book(book_id, user, session)
+    book = _resolve_readonly_data_book(book_id, user, session)
     try:
         service = transaction_service_for(book)
         total = service.count_transactions(
@@ -145,7 +145,7 @@ async def export_book_transactions_csv(
     Respects the same filters as the list endpoint. Row cap: 10,000.
     """
     _validate_transaction_filters(date_from, date_to, min_amount, max_amount, transaction_state)
-    book = _resolve_viewable_book(book_id, user, session)
+    book = _resolve_readonly_data_book(book_id, user, session)
     try:
         service = transaction_service_for(book)
         total = service.count_transactions(
@@ -221,7 +221,7 @@ async def get_book_transaction(
     session: Session = Depends(get_db),
 ) -> dict[str, Any]:
     """Return one transaction with all splits for a viewable book."""
-    book = _resolve_viewable_book(book_id, user, session)
+    book = _resolve_readonly_data_book(book_id, user, session)
     try:
         detail = transaction_service_for(book).get_transaction(transaction_id)
     except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
@@ -246,7 +246,7 @@ async def list_book_account_transactions(
 ) -> dict[str, Any]:
     """List transactions for a specific account in a viewable book."""
     _validate_transaction_filters(date_from, date_to, min_amount, max_amount, transaction_state)
-    book = _resolve_viewable_book(book_id, user, session)
+    book = _resolve_readonly_data_book(book_id, user, session)
     try:
         service = transaction_service_for(book)
         total = service.count_transactions(
@@ -406,6 +406,12 @@ def _resolve_viewable_book(book_id: int, user: User, session: Session) -> Book:
     from app.routers.books import resolve_viewable_book
 
     return resolve_viewable_book(book_id, user, session)
+
+
+def _resolve_readonly_data_book(book_id: int, user: User, session: Session) -> Book:
+    from app.routers.books import resolve_readonly_data_book
+
+    return resolve_readonly_data_book(book_id, user, session)
 
 
 def _validate_transaction_filters(
@@ -696,6 +702,9 @@ async def get_write_alpha_audit_summary(
     """Return a redacted read-only summary of write-alpha audit rows from app metadata."""
     book = _resolve_viewable_book(book_id, user, session)
     _require_book_edit_access(book, user, session)
+    from app.routers.books import require_book_storage_available_for_readonly
+
+    require_book_storage_available_for_readonly(book)
     if action is not None and action not in WRITE_ALPHA_AUDIT_ACTIONS:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

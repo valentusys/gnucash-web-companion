@@ -55,6 +55,7 @@ export type MessageKey =
 	| 'error.retry'
 	| 'error.retryPage'
 	| 'error.backDashboard'
+	| 'error.reviewBooks'
 	| 'dashboard.title'
 	| 'accounts.kicker'
 	| 'accounts.title'
@@ -392,6 +393,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'error.retry': 'Retry',
 		'error.retryPage': 'Retry this page',
 		'error.backDashboard': 'Back to dashboard',
+		'error.reviewBooks': 'Review books and storage diagnostics',
 		'dashboard.title': 'Dashboard',
 		'accounts.kicker': 'Accounts',
 		'accounts.title': 'Account tree',
@@ -761,6 +763,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'error.retry': 'Повторить',
 		'error.retryPage': 'Повторить эту страницу',
 		'error.backDashboard': 'Назад к обзору',
+		'error.reviewBooks': 'Проверить книги и storage diagnostics',
 		'dashboard.title': 'Обзор',
 		'accounts.kicker': 'Счета',
 		'accounts.title': 'Дерево счетов',

@@ -184,6 +184,28 @@ def resolve_viewable_book(book_id: int, user: User, session: Session) -> Book:
     return book
 
 
+def require_book_storage_available_for_readonly(book: Book) -> None:
+    """Reject read-only data routes for unavailable local book storage before opening GnuCash."""
+    status_value = _storage_diagnostics_for(book)["status"]
+    if status_value == "missing_file":
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Configured GnuCash book storage is unavailable from this runtime.",
+        )
+    if status_value == "not_configured":
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="GnuCash book storage is not configured for this entry.",
+        )
+
+
+def resolve_readonly_data_book(book_id: int, user: User, session: Session) -> Book:
+    """Resolve a viewable book and require it to be openable for read-only data routes."""
+    book = resolve_viewable_book(book_id, user, session)
+    require_book_storage_available_for_readonly(book)
+    return book
+
+
 def require_book_view_access(book: Book, user: User, session: Session) -> None:
     try:
         BookAccessService(session).assert_can_view(user, book)
@@ -264,8 +286,8 @@ async def list_book_scheduled_transactions(
     user: User = Depends(get_current_user),
     session: Session = Depends(get_db),
 ) -> list[dict[str, Any]]:
-    """List safe read-only scheduled transaction metadata for a viewable book."""
-    book = resolve_viewable_book(book_id, user, session)
+    """List safe read-only scheduled transaction metadata for an openable book."""
+    book = resolve_readonly_data_book(book_id, user, session)
     scheduled = []
     try:
         scheduled = scheduled_transaction_service_for(book).list_scheduled_transactions()
@@ -280,8 +302,8 @@ async def list_book_accounts(
     user: User = Depends(get_current_user),
     session: Session = Depends(get_db),
 ) -> list[dict[str, Any]]:
-    """List accounts for a viewable book."""
-    book = resolve_viewable_book(book_id, user, session)
+    """List accounts for an openable book."""
+    book = resolve_readonly_data_book(book_id, user, session)
     try:
         accounts = account_service_for(book).list_accounts()
     except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
@@ -295,8 +317,8 @@ async def get_book_account_tree(
     user: User = Depends(get_current_user),
     session: Session = Depends(get_db),
 ) -> list[dict[str, Any]]:
-    """Return nested account tree for a viewable book."""
-    book = resolve_viewable_book(book_id, user, session)
+    """Return nested account tree for an openable book."""
+    book = resolve_readonly_data_book(book_id, user, session)
     try:
         tree = account_service_for(book).get_account_tree()
     except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
@@ -311,8 +333,8 @@ async def get_book_account(
     user: User = Depends(get_current_user),
     session: Session = Depends(get_db),
 ) -> dict[str, Any]:
-    """Return one account in a viewable book."""
-    book = resolve_viewable_book(book_id, user, session)
+    """Return one account in an openable book."""
+    book = resolve_readonly_data_book(book_id, user, session)
     try:
         account = account_service_for(book).get_account(account_id)
     except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:

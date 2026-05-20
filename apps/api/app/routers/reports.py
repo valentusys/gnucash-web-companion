@@ -23,7 +23,7 @@ from app.routers.books import (
     handle_gnucash_error,
     transaction_service_for,
 )
-from app.routers.transactions import _resolve_viewable_book
+from app.routers.transactions import _resolve_readonly_data_book
 from app.schemas.gnucash import (
     CashflowDTO,
     CashflowPeriodDTO,
@@ -93,10 +93,10 @@ async def get_book_report_summary(
     session: Session = Depends(get_db),
 ) -> dict[str, Any]:
     """Return dashboard summary for a viewable book."""
-    book = _resolve_viewable_book(book_id, user, session)
+    parsed_date = _parse_report_date(as_of_date, "as_of_date")
+    book = _resolve_readonly_data_book(book_id, user, session)
     try:
         service = transaction_service_for(book)
-        parsed_date = _parse_report_date(as_of_date, "as_of_date")
         summary = service.get_report_summary(as_of_date=parsed_date)
     except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
         handle_gnucash_error(exc)
@@ -116,10 +116,10 @@ async def get_book_cashflow(
 
     If date_from/date_to are omitted, defaults to current month to today.
     """
-    book = _resolve_viewable_book(book_id, user, session)
+    date_from, date_to = _normalize_report_date_range(date_from, date_to)
+    book = _resolve_readonly_data_book(book_id, user, session)
     try:
         service = transaction_service_for(book)
-        date_from, date_to = _normalize_report_date_range(date_from, date_to)
         if by_month:
             periods = service.get_cashflow_by_month(date_from, date_to)
             return [period.model_dump() for period in periods]
@@ -143,10 +143,10 @@ async def get_book_expenses_by_account(
 
     If date_from/date_to are omitted, defaults to current month to today.
     """
-    book = _resolve_viewable_book(book_id, user, session)
+    date_from, date_to = _normalize_report_date_range(date_from, date_to)
+    book = _resolve_readonly_data_book(book_id, user, session)
     try:
         service = transaction_service_for(book)
-        date_from, date_to = _normalize_report_date_range(date_from, date_to)
         expenses = service.get_expenses_by_account(date_from, date_to)
     except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
         handle_gnucash_error(exc)
@@ -161,7 +161,7 @@ async def get_book_recent_transactions(
     session: Session = Depends(get_db),
 ) -> list[dict[str, Any]]:
     """Return the most recent transactions for a viewable book."""
-    book = _resolve_viewable_book(book_id, user, session)
+    book = _resolve_readonly_data_book(book_id, user, session)
     try:
         service = transaction_service_for(book)
         items = service.list_transactions(limit=limit, offset=0)
@@ -182,10 +182,10 @@ async def get_default_report_summary(
     session: Session = Depends(get_db),
 ) -> dict[str, Any]:
     """Return dashboard summary for the default book."""
+    parsed_date = _parse_report_date(as_of_date, "as_of_date")
     book = resolve_default_viewable_book(user, session)
     try:
         service = transaction_service_for(book)
-        parsed_date = _parse_report_date(as_of_date, "as_of_date")
         summary = service.get_report_summary(as_of_date=parsed_date)
     except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
         handle_gnucash_error(exc)
@@ -204,10 +204,10 @@ async def get_default_cashflow(
 
     If date_from/date_to are omitted, defaults to current month to today.
     """
+    date_from, date_to = _normalize_report_date_range(date_from, date_to)
     book = resolve_default_viewable_book(user, session)
     try:
         service = transaction_service_for(book)
-        date_from, date_to = _normalize_report_date_range(date_from, date_to)
         if by_month:
             periods = service.get_cashflow_by_month(date_from, date_to)
             return [period.model_dump() for period in periods]
@@ -230,10 +230,10 @@ async def get_default_expenses_by_account(
 
     If date_from/date_to are omitted, defaults to current month to today.
     """
+    date_from, date_to = _normalize_report_date_range(date_from, date_to)
     book = resolve_default_viewable_book(user, session)
     try:
         service = transaction_service_for(book)
-        date_from, date_to = _normalize_report_date_range(date_from, date_to)
         expenses = service.get_expenses_by_account(date_from, date_to)
     except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
         handle_gnucash_error(exc)

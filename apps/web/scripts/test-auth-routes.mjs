@@ -32,7 +32,7 @@ assert.match(i18nMessages, /check \/health for redacted first-run diagnostics[\s
 assert.match(errorStateComponent, /retryHref[\s\S]*backHref[\s\S]*aria-label/s, 'ErrorState must offer keyboard-focusable retry/back actions with labels');
 const errorPage = read('src/routes/+error.svelte');
 assert.match(errorPage, /import ErrorState/, 'global error page must reuse ErrorState');
-assert.match(errorPage, /statusCode=\{page\.status\}[\s\S]*retryHref=\{page\.url\.pathname \+ page\.url\.search\}[\s\S]*backHref="\/dashboard"/s, 'global error page must pass status and retry/back actions');
+assert.match(errorPage, /statusCode=\{page\.status\}[\s\S]*retryHref=\{page\.url\.pathname \+ page\.url\.search\}[\s\S]*page\.status === 503[\s\S]*'\/books'[\s\S]*error\.reviewBooks/s, 'global error page must pass status, retry, and localized /books recovery for unavailable read-only book errors');
 const loadingStateComponent = read('src/lib/components/LoadingState.svelte');
 assert.match(
 	loadingStateComponent,

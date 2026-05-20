@@ -16,6 +16,7 @@ from app.routers.auth import get_current_user, get_db
 from app.routers.books import (
     account_service_for,
     handle_gnucash_error,
+    require_book_storage_available_for_readonly,
     require_book_view_access,
 )
 from app.services.book_registry import BookRegistryService
@@ -38,6 +39,7 @@ def resolve_default_viewable_book(user: User, session: Session) -> Book:
             detail="No default book configured",
         )
     require_book_view_access(book, user, session)
+    require_book_storage_available_for_readonly(book)
     return book
 
 

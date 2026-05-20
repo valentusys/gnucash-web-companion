@@ -387,6 +387,26 @@ def run(args: argparse.Namespace) -> list[CheckResult]:
             raise DogfoodFailure("httpOnly access_token appeared in document.cookie")
         results.append(CheckResult("login", "authenticated; auth cookie not readable from document.cookie"))
 
+        if args.unavailable_book_id is not None:
+            page.navigate(f"{base_url}/books/{int(args.unavailable_book_id)}/select?next=/dashboard")
+            page.wait_for(
+                "location.pathname === '/books' && location.search.includes('book_context=unavailable_selected_book')",
+                timeout=15,
+            )
+            page.wait_for("document.body && document.body.innerText.includes('storage diagnostics')")
+            unsafe_unavailable_links = page.evaluate(
+                f"Array.from(document.querySelectorAll('a[href*=\"/books/{int(args.unavailable_book_id)}/select\"]')).map((a) => a.getAttribute('href'))"
+            )
+            if unsafe_unavailable_links:
+                raise DogfoodFailure(
+                    f"unavailable book advertised read-only data links: {unsafe_unavailable_links!r}"
+                )
+            unavailable_body = page.evaluate("document.body ? document.body.innerText : ''") or ""
+            for unsafe_fragment in ["/data/", "/tmp/", "gnucash.sqlite", "uri_or_path", "backup", "memo", "0.00"]:
+                if unsafe_fragment in unavailable_body:
+                    raise DogfoodFailure(f"unavailable-book recovery leaked unsafe fragment: {unsafe_fragment}")
+            results.append(CheckResult("unavailable_book_recovery", "redirected to /books with path-safe diagnostics and no data-view links"))
+
         for route, label in [
             ("/dashboard", "dashboard"),
             ("/accounts", "accounts"),
@@ -495,6 +515,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--fixture-path", default=None, help="Optional fixture path to hash/report without printing full path")
     parser.add_argument("--viewport-width", type=int, default=320, help="Viewport width for read-only UI dogfood")
     parser.add_argument("--viewport-height", type=int, default=720, help="Viewport height for read-only UI dogfood")
+    parser.add_argument(
+        "--unavailable-book-id",
+        type=int,
+        default=None,
+        help="Optional accessible-but-unavailable synthetic book id for selected-book recovery dogfood",
+    )
     return parser.parse_args(argv)
 
 

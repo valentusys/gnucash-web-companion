@@ -26,7 +26,6 @@ from app.schemas.gnucash import (
     TransactionListItemDTO,
 )
 from app.services.auth import hash_password
-from app.services.gnucash_exceptions import BookNotConfiguredError, BookNotFoundError
 
 TEST_SETTINGS = Settings(
     app_env="test",
@@ -171,8 +170,8 @@ def multibook_registry(session_factory, tmp_path):
                 UserBookAccess(user_id=admin.id, book_id=books["default"].id, role="owner"),
                 UserBookAccess(user_id=admin.id, book_id=books["second"].id, role="viewer"),
                 UserBookAccess(user_id=admin.id, book_id=books["archived"].id, role="owner"),
-                UserBookAccess(user_id=admin.id, book_id=books["missing"].id, role="viewer"),
-                UserBookAccess(user_id=admin.id, book_id=books["not_configured"].id, role="viewer"),
+                UserBookAccess(user_id=admin.id, book_id=books["missing"].id, role="owner"),
+                UserBookAccess(user_id=admin.id, book_id=books["not_configured"].id, role="owner"),
                 UserBookAccess(user_id=viewer.id, book_id=books["second"].id, role="viewer"),
             ]
         )
@@ -370,6 +369,7 @@ class TestMultiBookReadOnlyRouteFamilies:
             "/books/{book_id}/reports/cashflow",
             "/books/{book_id}/reports/expenses-by-account",
             "/books/{book_id}/reports/recent-transactions",
+            "/books/{book_id}/write-alpha-audit-summary",
         ],
     )
     @pytest.mark.parametrize(
@@ -384,24 +384,47 @@ class TestMultiBookReadOnlyRouteFamilies:
         assert read_service_probe == []
 
     @pytest.mark.parametrize(
-        ("book_key", "service_error"),
-        [("missing", BookNotFoundError("missing private path /tmp/secret-book.gnucash")), ("not_configured", BookNotConfiguredError("private path /tmp/secret not configured"))],
+        "path_template",
+        [
+            "/books/{book_id}/accounts",
+            "/books/{book_id}/accounts/tree",
+            "/books/{book_id}/accounts/acct-1",
+            "/books/{book_id}/scheduled-transactions",
+            "/books/{book_id}/transactions",
+            "/books/{book_id}/transactions/export",
+            "/books/{book_id}/transactions/tx-1",
+            "/books/{book_id}/accounts/acct-1/transactions",
+            "/books/{book_id}/reports/summary",
+            "/books/{book_id}/reports/cashflow",
+            "/books/{book_id}/reports/expenses-by-account",
+            "/books/{book_id}/reports/recent-transactions",
+            "/books/{book_id}/write-alpha-audit-summary",
+        ],
     )
-    def test_missing_and_not_configured_books_return_safe_service_errors_without_paths(
-        self, client, auth_headers, multibook_registry, monkeypatch, book_key, service_error
+    @pytest.mark.parametrize(
+        ("book_key", "expected_detail"),
+        [
+            ("missing", "Configured GnuCash book storage is unavailable from this runtime."),
+            ("not_configured", "GnuCash book storage is not configured for this entry."),
+        ],
+    )
+    def test_missing_and_not_configured_books_return_safe_503_before_opening_books(
+        self, client, auth_headers, multibook_registry, read_service_probe, path_template, book_key, expected_detail
     ):
-        def factory(book):
-            class BrokenService:
-                def list_transactions(self, **kwargs):
-                    raise service_error
-
-                def count_transactions(self, **kwargs):
-                    raise service_error
-
-            return BrokenService()
-
-        monkeypatch.setattr("app.routers.transactions.transaction_service_for", factory)
-        response = client.get(f"/books/{multibook_registry[book_key]}/transactions", headers=auth_headers)
+        response = client.get(path_template.format(book_id=multibook_registry[book_key]), headers=auth_headers)
         assert response.status_code == 503
-        assert "/tmp/secret" not in response.text
-        assert "private path" not in response.text
+        assert response.json() == {"detail": expected_detail}
+        assert read_service_probe == []
+        unsafe_fragments = [
+            "/tmp/",
+            "gnucash.sqlite",
+            "uri_or_path",
+            "backup",
+            "Assets:Account",
+            "Synthetic tx",
+            "memo",
+            "0.00",
+            "private path",
+        ]
+        for fragment in unsafe_fragments:
+            assert fragment not in response.text
