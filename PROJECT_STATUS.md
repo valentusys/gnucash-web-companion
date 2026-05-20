@@ -7,11 +7,11 @@ Last updated: 2026-05-21
 - GitHub: `valentusys/gnucash-web-companion`
 - Local path: `/home/val/gnucash-web-companion`
 - Branch: `main`
-- Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release; Phase 211 published `v0.2.4-writealpha` as the current experimental write-alpha pre-release after cycle-1 release checks, exact release/status commit GitHub Actions, tag/release absence checks, rendered `GNUCASH_WRITES_ENABLED=false`, and sensitive tracked-file hygiene. Phase 212 synchronized stale public roadmap/status wording after `v0.2.4-writealpha` and added a public status drift guard. Phase 213 verified the published `v0.2.4-writealpha` tag from a fresh clone with the committed synthetic fixture, dummy local-only secrets, Docker/Caddy, read-only API smoke, mobile/desktop browser dogfood, and disabled validate/create/PATCH/DELETE probes returning 403; Phase 214 added and passed a synthetic local upgrade smoke from `v0.2.4-writealpha` runtime state to current `main`, preserving dummy app metadata DB access, default book access, selected-book recovery, read-only routes, audit-summary metadata, and disabled writes; Phase 215 hardened unavailable/missing/not-configured book read-only error contracts across API and web routes and passed synthetic unavailable-book API/browser dogfood; Phase 216 added read-only CSV/list parity regressions for transaction-note queries, account-scoped header-only empty exports, advisory export metadata, URL-only/mobile export UI, and no browser money coercion/storage guards, then passed synthetic CSV fetch dogfood without writing export artifacts; Phase 217 added write-alpha backup-failure/no-mutation drill coverage for create/PATCH/DELETE route families, proving backup creation failures stop before mutation/write-open, write post-backup injected failures keep backup evidence, failed audit rows stay path-safe, locks are released, and default-disabled validate/create/PATCH/DELETE remain 403; no release was published. Phase 218 added bounded read-only audit-summary limit/offset pagination and mobile-safe operator review controls with large synthetic app-metadata tests, redacted page metadata, owner/editor access, viewer/unauthorized blocking, URL-only filters, and no browser storage; no release was published. Write-alpha remains disabled by default, gated by `APP_ENV=test` when explicitly enabled, synthetic/disposable-evidence-only, not production-ready, not security-audited, and not safe for real/private or only-copy books.
+- Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release; Phase 211 published `v0.2.4-writealpha` as the current experimental write-alpha pre-release after cycle-1 release checks, exact release/status commit GitHub Actions, tag/release absence checks, rendered `GNUCASH_WRITES_ENABLED=false`, and sensitive tracked-file hygiene. Phase 212 synchronized stale public roadmap/status wording after `v0.2.4-writealpha` and added a public status drift guard. Phase 213 verified the published `v0.2.4-writealpha` tag from a fresh clone with the committed synthetic fixture, dummy local-only secrets, Docker/Caddy, read-only API smoke, mobile/desktop browser dogfood, and disabled validate/create/PATCH/DELETE probes returning 403; Phase 214 added and passed a synthetic local upgrade smoke from `v0.2.4-writealpha` runtime state to current `main`, preserving dummy app metadata DB access, default book access, selected-book recovery, read-only routes, audit-summary metadata, and disabled writes; Phase 215 hardened unavailable/missing/not-configured book read-only error contracts across API and web routes and passed synthetic unavailable-book API/browser dogfood; Phase 216 added read-only CSV/list parity regressions for transaction-note queries, account-scoped header-only empty exports, advisory export metadata, URL-only/mobile export UI, and no browser money coercion/storage guards, then passed synthetic CSV fetch dogfood without writing export artifacts; Phase 217 added write-alpha backup-failure/no-mutation drill coverage for create/PATCH/DELETE route families, proving backup creation failures stop before mutation/write-open, write post-backup injected failures keep backup evidence, failed audit rows stay path-safe, locks are released, and default-disabled validate/create/PATCH/DELETE remain 403; no release was published. Phase 218 added bounded read-only audit-summary limit/offset pagination and mobile-safe operator review controls with large synthetic app-metadata tests, redacted page metadata, owner/editor access, viewer/unauthorized blocking, URL-only filters, and no browser storage; Phase 219 added a glossary-backed EN/RU operator-safety/accounting wording slice for read-only/write-alpha safety terms, tightened `/books` metadata wording, and added static checks rejecting softened production/security/safe-write claims; no release was published. Write-alpha remains disabled by default, gated by `APP_ENV=test` when explicitly enabled, synthetic/disposable-evidence-only, not production-ready, not security-audited, and not safe for real/private or only-copy books.
 
 ## Current baseline
 
-Completed through Phase 218.
+Completed through Phase 219.
 
 Current public release state:
 
@@ -2912,6 +2912,25 @@ Dogfood result: targeted backend synthetic app-metadata-only audit-summary tests
 Safety result: `GNUCASH_WRITES_ENABLED=false` remains default and no write-enabled mode was run. The audit-summary route remains read-only and app-metadata-only; it does not open, parse, copy, mutate, back up, restore, export, or lock a GnuCash book. No real/private book, real app DB, backup artifact, `.env`, screenshot/export, token, key, cert, raw private path, account name, memo, amount, production/security claim, or real/private-book write-safety claim was added.
 
 Verification result: backend audit-summary tests passed; frontend auth-route/static checks passed; full backend pytest passed; frontend check/auth-routes/build passed; Docker Compose config validation passed; `git diff --check` passed; tracked sensitive-file hygiene scan passed.
+
+## Phase 219 — Accounting/safety localization glossary applied slice
+
+Status: complete. Phase commit prepared after full standard verification.
+
+Goal: turn the existing localization glossary issues into a practical EN/RU operator-safety/accounting wording slice for visible release-critical flows.
+
+Artifacts:
+
+- `apps/web/src/lib/i18n/safety-glossary.ts` — small typed glossary catalog for release-critical safety/accounting terms and covered message keys.
+- `apps/web/src/lib/i18n/messages.ts` — limited `/books` visible copy update from broad “management” wording to metadata-only wording in EN/RU.
+- `apps/web/scripts/test-auth-routes.mjs` — frontend catalog/static checks for glossary terms, unsafe softened production/security/safe-write claims, and no browser storage.
+- `docs/localization.md` — support update with canonical English and partial Russian glossary status.
+- `docs/handoff/phase-219.md` — phase handoff.
+- `CHANGELOG.md` and `PROJECT_STATUS.md` — status synchronized.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains default. No backend API localization overhaul, product behavior change, write-default change, `APP_ENV=test` gate change, release/tag/package/image, real/private book, app DB, backup artifact, `.env`, screenshot/export, token, key, cert, raw private path, account name, memo, amount, production/security claim, or real/private-book write-safety claim was added. The new static checks reject unsafe softened wording and new browser storage use in the localization slice.
+
+Verification result: full backend pytest passed; frontend check/auth-routes/build passed; Docker Compose config validation passed; `git diff --check` passed. Docs-link check was limited to confirming no dedicated link-check script exists and the docs update references only tracked paths.
 
 ## Standing constraints
 

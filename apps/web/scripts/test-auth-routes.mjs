@@ -22,6 +22,7 @@ function walk(dir, files = []) {
 
 const hooks = read('src/hooks.server.ts');
 const i18nMessages = read('src/lib/i18n/messages.ts');
+const safetyGlossary = read('src/lib/i18n/safety-glossary.ts');
 const emptyStateComponent = read('src/lib/components/EmptyState.svelte');
 assert.match(emptyStateComponent, /role=\{role\}/, 'EmptyState must expose an overridable accessible status role');
 assert.match(emptyStateComponent, /aria-label=\{ariaLabel\}/, 'EmptyState must expose an aria-label for screen-reader context');
@@ -187,9 +188,9 @@ for (const phrase of [
 	"'transactionDetail.helper': 'Read-only просмотр выбранной транзакции GnuCash",
 	"'transactionSplits.helper': 'Read-only split metadata from GnuCash",
 	"'transactionSplits.helper': 'Read-only metadata split из GnuCash",
-	"'books.title': 'Book management'",
-	"'books.title': 'Управление книгами'",
-	'Книги доступны только для просмотра метаданных',
+	"'books.title': 'Book metadata'",
+	"'books.title': 'Метаданные книг'",
+	'Только read-only метаданные книг',
 	"'transactions.filters.title': 'Transaction filters'",
 	"'transactions.filters.title': 'Фильтры транзакций'",
 	'Сужают read-only список транзакций и CSV export',
@@ -206,6 +207,71 @@ for (const phrase of [
 	"'scheduled.emptyTitle'"
 ]) {
 	assert.ok(i18nMessages.includes(phrase), `i18n messages must include: ${phrase}`);
+}
+
+for (const glossaryTerm of [
+	'read-only-default',
+	'write-alpha-disposable-test-boundary',
+	'not-production-ready',
+	'not-security-audited',
+	'no-currency-conversion',
+	'desktop-authoritative-editor'
+]) {
+	assert.ok(safetyGlossary.includes(`id: '${glossaryTerm}'`), `safety glossary must catalog ${glossaryTerm}`);
+}
+for (const glossaryPhrase of [
+	"canonicalEnglish: 'read-only by default; GNUCASH_WRITES_ENABLED=false'",
+	"preferredRussian: 'read-only по умолчанию; GNUCASH_WRITES_ENABLED=false'",
+	"canonicalEnglish: 'write-alpha is experimental and disposable/test-copy only'",
+	"preferredRussian: 'write-alpha экспериментален и только для disposable/test copies'",
+	"canonicalEnglish: 'not production-ready'",
+	"preferredRussian: 'не production-ready'",
+	"canonicalEnglish: 'not security-audited'",
+	'не security-audited / не проходило security audit',
+	"canonicalEnglish: 'no currency conversion / no FX conversion'",
+	"preferredRussian: 'без конвертации валют / без FX-конвертации'",
+	"canonicalEnglish: 'GnuCash Desktop remains the authoritative editor'",
+	"preferredRussian: 'GnuCash Desktop остаётся главным редактором'"
+]) {
+	assert.ok(safetyGlossary.includes(glossaryPhrase), `safety glossary must include canonical phrase: ${glossaryPhrase}`);
+}
+for (const catalogPhrase of [
+	'GNUCASH_WRITES_ENABLED=false is the safe default',
+	'GnuCash Desktop remains the authoritative editor',
+	'Not production-ready or security-audited',
+	'disposable-copy only',
+	'not production-ready, not security-audited, and not a production audit log product',
+	'Use only disposable/test copies copied into ignored runtime storage',
+	'no currency conversion is performed',
+	'GnuCash Desktop остаётся главным редактором',
+	'не production-ready и не security-audited',
+	'только для disposable copies',
+	'без FX-конвертации'
+]) {
+	assert.ok(i18nMessages.includes(catalogPhrase), `release-critical i18n catalog must preserve glossary phrase: ${catalogPhrase}`);
+}
+for (const [label, source] of [
+	['i18n catalog', i18nMessages],
+	['safety glossary', safetyGlossary]
+]) {
+	const normalizedSource = source
+		.replace(/not-production-ready/gi, '')
+		.replace(/not-security-audited/gi, '')
+		.replace(/not production-ready or security-audited/gi, '')
+		.replace(/not production-ready, not security-audited/gi, '')
+		.replace(/not production-ready/gi, '')
+		.replace(/not security-audited/gi, '')
+		.replace(/не production-ready/gi, '')
+		.replace(/не security-audited/gi, '')
+		.replace(/не проходило security audit/gi, '')
+		.replace(/production-ready and not safe for real\/private or only-copy books/gi, '')
+		.replace(/safe default/gi, '')
+		.replace(/safely moved/gi, '')
+		.replace(/fail safely/gi, '');
+	assert.doesNotMatch(normalizedSource, /\bproduction-ready\b/i, `${label} must not make an affirmative production-ready claim`);
+	assert.doesNotMatch(normalizedSource, /\bsecurity-audited\b|security audit/i, `${label} must not make an affirmative security-audited claim`);
+	assert.doesNotMatch(source, /safe(?:ly)?\s+(?:write|writes|writing)|production-safe write|real\/private-book write safety/i, `${label} must not claim safe writes`);
+	assert.doesNotMatch(source, /localStorage|sessionStorage/, `${label} safety/localization slice must not introduce browser storage`);
 }
 
 const localeSwitcher = read('src/lib/components/LocaleSwitcher.svelte');
@@ -275,8 +341,8 @@ assert.doesNotMatch(booksSelectRoute, /upload|delete|registry|admin|write|edit/i
 
 const booksPage = read('src/routes/books/+page.svelte');
 for (const requiredPhrase of [
-	'Book management',
-	'Read-only view/manage metadata only',
+	'Book metadata',
+	'Read-only book metadata only',
 	'Active/default book',
 	'Base currency',
 	'Storage type',

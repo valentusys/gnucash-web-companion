@@ -477,9 +477,9 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'transactionSplits.stateNotProvided': 'Not provided',
 		'transactionSplits.stateUnknown': 'State {state}',
 		'books.kicker': 'Books',
-		'books.title': 'Book management',
+		'books.title': 'Book metadata',
 		'books.subtitle':
-			'Read-only view/manage metadata only. This page shows already configured books that your account can access; it does not provide book data editing workflows.',
+			'Read-only book metadata only. This page shows already configured books that your account can access; it does not provide book data editing workflows.',
 		'books.activeDefault': 'Active/default book',
 		'books.configuredTitle': 'Configured books',
 		'books.hiddenPolicy': 'Archived and unauthorized books are hidden or blocked by the API.',
@@ -853,9 +853,9 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'transactionSplits.stateNotProvided': 'Не указано',
 		'transactionSplits.stateUnknown': 'Состояние {state}',
 		'books.kicker': 'Книги',
-		'books.title': 'Управление книгами',
+		'books.title': 'Метаданные книг',
 		'books.subtitle':
-			'Книги доступны только для просмотра метаданных. Эта страница показывает уже настроенные книги, доступные вашей учётной записи; она не добавляет редактирование данных GnuCash.',
+			'Только read-only метаданные книг. Эта страница показывает уже настроенные книги, доступные вашей учётной записи; разделов редактирования данных книги здесь нет.',
 		'books.activeDefault': 'Активная/основная книга',
 		'books.configuredTitle': 'Настроенные книги',
 		'books.hiddenPolicy': 'Архивные и недоступные книги скрываются или блокируются API.',

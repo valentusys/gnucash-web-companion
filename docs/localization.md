@@ -70,6 +70,14 @@ Phase 208 polishes the operator-facing safety slice for the current write-alpha 
 - `/books/write-alpha-audit` now uses catalog-backed EN/RU operator labels and warning copy, while the endpoint/API payloads remain English/backend-defined and redacted;
 - static route checks pin unsafe-claim guards for pre-alpha, not production-ready, not security-audited, default-disabled, and disposable-only wording, and continue to reject `localStorage`/`sessionStorage` in sensitive UI paths.
 
+Phase 219 adds a small glossary-backed catalog/test layer for release-critical accounting and operator-safety wording:
+
+- `apps/web/src/lib/i18n/safety-glossary.ts` catalogs canonical English, preferred Russian wording, notes, and the message keys that carry each safety term;
+- frontend static route checks now pin read-only default, `GNUCASH_WRITES_ENABLED=false`, write-alpha disposable/test-copy boundary, not production-ready, not security-audited, no currency conversion, and GnuCash Desktop authoritative-editor terms in EN/RU;
+- static checks reject softened production/security/safe-write claims and continue to reject new `localStorage`/`sessionStorage` use in the localization slice;
+- `/books` title/copy now says book metadata instead of broad “management”, preserving the no upload/delete/default-changing/registry-edit boundary;
+- English remains canonical, Russian remains partial/opt-in, and no backend API localization rewrite or product behavior change was added.
+
 Russian safety copy was written manually. Do not machine-translate new safety warnings without human review.
 
 ## Accounting and safety glossary
@@ -79,10 +87,14 @@ English is canonical. Use these Russian terms consistently in the UI/docs when a
 | Canonical English | Preferred Russian | Notes |
 | --- | --- | --- |
 | read-only / read-only by default | read-only / только чтение / только на чтение по умолчанию | Keep `read-only` where it reinforces the product boundary; do not translate it into a weaker “view mode” claim. |
+| `GNUCASH_WRITES_ENABLED=false` | `GNUCASH_WRITES_ENABLED=false` | Keep the exact config flag visible when explaining the default-disabled write boundary. |
 | GnuCash Desktop remains the authoritative editor | GnuCash Desktop остаётся главным редактором | Use for all write-boundary warnings. Do not imply the web UI is an editor in v0.1.x. |
 | not production-ready | не готово для production / не production-ready | Keep explicit for release/deployment warnings. |
 | not security-audited | не проходило security audit / не security-audited | Do not soften into “basic security included”. |
 | controlled writes are experimental and disabled by default | controlled writes экспериментальны и отключены по умолчанию | Controlled writes are post-MVP; do not call them normal editing. |
+| write-alpha disposable/test-copy boundary | write-alpha только для disposable/test copies | Use for enabled-write warnings; never imply real/private or only-copy book readiness. |
+| not safe for real/private or only-copy books | не безопасно/не готово для real/private или only-copy книг | Use when documenting write-alpha limitations; avoid “safe write” wording. |
+| no currency conversion / no FX conversion | без конвертации валют / без FX-конвертации | Dashboard, drilldown, transaction, and CSV/export copy must not imply FX conversion. |
 | transaction | транзакция | Use for GnuCash transactions. |
 | split | split | Keep the GnuCash term when referring to split-level data such as memo or reconciliation state. |
 | split memo | split memo | Avoid implying it is the same as transaction description. |
