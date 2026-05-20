@@ -22,14 +22,14 @@
 
 ## Текущий публичный статус
 
-- Завершены Phase 0–181.
+- Завершены Phase 0–182.
 - MVP v0.1 остаётся **read-only by default**.
 - `GNUCASH_WRITES_ENABLED=false` — безопасный дефолт.
 - Controlled-write код, если присутствует, является experimental post-MVP/write-alpha, отключён по умолчанию и дополнительно ограничен backend `APP_ENV=test` gate при явном включении.
 - Текущий публичный read-only pre-alpha release: [`v0.1.7-readonly`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.7-readonly).
 - Предыдущий публичный read-only pre-alpha release: [`v0.1.6-readonly`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.6-readonly).
-- Опубликованный write-alpha pre-release: [`v0.2.0-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.0-writealpha); он pre-alpha/experimental, disabled by default, не production-ready, не security-audited и не заявляет безопасность записей в real/private books. Write-alpha нельзя использовать на real/private books или единственной копии книги; только synthetic/disposable или copied test books, которые можно восстановить или удалить.
-- Подготовлен, но не опубликован кандидат `v0.2.1-writealpha` после Phase 173–180 copied/disposable dogfood и safety hardening: [notes](docs/release/v0.2.1-writealpha-notes.md), [checklist](docs/release/v0.2.1-writealpha-checklist.md), [final gate](docs/release/v0.2.1-writealpha-final-gate.md). Tag/GitHub release для него не создан; публикация требует явной авторизации владельца и нового green gate.
+- Предыдущий write-alpha pre-release: [`v0.2.0-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.0-writealpha); он pre-alpha/experimental, disabled by default, не production-ready, не security-audited и не заявляет безопасность записей в real/private books.
+- Текущий опубликованный write-alpha pre-release: [`v0.2.1-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.1-writealpha), опубликован в Phase 182 после fresh green gate: [notes](docs/release/v0.2.1-writealpha-notes.md), [checklist](docs/release/v0.2.1-writealpha-checklist.md), [final gate](docs/release/v0.2.1-writealpha-final-gate.md), [publication evidence](docs/release/v0.2.1-writealpha-publication-evidence.md). Write-alpha нельзя использовать на real/private books или единственной копии книги; только synthetic/disposable или copied test books, которые можно восстановить или удалить.
 - Compatibility matrix: [docs/gnucash-compatibility.md](docs/gnucash-compatibility.md). Текущие evidence boundaries — synthetic/disposable fixtures only; broad real GnuCash Desktop version support не заявлен.
 
 ## Последние post-release фазы
@@ -56,6 +56,7 @@
 - Phase 179 — усилена backend write-alpha обработка lock-contention/path-like errors без расширения write scope.
 - Phase 180 — повторно пройден combined default-read-only Docker/Caddy dogfood и отдельный explicit disposable write-alpha smoke.
 - Phase 181 — подготовлен unpublished `v0.2.1-writealpha` release-readiness gate; публикация остановлена до явной авторизации владельца.
+- Phase 182 — fresh pre-publish gate пройден, `v0.2.1-writealpha` опубликован как authorized GitHub pre-release после clean `main`, `HEAD == origin/main`, отсутствия tag/release, зелёного GitHub Actions на exact release commit, local checks, write-disabled Compose defaults и sensitive tracked-file hygiene.
 
 ## Как пробовать безопасно
 

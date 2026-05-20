@@ -40,15 +40,15 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–181 are complete.
+- Phase 0–182 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by default.
 - First public pre-alpha release: `v0.0.1-prealpha`.
 - Current public read-only pre-alpha release after the Phase 171 authorized gate: [`v0.1.7-readonly`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.7-readonly).
 - Latest published read-only release notes: [docs/release/v0.1.7-readonly-notes.md](docs/release/v0.1.7-readonly-notes.md) ([checklist](docs/release/v0.1.7-readonly-checklist.md), [final gate](docs/release/v0.1.7-readonly-final-gate.md), [publication evidence](docs/release/v0.1.7-readonly-publication-evidence.md)).
 - Previous public read-only release: [`v0.1.6-readonly`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.6-readonly) ([notes](docs/release/v0.1.6-readonly-notes.md), [checklist](docs/release/v0.1.6-readonly-checklist.md), [final gate](docs/release/v0.1.6-readonly-final-gate.md), [publication evidence](docs/release/v0.1.6-readonly-publication-evidence.md)).
-- `v0.2.0-writealpha` is published as a pre-alpha write-alpha GitHub pre-release after explicit authorization: [notes](docs/release/v0.2.0-writealpha-notes.md), [checklist](docs/release/v0.2.0-writealpha-checklist.md), [final gate](docs/release/v0.2.0-writealpha-final-gate.md).
-- `v0.2.1-writealpha` is prepared as an unpublished write-alpha maintenance candidate after the Phase 173–180 copied/disposable dogfood and safety-hardening cycle: [notes](docs/release/v0.2.1-writealpha-notes.md), [checklist](docs/release/v0.2.1-writealpha-checklist.md), [final gate](docs/release/v0.2.1-writealpha-final-gate.md). No tag/GitHub release exists for this candidate; publication requires explicit owner authorization and a fresh green gate.
+- Previous write-alpha pre-release: [`v0.2.0-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.0-writealpha), published after explicit authorization: [notes](docs/release/v0.2.0-writealpha-notes.md), [checklist](docs/release/v0.2.0-writealpha-checklist.md), [final gate](docs/release/v0.2.0-writealpha-final-gate.md).
+- Current published write-alpha pre-release: [`v0.2.1-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.1-writealpha), published after the Phase 182 fresh gate: [notes](docs/release/v0.2.1-writealpha-notes.md), [checklist](docs/release/v0.2.1-writealpha-checklist.md), [final gate](docs/release/v0.2.1-writealpha-final-gate.md), [publication evidence](docs/release/v0.2.1-writealpha-publication-evidence.md).
 - Compatibility matrix: [docs/gnucash-compatibility.md](docs/gnucash-compatibility.md). Current compatibility evidence is synthetic/disposable fixture evidence only; no real GnuCash Desktop version support is claimed yet.
 - Recent post-release maintenance:
   - Phase 133 improved read-only empty/error states.
@@ -100,6 +100,7 @@ This project is not a fit if you need:
   - Phase 179 hardened backend write-alpha lock-contention and path-like error handling without expanding write scope.
   - Phase 180 reran combined default-read-only Docker/Caddy dogfood plus a separate explicit disposable write-alpha smoke.
   - Phase 181 prepared the unpublished `v0.2.1-writealpha` release-readiness gate and stopped before publication pending explicit owner authorization.
+  - Phase 182 re-ran a fresh pre-publish gate and published `v0.2.1-writealpha` as an authorized GitHub pre-release after confirming clean `main`, `HEAD == origin/main`, tag/release absence, green GitHub Actions on the exact release commit, local checks, write-disabled Compose defaults, and sensitive tracked-file hygiene.
 - Russian localization/i18n foundation started in Phase 52; English documentation remains canonical. See [README.ru.md](README.ru.md) and [docs/localization.md](docs/localization.md).
 - Community announcement drafts and where-to-share guidance were refreshed in Phase 53 for cautious feedback collection, not production marketing.
 - Startup diagnostics, a richer non-sensitive health endpoint, and troubleshooting guidance were added in Phase 54 for self-hosted deployments.
