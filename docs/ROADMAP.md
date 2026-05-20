@@ -5,14 +5,14 @@ This roadmap is intentionally conservative. Safety and trust come before feature
 ## Current release posture
 
 - Status: pre-alpha / MVP in progress.
-- Completed through Phase 162.
-- Current public read-only pre-release: `v0.1.6-readonly`.
+- Completed through Phase 172.
+- Current public read-only pre-release: `v0.1.7-readonly`.
 - Current published write-alpha pre-release: `v0.2.0-writealpha`, published after explicit authorization as pre-alpha/experimental and disabled by default.
 - MVP v0.1 remains read-only by default.
 - `GNUCASH_WRITES_ENABLED=false` remains the default.
 - Controlled writes, where present, are post-MVP/write-alpha, disabled by default, constrained by the existing backend test-environment gate when explicitly enabled, and not safe for real/private production books.
 - Current compatibility evidence is synthetic/disposable fixture evidence only; broad GnuCash Desktop version support is not claimed.
-- Latest tagged read-only smoke: Phase 162 verified published tag `v0.1.6-readonly` from a fresh checkout with synthetic/disposable data, dummy local-only secrets, Docker Compose, API smoke, browser dogfood, disabled validate/create/patch/delete write probes, and no raw screenshot/export/backup artifacts.
+- Latest tagged read-only smoke: Phase 162 verified published tag `v0.1.6-readonly` from a fresh checkout with synthetic/disposable data, dummy local-only secrets, Docker Compose, API smoke, browser dogfood, disabled validate/create/patch/delete write probes, and no raw screenshot/export/backup artifacts. Phase 171 later published `v0.1.7-readonly` after its release gate; Phase 172 reconciled public status docs only.
 - No further tag, GitHub release, package, or publication is planned by this roadmap page unless a later explicit release phase and authorization say so.
 
 ## Recently completed maintenance phases
@@ -27,6 +27,16 @@ This roadmap is intentionally conservative. Safety and trust come before feature
 - Phase 160 — full synthetic/disposable Docker/Caddy release-candidate dogfood with `GNUCASH_WRITES_ENABLED=false`.
 - Phase 161 — authorized `v0.1.6-readonly` GitHub pre-release publication after final gate.
 - Phase 162 — post-release baseline sync plus tagged `v0.1.6-readonly` fresh-checkout smoke.
+- Phase 163 — disposable GnuCash Desktop container tooling blocker refresh.
+- Phase 164 — selected-book context and access edge-case hardening.
+- Phase 165 — large account-tree usability/performance evidence.
+- Phase 166 — CSV export reliability and user-feedback hardening.
+- Phase 167 — local/LAN auth/session hardening.
+- Phase 168 — first-run and broken-configuration operator UX.
+- Phase 169 — release-critical Russian localization completion slice.
+- Phase 170 — full cycle 2 synthetic/disposable Docker/Caddy dogfood.
+- Phase 171 — authorized `v0.1.7-readonly` GitHub pre-release publication after final gate.
+- Phase 172 — public status reconciliation after `v0.1.7-readonly` and `v0.2.0-writealpha` publications.
 
 ## Completed phase groups
 
@@ -69,6 +79,7 @@ Key release artifacts:
 - `docs/release/v0.1.1-readonly-notes.md`
 - `docs/release/v0.1.2-readonly-notes.md`
 - `docs/release/v0.1.3-readonly-notes.md`
+- `docs/release/v0.1.7-readonly-notes.md`
 - `docs/release/v0.2.0-writealpha-notes.md`
 - `CHANGELOG.md`
 - `PROJECT_STATUS.md`

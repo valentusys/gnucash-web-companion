@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- Nothing yet.
+- Phase 172 — reconciled public status documentation after the published `v0.1.7-readonly` read-only pre-release and published `v0.2.0-writealpha` experimental write-alpha pre-release. README, README.ru, PROJECT_STATUS, and release artifacts now consistently say Phase 0–172 complete, current read-only release is `v0.1.7-readonly`, and write-alpha remains pre-alpha/experimental, disabled by default, not safe for real/private or only-copy books, and limited to synthetic/disposable or copied test books when explicitly enabled. No product code, Docker/runtime default, release/tag publication, or private artifact changed.
 
 ## [0.1.7-readonly] - 2026-05-20
 
