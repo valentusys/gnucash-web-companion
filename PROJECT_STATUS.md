@@ -7,11 +7,11 @@ Last updated: 2026-05-20
 - GitHub: `valentusys/gnucash-web-companion`
 - Local path: `/home/val/gnucash-web-companion`
 - Branch: `main`
-- Status: pre-alpha / v0.1.7-readonly read-only pre-release published in Phase 171; public status reconciliation completed through Phase 172; Phase 182 published `v0.2.1-writealpha` as the current experimental write-alpha pre-release after a fresh green gate on the prepared Phase 181 candidate; Phase 188 hardened read-only reporting correctness edge cases for mixed-currency exclusions, unknown base currency, zero-balance fallback, signed contra balances, and dashboard drilldown parity
+- Status: pre-alpha / v0.1.7-readonly read-only pre-release published in Phase 171; public status reconciliation completed through Phase 172; Phase 182 published `v0.2.1-writealpha` as the current experimental write-alpha pre-release after a fresh green gate on the prepared Phase 181 candidate; Phase 189 confirmed fresh-clone Docker install smoke for current public read-only release, current public write-alpha release, and current main with synthetic data and default disabled writes
 
 ## Current baseline
 
-Completed through Phase 188.
+Completed through Phase 189.
 
 Current public release state:
 
@@ -85,6 +85,7 @@ Current public release state:
 - Phase 186 is a write-alpha audit trail review UI phase for disposable runs: `GET /books/{book_id}/write-alpha-audit-summary` now returns a read-only app-metadata-only summary of `transaction.create`, `transaction.patch`, and `transaction.delete` audit rows for editor/owner operators, exposing only action, result, timestamp, bounded transaction ID prefix, redacted backup presence, and safe error text. `/books/write-alpha-audit` renders the active-book operator view with explicit synthetic/disposable and non-production-audit copy; `/books` links to it for the active book. Backend tests pin unauthenticated/viewer/unauthorized blocking plus redaction of backup paths, private paths, raw request payload fields, memos, and amounts; frontend static checks pin safe fields and no browser storage/forms. Synthetic app-DB-only dogfood passed without opening or mutating a GnuCash book. `GNUCASH_WRITES_ENABLED=false` remains default; no new write endpoint, release/tag/package, real/private/only-copy book, runtime DB/book/backup artifact, `.env`, token, key, cert, screenshot/export, private path, account name, memo, amount, or private financial data was committed.
 - Phase 187 is a multi-book read-only access regression and UX hardening phase after write-alpha work: backend regression tests now cover accessible independent books, archived/unauthorized book blocking, missing/not-configured storage diagnostics, transaction/account/scheduled/report route families, path-safe service errors, and no raw `uri_or_path` exposure. The book switcher now uses the existing server-side `/books/{book_id}/select` safe-link route instead of setting `selected_book_id` directly in client JavaScript, preserving route/query recovery while validating access server-side. The write-alpha new-transaction page still redirects when `GNUCASH_WRITES_ENABLED=false` and, if explicitly enabled, resolves accounts through `getActiveBookContext` so stale/unauthorized selected-book cookies recover through the same authenticated API context. Frontend static checks pin server-validated selection, no client-side selected-book cookie writes, no localStorage/sessionStorage sensitive state, hidden-by-default write UI, and active-book routing. No upload/delete/default-changing/registry-edit UI, collaborative/family-wallet flow, write default change, release/tag/package, real/private book, app DB, backup, `.env`, token, key, cert, screenshot/export, private path, account name, memo, amount, or private financial data was added.
 - Phase 188 is a read-only reporting correctness edge-case phase: dashboard/reporting tests now pin mixed-currency split exclusion and disclosure, unknown `XXX` base-currency zero-total warnings, zero-balance split fallback, signed negative/contra asset/liability balances, Decimal/string JSON amounts, and no fake FX conversion. Report limitations now disclose excluded currencies seen in transaction splits as well as account listings. Dashboard drilldown static checks pin URL-filter parity for `account_id`, date ranges, `limit=50`, `offset=0`, and no `Number()` usage on dashboard/reporting paths. `docs/money-model.md` documents mixed-currency split exclusion and unknown-base zero-total semantics. `GNUCASH_WRITES_ENABLED=false` remains default; no write behavior, release/tag/package, real/private book, app DB, backup, `.env`, token, key, cert, screenshot/export, private path, account name, memo, amount, or private financial data was added.
+- Phase 189 is a fresh-clone install smoke v2 phase: `scripts/smoke/fresh-clone-docker-smoke.sh` was run against current public read-only tag `v0.1.7-readonly`, current public write-alpha tag `v0.2.1-writealpha`, and current `main`, each from a temporary clone with only the committed synthetic fixture, dummy local-only secrets, and `GNUCASH_WRITES_ENABLED=false`. All three passed Docker Compose config/startup, `/api/health`, login/auth, books, accounts, transactions, transaction detail, CSV export, reports summary, browser dogfood, hidden write UI, disabled validate/create/PATCH/DELETE probes returning 403, and no-artifact checks. Teardown left no fresh-clone temp directories and no `gwc_fresh_clone` Docker containers/volumes/networks. No smoke helper/product code change, write-enabled run, release/tag/package/image, real/private book, runtime artifact, `.env`, token, key, cert, screenshot/export, private path, account name, memo, amount, or private financial data was added.
 - Previous public release `v0.1.2-readonly` remains available and points to its Phase 117 release commit.
 - Previous public release `v0.1.1-readonly` remains available and points to `a4d04150c043ad4da3dea577b30ed7ffd2032df0`, after Phase 104.
 
@@ -279,6 +280,7 @@ Completed phases:
 - Phase 186 — Write-alpha audit trail review UI for disposable runs
 - Phase 187 — Multi-book read-only access regression and UX hardening
 - Phase 188 — Read-only reporting correctness edge cases
+- Phase 189 — Fresh-clone install smoke v2 with published/current tags
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -2479,6 +2481,24 @@ Artifacts:
 Safety result: `GNUCASH_WRITES_ENABLED=false` remains default. Reports remain base-currency-only and no-conversion; no FX conversion, forecasting, external rates, accounting-engine rewrite, write behavior, release/tag/package, real/private book, runtime DB/book/backup artifact, `.env`, token, key, cert, screenshot/export, raw path, account name, memo, amount, or private financial data was added.
 
 Verification result: targeted backend report tests passed (`47 passed`, existing piecash/SQLAlchemy warnings only); frontend auth-route/static checks passed; `Number(` search over dashboard route and component paths returned no matches; final standard checks are recorded in the final Phase 188 report.
+
+## Phase 189 — Fresh-clone Install Smoke v2 with Published/Current Tags
+
+Status: complete. Phase commit pushed after verification.
+
+Goal: verify install/upgrade confidence for current published releases and current `main` without reading private data.
+
+Artifacts:
+
+- `docs/dogfood/phase-189-fresh-clone-smoke-v2.md` — fresh-clone evidence for current public read-only tag, current public write-alpha tag, and current `main`.
+- `docs/handoff/phase-189.md` — phase handoff.
+- `PROJECT_STATUS.md` — status synchronized.
+
+Dogfood result: fresh-clone Docker smoke passed for `v0.1.7-readonly` (`d248b5a355ed2b57913d0c408e643b5f6cfcfe5b`), `v0.2.1-writealpha` (`8c316b9f5c8028b519b603da0ba3cb37542bc4c0`), and current `main` (`04751c3fe472fd7751746df525383214c3eb907c`) using only `apps/api/tests/fixtures/test-book.gnucash.sqlite` copied into ignored runtime data inside temporary clones. Each run used dummy local-only clone-local `.env` secrets, kept `GNUCASH_WRITES_ENABLED=false`, and passed Docker Compose config/startup, `/api/health`, API smoke, browser dogfood, disabled validate/create/PATCH/DELETE probes, hidden write UI, and no-artifact checks. Post-run teardown scan found no remaining `/tmp/gwc-fresh-clone-smoke.*` directories and no `gwc_fresh_clone` Docker containers/volumes/networks.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains default. No write-enabled run, product code change, smoke helper change, release/tag/package/image, real/private book, runtime book/app DB/backup artifact, `.env`, token, key, cert, screenshot/export, private path, account name, memo, amount, or private financial data was committed.
+
+Verification result: three fresh-clone smokes passed; Docker Compose config validation on the working tree passed and rendered `GNUCASH_WRITES_ENABLED: "false"`; `git diff --check` passed; tracked sensitive-file hygiene scan passed.
 
 ## Standing constraints
 
