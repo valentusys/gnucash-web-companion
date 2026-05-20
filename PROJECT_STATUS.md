@@ -7,11 +7,11 @@ Last updated: 2026-05-20
 - GitHub: `valentusys/gnucash-web-companion`
 - Local path: `/home/val/gnucash-web-companion`
 - Branch: `main`
-- Status: pre-alpha / v0.1.7-readonly read-only pre-release published in Phase 171; public status reconciliation completed through Phase 172; Phase 182 published `v0.2.1-writealpha` as the current experimental write-alpha pre-release after a fresh green gate on the prepared Phase 181 candidate; Phase 183 tightened write-alpha stale-lock/root-owned-lock recovery evidence without expanding write scope
+- Status: pre-alpha / v0.1.7-readonly read-only pre-release published in Phase 171; public status reconciliation completed through Phase 172; Phase 182 published `v0.2.1-writealpha` as the current experimental write-alpha pre-release after a fresh green gate on the prepared Phase 181 candidate; Phase 184 captured synthetic/disposable PATCH dogfood evidence without expanding write scope
 
 ## Current baseline
 
-Completed through Phase 183.
+Completed through Phase 184.
 
 Current public release state:
 
@@ -80,6 +80,7 @@ Current public release state:
 - Phase 181 is a final release-readiness gate and publication decision artifact phase: `v0.2.1-writealpha` release notes/checklist/final-gate were prepared as an unpublished candidate after Phases 173–180 because the copied/disposable dogfood evidence and write-alpha UX/API hardening are meaningful, but no tag or GitHub release was created because explicit owner publication authorization was not part of this phase. The gate verdict was `Ready for release after explicit owner authorization — prepared but unpublished`; `GNUCASH_WRITES_ENABLED=false` remained default, write execution remained gated by explicit local enablement plus `APP_ENV=test`, and write-alpha evidence remained synthetic/disposable or copied-test-book only with no production/security/real-private-book safety claim.
 - Phase 182 is the authorized publication phase for `v0.2.1-writealpha`: the fresh pre-publish gate on current `main` passed, local/remote tag and GitHub release absence were confirmed, local backend/frontend/Docker checks passed, rendered Compose kept `GNUCASH_WRITES_ENABLED=false`, tracked sensitive-file hygiene passed, GitHub Actions for the exact release/status commit passed, and `v0.2.1-writealpha` was published as an annotated tag and GitHub pre-release from the prepared notes. No package, binary artifact, Docker image, production deployment, product-code change, write-default change, write-scope expansion, real/private book, app DB, backup, `.env`, screenshot/export, token, key, cert, or production-readiness/security-audit claim was added.
 - Phase 183 is a write-alpha restore UX/API evidence tightening phase: `WriteLockService.inspect()` and the write-alpha create smoke helper now distinguish active lock holds from stale released lock files and unreadable/root-owned lock files using redacted statuses and safe operator guidance; recovery docs and the write-mode warning explain stopped-runtime stale-lock cleanup without raw paths or private-book recommendations; tests pin active/stale/unreadable/no-lock behavior and the existing active-lock route still returns path-safe HTTP 409. No automatic lock deletion, production lock-management UI, write endpoint expansion, default-write enablement, release/tag/package, real/private/only-copy book, runtime DB/book/backup/lock artifact, `.env`, token, key, cert, screenshot/export, or private financial data was added.
+- Phase 184 is a write-alpha PATCH disposable dogfood phase: the committed synthetic fixture was copied through a temporary external disposable source into ignored runtime storage, preflighted as external/ignored, then exercised once through the existing experimental PATCH metadata/split-memo route under explicit local `APP_ENV=test` plus `GNUCASH_WRITES_ENABLED=true`. Redacted evidence confirms one successful PATCH, API/runtime read-back of synthetic markers only, unchanged split amount fingerprint, one backup, one successful `transaction.patch` audit row, one safe missing-transaction failed audit without backup, and non-active stale-released lock evidence from inside the API container. The stack was returned to default write-disabled mode and read-only API smoke passed with validate/create/PATCH/DELETE probes returning 403. Runtime book/app DB/backups/locks were removed after verification; no new write endpoint, amount/account PATCH, release/tag/package, real/private/only-copy book, raw artifact, `.env`, token, key, cert, screenshot/export, path, account name, original description, original memo, amount, or private financial data was committed.
 - Previous public release `v0.1.2-readonly` remains available and points to its Phase 117 release commit.
 - Previous public release `v0.1.1-readonly` remains available and points to `a4d04150c043ad4da3dea577b30ed7ffd2032df0`, after Phase 104.
 
@@ -269,6 +270,7 @@ Completed phases:
 - Phase 181 — Final release-readiness gate and unpublished v0.2.1-writealpha decision artifact
 - Phase 182 — Authorized v0.2.1-writealpha publication under fresh gate
 - Phase 183 — Write-alpha restore UX/API evidence tightening
+- Phase 184 — Write-alpha PATCH disposable dogfood
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -2394,6 +2396,24 @@ Artifacts:
 Safety result: `GNUCASH_WRITES_ENABLED=false` remains default. No automatic lock cleanup, production lock-management UI, create/PATCH/DELETE expansion, write default change, release/tag/package, real/private/only-copy book, runtime book/app DB/backup/lock artifact, `.env`, token, key, cert, screenshot/export, raw path, account name, memo, amount, or private financial data was added.
 
 Verification result: targeted lock tests passed (`18 passed`); active-lock route regression passed (`1 passed` with existing piecash warnings); smoke helper py_compile passed; frontend auth-route/static checks passed; redacted temporary lock-evidence probe showed `not_present`, `stale_released`, and `active`; Docker Compose config validation passed and rendered `GNUCASH_WRITES_ENABLED: "false"`; `git diff --check` passed; tracked sensitive-file hygiene scan passed.
+
+## Phase 184 — Write-alpha PATCH Disposable Dogfood
+
+Status: complete. Phase commit pushed after verification.
+
+Goal: capture real synthetic/disposable dogfood evidence for the existing experimental PATCH transaction metadata/split-memo route without expanding write functionality.
+
+Artifacts:
+
+- `scripts/smoke/write-alpha-patch-smoke.py` — redacted smoke helper for one local disposable PATCH run; it checks safe missing-transaction behavior, successful metadata/split-memo PATCH, API/runtime marker read-back, backup, audit, and lock evidence.
+- `docs/dogfood/phase-184-write-alpha-patch-dogfood.md` — bounded evidence artifact with preflight, write-enabled PATCH run, reset-to-default read-only smoke, and teardown/no-artifact result.
+- `PROJECT_STATUS.md` and `docs/handoff/phase-184.md` — status and handoff synchronized.
+
+Dogfood result: a committed synthetic fixture was copied to a temporary external disposable source, preflighted as external/ignored, copied into ignored `data/books/main.gnucash.sqlite`, and patched exactly once under explicit local `APP_ENV=test` plus `GNUCASH_WRITES_ENABLED=true`. The PATCH smoke passed with redacted output: one metadata/split-memo PATCH succeeded; API read-back matched synthetic markers only; runtime SQLite marker read-back passed; split amount fingerprint was unchanged; one backup existed; one successful `transaction.patch` audit row and one safe failed missing-transaction audit row existed; the API-container lock probe reported `stale_released`, not active. After restart with default write-disabled runtime, read-only API smoke passed and validate/create/PATCH/DELETE probes returned 403. Runtime book/app DB/backups/locks were removed after verification.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains default. No new endpoint, amount/account PATCH, release/tag/package, real/private/only-copy book, runtime book, app DB, backup, lock artifact, `.env`, token, key, cert, screenshot/export, raw path, account name, original description, original memo, amount, or private financial data was committed.
+
+Verification result: PATCH smoke helper py_compile passed; write-alpha preflight passed; write-enabled PATCH smoke passed; default read-only API smoke passed including disabled validate/create/PATCH/DELETE probes; targeted backend PATCH route tests passed; smoke lock evidence tests passed; frontend auth-route/static checks passed; Docker Compose config validation passed and rendered `GNUCASH_WRITES_ENABLED: "false"`; no ignored runtime artifact remained after teardown; `git diff --check` passed; tracked sensitive-file hygiene scan passed.
 
 ## Standing constraints
 
