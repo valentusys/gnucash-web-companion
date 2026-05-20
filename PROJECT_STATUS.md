@@ -7,11 +7,11 @@ Last updated: 2026-05-20
 - GitHub: `valentusys/gnucash-web-companion`
 - Local path: `/home/val/gnucash-web-companion`
 - Branch: `main`
-- Status: pre-alpha / v0.1.7-readonly read-only pre-release published in Phase 171; public status reconciliation completed through Phase 172; Phase 178 write-alpha UX guardrails updated from disposable dogfood findings; v0.2.0-writealpha remains a separate published experimental pre-release
+- Status: pre-alpha / v0.1.7-readonly read-only pre-release published in Phase 171; public status reconciliation completed through Phase 172; Phase 179 write-alpha API hardening completed from disposable dogfood findings; v0.2.0-writealpha remains a separate published experimental pre-release
 
 ## Current baseline
 
-Completed through Phase 178.
+Completed through Phase 179.
 
 Current public release state:
 
@@ -74,6 +74,7 @@ Current public release state:
 - Phase 176 is a GnuCash Desktop/tooling verification phase for the write-alpha disposable path: a committed synthetic fixture was copied to a temporary external disposable source, passed the Phase 174 redacted preflight, mutated exactly once through the existing write-alpha create route under `APP_ENV=test` plus explicit local-only `GNUCASH_WRITES_ENABLED=true`, then copied to `/tmp` and opened by GnuCash CLI 4.13 inside a temporary `debian:12-slim` Docker container via `gnucash-cli --report show --name "Balance Sheet"`. The command exited `0` with bounded report metadata only, and a read-only API smoke after the CLI check passed with default disabled writes and validate/create/PATCH/DELETE probes returning 403. This is narrow disposable CLI-tooling evidence only, not a broad Desktop compatibility or real/private-book write-safety claim. Runtime book/app DB/backups/locks were removed after the run; no Desktop-generated fixture, raw book, backup, app DB, screenshot, export, private path, account name, amount, release, or tag was committed.
 - Phase 177 is a write-alpha backup and restore drill for the disposable create path: a committed synthetic fixture was copied to a temporary external disposable source, passed the Phase 174 redacted preflight, mutated once through the existing write-alpha create route under `APP_ENV=test` plus explicit local-only `GNUCASH_WRITES_ENABLED=true`, and the generated pre-write backup was restored to an ignored disposable runtime path. The backup/restored checksum matched the pre-write synthetic source and differed from the mutated copy; a read-only API smoke against the restored copy passed with default disabled writes, validate/create/PATCH/DELETE probes returned 403, and an API absence probe found no restored-copy match for the synthetic created transaction. Lock behavior is documented: the current file-lock service can leave a stale lock file after releasing `flock`, so recovery teardown should stop runtime, verify no active holder, then remove ignored lock files. Runtime book/app DB/backups/locks were removed after the run; no production/private-book disaster recovery claim, raw book, backup, app DB, screenshot, export, private path, account name, amount, release, or tag was committed.
 - Phase 178 is a write-alpha UX guardrails phase from copied-book dogfood findings: write-enabled warnings, create acknowledgement, final create confirmation, localized DELETE guardrails, and write-alpha form error handling now make the disposable boundary clearer by naming explicit `APP_ENV=test`, ignored disposable runtime copies, never source/only-copy targets, and backup/audit/lock-release evidence. Safe frontend error mapping avoids rendering raw path-like backend detail strings in create/delete forms. Static route checks pin the default-hidden write UI, guardrail copy, no browser-storage leak, and safe error behavior; default-false browser dogfood passed with write controls hidden. No write feature, backend mutation semantics, Docker default, `APP_ENV=test` gate, release/tag/package, real/private book, app DB, backup, `.env`, screenshot/export, token, key, cert, private path, or private financial data changed.
+- Phase 179 is a write-alpha API hardening phase from copied-book dogfood findings: backend write-alpha lock-contention and path-like `GnuCashWriteError` handling now returns/audits user-safe generic error text without embedding book/lock paths, while preserving explicit `backup_path` evidence for post-backup failures. Regression tests cover path-like post-backup create failures, active lock contention, disabled-write short-circuit before service construction, and existing concurrent create locking behavior. Create/PATCH/DELETE scope is unchanged; no endpoint, direct SQL mutation, Docker default, `APP_ENV=test` gate, release/tag/package, real/private book, app DB, backup, `.env`, screenshot/export, token, key, cert, private path, or private financial data changed.
 - Previous public release `v0.1.2-readonly` remains available and points to its Phase 117 release commit.
 - Previous public release `v0.1.1-readonly` remains available and points to `a4d04150c043ad4da3dea577b30ed7ffd2032df0`, after Phase 104.
 
@@ -258,6 +259,7 @@ Completed phases:
 - Phase 176 — GnuCash Desktop/tooling verification for disposable write-alpha mutated copy
 - Phase 177 — Write-alpha backup and restore drill
 - Phase 178 — Write-alpha UX guardrails from dogfood findings
+- Phase 179 — Write-alpha API hardening from dogfood findings
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -337,7 +339,7 @@ Completed phases:
 
 Next planned phase:
 
-- Continue only with the next explicitly requested phase. Controlled writes remain post-MVP/experimental, disabled by default, constrained to `APP_ENV=test` copied/disposable fixtures when explicitly enabled, and not safe for production/private/only-copy books. Phase 178 improved UX guardrails only from the Phase 175–177 dogfood findings; do not treat it as API hardening, combined regression, or release-readiness evidence.
+- Continue only with the next explicitly requested phase. Controlled writes remain post-MVP/experimental, disabled by default, constrained to `APP_ENV=test` copied/disposable fixtures when explicitly enabled, and not safe for production/private/only-copy books. Phase 179 hardened backend path-safe write-alpha errors only from the Phase 175–178 dogfood findings; do not treat it as combined regression or release-readiness evidence.
 
 ## MVP product model
 

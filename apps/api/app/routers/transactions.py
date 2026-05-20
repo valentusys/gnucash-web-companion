@@ -517,6 +517,25 @@ def _update_audit_log(session: Session, log: AuditLog, payload: dict) -> None:
     session.refresh(log)
 
 
+def _write_error_detail(exc: GnuCashWriteError) -> str:
+    """Return a write-alpha error string safe for API responses and audit error fields.
+
+    Dogfood showed frontend forms needed to defensively hide raw path-like backend
+    details. Keep backend errors safe too: preserve validation/business wording, but
+    collapse filesystem/URI-looking internals to a generic operator-safe message.
+    Backup location, when relevant, stays in the explicit backup_path field.
+    """
+    detail = str(getattr(exc, "detail", "") or exc)
+    if "://" in detail or "/" in detail or "\\" in detail:
+        return "GnuCash write failed; check the configured disposable test book and backup evidence."
+    return detail
+
+
+def _write_lock_detail() -> str:
+    """Return a lock-contention message without exposing the lock/book path."""
+    return "Could not acquire write lock for this book. Retry after the active write finishes."
+
+
 def _request_summary(request: TransactionCreateRequestDTO) -> dict[str, Any]:
     return {
         "date": request.date,
@@ -612,24 +631,25 @@ async def create_book_transaction(
             book_id=book.id,
         )
     except WriteLockError as exc:
-        audit_payload.update({"result": "failed", "error": str(exc)})
+        audit_payload.update({"result": "failed", "error": _write_lock_detail()})
         _update_audit_log(session, log, audit_payload)
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Could not acquire write lock: {exc}",
+            detail=_write_lock_detail(),
         ) from exc
     except GnuCashWriteError as exc:
+        safe_detail = _write_error_detail(exc)
         audit_payload.update(
             {
                 "result": "failed",
-                "error": str(exc),
+                "error": safe_detail,
                 "backup_path": getattr(exc, "backup_path", None),
             }
         )
         _update_audit_log(session, log, audit_payload)
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(exc),
+            detail=safe_detail,
         ) from exc
 
     audit_payload.update(
@@ -695,24 +715,25 @@ async def patch_book_transaction(
             book_id=book.id,
         )
     except WriteLockError as exc:
-        audit_payload.update({"result": "failed", "error": str(exc)})
+        audit_payload.update({"result": "failed", "error": _write_lock_detail()})
         _update_audit_log(session, log, audit_payload)
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Could not acquire write lock: {exc}",
+            detail=_write_lock_detail(),
         ) from exc
     except GnuCashWriteError as exc:
+        safe_detail = _write_error_detail(exc)
         audit_payload.update(
             {
                 "result": "failed",
-                "error": str(exc),
+                "error": safe_detail,
                 "backup_path": getattr(exc, "backup_path", None),
             }
         )
         _update_audit_log(session, log, audit_payload)
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(exc),
+            detail=safe_detail,
         ) from exc
     except EntityNotFoundError as exc:
         audit_payload.update({"result": "failed", "error": str(exc)})
@@ -769,24 +790,25 @@ async def delete_book_transaction(
             book_id=book.id,
         )
     except WriteLockError as exc:
-        audit_payload.update({"result": "failed", "error": str(exc)})
+        audit_payload.update({"result": "failed", "error": _write_lock_detail()})
         _update_audit_log(session, log, audit_payload)
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Could not acquire write lock: {exc}",
+            detail=_write_lock_detail(),
         ) from exc
     except GnuCashWriteError as exc:
+        safe_detail = _write_error_detail(exc)
         audit_payload.update(
             {
                 "result": "failed",
-                "error": str(exc),
+                "error": safe_detail,
                 "backup_path": getattr(exc, "backup_path", None),
             }
         )
         _update_audit_log(session, log, audit_payload)
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(exc),
+            detail=safe_detail,
         ) from exc
     except EntityNotFoundError as exc:
         audit_payload.update({"result": "failed", "error": str(exc)})

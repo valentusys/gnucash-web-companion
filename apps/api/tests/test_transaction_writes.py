@@ -1261,6 +1261,82 @@ class TestWriteAlphaCreateRouteDisposableFixture:
         backup_txs = _read_written_transactions(backup_path)
         assert backup_txs == txs_before
 
+    def test_path_like_create_failure_uses_safe_api_and_audit_error(
+        self,
+        client,
+        auth_headers,
+        disposable_sample_book,
+        disposable_fixture_book,
+        disposable_write_lock,
+        session_factory,
+        monkeypatch,
+    ):
+        """Backend errors must not leak disposable/private-looking paths after dogfood."""
+        leaked_path = str(disposable_fixture_book)
+
+        def fail_with_path_like_detail(self, book, request):
+            raise GnuCashWriteError(f"synthetic backend failure at {leaked_path}")
+
+        monkeypatch.setattr(GnuCashWriteService, "_do_create_transaction", fail_with_path_like_detail)
+
+        response = client.post(
+            f"/books/{disposable_sample_book}/transactions",
+            json=self._fixture_create_payload("Path leak regression"),
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 422
+        detail = response.json()["detail"]
+        assert "GnuCash write failed" in detail
+        assert leaked_path not in detail
+        assert "/" not in detail
+
+        with session_factory() as session:
+            logs = session.query(AuditLog).filter_by(action="transaction.create").all()
+            assert logs
+            payload = json.loads(logs[-1].payload_json)
+            assert payload["result"] == "failed"
+            assert payload["backup_path"] is not None
+            assert leaked_path not in payload["error"]
+            assert "/" not in payload["error"]
+
+    def test_lock_contention_error_does_not_leak_lock_file_or_book_path(
+        self,
+        client,
+        auth_headers,
+        disposable_sample_book,
+        disposable_fixture_book,
+        disposable_write_lock,
+        session_factory,
+    ):
+        """A dogfood-visible stale lock/active lock message must be path-safe."""
+        lock_key = str(disposable_fixture_book)
+        assert disposable_write_lock.acquire(lock_key) is True
+        try:
+            response = client.post(
+                f"/books/{disposable_sample_book}/transactions",
+                json=self._fixture_create_payload("Lock path leak regression"),
+                headers=auth_headers,
+            )
+        finally:
+            disposable_write_lock.release(lock_key)
+
+        assert response.status_code == 409
+        detail = response.json()["detail"]
+        assert "write lock" in detail.lower()
+        assert lock_key not in detail
+        assert "/" not in detail
+
+        with session_factory() as session:
+            logs = session.query(AuditLog).filter_by(action="transaction.create").all()
+            assert logs
+            payload = json.loads(logs[-1].payload_json)
+            assert payload["result"] == "failed"
+            assert "write lock" in payload["error"].lower()
+            assert lock_key not in payload["error"]
+            assert "/" not in payload["error"]
+            assert payload["backup_path"] is None
+
     def test_read_only_book_access_rejects_create_before_write_service(
         self,
         client,
