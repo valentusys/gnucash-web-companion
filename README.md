@@ -40,7 +40,7 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–229 are complete.
+- Phase 0–230 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by default.
 - First public pre-alpha release: `v0.0.1-prealpha`.
@@ -49,7 +49,7 @@ This project is not a fit if you need:
 - Previous public read-only release: [`v0.1.6-readonly`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.6-readonly) ([notes](docs/release/v0.1.6-readonly-notes.md), [checklist](docs/release/v0.1.6-readonly-checklist.md), [final gate](docs/release/v0.1.6-readonly-final-gate.md), [publication evidence](docs/release/v0.1.6-readonly-publication-evidence.md)).
 - Previous write-alpha pre-releases: [`v0.2.3-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.3-writealpha), [`v0.2.2-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.2-writealpha), [`v0.2.1-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.1-writealpha), and [`v0.2.0-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.0-writealpha).
 - Current published write-alpha pre-release: [`v0.2.4-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.4-writealpha), published after the Phase 211 cycle-1 release gate: [notes](docs/release/v0.2.4-writealpha-notes.md), [checklist](docs/release/v0.2.4-writealpha-checklist.md), [final gate](docs/release/v0.2.4-writealpha-final-gate.md), [publication evidence](docs/release/v0.2.4-writealpha-publication-evidence.md).
-- Phase 221 evaluated `v0.2.5-writealpha` and recorded an explicit no-release verdict because Phase 220 found a bounded write-alpha DELETE backup-count anomaly; no `v0.2.5-writealpha` tag or GitHub release exists. Phases 222–228 remediated, documented, and smoke-verified that blocker closure as synthetic/disposable backup-audit and default-disabled fresh-clone/upgrade evidence only. Phase 229 refreshed the public status/release-doc drift guard after that remediation. The current published write-alpha release remains `v0.2.4-writealpha` until a later authorized release phase succeeds.
+- Phase 221 evaluated `v0.2.5-writealpha` and recorded an explicit no-release verdict because Phase 220 found a bounded write-alpha DELETE backup-count anomaly; no `v0.2.5-writealpha` tag or GitHub release exists. Phases 222–228 remediated, documented, and smoke-verified that blocker closure as synthetic/disposable backup-audit and default-disabled fresh-clone/upgrade evidence only. Phase 229 refreshed the public status/release-doc drift guard after that remediation, and Phase 230 produced a green final release-candidate dogfood pack with default-read-only API/browser evidence plus bounded synthetic/disposable create/PATCH/DELETE write-alpha evidence and DELETE restore proof. The current published write-alpha pre-release remains `v0.2.4-writealpha` until a later authorized release phase succeeds.
 - Compatibility matrix: [docs/gnucash-compatibility.md](docs/gnucash-compatibility.md). Current compatibility evidence is synthetic/disposable fixture evidence only; no real GnuCash Desktop version support is claimed yet.
 - Recent post-release maintenance:
   - Phase 133 improved read-only empty/error states.

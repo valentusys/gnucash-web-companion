@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+- Phase 230 — produced the final Cycle 3 release-candidate dogfood pack for a later `v0.2.5-writealpha` attempt. Default-read-only Docker/Caddy API/browser dogfood passed with `GNUCASH_WRITES_ENABLED=false`, disabled validate/create/PATCH/DELETE probes returned 403, browser dogfood passed at mobile and desktop viewports, and separate explicit local `APP_ENV=test` plus `GNUCASH_WRITES_ENABLED=true` synthetic/disposable create/PATCH/DELETE smokes passed with matching backup/audit evidence and DELETE restore proof. The stack was reset to default false, cleanup left no runtime artifacts, and no release was published.
+
 ### Added
 
 - Phase 229 — refreshed public status and release-doc drift guards after the Phase 222–228 write-alpha backup/audit remediation. README/README.ru/PROJECT_STATUS/CHANGELOG/docs/ROADMAP/release-support docs and the public status guard now agree that Phase 229 is complete, `v0.1.7-readonly` remains the current read-only pre-release, `v0.2.4-writealpha` remains the current published write-alpha pre-release until a later authorized release phase, `v0.2.5-writealpha` has no tag or GitHub release, `GNUCASH_WRITES_ENABLED=false` remains default, and write-alpha remains experimental, `APP_ENV=test`/synthetic-disposable only, not production-ready, not security-audited, and not safe for real/private or only-copy books. No product behavior, release, tag, write default, or `APP_ENV=test` gate changed.

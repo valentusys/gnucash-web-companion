@@ -5,7 +5,7 @@ This roadmap is intentionally conservative. Safety and trust come before feature
 ## Current release posture
 
 - Status: pre-alpha / MVP in progress.
-- Completed through Phase 229.
+- Completed through Phase 230.
 - Current public read-only pre-release: `v0.1.7-readonly`.
 - Current published write-alpha pre-release: `v0.2.4-writealpha`, published in Phase 211 after the cycle-1 release gate and exact release-commit CI as pre-alpha/experimental and disabled by default.
 - MVP v0.1 remains read-only by default.
@@ -34,6 +34,7 @@ This roadmap is intentionally conservative. Safety and trust come before feature
 - Phase 227 — operator/release docs recorded the Phase 220 blocker closure narrowly as synthetic/disposable evidence remediation, with `v0.2.4-writealpha` still current.
 - Phase 228 — current-HEAD fresh-clone and `v0.2.4-writealpha` to current-HEAD synthetic upgrade smokes passed with default-disabled writes and no release publication.
 - Phase 229 — public status and release-support drift guard refreshed after Phases 222–228; `v0.2.4-writealpha` remains current and no `v0.2.5-writealpha` tag/release exists.
+- Phase 230 — final release-candidate dogfood pack passed: default-read-only API/browser evidence, bounded synthetic/disposable create/PATCH/DELETE write-alpha evidence, DELETE restore proof, default-false reset, cleanup, and no release/tag publication.
 
 ## Completed phase groups
 

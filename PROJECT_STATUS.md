@@ -7,11 +7,11 @@ Last updated: 2026-05-21
 - GitHub: `valentusys/gnucash-web-companion`
 - Local path: `/home/val/gnucash-web-companion`
 - Branch: `main`
-- Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release; `v0.2.4-writealpha` remains the current public experimental write-alpha pre-release. Completed through Phase 229. Phase 229 refreshed public status and release-doc drift guard expectations after Phases 222–228 while retaining `v0.2.4-writealpha` as current, confirming no `v0.2.5-writealpha` tag/release publication in this phase, and preserving `GNUCASH_WRITES_ENABLED=false`, `APP_ENV=test` write-alpha gating, and no real/private-book write-safety claim.
+- Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release; `v0.2.4-writealpha` remains the current public experimental write-alpha pre-release. Completed through Phase 230. Phase 230 produced the final release-candidate dogfood pack for a later `v0.2.5-writealpha` attempt after remediation, with default-read-only API/browser dogfood, bounded synthetic/disposable create/PATCH/DELETE write-alpha evidence, DELETE restore proof, default-false reset, cleanup, no release publication, and preserved `GNUCASH_WRITES_ENABLED=false`, `APP_ENV=test` write-alpha gating, and no real/private-book write-safety claim.
 
 ## Current baseline
 
-Completed through Phase 229.
+Completed through Phase 230.
 
 Current public release state:
 
@@ -3124,6 +3124,24 @@ Finding: public docs now agree that Phase 229 is complete, `v0.2.5-writealpha` r
 Safety result: `GNUCASH_WRITES_ENABLED=false` remains default and `APP_ENV=test` was not weakened. The status guard reads only tracked public docs/config files and does not inspect `.env`, runtime books, app DBs, backups, private paths, screenshots, exports, tokens, or secrets. No product behavior, write route, write scope, release/tag/package/image, real/private/only-copy book, committed runtime book, app DB, backup artifact, `.env`, screenshot/export, token, key, cert, raw path, account name, memo, amount, production/security claim, public-internet-safety claim, or real/private-book write-safety claim was added.
 
 Verification result: public status guard passed; backend public-status guard tests passed; full backend pytest passed; frontend check/auth-routes/build passed; Docker Compose config validation passed; `git diff --check` passed; tracked sensitive-file hygiene scan passed.
+
+## Phase 230 — Final release-candidate dogfood pack
+
+Status: complete. Final release-candidate dogfood evidence passed for a later `v0.2.5-writealpha` attempt; no release or tag was published.
+
+Goal: produce the final release-candidate evidence pack after the Phase 222–229 backup/audit remediation and status-drift refresh.
+
+Artifacts:
+
+- `docs/dogfood/phase-230-cycle-3-release-candidate-dogfood.md` — redacted default-read-only API/browser dogfood, write-alpha create/PATCH/DELETE matrix, DELETE restore proof, default-false reset, cleanup, and Phase 10 release input.
+- `README.md`, `README.ru.md`, `CHANGELOG.md`, `docs/ROADMAP.md`, `PROJECT_STATUS.md`, `scripts/check_public_status.py`, and `apps/api/tests/test_public_status_guard.py` — public/status guard synchronization to Phase 230 while retaining `v0.2.4-writealpha` as the current published write-alpha release.
+- `docs/handoff/phase-230.md` — phase handoff.
+
+Finding: default-read-only Docker/Caddy dogfood passed with `GNUCASH_WRITES_ENABLED=false`, including read-only API smoke, disabled validate/create/PATCH/DELETE probes returning 403, and browser dogfood at `320x720` and `1280x900` with hidden write UI, auth-cookie no-readability, CSV fetch without saved artifact, and no horizontal overflow. Separate explicit local `APP_ENV=test` plus `GNUCASH_WRITES_ENABLED=true` write-alpha smokes passed once each for create, PATCH, and DELETE on fresh ignored synthetic/disposable runtime copies; every successful write had matching backup/audit evidence, DELETE restore proof passed, locks were stale-released/not active, and successful mutations were not rerun after evidence collection. The stack was reset to default false and read-only API smoke passed again.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains default and `APP_ENV=test` was not weakened. Write-alpha execution stayed bounded to explicit local synthetic/disposable copies under ignored runtime storage. No product feature, write scope expansion, release/tag/package/image, real/private/only-copy book, committed runtime book, app DB, backup artifact, `.env`, screenshot/export, token, key, cert, raw path, account name, memo, amount, production/security claim, public-internet-safety claim, broad compatibility claim, or real/private-book write-safety claim was added.
+
+Verification result: default-read-only API/browser dogfood passed; create/PATCH/DELETE write-alpha smoke helpers passed; DELETE restore proof passed; default-false reset read-only API smoke passed; stopped-runtime cleanup final dry-run reported zero runtime artifacts; public status guard passed; full backend pytest passed; frontend check/auth-routes/build passed; Docker Compose config validation and rendered-false grep passed; `git diff --check` passed; tracked sensitive-file hygiene scan passed.
 
 ## Standing constraints
 

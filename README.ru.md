@@ -22,7 +22,7 @@
 
 ## Текущий публичный статус
 
-- Фазы 0–229 завершены.
+- Фазы 0–230 завершены.
 - MVP v0.1 остаётся **read-only by default**.
 - `GNUCASH_WRITES_ENABLED=false` — безопасный дефолт.
 - Controlled-write код, если присутствует, является experimental post-MVP/write-alpha, отключён по умолчанию и дополнительно ограничен backend `APP_ENV=test` gate при явном включении.
@@ -30,7 +30,7 @@
 - Предыдущий публичный read-only pre-alpha release: [`v0.1.6-readonly`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.6-readonly).
 - Предыдущие write-alpha pre-release: [`v0.2.3-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.3-writealpha), [`v0.2.2-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.2-writealpha), [`v0.2.1-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.1-writealpha) и [`v0.2.0-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.0-writealpha); они pre-alpha/experimental, disabled by default, не production-ready, не security-audited и не заявляют безопасность записей в real/private books.
 - Текущий опубликованный write-alpha pre-release: [`v0.2.4-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.4-writealpha), опубликован в Phase 211 после cycle-1 release gate и green exact-commit CI: [notes](docs/release/v0.2.4-writealpha-notes.md), [checklist](docs/release/v0.2.4-writealpha-checklist.md), [final gate](docs/release/v0.2.4-writealpha-final-gate.md), [publication evidence](docs/release/v0.2.4-writealpha-publication-evidence.md). Write-alpha нельзя использовать на real/private books или единственной копии книги; только synthetic/disposable или copied test books, которые можно восстановить или удалить.
-- Phase 221 проверил `v0.2.5-writealpha` и зафиксировал explicit no-release verdict: Phase 220 нашёл DELETE backup-count anomaly в bounded write-alpha evidence, поэтому tag/GitHub release `v0.2.5-writealpha` не созданы. Phases 222–228 закрыли и smoke-verified blocker только как synthetic/disposable backup-audit evidence и default-disabled fresh-clone/upgrade evidence; Phase 229 обновил public status/release-doc drift guard после remediation. Текущий опубликованный write-alpha release остаётся `v0.2.4-writealpha` до отдельной успешной authorized release phase.
+- Phase 221 проверил `v0.2.5-writealpha` и зафиксировал explicit no-release verdict: Phase 220 нашёл DELETE backup-count anomaly в bounded write-alpha evidence, поэтому tag/GitHub release `v0.2.5-writealpha` не созданы. Phases 222–228 закрыли и smoke-verified blocker только как synthetic/disposable backup-audit evidence и default-disabled fresh-clone/upgrade evidence; Phase 229 обновил public status/release-doc drift guard после remediation; Phase 230 собрал green final release-candidate dogfood pack: default-read-only API/browser evidence плюс bounded synthetic/disposable create/PATCH/DELETE write-alpha evidence и DELETE restore proof. Текущий опубликованный write-alpha release остаётся `v0.2.4-writealpha`, пока отдельная authorized release phase не пройдёт успешно.
 - Compatibility matrix: [docs/gnucash-compatibility.md](docs/gnucash-compatibility.md). Текущие evidence boundaries — synthetic/disposable fixtures only; broad real GnuCash Desktop version support не заявлен.
 
 ## Последние post-release фазы
