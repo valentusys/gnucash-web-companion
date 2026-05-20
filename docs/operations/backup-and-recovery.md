@@ -197,6 +197,10 @@ If any restored book fails to open, stop the stack and keep both the failed rest
 
 Controlled writes are experimental post-MVP code and disabled by default. When deliberately enabled for disposable testing, the write path is expected to create a per-book backup before a routed write operation mutates a GnuCash book.
 
+Current release-support expectation after the Phase 220 no-release blocker and its Phase 222–226 remediation: write-alpha evidence is release-useful only when each successful synthetic/disposable create, PATCH, or DELETE run has matching redacted audit evidence and a readable pre-write backup artifact. The resolved blocker was narrow: rapid same-named synthetic route-family backups could collapse evidence through timestamp collisions. The fix and follow-up dogfood remediate that synthetic evidence gap only; they do not make write-alpha production-ready, security-audited, or safe for real/private or only-copy books.
+
+Keep the boundary explicit when preparing release notes or operator handoffs: `GNUCASH_WRITES_ENABLED=false` remains the default, and explicit write-alpha execution remains limited to `APP_ENV=test` with disposable or copied test books.
+
 Operational expectations for write-mode testing:
 
 - verify `data/backups/<book_id>/` exists or can be created;

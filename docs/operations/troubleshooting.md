@@ -26,6 +26,13 @@ GNUCASH_WRITES_ENABLED=false
 Controlled writes are experimental post-MVP only. Do not enable write mode while
 troubleshooting a real or only copy of a GnuCash book.
 
+If you are reading release-support notes about the resolved Phase 220
+backup/audit blocker, treat that closure narrowly: it means synthetic/disposable
+write-alpha evidence once again showed matching redacted audit rows and readable
+backup artifacts after the backup-collision fix. It does not change the operator
+default above, does not authorize real/private-book writes, and does not remove
+the `APP_ENV=test` plus disposable/copy-book boundary for write-alpha testing.
+
 ## Health endpoint
 
 The API health endpoint is available through the reverse proxy at:

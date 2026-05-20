@@ -7,11 +7,11 @@ Last updated: 2026-05-21
 - GitHub: `valentusys/gnucash-web-companion`
 - Local path: `/home/val/gnucash-web-companion`
 - Branch: `main`
-- Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release; `v0.2.4-writealpha` remains the current public experimental write-alpha pre-release. Completed through Phase 226. Phase 226 confirmed the full Docker/Caddy default-read-only synthetic path after write-alpha backup/evidence remediation: rendered API/web `GNUCASH_WRITES_ENABLED=false`, read-only API smoke passed health/login/books/accounts/transactions/details/CSV/reports/scheduled/audit-summary plus disabled validate/create/PATCH/DELETE 403 probes, browser dogfood passed at `320x720` and `1280x900` with hidden write UI, auth-cookie no-readability, CSV fetch, no horizontal overflow, and cleanup/no-artifact checks. No write-enabled run, release/tag, or real/private-book safety claim was added.
+- Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release; `v0.2.4-writealpha` remains the current public experimental write-alpha pre-release. Completed through Phase 227. Phase 227 documented the resolved Phase 220 no-release blocker narrowly for operators/release artifacts: Phases 222–226 remediated synthetic/disposable backup-audit evidence after backup identity collisions and default-read-only regression passed with `GNUCASH_WRITES_ENABLED=false`, but no release was published and no real/private-book write-safety claim was added.
 
 ## Current baseline
 
-Completed through Phase 226.
+Completed through Phase 227.
 
 Current public release state:
 
@@ -3068,6 +3068,26 @@ Finding: Docker/Caddy ran with the committed synthetic fixture copied into ignor
 Safety result: `GNUCASH_WRITES_ENABLED=false` remains default. No write-enabled run was performed. Runtime used only a committed synthetic fixture copied into ignored `data/books/`; smoke app DB/runtime book artifacts were removed by stopped-runtime cleanup. No real/private/only-copy book, committed runtime book, app DB, backup artifact, `.env`, screenshot/export, token, key, cert, raw path, account name, memo, amount, production/security claim, or real/private-book write-safety claim was added.
 
 Verification result: Docker Compose config validation passed with rendered false for API/web; read-only API smoke passed; mobile and desktop browser dogfood passed; stopped-runtime cleanup final dry-run reported zero runtime artifacts; full backend pytest passed; frontend check/auth-routes/build passed; `git diff --check` passed; tracked sensitive-file hygiene scan passed.
+
+## Phase 227 — Operator-facing no-release blocker closure UX
+
+Status: complete. Operator/release docs now explain the resolved Phase 220 no-release blocker narrowly as synthetic/disposable backup-audit evidence remediation.
+
+Goal: make the blocker closure understandable in release-support and troubleshooting/runbook artifacts without claiming production write safety.
+
+Artifacts:
+
+- `docs/release/v0.2.5-writealpha-blocker-closure.md` — concise blocker-closure note.
+- `docs/release/v0.2.5-writealpha-no-release-verdict.md` and `docs/release/v0.2.5-writealpha-final-gate.md` — later-context addenda preserving the Phase 221 no-release result.
+- `docs/operations/backup-and-recovery.md` and `docs/operations/troubleshooting.md` — operator-facing backup/audit evidence expectations and safe troubleshooting wording.
+- `README.md`, `README.ru.md`, `CHANGELOG.md`, `docs/ROADMAP.md`, `scripts/check_public_status.py`, and `apps/api/tests/test_public_status_guard.py` — public/status guard synchronization to Phase 227 while retaining `v0.2.4-writealpha` as the current published write-alpha release.
+- `docs/handoff/phase-227.md` — phase handoff.
+
+Finding: the Phase 220 blocker is closed only as synthetic/disposable evidence remediation after Phases 222–226. Documentation now states that matching redacted audit rows and readable backup artifacts were re-established after the backup identity fix, while `v0.2.5-writealpha` remains unpublished and `v0.2.4-writealpha` remains the current public write-alpha release.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains default and `APP_ENV=test` was not weakened. No UI/product behavior, write route, write scope, release/tag/package/image, real/private/only-copy book, committed runtime book, app DB, backup artifact, `.env`, screenshot/export, token, key, cert, raw path, account name, memo, amount, production/security claim, public-internet-safety claim, or real/private-book write-safety claim was added.
+
+Verification result: public status guard passed; markdown readability/link spot check passed; full backend pytest passed; frontend check/auth-routes/build passed; Docker Compose config validation and rendered-false grep passed; `git diff --check` passed; tracked sensitive-file hygiene scan passed.
 
 ## Standing constraints
 
