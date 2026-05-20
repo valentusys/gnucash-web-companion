@@ -1,7 +1,9 @@
 <script lang="ts">
 	import WriteModeWarning from '$lib/components/WriteModeWarning.svelte';
+	import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 
 	let { data, form } = $props();
+	let locale = $derived<Locale>(data.locale ?? DEFAULT_LOCALE);
 
 	type SplitPayload = {
 		account_id?: string;
@@ -26,9 +28,7 @@
 	function confirmSubmit() {
 		if (hasBlockingErrors) return false;
 		if (!writeAcknowledged) return true;
-		confirmed = window.confirm(
-			'Final warning: this experimental post-MVP action will write to a GnuCash book copy. Continue only in APP_ENV=test with an ignored disposable copy, backups, audit, and lock-release checks. Never use a source or only copy. Continue?'
-		);
+		confirmed = window.confirm(t(locale, 'writeMode.finalConfirm'));
 		return confirmed;
 	}
 </script>
@@ -40,10 +40,10 @@
 <main class="mx-auto max-w-3xl px-4 py-8">
 	<div class="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
 		<div>
-			<p class="text-sm font-medium uppercase tracking-wide" style="color: var(--app-accent);">Controlled write</p>
-			<h1 class="mt-1 text-3xl font-bold" style="color: var(--app-text);">New transaction</h1>
+			<p class="text-sm font-medium uppercase tracking-wide" style="color: var(--app-accent);">{t(locale, 'writeMode.kicker')}</p>
+			<h1 class="mt-1 text-3xl font-bold" style="color: var(--app-text);">{t(locale, 'writeMode.newTransactionTitle')}</h1>
 			<p class="mt-2 text-sm" style="color: var(--app-muted);">
-				Creates a simple two-split transaction. A backup is made before the final write.
+				{t(locale, 'writeMode.newTransactionHelp')}
 			</p>
 		</div>
 		<a class="rounded-xl px-4 py-2 text-sm font-semibold" style="border: 1px solid var(--app-border); color: var(--app-text);" href="/transactions">Back</a>
@@ -56,7 +56,7 @@
 	{/if}
 
 	<div class="mb-4">
-		<WriteModeWarning />
+		<WriteModeWarning {locale} />
 	</div>
 
 	{#if validation}
@@ -143,9 +143,7 @@
 				class="mt-1 h-4 w-4"
 				required
 			/>
-			<span>
-				I acknowledge that controlled writes are experimental post-MVP functionality, MVP v0.1 remains read-only by default, <code>GNUCASH_WRITES_ENABLED=false</code> is the safe default, GnuCash Desktop remains the authoritative editor, and I am using only an ignored disposable/test copy with backup, audit, and lock-release checks.
-			</span>
+			<span>{t(locale, 'writeMode.acknowledgement')}</span>
 		</label>
 
 		<div class="flex flex-col gap-3 md:flex-row md:justify-end">

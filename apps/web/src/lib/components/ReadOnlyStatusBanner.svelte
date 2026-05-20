@@ -35,6 +35,9 @@
 				{t(locale, 'safety.reviewBooks')}
 			</a>
 		</div>
-		<p class="leading-snug" style="color: var(--app-muted);">{bannerMessage}</p>
+		<div class="leading-snug" style="color: var(--app-muted);">
+			<p>{bannerMessage}</p>
+			<p class="mt-1 text-[0.72rem] md:text-xs">{t(locale, 'safety.releaseCritical')}</p>
+		</div>
 	</div>
 </section>

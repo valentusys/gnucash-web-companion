@@ -1,9 +1,12 @@
 <script lang="ts">
+	import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
+
 	type Props = {
 		compact?: boolean;
+		locale?: Locale;
 	};
 
-	let { compact = false }: Props = $props();
+	let { compact = false, locale = DEFAULT_LOCALE }: Props = $props();
 </script>
 
 <div
@@ -11,17 +14,15 @@
 	role="alert"
 	style="border: 1px solid #f59e0b; background: #fffbeb; color: #78350f;"
 >
-	<p class="font-semibold">Experimental controlled write mode — not part of MVP v0.1</p>
+	<p class="font-semibold">{t(locale, 'writeMode.title')}</p>
 	<p class="mt-2">
-		MVP v0.1 remains read-only by default and <code>GNUCASH_WRITES_ENABLED=false</code> is the safe default.
-		This write form is experimental post-MVP functionality only and should be reachable only in an explicit
-		<code>APP_ENV=test</code> disposable run.
+		{t(locale, 'writeMode.message')}
 	</p>
 	<ul class="mt-2 list-disc space-y-1 pl-5">
-		<li>GnuCash Desktop remains the authoritative editor.</li>
-		<li>Use only disposable/test copies copied into ignored runtime storage; never point this at the source or only copy.</li>
-		<li>Confirm backup, audit, and lock-release evidence before treating a write-alpha run as complete.</li>
-		<li>If a stale lock file remains, stop the runtime first and follow the recovery runbook; never assume a host permission error means an active writer.</li>
-		<li>Never use this experimental path with your only real financial book.</li>
+		<li>{t(locale, 'writeMode.desktop')}</li>
+		<li>{t(locale, 'writeMode.disposableOnly')}</li>
+		<li>{t(locale, 'writeMode.evidence')}</li>
+		<li>{t(locale, 'writeMode.staleLock')}</li>
+		<li>{t(locale, 'writeMode.neverRealBook')}</li>
 	</ul>
 </div>

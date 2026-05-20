@@ -8,8 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- Phase 206 — hardened transaction and scheduled read-only edge cases with redacted scheduled template-reference status, no-template leakage tests, many-split Decimal/reconciliation-state coverage, bounded Money/split/scheduled layouts, and synthetic Docker/Caddy mobile/desktop dogfood confirming hidden write UI, CSV filter parity, no-overflow checks, no artifacts, and disabled validate/create/PATCH/DELETE probes.
+- Phase 208 — polished operator-facing EN/RU safety copy in the app shell, `/books`, login/health/error catalog entries, write-mode warnings, and write-alpha audit-summary UI without claiming full localization or changing backend behavior; static checks now guard pre-alpha, not-production, not-security-audited, default-disabled, disposable-only wording and no browser-storage persistence.
 - Phase 207 — hardened the read-only write-alpha audit-summary endpoint/UI so disposable write-run evidence exposes only bounded counts/status/time windows and redacted rows; malicious payload timestamps/results/transaction IDs/error text and path-like filters fail safely, while viewer/outsider access remains 403.
+- Phase 206 — hardened transaction and scheduled read-only edge cases with redacted scheduled template-reference status, no-template leakage tests, many-split Decimal/reconciliation-state coverage, bounded Money/split/scheduled layouts, and synthetic Docker/Caddy mobile/desktop dogfood confirming hidden write UI, CSV filter parity, no-overflow checks, no artifacts, and disabled validate/create/PATCH/DELETE probes.
 - Phase 204 — added compatibility-matrix regression coverage from redacted fixture metadata, classifying rows as tested synthetic evidence, blocked/manual Desktop fixture work, or unclaimed backend, and reorganized compatibility docs so PostgreSQL/MySQL/MariaDB, XML, broad Desktop-version support, production readiness, and real/private-book compatibility remain unclaimed.
 
 ## [0.2.3-writealpha] - 2026-05-20

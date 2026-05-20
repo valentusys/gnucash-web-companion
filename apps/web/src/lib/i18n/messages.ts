@@ -38,6 +38,7 @@ export type MessageKey =
 	| 'safety.statusLabel'
 	| 'safety.badge'
 	| 'safety.message'
+	| 'safety.releaseCritical'
 	| 'safety.currentBook'
 	| 'safety.noActiveBook'
 	| 'safety.reviewBooks'
@@ -173,6 +174,63 @@ export type MessageKey =
 	| 'books.contextRecoveryStale'
 	| 'books.contextRecoveryUnavailable'
 	| 'books.contextRecoveryNoBooks'
+	| 'books.auditEvidence'
+	| 'audit.title'
+	| 'audit.bannerTitle'
+	| 'audit.bannerMessage'
+	| 'audit.redactionMessage'
+	| 'audit.activeBook'
+	| 'audit.noAccessibleBook'
+	| 'audit.reviewBooks'
+	| 'audit.filtersLabel'
+	| 'audit.allActions'
+	| 'audit.create'
+	| 'audit.patch'
+	| 'audit.delete'
+	| 'audit.allResults'
+	| 'audit.success'
+	| 'audit.failed'
+	| 'audit.started'
+	| 'audit.unknown'
+	| 'audit.action'
+	| 'audit.result'
+	| 'audit.sinceIso'
+	| 'audit.untilIso'
+	| 'audit.applyFilters'
+	| 'audit.clearFilters'
+	| 'audit.countsLabel'
+	| 'audit.filteredRows'
+	| 'audit.returnedCount'
+	| 'audit.actions'
+	| 'audit.results'
+	| 'audit.window'
+	| 'audit.requestedWindow'
+	| 'audit.returnedWindow'
+	| 'audit.noStart'
+	| 'audit.noEnd'
+	| 'audit.none'
+	| 'audit.emptyTitle'
+	| 'audit.emptyMessage'
+	| 'audit.browseTransactions'
+	| 'audit.showingEntries'
+	| 'audit.timestamp'
+	| 'audit.txnPrefix'
+	| 'audit.backupSafeError'
+	| 'audit.backupPresent'
+	| 'audit.backupMissing'
+	| 'audit.limitations'
+	| 'writeMode.title'
+	| 'writeMode.message'
+	| 'writeMode.desktop'
+	| 'writeMode.disposableOnly'
+	| 'writeMode.evidence'
+	| 'writeMode.staleLock'
+	| 'writeMode.neverRealBook'
+	| 'writeMode.finalConfirm'
+	| 'writeMode.acknowledgement'
+	| 'writeMode.kicker'
+	| 'writeMode.newTransactionTitle'
+	| 'writeMode.newTransactionHelp'
 	| 'transactions.filters.title'
 	| 'transactions.filters.subtitle'
 	| 'transactions.filters.filteredView'
@@ -314,7 +372,9 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'safety.statusLabel': 'Read-only safety status',
 		'safety.badge': 'Read-only by default',
 		'safety.message':
-			'Read-only MVP by default. GNUCASH_WRITES_ENABLED=false is the safe default; GnuCash Desktop remains the authoritative editor.',
+			'Pre-alpha read-only MVP by default. GNUCASH_WRITES_ENABLED=false is the safe default; GnuCash Desktop remains the authoritative editor.',
+		'safety.releaseCritical':
+			'Not production-ready or security-audited. Experimental write-alpha flows are hidden by default and are disposable-copy only when explicitly enabled.',
 		'safety.currentBook': 'Current book',
 		'safety.noActiveBook': 'No active book selected',
 		'safety.reviewBooks': 'Review books',
@@ -424,6 +484,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'books.storageType': 'Storage type',
 		'books.readonlyStatus': 'Read-only status',
 		'books.safetyNote': 'GnuCash Desktop remains the authoritative editor.',
+		'books.auditEvidence': 'Write-alpha audit evidence',
 		'books.noBooks': 'No accessible configured books are available for this account.',
 		'books.emptyTitle': 'No accessible books found',
 		'books.emptyMessage':
@@ -460,6 +521,71 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 			'The selected book is accessible in metadata but currently unavailable for read-only data views. This browser session was safely moved to an available read-only book when one exists; review storage diagnostics and safe next actions without exposing private paths.',
 		'books.contextRecoveryNoBooks':
 			'No accessible configured books are available for this account. The selected-book cookie was cleared; archived and unauthorized books remain hidden or blocked.',
+		'audit.title': 'Write-alpha audit evidence',
+		'audit.bannerTitle': 'Write-alpha audit evidence for disposable runs',
+		'audit.bannerMessage':
+			'Read-only app metadata summary for the active book. This pre-alpha operator view is for synthetic/disposable write-alpha runs only; it is not production-ready, not security-audited, and not a production audit log product.',
+		'audit.redactionMessage':
+			'Raw request payloads, backup paths, private file paths, account names, memos, and amounts are not shown.',
+		'audit.activeBook': 'Active book',
+		'audit.noAccessibleBook': 'No accessible book',
+		'audit.reviewBooks': 'Review books',
+		'audit.filtersLabel': 'Audit summary filters',
+		'audit.allActions': 'All actions',
+		'audit.create': 'Create',
+		'audit.patch': 'PATCH',
+		'audit.delete': 'DELETE',
+		'audit.allResults': 'All results',
+		'audit.success': 'Success',
+		'audit.failed': 'Failed',
+		'audit.started': 'Started',
+		'audit.unknown': 'Unknown',
+		'audit.action': 'Action',
+		'audit.result': 'Result',
+		'audit.sinceIso': 'Since ISO',
+		'audit.untilIso': 'Until ISO',
+		'audit.applyFilters': 'Apply filters',
+		'audit.clearFilters': 'Clear filters',
+		'audit.countsLabel': 'Audit summary counts',
+		'audit.filteredRows': 'Filtered rows',
+		'audit.returnedCount': 'Returned: {count}',
+		'audit.actions': 'Actions',
+		'audit.results': 'Results',
+		'audit.window': 'Window',
+		'audit.requestedWindow': 'Requested: {since} → {until}',
+		'audit.returnedWindow': 'Returned: {oldest} → {newest}',
+		'audit.noStart': 'No start',
+		'audit.noEnd': 'No end',
+		'audit.none': 'none',
+		'audit.emptyTitle': 'No write-alpha audit rows',
+		'audit.emptyMessage':
+			'No create/PATCH/DELETE write-alpha app-metadata audit entries match the current filters for the active book. Run only explicit disposable APP_ENV=test write-alpha smokes before expecting evidence here.',
+		'audit.browseTransactions': 'Browse transactions',
+		'audit.showingEntries':
+			'Showing {returned} of {total} redacted audit entries. Backup is represented only as present/missing.',
+		'audit.timestamp': 'Timestamp',
+		'audit.txnPrefix': 'Txn prefix',
+		'audit.backupSafeError': 'Backup / safe error',
+		'audit.backupPresent': 'Backup: present',
+		'audit.backupMissing': 'Backup: not recorded',
+		'audit.limitations': 'Limitations',
+		'writeMode.title': 'Experimental controlled write mode — not part of MVP v0.1',
+		'writeMode.message':
+			'MVP v0.1 remains read-only by default and GNUCASH_WRITES_ENABLED=false is the safe default. This write form is experimental post-MVP functionality only, not production-ready or security-audited, and should be reachable only in an explicit APP_ENV=test disposable run.',
+		'writeMode.desktop': 'GnuCash Desktop remains the authoritative editor.',
+		'writeMode.disposableOnly':
+			'Use only disposable/test copies copied into ignored runtime storage; never point this at the source or only copy.',
+		'writeMode.evidence': 'Confirm backup, audit, and lock-release evidence before treating a write-alpha run as complete.',
+		'writeMode.staleLock':
+			'If a stale lock file remains, stop the runtime first and follow the recovery runbook; never assume a host permission error means an active writer.',
+		'writeMode.neverRealBook': 'Never use this experimental path with your only real financial book.',
+		'writeMode.finalConfirm':
+			'Final warning: this experimental post-MVP action will write to a GnuCash book copy. Continue only in APP_ENV=test with an ignored disposable copy, backups, audit, and lock-release checks. Never use a source or only copy. Continue?',
+		'writeMode.acknowledgement':
+			'I acknowledge that controlled writes are experimental post-MVP functionality, MVP v0.1 remains read-only by default, GNUCASH_WRITES_ENABLED=false is the safe default, GnuCash Desktop remains the authoritative editor, and I am using only an ignored disposable/test copy with backup, audit, and lock-release checks.',
+		'writeMode.kicker': 'Controlled write',
+		'writeMode.newTransactionTitle': 'New transaction',
+		'writeMode.newTransactionHelp': 'Creates a simple two-split transaction. A backup is made before the final write.',
 		'transactions.filters.title': 'Transaction filters',
 		'transactions.filters.subtitle':
 			'Narrow the read-only transaction list and CSV export; filters never modify your GnuCash book.',
@@ -615,7 +741,9 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'safety.statusLabel': 'Статус безопасности read-only режима',
 		'safety.badge': 'Read-only по умолчанию',
 		'safety.message':
-			'MVP по умолчанию работает только на чтение. GNUCASH_WRITES_ENABLED=false — безопасное значение по умолчанию; GnuCash Desktop остаётся главным редактором.',
+			'Pre-alpha MVP по умолчанию работает только на чтение. GNUCASH_WRITES_ENABLED=false — безопасное значение по умолчанию; GnuCash Desktop остаётся главным редактором.',
+		'safety.releaseCritical':
+			'Не production-ready и не проходило security audit. Экспериментальные write-alpha flows скрыты по умолчанию и при явном включении предназначены только для disposable copies.',
 		'safety.currentBook': 'Текущая книга',
 		'safety.noActiveBook': 'Активная книга не выбрана',
 		'safety.reviewBooks': 'Проверить книги',
@@ -725,6 +853,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'books.storageType': 'Тип хранения',
 		'books.readonlyStatus': 'Read-only статус',
 		'books.safetyNote': 'GnuCash Desktop остаётся главным редактором.',
+		'books.auditEvidence': 'Write-alpha audit evidence',
 		'books.noBooks': 'Для этой учётной записи нет доступных настроенных книг.',
 		'books.emptyTitle': 'Нет доступных книг',
 		'books.emptyMessage':
@@ -761,6 +890,71 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 			'Выбранная книга доступна в метаданных, но сейчас недоступна для read-only разделов с данными. Браузерная сессия безопасно переключена на доступную read-only книгу, если она есть; проверьте диагностику хранения и безопасные действия без раскрытия приватных путей.',
 		'books.contextRecoveryNoBooks':
 			'Для этой учётной записи нет доступных настроенных книг. Cookie выбранной книги очищен; архивные и неавторизованные книги остаются скрыты или заблокированы.',
+		'audit.title': 'Write-alpha audit evidence',
+		'audit.bannerTitle': 'Write-alpha audit evidence для disposable запусков',
+		'audit.bannerMessage':
+			'Read-only summary из app metadata для активной книги. Этот pre-alpha операторский вид предназначен только для synthetic/disposable write-alpha запусков; он не production-ready, не security-audited и не является production audit log product.',
+		'audit.redactionMessage':
+			'Raw request payloads, backup paths, private file paths, account names, memos и amounts не показываются.',
+		'audit.activeBook': 'Активная книга',
+		'audit.noAccessibleBook': 'Нет доступной книги',
+		'audit.reviewBooks': 'Проверить книги',
+		'audit.filtersLabel': 'Фильтры audit summary',
+		'audit.allActions': 'Все действия',
+		'audit.create': 'Create',
+		'audit.patch': 'PATCH',
+		'audit.delete': 'DELETE',
+		'audit.allResults': 'Все результаты',
+		'audit.success': 'Success',
+		'audit.failed': 'Failed',
+		'audit.started': 'Started',
+		'audit.unknown': 'Unknown',
+		'audit.action': 'Action',
+		'audit.result': 'Result',
+		'audit.sinceIso': 'Since ISO',
+		'audit.untilIso': 'Until ISO',
+		'audit.applyFilters': 'Применить фильтры',
+		'audit.clearFilters': 'Сбросить фильтры',
+		'audit.countsLabel': 'Счётчики audit summary',
+		'audit.filteredRows': 'Отфильтрованные строки',
+		'audit.returnedCount': 'Вернулось: {count}',
+		'audit.actions': 'Действия',
+		'audit.results': 'Результаты',
+		'audit.window': 'Окно времени',
+		'audit.requestedWindow': 'Запрошено: {since} → {until}',
+		'audit.returnedWindow': 'Вернулось: {oldest} → {newest}',
+		'audit.noStart': 'Без начала',
+		'audit.noEnd': 'Без окончания',
+		'audit.none': 'нет',
+		'audit.emptyTitle': 'Нет write-alpha audit rows',
+		'audit.emptyMessage':
+			'Нет create/PATCH/DELETE write-alpha записей app-metadata audit, подходящих под текущие фильтры активной книги. Ожидайте evidence здесь только после явных disposable APP_ENV=test write-alpha smoke-запусков.',
+		'audit.browseTransactions': 'Открыть транзакции',
+		'audit.showingEntries':
+			'Показано {returned} из {total} redacted audit entries. Backup представлен только как present/missing.',
+		'audit.timestamp': 'Timestamp',
+		'audit.txnPrefix': 'Txn prefix',
+		'audit.backupSafeError': 'Backup / safe error',
+		'audit.backupPresent': 'Backup: present',
+		'audit.backupMissing': 'Backup: not recorded',
+		'audit.limitations': 'Ограничения',
+		'writeMode.title': 'Экспериментальный controlled write mode — не часть MVP v0.1',
+		'writeMode.message':
+			'MVP v0.1 по умолчанию остаётся read-only, а GNUCASH_WRITES_ENABLED=false — безопасное значение по умолчанию. Эта write form — только экспериментальная post-MVP функциональность, не production-ready и не security-audited; она должна быть доступна только при явном APP_ENV=test disposable запуске.',
+		'writeMode.desktop': 'GnuCash Desktop остаётся главным редактором.',
+		'writeMode.disposableOnly':
+			'Используйте только disposable/test copies, скопированные в ignored runtime storage; никогда не указывайте source или only copy.',
+		'writeMode.evidence': 'Проверьте backup, audit и lock-release evidence перед тем, как считать write-alpha запуск завершённым.',
+		'writeMode.staleLock':
+			'Если остался stale lock file, сначала остановите runtime и следуйте recovery runbook; не считайте host permission error признаком активного writer.',
+		'writeMode.neverRealBook': 'Никогда не используйте этот экспериментальный path с единственной реальной финансовой книгой.',
+		'writeMode.finalConfirm':
+			'Последнее предупреждение: это experimental post-MVP действие запишет в копию книги GnuCash. Продолжайте только в APP_ENV=test с ignored disposable copy, backups, audit и lock-release checks. Никогда не используйте source или only copy. Продолжить?',
+		'writeMode.acknowledgement':
+			'Я понимаю, что controlled writes — экспериментальная post-MVP функциональность, MVP v0.1 остаётся read-only по умолчанию, GNUCASH_WRITES_ENABLED=false — безопасное значение по умолчанию, GnuCash Desktop остаётся главным редактором, и я использую только ignored disposable/test copy с backup, audit и lock-release checks.',
+		'writeMode.kicker': 'Controlled write',
+		'writeMode.newTransactionTitle': 'Новая транзакция',
+		'writeMode.newTransactionHelp': 'Создаёт простую транзакцию с двумя splits. Backup создаётся перед финальной записью.',
 		'transactions.filters.title': 'Фильтры транзакций',
 		'transactions.filters.subtitle':
 			'Сужают read-only список транзакций и CSV export; фильтры никогда не изменяют вашу книгу GnuCash.',

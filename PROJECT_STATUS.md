@@ -11,7 +11,7 @@ Last updated: 2026-05-20
 
 ## Current baseline
 
-Completed through Phase 207.
+Completed through Phase 208.
 
 Current public release state:
 
@@ -2759,6 +2759,23 @@ Artifacts:
 Safety result: `GNUCASH_WRITES_ENABLED=false` remains default. The audit-summary route remains read-only/app-metadata-only and performs no GnuCash book mutation. Raw audit payloads, backup paths, private paths, amounts, memos, account names, and request/update/delete summaries are not rendered. No write route, write-scope expansion, lock deletion, production write-safety claim, real/private book, app DB, backup artifact, `.env`, screenshot/export, token, key, cert, raw path, or private financial data was added.
 
 Verification result: targeted audit-summary tests passed; full backend pytest passed; frontend check/auth-routes/build passed; Docker Compose config validation passed and rendered `GNUCASH_WRITES_ENABLED=false`; disabled-write route probes passed through the read-only API smoke; `git diff --check` passed; tracked sensitive-file hygiene scan passed.
+
+## Phase 208 — Frontend safety/locale polish for operator flows
+
+Status: complete. Phase commit pushed after verification.
+
+Goal: polish English/Russian safety copy for operator-facing read-only/write-alpha warnings without claiming full localization or changing backend behavior.
+
+Artifacts:
+
+- `apps/web/src/lib/i18n/messages.ts` — added/updated catalog-backed English/Russian operator safety copy for read-only release-critical warnings, write-alpha warnings/acknowledgements/final confirmations, books audit-evidence link text, and write-alpha audit-summary labels/help/error states.
+- `apps/web/src/lib/components/ReadOnlyStatusBanner.svelte`, `apps/web/src/lib/components/WriteModeWarning.svelte`, `apps/web/src/routes/transactions/new/+page.svelte`, `apps/web/src/routes/books/+page.svelte`, and `apps/web/src/routes/books/write-alpha-audit/+page.svelte` — switched relevant visible safety/operator strings from hardcoded English to typed catalog keys while keeping English canonical and Russian partial/opt-in.
+- `apps/web/scripts/test-auth-routes.mjs` — static checks now pin localized safety catalog usage, release-critical wording boundaries, hidden-by-default write UI, no raw audit payloads, and no localStorage/sessionStorage use outside the existing theme preference exception.
+- `docs/localization.md`, `CHANGELOG.md`, `PROJECT_STATUS.md`, and `docs/handoff/phase-208.md` — localization/status/handoff synchronized.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains default. No backend API localization, write route behavior, write gate, release/tag, product marketing claim, production-readiness/security-audit claim, real/private book, app DB, backup artifact, `.env`, screenshot/export, token, key, cert, raw path, account name, memo, amount, browser auth/locale/financial storage, or private financial data was added. Russian remains a conservative operator-safety slice only, not a full localization guarantee.
+
+Verification result: full backend pytest passed; frontend `npm run check`, `npm run test:auth-routes`, and `npm run build` passed; Docker Compose config validation passed; `git diff --check` passed; default-read-only browser dogfood passed on the committed synthetic fixture copied into ignored runtime data with hidden write UI, httpOnly auth-cookie check, mobile no-overflow checks, CSV route check, and no screenshot/download/CSV artifacts.
 
 ## Standing constraints
 

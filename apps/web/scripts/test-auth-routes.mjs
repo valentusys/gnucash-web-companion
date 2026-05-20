@@ -314,18 +314,22 @@ assert.doesNotMatch(booksPage, /uri_or_path|book\.operator_guidance\.message/, '
 assert.match(booksPage, /book\.is_default[\s\S]*t\(locale, 'books\.defaultBook'\)/s, '/books page must clearly mark the active/default book');
 assert.match(booksPage, /\/books\/\$\{book\.id\}\/select\?next=\/accounts[\s\S]*\/books\/\$\{book\.id\}\/select\?next=\/transactions[\s\S]*\/books\/\$\{book\.id\}\/select\?next=\/scheduled[\s\S]*\/books\/\$\{book\.id\}\/select\?next=\/dashboard/s, '/books page must expose safe book-context links to read-only views');
 assert.doesNotMatch(booksPage, /<form|<input|type="file"|method="POST"|Upload book|Delete book|collaborative|shared wallet|family wallet/i, '/books page must not offer upload/delete controls or collaborative/family-wallet framing');
-assert.match(booksPage, /href="\/books\/write-alpha-audit"[\s\S]*Write-alpha audit evidence/s, '/books page must link operators to the safe write-alpha audit evidence view');
+assert.match(booksPage, /href="\/books\/write-alpha-audit"[\s\S]*books\.auditEvidence/s, '/books page must link operators to the localized safe write-alpha audit evidence view');
 
 const writeAlphaAuditServer = read('src/routes/books/write-alpha-audit/+page.server.ts');
 const writeAlphaAuditPage = read('src/routes/books/write-alpha-audit/+page.svelte');
 assert.match(writeAlphaAuditServer, /getAuthToken\(cookies\)[\s\S]*getActiveBookContext\(fetch, cookies, token\)[\s\S]*URLSearchParams\(\{ limit: '25' \}\)[\s\S]*action[\s\S]*result[\s\S]*since[\s\S]*until[\s\S]*write-alpha-audit-summary\?\$\{params\.toString\(\)\}/s, 'write-alpha audit view must load only through authenticated active-book API context with safe URL filters');
-assert.match(writeAlphaAuditPage, /Read-only app metadata summary[\s\S]*synthetic\/disposable[\s\S]*not a production audit log product/s, 'write-alpha audit page must keep narrow disposable-run UX copy');
-assert.match(writeAlphaAuditPage, /Raw request payloads[\s\S]*backup paths[\s\S]*private file paths[\s\S]*amounts are not shown/s, 'write-alpha audit page must state redaction boundaries');
-assert.match(writeAlphaAuditPage, /method="GET"[\s\S]*Action[\s\S]*Result[\s\S]*Since ISO[\s\S]*Until ISO[\s\S]*Apply filters[\s\S]*Clear filters/s, 'write-alpha audit page must expose safe URL-only action/result/time-window filters');
+assert.match(writeAlphaAuditPage, /DEFAULT_LOCALE[\s\S]*audit\.bannerTitle[\s\S]*audit\.bannerMessage[\s\S]*audit\.redactionMessage/s, 'write-alpha audit page must use localized narrow disposable-run UX copy');
+assert.match(i18nMessages, /Read-only app metadata summary[\s\S]*pre-alpha[\s\S]*not production-ready[\s\S]*not security-audited[\s\S]*not a production audit log product[\s\S]*Raw request payloads[\s\S]*amounts are not shown/s, 'write-alpha audit catalog must state redaction, pre-alpha, not-production, not-security-audited boundaries');
+assert.match(writeAlphaAuditPage, /method="GET"[\s\S]*audit\.action[\s\S]*audit\.result[\s\S]*audit\.sinceIso[\s\S]*audit\.untilIso[\s\S]*audit\.applyFilters[\s\S]*audit\.clearFilters/s, 'write-alpha audit page must expose localized safe URL-only action/result/time-window filters');
 assert.match(writeAlphaAuditPage, /total_count[\s\S]*returned_count[\s\S]*counts_by_action[\s\S]*counts_by_result[\s\S]*time_window\.requested_since[\s\S]*status_summary/s, 'write-alpha audit page must render safe count/status/time-window metadata');
 assert.match(writeAlphaAuditPage, /item\.action[\s\S]*item\.result[\s\S]*item\.timestamp[\s\S]*item\.transaction_id_prefix[\s\S]*item\.backup_present[\s\S]*item\.error/s, 'write-alpha audit page must render only safe summary fields');
 assert.match(writeAlphaAuditPage, /min-w-0[\s\S]*overflow-x-hidden[\s\S]*md:grid-cols-\[minmax\(0,10rem\)_7rem_minmax\(0,11rem\)_8rem_minmax\(0,1fr\)\]/s, 'write-alpha audit page must keep mobile layout bounded without horizontal overflow');
 assert.doesNotMatch(writeAlphaAuditPage, /backup_path|request_summary|fields_updated|localStorage|sessionStorage|fetch\(|method="POST"/i, 'write-alpha audit page must not render raw audit payloads, persist evidence, or expose mutations');
+
+const writeModeWarningComponent = read('src/lib/components/WriteModeWarning.svelte');
+assert.match(writeModeWarningComponent, /writeMode\.title[\s\S]*writeMode\.message[\s\S]*writeMode\.disposableOnly[\s\S]*writeMode\.neverRealBook/s, 'write-mode warning must use localized safety copy');
+assert.match(i18nMessages, /writeMode\.message[\s\S]*not production-ready or security-audited[\s\S]*APP_ENV=test disposable run[\s\S]*writeMode\.message[\s\S]*не production-ready и не security-audited/s, 'write-mode catalog must pin unsafe-claim guards in EN/RU');
 
 const desktopNav = read('src/lib/components/DesktopNav.svelte');
 const mobileNav = read('src/lib/components/MobileNav.svelte');
@@ -345,7 +349,8 @@ assert.match(layoutPage, /<ReadOnlyStatusBanner \{locale\} \{activeBook\}/, 'app
 const readOnlyStatusBanner = read('src/lib/components/ReadOnlyStatusBanner.svelte');
 assert.match(readOnlyStatusBanner, /activeBook\?: Book \| null[\s\S]*activeBook\?\.name[\s\S]*safety\.currentBook/s, 'read-only status banner must show the current active book name');
 assert.match(readOnlyStatusBanner, /href="\/books"[\s\S]*safety\.reviewBooks/s, 'read-only status banner must provide a safe link to review books');
-assert.match(i18nMessages, /GNUCASH_WRITES_ENABLED=false[\s\S]*safety\.currentBook[\s\S]*safety\.reviewBooks/s, 'localized safety copy must state the default-disabled write flag and expose current-book/books labels');
+assert.match(readOnlyStatusBanner, /safety\.releaseCritical/s, 'app shell safety banner must expose release-critical pre-alpha/not-production wording');
+assert.match(i18nMessages, /Pre-alpha read-only MVP[\s\S]*GNUCASH_WRITES_ENABLED=false[\s\S]*Not production-ready or security-audited[\s\S]*disposable-copy only[\s\S]*Pre-alpha MVP[\s\S]*Не production-ready/s, 'localized safety copy must state pre-alpha, default-disabled, not-production, not-security-audited, and disposable-only boundaries');
 const bookSwitcherComponent = read('src/lib/components/BookSwitcher.svelte');
 assert.match(bookSwitcherComponent, /compact = false[\s\S]*min-h-11[\s\S]*max-w-full[\s\S]*truncate/s, 'book switcher must support compact mobile rendering with 44px touch height and no overflow');
 const localeSwitcherComponentForMobile = read('src/lib/components/LocaleSwitcher.svelte');
@@ -774,30 +779,15 @@ assert.match(
 	'new transaction final create form must include a required acknowledgement checkbox'
 );
 
-const writeModeWarning = read('src/lib/components/WriteModeWarning.svelte');
-for (const phrase of [
-	'experimental post-MVP',
-	'MVP v0.1 remains read-only by default',
-	'GNUCASH_WRITES_ENABLED=false',
-	'APP_ENV=test',
-	'GnuCash Desktop remains the authoritative editor',
-	'disposable/test copies',
-	'ignored runtime storage',
-	'backup, audit, and lock-release evidence',
-	'stale lock file remains',
-	'host permission error',
-	'Never use this experimental path with your only real financial book'
-]) {
-	assert.ok(writeModeWarning.includes(phrase), `write warning must include: ${phrase}`);
-}
+assert.match(writeModeWarningComponent, /writeMode\.title[\s\S]*writeMode\.message[\s\S]*writeMode\.desktop[\s\S]*writeMode\.disposableOnly[\s\S]*writeMode\.evidence[\s\S]*writeMode\.staleLock[\s\S]*writeMode\.neverRealBook/s, 'write warning component must render localized warning keys');
 assert.match(
 	newTransactionPage,
-	/write_acknowledgement[\s\S]*ignored disposable\/test copy with backup, audit, and lock-release checks/s,
+	/write_acknowledgement[\s\S]*writeMode\.acknowledgement/s,
 	'new transaction acknowledgement must pin disposable copy and evidence checks'
 );
 assert.match(
 	newTransactionPage,
-	/Final warning:[\s\S]*APP_ENV=test[\s\S]*ignored disposable copy[\s\S]*Never use a source or only copy/s,
+	/writeMode\.finalConfirm/s,
 	'new transaction browser confirmation must warn against source or only-copy writes'
 );
 assert.ok(

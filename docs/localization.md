@@ -62,6 +62,14 @@ Phase 169 closes the most visible RU/EN mismatch on recent release-critical read
 - existing CSV export states and book-context recovery notices remain catalog-backed from earlier phases;
 - English remains canonical, Russian remains partial/opt-in, and backend/API localization is still not a full rewrite.
 
+Phase 208 polishes the operator-facing safety slice for the current write-alpha cycle without changing backend behavior or claiming complete localization:
+
+- app-shell read-only status copy now states pre-alpha, default `GNUCASH_WRITES_ENABLED=false`, not production-ready, not security-audited, hidden-by-default write-alpha, and disposable-copy-only boundaries in English/Russian;
+- `/books` keeps the write-alpha audit evidence link catalog-backed while preserving app-metadata-only, no-management, and private-path-redacted wording;
+- the write-mode warning/new-transaction acknowledgement and final browser confirmation are catalog-backed and keep `APP_ENV=test`, disposable/test-copy, backup/audit/lock-release, never source/only-copy, and never-only-real-book constraints;
+- `/books/write-alpha-audit` now uses catalog-backed EN/RU operator labels and warning copy, while the endpoint/API payloads remain English/backend-defined and redacted;
+- static route checks pin unsafe-claim guards for pre-alpha, not production-ready, not security-audited, default-disabled, and disposable-only wording, and continue to reject `localStorage`/`sessionStorage` in sensitive UI paths.
+
 Russian safety copy was written manually. Do not machine-translate new safety warnings without human review.
 
 ## Accounting and safety glossary
