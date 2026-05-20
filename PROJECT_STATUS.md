@@ -11,7 +11,7 @@ Last updated: 2026-05-21
 
 ## Current baseline
 
-Completed through Phase 209.
+Completed through Phase 210.
 
 Current public release state:
 
@@ -2795,6 +2795,24 @@ Dogfood result: local Docker/Caddy ran with only `apps/api/tests/fixtures/test-b
 Safety result: `GNUCASH_WRITES_ENABLED=false` remains default and rendered false for API and web. No write-enabled mode was run. No real/private/only-copy book, release/tag/package/image, committed runtime artifact, `.env`, backup, token, key, cert, private path, account name, memo, amount, or private financial data was added. The ignored smoke runtime book and generated app DB were removed after teardown; a pre-existing ignored local `data/app/app.db` was restored and remains untracked local state.
 
 Verification result: Docker Compose config validation passed and rendered `GNUCASH_WRITES_ENABLED: "false"`; read-only API smoke passed; mobile and desktop browser dogfood passed; full backend pytest passed; frontend `npm run check`, auth-route/static checks, and build passed; `git diff --check` passed; tracked sensitive-file hygiene scan passed.
+
+## Phase 210 — Bounded disposable write-alpha CRUD/restore refresh
+
+Status: complete. Phase commit pushed after verification.
+
+Goal: collect one fresh bounded write-alpha evidence pass after cycle-1 hardening, using only ignored synthetic/disposable runtime copies and then returning to default false.
+
+Artifacts:
+
+- `docs/dogfood/phase-210-write-alpha-cycle-1-dogfood.md` — redacted local write-alpha create/PATCH/DELETE+restore evidence, default-false reset evidence, and cleanup notes.
+- `docs/handoff/phase-210.md` — phase handoff.
+- `CHANGELOG.md` and `PROJECT_STATUS.md` — status synchronized.
+
+Dogfood result: a committed synthetic fixture was copied to a temporary external disposable source and then into ignored `data/books/main.gnucash.sqlite` before each route-family smoke. The write-alpha preflight dry-run passed for external source, ignored runtime book, and ignored backup classes. Local Docker/Caddy ran only with explicit `APP_ENV=test` plus `GNUCASH_WRITES_ENABLED=true` and dummy local-only secrets. Create, PATCH, and DELETE route-family smokes each executed exactly one successful mutation on its prepared copy; expected validation/missing-transaction failures failed safely; backup and audit evidence increased as expected; API/runtime read-back checks passed; DELETE restore proof used a host-readable backup and passed restored API read-back; lock evidence was stale-released/not active.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains default. The stack was reset to default false, rendered Compose showed `GNUCASH_WRITES_ENABLED: "false"` for API and web, and read-only API smoke passed with validate/create/PATCH/DELETE probes returning 403. Cleanup removed ignored runtime book/backups/locks/generated smoke app DB, using the stopped-runtime cleanup helper with `--via-compose` fallback for root-owned ignored backup artifacts; a pre-existing ignored local `data/app/app.db` was restored and remains untracked local state. No real/private/only-copy book, enabled-by-default config, write endpoint expansion, release/tag/package/image, committed runtime artifact, `.env`, backup, token, key, cert, raw path, account name, memo, amount, or private financial data was added.
+
+Verification result: write-alpha preflight dry-run passed; create smoke passed; PATCH smoke passed; DELETE restore smoke passed; rendered false reset check passed; read-only API smoke passed; full backend pytest passed; frontend check/auth-routes/build passed; Docker Compose config validation passed; `git diff --check` passed; tracked sensitive-file hygiene scan passed.
 
 ## Standing constraints
 
