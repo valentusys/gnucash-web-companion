@@ -120,8 +120,14 @@ const loginServer = read('src/routes/login/+page.server.ts');
 assert.match(loginServer, /cookies\.set\(AUTH_COOKIE, data\.access_token/, 'login must store token in cookie');
 assert.match(loginServer, /httpOnly:\s*true/, 'auth cookie must be httpOnly');
 assert.match(loginServer, /env\.JWT_TOKEN_EXPIRE_MINUTES[\s\S]*authCookieMaxAgeSeconds\(\)/s, 'auth cookie lifetime must follow the configured JWT session lifetime with a safe fallback');
+assert.match(loginServer, /export const load[\s\S]*\/health[\s\S]*health\.first_run/s, 'login page load must fetch redacted /health first-run diagnostics without requiring auth');
 assert.match(loginServer, /localeFromCookie\(cookies\)[\s\S]*response\.status === 503[\s\S]*login\.error\.operatorConfiguration/s, 'login must show localized safe first-run operator guidance for backend auth configuration failures');
 assert.match(i18nMessages, /login\.error\.operatorConfiguration[\s\S]*JWT_SECRET[\s\S]*APP_ADMIN_PASSWORD_HASH or APP_ADMIN_PASSWORD[\s\S]*Вход настроен не полностью/s, 'login operator configuration guidance must preserve canonical English and Russian safety wording');
+const loginPage = read('src/routes/login/+page.svelte');
+assert.match(loginPage, /jwt_secret[\s\S]*admin_bootstrap[\s\S]*default_book[\s\S]*cors[\s\S]*write_mode[\s\S]*data\.firstRun[\s\S]*login\.firstRun\.title/s, 'login page must render mobile-safe redacted first-run health diagnostics for critical deployment states');
+assert.match(loginPage, /min-w-0[\s\S]*statusLabel\(check\.status\)[\s\S]*break-words/s, 'login first-run diagnostics must be mobile-safe and status-labelled');
+assert.doesNotMatch(loginPage, /localStorage|sessionStorage|JWT_SECRET=|APP_ADMIN_PASSWORD=/, 'login first-run diagnostics must not persist or display secret values');
+assert.match(i18nMessages, /First-run read-only deployment checks[\s\S]*placeholder JWT secret[\s\S]*admin bootstrap[\s\S]*write-disabled status[\s\S]*Проверки first-run read-only deployment/s, 'login first-run diagnostics copy must be localized in EN/RU and cover critical deployment states');
 assert.doesNotMatch(loginServer, /localStorage|sessionStorage/, 'login must not use browser storage');
 
 const logoutServer = read('src/routes/logout/+server.ts');

@@ -57,6 +57,12 @@ def test_health_returns_richer_non_sensitive_payload(monkeypatch, tmp_path):
     assert payload["checks"]["app_database"]["backend"] == "sqlite"
     assert payload["checks"]["app_database"]["database_name"] == "app.db"
     assert payload["warnings"] == []
+    assert payload["first_run"]["summary"] == "Read-only first-run prerequisites look configured."
+    assert payload["first_run"]["action_required"] == []
+    assert payload["first_run"]["checks"]["write_mode"] == {
+        "status": "ok",
+        "message": "GnuCash writes are disabled; read-only deployment default is active.",
+    }
     assert payload["checks"]["cors"] == {
         "wildcard_enabled": True,
         "app_env": "test",
@@ -146,6 +152,36 @@ def test_auth_configuration_posture_explains_first_run_login_blockers_without_se
     assert payload["checks"]["auth_configuration"] == posture
     assert "change-me-use-a-long-random-secret" not in str(payload)
     assert str(tmp_path) not in str(payload)
+
+
+def test_health_first_run_summary_distinguishes_actionable_states_without_sensitive_values(tmp_path):
+    private_root = tmp_path / "private" / "nested"
+    private_root.mkdir(parents=True)
+    settings = Settings(
+        app_env="production",
+        app_database_url=f"sqlite:///{tmp_path / 'app.db'}",
+        gnucash_default_book_path=str(private_root / "owner-book.gnucash.sqlite"),
+        jwt_secret="change-me",
+        app_admin_password="",
+        app_admin_password_hash="",
+        cors_origins=["*"],
+    )
+
+    payload = build_health_payload(settings, _in_memory_engine())
+    first_run = payload["first_run"]
+
+    assert first_run["summary"] == "First-run configuration needs operator action."
+    assert first_run["action_required"] == ["jwt_secret", "admin_bootstrap", "default_book", "cors"]
+    assert first_run["checks"]["jwt_secret"]["message"] == "JWT_SECRET is missing or still a placeholder. Set a long random value and restart."
+    assert "APP_ADMIN_PASSWORD_HASH or APP_ADMIN_PASSWORD is missing" in first_run["checks"]["admin_bootstrap"]["message"]
+    assert "missing or not mounted" in first_run["checks"]["default_book"]["message"]
+    assert "Narrow CORS_ORIGINS" in first_run["checks"]["cors"]["message"]
+    assert first_run["checks"]["write_mode"]["message"] == "GnuCash writes are disabled; read-only deployment default is active."
+
+    payload_text = str(payload)
+    assert "change-me" not in payload_text
+    assert str(tmp_path) not in payload_text
+    assert "owner-book.gnucash.sqlite" in payload_text
 
 
 def test_cors_posture_warns_for_wildcard_outside_development_like_env(tmp_path):

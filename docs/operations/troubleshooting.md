@@ -50,6 +50,17 @@ Example healthy shape:
 {
   "status": "ok",
   "service": "api",
+  "first_run": {
+    "summary": "Read-only first-run prerequisites look configured.",
+    "action_required": [],
+    "checks": {
+      "jwt_secret": { "status": "ok", "message": "JWT_SECRET is configured." },
+      "admin_bootstrap": { "status": "ok", "message": "Admin bootstrap credentials are configured." },
+      "default_book": { "status": "ok", "message": "Default GnuCash book file is present." },
+      "cors": { "status": "ok", "message": "CORS_ORIGINS is narrowed to configured origins." },
+      "write_mode": { "status": "ok", "message": "GnuCash writes are disabled; read-only deployment default is active." }
+    }
+  },
   "checks": {
     "app_database": {
       "backend": "sqlite",
@@ -84,6 +95,12 @@ Example healthy shape:
 runtime check needs attention. Common first-run causes are a missing/unreadable
 default book file, placeholder JWT secret, missing admin bootstrap credential, or
 an unreachable app metadata DB.
+
+The `first_run.action_required` list is the quickest redacted operator triage
+view. It uses stable safe check keys only: `jwt_secret`, `admin_bootstrap`,
+`default_book`, and `cors`. The `write_mode` check should normally be `ok` with
+`GNUCASH_WRITES_ENABLED=false`; if it is a warning, stop before using any real or
+only-copy book and return the deployment to read-only defaults.
 
 ## Missing or unreadable default book
 
@@ -143,6 +160,20 @@ For a missing first-admin bootstrap credential:
 The health endpoint and startup logs report boolean/config-key diagnostics only.
 They must not include JWT secret values, admin passwords, password hashes, or
 full `.env` contents.
+
+The login page also reads the same redacted `/health` `first_run` block before
+authentication, so operators can distinguish placeholder JWT, missing admin
+bootstrap, missing/unreadable default-book mount, unsafe wildcard CORS outside a
+development-like `APP_ENV`, and write-disabled status without exposing secrets or
+book data in the browser.
+
+## Unsafe wildcard CORS outside local development
+
+If `first_run.checks.cors.status` is `action_required`, then `CORS_ORIGINS`
+contains `*` while `APP_ENV` is not development-like. Narrow `CORS_ORIGINS` to
+the exact localhost, LAN, or VPN browser origins used for this self-hosted
+deployment and restart the stack. This is operator guidance only; it is not a
+public-internet hardening or production-security claim.
 
 ## App metadata DB not reachable
 

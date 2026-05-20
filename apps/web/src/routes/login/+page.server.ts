@@ -1,6 +1,8 @@
 import { env } from '$env/dynamic/private';
 import { localeFromCookie, t } from '$lib/i18n';
 import { fail, redirect, type Actions } from '@sveltejs/kit';
+import type { HealthPayload } from '$lib/api/types';
+import type { PageServerLoad } from './$types';
 
 const AUTH_COOKIE = 'access_token';
 const DEFAULT_COOKIE_MAX_AGE_SECONDS = 60 * 30;
@@ -28,6 +30,20 @@ function authCookieMaxAgeSeconds(): number {
 	}
 	return Math.floor(minutes * 60);
 }
+
+export const load: PageServerLoad = async ({ fetch }) => {
+	const apiBase = process.env.API_INTERNAL_URL ?? 'http://localhost:8000';
+	try {
+		const response = await fetch(`${apiBase}/health`);
+		if (!response.ok) {
+			return { firstRun: null };
+		}
+		const health = (await response.json()) as HealthPayload;
+		return { firstRun: health.first_run ?? null };
+	} catch {
+		return { firstRun: null };
+	}
+};
 
 export const actions: Actions = {
 	default: async ({ cookies, fetch, request, url }) => {

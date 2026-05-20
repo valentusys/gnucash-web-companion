@@ -177,10 +177,55 @@ def build_health_payload(settings: Settings, engine: Engine) -> dict[str, Any]:
     warnings = [cors["message"]] if cors["risk_level"] == "warning" else []
     warnings.extend(auth_config["issues"])
 
+    first_run_checks = {
+        "jwt_secret": {
+            "status": "ok" if auth_config["jwt_secret_configured"] else "action_required",
+            "message": (
+                "JWT_SECRET is configured."
+                if auth_config["jwt_secret_configured"]
+                else "JWT_SECRET is missing or still a placeholder. Set a long random value and restart."
+            ),
+        },
+        "admin_bootstrap": {
+            "status": "ok" if auth_config["admin_credentials_configured"] else "action_required",
+            "message": (
+                "Admin bootstrap credentials are configured."
+                if auth_config["admin_credentials_configured"]
+                else "APP_ADMIN_PASSWORD_HASH or APP_ADMIN_PASSWORD is missing; first-run admin login cannot be seeded."
+            ),
+        },
+        "default_book": {
+            "status": "ok" if default_book["exists"] and default_book["readable"] else "action_required",
+            "message": default_book["message"],
+        },
+        "cors": {
+            "status": "action_required" if cors["risk_level"] == "warning" else "ok",
+            "message": cors["message"],
+        },
+        "write_mode": {
+            "status": "warning" if settings.gnucash_writes_enabled else "ok",
+            "message": (
+                "Experimental writes are explicitly enabled for this runtime. Use only APP_ENV=test with disposable copies."
+                if settings.gnucash_writes_enabled
+                else "GnuCash writes are disabled; read-only deployment default is active."
+            ),
+        },
+    }
+    first_run_action_required = [key for key, check in first_run_checks.items() if check["status"] == "action_required"]
+
     return {
         "status": "degraded" if degraded else "ok",
         "service": "api",
         "warnings": warnings,
+        "first_run": {
+            "summary": (
+                "First-run configuration needs operator action."
+                if first_run_action_required
+                else "Read-only first-run prerequisites look configured."
+            ),
+            "action_required": first_run_action_required,
+            "checks": first_run_checks,
+        },
         "checks": {
             "app_database": app_database,
             "auth_configuration": auth_config,

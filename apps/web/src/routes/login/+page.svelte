@@ -1,10 +1,29 @@
 <script lang="ts">
 	import ThemeSwitcher from '$lib/components/ThemeSwitcher.svelte';
 	import LocaleSwitcher from '$lib/components/LocaleSwitcher.svelte';
-	import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
+	import { DEFAULT_LOCALE, t, type Locale, type MessageKey } from '$lib/i18n';
+	import type { PageData } from './$types';
 
-	let { data, form } = $props();
+	let { data, form }: { data: PageData; form: { error?: string; username?: string } | null } = $props();
 	let locale = $derived<Locale>(data.locale ?? DEFAULT_LOCALE);
+
+	const firstRunLabels: Array<[
+		'jwt_secret' | 'admin_bootstrap' | 'default_book' | 'cors' | 'write_mode',
+		MessageKey
+	]> = [
+		['jwt_secret', 'login.firstRun.jwtSecret'],
+		['admin_bootstrap', 'login.firstRun.adminBootstrap'],
+		['default_book', 'login.firstRun.defaultBook'],
+		['cors', 'login.firstRun.cors'],
+		['write_mode', 'login.firstRun.writeMode']
+	];
+
+	function statusLabel(status: string): string {
+		if (status === 'ok') return t(locale, 'login.firstRun.status.ok');
+		if (status === 'warning') return t(locale, 'login.firstRun.status.warning');
+		if (status === 'action_required') return t(locale, 'login.firstRun.status.actionRequired');
+		return status.replaceAll('_', ' ');
+	}
 </script>
 
 <svelte:head>
@@ -68,5 +87,29 @@
 				{t(locale, 'login.submit')}
 			</button>
 		</form>
+
+		{#if data.firstRun}
+			<section
+				class="mt-6 min-w-0 rounded-2xl border p-4 text-sm"
+				style="border-color: var(--app-border); background-color: var(--app-card-bg);"
+				aria-label={t(locale, 'login.firstRun.title')}
+			>
+				<h2 class="text-base font-semibold" style="color: var(--app-text);">{t(locale, 'login.firstRun.title')}</h2>
+				<p class="mt-2" style="color: var(--app-muted);">{t(locale, 'login.firstRun.summary')}</p>
+				<p class="mt-1 text-xs" style="color: var(--app-muted);">{t(locale, 'login.firstRun.safeDiagnostics')}</p>
+				<ul class="mt-4 space-y-2">
+					{#each firstRunLabels as [checkKey, labelKey]}
+						{@const check = data.firstRun.checks[checkKey]}
+						<li class="min-w-0 rounded-xl border p-3" style="border-color: var(--app-border);">
+							<div class="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+								<p class="font-medium" style="color: var(--app-text);">{t(locale, labelKey)}</p>
+								<span class="w-fit rounded-full px-2 py-1 text-xs font-semibold" style="background-color: var(--app-hover-bg); color: var(--app-muted);">{statusLabel(check.status)}</span>
+							</div>
+							<p class="mt-2 break-words text-xs" style="color: var(--app-muted);">{check.message}</p>
+						</li>
+					{/each}
+				</ul>
+			</section>
+		{/if}
 	</section>
 </main>

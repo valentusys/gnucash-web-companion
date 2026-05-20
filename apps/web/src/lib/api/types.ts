@@ -186,3 +186,23 @@ export type WriteAlphaAuditSummary = {
 	filters: Record<string, string | number | null>;
 	limitations: string[];
 };
+
+export type FirstRunCheckStatus = 'ok' | 'warning' | 'action_required' | string;
+
+export type FirstRunCheck = {
+	status: FirstRunCheckStatus;
+	message: string;
+};
+
+export type FirstRunDiagnostics = {
+	summary: string;
+	action_required: string[];
+	checks: Record<'jwt_secret' | 'admin_bootstrap' | 'default_book' | 'cors' | 'write_mode', FirstRunCheck>;
+};
+
+export type HealthPayload = {
+	status: string;
+	service: string;
+	warnings: string[];
+	first_run?: FirstRunDiagnostics;
+};
