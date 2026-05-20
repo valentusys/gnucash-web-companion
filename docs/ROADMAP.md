@@ -5,7 +5,7 @@ This roadmap is intentionally conservative. Safety and trust come before feature
 ## Current release posture
 
 - Status: pre-alpha / MVP in progress.
-- Completed through Phase 237.
+- Completed through Phase 238.
 - Current public read-only pre-release: `v0.1.7-readonly`.
 - Current published write-alpha pre-release: `v0.2.5-writealpha`, published in Phase 231 after the
   cycle-3 release gate and exact release-commit CI as pre-alpha/experimental and disabled by
@@ -24,9 +24,9 @@ This roadmap is intentionally conservative. Safety and trust come before feature
   README/status sources without changing safety posture, Phase 234 added a conservative copied-book
   write-alpha dogfood runbook, Phase 235 added a redacted local-only target preflight CLI for
   future copied/disposable testing, Phase 236 added a redacted dogfood evidence schema/helper for
-  future evidence reports, and Phase 237 added a local-only write-alpha environment reference and
-  operator guard documentation without changing default read-only config or running real/private
-  copied-book dogfood. Phase 221 previously recorded a no-release verdict for
+  future evidence reports, Phase 237 added a local-only write-alpha environment reference and
+  operator guard documentation, and Phase 238 added a redacted non-mutating write-alpha readiness
+  command without changing default read-only config or running real/private copied-book dogfood. Phase 221 previously recorded a no-release verdict for
   the Phase 220 DELETE backup-count anomaly; Phases 222–230 remediated and re-verified that blocker
   only as synthetic/disposable backup-audit, default-disabled fresh-clone/upgrade, and final
   release-candidate dogfood evidence before publication.
@@ -80,6 +80,9 @@ This roadmap is intentionally conservative. Safety and trust come before feature
 - Phase 237 — added an explicitly unsafe-for-real-books `.env.writealpha.example` reference and
   `docs/write-alpha/environment.md` operator guidance for local-only write-alpha testing; defaults
   remain read-only and no write mode was enabled.
+- Phase 238 — added a redacted non-mutating `scripts/write_alpha_readiness.py` command for checking
+  write-alpha prerequisites; it reports gate/config/readiness status without constructing the write
+  service or mutating books.
 
 ## Completed phase groups
 

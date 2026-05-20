@@ -25,7 +25,7 @@ Desktop остаётся главным редактором.
 
 ## Текущий публичный статус
 
-- Фазы 0–237 завершены.
+- Фазы 0–238 завершены.
 - MVP v0.1 остаётся **read-only by default**.
 - `GNUCASH_WRITES_ENABLED=false` — безопасный дефолт.
 - Controlled-write код, если присутствует, является experimental post-MVP/write-alpha, отключён по
@@ -66,7 +66,9 @@ Desktop остаётся главным редактором.
   `scripts/redact_dogfood_evidence.py`, чтобы будущие отчёты reject/redact path-like, amount-like,
   memo/account-name и payload-like data до commit; Phase 237 добавил явно unsafe-for-real-books
   `.env.writealpha.example` reference и [write-alpha environment guidance](docs/write-alpha/environment.md)
-  для local-only operator testing без изменения default read-only config. Write-alpha остаётся
+  для local-only operator testing без изменения default read-only config; Phase 238 добавил
+  redacted non-mutating `scripts/write_alpha_readiness.py` readiness command для проверки
+  write-alpha prerequisites. Write-alpha остаётся
   pre-alpha/experimental, disabled by default, `APP_ENV=test` gated при явном включении и не безопасен
   для real/private или only-copy books.
 - Compatibility matrix: [docs/gnucash-compatibility.md](docs/gnucash-compatibility.md). Текущие

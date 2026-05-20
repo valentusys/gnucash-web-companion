@@ -9,7 +9,7 @@ Last updated: 2026-05-21
 - Branch: `main`
 - Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release;
   `v0.2.5-writealpha` is the current public experimental write-alpha pre-release. Completed through
-  Phase 237. Phase 231 ran the final release gate after Phase 230 green release-candidate dogfood,
+  Phase 238. Phase 231 ran the final release gate after Phase 230 green release-candidate dogfood,
   confirmed local/backend/frontend/Docker/public-status/sensitive-file gates, waited for exact
   release/status commit CI, and published only the annotated tag plus GitHub pre-release. Phase 232
   reconciled public status/changelog wording after publication. Phase 233 improved raw markdown
@@ -21,14 +21,18 @@ Last updated: 2026-05-21
   path-like, amount-like, memo/account-name, and payload-like data before commit. Phase 237 added an
   explicitly unsafe-for-real-books `.env.writealpha.example` reference and
   `docs/write-alpha/environment.md` operator guidance for local-only write-alpha testing without
-  changing default read-only config.
+  changing default read-only config. Phase 238 added a redacted, non-mutating
+  `scripts/write_alpha_readiness.py` readiness command plus backend helper/tests so operators can
+  inspect write-alpha prerequisites — writes enabled flag, `APP_ENV=test` gate, derived backup
+  policy, app DB reachability, default book read-only openability, and no-mutation proof — without
+  constructing the write service or exposing raw paths.
   `GNUCASH_WRITES_ENABLED=false` remains default, `APP_ENV=test` write-alpha gating remains intact, and no
   production/security/public-internet/broad-compatibility or real/private-book write-safety claim is
   added.
 
 ## Current baseline
 
-Completed through Phase 237.
+Completed through Phase 238.
 
 Current public release state:
 
@@ -67,6 +71,11 @@ Current public release state:
   `APP_ENV=test` for explicit write-alpha testing, allows only synthetic/disposable/copied-test
   books, forbids public exposure and original/only-copy books, and keeps `.env.example` plus Docker
   Compose defaults read-only.
+- Phase 238 added `scripts/write_alpha_readiness.py` and `app.write_alpha_readiness`, a redacted
+  non-mutating readiness inspection path for operator preflight. It reports writes-enabled flag,
+  `APP_ENV=test` gate status, derived backup policy, app metadata DB reachability, default book
+  read-only openability/readability, and explicit `mutation_performed=false`; it works while writes
+  are disabled, exposes no raw private paths, and does not construct `GnuCashWriteService`.
 - `v0.2.4-writealpha` remains available as the previous public experimental write-alpha GitHub
   pre-release after Phase 211 publication. It is pre-alpha, disabled by default, `APP_ENV=test`
   gated when explicitly enabled, based on synthetic/disposable evidence only for that cycle, not

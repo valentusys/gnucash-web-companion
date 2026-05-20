@@ -7,6 +7,13 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versione
 
 ## [Unreleased]
 
+- Phase 238 — added `scripts/write_alpha_readiness.py` and backend readiness helper coverage for a
+  non-mutating, redacted write-alpha operator preflight. The command reports whether
+  `GNUCASH_WRITES_ENABLED=true`, the `APP_ENV=test` gate, derived backup policy, app metadata DB,
+  and default book read-only open check are ready, always records `mutation_performed=false`, works
+  when writes are disabled, and does not construct the write service. No write default,
+  `APP_ENV=test` gate, release, real/private-book use, or raw-path output was added.
+
 - Phase 237 — added `.env.writealpha.example` as an explicitly unsafe-for-real-books operator
   reference and `docs/write-alpha/environment.md` for local write-alpha environment guardrails. The
   docs state not to copy the template blindly to `.env`, require both `GNUCASH_WRITES_ENABLED=true`
