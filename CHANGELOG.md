@@ -6,7 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-No unreleased changes yet.
+### Added
+
+- Phase 204 — added compatibility-matrix regression coverage from redacted fixture metadata, classifying rows as tested synthetic evidence, blocked/manual Desktop fixture work, or unclaimed backend, and reorganized compatibility docs so PostgreSQL/MySQL/MariaDB, XML, broad Desktop-version support, production readiness, and real/private-book compatibility remain unclaimed.
 
 ## [0.2.3-writealpha] - 2026-05-20
 

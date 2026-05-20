@@ -11,7 +11,7 @@ Last updated: 2026-05-20
 
 ## Current baseline
 
-Completed through Phase 203.
+Completed through Phase 204.
 
 Current public release state:
 
@@ -2692,6 +2692,24 @@ Artifacts:
 Safety result: `GNUCASH_WRITES_ENABLED=false` remains default. No Desktop-generated fixture was produced, supplied, copied into runtime storage, or committed. No real/private book, app DB, backup, `.env`, screenshot/export, token, key, cert, raw path, account name, transaction description, memo, amount, row value, or private financial data was committed. The helper rejects unsafe candidate path classes before reading metadata and accepted metadata remains bounded/redacted.
 
 Verification result: targeted compatibility metadata/helper tests passed; compatibility docs/tests passed; full backend pytest passed; frontend `npm run check`, `npm run test:auth-routes`, and `npm run build` passed; Docker Compose config validation passed and rendered `GNUCASH_WRITES_ENABLED: "false"`; `git diff --check` passed; tracked sensitive-file hygiene scan passed.
+
+## Phase 204 — Compatibility matrix regression from fixture metadata
+
+Status: complete. Phase commit pushed after verification.
+
+Goal: turn the Phase 203 fixture/provenance result into automated read-only compatibility regression coverage and honest matrix docs without adding backend support or broad version claims.
+
+Artifacts:
+
+- `apps/api/app/compatibility_matrix.py` — classifies redacted fixture metadata as tested synthetic evidence, blocked/manual Desktop fixture work, or unclaimed backend with conservative display copy.
+- `apps/api/tests/test_compatibility_matrix.py` — pins metadata ingestion, unsupported-backend messaging, compatibility matrix section separation, and broad-support wording guards.
+- `docs/gnucash-compatibility.md` — reorganized into tested synthetic/disposable evidence, blocked/manual fixture work, and unclaimed backends/formats.
+- `docs/gnucash-version-fixture-plan.md` — records the Phase 204 matrix-regression guard.
+- `CHANGELOG.md`, `PROJECT_STATUS.md`, and `docs/handoff/phase-204.md` — status/handoff synchronized.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains default. No fixture binary, real/private book, app DB, backup, `.env`, screenshot/export, token, key, cert, raw path, account name, transaction description, memo, amount, row value, or private financial data was committed. PostgreSQL/MySQL/MariaDB and XML remain explicitly unclaimed; Desktop-generated metadata remains blocked/manual until separate default-read-only validation passes.
+
+Verification result: targeted compatibility matrix/metadata/backend docs tests passed; full backend pytest passed; frontend `npm run check`, `npm run test:auth-routes`, and `npm run build` passed; Docker Compose config validation passed and rendered `GNUCASH_WRITES_ENABLED: "false"`; touched markdown link check passed; `git diff --check` passed; tracked sensitive-file hygiene scan passed.
 
 ## Standing constraints
 
