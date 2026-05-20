@@ -48,7 +48,9 @@ Do not assume every negative number is “bad” or every positive number is “
 
 No fake currency conversion is performed.
 
-Current basic report totals include only values whose account/split commodity matches the configured book `base_currency`. Non-base-currency values are excluded from those totals rather than converted using guessed or stale exchange rates.
+Current basic report totals include only values whose account/split commodity matches the configured book `base_currency`. Non-base-currency values are excluded from those totals rather than converted using guessed or stale exchange rates. Mixed-currency transactions can therefore contribute only their base-currency splits to read-only dashboard totals while excluded split currencies remain disclosed in the summary limitations.
+
+If `base_currency` is unknown, the API reports `XXX` and keeps totals base-currency-only. Zero totals in that state may mean there are no matching `XXX` accounts/splits, not that the book is empty.
 
 Future multi-currency reporting must define an explicit exchange-rate source, date policy, and UI disclosure before combining currencies.
 

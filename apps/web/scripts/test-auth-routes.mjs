@@ -70,6 +70,16 @@ assert.match(
 	/transactionFilterHref[\s\S]*new URLSearchParams\(\{ limit: '50', offset: '0' \}\)[\s\S]*date_from[\s\S]*cashflowByMonth[\s\S]*expensesByAccount[\s\S]*account_id/s,
 	'dashboard server load must build read-only drilldown URLs from existing transaction filter parameters'
 );
+assert.doesNotMatch(
+	read('src/routes/dashboard/+page.server.ts'),
+	/Number\(/,
+	'dashboard server load must not use Number() on reporting or drilldown values'
+);
+assert.match(
+	read('src/routes/dashboard/+page.server.ts'),
+	/expenses\.map\(\(expense\) => \[[\s\S]*transactionFilterHref\(\{ account_id: expense\.account_id, date_from: dateFrom, date_to: dateTo \}\)/s,
+	'dashboard expense drilldowns must preserve URL-filter parity with account_id and the same date range'
+);
 assert.match(
 	dashboardPage,
 	/<SummaryGrid summary=\{data\.summary\} drilldowns=\{data\.drilldowns\}[\s\S]*<RecentTransactions transactions=\{data\.recentTransactions\} drilldownHref=\{data\.drilldowns\.recent\}[\s\S]*<ExpensesByAccount expenses=\{data\.expenses\} drilldownHrefs=\{data\.drilldowns\.expensesByAccount\}[\s\S]*<CashflowSummary periods=\{data\.cashflowPeriods\} drilldownHrefs=\{data\.drilldowns\.cashflowByMonth\}/s,

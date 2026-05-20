@@ -535,6 +535,113 @@ class TestReportSummaryMVP:
         assert data["net_worth"] == "1220.00"
         assert data["income_this_month"] == "500.00"
         assert data["expenses_this_month"] == "-50.00"
+        for key in ("assets", "liabilities", "net_worth", "income_this_month", "expenses_this_month"):
+            assert isinstance(data[key], str)
+
+    def test_mixed_currency_splits_are_excluded_and_disclosed_without_conversion(
+        self, client, auth_headers, sample_book, fake_book_for_reports, session_factory, monkeypatch
+    ):
+        sek = FakeCommodity(mnemonic="SEK")
+        eur = FakeCommodity(mnemonic="EUR")
+        root = FakeAccount(guid="root", name="Root Account", type="ROOT", commodity=sek)
+        checking = FakeAccount(guid="checking", name="Checking", type="BANK", commodity=sek, parent=root)
+        salary = FakeAccount(guid="salary", name="Salary", type="INCOME", commodity=sek, parent=root)
+        food = FakeAccount(guid="food", name="Food", type="EXPENSE", commodity=sek, parent=root)
+        eur_travel = FakeAccount(guid="eur-travel", name="EUR Travel", type="EXPENSE", commodity=eur, parent=root)
+        accounts = [root, checking, salary, food]
+        transactions = [
+            FakeTransaction(
+                guid="mixed-income-eur-expense",
+                post_date=date(2026, 5, 8),
+                description="Mixed-currency synthetic transaction",
+                splits=[
+                    FakeSplit(account=salary, value=Decimal("-100.00")),
+                    FakeSplit(account=eur_travel, value=Decimal("9999.99")),
+                ],
+            ),
+            FakeTransaction(
+                guid="base-expense",
+                post_date=date(2026, 5, 9),
+                description="Base-currency expense",
+                splits=[
+                    FakeSplit(account=checking, value=Decimal("-25.00")),
+                    FakeSplit(account=food, value=Decimal("25.00")),
+                ],
+            ),
+        ]
+
+        def fake_open_book(path, readonly=False):
+            return FakeBookForReports(accounts=accounts, transactions=transactions)
+
+        import app.services.gnucash_book as gb_module
+
+        monkeypatch.setattr(gb_module.piecash, "open_book", fake_open_book)
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(fake_book_for_reports)
+            session.commit()
+
+        response = client.get(
+            "/reports/summary?as_of_date=2026-05-16",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["currency"] == "SEK"
+        assert data["income_this_month"] == "100.00"
+        assert data["expenses_this_month"] == "-25.00"
+        assert data["assets"] == "-25.00"
+        limitations = " ".join(data["limitations"])
+        assert "EUR" in limitations
+        assert "excluded rather than converted or combined" in limitations
+        assert "no currency conversion" in limitations
+
+    def test_negative_contra_balances_remain_signed_decimal_strings(
+        self, client, auth_headers, sample_book, fake_book_for_reports, session_factory, monkeypatch
+    ):
+        sek = FakeCommodity(mnemonic="SEK")
+        root = FakeAccount(guid="root", name="Root Account", type="ROOT", commodity=sek)
+        contra_asset = FakeAccount(
+            guid="contra-asset",
+            name="Contra Asset",
+            type="ASSET",
+            commodity=sek,
+            parent=root,
+            balance=Decimal("-125.50"),
+        )
+        positive_liability = FakeAccount(
+            guid="contra-liability",
+            name="Contra Liability",
+            type="LIABILITY",
+            commodity=sek,
+            parent=root,
+            balance=Decimal("25.25"),
+        )
+        accounts = [root, contra_asset, positive_liability]
+
+        def fake_open_book(path, readonly=False):
+            return FakeBookForReports(accounts=accounts, transactions=[])
+
+        import app.services.gnucash_book as gb_module
+
+        monkeypatch.setattr(gb_module.piecash, "open_book", fake_open_book)
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(fake_book_for_reports)
+            session.commit()
+
+        response = client.get(
+            "/reports/summary?as_of_date=2026-05-16",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["assets"] == "-125.50"
+        assert data["liabilities"] == "25.25"
+        assert data["net_worth"] == "-100.25"
+        assert isinstance(data["assets"], str)
 
     def test_multi_currency_accounts_are_excluded_from_base_currency_summary(
         self,

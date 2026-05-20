@@ -7,11 +7,11 @@ Last updated: 2026-05-20
 - GitHub: `valentusys/gnucash-web-companion`
 - Local path: `/home/val/gnucash-web-companion`
 - Branch: `main`
-- Status: pre-alpha / v0.1.7-readonly read-only pre-release published in Phase 171; public status reconciliation completed through Phase 172; Phase 182 published `v0.2.1-writealpha` as the current experimental write-alpha pre-release after a fresh green gate on the prepared Phase 181 candidate; Phase 187 hardened multi-book read-only access regression coverage and server-validated book selection after write-alpha work
+- Status: pre-alpha / v0.1.7-readonly read-only pre-release published in Phase 171; public status reconciliation completed through Phase 172; Phase 182 published `v0.2.1-writealpha` as the current experimental write-alpha pre-release after a fresh green gate on the prepared Phase 181 candidate; Phase 188 hardened read-only reporting correctness edge cases for mixed-currency exclusions, unknown base currency, zero-balance fallback, signed contra balances, and dashboard drilldown parity
 
 ## Current baseline
 
-Completed through Phase 187.
+Completed through Phase 188.
 
 Current public release state:
 
@@ -84,6 +84,7 @@ Current public release state:
 - Phase 185 is a write-alpha DELETE disposable dogfood with restore proof phase: the committed synthetic fixture was copied through a temporary external disposable source into ignored runtime storage, preflighted as external/ignored, then exercised once through the existing experimental DELETE route under explicit local `APP_ENV=test` plus `GNUCASH_WRITES_ENABLED=true`. Redacted evidence confirms one successful DELETE, API/runtime absence of the deleted synthetic transaction in the mutated copy, exactly one backup, exactly one successful `transaction.delete` audit increment, backup/restored checksum equality, restored runtime/API read-back of the deleted transaction, and non-active stale-released lock evidence from inside the API container. The stack was returned to default write-disabled mode and read-only API smoke passed with validate/create/PATCH/DELETE probes returning 403. Runtime book/app DB/backups/locks were removed after verification; no new write endpoint, bulk/account/recurring delete, release/tag/package, real/private/only-copy book, raw artifact, `.env`, token, key, cert, screenshot/export, path, account name, original description, memo, amount, or private financial data was committed.
 - Phase 186 is a write-alpha audit trail review UI phase for disposable runs: `GET /books/{book_id}/write-alpha-audit-summary` now returns a read-only app-metadata-only summary of `transaction.create`, `transaction.patch`, and `transaction.delete` audit rows for editor/owner operators, exposing only action, result, timestamp, bounded transaction ID prefix, redacted backup presence, and safe error text. `/books/write-alpha-audit` renders the active-book operator view with explicit synthetic/disposable and non-production-audit copy; `/books` links to it for the active book. Backend tests pin unauthenticated/viewer/unauthorized blocking plus redaction of backup paths, private paths, raw request payload fields, memos, and amounts; frontend static checks pin safe fields and no browser storage/forms. Synthetic app-DB-only dogfood passed without opening or mutating a GnuCash book. `GNUCASH_WRITES_ENABLED=false` remains default; no new write endpoint, release/tag/package, real/private/only-copy book, runtime DB/book/backup artifact, `.env`, token, key, cert, screenshot/export, private path, account name, memo, amount, or private financial data was committed.
 - Phase 187 is a multi-book read-only access regression and UX hardening phase after write-alpha work: backend regression tests now cover accessible independent books, archived/unauthorized book blocking, missing/not-configured storage diagnostics, transaction/account/scheduled/report route families, path-safe service errors, and no raw `uri_or_path` exposure. The book switcher now uses the existing server-side `/books/{book_id}/select` safe-link route instead of setting `selected_book_id` directly in client JavaScript, preserving route/query recovery while validating access server-side. The write-alpha new-transaction page still redirects when `GNUCASH_WRITES_ENABLED=false` and, if explicitly enabled, resolves accounts through `getActiveBookContext` so stale/unauthorized selected-book cookies recover through the same authenticated API context. Frontend static checks pin server-validated selection, no client-side selected-book cookie writes, no localStorage/sessionStorage sensitive state, hidden-by-default write UI, and active-book routing. No upload/delete/default-changing/registry-edit UI, collaborative/family-wallet flow, write default change, release/tag/package, real/private book, app DB, backup, `.env`, token, key, cert, screenshot/export, private path, account name, memo, amount, or private financial data was added.
+- Phase 188 is a read-only reporting correctness edge-case phase: dashboard/reporting tests now pin mixed-currency split exclusion and disclosure, unknown `XXX` base-currency zero-total warnings, zero-balance split fallback, signed negative/contra asset/liability balances, Decimal/string JSON amounts, and no fake FX conversion. Report limitations now disclose excluded currencies seen in transaction splits as well as account listings. Dashboard drilldown static checks pin URL-filter parity for `account_id`, date ranges, `limit=50`, `offset=0`, and no `Number()` usage on dashboard/reporting paths. `docs/money-model.md` documents mixed-currency split exclusion and unknown-base zero-total semantics. `GNUCASH_WRITES_ENABLED=false` remains default; no write behavior, release/tag/package, real/private book, app DB, backup, `.env`, token, key, cert, screenshot/export, private path, account name, memo, amount, or private financial data was added.
 - Previous public release `v0.1.2-readonly` remains available and points to its Phase 117 release commit.
 - Previous public release `v0.1.1-readonly` remains available and points to `a4d04150c043ad4da3dea577b30ed7ffd2032df0`, after Phase 104.
 
@@ -277,6 +278,7 @@ Completed phases:
 - Phase 185 — Write-alpha DELETE disposable dogfood with restore proof
 - Phase 186 — Write-alpha audit trail review UI for disposable runs
 - Phase 187 — Multi-book read-only access regression and UX hardening
+- Phase 188 — Read-only reporting correctness edge cases
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -2459,6 +2461,24 @@ Safety result: `GNUCASH_WRITES_ENABLED=false` remains default. The endpoint is r
 Dogfood result: synthetic app-DB-only probe passed with admin 200, viewer 403, three create/PATCH/DELETE audit rows summarized, and explicit no-path/no-raw-payload checks true. No GnuCash book was read or mutated.
 
 Verification result: backend audit summary tests passed (`3 passed`); frontend auth-route/static checks passed; frontend `npm run check` passed (`0 errors and 0 warnings`); synthetic app-DB dogfood passed; standard backend/frontend/build/Docker/diff/hygiene results are recorded in the final Phase 186 report.
+
+## Phase 188 — Read-only Reporting Correctness Edge Cases
+
+Status: complete. Phase commit pushed after verification.
+
+Goal: strengthen money/accounting correctness for read-only dashboard/reporting before any next release claim.
+
+Artifacts:
+
+- `apps/api/app/services/gnucash_book.py` — report summary limitations now disclose excluded currencies detected from transaction splits as well as account listings.
+- `apps/api/tests/test_reports.py` — synthetic edge-case tests for mixed-currency excluded splits, zero-balance split fallback, signed negative/contra asset/liability balances, and Decimal/string response amounts.
+- `apps/web/src/routes/dashboard/+page.server.ts` and `apps/web/scripts/test-auth-routes.mjs` — dashboard drilldown URL-filter parity checks for account/date/limit/offset filters and no `Number()` use in dashboard reporting paths.
+- `docs/money-model.md` — documented mixed-currency split exclusion and unknown-base zero-total semantics.
+- `docs/handoff/phase-188.md` and `PROJECT_STATUS.md` — status and handoff synchronized.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains default. Reports remain base-currency-only and no-conversion; no FX conversion, forecasting, external rates, accounting-engine rewrite, write behavior, release/tag/package, real/private book, runtime DB/book/backup artifact, `.env`, token, key, cert, screenshot/export, raw path, account name, memo, amount, or private financial data was added.
+
+Verification result: targeted backend report tests passed (`47 passed`, existing piecash/SQLAlchemy warnings only); frontend auth-route/static checks passed; `Number(` search over dashboard route and component paths returned no matches; final standard checks are recorded in the final Phase 188 report.
 
 ## Standing constraints
 

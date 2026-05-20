@@ -10,8 +10,13 @@ function transactionFilterHref(params: Record<string, string>): string {
 }
 
 function monthRange(month: string): { date_from: string; date_to: string } {
-	const [year, monthIndex] = month.split('-').map((part) => Number(part));
-	if (!Number.isInteger(year) || !Number.isInteger(monthIndex) || monthIndex < 1 || monthIndex > 12) {
+	const match = /^(\d{4})-(\d{2})$/.exec(month);
+	if (!match) {
+		return { date_from: '', date_to: '' };
+	}
+	const year = parseInt(match[1], 10);
+	const monthIndex = parseInt(match[2], 10);
+	if (monthIndex < 1 || monthIndex > 12) {
 		return { date_from: '', date_to: '' };
 	}
 	const lastDay = new Date(year, monthIndex, 0).getDate();

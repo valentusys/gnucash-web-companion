@@ -369,6 +369,7 @@ class GnuCashBookService:
                     account_type = str(getattr(account, "type", "")).upper()
                     currency = self._account_currency(account)
                     if currency != self.base_currency:
+                        excluded_currencies.add(currency or "unknown")
                         continue
                     amount = self._split_amount(split)
                     if account_type in asset_account_types:
