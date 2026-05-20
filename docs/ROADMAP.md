@@ -5,7 +5,7 @@ This roadmap is intentionally conservative. Safety and trust come before feature
 ## Current release posture
 
 - Status: pre-alpha / MVP in progress.
-- Completed through Phase 239.
+- Completed through Phase 240.
 - Current public read-only pre-release: `v0.1.7-readonly`.
 - Current published write-alpha pre-release: `v0.2.5-writealpha`, published in Phase 231 after the
   cycle-3 release gate and exact release-commit CI as pre-alpha/experimental and disabled by
@@ -26,9 +26,11 @@ This roadmap is intentionally conservative. Safety and trust come before feature
   future copied/disposable testing, Phase 236 added a redacted dogfood evidence schema/helper for
   future evidence reports, Phase 237 added a local-only write-alpha environment reference and
   operator guard documentation, Phase 238 added a redacted non-mutating write-alpha readiness
-  command, and Phase 239 recorded a synthetic copied-book dry-run through Docker/Caddy using the
+  command, Phase 239 recorded a synthetic copied-book dry-run through Docker/Caddy using the
   redacted evidence schema without changing default read-only config or running real/private
-  copied-book dogfood. Phase 221 previously recorded a no-release verdict for
+  copied-book dogfood, and Phase 240 prepared `v0.2.6-writealpha` release-candidate docs only,
+  pending a later PM/release gate before any tag or GitHub pre-release. Phase 221 previously
+  recorded a no-release verdict for
   the Phase 220 DELETE backup-count anomaly; Phases 222–230 remediated and re-verified that blocker
   only as synthetic/disposable backup-audit, default-disabled fresh-clone/upgrade, and final
   release-candidate dogfood evidence before publication.
@@ -88,6 +90,9 @@ This roadmap is intentionally conservative. Safety and trust come before feature
 - Phase 239 — ran a synthetic copied-book dry-run through Docker/Caddy with preflight/readiness,
   default-disabled API/browser smoke, disabled validate/create/PATCH/DELETE probes, checksum
   no-mutation proof, and redacted Phase 236-schema evidence.
+- Phase 240 — prepared `v0.2.6-writealpha` release-candidate notes/checklist/final-gate draft only;
+  no tag, GitHub release, write default change, `APP_ENV=test` gate weakening, or real/private-book
+  safety claim was added.
 
 ## Completed phase groups
 

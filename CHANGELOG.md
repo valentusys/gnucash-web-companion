@@ -7,6 +7,15 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versione
 
 ## [Unreleased]
 
+- Phase 240 — prepared release-candidate notes, checklist, and final-gate draft for the next
+  write-alpha maintenance candidate because Phases 232–239 added meaningful operator-safety tooling
+  and evidence: copied-book runbook, redacted preflight, evidence redaction schema/helper,
+  environment guidance, readiness inspection, and synthetic no-mutation Docker/Caddy dry-run. The
+  candidate is explicitly not tagged or published; publication requires a later PM/release gate.
+  `GNUCASH_WRITES_ENABLED=false` remains default, `APP_ENV=test` gating remains intact, and no
+  production/security/public-internet/broad-compatibility or real/private/only-copy write-safety
+  claim was added.
+
 - Phase 239 — ran a synthetic copied-book dry-run through Docker/Caddy using a disposable fixture
   copy and the Phase 236 evidence schema. Preflight/readiness reported redacted no-mutation status,
   Docker/Caddy read-only API and browser smoke passed with `GNUCASH_WRITES_ENABLED=false`, disabled
