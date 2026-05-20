@@ -11,7 +11,7 @@ Last updated: 2026-05-21
 
 ## Current baseline
 
-Completed through Phase 223.
+Completed through Phase 224.
 
 Current public release state:
 
@@ -3014,6 +3014,24 @@ Finding: Phase 222 already fixed overwrite-capable naming. Phase 223 adds determ
 Safety result: `GNUCASH_WRITES_ENABLED=false` remains default and `APP_ENV=test` was not weakened. Write-alpha execution remains limited to explicit `APP_ENV=test` plus `GNUCASH_WRITES_ENABLED=true` synthetic/disposable scope. No write endpoint, write scope expansion, release/tag/package/image, real/private/only-copy book, committed runtime book, app DB, backup artifact, `.env`, screenshot/export, token, key, cert, raw path, account name, memo, amount, production/security claim, or real/private-book write-safety claim was added.
 
 Verification result: targeted backup service, route-family, and audit-summary tests passed; full backend pytest passed; frontend check/auth-routes/build passed; Docker Compose config validation passed with rendered `GNUCASH_WRITES_ENABLED=false`; `git diff --check` passed; tracked sensitive-file hygiene scan passed.
+
+## Phase 224 — Write-alpha DELETE restore proof v2
+
+Status: complete. A bounded synthetic/disposable DELETE route-family dogfood rerun passed after the Phase 222/223 backup evidence hardening.
+
+Goal: rerun exactly one explicit local `APP_ENV=test` plus `GNUCASH_WRITES_ENABLED=true` DELETE smoke on an ignored synthetic runtime copy and prove backup restore/read-back reliability before later route-family matrix/release-gate phases.
+
+Artifacts:
+
+- `docs/dogfood/phase-224-delete-restore-v2.md` — redacted DELETE restore proof evidence.
+- `docs/handoff/phase-224.md` — phase handoff.
+- `CHANGELOG.md` and `PROJECT_STATUS.md` — status synchronized.
+
+Finding: exactly one routed DELETE succeeded against the ignored synthetic runtime copy. API and runtime SQLite absence checks confirmed deletion; exactly one successful `transaction.delete` audit row and one corresponding backup artifact were identified. The host-side helper could not perform the restore copy because the backup artifact was root-owned, so the successful mutation was not rerun; a follow-up API-container restore proof used the same single backup artifact, matched restore checksum evidence, and read the restored deleted transaction back through SQLite and the API.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains default and `APP_ENV=test` was not weakened. No create/PATCH route, write endpoint, release/tag/package/image, real/private/only-copy book, committed runtime book, app DB, backup artifact, `.env`, screenshot/export, token, key, cert, raw path, account name, memo, amount, production/security claim, or real/private-book write-safety claim was added.
+
+Verification result: write-alpha DELETE smoke passed for one DELETE, API/runtime absence, one backup increment, one success-audit increment, backup transaction evidence, and stale-released/non-active lock evidence; container-side restore proof passed on the same backup; default read-only API smoke passed after reset with validate/create/PATCH/DELETE returning 403; stopped-runtime cleanup passed with `--via-compose` for root-owned artifacts; full backend pytest passed; frontend check/auth-routes/build passed; Docker Compose config validation passed; `git diff --check` passed.
 
 ## Standing constraints
 
