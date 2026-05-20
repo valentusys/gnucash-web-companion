@@ -22,7 +22,7 @@
 
 ## Текущий публичный статус
 
-- Фазы 0–213 завершены.
+- Фазы 0–214 завершены.
 - MVP v0.1 остаётся **read-only by default**.
 - `GNUCASH_WRITES_ENABLED=false` — безопасный дефолт.
 - Controlled-write код, если присутствует, является experimental post-MVP/write-alpha, отключён по умолчанию и дополнительно ограничен backend `APP_ENV=test` gate при явном включении.
@@ -88,6 +88,7 @@
 - Phase 211 — cycle-1 release gate пройден; `v0.2.4-writealpha` опубликован как authorized GitHub pre-release после green exact-commit CI.
 - Phase 212 — синхронизирован stale public roadmap/status слой после `v0.2.4-writealpha` и добавлен public status drift guard для README/PROJECT_STATUS/CHANGELOG/docs/ROADMAP/release docs.
 - Phase 213 — `v0.2.4-writealpha` проверен из fresh clone/tag path с synthetic fixture, default-disabled writes, API smoke, disabled validate/create/PATCH/DELETE probes и mobile/desktop browser dogfood.
+- Phase 214 — добавлен и пройден synthetic local upgrade smoke от `v0.2.4-writealpha` runtime state к current `main`: dummy app metadata DB, default book, selected-book recovery, read-only routes, audit-summary и disabled writes сохранились.
 
 ## Как пробовать безопасно
 

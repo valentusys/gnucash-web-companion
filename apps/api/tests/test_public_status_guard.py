@@ -40,7 +40,7 @@ def test_public_status_guard_rejects_phase_172_as_current_baseline():
 
 
 def test_public_status_guard_tracks_current_completed_phase():
-    assert guard.CURRENT_COMPLETED_PHASE == "Phase 213"
+    assert guard.CURRENT_COMPLETED_PHASE == "Phase 214"
 
 
 def test_public_status_guard_rejects_affirmative_production_claims():

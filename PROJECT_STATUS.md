@@ -7,11 +7,11 @@ Last updated: 2026-05-21
 - GitHub: `valentusys/gnucash-web-companion`
 - Local path: `/home/val/gnucash-web-companion`
 - Branch: `main`
-- Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release; Phase 211 published `v0.2.4-writealpha` as the current experimental write-alpha pre-release after cycle-1 release checks, exact release/status commit GitHub Actions, tag/release absence checks, rendered `GNUCASH_WRITES_ENABLED=false`, and sensitive tracked-file hygiene. Phase 212 synchronized stale public roadmap/status wording after `v0.2.4-writealpha` and added a public status drift guard. Phase 213 verified the published `v0.2.4-writealpha` tag from a fresh clone with the committed synthetic fixture, dummy local-only secrets, Docker/Caddy, read-only API smoke, mobile/desktop browser dogfood, and disabled validate/create/PATCH/DELETE probes returning 403; no release was published. Write-alpha remains disabled by default, gated by `APP_ENV=test` when explicitly enabled, synthetic/disposable-evidence-only, not production-ready, not security-audited, and not safe for real/private or only-copy books.
+- Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release; Phase 211 published `v0.2.4-writealpha` as the current experimental write-alpha pre-release after cycle-1 release checks, exact release/status commit GitHub Actions, tag/release absence checks, rendered `GNUCASH_WRITES_ENABLED=false`, and sensitive tracked-file hygiene. Phase 212 synchronized stale public roadmap/status wording after `v0.2.4-writealpha` and added a public status drift guard. Phase 213 verified the published `v0.2.4-writealpha` tag from a fresh clone with the committed synthetic fixture, dummy local-only secrets, Docker/Caddy, read-only API smoke, mobile/desktop browser dogfood, and disabled validate/create/PATCH/DELETE probes returning 403; Phase 214 added and passed a synthetic local upgrade smoke from `v0.2.4-writealpha` runtime state to current `main`, preserving dummy app metadata DB access, default book access, selected-book recovery, read-only routes, audit-summary metadata, and disabled writes; no release was published. Write-alpha remains disabled by default, gated by `APP_ENV=test` when explicitly enabled, synthetic/disposable-evidence-only, not production-ready, not security-audited, and not safe for real/private or only-copy books.
 
 ## Current baseline
 
-Completed through Phase 213.
+Completed through Phase 214.
 
 Current public release state:
 
@@ -102,6 +102,7 @@ Current public release state:
 - Phase 200 is a bounded write-alpha disposable CRUD/restore dogfood phase after cycle-3 helper/UX fixes: explicit local-only `APP_ENV=test` plus `GNUCASH_WRITES_ENABLED=true` was used only on ignored synthetic runtime copies, with a fresh prepared copy for each route family. Create, PATCH, and DELETE route-family smokes each executed exactly once per prepared copy; create and PATCH collected safe failed-validation/missing-transaction evidence, all successful writes had backup and audit evidence, DELETE completed a host-readable backup restore proof with read-back, and all lock probes reported stale released locks rather than active holds. The stack was reset to default false, rendered Compose showed `GNUCASH_WRITES_ENABLED: "false"` for API and web, read-only API smoke passed with validate/create/PATCH/DELETE returning 403, and stopped-runtime cleanup removed ignored runtime book/app DB/backups/locks plus the dummy local `.env`. No write route expansion, release/tag/package/image, production/private-book safety claim, real/private/only-copy book, committed runtime artifact, raw path, account name, memo, amount, token, key, cert, or private financial data was added.
 - Phase 212 is a public status drift guard phase after `v0.2.4-writealpha`: `docs/ROADMAP.md`, README/README.ru, CHANGELOG, PROJECT_STATUS, release-support docs, CI, and backend tests now pin the current public posture to Phase 211 release baseline, `v0.1.7-readonly`, `v0.2.4-writealpha`, `GNUCASH_WRITES_ENABLED=false`, and conservative no-production/no-security/no-stable-claim wording. The guard reads only declared public docs/config files and does not inspect `.env`, runtime books, app DBs, backups, or private paths. No product runtime behavior, write route, write default, `APP_ENV=test` gate, release/tag, package/image, real/private book, app DB, backup, `.env`, token, key, cert, screenshot/export, or private financial data was changed.
 - Phase 213 is a `v0.2.4-writealpha` tagged fresh-clone smoke phase: `scripts/smoke/fresh-clone-docker-smoke.sh` verified the published tag and current `HEAD` from temporary fresh clones using only the committed synthetic fixture, dummy local-only secrets, Docker Compose/Caddy, `GNUCASH_WRITES_ENABLED=false`, read-only API smoke, disabled validate/create/PATCH/DELETE probes returning 403, and browser dogfood at mobile `320x720` and desktop `1280x900` widths with auth cookie not readable from `document.cookie`. The helper now runs both browser widths, and browser dogfood treats wide viewports as desktop. No write-enabled mode, product behavior change, release/tag, package/image, real/private book, app DB, backup, `.env`, screenshot/export, token, key, cert, raw private path, account name, memo, amount, or private financial data was added.
+- Phase 214 is a synthetic local upgrade smoke phase: `scripts/smoke/synthetic-upgrade-smoke.sh` verified upgrade from `v0.2.4-writealpha` runtime state to current `main` using a temporary clone, committed synthetic fixture copy, dummy app metadata DB, dummy local-only credentials, Docker Compose/Caddy, `GNUCASH_WRITES_ENABLED=false`, read-only accounts/transactions/reports/scheduled/audit-summary routes, selected-book recovery, and disabled validate/create/PATCH/DELETE probes returning 403. No write-enabled mode, migration wizard, release/tag, package/image, real/private book, app DB, backup, `.env`, screenshot/export, token, key, cert, raw private path, account name, memo, amount, or private financial data was added.
 - Previous public release `v0.1.2-readonly` remains available and points to its Phase 117 release commit.
 - Previous public release `v0.1.1-readonly` remains available and points to `a4d04150c043ad4da3dea577b30ed7ffd2032df0`, after Phase 104.
 
@@ -2871,6 +2872,23 @@ Artifacts:
 Safety result: `GNUCASH_WRITES_ENABLED=false` remained default and was never changed to true. No write-enabled mode, product runtime behavior change, release/tag, package/image, real/private/copied personal book, only-copy book, app DB, backup, `.env`, screenshot/export, token, key, cert, raw private path, account name, memo, amount, or private financial data was added. Temporary clones and Docker runtime were removed by helper teardown.
 
 Verification result: `v0.2.4-writealpha` fresh-clone smoke passed; current `HEAD` comparison fresh-clone smoke passed; both included Docker config/startup, `/api/health` with writes disabled, read-only API smoke, validate/create/PATCH/DELETE returning 403, mobile and desktop browser dogfood, auth cookie not readable from `document.cookie`, and no-artifact checks.
+
+## Phase 214 — synthetic upgrade and app-metadata preservation smoke
+
+Status: complete. Synthetic Docker upgrade smoke from `v0.2.4-writealpha` runtime state to current `main` passed with dummy app metadata DB preservation and default-disabled writes.
+
+Goal: verify a safe local upgrade path using only ignored synthetic runtime copies and dummy local-only credentials, without losing app metadata access, default book access, selected-book recovery, or the GnuCash read-only boundary.
+
+Artifacts:
+
+- `scripts/smoke/synthetic-upgrade-smoke.sh` — new synthetic upgrade helper for previous-ref to current-ref Docker/Caddy smoke.
+- `apps/api/tests/test_upgrade_metadata_preservation.py` — targeted regression tests for safe app-metadata preservation and idempotent startup seed behavior.
+- `docs/dogfood/phase-214-synthetic-upgrade-smoke.md` — redacted smoke command/result and safety evidence.
+- `docs/handoff/phase-214.md` — phase handoff.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remained default and was never changed to true. The smoke used only a temporary clone, committed synthetic fixture copy, dummy app metadata, and dummy local-only credentials. No real/private book, real app DB, backup, `.env`, screenshot/export, token, key, cert, raw private path, account name, memo, amount, migration wizard, release/tag, package/image, or private financial data was added.
+
+Verification result: synthetic upgrade smoke passed for login, default/selected book metadata, app metadata DB readability, accounts, transactions, reports, scheduled metadata, write-alpha audit-summary, safe selected-book recovery, Docker Compose config, and disabled validate/create/PATCH/DELETE probes returning 403.
 
 ## Standing constraints
 
