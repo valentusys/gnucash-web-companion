@@ -9,20 +9,21 @@ Last updated: 2026-05-21
 - Branch: `main`
 - Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release;
   `v0.2.5-writealpha` is the current public experimental write-alpha pre-release. Completed through
-  Phase 234. Phase 231 ran the final release gate after Phase 230 green release-candidate dogfood,
+  Phase 235. Phase 231 ran the final release gate after Phase 230 green release-candidate dogfood,
   confirmed local/backend/frontend/Docker/public-status/sensitive-file gates, waited for exact
   release/status commit CI, and published only the annotated tag plus GitHub pre-release. Phase 232
   reconciled public status/changelog wording after publication. Phase 233 improved raw markdown
   readability for README/README.ru/CHANGELOG/PROJECT_STATUS while preserving safety wording. Phase
   234 added a conservative copied-book write-alpha dogfood runbook for future local-only
-  copied/disposable testing without running real/private copied-book dogfood. `GNUCASH_WRITES_ENABLED=false`
-  remains default, `APP_ENV=test` write-alpha gating remains intact, and no
+  copied/disposable testing without running real/private copied-book dogfood. Phase 235 added a
+  redacted local-only preflight CLI for future copied/disposable write-alpha targets.
+  `GNUCASH_WRITES_ENABLED=false` remains default, `APP_ENV=test` write-alpha gating remains intact, and no
   production/security/public-internet/broad-compatibility or real/private-book write-safety claim is
   added.
 
 ## Current baseline
 
-Completed through Phase 234.
+Completed through Phase 235.
 
 Current public release state:
 
@@ -45,6 +46,12 @@ Current public release state:
   books, independent backups before mutation, explicit `GNUCASH_WRITES_ENABLED=true` plus
   `APP_ENV=test`, one mutation at a time, stop conditions, redacted evidence, restore verification,
   and reset back to default false; no real/private copied-book dogfood was run.
+- Phase 235 added `scripts/write_alpha_preflight.py`, a local-only redacted target preflight CLI for
+  future copied/disposable write-alpha dogfood. It requires an explicit existing readable target
+  outside the git working tree, validates that backups are outside git or ignored, blocks unsafe
+  write-alpha environment values unless `GNUCASH_WRITES_ENABLED=true` and `APP_ENV=test`, warns on
+  original/production-looking names without printing raw paths, and performs no opening, copying, or
+  mutation.
 - `v0.2.4-writealpha` remains available as the previous public experimental write-alpha GitHub
   pre-release after Phase 211 publication. It is pre-alpha, disabled by default, `APP_ENV=test`
   gated when explicitly enabled, based on synthetic/disposable evidence only for that cycle, not
@@ -6389,6 +6396,42 @@ export, token, key, cert, raw path, account name, memo, amount, production/secur
 Verification result: documentation review passed; `python3 scripts/check_public_status.py` passed;
 `cd apps/api && pytest tests/test_public_status_guard.py -q` passed; `git diff --check` passed;
 `.env.example` still contains `GNUCASH_WRITES_ENABLED=false`.
+
+## Phase 235 — Copied/disposable target preflight CLI
+
+Status: complete. A local-only redacted preflight CLI was added for future copied/disposable
+write-alpha dogfood targets; no copied/private book was opened, copied, or mutated.
+
+Goal: implement a preflight that helps an operator reject unsafe write-alpha targets before any
+copied-book dogfood run while preserving the default-disabled and `APP_ENV=test` write-alpha gates.
+
+Artifacts:
+
+- `scripts/write_alpha_preflight.py` — requires an explicit target path, rejects missing/unreadable
+  files and targets inside the git working tree, validates backup destinations as outside git or
+  git-ignored, blocks unless `GNUCASH_WRITES_ENABLED=true` and `APP_ENV=test`, emits redacted normal
+  output, and warns on original/production-looking names without printing raw paths.
+- `apps/api/tests/test_write_alpha_preflight_cli.py` — targeted regression coverage for missing,
+  inside-git, unsafe environment, unsafe backup destination, ready redacted warning output, and CLI
+  nonzero/ redaction behavior.
+- `README.md`, `README.ru.md`, `CHANGELOG.md`, `docs/ROADMAP.md`, `PROJECT_STATUS.md`,
+  `scripts/check_public_status.py`, and `apps/api/tests/test_public_status_guard.py` — public status
+  synchronized to completed Phase 235 while preserving the current public release posture.
+- `docs/handoff/phase-235.md` — phase handoff.
+
+Finding: the CLI is a local preflight only. It does not enable writes automatically, upload a book,
+open a book with piecash, copy a book, create backups, or mutate GnuCash data.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains default and `APP_ENV=test` was not weakened.
+No real/private/only-copy book, copied-book dogfood run, product runtime default change, release/tag,
+app DB, backup artifact, `.env`, screenshot/CSV export, token, key, cert, raw path, account name,
+memo, amount, production/security/stable/public-internet/broad-compatibility claim, or
+real/private-book write-safety claim was added.
+
+Verification result: targeted preflight tests passed; public status guard and public-status tests
+passed; `git diff --check` passed; sensitive tracked-file hygiene scan passed; `.env.example` still
+contains `GNUCASH_WRITES_ENABLED=false`; Docker Compose config rendered successfully with dummy local
+secrets.
 
 ## Standing constraints
 

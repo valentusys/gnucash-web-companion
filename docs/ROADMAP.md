@@ -5,7 +5,7 @@ This roadmap is intentionally conservative. Safety and trust come before feature
 ## Current release posture
 
 - Status: pre-alpha / MVP in progress.
-- Completed through Phase 234.
+- Completed through Phase 235.
 - Current public read-only pre-release: `v0.1.7-readonly`.
 - Current published write-alpha pre-release: `v0.2.5-writealpha`, published in Phase 231 after the
   cycle-3 release gate and exact release-commit CI as pre-alpha/experimental and disabled by
@@ -21,9 +21,10 @@ This roadmap is intentionally conservative. Safety and trust come before feature
   backend/frontend/Docker checks, exact release-commit CI, rendered `GNUCASH_WRITES_ENABLED=false`,
   public status guard, and sensitive tracked-file hygiene. Phase 232 reconciled public
   status/changelog wording after publication, Phase 233 improved raw markdown readability for
-  README/status sources without changing safety posture, and Phase 234 added a conservative
-  copied-book write-alpha dogfood runbook for future local-only copied/disposable testing without
-  running real/private copied-book dogfood. Phase 221 previously recorded a no-release verdict for
+  README/status sources without changing safety posture, Phase 234 added a conservative copied-book
+  write-alpha dogfood runbook, and Phase 235 added a redacted local-only target preflight CLI for
+  future copied/disposable testing without running real/private copied-book dogfood. Phase 221
+  previously recorded a no-release verdict for
   the Phase 220 DELETE backup-count anomaly; Phases 222–230 remediated and re-verified that blocker
   only as synthetic/disposable backup-audit, default-disabled fresh-clone/upgrade, and final
   release-candidate dogfood evidence before publication.
@@ -69,6 +70,8 @@ This roadmap is intentionally conservative. Safety and trust come before feature
   readability while preserving safety wording and release posture.
 - Phase 234 — added a conservative copied-book write-alpha dogfood runbook for future local-only
   copied/disposable testing without performing real/private copied-book writes.
+- Phase 235 — added a redacted local-only write-alpha target preflight CLI that rejects missing,
+  unreadable, inside-git, unsafe-backup, and unsafe-environment cases before any mutation.
 
 ## Completed phase groups
 

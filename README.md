@@ -47,7 +47,7 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–234 are complete.
+- Phase 0–235 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by
   default.
@@ -87,11 +87,11 @@ This project is not a fit if you need:
   release-candidate dogfood pack, Phase 231 published `v0.2.5-writealpha` only after final local
   gates and exact release/status commit CI passed, Phase 232 reconciled the public status/changelog
   wording after publication, Phase 233 reformatted README/README.ru/CHANGELOG and PROJECT_STATUS raw
-  markdown readability while preserving safety wording, and Phase 234 added a conservative
-  [copied-book write-alpha dogfood runbook](docs/write-alpha/copied-book-dogfood-runbook.md) for
-  future local-only copied/disposable testing. Write-alpha remains pre-alpha/experimental, disabled
-  by default, `APP_ENV=test` gated when explicitly enabled, and not safe for real/private or
-  only-copy books.
+  markdown readability while preserving safety wording, Phase 234 added a conservative
+  [copied-book write-alpha dogfood runbook](docs/write-alpha/copied-book-dogfood-runbook.md), and
+  Phase 235 added a local-only redacted `scripts/write_alpha_preflight.py` target preflight CLI for
+  future copied/disposable testing. Write-alpha remains pre-alpha/experimental, disabled by default,
+  `APP_ENV=test` gated when explicitly enabled, and not safe for real/private or only-copy books.
 - Compatibility matrix: [docs/gnucash-compatibility.md](docs/gnucash-compatibility.md). Current
   compatibility evidence is synthetic/disposable fixture evidence only; no real GnuCash Desktop
   version support is claimed yet.

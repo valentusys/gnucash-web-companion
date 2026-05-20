@@ -7,6 +7,15 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versione
 
 ## [Unreleased]
 
+- Phase 235 — added `scripts/write_alpha_preflight.py`, a local-only redacted preflight CLI for
+  future copied/disposable write-alpha dogfood targets. It requires an explicit existing readable
+  target outside the git working tree, validates backup destinations as outside git or git-ignored,
+  blocks unsafe write-alpha environment values unless `GNUCASH_WRITES_ENABLED=true` and
+  `APP_ENV=test`, warns on original/production-looking names without printing raw paths, and performs
+  no book opening, copying, upload, mutation, or automatic write enablement.
+  `GNUCASH_WRITES_ENABLED=false` remains the default and no real/private/only-copy write-safety claim
+  was added.
+
 - Phase 234 — added `docs/write-alpha/copied-book-dogfood-runbook.md`, a conservative maintainer
   runbook for future local-only copied/disposable write-alpha dogfood. The runbook forbids original
   and only-copy books, requires outside-git copies plus independent backups before mutation,
