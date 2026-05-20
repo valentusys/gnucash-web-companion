@@ -27,8 +27,17 @@ DEFAULT_BACKUP_ROOT = "data/backups"
 DEFAULT_LOCK_ROOT = "data/locks"
 
 
-class SmokeFailure(RuntimeError):
+class SmokeFailure(Exception):
     """Raised when a write-alpha smoke check fails."""
+
+
+@dataclass(frozen=True)
+class LockEvidence:
+    """Path-redacted runtime lock probe result for dogfood evidence."""
+
+    status: str
+    is_active: bool
+    message: str
 
 
 @dataclass(frozen=True)
@@ -180,30 +189,42 @@ def _lock_file_count(lock_root: Path) -> int:
     return sum(1 for path in lock_root.glob("*.lock") if path.is_file())
 
 
-def _locks_are_released(lock_root: Path) -> bool:
-    """Return True when any remaining lock files are not actively flock-held."""
+def _lock_evidence(lock_root: Path) -> LockEvidence:
+    """Return path-redacted evidence for active, stale, or unreadable locks."""
     if not lock_root.exists():
-        return True
+        return LockEvidence("not_present", False, "no lock files remain")
+    saw_stale = False
     for path in lock_root.glob("*.lock"):
         if not path.is_file():
             continue
         try:
             fd = os.open(path, os.O_RDWR)
         except PermissionError:
-            raise SmokeFailure("lock file is not readable by this smoke user; run from the API container or fix permissions")
+            return LockEvidence(
+                "unreadable",
+                False,
+                "lock file is not readable by this smoke user; inspect from the API container or fix runtime ownership before removing only the book-specific stale lock with the app stopped",
+            )
         try:
             try:
                 fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except BlockingIOError:
-                return False
+                return LockEvidence("active", True, "write lock remains actively held after create")
             finally:
                 try:
                     fcntl.flock(fd, fcntl.LOCK_UN)
                 except OSError:
                     pass
+            saw_stale = True
         finally:
             os.close(fd)
-    return True
+    if saw_stale:
+        return LockEvidence(
+            "stale_released",
+            False,
+            "lock file remains but is not actively held; with the app stopped an operator may remove only the book-specific stale lock from ignored runtime storage",
+        )
+    return LockEvidence("not_present", False, "no lock files remain")
 
 
 def run(args: argparse.Namespace) -> None:
@@ -291,7 +312,10 @@ def run(args: argparse.Namespace) -> None:
     after_audits = _audit_success_count(app_db)
     _check(after_backups > before_backups, "no new backup file detected after create")
     _check(after_audits == before_audits + 1, "audit success count did not increase by exactly one")
-    _check(_locks_are_released(lock_root), "write lock remains actively held after create")
+    lock_evidence = _lock_evidence(lock_root)
+    _check(not lock_evidence.is_active, lock_evidence.message)
+    if lock_evidence.status == "unreadable":
+        raise SmokeFailure(lock_evidence.message)
 
     print(f"write-alpha create smoke: target={args.api_base_url.rstrip('/')}")
     print("ok: APP_ENV=test and GNUCASH_WRITES_ENABLED=true were supplied by local runtime command")
@@ -301,7 +325,7 @@ def run(args: argparse.Namespace) -> None:
     print("ok: exactly one balanced two-split create succeeded")
     print("ok: backup count increased before mutation response returned")
     print("ok: audit success count increased by exactly one")
-    print("ok: write lock released")
+    print(f"ok: write lock evidence status={lock_evidence.status}; {lock_evidence.message}")
     print("PASS: write-alpha create smoke completed with redacted output")
 
 

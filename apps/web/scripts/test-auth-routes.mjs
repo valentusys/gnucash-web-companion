@@ -731,6 +731,8 @@ for (const phrase of [
 	'disposable/test copies',
 	'ignored runtime storage',
 	'backup, audit, and lock-release evidence',
+	'stale lock file remains',
+	'host permission error',
 	'Never use this experimental path with your only real financial book'
 ]) {
 	assert.ok(writeModeWarning.includes(phrase), `write warning must include: ${phrase}`);

@@ -6,7 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-No unreleased changes yet after `v0.2.1-writealpha`.
+### Added
+
+- Phase 183 — tightened write-alpha stale-lock/root-owned-lock recovery evidence: backend and smoke-helper lock inspection now distinguish active, stale released, unreadable, and absent lock states with path-safe operator messages; recovery docs and write-mode warning copy were updated without automatic lock deletion, write-scope expansion, default-write enablement, release publication, or real/private-book claims.
 
 ## [0.2.1-writealpha] - 2026-05-20
 

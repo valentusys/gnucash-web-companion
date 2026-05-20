@@ -77,19 +77,29 @@ If the failed audit row recorded a backup path, prefer that exact backup file. I
 
 Never commit backup files. `data/backups/*` must remain ignored runtime data.
 
-## Check for a stale write lock
+## Check for active vs stale write locks
 
-A stale lock can remain only after abnormal process termination. Inspect it while the app is stopped:
-
-```bash
-find data/locks -maxdepth 1 -type f -name '*.lock' -printf '%p %s bytes\n' 2>/dev/null || true
-```
-
-If the app is stopped and the affected disposable book still has a lock file, remove only that book-specific lock file:
+A `.lock` file can remain after a released `flock`. The file by itself is not proof that a write is still active. Inspect it without printing paths or private book details:
 
 ```bash
-rm -f data/locks/<book_id>.lock
+python - <<'PY'
+from pathlib import Path
+from app.services.write_lock import WriteLockService
+book_id = '<redacted-book-id-or-runtime-book-key>'
+result = WriteLockService(Path('data/locks')).inspect(book_id)
+print(f'status={result.status} active={result.is_active}')
+print(result.operator_message)
+PY
 ```
+
+Interpretation:
+
+- `active` means a writer still holds the flock. Do not remove the lock file; wait for the active write to finish or stop the runtime cleanly.
+- `stale_released` means a lock file remains but no active flock was detected. With the app stopped, an operator may remove only the affected book-specific stale lock from ignored runtime storage.
+- `unreadable` means the current user cannot inspect the file, which can happen after Docker creates root-owned runtime files. Inspect from the API container or fix runtime ownership first; do not assume active vs stale from the host error alone.
+- `not_present` means there is no lock file for that book.
+
+If the smoke helper reports `status=stale_released`, treat it as released-lock evidence, not as active contention. If it reports unreadable, do not rerun a write blindly; inspect from the API container and continue recovery with redacted evidence.
 
 Do not remove all lock files while the app is running. Do not weaken or bypass `WriteLockService`; stale-lock cleanup is an operator recovery action after the process has stopped.
 

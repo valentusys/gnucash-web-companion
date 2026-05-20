@@ -21,6 +21,7 @@
 		<li>GnuCash Desktop remains the authoritative editor.</li>
 		<li>Use only disposable/test copies copied into ignored runtime storage; never point this at the source or only copy.</li>
 		<li>Confirm backup, audit, and lock-release evidence before treating a write-alpha run as complete.</li>
+		<li>If a stale lock file remains, stop the runtime first and follow the recovery runbook; never assume a host permission error means an active writer.</li>
 		<li>Never use this experimental path with your only real financial book.</li>
 	</ul>
 </div>

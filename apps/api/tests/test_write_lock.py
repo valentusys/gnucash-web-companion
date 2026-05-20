@@ -7,7 +7,13 @@ from pathlib import Path
 
 import pytest
 
-from app.services.write_lock import WriteLockError, WriteLockService
+from app.services.write_lock import (
+    LOCK_ACTIVE_MESSAGE,
+    LOCK_STALE_MESSAGE,
+    LOCK_UNREADABLE_MESSAGE,
+    WriteLockError,
+    WriteLockService,
+)
 
 
 @pytest.fixture
@@ -85,3 +91,64 @@ class TestWriteLockService:
         svc = WriteLockService(lock_dir=nested)
         assert svc.acquire("book-1") is True
         assert nested.is_dir()
+
+    def test_inspect_reports_active_lock_without_path_leak(self, service: WriteLockService) -> None:
+        assert service.acquire("book-1") is True
+
+        result = service.inspect("book-1")
+
+        assert result.status == "active"
+        assert result.is_active is True
+        assert result.operator_message == LOCK_ACTIVE_MESSAGE
+        assert "book-1" not in result.operator_message
+        assert "/" not in result.operator_message
+
+    def test_inspect_reports_released_lock_file_as_stale_guidance(
+        self, service: WriteLockService, tmp_lock_dir: Path
+    ) -> None:
+        assert service.acquire("book-1") is True
+        service.release("book-1")
+        assert (tmp_lock_dir / "book-1.lock").exists()
+
+        result = service.inspect("book-1")
+
+        assert result.status == "stale_released"
+        assert result.is_active is False
+        assert result.operator_message == LOCK_STALE_MESSAGE
+        assert "app stopped" in result.operator_message
+        assert "disposable test copy" in result.operator_message
+        assert "book-1" not in result.operator_message
+        assert "/" not in result.operator_message
+
+    def test_inspect_reports_missing_lock_without_cleanup_action(self, service: WriteLockService) -> None:
+        result = service.inspect("book-1")
+
+        assert result.status == "not_present"
+        assert result.is_active is False
+        assert "No write lock file" in result.operator_message
+        assert "remove" not in result.operator_message.lower()
+        assert "/" not in result.operator_message
+
+    def test_inspect_reports_unreadable_lock_with_safe_operator_guidance(
+        self, service: WriteLockService, tmp_lock_dir: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        assert service.acquire("book-1") is True
+        service.release("book-1")
+        original_open = os.open
+
+        def permission_denied(path: str, flags: int, mode: int = 0o777) -> int:
+            if str(path).endswith("book-1.lock"):
+                raise PermissionError("permission denied")
+            return original_open(path, flags, mode)
+
+        monkeypatch.setattr(os, "open", permission_denied)
+
+        result = service.inspect("book-1")
+
+        assert result.status == "unreadable"
+        assert result.is_active is False
+        assert result.operator_message == LOCK_UNREADABLE_MESSAGE
+        assert "API container" in result.operator_message
+        assert "book-specific stale lock" in result.operator_message
+        assert str(tmp_lock_dir) not in result.operator_message
+        assert "book-1" not in result.operator_message

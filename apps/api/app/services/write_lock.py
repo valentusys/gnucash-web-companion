@@ -14,6 +14,7 @@ import fcntl
 import os
 from collections.abc import Generator
 from contextlib import contextmanager
+from dataclasses import dataclass
 from pathlib import Path
 
 DEFAULT_LOCK_DIR = Path("/data/locks")
@@ -25,6 +26,32 @@ class WriteLockError(Exception):
     def __init__(self, book_id: str):
         self.book_id = book_id
         super().__init__(f"Could not acquire write lock for book {book_id}")
+
+
+@dataclass(frozen=True)
+class WriteLockProbeResult:
+    """Path-safe lock inspection result for operator evidence.
+
+    The result intentionally does not expose the lock path or book path. It is
+    for disposable write-alpha dogfood/recovery evidence and operator guidance,
+    not for automatic production lock cleanup.
+    """
+
+    status: str
+    is_active: bool
+    operator_message: str
+
+
+LOCK_NOT_PRESENT_MESSAGE = "No write lock file is present for this book."
+LOCK_ACTIVE_MESSAGE = "A write lock is currently active. Wait for the active write to finish before retrying."
+LOCK_STALE_MESSAGE = (
+    "A write lock file is present but not actively held. With the app stopped, an operator may remove the "
+    "book-specific stale lock file from ignored runtime storage before retrying on a disposable test copy."
+)
+LOCK_UNREADABLE_MESSAGE = (
+    "A write lock file is present but cannot be inspected by this process. Inspect it from the API container "
+    "or fix runtime ownership, then remove only the book-specific stale lock after confirming the app is stopped."
+)
 
 
 class WriteLockService:
@@ -108,6 +135,62 @@ class WriteLockService:
                 os.close(fd)
             except OSError:
                 pass
+
+    def inspect(self, book_id: str) -> WriteLockProbeResult:
+        """Inspect whether a book lock is active, stale, unreadable, or absent.
+
+        This helper never deletes lock files and never returns filesystem paths.
+        If the current service instance owns the lock, it reports active without
+        attempting to re-lock the same file. Otherwise it opens the lock file and
+        tries a non-blocking exclusive flock; success means the remaining file is
+        stale/released, while ``BlockingIOError`` means another process holds it.
+        """
+        if book_id in self._fds:
+            return WriteLockProbeResult(
+                status="active",
+                is_active=True,
+                operator_message=LOCK_ACTIVE_MESSAGE,
+            )
+
+        lock_path = self._lock_path(book_id)
+        if not lock_path.exists():
+            return WriteLockProbeResult(
+                status="not_present",
+                is_active=False,
+                operator_message=LOCK_NOT_PRESENT_MESSAGE,
+            )
+
+        try:
+            fd = os.open(str(lock_path), os.O_RDWR)
+        except (PermissionError, OSError):
+            return WriteLockProbeResult(
+                status="unreadable",
+                is_active=False,
+                operator_message=LOCK_UNREADABLE_MESSAGE,
+            )
+
+        try:
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                return WriteLockProbeResult(
+                    status="active",
+                    is_active=True,
+                    operator_message=LOCK_ACTIVE_MESSAGE,
+                )
+            finally:
+                try:
+                    fcntl.flock(fd, fcntl.LOCK_UN)
+                except OSError:
+                    pass
+        finally:
+            os.close(fd)
+
+        return WriteLockProbeResult(
+            status="stale_released",
+            is_active=False,
+            operator_message=LOCK_STALE_MESSAGE,
+        )
 
     @contextmanager
     def lock(self, book_id: str) -> Generator[None, None, None]:
