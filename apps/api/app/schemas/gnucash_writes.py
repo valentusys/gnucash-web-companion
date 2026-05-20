@@ -89,6 +89,10 @@ class WriteAlphaAuditSummaryItemDTO(BaseModel):
         None, description="At most eight characters of the transaction GUID"
     )
     backup_present: bool = Field(..., description="Whether a redacted backup marker exists")
+    backup_artifact_ref: str | None = Field(
+        None,
+        description="Opaque stable reference for distinguishing redacted backup artifacts",
+    )
     error: str | None = Field(None, description="User-safe error summary without paths")
 
 

@@ -258,7 +258,7 @@ class TestWriteAlphaAuditSummary:
         assert data["status_summary"] == [
             "Filtered rows: 3",
             "Returned rows: 3 of at most 25 from offset 0",
-            "Rows are redacted to action/result/timestamp/opaque transaction prefix/backup-present/safe-error only.",
+            "Rows are redacted to action/result/timestamp/opaque transaction prefix/backup-present/opaque backup reference/safe-error only.",
         ]
         assert data["pagination"] == {
             "limit": 25,
@@ -272,11 +272,17 @@ class TestWriteAlphaAuditSummary:
         delete_item, patch_item, create_item = data["items"]
         assert delete_item["transaction_id_prefix"] == "deadbeef"
         assert delete_item["backup_present"] is True
+        assert delete_item["backup_artifact_ref"].startswith("bkp-")
+        assert len(delete_item["backup_artifact_ref"]) == 16
         assert patch_item["transaction_id_prefix"] == "12345678"
         assert patch_item["backup_present"] is False
+        assert patch_item["backup_artifact_ref"] is None
         assert patch_item["error"] == "Write-alpha request failed safely; check redacted operator evidence."
         assert create_item["transaction_id_prefix"] == "abcdef12"
         assert create_item["backup_present"] is True
+        assert create_item["backup_artifact_ref"].startswith("bkp-")
+        assert len(create_item["backup_artifact_ref"]) == 16
+        assert create_item["backup_artifact_ref"] != delete_item["backup_artifact_ref"]
         assert create_item["error"] is None
 
         encoded = json.dumps(data)

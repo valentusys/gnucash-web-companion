@@ -11,7 +11,7 @@ Last updated: 2026-05-21
 
 ## Current baseline
 
-Completed through Phase 222.
+Completed through Phase 223.
 
 Current public release state:
 
@@ -2992,6 +2992,28 @@ Finding: the Phase 220 evidence shape is explained by second-precision backup fi
 Safety result: `GNUCASH_WRITES_ENABLED=false` remains default and `APP_ENV=test` was not weakened. No write endpoint, write route family, release/tag/package/image, real/private/only-copy book, runtime book, app DB, backup artifact, `.env`, screenshot/export, token, key, cert, raw path, account name, memo, amount, production/security claim, or real/private-book write-safety claim was added.
 
 Verification result: targeted backend tests passed for backup uniqueness/no-overwrite and default-disabled write probes; smoke helpers compiled; full backend pytest passed; frontend check/auth-routes/build passed; Docker Compose config validation passed; `git diff --check` passed; tracked sensitive-file hygiene scan passed. Later roadmap phases still need to rerun bounded synthetic/disposable write-alpha route-family dogfood before any release gate.
+
+## Phase 223 — Backup naming collision and monotonic evidence hardening
+
+Status: complete. Backup artifact identity and redacted operator evidence were hardened after the Phase 222 collision fix.
+
+Goal: prove rapid create/PATCH/DELETE route-family writes cannot collide, overwrite, or produce ambiguous backup evidence, while keeping operator output redacted.
+
+Artifacts:
+
+- `apps/api/app/routers/transactions.py` and `apps/api/app/schemas/gnucash_writes.py` — audit rows now store a bounded opaque `backup_artifact_ref` derived from backup evidence; read-only audit summary exposes that ref without raw paths or filenames.
+- `apps/api/tests/test_transaction_writes.py` — route-family regression freezes the backup clock and performs fast create/PATCH/DELETE writes against a synthetic disposable fixture, proving three unique readable backup artifacts and matching audit rows.
+- `apps/api/tests/test_write_alpha_audit_summary.py` — redaction tests now pin opaque backup refs, no raw backup paths/filenames, and no financial/private payload leakage.
+- `apps/web/src/lib/api/types.ts`, `apps/web/src/lib/i18n/messages.ts`, and `apps/web/src/routes/books/write-alpha-audit/+page.svelte` — operator UI can display the opaque backup ref while preserving redaction.
+- `docs/dogfood/phase-223-backup-identity-evidence.md` — redacted backup identity evidence note.
+- `docs/handoff/phase-223.md` — phase handoff.
+- `CHANGELOG.md` and `PROJECT_STATUS.md` — status synchronized.
+
+Finding: Phase 222 already fixed overwrite-capable naming. Phase 223 adds deterministic route-family coverage and redacted monotonic evidence so operators can distinguish successful backup artifacts by opaque refs without exposing raw artifact paths, filenames, account names, memos, amounts, or private financial data.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains default and `APP_ENV=test` was not weakened. Write-alpha execution remains limited to explicit `APP_ENV=test` plus `GNUCASH_WRITES_ENABLED=true` synthetic/disposable scope. No write endpoint, write scope expansion, release/tag/package/image, real/private/only-copy book, committed runtime book, app DB, backup artifact, `.env`, screenshot/export, token, key, cert, raw path, account name, memo, amount, production/security claim, or real/private-book write-safety claim was added.
+
+Verification result: targeted backup service, route-family, and audit-summary tests passed; full backend pytest passed; frontend check/auth-routes/build passed; Docker Compose config validation passed with rendered `GNUCASH_WRITES_ENABLED=false`; `git diff --check` passed; tracked sensitive-file hygiene scan passed.
 
 ## Standing constraints
 

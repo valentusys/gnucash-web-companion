@@ -10,7 +10,7 @@ import shutil
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from pathlib import Path
 from unittest.mock import patch, MagicMock
@@ -1153,6 +1153,101 @@ class TestWriteAlphaCreateRouteDisposableFixture:
             assert payload["result"] == "failed"
             assert payload["backup_path"] is None
             assert "Validation failed" in payload["error"]
+
+    def test_fast_route_family_writes_have_unique_backups_and_redacted_refs(
+        self,
+        client,
+        auth_headers,
+        disposable_sample_book,
+        disposable_fixture_book,
+        disposable_write_lock,
+        session_factory,
+        monkeypatch,
+    ):
+        """Fast create/PATCH/DELETE writes must keep distinct backup evidence."""
+        import app.services.backup as backup_mod
+
+        fixed_now = datetime(2026, 5, 21, 5, 23, 1, 987654, tzinfo=timezone.utc)
+
+        class FixedDateTime:
+            @classmethod
+            def now(cls, tz=None):
+                return fixed_now if tz is not None else fixed_now.replace(tzinfo=None)
+
+        monkeypatch.setattr(backup_mod, "datetime", FixedDateTime)
+        original_tx = _read_written_transactions(disposable_fixture_book)[0]
+
+        create_response = client.post(
+            f"/books/{disposable_sample_book}/transactions",
+            json=self._fixture_create_payload("Phase 223 route-family create"),
+            headers=auth_headers,
+        )
+        assert create_response.status_code == 201
+        created_id = create_response.json()["transaction_id"]
+
+        patch_response = client.patch(
+            f"/books/{disposable_sample_book}/transactions/{original_tx['guid']}",
+            json={
+                "description": "Phase 223 route-family patch",
+                "split_memos": {original_tx["splits"][0]["guid"]: "phase 223 patched memo"},
+            },
+            headers=auth_headers,
+        )
+        assert patch_response.status_code == 200
+
+        delete_response = client.delete(
+            f"/books/{disposable_sample_book}/transactions/{created_id}",
+            headers=auth_headers,
+        )
+        assert delete_response.status_code == 200
+
+        backup_paths = [
+            Path(create_response.json()["backup_path"]),
+            Path(patch_response.json()["backup_path"]),
+            Path(delete_response.json()["backup_path"]),
+        ]
+        assert [path.name for path in backup_paths] == [
+            "write-alpha-disposable_gnucash_20260521_052301_987654.sqlite",
+            "write-alpha-disposable_gnucash_20260521_052301_987654_1.sqlite",
+            "write-alpha-disposable_gnucash_20260521_052301_987654_2.sqlite",
+        ]
+        for backup_path in backup_paths:
+            assert backup_path.exists()
+            assert backup_path.is_file()
+            assert backup_path.parent.name == disposable_fixture_book.stem
+            assert _read_written_transactions(backup_path)
+
+        with session_factory() as session:
+            audit_logs = [
+                session.get(AuditLog, create_response.json()["audit_log_id"]),
+                session.get(AuditLog, patch_response.json()["audit_log_id"]),
+                session.get(AuditLog, delete_response.json()["audit_log_id"]),
+            ]
+            payloads = [json.loads(log.payload_json) for log in audit_logs]
+
+        assert [payload["action"] for payload in payloads] == [
+            "transaction.create",
+            "transaction.patch",
+            "transaction.delete",
+        ]
+        assert [payload["backup_path"] for payload in payloads] == [str(path) for path in backup_paths]
+        refs = [payload["backup_artifact_ref"] for payload in payloads]
+        assert len(set(refs)) == 3
+        assert all(ref.startswith("bkp-") and len(ref) == 16 for ref in refs)
+
+        summary_response = client.get(
+            f"/books/{disposable_sample_book}/write-alpha-audit-summary",
+            headers=auth_headers,
+        )
+        assert summary_response.status_code == 200
+        summary = summary_response.json()
+        summary_refs = {item["backup_artifact_ref"] for item in summary["items"] if item["backup_present"]}
+        assert set(refs) <= summary_refs
+        encoded_summary = json.dumps(summary)
+        assert str(disposable_fixture_book.parent.parent) not in encoded_summary
+        for path in backup_paths:
+            assert str(path) not in encoded_summary
+            assert path.name not in encoded_summary
 
     def test_concurrent_enabled_create_allows_one_success_and_one_lock_contention(
         self,

@@ -178,6 +178,7 @@ export type WriteAlphaAuditSummaryItem = {
 	timestamp: string;
 	transaction_id_prefix: string | null;
 	backup_present: boolean;
+	backup_artifact_ref: string | null;
 	error: string | null;
 };
 

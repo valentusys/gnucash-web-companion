@@ -7,6 +7,7 @@ Write endpoints (Phase 12) require editor/owner role and follow strict write flo
 from __future__ import annotations
 
 import csv
+import hashlib
 import io
 import json
 import logging
@@ -609,6 +610,24 @@ def _audit_summary_payload(log: AuditLog) -> dict[str, Any]:
     return payload if isinstance(payload, dict) else {}
 
 
+def _safe_backup_artifact_ref(value: Any) -> str | None:
+    """Return a bounded opaque backup reference without exposing raw paths or filenames."""
+    if not isinstance(value, str) or not value.strip():
+        return None
+    text = value.strip()
+    if "\x00" in text or len(text) > 512:
+        return None
+    digest = hashlib.sha256(text.encode("utf-8")).hexdigest()[:12]
+    return f"bkp-{digest}"
+
+
+def _backup_audit_fields(backup_path: str | None) -> dict[str, str | None]:
+    return {
+        "backup_path": backup_path,
+        "backup_artifact_ref": _safe_backup_artifact_ref(backup_path),
+    }
+
+
 def _audit_summary_item(log: AuditLog) -> WriteAlphaAuditSummaryItemDTO:
     payload = _audit_summary_payload(log)
     return WriteAlphaAuditSummaryItemDTO(
@@ -618,6 +637,7 @@ def _audit_summary_item(log: AuditLog) -> WriteAlphaAuditSummaryItemDTO:
         timestamp=_safe_audit_timestamp(log, payload),
         transaction_id_prefix=_safe_audit_transaction_id_prefix(payload.get("transaction_id")),
         backup_present=bool(payload.get("backup_path")),
+        backup_artifact_ref=_safe_backup_artifact_ref(payload.get("backup_path")),
         error=_safe_audit_error(payload.get("error")),
     )
 
@@ -781,12 +801,12 @@ async def get_write_alpha_audit_summary(
         status_summary=[
             f"Filtered rows: {len(filtered_logs)}",
             f"Returned rows: {len(logs)} of at most {limit} from offset {offset}",
-            "Rows are redacted to action/result/timestamp/opaque transaction prefix/backup-present/safe-error only.",
+            "Rows are redacted to action/result/timestamp/opaque transaction prefix/backup-present/opaque backup reference/safe-error only.",
         ],
         items=[_audit_summary_item(log) for log in logs],
         limitations=[
             "Read-only app metadata summary for synthetic/disposable write-alpha runs only.",
-            "Backup paths, private file paths, raw payloads, account names, memos, and amounts are not exposed.",
+            "Backup paths, private file paths, raw filenames, raw payloads, account names, memos, and amounts are not exposed.",
         ],
     )
 
@@ -840,6 +860,7 @@ async def create_book_transaction(
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "request_summary": _request_summary(request),
         "backup_path": None,
+        "backup_artifact_ref": None,
         "result": "started",
     }
     log = _audit_log(session, user.id, book.id, "transaction.create", audit_payload)
@@ -863,7 +884,7 @@ async def create_book_transaction(
             {
                 "result": "failed",
                 "error": safe_detail,
-                "backup_path": getattr(exc, "backup_path", None),
+                **_backup_audit_fields(getattr(exc, "backup_path", None)),
             }
         )
         _update_audit_log(session, log, audit_payload)
@@ -875,7 +896,7 @@ async def create_book_transaction(
     audit_payload.update(
         {
             "transaction_id": result.transaction_id,
-            "backup_path": result.backup_path,
+            **_backup_audit_fields(result.backup_path),
             "result": "success",
         }
     )
@@ -923,6 +944,7 @@ async def patch_book_transaction(
         "request_summary": {"fields_updated": list(fields_updated.keys())},
         "fields_updated": fields_updated,
         "backup_path": None,
+        "backup_artifact_ref": None,
         "result": "started",
     }
     log = _audit_log(session, user.id, book.id, "transaction.patch", audit_payload)
@@ -947,7 +969,7 @@ async def patch_book_transaction(
             {
                 "result": "failed",
                 "error": safe_detail,
-                "backup_path": getattr(exc, "backup_path", None),
+                **_backup_audit_fields(getattr(exc, "backup_path", None)),
             }
         )
         _update_audit_log(session, log, audit_payload)
@@ -965,7 +987,7 @@ async def patch_book_transaction(
 
     audit_payload.update(
         {
-            "backup_path": result.backup_path,
+            **_backup_audit_fields(result.backup_path),
             "result": "success",
         }
     )
@@ -999,6 +1021,7 @@ async def delete_book_transaction(
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "request_summary": {"transaction_id": transaction_id},
         "backup_path": None,
+        "backup_artifact_ref": None,
         "result": "started",
     }
     log = _audit_log(session, user.id, book.id, "transaction.delete", audit_payload)
@@ -1022,7 +1045,7 @@ async def delete_book_transaction(
             {
                 "result": "failed",
                 "error": safe_detail,
-                "backup_path": getattr(exc, "backup_path", None),
+                **_backup_audit_fields(getattr(exc, "backup_path", None)),
             }
         )
         _update_audit_log(session, log, audit_payload)
@@ -1040,7 +1063,7 @@ async def delete_book_transaction(
 
     audit_payload.update(
         {
-            "backup_path": result.backup_path,
+            **_backup_audit_fields(result.backup_path),
             "result": "success",
         }
     )

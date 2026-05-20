@@ -165,6 +165,9 @@
 						<div class="min-w-0">
 							<p class="text-xs uppercase tracking-wide text-slate-500">{t(locale, 'audit.backupSafeError')}</p>
 							<p class="text-slate-700">{item.backup_present ? t(locale, 'audit.backupPresent') : t(locale, 'audit.backupMissing')}</p>
+							{#if item.backup_artifact_ref}
+								<p class="mt-1 truncate font-mono text-xs text-slate-600">{t(locale, 'audit.backupRef')}: {item.backup_artifact_ref}</p>
+							{/if}
 							{#if item.error}
 								<p class="mt-1 break-words text-slate-700">{item.error}</p>
 							{/if}

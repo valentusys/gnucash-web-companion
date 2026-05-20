@@ -225,6 +225,7 @@ export type MessageKey =
 	| 'audit.backupSafeError'
 	| 'audit.backupPresent'
 	| 'audit.backupMissing'
+	| 'audit.backupRef'
 	| 'audit.limitations'
 	| 'writeMode.title'
 	| 'writeMode.message'
@@ -582,6 +583,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'audit.backupSafeError': 'Backup / safe error',
 		'audit.backupPresent': 'Backup: present',
 		'audit.backupMissing': 'Backup: not recorded',
+		'audit.backupRef': 'Backup ref',
 		'audit.limitations': 'Limitations',
 		'writeMode.title': 'Experimental controlled write mode — not part of MVP v0.1',
 		'writeMode.message':
@@ -958,6 +960,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'audit.backupSafeError': 'Backup / safe error',
 		'audit.backupPresent': 'Backup: present',
 		'audit.backupMissing': 'Backup: not recorded',
+		'audit.backupRef': 'Backup ref',
 		'audit.limitations': 'Ограничения',
 		'writeMode.title': 'Экспериментальный controlled write mode — не часть MVP v0.1',
 		'writeMode.message':
