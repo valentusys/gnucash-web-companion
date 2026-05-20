@@ -171,6 +171,7 @@ export type MessageKey =
 	| 'books.safeOperatorGuidance'
 	| 'books.contextRecoveryTitle'
 	| 'books.contextRecoveryStale'
+	| 'books.contextRecoveryUnavailable'
 	| 'books.contextRecoveryNoBooks'
 	| 'transactions.filters.title'
 	| 'transactions.filters.subtitle'
@@ -452,6 +453,8 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'books.contextRecoveryTitle': 'Book context reviewed',
 		'books.contextRecoveryStale':
 			'The selected-book cookie was invalid or no longer accessible, so this browser session was safely moved to an accessible read-only book. Review the current/default labels before opening a view.',
+		'books.contextRecoveryUnavailable':
+			'The selected book is accessible in metadata but currently unavailable for read-only data views. This browser session was safely moved to an available read-only book when one exists; review storage diagnostics and safe next actions without exposing private paths.',
 		'books.contextRecoveryNoBooks':
 			'No accessible configured books are available for this account. The selected-book cookie was cleared; archived and unauthorized books remain hidden or blocked.',
 		'transactions.filters.title': 'Transaction filters',
@@ -748,6 +751,8 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'books.contextRecoveryTitle': 'Контекст книги проверен',
 		'books.contextRecoveryStale':
 			'Cookie выбранной книги был некорректным или больше недоступен, поэтому браузерная сессия безопасно переключена на доступную read-only книгу. Проверьте метки текущей/основной книги перед открытием разделов.',
+		'books.contextRecoveryUnavailable':
+			'Выбранная книга доступна в метаданных, но сейчас недоступна для read-only разделов с данными. Браузерная сессия безопасно переключена на доступную read-only книгу, если она есть; проверьте диагностику хранения и безопасные действия без раскрытия приватных путей.',
 		'books.contextRecoveryNoBooks':
 			'Для этой учётной записи нет доступных настроенных книг. Cookie выбранной книги очищен; архивные и неавторизованные книги остаются скрыты или заблокированы.',
 		'transactions.filters.title': 'Фильтры транзакций',

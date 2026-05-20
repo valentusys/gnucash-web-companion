@@ -11,7 +11,7 @@ Last updated: 2026-05-20
 
 ## Current baseline
 
-Completed through Phase 204.
+Completed through Phase 205.
 
 Current public release state:
 
@@ -2710,6 +2710,24 @@ Artifacts:
 Safety result: `GNUCASH_WRITES_ENABLED=false` remains default. No fixture binary, real/private book, app DB, backup, `.env`, screenshot/export, token, key, cert, raw path, account name, transaction description, memo, amount, row value, or private financial data was committed. PostgreSQL/MySQL/MariaDB and XML remain explicitly unclaimed; Desktop-generated metadata remains blocked/manual until separate default-read-only validation passes.
 
 Verification result: targeted compatibility matrix/metadata/backend docs tests passed; full backend pytest passed; frontend `npm run check`, `npm run test:auth-routes`, and `npm run build` passed; Docker Compose config validation passed and rendered `GNUCASH_WRITES_ENABLED: "false"`; touched markdown link check passed; `git diff --check` passed; tracked sensitive-file hygiene scan passed.
+
+## Phase 205 — Multi-book read-only recovery polish
+
+Status: complete. Phase commit pushed after verification.
+
+Goal: improve read-only multi-book recovery and navigation for inaccessible, archived, missing, and stale selected-book contexts without adding management actions.
+
+Artifacts:
+
+- `apps/web/src/lib/api/server.ts` — active-book resolution now ignores accessible-but-unavailable books for read-only data views, classifies unavailable selected-book cookies separately, and safely falls back to an openable accessible book or clears the selected-book cookie when no openable book exists.
+- `apps/web/src/routes/books/[bookId]/select/+server.ts` — server-validated book selection still blocks unavailable books, now preserves safe query strings for dashboard/accounts/transactions/scheduled paths while rejecting external or management destinations.
+- `apps/web/src/routes/books/+page.svelte` and `apps/web/src/lib/i18n/messages.ts` — `/books` shows a distinct safe unavailable-book recovery notice and keeps private paths redacted.
+- `apps/web/scripts/test-auth-routes.mjs` — route/static checks pin openable-book fallback, unavailable-book notices, safe query-preserving selection links, no client-side selected-book cookie writes, and no management actions.
+- `docs/handoff/phase-205.md` and `PROJECT_STATUS.md` — status/handoff synchronized.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains default. Access checks remain backend-enforced; archived and unauthorized books stay hidden or blocked by API route families; auth remains httpOnly-cookie based; no localStorage/sessionStorage, write route, registry management UI, upload/delete/default-changing controls, real/private book, app DB, backup, `.env`, screenshot/export, token, key, cert, raw private path, or private financial data was added.
+
+Verification result: targeted backend multi-book access tests passed; frontend route/static checks passed; frontend `npm run check` passed; full backend/frontend/Docker checks and read-only smoke are recorded in `docs/handoff/phase-205.md`.
 
 ## Standing constraints
 

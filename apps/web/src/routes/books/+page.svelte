@@ -40,6 +40,8 @@
 			<p class="mt-1" style="color: var(--app-muted);">
 				{#if data.bookContextNotice === 'no_accessible_books'}
 					{t(locale, 'books.contextRecoveryNoBooks')}
+				{:else if data.bookContextNotice === 'unavailable_selected_book'}
+					{t(locale, 'books.contextRecoveryUnavailable')}
 				{:else}
 					{t(locale, 'books.contextRecoveryStale')}
 				{/if}

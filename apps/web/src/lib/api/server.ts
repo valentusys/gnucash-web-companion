@@ -7,6 +7,7 @@ const SELECTED_BOOK_MAX_AGE = 60 * 60 * 24 * 30;
 export type BookContextRecoveryReason =
 	| 'invalid_selected_book_cookie'
 	| 'stale_selected_book_cookie'
+	| 'unavailable_selected_book'
 	| 'no_accessible_books';
 
 export type BookContextRecovery = {
@@ -50,10 +51,11 @@ export function getActiveBookId(cookies: Cookies): number | null {
 }
 
 export function resolveActiveBook(books: Book[], selectedBookId: number | null): Book | null {
+	const openableBooks = books.filter((book) => book.can_open_read_only_views);
 	return (
-		books.find((book) => book.id === selectedBookId) ??
-		books.find((book) => book.is_default) ??
-		books[0] ??
+		openableBooks.find((book) => book.id === selectedBookId) ??
+		openableBooks.find((book) => book.is_default) ??
+		openableBooks[0] ??
 		null
 	);
 }
@@ -74,13 +76,22 @@ export async function getActiveBookContext(
 			selectedBookId: null,
 			activeBookId: activeBook?.id ?? null
 		};
+	} else if (
+		selectedCookie.selectedBookId !== null &&
+		books.some((book) => book.id === selectedCookie.selectedBookId && !book.can_open_read_only_views)
+	) {
+		recovery = {
+			reason: 'unavailable_selected_book',
+			selectedBookId: selectedCookie.selectedBookId,
+			activeBookId: activeBook?.id ?? null
+		};
 	} else if (selectedCookie.selectedBookId !== null && activeBook?.id !== selectedCookie.selectedBookId) {
 		recovery = {
 			reason: 'stale_selected_book_cookie',
 			selectedBookId: selectedCookie.selectedBookId,
 			activeBookId: activeBook?.id ?? null
 		};
-	} else if (books.length === 0) {
+	} else if (books.length === 0 || !activeBook) {
 		recovery = {
 			reason: 'no_accessible_books',
 			selectedBookId: selectedCookie.selectedBookId,

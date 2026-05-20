@@ -5,9 +5,21 @@ import type { RequestHandler } from './$types';
 const SELECTED_BOOK_MAX_AGE = 60 * 60 * 24 * 30;
 const SAFE_NEXT_PATHS = ['/dashboard', '/accounts', '/transactions', '/scheduled'];
 
+function isSafeNextPath(pathname: string): boolean {
+	return SAFE_NEXT_PATHS.some((safePath) => pathname === safePath || pathname.startsWith(`${safePath}/`));
+}
+
 function normalizeNext(rawNext: string | null): string {
 	if (!rawNext) return '/dashboard';
-	return SAFE_NEXT_PATHS.includes(rawNext) ? rawNext : '/dashboard';
+	try {
+		const parsed = new URL(rawNext, 'http://localhost');
+		if (parsed.origin !== 'http://localhost' || !isSafeNextPath(parsed.pathname)) {
+			return '/dashboard';
+		}
+		return `${parsed.pathname}${parsed.search}`;
+	} catch {
+		return '/dashboard';
+	}
 }
 
 export const GET: RequestHandler = async ({ cookies, fetch, params, url }) => {

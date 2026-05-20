@@ -270,7 +270,7 @@ const booksSelectRoute = read('src/routes/books/[bookId]/select/+server.ts');
 assert.match(booksSelectRoute, /getActiveBookContext\(fetch, cookies, token\)/, 'book safe-link route must verify selected book against accessible API context before setting a cookie');
 assert.match(booksSelectRoute, /selectedBook\.can_open_read_only_views[\s\S]*\/books\?book_context=unavailable_selected_book/s, 'book safe-link route must withhold direct navigation for accessible but unavailable/missing books');
 assert.match(booksSelectRoute, /cookies\.set\('selected_book_id'[\s\S]*sameSite:\s*'lax'/s, 'book safe-link route must preserve active book context with the existing non-secret sameSite cookie');
-assert.match(booksSelectRoute, /SAFE_NEXT_PATHS[\s\S]*'\/dashboard'[\s\S]*'\/accounts'[\s\S]*'\/transactions'[\s\S]*'\/scheduled'/s, 'book safe-link route must redirect only to approved read-only views');
+assert.match(booksSelectRoute, /SAFE_NEXT_PATHS[\s\S]*'\/dashboard'[\s\S]*'\/accounts'[\s\S]*'\/transactions'[\s\S]*'\/scheduled'[\s\S]*isSafeNextPath[\s\S]*parsed\.pathname[\s\S]*parsed\.search/s, 'book safe-link route must redirect only to approved read-only views while preserving safe route query strings');
 assert.doesNotMatch(booksSelectRoute, /upload|delete|registry|admin|write|edit/i, 'book safe-link route must not expose management workflows');
 
 const booksPage = read('src/routes/books/+page.svelte');
@@ -631,13 +631,13 @@ assert.match(
 const serverApi = read('src/lib/api/server.ts');
 assert.match(
 	serverApi,
-	/export function resolveActiveBook[\s\S]*books\.find\(\(book\) => book\.id === selectedBookId\)[\s\S]*books\.find\(\(book\) => book\.is_default\)[\s\S]*books\[0\]/,
-	'book context must prefer selected accessible book, then accessible default, then first accessible book'
+	/export function resolveActiveBook[\s\S]*can_open_read_only_views[\s\S]*openableBooks\.find\(\(book\) => book\.id === selectedBookId\)[\s\S]*openableBooks\.find\(\(book\) => book\.is_default\)[\s\S]*openableBooks\[0\]/,
+	'book context must prefer selected openable book, then openable default, then first openable book'
 );
 assert.match(
 	serverApi,
-	/invalid_selected_book_cookie[\s\S]*stale_selected_book_cookie[\s\S]*no_accessible_books/,
-	'book context must classify invalid, stale, and empty accessible-book recovery cases'
+	/invalid_selected_book_cookie[\s\S]*stale_selected_book_cookie[\s\S]*unavailable_selected_book[\s\S]*no_accessible_books/,
+	'book context must classify invalid, stale, unavailable, and empty accessible-book recovery cases'
 );
 assert.match(
 	serverApi,
@@ -666,8 +666,8 @@ assert.match(
 );
 assert.match(
 	booksPage,
-	/books\.contextRecoveryTitle[\s\S]*books\.contextRecoveryNoBooks[\s\S]*books\.contextRecoveryStale/s,
-	'/books must show a safe recovery notice for stale/invalid selected-book cookies and no accessible books'
+	/books\.contextRecoveryTitle[\s\S]*books\.contextRecoveryNoBooks[\s\S]*books\.contextRecoveryUnavailable[\s\S]*books\.contextRecoveryStale/s,
+	'/books must show a safe recovery notice for stale/invalid/unavailable selected-book cookies and no accessible books'
 );
 for (const routeFile of [
 	'src/routes/+layout.server.ts',
