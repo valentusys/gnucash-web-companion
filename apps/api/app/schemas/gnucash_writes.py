@@ -76,3 +76,25 @@ class TransactionWriteResultDTO(BaseModel):
     transaction_id: str = Field(..., description="GUID of the created/updated transaction")
     backup_path: str = Field(..., description="Path to the backup created before the write")
     audit_log_id: int | None = Field(None, description="ID of the audit log entry")
+
+
+class WriteAlphaAuditSummaryItemDTO(BaseModel):
+    """Redacted audit-log summary for operator review of disposable write-alpha runs."""
+
+    id: int = Field(..., description="App metadata audit row ID")
+    action: str = Field(..., description="Write-alpha action name")
+    result: str = Field(..., description="started, success, failed, or unknown")
+    timestamp: str = Field(..., description="Audit timestamp from app metadata")
+    transaction_id_prefix: str | None = Field(
+        None, description="At most eight characters of the transaction GUID"
+    )
+    backup_present: bool = Field(..., description="Whether a redacted backup marker exists")
+    error: str | None = Field(None, description="User-safe error summary without paths")
+
+
+class WriteAlphaAuditSummaryDTO(BaseModel):
+    """Read-only, redacted operator summary for current app metadata DB audit rows."""
+
+    book_id: int = Field(..., description="Book ID whose app-metadata audit rows were summarized")
+    items: list[WriteAlphaAuditSummaryItemDTO] = Field(default_factory=list)
+    limitations: list[str] = Field(default_factory=list)

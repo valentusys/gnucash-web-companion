@@ -7,11 +7,11 @@ Last updated: 2026-05-20
 - GitHub: `valentusys/gnucash-web-companion`
 - Local path: `/home/val/gnucash-web-companion`
 - Branch: `main`
-- Status: pre-alpha / v0.1.7-readonly read-only pre-release published in Phase 171; public status reconciliation completed through Phase 172; Phase 182 published `v0.2.1-writealpha` as the current experimental write-alpha pre-release after a fresh green gate on the prepared Phase 181 candidate; Phase 185 captured synthetic/disposable DELETE dogfood with restore proof without expanding write scope
+- Status: pre-alpha / v0.1.7-readonly read-only pre-release published in Phase 171; public status reconciliation completed through Phase 172; Phase 182 published `v0.2.1-writealpha` as the current experimental write-alpha pre-release after a fresh green gate on the prepared Phase 181 candidate; Phase 186 added safe operator-visible write-alpha audit summary evidence for disposable runs without exposing private paths/raw payloads or expanding write scope
 
 ## Current baseline
 
-Completed through Phase 185.
+Completed through Phase 186.
 
 Current public release state:
 
@@ -82,6 +82,7 @@ Current public release state:
 - Phase 183 is a write-alpha restore UX/API evidence tightening phase: `WriteLockService.inspect()` and the write-alpha create smoke helper now distinguish active lock holds from stale released lock files and unreadable/root-owned lock files using redacted statuses and safe operator guidance; recovery docs and the write-mode warning explain stopped-runtime stale-lock cleanup without raw paths or private-book recommendations; tests pin active/stale/unreadable/no-lock behavior and the existing active-lock route still returns path-safe HTTP 409. No automatic lock deletion, production lock-management UI, write endpoint expansion, default-write enablement, release/tag/package, real/private/only-copy book, runtime DB/book/backup/lock artifact, `.env`, token, key, cert, screenshot/export, or private financial data was added.
 - Phase 184 is a write-alpha PATCH disposable dogfood phase: the committed synthetic fixture was copied through a temporary external disposable source into ignored runtime storage, preflighted as external/ignored, then exercised once through the existing experimental PATCH metadata/split-memo route under explicit local `APP_ENV=test` plus `GNUCASH_WRITES_ENABLED=true`. Redacted evidence confirms one successful PATCH, API/runtime read-back of synthetic markers only, unchanged split amount fingerprint, one backup, one successful `transaction.patch` audit row, one safe missing-transaction failed audit without backup, and non-active stale-released lock evidence from inside the API container. The stack was returned to default write-disabled mode and read-only API smoke passed with validate/create/PATCH/DELETE probes returning 403. Runtime book/app DB/backups/locks were removed after verification; no new write endpoint, amount/account PATCH, release/tag/package, real/private/only-copy book, raw artifact, `.env`, token, key, cert, screenshot/export, path, account name, original description, original memo, amount, or private financial data was committed.
 - Phase 185 is a write-alpha DELETE disposable dogfood with restore proof phase: the committed synthetic fixture was copied through a temporary external disposable source into ignored runtime storage, preflighted as external/ignored, then exercised once through the existing experimental DELETE route under explicit local `APP_ENV=test` plus `GNUCASH_WRITES_ENABLED=true`. Redacted evidence confirms one successful DELETE, API/runtime absence of the deleted synthetic transaction in the mutated copy, exactly one backup, exactly one successful `transaction.delete` audit increment, backup/restored checksum equality, restored runtime/API read-back of the deleted transaction, and non-active stale-released lock evidence from inside the API container. The stack was returned to default write-disabled mode and read-only API smoke passed with validate/create/PATCH/DELETE probes returning 403. Runtime book/app DB/backups/locks were removed after verification; no new write endpoint, bulk/account/recurring delete, release/tag/package, real/private/only-copy book, raw artifact, `.env`, token, key, cert, screenshot/export, path, account name, original description, memo, amount, or private financial data was committed.
+- Phase 186 is a write-alpha audit trail review UI phase for disposable runs: `GET /books/{book_id}/write-alpha-audit-summary` now returns a read-only app-metadata-only summary of `transaction.create`, `transaction.patch`, and `transaction.delete` audit rows for editor/owner operators, exposing only action, result, timestamp, bounded transaction ID prefix, redacted backup presence, and safe error text. `/books/write-alpha-audit` renders the active-book operator view with explicit synthetic/disposable and non-production-audit copy; `/books` links to it for the active book. Backend tests pin unauthenticated/viewer/unauthorized blocking plus redaction of backup paths, private paths, raw request payload fields, memos, and amounts; frontend static checks pin safe fields and no browser storage/forms. Synthetic app-DB-only dogfood passed without opening or mutating a GnuCash book. `GNUCASH_WRITES_ENABLED=false` remains default; no new write endpoint, release/tag/package, real/private/only-copy book, runtime DB/book/backup artifact, `.env`, token, key, cert, screenshot/export, private path, account name, memo, amount, or private financial data was committed.
 - Previous public release `v0.1.2-readonly` remains available and points to its Phase 117 release commit.
 - Previous public release `v0.1.1-readonly` remains available and points to `a4d04150c043ad4da3dea577b30ed7ffd2032df0`, after Phase 104.
 
@@ -273,6 +274,7 @@ Completed phases:
 - Phase 183 — Write-alpha restore UX/API evidence tightening
 - Phase 184 — Write-alpha PATCH disposable dogfood
 - Phase 185 — Write-alpha DELETE disposable dogfood with restore proof
+- Phase 186 — Write-alpha audit trail review UI for disposable runs
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -2434,6 +2436,27 @@ Dogfood result: a committed synthetic fixture was copied to a temporary external
 Safety result: `GNUCASH_WRITES_ENABLED=false` remains default. No new endpoint, bulk delete, account delete, recurring delete, release/tag/package, real/private/only-copy book, runtime book, app DB, backup, lock artifact, `.env`, token, key, cert, screenshot/export, raw path, account name, original description, memo, amount, or private financial data was committed.
 
 Verification result: DELETE+restore smoke helper py_compile passed; write-alpha preflight passed; write-enabled DELETE+restore smoke passed; default read-only API smoke passed including disabled validate/create/PATCH/DELETE probes; targeted backend DELETE route tests passed; frontend auth-route/static checks passed; Docker Compose config validation passed and rendered `GNUCASH_WRITES_ENABLED: "false"`; no ignored runtime artifact remained after teardown; `git diff --check` passed; tracked sensitive-file hygiene scan passed.
+
+## Phase 186 — Write-alpha Audit Trail Review UI for Disposable Runs
+
+Status: complete. Phase commit pushed after verification.
+
+Goal: make write-alpha run audit evidence operator-visible in a safe form without exposing private paths/raw amounts and without turning it into a production audit feature.
+
+Artifacts:
+
+- `apps/api/app/routers/transactions.py` — added read-only `GET /books/{book_id}/write-alpha-audit-summary` endpoint over app metadata audit rows only.
+- `apps/api/app/schemas/gnucash_writes.py` — added redacted audit summary DTOs with action, result, timestamp, bounded transaction ID prefix, backup-present boolean, and safe error text.
+- `apps/api/tests/test_write_alpha_audit_summary.py` — auth/access/redaction tests for the summary endpoint.
+- `apps/web/src/routes/books/write-alpha-audit/+page.server.ts` and `+page.svelte` — operator UI for active-book audit evidence with explicit disposable-run/non-production-audit copy.
+- `apps/web/src/routes/books/+page.svelte`, `apps/web/src/lib/api/types.ts`, and `apps/web/scripts/test-auth-routes.mjs` — link/type/static-check support.
+- `docs/dogfood/phase-186-write-alpha-audit-summary-dogfood.md` and `docs/handoff/phase-186.md` — synthetic app-DB-only dogfood evidence and handoff.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains default. The endpoint is read-only app metadata only and does not construct write services, open GnuCash books, or mutate GnuCash data. Viewer/unauthorized access is blocked. DTO/UI do not expose backup paths, private file paths, raw request payloads, account names, memos, or amounts. No new write endpoint, release/tag/package, real/private/only-copy book, runtime DB/book/backup artifact, `.env`, token, key, cert, screenshot/export, private path, account name, memo, amount, or private financial data was committed.
+
+Dogfood result: synthetic app-DB-only probe passed with admin 200, viewer 403, three create/PATCH/DELETE audit rows summarized, and explicit no-path/no-raw-payload checks true. No GnuCash book was read or mutated.
+
+Verification result: backend audit summary tests passed (`3 passed`); frontend auth-route/static checks passed; frontend `npm run check` passed (`0 errors and 0 warnings`); synthetic app-DB dogfood passed; standard backend/frontend/build/Docker/diff/hygiene results are recorded in the final Phase 186 report.
 
 ## Standing constraints
 

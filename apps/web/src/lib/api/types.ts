@@ -165,3 +165,19 @@ export type TransactionWriteResult = {
 	backup_path: string;
 	audit_log_id: number | null;
 };
+
+export type WriteAlphaAuditSummaryItem = {
+	id: number;
+	action: string;
+	result: string;
+	timestamp: string;
+	transaction_id_prefix: string | null;
+	backup_present: boolean;
+	error: string | null;
+};
+
+export type WriteAlphaAuditSummary = {
+	book_id: number;
+	items: WriteAlphaAuditSummaryItem[];
+	limitations: string[];
+};

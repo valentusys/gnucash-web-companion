@@ -290,6 +290,15 @@ assert.doesNotMatch(booksPage, /uri_or_path|book\.operator_guidance\.message/, '
 assert.match(booksPage, /book\.is_default[\s\S]*t\(locale, 'books\.defaultBook'\)/s, '/books page must clearly mark the active/default book');
 assert.match(booksPage, /\/books\/\$\{book\.id\}\/select\?next=\/accounts[\s\S]*\/books\/\$\{book\.id\}\/select\?next=\/transactions[\s\S]*\/books\/\$\{book\.id\}\/select\?next=\/scheduled[\s\S]*\/books\/\$\{book\.id\}\/select\?next=\/dashboard/s, '/books page must expose safe book-context links to read-only views');
 assert.doesNotMatch(booksPage, /<form|<input|type="file"|method="POST"|Upload book|Delete book|collaborative|shared wallet|family wallet/i, '/books page must not offer upload/delete controls or collaborative/family-wallet framing');
+assert.match(booksPage, /href="\/books\/write-alpha-audit"[\s\S]*Write-alpha audit evidence/s, '/books page must link operators to the safe write-alpha audit evidence view');
+
+const writeAlphaAuditServer = read('src/routes/books/write-alpha-audit/+page.server.ts');
+const writeAlphaAuditPage = read('src/routes/books/write-alpha-audit/+page.svelte');
+assert.match(writeAlphaAuditServer, /getAuthToken\(cookies\)[\s\S]*getActiveBookContext\(fetch, cookies, token\)[\s\S]*write-alpha-audit-summary\?limit=25/s, 'write-alpha audit view must load only through authenticated active-book API context');
+assert.match(writeAlphaAuditPage, /Read-only app metadata summary[\s\S]*synthetic\/disposable[\s\S]*not a production audit log product/s, 'write-alpha audit page must keep narrow disposable-run UX copy');
+assert.match(writeAlphaAuditPage, /Raw request payloads[\s\S]*backup paths[\s\S]*private file paths[\s\S]*amounts are not shown/s, 'write-alpha audit page must state redaction boundaries');
+assert.match(writeAlphaAuditPage, /item\.action[\s\S]*item\.result[\s\S]*item\.timestamp[\s\S]*item\.transaction_id_prefix[\s\S]*item\.backup_present[\s\S]*item\.error/s, 'write-alpha audit page must render only safe summary fields');
+assert.doesNotMatch(writeAlphaAuditPage, /backup_path|request_summary|fields_updated|localStorage|sessionStorage|fetch\(|method="POST"|<form/i, 'write-alpha audit page must not render raw audit payloads, persist evidence, or expose mutations');
 
 const desktopNav = read('src/lib/components/DesktopNav.svelte');
 const mobileNav = read('src/lib/components/MobileNav.svelte');

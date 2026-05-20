@@ -56,6 +56,7 @@
 				<div class="rounded-2xl border px-4 py-3 text-sm" style="border-color: var(--app-border); background-color: var(--app-card-bg);">
 					<p class="font-semibold" style="color: var(--app-text);">{t(locale, 'books.activeDefault')}</p>
 					<p class="mt-1" style="color: var(--app-muted);">{data.activeBook.name}</p>
+					<a class="mt-3 inline-flex min-h-11 items-center rounded-lg border px-3 py-2 font-medium" style="border-color: var(--app-border); color: var(--app-text);" href="/books/write-alpha-audit">Write-alpha audit evidence</a>
 				</div>
 			{/if}
 		</div>

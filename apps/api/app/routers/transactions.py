@@ -37,6 +37,8 @@ from app.schemas.gnucash_writes import (
     TransactionPatchRequestDTO,
     TransactionValidationResultDTO,
     TransactionWriteResultDTO,
+    WriteAlphaAuditSummaryDTO,
+    WriteAlphaAuditSummaryItemDTO,
 )
 from app.services.gnucash_exceptions import (
     BookNotConfiguredError,
@@ -536,6 +538,44 @@ def _write_lock_detail() -> str:
     return "Could not acquire write lock for this book. Retry after the active write finishes."
 
 
+WRITE_ALPHA_AUDIT_ACTIONS = (
+    "transaction.create",
+    "transaction.patch",
+    "transaction.delete",
+)
+
+
+def _safe_audit_error(value: object) -> str | None:
+    """Return bounded operator-safe audit error text without filesystem/URI details."""
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    if "://" in text or "/" in text or "\\" in text:
+        return "Write-alpha request failed safely; check redacted operator evidence."
+    return text[:160]
+
+
+def _audit_summary_item(log: AuditLog) -> WriteAlphaAuditSummaryItemDTO:
+    try:
+        payload = json.loads(log.payload_json or "{}")
+    except json.JSONDecodeError:
+        payload = {}
+    transaction_id = payload.get("transaction_id")
+    transaction_id_prefix = str(transaction_id)[:8] if transaction_id else None
+    timestamp = payload.get("timestamp") or log.created_at.isoformat()
+    return WriteAlphaAuditSummaryItemDTO(
+        id=log.id,
+        action=log.action,
+        result=str(payload.get("result") or "unknown"),
+        timestamp=str(timestamp),
+        transaction_id_prefix=transaction_id_prefix,
+        backup_present=bool(payload.get("backup_path")),
+        error=_safe_audit_error(payload.get("error")),
+    )
+
+
 def _request_summary(request: TransactionCreateRequestDTO) -> dict[str, Any]:
     return {
         "date": request.date,
@@ -569,6 +609,36 @@ def _ensure_write_alpha_test_scope(settings: Settings) -> None:
 # ---------------------------------------------------------------------------
 # Phase 12: Controlled write endpoints
 # ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/books/{book_id}/write-alpha-audit-summary",
+    response_model=WriteAlphaAuditSummaryDTO,
+)
+async def get_write_alpha_audit_summary(
+    book_id: int,
+    limit: int = Query(25, ge=1, le=100),
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+) -> WriteAlphaAuditSummaryDTO:
+    """Return a redacted read-only summary of write-alpha audit rows from app metadata."""
+    book = _resolve_viewable_book(book_id, user, session)
+    _require_book_edit_access(book, user, session)
+    logs = (
+        session.query(AuditLog)
+        .filter(AuditLog.book_id == book.id, AuditLog.action.in_(WRITE_ALPHA_AUDIT_ACTIONS))
+        .order_by(AuditLog.created_at.desc(), AuditLog.id.desc())
+        .limit(limit)
+        .all()
+    )
+    return WriteAlphaAuditSummaryDTO(
+        book_id=book.id,
+        items=[_audit_summary_item(log) for log in logs],
+        limitations=[
+            "Read-only app metadata summary for synthetic/disposable write-alpha runs only.",
+            "Backup paths, private file paths, raw payloads, account names, memos, and amounts are not exposed.",
+        ],
+    )
 
 
 @router.post(
