@@ -21,6 +21,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from write_alpha_smoke_evidence import (
+    EvidenceFailure,
+    audit_count_evidence,
+    file_count_evidence,
+    lock_evidence as collect_lock_evidence,
+)
+
 DEFAULT_API_BASE_URL = "http://localhost:8080/api"
 DEFAULT_APP_DB = "data/app/app.db"
 DEFAULT_BACKUP_ROOT = "data/backups"
@@ -161,26 +168,17 @@ def _choose_two_accounts(client: SmokeClient, book_id: int) -> tuple[str, str, s
 
 
 def _audit_success_count(app_db: Path) -> int:
-    _check(app_db.exists(), "app DB is missing after runtime smoke")
-    with sqlite3.connect(app_db) as connection:
-        rows = connection.execute(
-            "select payload_json from audit_logs where action = ?", ("transaction.create",)
-        ).fetchall()
-    count = 0
-    for (payload_raw,) in rows:
-        try:
-            payload = json.loads(payload_raw or "{}")
-        except json.JSONDecodeError:
-            continue
-        if payload.get("result") == "success" and payload.get("transaction_id"):
-            count += 1
-    return count
+    try:
+        return audit_count_evidence(app_db, action="transaction.create").count
+    except EvidenceFailure as exc:
+        raise SmokeFailure(str(exc)) from exc
 
 
 def _backup_file_count(backup_root: Path) -> int:
-    if not backup_root.exists():
-        return 0
-    return sum(1 for path in backup_root.rglob("*") if path.is_file())
+    try:
+        return file_count_evidence(backup_root, kind="backup").count
+    except EvidenceFailure as exc:
+        raise SmokeFailure(str(exc)) from exc
 
 
 def _lock_file_count(lock_root: Path) -> int:
@@ -191,40 +189,11 @@ def _lock_file_count(lock_root: Path) -> int:
 
 def _lock_evidence(lock_root: Path) -> LockEvidence:
     """Return path-redacted evidence for active, stale, or unreadable locks."""
-    if not lock_root.exists():
-        return LockEvidence("not_present", False, "no lock files remain")
-    saw_stale = False
-    for path in lock_root.glob("*.lock"):
-        if not path.is_file():
-            continue
-        try:
-            fd = os.open(path, os.O_RDWR)
-        except PermissionError:
-            return LockEvidence(
-                "unreadable",
-                False,
-                "lock file is not readable by this smoke user; inspect from the API container or fix runtime ownership before removing only the book-specific stale lock with the app stopped",
-            )
-        try:
-            try:
-                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            except BlockingIOError:
-                return LockEvidence("active", True, "write lock remains actively held after create")
-            finally:
-                try:
-                    fcntl.flock(fd, fcntl.LOCK_UN)
-                except OSError:
-                    pass
-            saw_stale = True
-        finally:
-            os.close(fd)
-    if saw_stale:
-        return LockEvidence(
-            "stale_released",
-            False,
-            "lock file remains but is not actively held; with the app stopped an operator may remove only the book-specific stale lock from ignored runtime storage",
-        )
-    return LockEvidence("not_present", False, "no lock files remain")
+    try:
+        evidence = collect_lock_evidence(lock_root, route_label="create")
+    except EvidenceFailure as exc:
+        raise SmokeFailure(str(exc)) from exc
+    return LockEvidence(evidence.status, evidence.is_active, evidence.message)
 
 
 def run(args: argparse.Namespace) -> None:

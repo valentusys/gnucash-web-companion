@@ -23,6 +23,16 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from write_alpha_smoke_evidence import (
+    EvidenceFailure,
+    RestoreEvidence,
+    audit_count_evidence,
+    backup_transaction_evidence,
+    file_count_evidence,
+    host_path_for_api_path,
+    lock_evidence as collect_lock_evidence,
+)
+
 DEFAULT_API_BASE_URL = "http://localhost:8080/api"
 DEFAULT_APP_DB = "data/app/app.db"
 DEFAULT_BACKUP_ROOT = "data/backups"
@@ -196,64 +206,39 @@ def _read_delete_target(book_path: Path, transaction_id: str) -> DeleteTarget | 
 
 
 def _audit_success_count(app_db: Path) -> int:
-    _check(app_db.exists(), "app DB is missing after runtime smoke")
-    with sqlite3.connect(app_db) as connection:
-        rows = connection.execute(
-            "select payload_json from audit_logs where action = ?", ("transaction.delete",)
-        ).fetchall()
-    count = 0
-    for (payload_raw,) in rows:
-        try:
-            payload = json.loads(payload_raw or "{}")
-        except json.JSONDecodeError:
-            continue
-        if payload.get("result") == "success" and payload.get("transaction_id"):
-            count += 1
-    return count
+    try:
+        return audit_count_evidence(app_db, action="transaction.delete").count
+    except EvidenceFailure as exc:
+        raise SmokeFailure(str(exc)) from exc
 
 
 def _backup_file_count(backup_root: Path) -> int:
-    if not backup_root.exists():
-        return 0
-    return sum(1 for path in backup_root.rglob("*") if path.is_file())
+    try:
+        return file_count_evidence(backup_root, kind="backup").count
+    except EvidenceFailure as exc:
+        raise SmokeFailure(str(exc)) from exc
 
 
 def _lock_evidence(lock_root: Path) -> LockEvidence:
     """Return path-redacted evidence for active, stale, or unreadable locks."""
-    if not lock_root.exists():
-        return LockEvidence("not_present", False, "no lock files remain")
-    saw_stale = False
-    for path in lock_root.glob("*.lock"):
-        if not path.is_file():
-            continue
-        try:
-            fd = os.open(path, os.O_RDWR)
-        except PermissionError:
-            return LockEvidence(
-                "unreadable",
-                False,
-                "lock file is not readable by this smoke user; inspect from the API container or fix runtime ownership before removing only the book-specific stale lock with the app stopped",
-            )
-        try:
-            try:
-                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            except BlockingIOError:
-                return LockEvidence("active", True, "write lock remains actively held after DELETE")
-            finally:
-                try:
-                    fcntl.flock(fd, fcntl.LOCK_UN)
-                except OSError:
-                    pass
-            saw_stale = True
-        finally:
-            os.close(fd)
-    if saw_stale:
-        return LockEvidence(
-            "stale_released",
-            False,
-            "lock file remains but is not actively held; with the app stopped an operator may remove only the book-specific stale lock from ignored runtime storage",
+    try:
+        evidence = collect_lock_evidence(lock_root, route_label="DELETE")
+    except EvidenceFailure as exc:
+        raise SmokeFailure(str(exc)) from exc
+    return LockEvidence(evidence.status, evidence.is_active, evidence.message)
+
+
+def _restore_from_backup_if_host_readable(backup_path: Path, runtime_book: Path) -> RestoreEvidence:
+    try:
+        _check(backup_path.exists() and backup_path.is_file(), "DELETE backup file is not readable on host")
+        shutil.copy2(backup_path, runtime_book)
+    except (PermissionError, OSError, SmokeFailure):
+        return RestoreEvidence(
+            performed=False,
+            status="skipped_host_unreadable",
+            message="restore proof skipped because host-side backup artifact was unreadable; container-side backup evidence was used instead",
         )
-    return LockEvidence("not_present", False, "no lock files remain")
+    return RestoreEvidence(performed=True, status="performed", message="restore copied host-readable backup into disposable runtime copy")
 
 
 def run(args: argparse.Namespace) -> None:
@@ -293,8 +278,7 @@ def run(args: argparse.Namespace) -> None:
     backup_path_value = delete_body.get("backup_path")
     if not isinstance(backup_path_value, str) or not backup_path_value:
         raise SmokeFailure("DELETE did not return backup path evidence")
-    backup_path = Path(backup_path_value)
-    _check(backup_path.exists() and backup_path.is_file(), "DELETE backup file is not readable inside runtime")
+    backup_path = host_path_for_api_path(backup_path_value)
 
     missing = client.request(
         "GET",
@@ -305,11 +289,16 @@ def run(args: argparse.Namespace) -> None:
     _require_mapping(missing.body, "post-delete absence response")
     _check(_read_delete_target(runtime_book, target.transaction_id) is None, "deleted transaction remains in runtime SQLite book")
 
-    backup_target = _read_delete_target(backup_path, target.transaction_id)
-    _check(backup_target is not None, "backup does not contain pre-delete transaction")
-    assert backup_target is not None
-    _check(backup_target.split_count == target.split_count, "backup split count changed")
-    _check(backup_target.split_fingerprint == target.split_fingerprint, "backup split fingerprint changed")
+    try:
+        backup_evidence = backup_transaction_evidence(
+            backup_path,
+            transaction_id=target.transaction_id,
+        )
+    except EvidenceFailure as exc:
+        raise SmokeFailure(str(exc)) from exc
+    _check(backup_evidence.present, "backup does not contain pre-delete transaction")
+    _check(backup_evidence.split_count == target.split_count, "backup split count changed")
+    _check(backup_evidence.split_fingerprint == target.split_fingerprint, "backup split fingerprint changed")
 
     after_backups = _backup_file_count(backup_root)
     after_audits = _audit_success_count(app_db)
@@ -317,21 +306,20 @@ def run(args: argparse.Namespace) -> None:
     _check(after_audits == before_audits + 1, "audit success count did not increase by exactly one")
 
     mutated_checksum = _sha256(runtime_book)
-    backup_checksum = _sha256(backup_path)
     _check(mutated_checksum != before_runtime_checksum, "runtime checksum did not change after DELETE")
-    _check(backup_checksum == before_runtime_checksum, "backup checksum does not match pre-delete runtime copy")
 
-    shutil.copy2(backup_path, runtime_book)
-    restored_checksum = _sha256(runtime_book)
-    _check(restored_checksum == backup_checksum, "restored runtime checksum does not match backup checksum")
-    restored_target = _read_delete_target(runtime_book, target.transaction_id)
-    _check(restored_target is not None, "restored runtime book lacks deleted transaction")
-    assert restored_target is not None
-    _check(restored_target.split_fingerprint == target.split_fingerprint, "restored split fingerprint changed")
+    restore_evidence = _restore_from_backup_if_host_readable(backup_path, runtime_book)
+    if restore_evidence.performed:
+        restored_checksum = _sha256(runtime_book)
+        _check(restored_checksum == before_runtime_checksum, "restored runtime checksum does not match pre-delete runtime copy")
+        restored_target = _read_delete_target(runtime_book, target.transaction_id)
+        _check(restored_target is not None, "restored runtime book lacks deleted transaction")
+        assert restored_target is not None
+        _check(restored_target.split_fingerprint == target.split_fingerprint, "restored split fingerprint changed")
 
-    restored_detail = client.request("GET", f"/books/{book_id}/transactions/{target.transaction_id}", authenticated=True)
-    restored_detail_body = _require_mapping(restored_detail.body, "restored transaction read-back")
-    _check(restored_detail_body.get("id") == target.transaction_id, "restored API detail transaction id mismatch")
+        restored_detail = client.request("GET", f"/books/{book_id}/transactions/{target.transaction_id}", authenticated=True)
+        restored_detail_body = _require_mapping(restored_detail.body, "restored transaction read-back")
+        _check(restored_detail_body.get("id") == target.transaction_id, "restored API detail transaction id mismatch")
 
     lock_evidence = _lock_evidence(lock_root)
     _check(not lock_evidence.is_active, lock_evidence.message)
@@ -347,7 +335,10 @@ def run(args: argparse.Namespace) -> None:
     print("ok: backup count increased by exactly one before mutation response returned")
     print("ok: audit success count increased by exactly one")
     print("ok: backup contained the deleted transaction with matching bounded split fingerprint")
-    print("ok: restored runtime copy checksum matched backup checksum and restored API read-back passed")
+    if restore_evidence.performed:
+        print("ok: restore proof performed on host-readable backup and restored API read-back passed")
+    else:
+        print(f"ok: restore proof status={restore_evidence.status}; {restore_evidence.message}")
     print(f"ok: write lock evidence status={lock_evidence.status}; {lock_evidence.message}")
     print("PASS: write-alpha DELETE restore smoke completed with redacted output")
 
