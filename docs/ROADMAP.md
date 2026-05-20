@@ -5,38 +5,29 @@ This roadmap is intentionally conservative. Safety and trust come before feature
 ## Current release posture
 
 - Status: pre-alpha / MVP in progress.
-- Completed through Phase 172.
+- Completed through Phase 212.
 - Current public read-only pre-release: `v0.1.7-readonly`.
-- Current published write-alpha pre-release: `v0.2.0-writealpha`, published after explicit authorization as pre-alpha/experimental and disabled by default.
+- Current published write-alpha pre-release: `v0.2.4-writealpha`, published in Phase 211 after the cycle-1 release gate and exact release-commit CI as pre-alpha/experimental and disabled by default.
 - MVP v0.1 remains read-only by default.
 - `GNUCASH_WRITES_ENABLED=false` remains the default.
-- Controlled writes, where present, are post-MVP/write-alpha, disabled by default, constrained by the existing backend test-environment gate when explicitly enabled, and not safe for real/private production books.
+- Controlled writes, where present, are post-MVP/write-alpha, disabled by default, constrained by the existing backend `APP_ENV=test` gate when explicitly enabled, and not safe for real/private production books.
 - Current compatibility evidence is synthetic/disposable fixture evidence only; broad GnuCash Desktop version support is not claimed.
-- Latest tagged read-only smoke: Phase 162 verified published tag `v0.1.6-readonly` from a fresh checkout with synthetic/disposable data, dummy local-only secrets, Docker Compose, API smoke, browser dogfood, disabled validate/create/patch/delete write probes, and no raw screenshot/export/backup artifacts. Phase 171 later published `v0.1.7-readonly` after its release gate; Phase 172 reconciled public status docs only.
+- Latest public release baseline: Phase 211 published `v0.2.4-writealpha` after local backend/frontend/Docker checks, exact release-commit CI, rendered `GNUCASH_WRITES_ENABLED=false`, and sensitive tracked-file hygiene. Phase 212 added this public status drift guard and did not publish a new release.
 - No further tag, GitHub release, package, or publication is planned by this roadmap page unless a later explicit release phase and authorization say so.
 
 ## Recently completed maintenance phases
 
-- Phase 153 — fresh-clone Docker smoke helper and synthetic/disposable clean-checkout evidence.
-- Phase 154 — GnuCash Desktop compatibility blocker evidence refresh without broad Desktop/version claims.
-- Phase 155 — multi-book read-only operator diagnostics and private-path redaction hardening.
-- Phase 156 — dashboard drilldown links to existing read-only transaction filters.
-- Phase 157 — scheduled/recurring transaction read-only clarity with URL-only filters and safe metadata.
-- Phase 158 — mobile dogfood touch-target/no-overflow fix pass.
-- Phase 159 — release-critical English/Russian frontend catalog coverage without claiming full localization.
-- Phase 160 — full synthetic/disposable Docker/Caddy release-candidate dogfood with `GNUCASH_WRITES_ENABLED=false`.
-- Phase 161 — authorized `v0.1.6-readonly` GitHub pre-release publication after final gate.
-- Phase 162 — post-release baseline sync plus tagged `v0.1.6-readonly` fresh-checkout smoke.
-- Phase 163 — disposable GnuCash Desktop container tooling blocker refresh.
-- Phase 164 — selected-book context and access edge-case hardening.
-- Phase 165 — large account-tree usability/performance evidence.
-- Phase 166 — CSV export reliability and user-feedback hardening.
-- Phase 167 — local/LAN auth/session hardening.
-- Phase 168 — first-run and broken-configuration operator UX.
-- Phase 169 — release-critical Russian localization completion slice.
-- Phase 170 — full cycle 2 synthetic/disposable Docker/Caddy dogfood.
-- Phase 171 — authorized `v0.1.7-readonly` GitHub pre-release publication after final gate.
-- Phase 172 — public status reconciliation after `v0.1.7-readonly` and `v0.2.0-writealpha` publications.
+- Phase 202 — default read-only first-run diagnostics hardening.
+- Phase 203 — disposable Desktop fixture capture path blocker refresh.
+- Phase 204 — compatibility-matrix regression coverage from redacted metadata.
+- Phase 205 — multi-book read-only recovery polish.
+- Phase 206 — transaction/scheduled read-only edge-case hardening plus dogfood.
+- Phase 207 — write-alpha audit-summary redaction and bounded metadata hardening.
+- Phase 208 — EN/RU operator safety copy polish without full-localization claims.
+- Phase 209 — full default-read-only Docker/Caddy dogfood with disabled write probes.
+- Phase 210 — bounded synthetic/disposable write-alpha create/PATCH/DELETE+restore dogfood.
+- Phase 211 — authorized `v0.2.4-writealpha` GitHub pre-release publication after exact release-commit CI.
+- Phase 212 — public status drift guard for README/PROJECT_STATUS/CHANGELOG/docs/ROADMAP/release docs.
 
 ## Completed phase groups
 
@@ -81,6 +72,7 @@ Key release artifacts:
 - `docs/release/v0.1.3-readonly-notes.md`
 - `docs/release/v0.1.7-readonly-notes.md`
 - `docs/release/v0.2.0-writealpha-notes.md`
+- `docs/release/v0.2.4-writealpha-notes.md`
 - `CHANGELOG.md`
 - `PROJECT_STATUS.md`
 

@@ -40,7 +40,7 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–211 are complete.
+- Phase 0–212 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by default.
 - First public pre-alpha release: `v0.0.1-prealpha`.
@@ -130,6 +130,7 @@ This project is not a fit if you need:
   - Phase 209 completed full default-read-only Docker/Caddy API/browser dogfood with disabled validate/create/PATCH/DELETE probes returning 403.
   - Phase 210 completed bounded write-alpha create/PATCH/DELETE+restore dogfood on fresh ignored synthetic runtime copies, returned to default false, and cleaned ignored runtime artifacts.
   - Phase 211 passed the cycle-1 release gate and published `v0.2.4-writealpha` as an authorized GitHub pre-release after exact release-commit CI succeeded.
+  - Phase 212 synchronized stale public roadmap/status wording after `v0.2.4-writealpha` and added a public status drift guard for README/PROJECT_STATUS/CHANGELOG/docs/ROADMAP/release docs.
 - Russian localization/i18n foundation started in Phase 52; English documentation remains canonical. See [README.ru.md](README.ru.md) and [docs/localization.md](docs/localization.md).
 - Community announcement drafts and where-to-share guidance were refreshed in Phase 53 for cautious feedback collection, not production marketing.
 - Startup diagnostics, a richer non-sensitive health endpoint, and troubleshooting guidance were added in Phase 54 for self-hosted deployments.

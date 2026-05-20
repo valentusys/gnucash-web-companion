@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Phase 212 — synchronized public status/roadmap documentation after `v0.2.4-writealpha` and added a public status drift guard for README/PROJECT_STATUS/CHANGELOG/docs/ROADMAP/release docs. The guard checks the current Phase 211 release baseline, `v0.1.7-readonly`, `v0.2.4-writealpha`, `GNUCASH_WRITES_ENABLED=false`, and conservative no-production/no-security/no-stable-claim wording without reading `.env`, runtime books, app DBs, backups, or private paths. No release was published.
+
 ## [0.2.4-writealpha] - 2026-05-21
 
 ### Added

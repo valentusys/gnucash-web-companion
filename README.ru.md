@@ -22,7 +22,7 @@
 
 ## Текущий публичный статус
 
-- Завершены Phase 0–211.
+- Фазы 0–212 завершены.
 - MVP v0.1 остаётся **read-only by default**.
 - `GNUCASH_WRITES_ENABLED=false` — безопасный дефолт.
 - Controlled-write код, если присутствует, является experimental post-MVP/write-alpha, отключён по умолчанию и дополнительно ограничен backend `APP_ENV=test` gate при явном включении.
@@ -86,6 +86,7 @@
 - Phase 209 — пройден full default-read-only Docker/Caddy API/browser dogfood; disabled validate/create/PATCH/DELETE probes вернули 403.
 - Phase 210 — пройден bounded write-alpha create/PATCH/DELETE+restore dogfood на fresh ignored synthetic runtime copies, stack returned to default false, artifacts cleaned.
 - Phase 211 — cycle-1 release gate пройден; `v0.2.4-writealpha` опубликован как authorized GitHub pre-release после green exact-commit CI.
+- Phase 212 — синхронизирован stale public roadmap/status слой после `v0.2.4-writealpha` и добавлен public status drift guard для README/PROJECT_STATUS/CHANGELOG/docs/ROADMAP/release docs.
 
 ## Как пробовать безопасно
 

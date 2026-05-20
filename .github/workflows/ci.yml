@@ -51,6 +51,12 @@ jobs:
             exit 1
           fi
 
+      - name: Verify public status drift guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/check_public_status.py
+
   frontend:
     name: Frontend checks
     runs-on: ubuntu-latest
