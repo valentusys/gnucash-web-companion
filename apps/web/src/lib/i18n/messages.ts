@@ -155,6 +155,7 @@ export type MessageKey =
 	| 'books.safeNextActions'
 	| 'books.privatePathRedacted'
 	| 'books.openSafeViews'
+	| 'books.unavailableViews'
 	| 'books.viewAccounts'
 	| 'books.browseTransactions'
 	| 'books.viewScheduled'
@@ -431,6 +432,8 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'books.safeNextActions': 'Safe next actions',
 		'books.privatePathRedacted': 'Private filesystem path is intentionally not shown.',
 		'books.openSafeViews': 'Open safe views',
+		'books.unavailableViews':
+			'Read-only data views are withheld until this book is available from the runtime; use the safe diagnostics above instead of exposing private paths.',
 		'books.viewAccounts': 'View accounts',
 		'books.browseTransactions': 'Browse transactions',
 		'books.viewScheduled': 'View scheduled metadata',
@@ -725,6 +728,8 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'books.safeNextActions': 'Безопасные следующие действия',
 		'books.privatePathRedacted': 'Приватный путь файловой системы намеренно не показан.',
 		'books.openSafeViews': 'Открыть безопасные разделы',
+		'books.unavailableViews':
+			'Read-only разделы с данными скрыты, пока книга недоступна из runtime; используйте безопасную диагностику выше без раскрытия приватных путей.',
 		'books.viewAccounts': 'Счета',
 		'books.browseTransactions': 'Транзакции',
 		'books.viewScheduled': 'Плановые метаданные',

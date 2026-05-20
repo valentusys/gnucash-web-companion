@@ -268,6 +268,7 @@ assert.doesNotMatch(booksPageServer, /upload|delete|write|edit/i, '/books page s
 
 const booksSelectRoute = read('src/routes/books/[bookId]/select/+server.ts');
 assert.match(booksSelectRoute, /getActiveBookContext\(fetch, cookies, token\)/, 'book safe-link route must verify selected book against accessible API context before setting a cookie');
+assert.match(booksSelectRoute, /selectedBook\.can_open_read_only_views[\s\S]*\/books\?book_context=unavailable_selected_book/s, 'book safe-link route must withhold direct navigation for accessible but unavailable/missing books');
 assert.match(booksSelectRoute, /cookies\.set\('selected_book_id'[\s\S]*sameSite:\s*'lax'/s, 'book safe-link route must preserve active book context with the existing non-secret sameSite cookie');
 assert.match(booksSelectRoute, /SAFE_NEXT_PATHS[\s\S]*'\/dashboard'[\s\S]*'\/accounts'[\s\S]*'\/transactions'[\s\S]*'\/scheduled'/s, 'book safe-link route must redirect only to approved read-only views');
 assert.doesNotMatch(booksSelectRoute, /upload|delete|registry|admin|write|edit/i, 'book safe-link route must not expose management workflows');
@@ -305,6 +306,8 @@ assert.match(booksPage, /<EmptyState[\s\S]*title=\{t\(locale, 'books\.emptyTitle
 assert.match(booksPage, /DEFAULT_LOCALE[\s\S]*t\(locale, 'books\.title'\)[\s\S]*t\(locale, 'books\.readonlyStatus'\)/s, '/books page must render localized titles and read-only safety labels from the i18n catalog');
 assert.match(booksPage, /t\(locale, 'books\.safetyNote'\)/, '/books page must render localized read-only safety note');
 assert.match(booksPage, /data\.books[\s\S]*book\.name[\s\S]*book\.base_currency[\s\S]*book\.storage_type[\s\S]*book\.access_role[\s\S]*book\.status/s, '/books page must render book name, base currency, storage type, access role, and status');
+assert.match(booksPage, /book\.access_role_label[\s\S]*book\.access_role_description[\s\S]*book\.status_severity/s, '/books page must render safe access-role copy and status severity diagnostics');
+assert.match(booksPage, /book\.can_open_read_only_views[\s\S]*books\.unavailableViews/s, '/books page must hide read-only view links for unavailable or not-configured books');
 assert.match(booksPage, /book\.operator_guidance\.metadata_source[\s\S]*book\.operator_guidance\.data_access[\s\S]*book\.operator_guidance\.read_only_default[\s\S]*book\.operator_guidance\.unsupported_management_actions/s, '/books page must render app-metadata-only operator guidance and unsupported MVP management actions');
 assert.match(booksPage, /book\.storage_diagnostics\.safe_summary[\s\S]*books\.privatePathRedacted[\s\S]*book\.storage_diagnostics\.safe_next_actions/s, '/books page must render safe storage diagnostics and next actions without private paths');
 assert.doesNotMatch(booksPage, /uri_or_path|book\.operator_guidance\.message/, '/books page must not render private book paths or raw backend guidance copy');
@@ -655,6 +658,11 @@ assert.match(
 	booksPageServer,
 	/BOOK_CONTEXT_NOTICE_KEYS[\s\S]*invalid_selected_book_cookie[\s\S]*stale_selected_book_cookie[\s\S]*no_accessible_books/,
 	'/books must accept only known book-context recovery notices'
+);
+assert.match(
+	booksPageServer,
+	/unavailable_selected_book/,
+	'/books must accept a safe unavailable selected-book notice from the server-validated select route'
 );
 assert.match(
 	booksPage,

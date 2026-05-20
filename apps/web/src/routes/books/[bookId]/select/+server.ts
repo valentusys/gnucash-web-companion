@@ -22,6 +22,9 @@ export const GET: RequestHandler = async ({ cookies, fetch, params, url }) => {
 	if (!selectedBook) {
 		throw error(404, 'Requested item was not found.');
 	}
+	if (!selectedBook.can_open_read_only_views) {
+		throw redirect(303, '/books?book_context=unavailable_selected_book');
+	}
 
 	cookies.set('selected_book_id', String(selectedBook.id), {
 		path: '/',

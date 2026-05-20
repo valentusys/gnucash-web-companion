@@ -305,15 +305,23 @@ class TestMultiBookMetadataBoundaries:
         for item in data:
             assert "uri_or_path" not in item
             assert item["access_status"] == "accessible"
+            assert item["status_severity"] in {"ok", "warning", "action_required"}
+            assert item["access_role_label"] in {"Owner", "Viewer"}
+            assert "independent book" in item["access_role_description"] or "write-alpha" in item["access_role_description"]
             assert item["storage_diagnostics"]["safe_summary"]
             assert item["operator_guidance"]["private_path_redacted"] is True
             assert item["management_actions"] == []
             assert str(item["id"]) not in item["storage_diagnostics"]["safe_summary"]
         statuses = {item["id"]: item["status"] for item in data}
+        openable = {item["id"]: item["can_open_read_only_views"] for item in data}
         assert statuses[multibook_registry["default"]] == "available"
         assert statuses[multibook_registry["second"]] == "available"
         assert statuses[multibook_registry["missing"]] == "missing_file"
         assert statuses[multibook_registry["not_configured"]] == "not_configured"
+        assert openable[multibook_registry["default"]] is True
+        assert openable[multibook_registry["second"]] is True
+        assert openable[multibook_registry["missing"]] is False
+        assert openable[multibook_registry["not_configured"]] is False
 
     def test_get_book_blocks_archived_and_unauthorized(self, client, auth_headers, multibook_registry):
         archived = client.get(f"/books/{multibook_registry['archived']}", headers=auth_headers)

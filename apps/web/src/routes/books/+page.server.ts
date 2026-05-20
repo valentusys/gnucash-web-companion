@@ -4,7 +4,8 @@ import type { PageServerLoad } from './$types';
 const BOOK_CONTEXT_NOTICE_KEYS = new Set([
 	'invalid_selected_book_cookie',
 	'stale_selected_book_cookie',
-	'no_accessible_books'
+	'no_accessible_books',
+	'unavailable_selected_book'
 ]);
 
 export const load: PageServerLoad = async ({ cookies, fetch, url }) => {

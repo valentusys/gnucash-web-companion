@@ -48,6 +48,28 @@ SAFE_OPERATOR_NEXT_ACTIONS = {
     ],
 }
 
+STATUS_SEVERITY = {
+    "available": "ok",
+    "remote_or_unchecked": "warning",
+    "missing_file": "action_required",
+    "not_configured": "action_required",
+}
+
+ACCESS_ROLE_COPY = {
+    "owner": {
+        "label": "Owner",
+        "description": "Can open read-only views and review operator diagnostics for this independent book.",
+    },
+    "editor": {
+        "label": "Editor",
+        "description": "Can open read-only views; write-alpha remains disabled by default and separately gated.",
+    },
+    "viewer": {
+        "label": "Viewer",
+        "description": "Can open read-only views for this assigned independent book.",
+    },
+}
+
 
 def _is_uri(value: str) -> bool:
     return "://" in value
@@ -103,9 +125,21 @@ def _access_role_for(book: Book, user: User | None) -> str | None:
     return None
 
 
+def _access_copy_for(role: str | None) -> dict[str, str]:
+    if role in ACCESS_ROLE_COPY:
+        return ACCESS_ROLE_COPY[role]
+    return {
+        "label": "Unknown access",
+        "description": "This book is listed only when the server has already verified access for the signed-in user.",
+    }
+
+
 def serialize_book(book: Book, user: User | None = None) -> dict[str, Any]:
     """Serialize app metadata for a book without opening its GnuCash data."""
     storage_diagnostics = _storage_diagnostics_for(book)
+    status_value = storage_diagnostics["status"]
+    access_role = _access_role_for(book, user)
+    access_copy = _access_copy_for(access_role)
     return {
         "id": book.id,
         "name": book.name,
@@ -113,10 +147,14 @@ def serialize_book(book: Book, user: User | None = None) -> dict[str, Any]:
         "base_currency": book.base_currency,
         "is_default": book.is_default,
         "is_archived": book.is_archived,
-        "access_role": _access_role_for(book, user),
+        "access_role": access_role,
+        "access_role_label": access_copy["label"],
+        "access_role_description": access_copy["description"],
         "read_only": True,
-        "status": storage_diagnostics["status"],
+        "status": status_value,
+        "status_severity": STATUS_SEVERITY.get(status_value, "warning"),
         "access_status": "accessible",
+        "can_open_read_only_views": status_value not in {"missing_file", "not_configured"},
         "storage_diagnostics": storage_diagnostics,
         "management_actions": [],
         "operator_guidance": {

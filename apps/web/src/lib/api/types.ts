@@ -24,9 +24,13 @@ export type Book = {
 	is_default: boolean;
 	is_archived: boolean;
 	access_role: 'owner' | 'editor' | 'viewer' | null;
+	access_role_label: string;
+	access_role_description: string;
 	read_only: boolean;
 	status: string;
+	status_severity: 'ok' | 'warning' | 'action_required' | string;
 	access_status: string;
+	can_open_read_only_views: boolean;
 	storage_diagnostics: BookStorageDiagnostics;
 	management_actions: string[];
 	operator_guidance: BookOperatorGuidance;
