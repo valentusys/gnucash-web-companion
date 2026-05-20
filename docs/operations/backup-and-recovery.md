@@ -208,6 +208,39 @@ Operational expectations for write-mode testing:
 
 There is no general restore UI or restore API in the read-only MVP.
 
+## Stopped-runtime cleanup for root-owned ignored artifacts
+
+Disposable Docker dogfood can leave root-owned ignored runtime files under `data/books/`, `data/app/`, `data/backups/`, or `data/locks/`. Clean these only after the runtime is stopped:
+
+```bash
+docker compose down
+python3 scripts/ops/runtime-cleanup.py --ack I_CONFIRM_RUNTIME_STOPPED
+```
+
+The default command is a dry-run. It prints only path classes, counts, and statuses; it must not print raw file paths, book names, account names, transaction descriptions, memos, amounts, backup filenames, app DB rows, `.env`, or secrets.
+
+To remove eligible ignored runtime artifacts after reviewing the dry-run:
+
+```bash
+python3 scripts/ops/runtime-cleanup.py --ack I_CONFIRM_RUNTIME_STOPPED --execute
+```
+
+If host-side permissions cannot inspect root-owned artifacts, run the same helper through the API container with the repository mounted:
+
+```bash
+python3 scripts/ops/runtime-cleanup.py --ack I_CONFIRM_RUNTIME_STOPPED --via-compose
+python3 scripts/ops/runtime-cleanup.py --ack I_CONFIRM_RUNTIME_STOPPED --via-compose --execute
+```
+
+Safety boundaries:
+
+- the acknowledgement means you already stopped the runtime; the helper refuses to work without it;
+- only the ignored runtime classes `books`, `app`, `backups`, and `locks` are in scope;
+- active flock-held lock files are preserved and reported as active;
+- stale lock files and unreadable lock files are removable only within the allowed ignored `data/locks/` class after stopped-runtime acknowledgement;
+- unsupported lock-directory children are skipped;
+- never point this at source books, backup sources outside this repo's ignored runtime data, or private directories.
+
 ## What is not guaranteed
 
 This project does not currently guarantee:

@@ -29,11 +29,13 @@ data/books/*.sqlite3
 data/books/*.db
 data/app/*
 data/backups/*
+data/locks/*
 # Keep placeholder directories
 !data/.gitkeep
 !data/books/.gitkeep
 !data/app/.gitkeep
 !data/backups/.gitkeep
+!data/locks/.gitkeep
 
 # OS
 .DS_Store
