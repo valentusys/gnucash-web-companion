@@ -13,7 +13,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-CURRENT_COMPLETED_PHASE = "Phase 232"
+CURRENT_COMPLETED_PHASE = "Phase 233"
 CURRENT_RELEASE_BASELINE_PHASE = "Phase 231"
 CURRENT_READONLY_RELEASE = "v0.1.7-readonly"
 CURRENT_WRITE_ALPHA_RELEASE = "v0.2.5-writealpha"
@@ -50,14 +50,17 @@ STALE_CURRENT_PATTERNS = [
     re.compile(r"Completed through Phase 229\b"),
     re.compile(r"Completed through Phase 230\b"),
     re.compile(r"Completed through Phase 231\b"),
+    re.compile(r"Completed through Phase 232\b"),
     re.compile(r"Phase 0[–-]228 are complete"),
     re.compile(r"Phase 0[–-]229 are complete"),
     re.compile(r"Phase 0[–-]230 are complete"),
     re.compile(r"Phase 0[–-]231 are complete"),
+    re.compile(r"Phase 0[–-]232 are complete"),
     re.compile(r"Фазы 0[–-]228 завершены"),
     re.compile(r"Фазы 0[–-]229 завершены"),
     re.compile(r"Фазы 0[–-]230 завершены"),
     re.compile(r"Фазы 0[–-]231 завершены"),
+    re.compile(r"Фазы 0[–-]232 завершены"),
     re.compile(r"Current public write-alpha pre-release:\s*`v0\.2\.0-writealpha`"),
     re.compile(r"Current published write-alpha pre-release:\s*`v0\.2\.0-writealpha`"),
     re.compile(r"current public experimental write-alpha GitHub pre-release after Phase 132", re.I),
@@ -88,16 +91,20 @@ def require_contains(path: Path, text: str, needles: list[str]) -> None:
 
 
 def reject_patterns(path: Path, text: str, patterns: list[re.Pattern[str]]) -> None:
+    previous_line = ""
     for line_number, line in enumerate(text.splitlines(), start=1):
         if patterns is UNSAFE_AFFIRMATIVE_PATTERNS:
             lowered = line.lower()
-            if any(marker in lowered for marker in ("not ", "no ", "without", "does not", "do not")):
+            context = f"{previous_line} {lowered}"
+            if any(marker in context for marker in ("not ", "no ", "without", "does not", "do not")):
+                previous_line = lowered
                 continue
         for pattern in patterns:
             if pattern.search(line):
                 raise AssertionError(
                     f"{path}:{line_number}: forbidden current-posture/status claim matched {pattern.pattern!r}: {line}"
                 )
+        previous_line = line.lower()
 
 
 def assert_unreleased_section_is_honest(changelog: str) -> None:
@@ -123,21 +130,21 @@ def main() -> int:
 
     checks = {
         Path("README.md"): [
-            "Phase 0–232 are complete",
+            "Phase 0–233 are complete",
             CURRENT_READONLY_RELEASE,
             CURRENT_WRITE_ALPHA_RELEASE,
             WRITE_DEFAULT,
             CURRENT_RELEASE_BASELINE_PHASE,
         ],
         Path("README.ru.md"): [
-            "Фазы 0–232 завершены",
+            "Фазы 0–233 завершены",
             CURRENT_READONLY_RELEASE,
             CURRENT_WRITE_ALPHA_RELEASE,
             WRITE_DEFAULT,
             CURRENT_RELEASE_BASELINE_PHASE,
         ],
         Path("PROJECT_STATUS.md"): [
-            "Completed through Phase 232",
+            "Completed through Phase 233",
             CURRENT_READONLY_RELEASE,
             CURRENT_WRITE_ALPHA_RELEASE,
             WRITE_DEFAULT,
@@ -150,7 +157,7 @@ def main() -> int:
             WRITE_DEFAULT,
         ],
         Path("docs/ROADMAP.md"): [
-            "Completed through Phase 232",
+            "Completed through Phase 233",
             CURRENT_READONLY_RELEASE,
             CURRENT_WRITE_ALPHA_RELEASE,
             WRITE_DEFAULT,

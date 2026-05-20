@@ -40,7 +40,18 @@ def test_public_status_guard_rejects_phase_172_as_current_baseline():
 
 
 def test_public_status_guard_tracks_current_completed_phase():
-    assert guard.CURRENT_COMPLETED_PHASE == "Phase 232"
+    assert guard.CURRENT_COMPLETED_PHASE == "Phase 233"
+
+
+def test_public_status_guard_rejects_phase_232_as_current_baseline():
+    stale = "- Completed through Phase 232."
+
+    try:
+        guard.reject_patterns(Path("docs/ROADMAP.md"), stale, guard.STALE_CURRENT_PATTERNS)
+    except AssertionError as exc:
+        assert "Phase 232" in str(exc)
+    else:
+        raise AssertionError("stale Phase 232 current baseline should fail guard")
 
 
 def test_public_status_guard_rejects_phase_231_as_current_baseline():
@@ -78,5 +89,11 @@ def test_public_status_guard_rejects_affirmative_production_claims():
 
 def test_public_status_guard_accepts_negative_production_security_limitations():
     safe = "- Not production-ready and not security-audited."
+
+    guard.reject_patterns(Path("CHANGELOG.md"), safe, guard.UNSAFE_AFFIRMATIVE_PATTERNS)
+
+
+def test_public_status_guard_accepts_wrapped_negative_safety_limitations():
+    safe = "- No hosted SaaS readiness, collaborative accounting, or\n  safe production write mode is claimed."
 
     guard.reject_patterns(Path("CHANGELOG.md"), safe, guard.UNSAFE_AFFIRMATIVE_PATTERNS)

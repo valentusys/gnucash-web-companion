@@ -2,274 +2,707 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versioned releases begin.
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
+follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versioned releases begin.
 
 ## [Unreleased]
 
-- Phase 232 — reconciled public repository status after the published `v0.2.5-writealpha` pre-release. README/README.ru/PROJECT_STATUS/CHANGELOG/docs/ROADMAP and the public-status guard now agree that Phase 232 is complete, `v0.2.5-writealpha` is the current published write-alpha pre-release, write-alpha evidence remains synthetic/disposable or copied-test-book only, `GNUCASH_WRITES_ENABLED=false` remains default, and explicit write-alpha execution still requires `APP_ENV=test`. Historical no-release/prepared wording remains only where it describes older phases, and no product code, release, tag, write-mode behavior change, or real/private/only-copy write-safety claim was added.
+- Phase 233 — reformatted README, README.ru, CHANGELOG, and PROJECT_STATUS raw markdown source for
+  terminal/editor readability, advancing GitHub issue #28 without product behavior changes. Long
+  single-line paragraphs and packed list items were wrapped while preserving links, status content,
+  safety warnings, `GNUCASH_WRITES_ENABLED=false`, the `APP_ENV=test` write-alpha gate, and the
+  existing no-production/no-security/no-real-private-book-write-safety posture.
 
-- Phase 231 — ran the final Cycle 3 release gate and published `v0.2.5-writealpha` as a conservative GitHub pre-release after local backend/frontend/Docker checks, public status guard, sensitive tracked-file hygiene, candidate tag/release absence checks, and exact release/status commit CI. Publication created only the annotated tag and GitHub pre-release; `GNUCASH_WRITES_ENABLED=false` remains default, `APP_ENV=test` write-alpha gating remains intact, and no package, image, production deployment, stable/security/public-internet/broad-compatibility claim, or real/private/only-copy write-safety claim was added.
+- Phase 232 — reconciled public repository status after the published `v0.2.5-writealpha`
+  pre-release. README/README.ru/PROJECT_STATUS/CHANGELOG/docs/ROADMAP and the public-status guard now
+  agree that Phase 232 is complete, `v0.2.5-writealpha` is the current published write-alpha
+  pre-release, write-alpha evidence remains synthetic/disposable or copied-test-book only,
+  `GNUCASH_WRITES_ENABLED=false` remains default, and explicit write-alpha execution still requires
+  `APP_ENV=test`. Historical no-release/prepared wording remains only where it describes older phases,
+  and no product code, release, tag, write-mode behavior change, or real/private/only-copy
+  write-safety claim was added.
 
-- Phase 230 — produced the final Cycle 3 release-candidate dogfood pack for a later `v0.2.5-writealpha` attempt. Default-read-only Docker/Caddy API/browser dogfood passed with `GNUCASH_WRITES_ENABLED=false`, disabled validate/create/PATCH/DELETE probes returned 403, browser dogfood passed at mobile and desktop viewports, and separate explicit local `APP_ENV=test` plus `GNUCASH_WRITES_ENABLED=true` synthetic/disposable create/PATCH/DELETE smokes passed with matching backup/audit evidence and DELETE restore proof. The stack was reset to default false, cleanup left no runtime artifacts, and no release was published.
+- Phase 231 — ran the final Cycle 3 release gate and published `v0.2.5-writealpha` as a conservative
+  GitHub pre-release after local backend/frontend/Docker checks, public status guard, sensitive
+  tracked-file hygiene, candidate tag/release absence checks, and exact release/status commit CI.
+  Publication created only the annotated tag and GitHub pre-release; `GNUCASH_WRITES_ENABLED=false`
+  remains default, `APP_ENV=test` write-alpha gating remains intact, and no package, image,
+  production deployment, stable/security/public-internet/broad-compatibility claim, or
+  real/private/only-copy write-safety claim was added.
+
+- Phase 230 — produced the final Cycle 3 release-candidate dogfood pack for a later
+  `v0.2.5-writealpha` attempt. Default-read-only Docker/Caddy API/browser dogfood passed with
+  `GNUCASH_WRITES_ENABLED=false`, disabled validate/create/PATCH/DELETE probes returned 403, browser
+  dogfood passed at mobile and desktop viewports, and separate explicit local `APP_ENV=test` plus
+  `GNUCASH_WRITES_ENABLED=true` synthetic/disposable create/PATCH/DELETE smokes passed with matching
+  backup/audit evidence and DELETE restore proof. The stack was reset to default false, cleanup left
+  no runtime artifacts, and no release was published.
 
 ### Added
 
-- Phase 229 — refreshed public status and release-doc drift guards after the Phase 222–228 write-alpha backup/audit remediation. README/README.ru/PROJECT_STATUS/CHANGELOG/docs/ROADMAP/release-support docs and the public status guard now agree that Phase 229 is complete, `v0.1.7-readonly` remains the current read-only pre-release, `v0.2.4-writealpha` remains the current published write-alpha pre-release until a later authorized release phase, `v0.2.5-writealpha` has no tag or GitHub release, `GNUCASH_WRITES_ENABLED=false` remains default, and write-alpha remains experimental, `APP_ENV=test`/synthetic-disposable only, not production-ready, not security-audited, and not safe for real/private or only-copy books. No product behavior, release, tag, write default, or `APP_ENV=test` gate changed.
+- Phase 229 — refreshed public status and release-doc drift guards after the Phase 222–228
+  write-alpha backup/audit remediation.
+  README/README.ru/PROJECT_STATUS/CHANGELOG/docs/ROADMAP/release-support docs and the public status
+  guard now agree that Phase 229 is complete, `v0.1.7-readonly` remains the current read-only
+  pre-release, `v0.2.4-writealpha` remains the current published write-alpha pre-release until a
+  later authorized release phase, `v0.2.5-writealpha` has no tag or GitHub release,
+  `GNUCASH_WRITES_ENABLED=false` remains default, and write-alpha remains experimental,
+  `APP_ENV=test`/synthetic-disposable only, not production-ready, not security-audited, and not safe
+  for real/private or only-copy books. No product behavior, release, tag, write default, or
+  `APP_ENV=test` gate changed.
 
-- Phase 228 — reran clean-checkout and synthetic upgrade smokes after the write-alpha backup/audit remediation. Current `HEAD` passed fresh-clone Docker/Caddy read-only API and mobile/desktop browser dogfood with `GNUCASH_WRITES_ENABLED=false`; the synthetic upgrade path from `v0.2.4-writealpha` runtime state to current `HEAD` preserved dummy app metadata/default book/selected-book recovery/read-only routes/audit-summary access, and validate/create/PATCH/DELETE probes returned 403 after upgrade. Temporary clones/runtime data were removed; no write-enabled smoke, release, tag, migration feature work, or real/private-book safety claim was added.
+- Phase 228 — reran clean-checkout and synthetic upgrade smokes after the write-alpha backup/audit
+  remediation. Current `HEAD` passed fresh-clone Docker/Caddy read-only API and mobile/desktop
+  browser dogfood with `GNUCASH_WRITES_ENABLED=false`; the synthetic upgrade path from
+  `v0.2.4-writealpha` runtime state to current `HEAD` preserved dummy app metadata/default
+  book/selected-book recovery/read-only routes/audit-summary access, and
+  validate/create/PATCH/DELETE probes returned 403 after upgrade. Temporary clones/runtime data were
+  removed; no write-enabled smoke, release, tag, migration feature work, or real/private-book safety
+  claim was added.
 
-- Phase 227 — updated operator-facing release-support/troubleshooting/runbook wording for the resolved Phase 220 no-release blocker. The docs now describe the closure narrowly as synthetic/disposable backup-audit evidence remediation after Phases 222–226, keep `v0.2.4-writealpha` as the current published write-alpha release, and repeat that write-alpha remains experimental, disabled by default, `APP_ENV=test`/disposable-only, not production-ready, not security-audited, and not safe for real/private or only-copy books. No UI/product behavior, release, tag, write default, or write scope changed.
+- Phase 227 — updated operator-facing release-support/troubleshooting/runbook wording for the
+  resolved Phase 220 no-release blocker. The docs now describe the closure narrowly as
+  synthetic/disposable backup-audit evidence remediation after Phases 222–226, keep
+  `v0.2.4-writealpha` as the current published write-alpha release, and repeat that write-alpha
+  remains experimental, disabled by default, `APP_ENV=test`/disposable-only, not production-ready,
+  not security-audited, and not safe for real/private or only-copy books. No UI/product behavior,
+  release, tag, write default, or write scope changed.
 
-- Phase 226 — confirmed the default read-only Docker/Caddy product path after write-alpha backup/evidence remediation. With a committed synthetic fixture copied into ignored runtime storage and `GNUCASH_WRITES_ENABLED=false` rendered for API and web, API smoke passed health, login/auth, books/default book, accounts, transactions, transaction detail, CSV export, reports, scheduled metadata, write-alpha audit summary, and disabled validate/create/PATCH/DELETE probes returning 403; browser dogfood passed at `320x720` and `1280x900` with hidden write UI, auth-cookie no-readability, CSV fetch without saved raw artifact, no horizontal overflow, and cleanup/no-artifact checks. No write-enabled run, release, or real/private-book safety claim was added.
-- Phase 225 — produced a fresh bounded write-alpha create/PATCH/DELETE backup-audit matrix after backup evidence hardening. Each route family ran once on an isolated ignored synthetic/disposable runtime copy with explicit local `APP_ENV=test` + `GNUCASH_WRITES_ENABLED=true`; every successful write had one backup file count and one successful audit row, expected validation/missing-transaction probes failed safely without backups, DELETE restore/read-back passed, locks were stale-released/not active, default-false reset passed, and runtime artifacts were cleaned. No write scope expansion, write default change, release, or real/private-book safety claim was added.
-- Phase 224 — reran bounded write-alpha DELETE restore proof after backup evidence hardening. One explicit local `APP_ENV=test` + `GNUCASH_WRITES_ENABLED=true` DELETE succeeded against an ignored synthetic/disposable runtime copy; API/runtime absence, one successful audit row, one backup artifact, container-side restore checksum/read-back, stale-released lock evidence, default-false reset, disabled validate/create/PATCH/DELETE probes, and stopped-runtime cleanup all passed. No create/PATCH rerun, write default change, release, or real/private-book safety claim was added.
-- Phase 223 — hardened backup identity/evidence after the Phase 222 collision fix. Rapid create/PATCH/DELETE write-alpha route-family regression coverage now freezes the backup clock and proves unique readable backup artifacts, audit rows preserve exact backup paths internally, and the read-only audit summary exposes only opaque backup refs so operators can distinguish artifacts without raw paths/filenames or financial data. No write endpoint, write default, `APP_ENV=test` gate, release, or real/private-book safety claim changed.
-- Phase 222 — reconciled the Phase 220 write-alpha DELETE backup-count anomaly. Targeted regression/code inspection found that second-precision backup filenames could collide for rapid same-named synthetic runtime copies and `shutil.copy2` could silently overwrite earlier backup evidence. Backup creation now uses microsecond timestamps, deterministic suffix fallback, and exclusive-create copy so successful backup-bearing create/PATCH/DELETE audit rows cannot collapse into fewer artifacts. No write endpoint, write default, `APP_ENV=test` gate, release, or real/private-book safety claim changed.
-- Phase 221 — ran the final cycle-2 release gate for candidate `v0.2.5-writealpha` and recorded an explicit no-release verdict. Local backend/frontend/Docker/default-write/sensitive-file checks passed and tag/release absence was confirmed, but Phase 220's bounded write-alpha DELETE backup-count anomaly remains a release blocker, so no `v0.2.5-writealpha` tag, GitHub pre-release, package, image, production deployment, write-default change, or real/private-book write-safety claim was created.
-- Phase 220 — collected cycle-2 release-candidate dogfood evidence: full default-read-only Docker/Caddy API and mobile/desktop browser smokes passed with `GNUCASH_WRITES_ENABLED=false`, including scheduled metadata, write-alpha audit summary, hidden write UI, auth-cookie no-readability, CSV fetch, and disabled validate/create/PATCH/DELETE probes returning 403. A separate explicit local `APP_ENV=test` + `GNUCASH_WRITES_ENABLED=true` synthetic/disposable write-alpha drill passed create and PATCH but exposed a DELETE backup-count anomaly after a successful DELETE, so the phase records a no-release blocker instead of publishing a release.
-- Phase 219 — added a glossary-backed EN/RU operator-safety/accounting wording slice for release-critical read-only/write-alpha terms, including a typed frontend safety glossary, static catalog checks for read-only default, `GNUCASH_WRITES_ENABLED=false`, disposable/test-copy write-alpha boundaries, not-production/not-security-audited wording, no-currency-conversion copy, and GnuCash Desktop authoritative-editor wording. `/books` visible copy now says metadata instead of broad management. No product behavior, backend API localization overhaul, write-default change, or release was published.
-- Phase 218 — added bounded limit/offset pagination and mobile-safe operator review controls for the read-only write-alpha audit-summary endpoint/UI, with large synthetic app-metadata tests proving redacted pages, count/status summaries, owner/editor access, viewer/unauthorized blocking, URL-only filters, and no browser storage. No write-enabled mode or release was published.
-- Phase 215 — hardened unavailable/missing/not-configured book behavior across read-only API route families and web recovery: data routes now return deterministic path-safe 503 before opening unavailable GnuCash storage, `/books` remains metadata-only with safe diagnostics, the 503 error page links operators back to `/books`, and local Docker/Caddy API/browser dogfood passed with a synthetic unavailable book and default `GNUCASH_WRITES_ENABLED=false`. No write-enabled mode or release was published.
-- Phase 214 — added and ran a synthetic Docker upgrade smoke from `v0.2.4-writealpha` runtime state to current `main`, preserving dummy app metadata DB access, default book access, selected-book recovery, read-only accounts/transactions/reports/scheduled/audit-summary routes, and disabled validate/create/PATCH/DELETE probes returning 403 with `GNUCASH_WRITES_ENABLED=false`. No write-enabled mode or release was published.
-- Phase 213 — verified the published `v0.2.4-writealpha` tag from a fresh clone with the committed synthetic fixture, dummy local-only secrets, Docker/Caddy, read-only API smoke, mobile and desktop browser dogfood, and disabled validate/create/PATCH/DELETE probes returning 403; hardened the smoke helper to run both browser widths. No write-enabled mode or release was published.
-- Phase 212 — synchronized public status/roadmap documentation after `v0.2.4-writealpha` and added a public status drift guard for README/PROJECT_STATUS/CHANGELOG/docs/ROADMAP/release docs. The guard checks the current Phase 211 release baseline, `v0.1.7-readonly`, `v0.2.4-writealpha`, `GNUCASH_WRITES_ENABLED=false`, and conservative no-production/no-security/no-stable-claim wording without reading `.env`, runtime books, app DBs, backups, or private paths. No release was published.
+- Phase 226 — confirmed the default read-only Docker/Caddy product path after write-alpha
+  backup/evidence remediation. With a committed synthetic fixture copied into ignored runtime
+  storage and `GNUCASH_WRITES_ENABLED=false` rendered for API and web, API smoke passed health,
+  login/auth, books/default book, accounts, transactions, transaction detail, CSV export, reports,
+  scheduled metadata, write-alpha audit summary, and disabled validate/create/PATCH/DELETE probes
+  returning 403; browser dogfood passed at `320x720` and `1280x900` with hidden write UI,
+  auth-cookie no-readability, CSV fetch without saved raw artifact, no horizontal overflow, and
+  cleanup/no-artifact checks. No write-enabled run, release, or real/private-book safety claim was
+  added.
+- Phase 225 — produced a fresh bounded write-alpha create/PATCH/DELETE backup-audit matrix after
+  backup evidence hardening. Each route family ran once on an isolated ignored synthetic/disposable
+  runtime copy with explicit local `APP_ENV=test` + `GNUCASH_WRITES_ENABLED=true`; every successful
+  write had one backup file count and one successful audit row, expected
+  validation/missing-transaction probes failed safely without backups, DELETE restore/read-back
+  passed, locks were stale-released/not active, default-false reset passed, and runtime artifacts
+  were cleaned. No write scope expansion, write default change, release, or real/private-book safety
+  claim was added.
+- Phase 224 — reran bounded write-alpha DELETE restore proof after backup evidence hardening. One
+  explicit local `APP_ENV=test` + `GNUCASH_WRITES_ENABLED=true` DELETE succeeded against an ignored
+  synthetic/disposable runtime copy; API/runtime absence, one successful audit row, one backup
+  artifact, container-side restore checksum/read-back, stale-released lock evidence, default-false
+  reset, disabled validate/create/PATCH/DELETE probes, and stopped-runtime cleanup all passed. No
+  create/PATCH rerun, write default change, release, or real/private-book safety claim was added.
+- Phase 223 — hardened backup identity/evidence after the Phase 222 collision fix. Rapid
+  create/PATCH/DELETE write-alpha route-family regression coverage now freezes the backup clock and
+  proves unique readable backup artifacts, audit rows preserve exact backup paths internally, and
+  the read-only audit summary exposes only opaque backup refs so operators can distinguish artifacts
+  without raw paths/filenames or financial data. No write endpoint, write default, `APP_ENV=test`
+  gate, release, or real/private-book safety claim changed.
+- Phase 222 — reconciled the Phase 220 write-alpha DELETE backup-count anomaly. Targeted
+  regression/code inspection found that second-precision backup filenames could collide for rapid
+  same-named synthetic runtime copies and `shutil.copy2` could silently overwrite earlier backup
+  evidence. Backup creation now uses microsecond timestamps, deterministic suffix fallback, and
+  exclusive-create copy so successful backup-bearing create/PATCH/DELETE audit rows cannot collapse
+  into fewer artifacts. No write endpoint, write default, `APP_ENV=test` gate, release, or
+  real/private-book safety claim changed.
+- Phase 221 — ran the final cycle-2 release gate for candidate `v0.2.5-writealpha` and recorded an
+  explicit no-release verdict. Local backend/frontend/Docker/default-write/sensitive-file checks
+  passed and tag/release absence was confirmed, but Phase 220's bounded write-alpha DELETE
+  backup-count anomaly remains a release blocker, so no `v0.2.5-writealpha` tag, GitHub pre-release,
+  package, image, production deployment, write-default change, or real/private-book write-safety
+  claim was created.
+- Phase 220 — collected cycle-2 release-candidate dogfood evidence: full default-read-only
+  Docker/Caddy API and mobile/desktop browser smokes passed with `GNUCASH_WRITES_ENABLED=false`,
+  including scheduled metadata, write-alpha audit summary, hidden write UI, auth-cookie
+  no-readability, CSV fetch, and disabled validate/create/PATCH/DELETE probes returning 403. A
+  separate explicit local `APP_ENV=test` + `GNUCASH_WRITES_ENABLED=true` synthetic/disposable
+  write-alpha drill passed create and PATCH but exposed a DELETE backup-count anomaly after a
+  successful DELETE, so the phase records a no-release blocker instead of publishing a release.
+- Phase 219 — added a glossary-backed EN/RU operator-safety/accounting wording slice for
+  release-critical read-only/write-alpha terms, including a typed frontend safety glossary, static
+  catalog checks for read-only default, `GNUCASH_WRITES_ENABLED=false`, disposable/test-copy
+  write-alpha boundaries, not-production/not-security-audited wording, no-currency-conversion copy,
+  and GnuCash Desktop authoritative-editor wording. `/books` visible copy now says metadata instead
+  of broad management. No product behavior, backend API localization overhaul, write-default change,
+  or release was published.
+- Phase 218 — added bounded limit/offset pagination and mobile-safe operator review controls for the
+  read-only write-alpha audit-summary endpoint/UI, with large synthetic app-metadata tests proving
+  redacted pages, count/status summaries, owner/editor access, viewer/unauthorized blocking,
+  URL-only filters, and no browser storage. No write-enabled mode or release was published.
+- Phase 215 — hardened unavailable/missing/not-configured book behavior across read-only API route
+  families and web recovery: data routes now return deterministic path-safe 503 before opening
+  unavailable GnuCash storage, `/books` remains metadata-only with safe diagnostics, the 503 error
+  page links operators back to `/books`, and local Docker/Caddy API/browser dogfood passed with a
+  synthetic unavailable book and default `GNUCASH_WRITES_ENABLED=false`. No write-enabled mode or
+  release was published.
+- Phase 214 — added and ran a synthetic Docker upgrade smoke from `v0.2.4-writealpha` runtime state
+  to current `main`, preserving dummy app metadata DB access, default book access, selected-book
+  recovery, read-only accounts/transactions/reports/scheduled/audit-summary routes, and disabled
+  validate/create/PATCH/DELETE probes returning 403 with `GNUCASH_WRITES_ENABLED=false`. No
+  write-enabled mode or release was published.
+- Phase 213 — verified the published `v0.2.4-writealpha` tag from a fresh clone with the committed
+  synthetic fixture, dummy local-only secrets, Docker/Caddy, read-only API smoke, mobile and desktop
+  browser dogfood, and disabled validate/create/PATCH/DELETE probes returning 403; hardened the
+  smoke helper to run both browser widths. No write-enabled mode or release was published.
+- Phase 212 — synchronized public status/roadmap documentation after `v0.2.4-writealpha` and added a
+  public status drift guard for README/PROJECT_STATUS/CHANGELOG/docs/ROADMAP/release docs. The guard
+  checks the current Phase 211 release baseline, `v0.1.7-readonly`, `v0.2.4-writealpha`,
+  `GNUCASH_WRITES_ENABLED=false`, and conservative no-production/no-security/no-stable-claim wording
+  without reading `.env`, runtime books, app DBs, backups, or private paths. No release was
+  published.
 
 ## [0.2.4-writealpha] - 2026-05-21
 
 ### Added
 
-- Phase 211 — published `v0.2.4-writealpha` as a conservative pre-alpha write-alpha GitHub pre-release after the cycle-1 release gate passed, local backend/frontend/Docker checks passed, rendered `GNUCASH_WRITES_ENABLED=false` was confirmed, sensitive tracked-file hygiene passed, and GitHub Actions on the exact release/status commit completed successfully. Publication created only the annotated tag and GitHub pre-release.
-- Phase 210 — reran bounded local write-alpha create/PATCH/DELETE+restore dogfood after cycle-1 hardening, using fresh ignored synthetic runtime copies under explicit `APP_ENV=test` plus `GNUCASH_WRITES_ENABLED=true`; validation/missing-transaction failures failed safely, exactly one mutation per route-family copy succeeded, backup/audit/lock/read-back/restore evidence stayed redacted, runtime artifacts were cleaned, and the stack was reset to default false with validate/create/PATCH/DELETE probes returning 403.
-- Phase 209 — reran full default-read-only Docker/Caddy API and browser dogfood after the cycle-1 hardening phases, using only the committed synthetic fixture copied into ignored runtime data; health/login/books/accounts/transactions/details/CSV/reports/scheduled/audit-summary flows passed, validate/create/PATCH/DELETE probes returned 403, mobile and desktop browser dogfood passed with hidden write UI and no artifacts, and runtime smoke data was cleaned.
-- Phase 208 — polished operator-facing EN/RU safety copy in the app shell, `/books`, login/health/error catalog entries, write-mode warnings, and write-alpha audit-summary UI without claiming full localization or changing backend behavior; static checks now guard pre-alpha, not-production, not-security-audited, default-disabled, disposable-only wording and no browser-storage persistence.
-- Phase 207 — hardened the read-only write-alpha audit-summary endpoint/UI so disposable write-run evidence exposes only bounded counts/status/time windows and redacted rows; malicious payload timestamps/results/transaction IDs/error text and path-like filters fail safely, while viewer/outsider access remains 403.
-- Phase 206 — hardened transaction and scheduled read-only edge cases with redacted scheduled template-reference status, no-template leakage tests, many-split Decimal/reconciliation-state coverage, bounded Money/split/scheduled layouts, and synthetic Docker/Caddy mobile/desktop dogfood confirming hidden write UI, CSV filter parity, no-overflow checks, no artifacts, and disabled validate/create/PATCH/DELETE probes.
-- Phase 205 — polished multi-book read-only recovery and navigation for inaccessible, archived, missing, and stale selected-book contexts without adding upload/delete/default-changing/registry-edit actions or exposing private paths.
-- Phase 204 — added compatibility-matrix regression coverage from redacted fixture metadata, classifying rows as tested synthetic evidence, blocked/manual Desktop fixture work, or unclaimed backend, and reorganized compatibility docs so PostgreSQL/MySQL/MariaDB, XML, broad Desktop-version support, production readiness, and real/private-book compatibility remain unclaimed.
-- Phase 203 — advanced the disposable GnuCash Desktop fixture capture path with deterministic provenance/redaction checks and an explicit blocker when safe noninteractive Desktop-generated SQLite fixture creation is unavailable.
-- Phase 202 — hardened default read-only first-run diagnostics for health/login/books error states, keeping missing/default-book, placeholder auth configuration, CORS warning, and write-disabled guidance path-safe and secret-free.
+- Phase 211 — published `v0.2.4-writealpha` as a conservative pre-alpha write-alpha GitHub
+  pre-release after the cycle-1 release gate passed, local backend/frontend/Docker checks passed,
+  rendered `GNUCASH_WRITES_ENABLED=false` was confirmed, sensitive tracked-file hygiene passed, and
+  GitHub Actions on the exact release/status commit completed successfully. Publication created only
+  the annotated tag and GitHub pre-release.
+- Phase 210 — reran bounded local write-alpha create/PATCH/DELETE+restore dogfood after cycle-1
+  hardening, using fresh ignored synthetic runtime copies under explicit `APP_ENV=test` plus
+  `GNUCASH_WRITES_ENABLED=true`; validation/missing-transaction failures failed safely, exactly one
+  mutation per route-family copy succeeded, backup/audit/lock/read-back/restore evidence stayed
+  redacted, runtime artifacts were cleaned, and the stack was reset to default false with
+  validate/create/PATCH/DELETE probes returning 403.
+- Phase 209 — reran full default-read-only Docker/Caddy API and browser dogfood after the cycle-1
+  hardening phases, using only the committed synthetic fixture copied into ignored runtime data;
+  health/login/books/accounts/transactions/details/CSV/reports/scheduled/audit-summary flows passed,
+  validate/create/PATCH/DELETE probes returned 403, mobile and desktop browser dogfood passed with
+  hidden write UI and no artifacts, and runtime smoke data was cleaned.
+- Phase 208 — polished operator-facing EN/RU safety copy in the app shell, `/books`,
+  login/health/error catalog entries, write-mode warnings, and write-alpha audit-summary UI without
+  claiming full localization or changing backend behavior; static checks now guard pre-alpha,
+  not-production, not-security-audited, default-disabled, disposable-only wording and no
+  browser-storage persistence.
+- Phase 207 — hardened the read-only write-alpha audit-summary endpoint/UI so disposable write-run
+  evidence exposes only bounded counts/status/time windows and redacted rows; malicious payload
+  timestamps/results/transaction IDs/error text and path-like filters fail safely, while
+  viewer/outsider access remains 403.
+- Phase 206 — hardened transaction and scheduled read-only edge cases with redacted scheduled
+  template-reference status, no-template leakage tests, many-split Decimal/reconciliation-state
+  coverage, bounded Money/split/scheduled layouts, and synthetic Docker/Caddy mobile/desktop dogfood
+  confirming hidden write UI, CSV filter parity, no-overflow checks, no artifacts, and disabled
+  validate/create/PATCH/DELETE probes.
+- Phase 205 — polished multi-book read-only recovery and navigation for inaccessible, archived,
+  missing, and stale selected-book contexts without adding
+  upload/delete/default-changing/registry-edit actions or exposing private paths.
+- Phase 204 — added compatibility-matrix regression coverage from redacted fixture metadata,
+  classifying rows as tested synthetic evidence, blocked/manual Desktop fixture work, or unclaimed
+  backend, and reorganized compatibility docs so PostgreSQL/MySQL/MariaDB, XML, broad
+  Desktop-version support, production readiness, and real/private-book compatibility remain
+  unclaimed.
+- Phase 203 — advanced the disposable GnuCash Desktop fixture capture path with deterministic
+  provenance/redaction checks and an explicit blocker when safe noninteractive Desktop-generated
+  SQLite fixture creation is unavailable.
+- Phase 202 — hardened default read-only first-run diagnostics for health/login/books error states,
+  keeping missing/default-book, placeholder auth configuration, CORS warning, and write-disabled
+  guidance path-safe and secret-free.
 
 ### Release notes
 
-- `v0.2.4-writealpha` remains pre-alpha and experimental. `GNUCASH_WRITES_ENABLED=false` remains the default; write-alpha execution remains gated by explicit local enablement plus `APP_ENV=test`.
-- New write-alpha evidence is synthetic/disposable only. It does not establish safe writes for real/private or only-copy books.
-- Publication created only a GitHub pre-release and annotated git tag; no package, binary artifact, Docker image, production deployment, write default change, write-scope expansion, or real/private data artifact was published.
+- `v0.2.4-writealpha` remains pre-alpha and experimental. `GNUCASH_WRITES_ENABLED=false` remains the
+  default; write-alpha execution remains gated by explicit local enablement plus `APP_ENV=test`.
+- New write-alpha evidence is synthetic/disposable only. It does not establish safe writes for
+  real/private or only-copy books.
+- Publication created only a GitHub pre-release and annotated git tag; no package, binary artifact,
+  Docker image, production deployment, write default change, write-scope expansion, or real/private
+  data artifact was published.
 
 ### Known limitations
 
 - Not production-ready and not security-audited.
 - Do not expose early deployments directly to the public internet.
-- Write-alpha remains unsafe for real/private or only-copy books; evidence is synthetic/disposable only for this cycle.
-- No broad GnuCash Desktop/backend compatibility, hosted SaaS readiness, collaborative accounting, CSV/OFX import, banking integration, or production-safe write mode is claimed.
+- Write-alpha remains unsafe for real/private or only-copy books; evidence is synthetic/disposable
+  only for this cycle.
+- No broad GnuCash Desktop/backend compatibility, hosted SaaS readiness, collaborative accounting,
+  CSV/OFX import, banking integration, or production-safe write mode is claimed.
 
 ## [0.2.3-writealpha] - 2026-05-20
 
 ### Added
 
-- Phase 201 — published `v0.2.3-writealpha` as a conservative pre-alpha write-alpha GitHub pre-release after the cycle-3 release-readiness gate passed, local backend/frontend/Docker checks passed, rendered `GNUCASH_WRITES_ENABLED=false` was confirmed, sensitive tracked-file hygiene passed, and GitHub Actions on the exact release/status commit completed successfully. Publication created only the annotated tag and GitHub pre-release.
-- Phase 200 — completed bounded cycle-3 write-alpha create/PATCH/DELETE disposable route-family dogfood on fresh ignored synthetic runtime copies, with backup/audit evidence, DELETE restore proof, stale-released/non-active lock evidence, default-disabled reset, and clean teardown.
-- Phase 199 — completed full default-read-only Docker/Caddy API and browser regression dogfood at mobile and desktop widths, with validate/create/PATCH/DELETE probes returning 403 and no committed runtime artifacts.
-- Phase 198 — hardened multi-book read-only registry diagnostics, role/status copy, unavailable-book actions, and selected-book recovery without exposing raw paths or adding registry/write management.
-- Phase 197 — refreshed GnuCash Desktop fixture compatibility blocker evidence with disposable GnuCash 4.13 container tooling and redacted metadata/provenance tests, without claiming broad Desktop support.
-- Phase 196 — added redacted first-run/read-only deployment diagnostics for JWT/admin/default-book/CORS/write-disabled triage through `/health` and `/login`.
-- Phase 195 — hardened the read-only write-alpha audit-summary operator UX with safe action/result/time-window filters and bounded redacted counts/status metadata.
-- Phase 194 — made write-alpha create/PATCH/DELETE smoke helpers resilient to root-owned host-side runtime artifacts by collecting redacted backup/audit/lock evidence inside the API container without rerunning mutating routes.
-- Phase 193 — added stopped-runtime-only cleanup and lock recovery tooling for ignored root-owned runtime artifacts and stale/unreadable locks.
-- Phase 192 — updated GitHub Actions JavaScript-action wiring to Node 24-compatible major versions to remove the known non-blocking Node.js 20 deprecation warnings seen after `v0.2.2-writealpha`; product behavior, Docker runtime defaults, release state, and `GNUCASH_WRITES_ENABLED=false` remain unchanged.
+- Phase 201 — published `v0.2.3-writealpha` as a conservative pre-alpha write-alpha GitHub
+  pre-release after the cycle-3 release-readiness gate passed, local backend/frontend/Docker checks
+  passed, rendered `GNUCASH_WRITES_ENABLED=false` was confirmed, sensitive tracked-file hygiene
+  passed, and GitHub Actions on the exact release/status commit completed successfully. Publication
+  created only the annotated tag and GitHub pre-release.
+- Phase 200 — completed bounded cycle-3 write-alpha create/PATCH/DELETE disposable route-family
+  dogfood on fresh ignored synthetic runtime copies, with backup/audit evidence, DELETE restore
+  proof, stale-released/non-active lock evidence, default-disabled reset, and clean teardown.
+- Phase 199 — completed full default-read-only Docker/Caddy API and browser regression dogfood at
+  mobile and desktop widths, with validate/create/PATCH/DELETE probes returning 403 and no committed
+  runtime artifacts.
+- Phase 198 — hardened multi-book read-only registry diagnostics, role/status copy, unavailable-book
+  actions, and selected-book recovery without exposing raw paths or adding registry/write
+  management.
+- Phase 197 — refreshed GnuCash Desktop fixture compatibility blocker evidence with disposable
+  GnuCash 4.13 container tooling and redacted metadata/provenance tests, without claiming broad
+  Desktop support.
+- Phase 196 — added redacted first-run/read-only deployment diagnostics for
+  JWT/admin/default-book/CORS/write-disabled triage through `/health` and `/login`.
+- Phase 195 — hardened the read-only write-alpha audit-summary operator UX with safe
+  action/result/time-window filters and bounded redacted counts/status metadata.
+- Phase 194 — made write-alpha create/PATCH/DELETE smoke helpers resilient to root-owned host-side
+  runtime artifacts by collecting redacted backup/audit/lock evidence inside the API container
+  without rerunning mutating routes.
+- Phase 193 — added stopped-runtime-only cleanup and lock recovery tooling for ignored root-owned
+  runtime artifacts and stale/unreadable locks.
+- Phase 192 — updated GitHub Actions JavaScript-action wiring to Node 24-compatible major versions
+  to remove the known non-blocking Node.js 20 deprecation warnings seen after `v0.2.2-writealpha`;
+  product behavior, Docker runtime defaults, release state, and `GNUCASH_WRITES_ENABLED=false`
+  remain unchanged.
 
 ### Release notes
 
-- `v0.2.3-writealpha` remains pre-alpha and experimental. `GNUCASH_WRITES_ENABLED=false` remains the default; write-alpha execution remains gated by explicit local enablement plus `APP_ENV=test`.
-- New write-alpha evidence is synthetic/disposable only. It does not establish safe writes for real/private or only-copy books.
-- Publication created only a GitHub pre-release and annotated git tag; no package, binary artifact, Docker image, production deployment, write default change, write-scope expansion, or real/private data artifact was published.
+- `v0.2.3-writealpha` remains pre-alpha and experimental. `GNUCASH_WRITES_ENABLED=false` remains the
+  default; write-alpha execution remains gated by explicit local enablement plus `APP_ENV=test`.
+- New write-alpha evidence is synthetic/disposable only. It does not establish safe writes for
+  real/private or only-copy books.
+- Publication created only a GitHub pre-release and annotated git tag; no package, binary artifact,
+  Docker image, production deployment, write default change, write-scope expansion, or real/private
+  data artifact was published.
 
 ### Known limitations
 
 - Not production-ready and not security-audited.
 - Do not expose early deployments directly to the public internet.
-- Write-alpha remains unsafe for real/private or only-copy books; evidence is synthetic/disposable only for this cycle.
-- No broad GnuCash Desktop/backend compatibility, hosted SaaS readiness, collaborative accounting, CSV/OFX import, banking integration, or production-safe write mode is claimed.
+- Write-alpha remains unsafe for real/private or only-copy books; evidence is synthetic/disposable
+  only for this cycle.
+- No broad GnuCash Desktop/backend compatibility, hosted SaaS readiness, collaborative accounting,
+  CSV/OFX import, banking integration, or production-safe write mode is claimed.
 
 ## [0.2.2-writealpha] - 2026-05-20
 
 ### Added
 
-- Phase 191 — published `v0.2.2-writealpha` as a conservative pre-alpha write-alpha GitHub pre-release after the cycle-2 release-readiness gate passed, local backend/frontend/Docker checks passed, rendered `GNUCASH_WRITES_ENABLED=false` was confirmed, sensitive tracked-file hygiene passed, and GitHub Actions on the exact release/status commit completed successfully. Publication created only the annotated tag and GitHub pre-release.
-- Phase 190 — reran combined cycle-2 release-candidate dogfood: default read-only API/browser smokes passed with validate/create/PATCH/DELETE probes returning 403, and separate explicit local-only create/PATCH/DELETE write-alpha route-family evidence was collected on synthetic/disposable runtime copies.
-- Phase 189 — ran fresh-clone Docker smokes against `v0.1.7-readonly`, `v0.2.1-writealpha`, and current `main`, all with synthetic fixture data, dummy local-only secrets, default `GNUCASH_WRITES_ENABLED=false`, disabled write probes, browser dogfood, and no-artifact teardown.
-- Phase 188 — strengthened read-only reporting correctness for mixed-currency split exclusion, unknown `XXX` base-currency warnings, zero-balance fallback, signed contra balances, Decimal/string amounts, and drilldown URL parity.
-- Phase 187 — hardened multi-book read-only access and selected-book recovery after write-alpha work while keeping write UI hidden under default false.
-- Phase 186 — added a read-only, redacted write-alpha audit summary endpoint/UI for disposable write-alpha runs, with auth/access controls and no backup-path/private-path/raw-payload/memo/amount leakage.
-- Phase 185 — ran bounded synthetic/disposable DELETE dogfood with restore proof, backup/audit evidence, default-disabled reset, and teardown.
-- Phase 184 — ran bounded synthetic/disposable PATCH metadata/split-memo dogfood with read-back, backup/audit evidence, safe missing-transaction behavior, default-disabled reset, and teardown.
-- Phase 183 — tightened write-alpha stale-lock/root-owned-lock recovery evidence: backend and smoke-helper lock inspection now distinguish active, stale released, unreadable, and absent lock states with path-safe operator messages; recovery docs and write-mode warning copy were updated without automatic lock deletion, write-scope expansion, default-write enablement, or real/private-book claims.
+- Phase 191 — published `v0.2.2-writealpha` as a conservative pre-alpha write-alpha GitHub
+  pre-release after the cycle-2 release-readiness gate passed, local backend/frontend/Docker checks
+  passed, rendered `GNUCASH_WRITES_ENABLED=false` was confirmed, sensitive tracked-file hygiene
+  passed, and GitHub Actions on the exact release/status commit completed successfully. Publication
+  created only the annotated tag and GitHub pre-release.
+- Phase 190 — reran combined cycle-2 release-candidate dogfood: default read-only API/browser smokes
+  passed with validate/create/PATCH/DELETE probes returning 403, and separate explicit local-only
+  create/PATCH/DELETE write-alpha route-family evidence was collected on synthetic/disposable
+  runtime copies.
+- Phase 189 — ran fresh-clone Docker smokes against `v0.1.7-readonly`, `v0.2.1-writealpha`, and
+  current `main`, all with synthetic fixture data, dummy local-only secrets, default
+  `GNUCASH_WRITES_ENABLED=false`, disabled write probes, browser dogfood, and no-artifact teardown.
+- Phase 188 — strengthened read-only reporting correctness for mixed-currency split exclusion,
+  unknown `XXX` base-currency warnings, zero-balance fallback, signed contra balances,
+  Decimal/string amounts, and drilldown URL parity.
+- Phase 187 — hardened multi-book read-only access and selected-book recovery after write-alpha work
+  while keeping write UI hidden under default false.
+- Phase 186 — added a read-only, redacted write-alpha audit summary endpoint/UI for disposable
+  write-alpha runs, with auth/access controls and no
+  backup-path/private-path/raw-payload/memo/amount leakage.
+- Phase 185 — ran bounded synthetic/disposable DELETE dogfood with restore proof, backup/audit
+  evidence, default-disabled reset, and teardown.
+- Phase 184 — ran bounded synthetic/disposable PATCH metadata/split-memo dogfood with read-back,
+  backup/audit evidence, safe missing-transaction behavior, default-disabled reset, and teardown.
+- Phase 183 — tightened write-alpha stale-lock/root-owned-lock recovery evidence: backend and
+  smoke-helper lock inspection now distinguish active, stale released, unreadable, and absent lock
+  states with path-safe operator messages; recovery docs and write-mode warning copy were updated
+  without automatic lock deletion, write-scope expansion, default-write enablement, or
+  real/private-book claims.
 
 ### Release notes
 
-- `v0.2.2-writealpha` remains pre-alpha and experimental. `GNUCASH_WRITES_ENABLED=false` remains the default; write-alpha execution remains gated by explicit local enablement plus `APP_ENV=test`.
-- New write-alpha evidence is synthetic/disposable only. It does not establish safe writes for real/private or only-copy books.
-- Publication created only a GitHub pre-release and annotated git tag; no package, binary artifact, Docker image, production deployment, write default change, write-scope expansion, or real/private data artifact was published.
+- `v0.2.2-writealpha` remains pre-alpha and experimental. `GNUCASH_WRITES_ENABLED=false` remains the
+  default; write-alpha execution remains gated by explicit local enablement plus `APP_ENV=test`.
+- New write-alpha evidence is synthetic/disposable only. It does not establish safe writes for
+  real/private or only-copy books.
+- Publication created only a GitHub pre-release and annotated git tag; no package, binary artifact,
+  Docker image, production deployment, write default change, write-scope expansion, or real/private
+  data artifact was published.
 
 ### Known limitations
 
 - Not production-ready and not security-audited.
 - Do not expose early deployments directly to the public internet.
-- Write-alpha remains unsafe for real/private or only-copy books; evidence is synthetic/disposable only for this cycle.
-- No broad GnuCash Desktop/backend compatibility, hosted SaaS readiness, collaborative accounting, CSV/OFX import, banking integration, or production-safe write mode is claimed.
+- Write-alpha remains unsafe for real/private or only-copy books; evidence is synthetic/disposable
+  only for this cycle.
+- No broad GnuCash Desktop/backend compatibility, hosted SaaS readiness, collaborative accounting,
+  CSV/OFX import, banking integration, or production-safe write mode is claimed.
 
 ## [0.2.1-writealpha] - 2026-05-20
 
 ### Added
 
-- Phase 182 — published `v0.2.1-writealpha` as an authorized pre-alpha write-alpha GitHub pre-release after re-running the fresh gate: clean `main`, `HEAD == origin/main`, local and remote tag absence, GitHub release absence, green GitHub Actions on the exact release commit, backend/frontend/Docker checks, rendered `GNUCASH_WRITES_ENABLED=false`, and tracked sensitive-file hygiene. Publication created only the annotated tag and GitHub pre-release.
-- Phase 181 — prepared the conservative release notes, checklist, and final gate for the candidate, with explicit pre-alpha/experimental/default-disabled/not-production/not-security-audited/no-real-private-book-write-safety wording.
-- Phase 180 — reran combined default-read-only Docker/Caddy API/browser dogfood plus a separate explicit local synthetic/disposable write-alpha create smoke; default validate/create/PATCH/DELETE probes returned 403 and no runtime artifacts were committed.
-- Phase 179 — hardened backend write-alpha lock-contention and path-like error handling without expanding create/PATCH/DELETE scope, keeping backup/audit evidence for post-backup failures.
-- Phase 178 — improved write-alpha UX guardrails and safe frontend error handling so disposable/test-copy boundaries are clearer and raw path-like backend details are not rendered.
-- Phase 177 — completed a disposable backup/restore drill proving the pre-write state can be restored and read-only-smoked again with validate/create/PATCH/DELETE probes returning 403 under default false.
-- Phase 176 — verified the disposable write-alpha mutated book with GnuCash CLI tooling inside a temporary Debian container, recording only narrow bounded evidence and no broad Desktop compatibility claim.
-- Phase 175 — ran exactly one controlled write-alpha create dogfood on a synthetic/disposable copied book under explicit local `APP_ENV=test` plus `GNUCASH_WRITES_ENABLED=true`, then verified backup, audit, lock release, restore, and return to default disabled writes.
-- Phase 174 — implemented the redacted write-alpha copied-book preflight harness that fails closed for unsafe source/runtime/backup paths and emits only bounded metadata.
-- Phase 173 — added the local-only copied/disposable write-alpha dogfood runbook and safe preflight interface without running a write or changing defaults.
+- Phase 182 — published `v0.2.1-writealpha` as an authorized pre-alpha write-alpha GitHub
+  pre-release after re-running the fresh gate: clean `main`, `HEAD == origin/main`, local and remote
+  tag absence, GitHub release absence, green GitHub Actions on the exact release commit,
+  backend/frontend/Docker checks, rendered `GNUCASH_WRITES_ENABLED=false`, and tracked
+  sensitive-file hygiene. Publication created only the annotated tag and GitHub pre-release.
+- Phase 181 — prepared the conservative release notes, checklist, and final gate for the candidate,
+  with explicit
+  pre-alpha/experimental/default-disabled/not-production/not-security-audited/no-real-private-book-write-safety
+  wording.
+- Phase 180 — reran combined default-read-only Docker/Caddy API/browser dogfood plus a separate
+  explicit local synthetic/disposable write-alpha create smoke; default validate/create/PATCH/DELETE
+  probes returned 403 and no runtime artifacts were committed.
+- Phase 179 — hardened backend write-alpha lock-contention and path-like error handling without
+  expanding create/PATCH/DELETE scope, keeping backup/audit evidence for post-backup failures.
+- Phase 178 — improved write-alpha UX guardrails and safe frontend error handling so
+  disposable/test-copy boundaries are clearer and raw path-like backend details are not rendered.
+- Phase 177 — completed a disposable backup/restore drill proving the pre-write state can be
+  restored and read-only-smoked again with validate/create/PATCH/DELETE probes returning 403 under
+  default false.
+- Phase 176 — verified the disposable write-alpha mutated book with GnuCash CLI tooling inside a
+  temporary Debian container, recording only narrow bounded evidence and no broad Desktop
+  compatibility claim.
+- Phase 175 — ran exactly one controlled write-alpha create dogfood on a synthetic/disposable copied
+  book under explicit local `APP_ENV=test` plus `GNUCASH_WRITES_ENABLED=true`, then verified backup,
+  audit, lock release, restore, and return to default disabled writes.
+- Phase 174 — implemented the redacted write-alpha copied-book preflight harness that fails closed
+  for unsafe source/runtime/backup paths and emits only bounded metadata.
+- Phase 173 — added the local-only copied/disposable write-alpha dogfood runbook and safe preflight
+  interface without running a write or changing defaults.
 
 ### Release notes
 
-- `v0.2.1-writealpha` remains pre-alpha and experimental. `GNUCASH_WRITES_ENABLED=false` remains the default; write-alpha execution remains gated by explicit local enablement plus `APP_ENV=test`.
-- Write-alpha evidence is synthetic/disposable or copied-test-book evidence only. It does not establish safe writes for real/private or only-copy books.
-- Publication created only a GitHub pre-release and annotated git tag; no package, binary artifact, Docker image, production deployment, write default change, write-scope expansion, or real/private data artifact was published.
+- `v0.2.1-writealpha` remains pre-alpha and experimental. `GNUCASH_WRITES_ENABLED=false` remains the
+  default; write-alpha execution remains gated by explicit local enablement plus `APP_ENV=test`.
+- Write-alpha evidence is synthetic/disposable or copied-test-book evidence only. It does not
+  establish safe writes for real/private or only-copy books.
+- Publication created only a GitHub pre-release and annotated git tag; no package, binary artifact,
+  Docker image, production deployment, write default change, write-scope expansion, or real/private
+  data artifact was published.
 
 ### Known limitations
 
 - Not production-ready and not security-audited.
 - Do not expose early deployments directly to the public internet.
-- Write-alpha remains unsafe for real/private or only-copy books; evidence is synthetic/disposable or copied-test-book only.
-- No broad GnuCash Desktop/backend compatibility, hosted SaaS readiness, collaborative accounting, CSV/OFX import, banking integration, or production-safe write mode is claimed.
+- Write-alpha remains unsafe for real/private or only-copy books; evidence is synthetic/disposable
+  or copied-test-book only.
+- No broad GnuCash Desktop/backend compatibility, hosted SaaS readiness, collaborative accounting,
+  CSV/OFX import, banking integration, or production-safe write mode is claimed.
 
 ## [0.1.7-readonly] - 2026-05-20
 
 ### Added
 
-- Phase 171 — published `v0.1.7-readonly` as an authorized GitHub pre-release after re-running the final release gate: clean `main`, `HEAD == origin/main`, local backend/frontend/Docker checks, rendered `GNUCASH_WRITES_ENABLED=false`, tag/release absence, sensitive tracked-file hygiene, and GitHub Actions for the release commit passed. Publication created only the annotated tag and GitHub pre-release; no package, image, production deployment, write expansion, runtime default change, or real/private data artifact was added.
-- Phase 170 — reran the full cycle 2 synthetic/disposable Docker/Caddy read-only dogfood after Phases 162–169: local Compose ran with `GNUCASH_WRITES_ENABLED=false`, `/api/health` confirmed the default book was present/readable and writes disabled, API smoke covered health, login/auth, books/default book, accounts, transactions, transaction detail, CSV export, reports summary, and disabled validate/create/patch/delete write probes, and headless browser dogfood passed at both 320x720 and 1280x900 for login, protected redirect, dashboard, accounts, books, scheduled, account detail, transaction filters, transaction detail, CSV export, hidden write UI, no-overflow checks, and no raw screenshot/download/export artifacts. This is local synthetic evidence only; no release, copied-book dogfood, write expansion, or real/private data artifact was added.
-- Phase 169 — completed a release-critical Russian localization slice for visible read-only/operator paths without claiming full translation: login validation/auth/service-configuration failures now use the English/Russian catalog from the `ui_locale` cookie, and the global error component/page localize 403, 404, generic API/network, and 5xx first-run guidance while preserving read-only, `/health`, `.env`, book-volume, and English-canonical safety wording.
-- Phase 168 — improved first-run and broken-configuration operator UX: `/health` now reports redacted JWT/admin bootstrap diagnostics plus unreadable default-book state, startup logs emit safe first-run warnings without paths/secrets, `/login` gives operator-fixable guidance for auth configuration failures, `/books` and the global error page point operators to safe `.env`, book volume, and `/health` checks, and `docs/operations/troubleshooting.md` documents the read-only troubleshooting path.
-- Phase 167 — hardened local/LAN auth/session defaults without claiming a production security audit: SvelteKit now rejects mismatched-Origin unsafe state-changing app requests, the web auth cookie lifetime follows `JWT_TOKEN_EXPIRE_MINUTES` from Compose instead of a hard-coded value, backend auth tests pin expired JWT rejection, and security docs describe the pre-alpha same-origin/session model.
-- Phase 166 — hardened synchronous read-only CSV export feedback: backend regression tests now pin empty filtered exports and account-scoped filter/header parity, while transaction and account-detail export actions show localized row-count, header-only empty-export, 10,000-row cap/truncation, string-amount, and no-currency-conversion guidance. CSV export remains synchronous, read-only, URL-filtered, and capped without committing raw CSV artifacts.
-- Phase 165 — added large account-tree usability/performance evidence: the synthetic benchmark helper can generate wide/deep synthetic account hierarchies, record account hierarchy metadata, and document a 146-account local TestClient read-only account-tree pass; the account tree UI now caps deep hierarchy indentation while preserving full-path hover text, with static checks pinning no-overflow/no-browser-storage behavior.
-- Phase 164 — hardened read-only book-context recovery for GitHub #13: invalid, stale, or inaccessible selected-book cookies now produce a safe `/books` review path with a corrected/cleared non-secret cookie and user-facing recovery notice, while archived/unauthorized books remain hidden/blocked and raw `uri_or_path` values stay out of API/UI. `docs/book-switcher-readonly-model.md` now documents the selected-book cookie, fallback order, recovery behavior, and no-management/no-write boundaries.
-- Phase 163 — added a disposable Debian 12 container probe for GnuCash Desktop/CLI tooling as the next GitHub #22 compatibility-fixture step. The probe installs GnuCash packages only inside a temporary container and records bounded command/version/help/package metadata. Local evidence confirms GnuCash 4.13 tooling is available in that disposable container, but no safe noninteractive create/save-as SQLite fixture command was identified, so no Desktop-generated fixture or Desktop-version compatibility claim was added.
-- Phase 162 — synchronized stale roadmap baseline after `v0.1.6-readonly` publication and verified the published `v0.1.6-readonly` tag from a fresh Docker checkout with the committed synthetic fixture, dummy local-only `.env`, `GNUCASH_WRITES_ENABLED=false`, API smoke, browser dogfood, disabled validate/create/patch/delete probes, and no raw screenshot/export/backup artifacts. The smoke helper now covers DELETE disabled-write probes for old tagged checkouts and future API smokes. No product behavior, release/tag/package/image, production deployment, write expansion, or real/private data artifact was added.
+- Phase 171 — published `v0.1.7-readonly` as an authorized GitHub pre-release after re-running the
+  final release gate: clean `main`, `HEAD == origin/main`, local backend/frontend/Docker checks,
+  rendered `GNUCASH_WRITES_ENABLED=false`, tag/release absence, sensitive tracked-file hygiene, and
+  GitHub Actions for the release commit passed. Publication created only the annotated tag and
+  GitHub pre-release; no package, image, production deployment, write expansion, runtime default
+  change, or real/private data artifact was added.
+- Phase 170 — reran the full cycle 2 synthetic/disposable Docker/Caddy read-only dogfood after
+  Phases 162–169: local Compose ran with `GNUCASH_WRITES_ENABLED=false`, `/api/health` confirmed the
+  default book was present/readable and writes disabled, API smoke covered health, login/auth,
+  books/default book, accounts, transactions, transaction detail, CSV export, reports summary, and
+  disabled validate/create/patch/delete write probes, and headless browser dogfood passed at both
+  320x720 and 1280x900 for login, protected redirect, dashboard, accounts, books, scheduled, account
+  detail, transaction filters, transaction detail, CSV export, hidden write UI, no-overflow checks,
+  and no raw screenshot/download/export artifacts. This is local synthetic evidence only; no
+  release, copied-book dogfood, write expansion, or real/private data artifact was added.
+- Phase 169 — completed a release-critical Russian localization slice for visible read-only/operator
+  paths without claiming full translation: login validation/auth/service-configuration failures now
+  use the English/Russian catalog from the `ui_locale` cookie, and the global error component/page
+  localize 403, 404, generic API/network, and 5xx first-run guidance while preserving read-only,
+  `/health`, `.env`, book-volume, and English-canonical safety wording.
+- Phase 168 — improved first-run and broken-configuration operator UX: `/health` now reports
+  redacted JWT/admin bootstrap diagnostics plus unreadable default-book state, startup logs emit
+  safe first-run warnings without paths/secrets, `/login` gives operator-fixable guidance for auth
+  configuration failures, `/books` and the global error page point operators to safe `.env`, book
+  volume, and `/health` checks, and `docs/operations/troubleshooting.md` documents the read-only
+  troubleshooting path.
+- Phase 167 — hardened local/LAN auth/session defaults without claiming a production security audit:
+  SvelteKit now rejects mismatched-Origin unsafe state-changing app requests, the web auth cookie
+  lifetime follows `JWT_TOKEN_EXPIRE_MINUTES` from Compose instead of a hard-coded value, backend
+  auth tests pin expired JWT rejection, and security docs describe the pre-alpha same-origin/session
+  model.
+- Phase 166 — hardened synchronous read-only CSV export feedback: backend regression tests now pin
+  empty filtered exports and account-scoped filter/header parity, while transaction and
+  account-detail export actions show localized row-count, header-only empty-export, 10,000-row
+  cap/truncation, string-amount, and no-currency-conversion guidance. CSV export remains
+  synchronous, read-only, URL-filtered, and capped without committing raw CSV artifacts.
+- Phase 165 — added large account-tree usability/performance evidence: the synthetic benchmark
+  helper can generate wide/deep synthetic account hierarchies, record account hierarchy metadata,
+  and document a 146-account local TestClient read-only account-tree pass; the account tree UI now
+  caps deep hierarchy indentation while preserving full-path hover text, with static checks pinning
+  no-overflow/no-browser-storage behavior.
+- Phase 164 — hardened read-only book-context recovery for GitHub #13: invalid, stale, or
+  inaccessible selected-book cookies now produce a safe `/books` review path with a
+  corrected/cleared non-secret cookie and user-facing recovery notice, while archived/unauthorized
+  books remain hidden/blocked and raw `uri_or_path` values stay out of API/UI.
+  `docs/book-switcher-readonly-model.md` now documents the selected-book cookie, fallback order,
+  recovery behavior, and no-management/no-write boundaries.
+- Phase 163 — added a disposable Debian 12 container probe for GnuCash Desktop/CLI tooling as the
+  next GitHub #22 compatibility-fixture step. The probe installs GnuCash packages only inside a
+  temporary container and records bounded command/version/help/package metadata. Local evidence
+  confirms GnuCash 4.13 tooling is available in that disposable container, but no safe
+  noninteractive create/save-as SQLite fixture command was identified, so no Desktop-generated
+  fixture or Desktop-version compatibility claim was added.
+- Phase 162 — synchronized stale roadmap baseline after `v0.1.6-readonly` publication and verified
+  the published `v0.1.6-readonly` tag from a fresh Docker checkout with the committed synthetic
+  fixture, dummy local-only `.env`, `GNUCASH_WRITES_ENABLED=false`, API smoke, browser dogfood,
+  disabled validate/create/patch/delete probes, and no raw screenshot/export/backup artifacts. The
+  smoke helper now covers DELETE disabled-write probes for old tagged checkouts and future API
+  smokes. No product behavior, release/tag/package/image, production deployment, write expansion, or
+  real/private data artifact was added.
 
 ### Release notes
 
-- `v0.1.7-readonly` was published as a GitHub pre-release on 2026-05-20 after Phase 171 final-gate verification. No package, binary artifact, Docker image, or production deployment was published.
-- The candidate remains pre-alpha and read-only by default. `GNUCASH_WRITES_ENABLED=false` remains the default; controlled-write code is experimental post-MVP/write-alpha work and outside any safe production write-mode claim.
-- Publication was performed only after clean `main`, `HEAD == origin/main`, tag/release absence, green GitHub CI for the release HEAD, local checks, disabled-write defaults, and sensitive-data hygiene were re-confirmed.
+- `v0.1.7-readonly` was published as a GitHub pre-release on 2026-05-20 after Phase 171 final-gate
+  verification. No package, binary artifact, Docker image, or production deployment was published.
+- The candidate remains pre-alpha and read-only by default. `GNUCASH_WRITES_ENABLED=false` remains
+  the default; controlled-write code is experimental post-MVP/write-alpha work and outside any safe
+  production write-mode claim.
+- Publication was performed only after clean `main`, `HEAD == origin/main`, tag/release absence,
+  green GitHub CI for the release HEAD, local checks, disabled-write defaults, and sensitive-data
+  hygiene were re-confirmed.
 
 ### Known limitations
 
 - Not production-ready and not security-audited.
 - Do not expose early deployments directly to the public internet.
-- Test with disposable fixtures or copied GnuCash SQL books first, keep backups, and keep `.env`, app DBs, GnuCash books, backups, private exports/screenshots, secrets, tokens, keys, and certs out of git.
-- Compatibility evidence remains intentionally narrow; no broad PostgreSQL/MySQL/MariaDB/XML/all-version compatibility is claimed.
-- Phase 170 dogfood evidence is synthetic/disposable only and does not establish production or broad real-book readiness.
-- No hosted SaaS readiness, collaborative accounting, family-wallet positioning, real-time multi-user editing, CSV/OFX import, banking integration, or safe production write mode is claimed.
+- Test with disposable fixtures or copied GnuCash SQL books first, keep backups, and keep `.env`,
+  app DBs, GnuCash books, backups, private exports/screenshots, secrets, tokens, keys, and certs out
+  of git.
+- Compatibility evidence remains intentionally narrow; no broad
+  PostgreSQL/MySQL/MariaDB/XML/all-version compatibility is claimed.
+- Phase 170 dogfood evidence is synthetic/disposable only and does not establish production or broad
+  real-book readiness.
+- No hosted SaaS readiness, collaborative accounting, family-wallet positioning, real-time
+  multi-user editing, CSV/OFX import, banking integration, or safe production write mode is claimed.
 
 ## [0.1.6-readonly] - 2026-05-20
 
 ### Added
 
-- Phase 161 — published `v0.1.6-readonly` as an authorized GitHub pre-release after re-running the final release gate: clean `main`, `HEAD == origin/main`, local backend/frontend/Docker checks, rendered `GNUCASH_WRITES_ENABLED=false`, tag/release absence, sensitive tracked-file hygiene, and GitHub Actions for the release commit passed. Publication created only the annotated tag and GitHub pre-release; no package, image, production deployment, write expansion, runtime default change, or real/private data artifact was added.
-- Phase 160 — reran the full release-candidate synthetic/disposable Docker/Caddy dogfood after Phases 153–159: local Compose ran with `GNUCASH_WRITES_ENABLED=false`, API smoke covered health, login/auth, books/default book, accounts, transactions, transaction detail, CSV export, reports summary, and disabled validate/create/patch write probes; an additional DELETE write probe returned HTTP 403; headless browser dogfood at 320x720 covered login, protected redirect, dashboard, accounts, books, scheduled, account detail, transaction filters, transaction detail, CSV export, hidden write UI, mobile overflow checks, and no-artifact checks. This is local synthetic evidence only; no release/package/image, copied-book dogfood, write expansion, or real/private data artifact was added.
-- Phase 159 — expanded the release-critical English/Russian localization slice without claiming full translation: dashboard report cards/drilldown helper copy/recent/expense/cashflow widgets, `/scheduled` title/safety copy/URL-only filters/safe metadata labels/empty states, and landing-page sign-in copy now use the typed message catalog with simple named interpolation. English remains canonical, Russian remains partial/opt-in, backend/API errors are not localized, and no write behavior changed.
-- Phase 158 — fixed and pinned a narrow-width mobile account/transaction dogfood issue: transaction/account CSV export and transaction empty-state recovery actions now declare touch-friendly 44px targets, and browser dogfood defaults to a 320x720 mobile viewport with horizontal-overflow and export-touch-target assertions across read-only account/transaction flows.
-- Phase 157 — improved scheduled/recurring transaction read-only clarity: `/scheduled` now has URL-only display filters for enabled/disabled and template-reference metadata, deterministic safe sorting by start date/name/enabled-first, filtered vs true empty states, and stronger copy that no template split amounts/accounts/memos/descriptions/raw SQL are exposed or persisted in browser storage. Backend regression coverage pins safe DTO redaction and deterministic ordering.
-- Phase 156 — added dashboard drilldowns for read-only reporting evidence: summary current-month cards, recent transactions, expense-account rows, and cashflow months now link to active-book-preserving `/transactions` views built from existing URL filters (`date_from`, `date_to`, `account_id`, `limit=50`, `offset=0`), with copy that keeps totals base-currency-only/no-conversion and documents that drilldowns are evidence views, not browser-side recomputations or new accounting logic.
-- Phase 155 — improved the multi-book read-only operator UX slice for GitHub #13: `GET /books`/`GET /books/{id}` now return safe storage diagnostics (`available`, `missing_file`, `not_configured`, or `remote_or_unchecked`), access status, private-path-redaction metadata, and safe next actions without exposing `uri_or_path` or opening GnuCash data during listing; `/books` renders the diagnostics and keeps upload/delete/default-changing/registry-edit actions unavailable.
-- Phase 154 — refreshed GnuCash Desktop compatibility blocker evidence for GitHub #22 without creating a Desktop-generated fixture: the safe probe now records phase-154 metadata, missing-command reasons, `desktop_generated_fixture_possible_now=false`, and optional non-mutating `apt-cache policy` package-candidate hints. Local evidence confirms `gnucash` and `gnucash-cli` are absent on `PATH`; package metadata alone is not compatibility evidence, no package was installed, no book was opened, and no broad all-version/PostgreSQL/MySQL/MariaDB/XML/Desktop support claim was added.
-- Phase 153 — added a reproducible fresh-clone Docker smoke helper and recorded a synthetic/disposable clean-checkout pass: the helper clones the repo to a temporary directory, copies only the committed synthetic fixture into ignored runtime data, writes dummy local-only `.env` values with `GNUCASH_WRITES_ENABLED=false`, validates and starts Docker Compose, runs API smoke and browser dogfood, verifies hidden write UI and disabled validate/create/patch probes, checks no new raw screenshot/export/backup artifacts, then tears down Docker and removes the temporary clone by default. No package, image, production deployment hardening claim, write expansion, or real/private data artifact was added.
+- Phase 161 — published `v0.1.6-readonly` as an authorized GitHub pre-release after re-running the
+  final release gate: clean `main`, `HEAD == origin/main`, local backend/frontend/Docker checks,
+  rendered `GNUCASH_WRITES_ENABLED=false`, tag/release absence, sensitive tracked-file hygiene, and
+  GitHub Actions for the release commit passed. Publication created only the annotated tag and
+  GitHub pre-release; no package, image, production deployment, write expansion, runtime default
+  change, or real/private data artifact was added.
+- Phase 160 — reran the full release-candidate synthetic/disposable Docker/Caddy dogfood after
+  Phases 153–159: local Compose ran with `GNUCASH_WRITES_ENABLED=false`, API smoke covered health,
+  login/auth, books/default book, accounts, transactions, transaction detail, CSV export, reports
+  summary, and disabled validate/create/patch write probes; an additional DELETE write probe
+  returned HTTP 403; headless browser dogfood at 320x720 covered login, protected redirect,
+  dashboard, accounts, books, scheduled, account detail, transaction filters, transaction detail,
+  CSV export, hidden write UI, mobile overflow checks, and no-artifact checks. This is local
+  synthetic evidence only; no release/package/image, copied-book dogfood, write expansion, or
+  real/private data artifact was added.
+- Phase 159 — expanded the release-critical English/Russian localization slice without claiming full
+  translation: dashboard report cards/drilldown helper copy/recent/expense/cashflow widgets,
+  `/scheduled` title/safety copy/URL-only filters/safe metadata labels/empty states, and
+  landing-page sign-in copy now use the typed message catalog with simple named interpolation.
+  English remains canonical, Russian remains partial/opt-in, backend/API errors are not localized,
+  and no write behavior changed.
+- Phase 158 — fixed and pinned a narrow-width mobile account/transaction dogfood issue:
+  transaction/account CSV export and transaction empty-state recovery actions now declare
+  touch-friendly 44px targets, and browser dogfood defaults to a 320x720 mobile viewport with
+  horizontal-overflow and export-touch-target assertions across read-only account/transaction flows.
+- Phase 157 — improved scheduled/recurring transaction read-only clarity: `/scheduled` now has
+  URL-only display filters for enabled/disabled and template-reference metadata, deterministic safe
+  sorting by start date/name/enabled-first, filtered vs true empty states, and stronger copy that no
+  template split amounts/accounts/memos/descriptions/raw SQL are exposed or persisted in browser
+  storage. Backend regression coverage pins safe DTO redaction and deterministic ordering.
+- Phase 156 — added dashboard drilldowns for read-only reporting evidence: summary current-month
+  cards, recent transactions, expense-account rows, and cashflow months now link to
+  active-book-preserving `/transactions` views built from existing URL filters (`date_from`,
+  `date_to`, `account_id`, `limit=50`, `offset=0`), with copy that keeps totals
+  base-currency-only/no-conversion and documents that drilldowns are evidence views, not
+  browser-side recomputations or new accounting logic.
+- Phase 155 — improved the multi-book read-only operator UX slice for GitHub #13: `GET /books`/`GET
+  /books/{id}` now return safe storage diagnostics (`available`, `missing_file`, `not_configured`,
+  or `remote_or_unchecked`), access status, private-path-redaction metadata, and safe next actions
+  without exposing `uri_or_path` or opening GnuCash data during listing; `/books` renders the
+  diagnostics and keeps upload/delete/default-changing/registry-edit actions unavailable.
+- Phase 154 — refreshed GnuCash Desktop compatibility blocker evidence for GitHub #22 without
+  creating a Desktop-generated fixture: the safe probe now records phase-154 metadata,
+  missing-command reasons, `desktop_generated_fixture_possible_now=false`, and optional non-mutating
+  `apt-cache policy` package-candidate hints. Local evidence confirms `gnucash` and `gnucash-cli`
+  are absent on `PATH`; package metadata alone is not compatibility evidence, no package was
+  installed, no book was opened, and no broad all-version/PostgreSQL/MySQL/MariaDB/XML/Desktop
+  support claim was added.
+- Phase 153 — added a reproducible fresh-clone Docker smoke helper and recorded a
+  synthetic/disposable clean-checkout pass: the helper clones the repo to a temporary directory,
+  copies only the committed synthetic fixture into ignored runtime data, writes dummy local-only
+  `.env` values with `GNUCASH_WRITES_ENABLED=false`, validates and starts Docker Compose, runs API
+  smoke and browser dogfood, verifies hidden write UI and disabled validate/create/patch probes,
+  checks no new raw screenshot/export/backup artifacts, then tears down Docker and removes the
+  temporary clone by default. No package, image, production deployment hardening claim, write
+  expansion, or real/private data artifact was added.
 
 ### Release notes
 
-- `v0.1.6-readonly` was published as a GitHub pre-release on 2026-05-20 after Phase 161 final-gate verification. No package, binary artifact, Docker image, or production deployment was published.
-- The candidate remains pre-alpha and read-only by default. `GNUCASH_WRITES_ENABLED=false` remains the default; controlled-write code is experimental post-MVP/write-alpha work and outside any safe production write-mode claim.
-- Publication was performed only after clean `main`, `HEAD == origin/main`, tag/release absence, green GitHub CI for the release HEAD, local checks, disabled-write defaults, and sensitive-data hygiene were re-confirmed.
+- `v0.1.6-readonly` was published as a GitHub pre-release on 2026-05-20 after Phase 161 final-gate
+  verification. No package, binary artifact, Docker image, or production deployment was published.
+- The candidate remains pre-alpha and read-only by default. `GNUCASH_WRITES_ENABLED=false` remains
+  the default; controlled-write code is experimental post-MVP/write-alpha work and outside any safe
+  production write-mode claim.
+- Publication was performed only after clean `main`, `HEAD == origin/main`, tag/release absence,
+  green GitHub CI for the release HEAD, local checks, disabled-write defaults, and sensitive-data
+  hygiene were re-confirmed.
 
 ### Known limitations
 
 - Not production-ready and not security-audited.
 - Do not expose early deployments directly to the public internet.
-- Test with disposable fixtures or copied GnuCash SQL books first, keep backups, and keep `.env`, app DBs, GnuCash books, backups, private exports/screenshots, secrets, tokens, keys, and certs out of git.
-- Compatibility evidence remains intentionally narrow; no broad PostgreSQL/MySQL/MariaDB/XML/all-version compatibility is claimed.
-- Phase 160 dogfood evidence is synthetic/disposable only and does not establish production or broad real-book readiness.
-- No hosted SaaS readiness, collaborative accounting, family-wallet positioning, real-time multi-user editing, CSV/OFX import, banking integration, or safe production write mode is claimed.
+- Test with disposable fixtures or copied GnuCash SQL books first, keep backups, and keep `.env`,
+  app DBs, GnuCash books, backups, private exports/screenshots, secrets, tokens, keys, and certs out
+  of git.
+- Compatibility evidence remains intentionally narrow; no broad
+  PostgreSQL/MySQL/MariaDB/XML/all-version compatibility is claimed.
+- Phase 160 dogfood evidence is synthetic/disposable only and does not establish production or broad
+  real-book readiness.
+- No hosted SaaS readiness, collaborative accounting, family-wallet positioning, real-time
+  multi-user editing, CSV/OFX import, banking integration, or safe production write mode is claimed.
 
 ## [0.1.5-readonly] - 2026-05-19
 
 ### Added
 
-- Published `v0.1.5-readonly` as an authorized GitHub pre-release in Phase 152 after the final release gate passed.
-- Prepared release notes, checklist, and final-gate artifacts for a possible `v0.1.5-readonly` maintenance pre-release without creating a tag, GitHub release, package, Docker image, binary artifact, production deployment, or write-mode change.
-- Candidate scope covers Phases 143–150: app-shell read-only/current-book banner, account-tree filtering, transaction list/export clarity, transaction detail/split readability, dashboard/reporting limitation clarity, `/books` self-hosting guidance, Russian localization coverage, and synthetic Docker/browser dogfood refresh.
+- Published `v0.1.5-readonly` as an authorized GitHub pre-release in Phase 152 after the final
+  release gate passed.
+- Prepared release notes, checklist, and final-gate artifacts for a possible `v0.1.5-readonly`
+  maintenance pre-release without creating a tag, GitHub release, package, Docker image, binary
+  artifact, production deployment, or write-mode change.
+- Candidate scope covers Phases 143–150: app-shell read-only/current-book banner, account-tree
+  filtering, transaction list/export clarity, transaction detail/split readability,
+  dashboard/reporting limitation clarity, `/books` self-hosting guidance, Russian localization
+  coverage, and synthetic Docker/browser dogfood refresh.
 
 ### Release notes
 
-- `v0.1.5-readonly` was published as a GitHub pre-release on 2026-05-19 after Phase 152 final-gate verification. No package, binary artifact, Docker image, or production deployment was published.
-- The candidate remains pre-alpha and read-only by default. `GNUCASH_WRITES_ENABLED=false` remains the default; controlled-write code is experimental post-MVP/write-alpha work and outside any safe production write-mode claim.
-- Publication was performed only after clean `main`, `HEAD == origin/main`, tag/release absence, green GitHub CI for the release HEAD, local checks, disabled-write defaults, and sensitive-data hygiene were re-confirmed.
+- `v0.1.5-readonly` was published as a GitHub pre-release on 2026-05-19 after Phase 152 final-gate
+  verification. No package, binary artifact, Docker image, or production deployment was published.
+- The candidate remains pre-alpha and read-only by default. `GNUCASH_WRITES_ENABLED=false` remains
+  the default; controlled-write code is experimental post-MVP/write-alpha work and outside any safe
+  production write-mode claim.
+- Publication was performed only after clean `main`, `HEAD == origin/main`, tag/release absence,
+  green GitHub CI for the release HEAD, local checks, disabled-write defaults, and sensitive-data
+  hygiene were re-confirmed.
 
 ### Known limitations
 
 - Not production-ready and not security-audited.
 - Do not expose early deployments directly to the public internet.
-- Test with disposable fixtures or copied GnuCash SQL books first, keep backups, and keep `.env`, app DBs, GnuCash books, backups, private exports/screenshots, secrets, tokens, keys, and certs out of git.
-- Compatibility evidence remains intentionally narrow; no broad PostgreSQL/MySQL/MariaDB/XML/all-version compatibility is claimed.
-- Phase 150 dogfood evidence is synthetic/disposable only and does not establish production or broad real-book readiness.
-- No hosted SaaS readiness, collaborative accounting, family-wallet positioning, real-time multi-user editing, CSV/OFX import, banking integration, or safe production write mode is claimed.
+- Test with disposable fixtures or copied GnuCash SQL books first, keep backups, and keep `.env`,
+  app DBs, GnuCash books, backups, private exports/screenshots, secrets, tokens, keys, and certs out
+  of git.
+- Compatibility evidence remains intentionally narrow; no broad
+  PostgreSQL/MySQL/MariaDB/XML/all-version compatibility is claimed.
+- Phase 150 dogfood evidence is synthetic/disposable only and does not establish production or broad
+  real-book readiness.
+- No hosted SaaS readiness, collaborative accounting, family-wallet positioning, real-time
+  multi-user editing, CSV/OFX import, banking integration, or safe production write mode is claimed.
 
 ## [0.1.4-readonly] - 2026-05-19
 
 ### Added
 
-- Phase 142 — published `v0.1.4-readonly` as an authorized GitHub pre-release after the final release gate confirmed clean `main`, `HEAD == origin/main`, successful GitHub Actions, local backend/frontend/Docker checks, `GNUCASH_WRITES_ENABLED=false`, and tracked sensitive-file hygiene.
-- Phase 141 — prepared conservative `v0.1.4-readonly` release artifacts without publishing: release notes, release-prep checklist, final gate, README links, project status, and phase handoff described the candidate as pre-alpha, read-only by default, not production-ready, not security-audited, unpublished, and pending explicit authorization before any tag/GitHub release.
-- Phase 139 — reran synthetic/disposable Docker/Caddy dogfood with `GNUCASH_WRITES_ENABLED=false`; read-only API smoke covered health, login/auth, books/default book, accounts, transactions, transaction detail, CSV export, reports summary, and disabled validate/create/patch write probes; browser dogfood covered login, protected redirect, dashboard, accounts, books, scheduled awareness, account detail, transaction filters, transaction detail, CSV export, hidden write UI, and no-artifact checks.
-- Phase 138 — synchronized public README, Russian README, changelog, roadmap, project status, and handoff after the recent read-only maintenance and documentation phases.
-- Phase 137 — refreshed local secure deployment documentation without product-code changes: `docs/deployment/local-secure-deployment.md` now gives concrete localhost/LAN/VPN CORS recommendations, JWT secret generation and conservative rotation guidance, app metadata DB backup expectations for `data/app/app.db`, and a checkable self-hosting pre-deployment checklist; `.env.example` comments now point to fresh JWT secrets and exact CORS examples.
-- Phase 136 — refreshed GnuCash compatibility documentation without new fixture or Desktop-version claims: `docs/gnucash-compatibility.md` now makes synthetic/disposable evidence boundaries explicit and lists Desktop versions as not yet validated by automation, while `docs/gnucash-version-fixture-plan.md` inventories current synthetic/disposable fixture evidence and keeps future Desktop-generated fixture work gated on safe provenance.
-- Phase 135 — polished read-only mobile navigation: the desktop nav is hidden below the `md` breakpoint, the mobile shell owns touch-friendly book/locale/theme/logout controls, shared controls meet the 44px touch-target expectation, the shell reserves enough bottom space for fixed mobile navigation, and transaction-detail splits render as mobile cards at narrow widths.
-- Phase 134 — added shape-matched read-only loading skeletons for dashboard, accounts, transactions, and books during SvelteKit navigation/data reloads, including active-book switching.
-- Phase 133 — improved read-only empty and error states: accessible empty/error components now provide clearer labels/actions, the global error page maps API/network/403/404/server failures to user-safe retry/back actions, and books/scheduled/transactions/accounts routes show informative empty states for no accessible books, no schedules, no transactions, no matching filters, and no accounts.
+- Phase 142 — published `v0.1.4-readonly` as an authorized GitHub pre-release after the final
+  release gate confirmed clean `main`, `HEAD == origin/main`, successful GitHub Actions, local
+  backend/frontend/Docker checks, `GNUCASH_WRITES_ENABLED=false`, and tracked sensitive-file
+  hygiene.
+- Phase 141 — prepared conservative `v0.1.4-readonly` release artifacts without publishing: release
+  notes, release-prep checklist, final gate, README links, project status, and phase handoff
+  described the candidate as pre-alpha, read-only by default, not production-ready, not
+  security-audited, unpublished, and pending explicit authorization before any tag/GitHub release.
+- Phase 139 — reran synthetic/disposable Docker/Caddy dogfood with `GNUCASH_WRITES_ENABLED=false`;
+  read-only API smoke covered health, login/auth, books/default book, accounts, transactions,
+  transaction detail, CSV export, reports summary, and disabled validate/create/patch write probes;
+  browser dogfood covered login, protected redirect, dashboard, accounts, books, scheduled
+  awareness, account detail, transaction filters, transaction detail, CSV export, hidden write UI,
+  and no-artifact checks.
+- Phase 138 — synchronized public README, Russian README, changelog, roadmap, project status, and
+  handoff after the recent read-only maintenance and documentation phases.
+- Phase 137 — refreshed local secure deployment documentation without product-code changes:
+  `docs/deployment/local-secure-deployment.md` now gives concrete localhost/LAN/VPN CORS
+  recommendations, JWT secret generation and conservative rotation guidance, app metadata DB backup
+  expectations for `data/app/app.db`, and a checkable self-hosting pre-deployment checklist;
+  `.env.example` comments now point to fresh JWT secrets and exact CORS examples.
+- Phase 136 — refreshed GnuCash compatibility documentation without new fixture or Desktop-version
+  claims: `docs/gnucash-compatibility.md` now makes synthetic/disposable evidence boundaries
+  explicit and lists Desktop versions as not yet validated by automation, while
+  `docs/gnucash-version-fixture-plan.md` inventories current synthetic/disposable fixture evidence
+  and keeps future Desktop-generated fixture work gated on safe provenance.
+- Phase 135 — polished read-only mobile navigation: the desktop nav is hidden below the `md`
+  breakpoint, the mobile shell owns touch-friendly book/locale/theme/logout controls, shared
+  controls meet the 44px touch-target expectation, the shell reserves enough bottom space for fixed
+  mobile navigation, and transaction-detail splits render as mobile cards at narrow widths.
+- Phase 134 — added shape-matched read-only loading skeletons for dashboard, accounts, transactions,
+  and books during SvelteKit navigation/data reloads, including active-book switching.
+- Phase 133 — improved read-only empty and error states: accessible empty/error components now
+  provide clearer labels/actions, the global error page maps API/network/403/404/server failures to
+  user-safe retry/back actions, and books/scheduled/transactions/accounts routes show informative
+  empty states for no accessible books, no schedules, no transactions, no matching filters, and no
+  accounts.
 
 ### Release notes
 
-- `v0.1.4-readonly` was published as a GitHub pre-release on 2026-05-19 after Phase 142 final-gate verification. No package, binary artifact, Docker image, or production deployment was published.
-- This remains a conservative pre-alpha/read-only candidate. `GNUCASH_WRITES_ENABLED=false` remains the default; controlled-write code is experimental post-MVP/write-alpha work, test-fixture-only when enabled, and outside any safe production write-mode claim.
+- `v0.1.4-readonly` was published as a GitHub pre-release on 2026-05-19 after Phase 142 final-gate
+  verification. No package, binary artifact, Docker image, or production deployment was published.
+- This remains a conservative pre-alpha/read-only candidate. `GNUCASH_WRITES_ENABLED=false` remains
+  the default; controlled-write code is experimental post-MVP/write-alpha work, test-fixture-only
+  when enabled, and outside any safe production write-mode claim.
 
 ### Known limitations
 
 - Not production-ready and not security-audited.
 - Do not expose early deployments directly to the public internet.
-- Test with disposable fixtures or copied GnuCash SQL books first, keep backups, and keep `.env`, app DBs, GnuCash books, backups, private exports/screenshots, secrets, tokens, keys, and certs out of git.
-- Compatibility evidence remains intentionally narrow; no broad PostgreSQL/MySQL/MariaDB/XML/all-version compatibility is claimed.
-- Phase 139 dogfood evidence is synthetic/disposable only and does not establish production or broad real-book readiness.
-- No hosted SaaS readiness, collaborative accounting, family-wallet positioning, real-time multi-user editing, CSV/OFX import, banking integration, or safe production write mode is claimed.
+- Test with disposable fixtures or copied GnuCash SQL books first, keep backups, and keep `.env`,
+  app DBs, GnuCash books, backups, private exports/screenshots, secrets, tokens, keys, and certs out
+  of git.
+- Compatibility evidence remains intentionally narrow; no broad
+  PostgreSQL/MySQL/MariaDB/XML/all-version compatibility is claimed.
+- Phase 139 dogfood evidence is synthetic/disposable only and does not establish production or broad
+  real-book readiness.
+- No hosted SaaS readiness, collaborative accounting, family-wallet positioning, real-time
+  multi-user editing, CSV/OFX import, banking integration, or safe production write mode is claimed.
 
 ## [0.2.0-writealpha] - 2026-05-19
 
 ### Added
 
-- Phase 132 — published `v0.2.0-writealpha` as an authorized pre-alpha GitHub pre-release: release notes, checklist, and final-gate docs summarize write-alpha CRUD as experimental, disabled by default with `GNUCASH_WRITES_ENABLED=false`, executable only under the `APP_ENV=test` gate when explicitly enabled, supported only by synthetic/disposable fixture evidence, not production-ready, not security-audited, not safe for real/private books, and published after final checks.
-- Phase 131 — completed the authorized write-alpha DELETE transaction slice without default enablement: `DELETE /books/{book_id}/transactions/{transaction_id}` requires `GNUCASH_WRITES_ENABLED=true` plus `APP_ENV=test`, uses copied/disposable fixtures only in tests, creates a backup before deletion, holds/releases the per-book lock, records success/failure audit rows, returns 404 for missing transactions before backup/lock/mutation, rejects read-only/viewer access before write-service construction, and exposes a hidden-by-default frontend delete form with explicit acknowledgement and browser confirmation.
-- Phase 130 — hardened the experimental write-alpha PATCH transaction path without default enablement: `PATCH /books/{book_id}/transactions/{transaction_id}` remains limited to `GNUCASH_WRITES_ENABLED=true` plus `APP_ENV=test` copied/disposable fixtures, preserves description/date/split-memo-only edits, reports missing transactions as 404 before lock/backup/mutation, records backup paths on failed post-backup PATCH audits, and adds disposable-fixture lifecycle coverage for successful PATCH, validation failure, missing transaction, synthetic post-backup failure, lock release, no backup leak, and concurrent PATCH+CREATE lock contention.
-- Phase 129 — added write-alpha recovery and maintainer-review documentation without product-code changes or default write enablement: `docs/write-alpha-recovery-procedure.md` covers containment, backup selection, stale-lock cleanup, restore, integrity checks, and damaged-book triage for synthetic/disposable books only, while `docs/write-alpha-maintainer-checklist.md` provides a checkable gate for default-disabled config, `APP_ENV=test`, disposable fixtures, lifecycle evidence, recovery docs, and sensitive-data hygiene.
-- Phase 128 — expanded write-alpha create-route safety coverage without default enablement: added copied/disposable fixture concurrency coverage for two parallel POST writes, synthetic post-backup error-path coverage proving lock release/failed audit/intact backup/no book mutation, and read-only/viewer book-access rejection before write-service construction.
-- Phase 127 — refreshed GnuCash Desktop compatibility evidence for GitHub #22: `gnucash`/`gnucash-cli` remain unavailable in the execution environment, so the matrix records a Desktop-tooling blocker rather than a fabricated Desktop-generated fixture claim.
-- Phase 126 — completed read-only GitHub #11/#12 triage: transaction query matching now includes transaction notes when exposed by the GnuCash/piecash object, docs clarify description/notes/split-memo search semantics, saved filter presets are de-scoped in favor of URL-only presets for privacy, and scheduled/recurring awareness was closed as already covered.
+- Phase 132 — published `v0.2.0-writealpha` as an authorized pre-alpha GitHub pre-release: release
+  notes, checklist, and final-gate docs summarize write-alpha CRUD as experimental, disabled by
+  default with `GNUCASH_WRITES_ENABLED=false`, executable only under the `APP_ENV=test` gate when
+  explicitly enabled, supported only by synthetic/disposable fixture evidence, not production-ready,
+  not security-audited, not safe for real/private books, and published after final checks.
+- Phase 131 — completed the authorized write-alpha DELETE transaction slice without default
+  enablement: `DELETE /books/{book_id}/transactions/{transaction_id}` requires
+  `GNUCASH_WRITES_ENABLED=true` plus `APP_ENV=test`, uses copied/disposable fixtures only in tests,
+  creates a backup before deletion, holds/releases the per-book lock, records success/failure audit
+  rows, returns 404 for missing transactions before backup/lock/mutation, rejects read-only/viewer
+  access before write-service construction, and exposes a hidden-by-default frontend delete form
+  with explicit acknowledgement and browser confirmation.
+- Phase 130 — hardened the experimental write-alpha PATCH transaction path without default
+  enablement: `PATCH /books/{book_id}/transactions/{transaction_id}` remains limited to
+  `GNUCASH_WRITES_ENABLED=true` plus `APP_ENV=test` copied/disposable fixtures, preserves
+  description/date/split-memo-only edits, reports missing transactions as 404 before
+  lock/backup/mutation, records backup paths on failed post-backup PATCH audits, and adds
+  disposable-fixture lifecycle coverage for successful PATCH, validation failure, missing
+  transaction, synthetic post-backup failure, lock release, no backup leak, and concurrent
+  PATCH+CREATE lock contention.
+- Phase 129 — added write-alpha recovery and maintainer-review documentation without product-code
+  changes or default write enablement: `docs/write-alpha-recovery-procedure.md` covers containment,
+  backup selection, stale-lock cleanup, restore, integrity checks, and damaged-book triage for
+  synthetic/disposable books only, while `docs/write-alpha-maintainer-checklist.md` provides a
+  checkable gate for default-disabled config, `APP_ENV=test`, disposable fixtures, lifecycle
+  evidence, recovery docs, and sensitive-data hygiene.
+- Phase 128 — expanded write-alpha create-route safety coverage without default enablement: added
+  copied/disposable fixture concurrency coverage for two parallel POST writes, synthetic post-backup
+  error-path coverage proving lock release/failed audit/intact backup/no book mutation, and
+  read-only/viewer book-access rejection before write-service construction.
+- Phase 127 — refreshed GnuCash Desktop compatibility evidence for GitHub #22:
+  `gnucash`/`gnucash-cli` remain unavailable in the execution environment, so the matrix records a
+  Desktop-tooling blocker rather than a fabricated Desktop-generated fixture claim.
+- Phase 126 — completed read-only GitHub #11/#12 triage: transaction query matching now includes
+  transaction notes when exposed by the GnuCash/piecash object, docs clarify
+  description/notes/split-memo search semantics, saved filter presets are de-scoped in favor of
+  URL-only presets for privacy, and scheduled/recurring awareness was closed as already covered.
 
 ### Known limitations
 
-- Write-alpha remains experimental, disabled by default, and executable only with `APP_ENV=test` when explicitly enabled.
+- Write-alpha remains experimental, disabled by default, and executable only with `APP_ENV=test`
+  when explicitly enabled.
 - Real/private-book write safety is not established and not claimed.
 - Not production-ready and not security-audited.
 
@@ -277,118 +710,228 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- Phase 122 — prepared and verified the `v0.1.3-readonly` maintenance release gate across backend tests, frontend checks/build, Docker Compose config validation, tag/release absence checks, GitHub Actions state, and sensitive tracked-file hygiene.
-- Phase 123 — started the post-MVP/write-alpha safety foundation without enabling writes by default: added regression coverage for disabled-by-default config and route short-circuiting, write-lock-failure audit evidence, and explicit create-validation guards, and updated controlled-write readiness gates. No write capability was enabled or broadened.
-- Phase 124 — hardened the write-alpha controlled transaction create path without default enablement: enabled write routes are now limited to `APP_ENV=test` copied/disposable fixture scope, route-level integration coverage verifies create book-state read-back, backup, audit success, lock release, and validation-failure audit/no-backup behavior, and controlled-write docs now label this as experimental test-fixture-only evidence.
-- Phase 125 — published `v0.1.3-readonly` as a GitHub pre-release after stopping the live personal-book Docker deployment, removing ignored local runtime `.env`/copied-book/tmp artifacts, re-checking clean `main`, `HEAD == origin/main`, tag/release absence, recent GitHub Actions success, Docker Compose config validity, whitespace diff check, and sensitive tracked-file hygiene. No packages were published.
+- Phase 122 — prepared and verified the `v0.1.3-readonly` maintenance release gate across backend
+  tests, frontend checks/build, Docker Compose config validation, tag/release absence checks, GitHub
+  Actions state, and sensitive tracked-file hygiene.
+- Phase 123 — started the post-MVP/write-alpha safety foundation without enabling writes by default:
+  added regression coverage for disabled-by-default config and route short-circuiting,
+  write-lock-failure audit evidence, and explicit create-validation guards, and updated
+  controlled-write readiness gates. No write capability was enabled or broadened.
+- Phase 124 — hardened the write-alpha controlled transaction create path without default
+  enablement: enabled write routes are now limited to `APP_ENV=test` copied/disposable fixture
+  scope, route-level integration coverage verifies create book-state read-back, backup, audit
+  success, lock release, and validation-failure audit/no-backup behavior, and controlled-write docs
+  now label this as experimental test-fixture-only evidence.
+- Phase 125 — published `v0.1.3-readonly` as a GitHub pre-release after stopping the live
+  personal-book Docker deployment, removing ignored local runtime `.env`/copied-book/tmp artifacts,
+  re-checking clean `main`, `HEAD == origin/main`, tag/release absence, recent GitHub Actions
+  success, Docker Compose config validity, whitespace diff check, and sensitive tracked-file
+  hygiene. No packages were published.
 
 ### Fixed
 
-- Phase 121 — fixed Conservative dashboard summary zero-value fallback when base-currency transactions exist but account balance fields report zero: summary now falls back to split-derived asset/liability totals through `as_of_date` only when account-balance asset/liability totals are both zero, while preserving legitimate empty zero summaries, Decimal/string money handling, and no-conversion behavior.
-- Phase 120 — optimized read-only account-detail transaction list/count by selecting account-scoped transaction candidates through splits before applying existing filters/pagination/CSV semantics; added synthetic account-detail filtered-list and CSV benchmark evidence without production scalability claims.
-- Phase 119 — stripped the synthetic GnuCash `Root Account:` prefix from displayed account full-name paths in the service layer while preserving child paths, account IDs, parent references, and API response shape; backend fixture/regression tests now expect cleaned names such as `Assets:Bank:Checking`.
-- Phase 118 — stabilized the desktop transaction table with fixed full-width columns, safe truncation for long descriptions/account names, and no needless desktop horizontal scroll; also narrowed account-tree desktop grid sizing to avoid narrow-layout overflow. Frontend static route checks pin the CSS-only regression contract.
+- Phase 121 — fixed Conservative dashboard summary zero-value fallback when base-currency
+  transactions exist but account balance fields report zero: summary now falls back to split-derived
+  asset/liability totals through `as_of_date` only when account-balance asset/liability totals are
+  both zero, while preserving legitimate empty zero summaries, Decimal/string money handling, and
+  no-conversion behavior.
+- Phase 120 — optimized read-only account-detail transaction list/count by selecting account-scoped
+  transaction candidates through splits before applying existing filters/pagination/CSV semantics;
+  added synthetic account-detail filtered-list and CSV benchmark evidence without production
+  scalability claims.
+- Phase 119 — stripped the synthetic GnuCash `Root Account:` prefix from displayed account full-name
+  paths in the service layer while preserving child paths, account IDs, parent references, and API
+  response shape; backend fixture/regression tests now expect cleaned names such as
+  `Assets:Bank:Checking`.
+- Phase 118 — stabilized the desktop transaction table with fixed full-width columns, safe
+  truncation for long descriptions/account names, and no needless desktop horizontal scroll; also
+  narrowed account-tree desktop grid sizing to avoid narrow-layout overflow. Frontend static route
+  checks pin the CSS-only regression contract.
 
 ### Release notes
 
-- `v0.1.3-readonly` was published as a GitHub pre-release on 2026-05-19 after the owner live-stand review and cleanup of the temporary local personal-book deployment.
-- This remains a conservative pre-alpha/read-only release. `GNUCASH_WRITES_ENABLED=false` remains the default; controlled-write code is experimental post-MVP work, test-fixture-only when enabled, and outside any safe production write-mode claim.
+- `v0.1.3-readonly` was published as a GitHub pre-release on 2026-05-19 after the owner live-stand
+  review and cleanup of the temporary local personal-book deployment.
+- This remains a conservative pre-alpha/read-only release. `GNUCASH_WRITES_ENABLED=false` remains
+  the default; controlled-write code is experimental post-MVP work, test-fixture-only when enabled,
+  and outside any safe production write-mode claim.
 
 ### Known limitations
 
 - Not production-ready and not security-audited.
 - Do not expose early deployments directly to the public internet.
-- Test with disposable fixtures or copied GnuCash SQL books first, keep backups, and keep `.env`, app DBs, GnuCash books, backups, private exports/screenshots, secrets, tokens, keys, and certs out of git.
-- Compatibility evidence remains intentionally narrow; no broad PostgreSQL/MySQL/MariaDB/XML/all-version compatibility is claimed.
-- No hosted SaaS readiness, collaborative accounting, family-wallet positioning, real-time multi-user editing, CSV/OFX import, banking integration, or safe production write mode is claimed.
+- Test with disposable fixtures or copied GnuCash SQL books first, keep backups, and keep `.env`,
+  app DBs, GnuCash books, backups, private exports/screenshots, secrets, tokens, keys, and certs out
+  of git.
+- Compatibility evidence remains intentionally narrow; no broad
+  PostgreSQL/MySQL/MariaDB/XML/all-version compatibility is claimed.
+- No hosted SaaS readiness, collaborative accounting, family-wallet positioning, real-time
+  multi-user editing, CSV/OFX import, banking integration, or safe production write mode is claimed.
 
 ## [0.1.2-readonly] - 2026-05-19
 
 ### Added
 
-- Phase 117 — published `v0.1.2-readonly` as an annotated git tag and GitHub pre-release after preflight confirmed clean `main`, `HEAD == origin/main`, GitHub #38 closed, tag/release absence, recent GitHub Actions success, Docker Compose config validity, whitespace diff check, and sensitive tracked-file hygiene. No packages were published.
-- Phase 116 — completed GitHub #38 copied personal-book dogfood with a local-only Docker/Caddy read-only run against Val's provided safe copied book archive, recording only redacted route/status evidence and no private book data, app DB, screenshots, CSV exports, `.env`, paths, names, descriptions, memos, amounts, secrets, tags, releases, or packages.
-- Phase 115 — prepared conservative `v0.1.2-readonly` release notes, release-prep checklist, and final-gate artifact for the maintenance pre-release without publishing a tag, GitHub release, package, or changing the default read-only/write-disabled posture.
-- Phase 114 — added a durable headless Chromium/CDP browser dogfood helper and recorded a synthetic/disposable Docker/Caddy UI/API dogfood refresh covering login, dashboard, accounts, books, scheduled awareness, transaction filters, account/transaction detail, CSV export, and disabled-write probes with `GNUCASH_WRITES_ENABLED=false`.
-- Phase 113 — added a Russian accounting/safety glossary and localized the transaction filter/CSV export UI slice through the existing message catalog, while keeping English canonical, translation partial, URL-only filters, and read-only/export warnings intact.
-- Phase 112 — added safe CORS deployment posture diagnostics to `/health` and startup logs, warning when `CORS_ORIGINS` contains `*` while `APP_ENV` is not development-like, and documented exact localhost/LAN/VPN origin examples without production-readiness claims.
-- Phase 111 — added a safe GnuCash Desktop/CLI tooling availability probe for compatibility evidence, documented that the local environment has no `gnucash`/`gnucash-cli`, and kept Desktop-generated compatibility claims explicitly blocked until a disposable Desktop environment exists.
-- Phase 110 — hardened the read-only `/books` metadata UX with explicit access role/status/read-only metadata, safe book-context links to existing read-only views, stronger no-management-action copy, and regression coverage that archived/unauthorized books remain hidden or blocked.
-- Phase 109 — added a conservative read-only scheduled/recurring transaction awareness API and `/scheduled` UI page that expose only safe summary metadata, avoid next-run predictions and template split details, and keep GnuCash Desktop as the authoritative editor.
+- Phase 117 — published `v0.1.2-readonly` as an annotated git tag and GitHub pre-release after
+  preflight confirmed clean `main`, `HEAD == origin/main`, GitHub #38 closed, tag/release absence,
+  recent GitHub Actions success, Docker Compose config validity, whitespace diff check, and
+  sensitive tracked-file hygiene. No packages were published.
+- Phase 116 — completed GitHub #38 copied personal-book dogfood with a local-only Docker/Caddy
+  read-only run against Val's provided safe copied book archive, recording only redacted
+  route/status evidence and no private book data, app DB, screenshots, CSV exports, `.env`, paths,
+  names, descriptions, memos, amounts, secrets, tags, releases, or packages.
+- Phase 115 — prepared conservative `v0.1.2-readonly` release notes, release-prep checklist, and
+  final-gate artifact for the maintenance pre-release without publishing a tag, GitHub release,
+  package, or changing the default read-only/write-disabled posture.
+- Phase 114 — added a durable headless Chromium/CDP browser dogfood helper and recorded a
+  synthetic/disposable Docker/Caddy UI/API dogfood refresh covering login, dashboard, accounts,
+  books, scheduled awareness, transaction filters, account/transaction detail, CSV export, and
+  disabled-write probes with `GNUCASH_WRITES_ENABLED=false`.
+- Phase 113 — added a Russian accounting/safety glossary and localized the transaction filter/CSV
+  export UI slice through the existing message catalog, while keeping English canonical, translation
+  partial, URL-only filters, and read-only/export warnings intact.
+- Phase 112 — added safe CORS deployment posture diagnostics to `/health` and startup logs, warning
+  when `CORS_ORIGINS` contains `*` while `APP_ENV` is not development-like, and documented exact
+  localhost/LAN/VPN origin examples without production-readiness claims.
+- Phase 111 — added a safe GnuCash Desktop/CLI tooling availability probe for compatibility
+  evidence, documented that the local environment has no `gnucash`/`gnucash-cli`, and kept
+  Desktop-generated compatibility claims explicitly blocked until a disposable Desktop environment
+  exists.
+- Phase 110 — hardened the read-only `/books` metadata UX with explicit access role/status/read-only
+  metadata, safe book-context links to existing read-only views, stronger no-management-action copy,
+  and regression coverage that archived/unauthorized books remain hidden or blocked.
+- Phase 109 — added a conservative read-only scheduled/recurring transaction awareness API and
+  `/scheduled` UI page that expose only safe summary metadata, avoid next-run predictions and
+  template split details, and keep GnuCash Desktop as the authoritative editor.
 
 ### Fixed
 
-- Phase 105 — synchronized local release/status documentation and the existing GitHub release body for the already published `v0.1.1-readonly` pre-release. This corrected stale release-prep-only wording, updated README/PROJECT_STATUS/release notes to name `v0.1.1-readonly` as the current public read-only pre-alpha release, and documented the guardrail that release/status docs must be updated in the same phase as factual release-state changes. No product code, tag, release, package, write-mode setting, private data, or real GnuCash book was changed.
+- Phase 105 — synchronized local release/status documentation and the existing GitHub release body
+  for the already published `v0.1.1-readonly` pre-release. This corrected stale release-prep-only
+  wording, updated README/PROJECT_STATUS/release notes to name `v0.1.1-readonly` as the current
+  public read-only pre-alpha release, and documented the guardrail that release/status docs must be
+  updated in the same phase as factual release-state changes. No product code, tag, release,
+  package, write-mode setting, private data, or real GnuCash book was changed.
 
 ### Release notes
 
-- `v0.1.2-readonly` was published as a GitHub pre-release on 2026-05-19 after Phase 116 copied personal-book dogfood passed with redacted evidence and GitHub #38 was closed.
-- This remains a conservative pre-alpha/read-only release. `GNUCASH_WRITES_ENABLED=false` remains the default; controlled-write code is experimental post-MVP work outside this release scope.
+- `v0.1.2-readonly` was published as a GitHub pre-release on 2026-05-19 after Phase 116 copied
+  personal-book dogfood passed with redacted evidence and GitHub #38 was closed.
+- This remains a conservative pre-alpha/read-only release. `GNUCASH_WRITES_ENABLED=false` remains
+  the default; controlled-write code is experimental post-MVP work outside this release scope.
 
 ### Known limitations
 
 - Not production-ready and not security-audited.
 - Do not expose early deployments directly to the public internet.
-- Test with disposable fixtures or copied GnuCash SQL books first, keep backups, and keep `.env`, app DBs, GnuCash books, backups, private exports/screenshots, secrets, tokens, keys, and certs out of git.
-- Compatibility evidence remains intentionally narrow; no broad PostgreSQL/MySQL/MariaDB/XML/all-version compatibility is claimed.
-- Phase 116 personal copied-book dogfood evidence is intentionally redacted and does not include private paths, account names, transaction descriptions, memos, amounts, SQL dumps, screenshots, CSV bodies, app DB contents, tokens, or secrets.
-- No hosted SaaS readiness, collaborative accounting, family-wallet positioning, real-time multi-user editing, CSV/OFX import, banking integration, or safe production write mode is claimed.
+- Test with disposable fixtures or copied GnuCash SQL books first, keep backups, and keep `.env`,
+  app DBs, GnuCash books, backups, private exports/screenshots, secrets, tokens, keys, and certs out
+  of git.
+- Compatibility evidence remains intentionally narrow; no broad
+  PostgreSQL/MySQL/MariaDB/XML/all-version compatibility is claimed.
+- Phase 116 personal copied-book dogfood evidence is intentionally redacted and does not include
+  private paths, account names, transaction descriptions, memos, amounts, SQL dumps, screenshots,
+  CSV bodies, app DB contents, tokens, or secrets.
+- No hosted SaaS readiness, collaborative accounting, family-wallet positioning, real-time
+  multi-user editing, CSV/OFX import, banking integration, or safe production write mode is claimed.
 
 ## [0.1.1-readonly] - 2026-05-18
 
 ### Fixed
 
-- Phase 81 — redacted default-book seed logs so startup logs no longer expose full configured book paths or connection URI details.
-- Phase 82 — expanded read-only multi-book access-boundary regression coverage for archived and unauthorized books across route families.
-- Phase 83 — hardened frontend money-display decisions to avoid using `Number()` for money-string display logic.
-- Phase 84 — added CSV export response headers and frontend proxy forwarding for export limit, total, truncation, and timeout policy metadata.
-- Phase 95 — fixed GitHub #39: read-only CSV export now fetches up to the documented 10,000-row export cap instead of inheriting the historical 500-row list-service clamp. Regression coverage and synthetic benchmark evidence confirmed correct row-count/header behavior.
-- Phase 96 — confirmed the Phase 95 CSV export fix through the generated synthetic large-book benchmark path; a 1,000-transaction generated run returned 1,000 CSV data rows with matching expected-body metadata.
+- Phase 81 — redacted default-book seed logs so startup logs no longer expose full configured book
+  paths or connection URI details.
+- Phase 82 — expanded read-only multi-book access-boundary regression coverage for archived and
+  unauthorized books across route families.
+- Phase 83 — hardened frontend money-display decisions to avoid using `Number()` for money-string
+  display logic.
+- Phase 84 — added CSV export response headers and frontend proxy forwarding for export limit,
+  total, truncation, and timeout policy metadata.
+- Phase 95 — fixed GitHub #39: read-only CSV export now fetches up to the documented 10,000-row
+  export cap instead of inheriting the historical 500-row list-service clamp. Regression coverage
+  and synthetic benchmark evidence confirmed correct row-count/header behavior.
+- Phase 96 — confirmed the Phase 95 CSV export fix through the generated synthetic large-book
+  benchmark path; a 1,000-transaction generated run returned 1,000 CSV data rows with matching
+  expected-body metadata.
 
 ### Added
 
-- Phase 86 — added a redacted copied-book preflight helper for future safe personal-book dogfood attempts.
-- Phase 87 through Phase 89 — expanded generated/synthetic benchmark coverage for large books, many-splits transactions, and dashboard aggregate paths without broad production-performance claims.
-- Phase 90 — added a readable transaction active-filter summary and copy stating that the same filters apply to the read-only list and CSV export.
-- Phase 91 — added a read-only `/books` metadata page for accessible configured books without upload, deletion, registry editing, GnuCash data editing, collaborative, or family-wallet workflow.
-- Phase 92 — added safe GnuCash compatibility metadata collection for copied/disposable SQLite books without exposing private paths or financial details.
-- Phase 93 — added a narrow Russian localization slice while keeping English canonical and translation status honest.
-- Phase 103 — added read-only transaction date-range preset links for `This month`, `Last month`, `Year to date`, and `Clear dates`; presets use the existing date query parameters, preserve other active filters, and keep CSV export parity.
-- Phase 104 — broadened the existing read-only transaction `query` filter so transaction list/count, account transaction lists, and CSV export match split memo text as well as transaction descriptions, case-insensitively.
+- Phase 86 — added a redacted copied-book preflight helper for future safe personal-book dogfood
+  attempts.
+- Phase 87 through Phase 89 — expanded generated/synthetic benchmark coverage for large books,
+  many-splits transactions, and dashboard aggregate paths without broad production-performance
+  claims.
+- Phase 90 — added a readable transaction active-filter summary and copy stating that the same
+  filters apply to the read-only list and CSV export.
+- Phase 91 — added a read-only `/books` metadata page for accessible configured books without
+  upload, deletion, registry editing, GnuCash data editing, collaborative, or family-wallet
+  workflow.
+- Phase 92 — added safe GnuCash compatibility metadata collection for copied/disposable SQLite books
+  without exposing private paths or financial details.
+- Phase 93 — added a narrow Russian localization slice while keeping English canonical and
+  translation status honest.
+- Phase 103 — added read-only transaction date-range preset links for `This month`, `Last month`,
+  `Year to date`, and `Clear dates`; presets use the existing date query parameters, preserve other
+  active filters, and keep CSV export parity.
+- Phase 104 — broadened the existing read-only transaction `query` filter so transaction list/count,
+  account transaction lists, and CSV export match split memo text as well as transaction
+  descriptions, case-insensitively.
 
 ### Release notes
 
-- `v0.1.1-readonly` was published as a GitHub pre-release on 2026-05-18 and the tag points to `a4d04150c043ad4da3dea577b30ed7ffd2032df0`, after Phase 104. Its published scope therefore includes the Phase 103/104 read-only transaction date-preset and split-memo search changes.
-- This remains a conservative pre-alpha/read-only release. `GNUCASH_WRITES_ENABLED=false` remains the default; controlled-write code is experimental post-MVP work outside this release scope.
+- `v0.1.1-readonly` was published as a GitHub pre-release on 2026-05-18 and the tag points to
+  `a4d04150c043ad4da3dea577b30ed7ffd2032df0`, after Phase 104. Its published scope therefore
+  includes the Phase 103/104 read-only transaction date-preset and split-memo search changes.
+- This remains a conservative pre-alpha/read-only release. `GNUCASH_WRITES_ENABLED=false` remains
+  the default; controlled-write code is experimental post-MVP work outside this release scope.
 
 ### Known limitations
 
 - Not production-ready and not security-audited.
 - Do not expose early deployments directly to the public internet.
-- Test with disposable fixtures or copied GnuCash SQL books first, keep backups, and keep `.env`, app DBs, GnuCash books, backups, private exports/screenshots, secrets, tokens, keys, and certs out of git.
-- GitHub #38 remains open/blocked until a safe copied personal GnuCash SQL book is available outside git for a local-only dogfood rerun.
-- Compatibility evidence remains intentionally narrow; no broad PostgreSQL/MySQL/MariaDB/XML/all-version or arbitrary real-world-book compatibility is claimed.
-- No hosted SaaS readiness, collaborative accounting, family-wallet positioning, real-time multi-user editing, CSV/OFX import, banking integration, or safe production write mode is claimed.
+- Test with disposable fixtures or copied GnuCash SQL books first, keep backups, and keep `.env`,
+  app DBs, GnuCash books, backups, private exports/screenshots, secrets, tokens, keys, and certs out
+  of git.
+- GitHub #38 remains open/blocked until a safe copied personal GnuCash SQL book is available outside
+  git for a local-only dogfood rerun.
+- Compatibility evidence remains intentionally narrow; no broad
+  PostgreSQL/MySQL/MariaDB/XML/all-version or arbitrary real-world-book compatibility is claimed.
+- No hosted SaaS readiness, collaborative accounting, family-wallet positioning, real-time
+  multi-user editing, CSV/OFX import, banking integration, or safe production write mode is claimed.
 
 ## [0.1.0-readonly] - 2026-05-18
 
 ### Added
 
-- Phase 43 — local secure deployment guide for conservative localhost, LAN, and VPN-only self-host testing while keeping writes disabled by default.
-- Phase 44 — backup and recovery runbook for app metadata DB, copied GnuCash books, Docker data paths, restore dry-runs, and experimental controlled-write pre-write backup expectations.
-- Phase 45 — GnuCash real-version compatibility fixture plan covering target versions, fixture data model, safe generation/storage policy, and acceptance tests for issue #22.
-- Phase 46 — generated disposable GnuCash SQLite compatibility fixture v1 path with read-only service tests for account tree, transaction list, split detail, reports, and checksum no-mutation behavior.
-- Phase 48 through Phase 50 — read-only core UX polish, transaction search/filter hardening, and book switcher stabilization.
-- Phase 52 and Phase 53 — Russian localization planning/i18n foundation plus conservative community announcement materials.
-- Phase 54 — structured safe startup diagnostics, richer non-sensitive `/health` payload, and self-hosted troubleshooting guidance.
-- Phase 77 and Phase 78 — copied/disposable-data Docker/API/browser dogfood evidence, including the `/login` redirect-loop fix and CSV export proxy behavior.
+- Phase 43 — local secure deployment guide for conservative localhost, LAN, and VPN-only self-host
+  testing while keeping writes disabled by default.
+- Phase 44 — backup and recovery runbook for app metadata DB, copied GnuCash books, Docker data
+  paths, restore dry-runs, and experimental controlled-write pre-write backup expectations.
+- Phase 45 — GnuCash real-version compatibility fixture plan covering target versions, fixture data
+  model, safe generation/storage policy, and acceptance tests for issue #22.
+- Phase 46 — generated disposable GnuCash SQLite compatibility fixture v1 path with read-only
+  service tests for account tree, transaction list, split detail, reports, and checksum no-mutation
+  behavior.
+- Phase 48 through Phase 50 — read-only core UX polish, transaction search/filter hardening, and
+  book switcher stabilization.
+- Phase 52 and Phase 53 — Russian localization planning/i18n foundation plus conservative community
+  announcement materials.
+- Phase 54 — structured safe startup diagnostics, richer non-sensitive `/health` payload, and
+  self-hosted troubleshooting guidance.
+- Phase 77 and Phase 78 — copied/disposable-data Docker/API/browser dogfood evidence, including the
+  `/login` redirect-loop fix and CSV export proxy behavior.
 - Phase 79 — conservative `v0.1.0-readonly` release notes and final release-gate artifact.
-- Phase 80 — published `v0.1.0-readonly` as an annotated git tag on commit `8180d555d71feaaf008d3edafeaa24dffd3dcfdb` and created the GitHub pre-release using `docs/release/v0.1.0-readonly-notes.md`.
+- Phase 80 — published `v0.1.0-readonly` as an annotated git tag on commit
+  `8180d555d71feaaf008d3edafeaa24dffd3dcfdb` and created the GitHub pre-release using
+  `docs/release/v0.1.0-readonly-notes.md`.
 
 ### Security
 
-- Multiple audit phases re-verified read-only/default-write-disabled posture, httpOnly auth-cookie expectations, private-data hygiene, conservative deployment warnings, and limited compatibility claims.
-- `GNUCASH_WRITES_ENABLED=false` remained the default; controlled writes remained experimental/post-MVP.
+- Multiple audit phases re-verified read-only/default-write-disabled posture, httpOnly auth-cookie
+  expectations, private-data hygiene, conservative deployment warnings, and limited compatibility
+  claims.
+- `GNUCASH_WRITES_ENABLED=false` remained the default; controlled writes remained
+  experimental/post-MVP.
 
 ### Known limitations
 
@@ -416,15 +959,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Phase 30 — frontend amount range filters for read-only transaction browsing and CSV export.
 - Phase 31 — global read-only safety status banner in the authenticated web shell.
 - Phase 32 — backend write-gating regression coverage for disabled validate/create/patch routes.
-- Phase 33 — controlled-writes documentation cleanup and public status sync after disabled-write regression coverage.
+- Phase 33 — controlled-writes documentation cleanup and public status sync after disabled-write
+  regression coverage.
 - Phase 34 — public README/status baseline sync through the Phase 33 baseline.
-- Phase 35 — audit-driven public status sync through Phase 34 and controlled-writes limitation cleanup.
+- Phase 35 — audit-driven public status sync through Phase 34 and controlled-writes limitation
+  cleanup.
 - Phase 36 — write-mode UI warning and explicit confirmation for experimental controlled writes.
 - Phase 37 — independent audit and baseline sync after Phase 36.
 - Phase 38 — personal read-only dogfood guide and manual smoke checklist for copied GnuCash books.
 - Phase 39 — automated read-only API smoke script for local Docker deployments.
-- Phase 40 — `v0.0.2-prealpha` release-candidate checklist and notes cleanup without publishing a tag/release.
-- Phase 41 — `v0.0.2-prealpha` release-gate audit and release-documentation hygiene cleanup without publishing a tag/release.
+- Phase 40 — `v0.0.2-prealpha` release-candidate checklist and notes cleanup without publishing a
+  tag/release.
+- Phase 41 — `v0.0.2-prealpha` release-gate audit and release-documentation hygiene cleanup without
+  publishing a tag/release.
 - Phase 42 — published `v0.0.2-prealpha` after the Phase 41 gate and green local/GitHub checks.
 
 ### Security
@@ -433,19 +980,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Multi-currency reporting limitations documented and tested.
 - Independent audit report refreshed for Phase 29 with read-only/default-write checks.
 - Authenticated app shell now displays a persistent read-only-by-default reminder.
-- Disabled-write API regression tests now prove validate/create/patch return read-only 403 responses without constructing the write service.
-- Controlled-writes documentation now reflects file-based locking, backup restore smoke coverage, and disabled-write bypass regression coverage as completed safety work while write mode remains experimental and disabled by default.
-- Controlled-writes limitations now correctly state that frontend amount range filters exist for read-only browsing and CSV export.
-- Experimental write mode now shows a prominent UI warning and requires explicit acknowledgement before final create submission while remaining disabled by default.
-- Release-gate audit re-verified disabled-write gating and tracked-file sensitive-data hygiene before `v0.0.2-prealpha` publication.
+- Disabled-write API regression tests now prove validate/create/patch return read-only 403 responses
+  without constructing the write service.
+- Controlled-writes documentation now reflects file-based locking, backup restore smoke coverage,
+  and disabled-write bypass regression coverage as completed safety work while write mode remains
+  experimental and disabled by default.
+- Controlled-writes limitations now correctly state that frontend amount range filters exist for
+  read-only browsing and CSV export.
+- Experimental write mode now shows a prominent UI warning and requires explicit acknowledgement
+  before final create submission while remaining disabled by default.
+- Release-gate audit re-verified disabled-write gating and tracked-file sensitive-data hygiene
+  before `v0.0.2-prealpha` publication.
 
 ### Known limitations
 
 - Pre-alpha only; no production-readiness guarantee.
 - piecash write compatibility not guaranteed for all GnuCash versions.
-- Transaction amount range filters are available for browsing and CSV export; advanced export customization is still limited.
+- Transaction amount range filters are available for browsing and CSV export; advanced export
+  customization is still limited.
 - Multi-book UI is structural; full multi-user access control is post-MVP.
-- Compatibility matrix currently covers committed synthetic SQLite fixtures only; PostgreSQL/MySQL/MariaDB, XML books, and multiple desktop-generated versions are not yet validated.
+- Compatibility matrix currently covers committed synthetic SQLite fixtures only;
+  PostgreSQL/MySQL/MariaDB, XML books, and multiple desktop-generated versions are not yet
+  validated.
 
 ## [0.0.1] - 2026-05-16
 
@@ -453,17 +1009,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Initial public skeleton / MVP foundation.
 - AGPL-3.0 license.
-- README with project overview, honest pre-alpha status, safety warnings, and release/tag instructions.
+- README with project overview, honest pre-alpha status, safety warnings, and release/tag
+  instructions.
 - SECURITY.md with private vulnerability reporting guidance and pre-alpha safety warnings.
 - CONTRIBUTING.md with current backend/frontend setup and sensitive data policy.
 - CODE_OF_CONDUCT.md (Contributor Covenant 2.1).
 - `.env.example` with documented bootstrap and GnuCash book configuration.
 - `.gitignore` rules for environment files, GnuCash book files, backups, and secrets.
 - GitHub issue templates, pull request template, and funding metadata placeholder.
-- GitHub Actions CI for required-file checks, sensitive tracked-file checks, frontend checks, backend tests, and Docker Compose validation.
-- Documentation for architecture, MVP scope, roadmap, security model, GnuCash safety, development, competitive review, and product positioning.
-- SvelteKit frontend skeleton with login flow, dashboard, accounts, transactions, theme system, mobile navigation, and PWA manifest foundation.
-- FastAPI backend skeleton with health endpoint, authentication, app metadata database, book registry/access services, and read-only book APIs.
+- GitHub Actions CI for required-file checks, sensitive tracked-file checks, frontend checks,
+  backend tests, and Docker Compose validation.
+- Documentation for architecture, MVP scope, roadmap, security model, GnuCash safety, development,
+  competitive review, and product positioning.
+- SvelteKit frontend skeleton with login flow, dashboard, accounts, transactions, theme system,
+  mobile navigation, and PWA manifest foundation.
+- FastAPI backend skeleton with health endpoint, authentication, app metadata database, book
+  registry/access services, and read-only book APIs.
 - `piecash` integration through a read-only service layer for GnuCash SQL books.
 - Read-only account, transaction, and report DTOs/API endpoints.
 - Docker Compose deployment scaffold with API, web, and Caddy proxy services.
