@@ -4,6 +4,9 @@ import type { PageServerLoad } from './$types';
 
 const SAFE_ACTIONS = new Set(['transaction.create', 'transaction.patch', 'transaction.delete']);
 const SAFE_RESULTS = new Set(['started', 'success', 'failed', 'unknown']);
+const DEFAULT_LIMIT = 25;
+const MAX_LIMIT = 100;
+const MAX_OFFSET = 10000;
 
 function safeParam(searchParams: URLSearchParams, key: string, allowed?: Set<string>): string | null {
 	const value = searchParams.get(key)?.trim() ?? '';
@@ -16,10 +19,24 @@ function safeParam(searchParams: URLSearchParams, key: string, allowed?: Set<str
 	return value;
 }
 
+function safeIntegerParam(searchParams: URLSearchParams, key: string, fallback: number, min: number, max: number): number {
+	const value = searchParams.get(key)?.trim() ?? '';
+	if (!/^\d+$/.test(value)) {
+		return fallback;
+	}
+	const parsed = Number(value);
+	if (!Number.isSafeInteger(parsed) || parsed < min || parsed > max) {
+		return fallback;
+	}
+	return parsed;
+}
+
 export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 	const token = getAuthToken(cookies);
 	const { books, activeBook, bookPrefix } = await getActiveBookContext(fetch, cookies, token);
-	const params = new URLSearchParams({ limit: '25' });
+	const limit = safeIntegerParam(url.searchParams, 'limit', DEFAULT_LIMIT, 1, MAX_LIMIT);
+	const offset = safeIntegerParam(url.searchParams, 'offset', 0, 0, MAX_OFFSET);
+	const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
 	const action = safeParam(url.searchParams, 'action', SAFE_ACTIONS);
 	const result = safeParam(url.searchParams, 'result', SAFE_RESULTS);
 	const since = safeParam(url.searchParams, 'since');
@@ -40,6 +57,6 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 		books,
 		activeBook,
 		auditSummary,
-		filters: { action, result, since, until }
+		filters: { action, result, since, until, limit, offset }
 	};
 };

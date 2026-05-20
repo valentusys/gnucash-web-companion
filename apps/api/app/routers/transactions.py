@@ -692,6 +692,7 @@ def _ensure_write_alpha_test_scope(settings: Settings) -> None:
 async def get_write_alpha_audit_summary(
     book_id: int,
     limit: int = Query(25, ge=1, le=100),
+    offset: int = Query(0, ge=0, le=10000),
     action: str | None = Query(None, min_length=1, max_length=64),
     result: str | None = Query(None, min_length=1, max_length=32),
     since: str | None = Query(None, max_length=40),
@@ -743,7 +744,9 @@ async def get_write_alpha_audit_summary(
         log_result = _audit_log_result(log)
         counts_by_result[log_result] = counts_by_result.get(log_result, 0) + 1
 
-    logs = filtered_logs[:limit]
+    logs = filtered_logs[offset : offset + limit]
+    next_offset = offset + limit if offset + limit < len(filtered_logs) else None
+    previous_offset = max(offset - limit, 0) if offset > 0 else None
     returned_timestamps = [
         _safe_audit_timestamp(log, _audit_summary_payload(log)) for log in logs
     ]
@@ -759,6 +762,15 @@ async def get_write_alpha_audit_summary(
             "since": since_dt.isoformat() if since_dt else None,
             "until": until_dt.isoformat() if until_dt else None,
             "limit": limit,
+            "offset": offset,
+        },
+        pagination={
+            "limit": limit,
+            "offset": offset,
+            "next_offset": next_offset,
+            "previous_offset": previous_offset,
+            "has_next": next_offset is not None,
+            "has_previous": previous_offset is not None,
         },
         time_window={
             "requested_since": since_dt.isoformat() if since_dt else None,
@@ -768,7 +780,7 @@ async def get_write_alpha_audit_summary(
         },
         status_summary=[
             f"Filtered rows: {len(filtered_logs)}",
-            f"Returned rows: {len(logs)} of at most {limit}",
+            f"Returned rows: {len(logs)} of at most {limit} from offset {offset}",
             "Rows are redacted to action/result/timestamp/opaque transaction prefix/backup-present/safe-error only.",
         ],
         items=[_audit_summary_item(log) for log in logs],

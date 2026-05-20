@@ -108,6 +108,10 @@ class WriteAlphaAuditSummaryDTO(BaseModel):
     filters: dict[str, str | int | None] = Field(
         default_factory=dict, description="Applied non-sensitive filter metadata"
     )
+    pagination: dict[str, int | bool | None] = Field(
+        default_factory=dict,
+        description="Bounded limit/offset review metadata without exposing raw audit payloads",
+    )
     time_window: dict[str, str | None] = Field(
         default_factory=dict, description="Safe requested and returned timestamp window metadata"
     )

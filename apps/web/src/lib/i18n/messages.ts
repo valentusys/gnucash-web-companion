@@ -199,6 +199,7 @@ export type MessageKey =
 	| 'audit.untilIso'
 	| 'audit.applyFilters'
 	| 'audit.clearFilters'
+	| 'audit.limit'
 	| 'audit.countsLabel'
 	| 'audit.filteredRows'
 	| 'audit.returnedCount'
@@ -214,6 +215,11 @@ export type MessageKey =
 	| 'audit.emptyMessage'
 	| 'audit.browseTransactions'
 	| 'audit.showingEntries'
+	| 'audit.pageStatus'
+	| 'audit.paginationLabel'
+	| 'audit.paginationSummary'
+	| 'audit.previousPage'
+	| 'audit.nextPage'
 	| 'audit.timestamp'
 	| 'audit.txnPrefix'
 	| 'audit.backupSafeError'
@@ -548,6 +554,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'audit.untilIso': 'Until ISO',
 		'audit.applyFilters': 'Apply filters',
 		'audit.clearFilters': 'Clear filters',
+		'audit.limit': 'Rows per page',
 		'audit.countsLabel': 'Audit summary counts',
 		'audit.filteredRows': 'Filtered rows',
 		'audit.returnedCount': 'Returned: {count}',
@@ -565,6 +572,11 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'audit.browseTransactions': 'Browse transactions',
 		'audit.showingEntries':
 			'Showing {returned} of {total} redacted audit entries. Backup is represented only as present/missing.',
+		'audit.pageStatus': 'Page offset {offset}; bounded page size {limit}.',
+		'audit.paginationLabel': 'Audit summary pagination',
+		'audit.paginationSummary': 'Review page offset {offset}, limit {limit}. Filters stay in the URL only.',
+		'audit.previousPage': 'Previous page',
+		'audit.nextPage': 'Next page',
 		'audit.timestamp': 'Timestamp',
 		'audit.txnPrefix': 'Txn prefix',
 		'audit.backupSafeError': 'Backup / safe error',
@@ -918,6 +930,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'audit.untilIso': 'Until ISO',
 		'audit.applyFilters': 'Применить фильтры',
 		'audit.clearFilters': 'Сбросить фильтры',
+		'audit.limit': 'Строк на странице',
 		'audit.countsLabel': 'Счётчики audit summary',
 		'audit.filteredRows': 'Отфильтрованные строки',
 		'audit.returnedCount': 'Вернулось: {count}',
@@ -935,6 +948,11 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'audit.browseTransactions': 'Открыть транзакции',
 		'audit.showingEntries':
 			'Показано {returned} из {total} redacted audit entries. Backup представлен только как present/missing.',
+		'audit.pageStatus': 'Offset страницы {offset}; ограниченный размер страницы {limit}.',
+		'audit.paginationLabel': 'Пагинация audit summary',
+		'audit.paginationSummary': 'Страница review: offset {offset}, limit {limit}. Фильтры остаются только в URL.',
+		'audit.previousPage': 'Предыдущая страница',
+		'audit.nextPage': 'Следующая страница',
 		'audit.timestamp': 'Timestamp',
 		'audit.txnPrefix': 'Txn prefix',
 		'audit.backupSafeError': 'Backup / safe error',

@@ -257,9 +257,17 @@ class TestWriteAlphaAuditSummary:
         assert data["time_window"]["oldest_returned"] == "2026-05-20T10:00:00+00:00"
         assert data["status_summary"] == [
             "Filtered rows: 3",
-            "Returned rows: 3 of at most 25",
+            "Returned rows: 3 of at most 25 from offset 0",
             "Rows are redacted to action/result/timestamp/opaque transaction prefix/backup-present/safe-error only.",
         ]
+        assert data["pagination"] == {
+            "limit": 25,
+            "offset": 0,
+            "next_offset": None,
+            "previous_offset": None,
+            "has_next": False,
+            "has_previous": False,
+        }
 
         delete_item, patch_item, create_item = data["items"]
         assert delete_item["transaction_id_prefix"] == "deadbeef"
@@ -312,6 +320,76 @@ class TestWriteAlphaAuditSummary:
             "transaction.delete": 1,
         }
         assert data["counts_by_result"]["success"] == 1
+
+    def test_large_synthetic_audit_table_is_bounded_and_pageable(self, client, session_factory, sample_book_with_audit, auth_headers):
+        with session_factory() as session:
+            admin = session.query(User).filter(User.username == "admin").one()
+            for index in range(150):
+                session.add(
+                    AuditLog(
+                        user_id=admin.id,
+                        book_id=sample_book_with_audit,
+                        action="transaction.create",
+                        payload_json=json.dumps(
+                            {
+                                "result": "success" if index % 2 == 0 else "failed",
+                                "timestamp": f"2026-05-20T12:{index % 60:02d}:00+00:00",
+                                "transaction_id": f"abcdef{index:010d}",
+                                "backup_path": f"/data/backups/private/{index}.sqlite",
+                                "request_summary": {
+                                    "description": f"PRIVATE MEMO {index}",
+                                    "account_name": "Assets:Private",
+                                    "amount": "12345.67",
+                                },
+                            }
+                        ),
+                        created_at=datetime(2026, 5, 20, 12, index % 60, tzinfo=timezone.utc),
+                    )
+                )
+            session.commit()
+
+        first_response = client.get(
+            f"/books/{sample_book_with_audit}/write-alpha-audit-summary?limit=10&offset=0",
+            headers=auth_headers,
+        )
+        second_response = client.get(
+            f"/books/{sample_book_with_audit}/write-alpha-audit-summary?limit=10&offset=10",
+            headers=auth_headers,
+        )
+
+        assert first_response.status_code == 200
+        assert second_response.status_code == 200
+        first_page = first_response.json()
+        second_page = second_response.json()
+        assert first_page["total_count"] == 153
+        assert first_page["returned_count"] == 10
+        assert len(first_page["items"]) == 10
+        assert first_page["pagination"] == {
+            "limit": 10,
+            "offset": 0,
+            "next_offset": 10,
+            "previous_offset": None,
+            "has_next": True,
+            "has_previous": False,
+        }
+        assert second_page["returned_count"] == 10
+        assert second_page["pagination"]["offset"] == 10
+        assert second_page["pagination"]["next_offset"] == 20
+        assert second_page["pagination"]["previous_offset"] == 0
+        assert {item["id"] for item in first_page["items"]}.isdisjoint(
+            {item["id"] for item in second_page["items"]}
+        )
+
+        encoded = json.dumps({"first": first_page, "second": second_page})
+        for forbidden in [
+            "/data/backups",
+            "PRIVATE MEMO",
+            "Assets:Private",
+            "12345.67",
+            "request_summary",
+            "account_name",
+        ]:
+            assert forbidden not in encoded
 
     def test_redacts_malicious_payload_status_timestamp_ids_and_error_text(self, client, session_factory, sample_book_with_audit, auth_headers):
         with session_factory() as session:
