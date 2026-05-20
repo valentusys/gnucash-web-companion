@@ -97,4 +97,15 @@ class WriteAlphaAuditSummaryDTO(BaseModel):
 
     book_id: int = Field(..., description="Book ID whose app-metadata audit rows were summarized")
     items: list[WriteAlphaAuditSummaryItemDTO] = Field(default_factory=list)
+    total_count: int = Field(..., description="Total filtered audit rows before response limiting")
+    returned_count: int = Field(..., description="Number of redacted rows returned")
+    counts_by_action: dict[str, int] = Field(
+        default_factory=dict, description="Filtered row counts grouped by safe action label"
+    )
+    counts_by_result: dict[str, int] = Field(
+        default_factory=dict, description="Filtered row counts grouped by safe result label"
+    )
+    filters: dict[str, str | int | None] = Field(
+        default_factory=dict, description="Applied non-sensitive filter metadata"
+    )
     limitations: list[str] = Field(default_factory=list)

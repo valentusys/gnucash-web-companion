@@ -544,6 +544,8 @@ WRITE_ALPHA_AUDIT_ACTIONS = (
     "transaction.delete",
 )
 
+WRITE_ALPHA_AUDIT_RESULTS = ("started", "success", "failed", "unknown")
+
 
 def _safe_audit_error(value: object) -> str | None:
     """Return bounded operator-safe audit error text without filesystem/URI details."""
@@ -574,6 +576,37 @@ def _audit_summary_item(log: AuditLog) -> WriteAlphaAuditSummaryItemDTO:
         backup_present=bool(payload.get("backup_path")),
         error=_safe_audit_error(payload.get("error")),
     )
+
+
+def _parse_audit_window(value: str | None, label: str) -> datetime | None:
+    """Parse an ISO datetime filter without accepting path-like/private values."""
+    if value is None or not value.strip():
+        return None
+    text = value.strip()
+    if len(text) > 40 or "/" in text or "\\" in text:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Invalid {label} filter. Use an ISO timestamp.",
+        )
+    try:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Invalid {label} filter. Use an ISO timestamp.",
+        ) from exc
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed
+
+
+def _audit_log_result(log: AuditLog) -> str:
+    try:
+        payload = json.loads(log.payload_json or "{}")
+    except json.JSONDecodeError:
+        payload = {}
+    result = str(payload.get("result") or "unknown")
+    return result if result in WRITE_ALPHA_AUDIT_RESULTS else "unknown"
 
 
 def _request_summary(request: TransactionCreateRequestDTO) -> dict[str, Any]:
@@ -618,21 +651,68 @@ def _ensure_write_alpha_test_scope(settings: Settings) -> None:
 async def get_write_alpha_audit_summary(
     book_id: int,
     limit: int = Query(25, ge=1, le=100),
+    action: str | None = Query(None, min_length=1, max_length=64),
+    result: str | None = Query(None, min_length=1, max_length=32),
+    since: str | None = Query(None, max_length=40),
+    until: str | None = Query(None, max_length=40),
     user: User = Depends(get_current_user),
     session: Session = Depends(get_db),
 ) -> WriteAlphaAuditSummaryDTO:
     """Return a redacted read-only summary of write-alpha audit rows from app metadata."""
     book = _resolve_viewable_book(book_id, user, session)
     _require_book_edit_access(book, user, session)
-    logs = (
-        session.query(AuditLog)
-        .filter(AuditLog.book_id == book.id, AuditLog.action.in_(WRITE_ALPHA_AUDIT_ACTIONS))
-        .order_by(AuditLog.created_at.desc(), AuditLog.id.desc())
-        .limit(limit)
-        .all()
+    if action is not None and action not in WRITE_ALPHA_AUDIT_ACTIONS:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Unsupported audit action filter.",
+        )
+    if result is not None and result not in WRITE_ALPHA_AUDIT_RESULTS:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Unsupported audit result filter.",
+        )
+    since_dt = _parse_audit_window(since, "since")
+    until_dt = _parse_audit_window(until, "until")
+    if since_dt and until_dt and since_dt > until_dt:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Invalid audit time window: since must be before until.",
+        )
+
+    query = session.query(AuditLog).filter(
+        AuditLog.book_id == book.id,
+        AuditLog.action.in_(WRITE_ALPHA_AUDIT_ACTIONS),
     )
+    if action is not None:
+        query = query.filter(AuditLog.action == action)
+    if since_dt is not None:
+        query = query.filter(AuditLog.created_at >= since_dt)
+    if until_dt is not None:
+        query = query.filter(AuditLog.created_at <= until_dt)
+
+    candidate_logs = query.order_by(AuditLog.created_at.desc(), AuditLog.id.desc()).all()
+    filtered_logs = [log for log in candidate_logs if result is None or _audit_log_result(log) == result]
+    counts_by_action = {safe_action: 0 for safe_action in WRITE_ALPHA_AUDIT_ACTIONS}
+    counts_by_result = {safe_result: 0 for safe_result in WRITE_ALPHA_AUDIT_RESULTS}
+    for log in filtered_logs:
+        counts_by_action[log.action] = counts_by_action.get(log.action, 0) + 1
+        log_result = _audit_log_result(log)
+        counts_by_result[log_result] = counts_by_result.get(log_result, 0) + 1
+
+    logs = filtered_logs[:limit]
     return WriteAlphaAuditSummaryDTO(
         book_id=book.id,
+        total_count=len(filtered_logs),
+        returned_count=len(logs),
+        counts_by_action=counts_by_action,
+        counts_by_result=counts_by_result,
+        filters={
+            "action": action,
+            "result": result,
+            "since": since_dt.isoformat() if since_dt else None,
+            "until": until_dt.isoformat() if until_dt else None,
+            "limit": limit,
+        },
         items=[_audit_summary_item(log) for log in logs],
         limitations=[
             "Read-only app metadata summary for synthetic/disposable write-alpha runs only.",

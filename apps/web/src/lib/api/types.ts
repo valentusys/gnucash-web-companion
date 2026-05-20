@@ -179,5 +179,10 @@ export type WriteAlphaAuditSummaryItem = {
 export type WriteAlphaAuditSummary = {
 	book_id: number;
 	items: WriteAlphaAuditSummaryItem[];
+	total_count: number;
+	returned_count: number;
+	counts_by_action: Record<string, number>;
+	counts_by_result: Record<string, number>;
+	filters: Record<string, string | number | null>;
 	limitations: string[];
 };

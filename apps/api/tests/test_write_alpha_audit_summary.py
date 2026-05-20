@@ -70,6 +70,12 @@ def client(session_factory):
                     is_admin=False,
                 ),
                 User(
+                    username="editor",
+                    display_name="Editor",
+                    password_hash=hash_password("editorpass"),
+                    is_admin=False,
+                ),
+                User(
                     username="outsider",
                     display_name="Outsider",
                     password_hash=hash_password("outsiderpass"),
@@ -103,6 +109,11 @@ def viewer_headers(client):
 
 
 @pytest.fixture
+def editor_headers(client):
+    return _login(client, "editor", "editorpass")
+
+
+@pytest.fixture
 def outsider_headers(client):
     return _login(client, "outsider", "outsiderpass")
 
@@ -123,6 +134,7 @@ def sample_book_with_audit(session_factory) -> int:
         session.add_all(
             [
                 UserBookAccess(user_id=users["admin"].id, book_id=book.id, role="owner"),
+                UserBookAccess(user_id=users["editor"].id, book_id=book.id, role="editor"),
                 UserBookAccess(user_id=users["viewer"].id, book_id=book.id, role="viewer"),
             ]
         )
@@ -168,6 +180,26 @@ def sample_book_with_audit(session_factory) -> int:
                 AuditLog(
                     user_id=users["admin"].id,
                     book_id=book.id,
+                    action="transaction.delete",
+                    payload_json=json.dumps(
+                        {
+                            "action": "transaction.delete",
+                            "result": "success",
+                            "timestamp": "2026-05-20T10:10:00+00:00",
+                            "transaction_id": "deadbeef12345678",
+                            "backup_path": "/data/backups/private/delete-backup.sqlite",
+                            "deleted_summary": {
+                                "description": "PRIVATE DELETED TX",
+                                "account_name": "Assets:Private",
+                                "amount": "999.01",
+                            },
+                        }
+                    ),
+                    created_at=datetime(2026, 5, 20, 10, 10, tzinfo=timezone.utc),
+                ),
+                AuditLog(
+                    user_id=users["admin"].id,
+                    book_id=book.id,
                     action="auth.login",
                     payload_json=json.dumps({"secret": "not relevant"}),
                     created_at=datetime(2026, 5, 20, 10, 6, tzinfo=timezone.utc),
@@ -201,11 +233,27 @@ class TestWriteAlphaAuditSummary:
         data = response.json()
         assert data["book_id"] == sample_book_with_audit
         assert [item["action"] for item in data["items"]] == [
+            "transaction.delete",
             "transaction.patch",
             "transaction.create",
         ]
+        assert data["total_count"] == 3
+        assert data["returned_count"] == 3
+        assert data["counts_by_action"] == {
+            "transaction.create": 1,
+            "transaction.patch": 1,
+            "transaction.delete": 1,
+        }
+        assert data["counts_by_result"] == {
+            "started": 0,
+            "success": 2,
+            "failed": 1,
+            "unknown": 0,
+        }
 
-        patch_item, create_item = data["items"]
+        delete_item, patch_item, create_item = data["items"]
+        assert delete_item["transaction_id_prefix"] == "deadbeef"
+        assert delete_item["backup_present"] is True
         assert patch_item["transaction_id_prefix"] == "12345678"
         assert patch_item["backup_present"] is False
         assert patch_item["error"] == "Write-alpha request failed safely; check redacted operator evidence."
@@ -222,9 +270,59 @@ class TestWriteAlphaAuditSummary:
             "SECRET",
             "MEMO",
             "book-backup.sqlite",
+            "delete-backup.sqlite",
+            "PRIVATE DELETED TX",
+            "Assets:Private",
+            "999.01",
             "request_summary",
             "fields_updated",
+            "deleted_summary",
         ]:
             assert forbidden not in encoded
 
         assert any("Read-only app metadata" in limitation for limitation in data["limitations"])
+
+    def test_editor_can_filter_by_action_result_and_time_window(self, client, sample_book_with_audit, editor_headers):
+        response = client.get(
+            f"/books/{sample_book_with_audit}/write-alpha-audit-summary"
+            "?action=transaction.delete&result=success"
+            "&since=2026-05-20T10:09:00%2B00:00&until=2026-05-20T10:11:00%2B00:00",
+            headers=editor_headers,
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total_count"] == 1
+        assert data["returned_count"] == 1
+        assert [item["action"] for item in data["items"]] == ["transaction.delete"]
+        assert data["filters"]["action"] == "transaction.delete"
+        assert data["filters"]["result"] == "success"
+        assert data["counts_by_action"] == {
+            "transaction.create": 0,
+            "transaction.patch": 0,
+            "transaction.delete": 1,
+        }
+        assert data["counts_by_result"]["success"] == 1
+
+    def test_filter_empty_state_and_invalid_filters_are_safe(self, client, sample_book_with_audit, auth_headers):
+        empty_response = client.get(
+            f"/books/{sample_book_with_audit}/write-alpha-audit-summary?action=transaction.create&result=failed",
+            headers=auth_headers,
+        )
+        assert empty_response.status_code == 200
+        empty_data = empty_response.json()
+        assert empty_data["items"] == []
+        assert empty_data["total_count"] == 0
+        assert empty_data["counts_by_action"] == {
+            "transaction.create": 0,
+            "transaction.patch": 0,
+            "transaction.delete": 0,
+        }
+
+        invalid_response = client.get(
+            f"/books/{sample_book_with_audit}/write-alpha-audit-summary?since=/private/path/book.sqlite",
+            headers=auth_headers,
+        )
+        assert invalid_response.status_code == 422
+        encoded = json.dumps(invalid_response.json())
+        assert "/private/path" not in encoded
+        assert "Use an ISO timestamp" in encoded

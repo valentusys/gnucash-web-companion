@@ -309,11 +309,14 @@ assert.match(booksPage, /href="\/books\/write-alpha-audit"[\s\S]*Write-alpha aud
 
 const writeAlphaAuditServer = read('src/routes/books/write-alpha-audit/+page.server.ts');
 const writeAlphaAuditPage = read('src/routes/books/write-alpha-audit/+page.svelte');
-assert.match(writeAlphaAuditServer, /getAuthToken\(cookies\)[\s\S]*getActiveBookContext\(fetch, cookies, token\)[\s\S]*write-alpha-audit-summary\?limit=25/s, 'write-alpha audit view must load only through authenticated active-book API context');
+assert.match(writeAlphaAuditServer, /getAuthToken\(cookies\)[\s\S]*getActiveBookContext\(fetch, cookies, token\)[\s\S]*URLSearchParams\(\{ limit: '25' \}\)[\s\S]*action[\s\S]*result[\s\S]*since[\s\S]*until[\s\S]*write-alpha-audit-summary\?\$\{params\.toString\(\)\}/s, 'write-alpha audit view must load only through authenticated active-book API context with safe URL filters');
 assert.match(writeAlphaAuditPage, /Read-only app metadata summary[\s\S]*synthetic\/disposable[\s\S]*not a production audit log product/s, 'write-alpha audit page must keep narrow disposable-run UX copy');
 assert.match(writeAlphaAuditPage, /Raw request payloads[\s\S]*backup paths[\s\S]*private file paths[\s\S]*amounts are not shown/s, 'write-alpha audit page must state redaction boundaries');
+assert.match(writeAlphaAuditPage, /method="GET"[\s\S]*Action[\s\S]*Result[\s\S]*Since ISO[\s\S]*Until ISO[\s\S]*Apply filters[\s\S]*Clear filters/s, 'write-alpha audit page must expose safe URL-only action/result/time-window filters');
+assert.match(writeAlphaAuditPage, /total_count[\s\S]*returned_count[\s\S]*counts_by_action[\s\S]*counts_by_result[\s\S]*filters\.since/s, 'write-alpha audit page must render safe count/status metadata');
 assert.match(writeAlphaAuditPage, /item\.action[\s\S]*item\.result[\s\S]*item\.timestamp[\s\S]*item\.transaction_id_prefix[\s\S]*item\.backup_present[\s\S]*item\.error/s, 'write-alpha audit page must render only safe summary fields');
-assert.doesNotMatch(writeAlphaAuditPage, /backup_path|request_summary|fields_updated|localStorage|sessionStorage|fetch\(|method="POST"|<form/i, 'write-alpha audit page must not render raw audit payloads, persist evidence, or expose mutations');
+assert.match(writeAlphaAuditPage, /min-w-0[\s\S]*overflow-x-hidden[\s\S]*md:grid-cols-\[minmax\(0,10rem\)_7rem_minmax\(0,11rem\)_8rem_minmax\(0,1fr\)\]/s, 'write-alpha audit page must keep mobile layout bounded without horizontal overflow');
+assert.doesNotMatch(writeAlphaAuditPage, /backup_path|request_summary|fields_updated|localStorage|sessionStorage|fetch\(|method="POST"/i, 'write-alpha audit page must not render raw audit payloads, persist evidence, or expose mutations');
 
 const desktopNav = read('src/lib/components/DesktopNav.svelte');
 const mobileNav = read('src/lib/components/MobileNav.svelte');
