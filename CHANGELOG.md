@@ -7,6 +7,14 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versione
 
 ## [Unreleased]
 
+- Phase 237 — added `.env.writealpha.example` as an explicitly unsafe-for-real-books operator
+  reference and `docs/write-alpha/environment.md` for local write-alpha environment guardrails. The
+  docs state not to copy the template blindly to `.env`, require both `GNUCASH_WRITES_ENABLED=true`
+  and `APP_ENV=test` for explicit write-alpha testing, allow only synthetic/disposable/copied-test
+  books, forbid public exposure and original/only-copy books, and preserve the normal
+  `.env.example`/Docker Compose `GNUCASH_WRITES_ENABLED=false` defaults. No write mode was enabled,
+  no Docker default changed, and no real/private-book safety claim was added.
+
 - Phase 236 — added `docs/write-alpha/dogfood-evidence-schema.md` plus
   `scripts/redact_dogfood_evidence.py` and targeted tests so future copied/disposable dogfood
   evidence can record phase/scenario/classification/commands/result/redacted artifact refs,

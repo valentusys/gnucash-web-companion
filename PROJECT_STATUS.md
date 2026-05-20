@@ -9,7 +9,7 @@ Last updated: 2026-05-21
 - Branch: `main`
 - Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release;
   `v0.2.5-writealpha` is the current public experimental write-alpha pre-release. Completed through
-  Phase 236. Phase 231 ran the final release gate after Phase 230 green release-candidate dogfood,
+  Phase 237. Phase 231 ran the final release gate after Phase 230 green release-candidate dogfood,
   confirmed local/backend/frontend/Docker/public-status/sensitive-file gates, waited for exact
   release/status commit CI, and published only the annotated tag plus GitHub pre-release. Phase 232
   reconciled public status/changelog wording after publication. Phase 233 improved raw markdown
@@ -18,14 +18,17 @@ Last updated: 2026-05-21
   copied/disposable testing without running real/private copied-book dogfood. Phase 235 added a
   redacted local-only preflight CLI for future copied/disposable write-alpha targets. Phase 236 added
   a redacted dogfood evidence schema and helper so later dogfood reports can reject or redact raw
-  path-like, amount-like, memo/account-name, and payload-like data before commit.
+  path-like, amount-like, memo/account-name, and payload-like data before commit. Phase 237 added an
+  explicitly unsafe-for-real-books `.env.writealpha.example` reference and
+  `docs/write-alpha/environment.md` operator guidance for local-only write-alpha testing without
+  changing default read-only config.
   `GNUCASH_WRITES_ENABLED=false` remains default, `APP_ENV=test` write-alpha gating remains intact, and no
   production/security/public-internet/broad-compatibility or real/private-book write-safety claim is
   added.
 
 ## Current baseline
 
-Completed through Phase 236.
+Completed through Phase 237.
 
 Current public release state:
 
@@ -58,6 +61,12 @@ Current public release state:
   `scripts/redact_dogfood_evidence.py` to standardize future dogfood evidence fields and reject or
   redact path-like values, amount-like values, memo/account-name fields, and payload-like values. No
   copied/private book was used and no dogfood mutation was run.
+- Phase 237 added `.env.writealpha.example` as an explicitly unsafe-for-real-books operator reference
+  and `docs/write-alpha/environment.md` for local-only write-alpha environment guidance. The guidance
+  says not to copy the template blindly to `.env`, requires both `GNUCASH_WRITES_ENABLED=true` and
+  `APP_ENV=test` for explicit write-alpha testing, allows only synthetic/disposable/copied-test
+  books, forbids public exposure and original/only-copy books, and keeps `.env.example` plus Docker
+  Compose defaults read-only.
 - `v0.2.4-writealpha` remains available as the previous public experimental write-alpha GitHub
   pre-release after Phase 211 publication. It is pre-alpha, disabled by default, `APP_ENV=test`
   gated when explicitly enabled, based on synthetic/disposable evidence only for that cycle, not
@@ -6475,6 +6484,42 @@ Verification result: targeted redaction-helper tests passed; public status guard
 tests passed; `git diff --check` passed; sensitive tracked-file hygiene scan passed; `.env.example`
 still contains `GNUCASH_WRITES_ENABLED=false`; Docker Compose config rendered successfully with dummy
 local secrets.
+
+## Phase 237 — Write-alpha environment template and operator guard documentation
+
+Status: complete. A local-only write-alpha environment reference and operator guidance were added;
+normal read-only defaults were not changed and no write mode was enabled.
+
+Goal: provide safe operator-facing environment guidance for explicit write-alpha testing without
+making write mode easy to enable accidentally.
+
+Artifacts:
+
+- `.env.writealpha.example` — clearly marked as a dangerous reference, not a default template; it
+  requires `APP_ENV=test` plus `GNUCASH_WRITES_ENABLED=true`, forbids blind copy to `.env`, forbids
+  real/private/original/only-copy books, and keeps the example local-only with exact origins.
+- `docs/write-alpha/environment.md` — operator guidance for default read-only posture, required
+  write-alpha gates, allowed synthetic/disposable/copied-test books only, no public exposure,
+  original-book exclusion, reset expectations, and verification commands.
+- `README.md`, `README.ru.md`, `CHANGELOG.md`, `docs/ROADMAP.md`, `PROJECT_STATUS.md`,
+  `scripts/check_public_status.py`, and `apps/api/tests/test_public_status_guard.py` — public status
+  synchronized to completed Phase 237 while preserving the current public release posture.
+- `docs/handoff/phase-237.md` — phase handoff.
+
+Finding: `.env.writealpha.example` is intentionally not a safe default and is not referenced by
+Docker Compose. It is an operator reference for future explicit local write-alpha tests only.
+
+Safety result: `.env.example` still contains `GNUCASH_WRITES_ENABLED=false`, Docker Compose still
+renders `GNUCASH_WRITES_ENABLED=false` by default, and the backend `APP_ENV=test` write-alpha gate was
+not weakened. No real/private/only-copy book, copied-book dogfood run, product runtime default
+change, release/tag, app DB, backup artifact, `.env`, screenshot/CSV export, token, key, cert, raw
+path, account name, memo, amount, production/security/stable/public-internet/broad-compatibility
+claim, or real/private-book write-safety claim was added.
+
+Verification result: Docker Compose config rendered successfully with dummy local secrets and showed
+`GNUCASH_WRITES_ENABLED=false`; public status guard passed; public-status tests passed; `git diff
+--check` passed; sensitive tracked-file hygiene scan passed with `.env.writealpha.example` allowlisted
+as an intended operator reference.
 
 ## Standing constraints
 
