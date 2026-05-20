@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+- Phase 231 — ran the final Cycle 3 release gate and published `v0.2.5-writealpha` as a conservative GitHub pre-release after local backend/frontend/Docker checks, public status guard, sensitive tracked-file hygiene, candidate tag/release absence checks, and exact release/status commit CI. Publication created only the annotated tag and GitHub pre-release; `GNUCASH_WRITES_ENABLED=false` remains default, `APP_ENV=test` write-alpha gating remains intact, and no package, image, production deployment, stable/security/public-internet/broad-compatibility claim, or real/private/only-copy write-safety claim was added.
+
 - Phase 230 — produced the final Cycle 3 release-candidate dogfood pack for a later `v0.2.5-writealpha` attempt. Default-read-only Docker/Caddy API/browser dogfood passed with `GNUCASH_WRITES_ENABLED=false`, disabled validate/create/PATCH/DELETE probes returned 403, browser dogfood passed at mobile and desktop viewports, and separate explicit local `APP_ENV=test` plus `GNUCASH_WRITES_ENABLED=true` synthetic/disposable create/PATCH/DELETE smokes passed with matching backup/audit evidence and DELETE restore proof. The stack was reset to default false, cleanup left no runtime artifacts, and no release was published.
 
 ### Added

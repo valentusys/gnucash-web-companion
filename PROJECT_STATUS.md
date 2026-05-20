@@ -7,16 +7,17 @@ Last updated: 2026-05-21
 - GitHub: `valentusys/gnucash-web-companion`
 - Local path: `/home/val/gnucash-web-companion`
 - Branch: `main`
-- Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release; `v0.2.4-writealpha` remains the current public experimental write-alpha pre-release. Completed through Phase 230. Phase 230 produced the final release-candidate dogfood pack for a later `v0.2.5-writealpha` attempt after remediation, with default-read-only API/browser dogfood, bounded synthetic/disposable create/PATCH/DELETE write-alpha evidence, DELETE restore proof, default-false reset, cleanup, no release publication, and preserved `GNUCASH_WRITES_ENABLED=false`, `APP_ENV=test` write-alpha gating, and no real/private-book write-safety claim.
+- Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release; `v0.2.5-writealpha` is the current public experimental write-alpha pre-release. Completed through Phase 231. Phase 231 ran the final release gate after Phase 230 green release-candidate dogfood, confirmed local/backend/frontend/Docker/public-status/sensitive-file gates, waited for exact release/status commit CI, and published only the annotated tag plus GitHub pre-release. `GNUCASH_WRITES_ENABLED=false` remains default, `APP_ENV=test` write-alpha gating remains intact, and no production/security/public-internet/broad-compatibility or real/private-book write-safety claim is added.
 
 ## Current baseline
 
-Completed through Phase 230.
+Completed through Phase 231.
 
 Current public release state:
 
 - `v0.1.7-readonly` is the current public read-only pre-alpha GitHub pre-release after Phase 171 publication, prepared/published only after Val authorization and final release-gate checks.
-- `v0.2.4-writealpha` is the current public experimental write-alpha GitHub pre-release after Phase 211 publication. It is pre-alpha, disabled by default, `APP_ENV=test` gated when explicitly enabled, based on synthetic/disposable evidence only for this cycle, not production-ready, not security-audited, and not safe for real/private or only-copy books.
+- `v0.2.5-writealpha` is the current public experimental write-alpha GitHub pre-release after Phase 231 publication. It is pre-alpha, disabled by default, `APP_ENV=test` gated when explicitly enabled, based on synthetic/disposable and copied-test-book evidence only for this cycle, not production-ready, not stable, not security-audited, not public-internet safe, and not safe for real/private or only-copy books.
+- `v0.2.4-writealpha` remains available as the previous public experimental write-alpha GitHub pre-release after Phase 211 publication. It is pre-alpha, disabled by default, `APP_ENV=test` gated when explicitly enabled, based on synthetic/disposable evidence only for that cycle, not production-ready, not security-audited, and not safe for real/private or only-copy books.
 - `v0.2.3-writealpha` remains available as the previous public experimental write-alpha GitHub pre-release after Phase 201 publication. It is pre-alpha, disabled by default, `APP_ENV=test` gated when explicitly enabled, based on synthetic/disposable evidence only for that cycle, not production-ready, not security-audited, and not safe for real/private or only-copy books.
 - `v0.2.2-writealpha` remains available as an earlier public experimental write-alpha GitHub pre-release after Phase 191 publication. It is pre-alpha, disabled by default, `APP_ENV=test` gated when explicitly enabled, based on synthetic/disposable evidence only for that cycle, not production-ready, not security-audited, and not safe for real/private or only-copy books.
 - `v0.2.1-writealpha` remains available as the previous public experimental write-alpha GitHub pre-release after Phase 182 publication, prepared in Phase 181 and published only after explicit Val authorization, a fresh green pre-publish gate, tag/release absence checks, green GitHub Actions on the exact release commit, rendered `GNUCASH_WRITES_ENABLED=false`, and sensitive tracked-file hygiene. It is pre-alpha, disabled by default, `APP_ENV=test` gated when explicitly enabled, not production-ready, not security-audited, and not safe for real/private or only-copy books.
@@ -3142,6 +3143,28 @@ Finding: default-read-only Docker/Caddy dogfood passed with `GNUCASH_WRITES_ENAB
 Safety result: `GNUCASH_WRITES_ENABLED=false` remains default and `APP_ENV=test` was not weakened. Write-alpha execution stayed bounded to explicit local synthetic/disposable copies under ignored runtime storage. No product feature, write scope expansion, release/tag/package/image, real/private/only-copy book, committed runtime book, app DB, backup artifact, `.env`, screenshot/export, token, key, cert, raw path, account name, memo, amount, production/security claim, public-internet-safety claim, broad compatibility claim, or real/private-book write-safety claim was added.
 
 Verification result: default-read-only API/browser dogfood passed; create/PATCH/DELETE write-alpha smoke helpers passed; DELETE restore proof passed; default-false reset read-only API smoke passed; stopped-runtime cleanup final dry-run reported zero runtime artifacts; public status guard passed; full backend pytest passed; frontend check/auth-routes/build passed; Docker Compose config validation and rendered-false grep passed; `git diff --check` passed; tracked sensitive-file hygiene scan passed.
+
+## Phase 231 — v0.2.5-writealpha release gate and publication
+
+Status: complete. `v0.2.5-writealpha` was published as a conservative GitHub pre-release after the final Cycle 3 release gate and exact release/status commit CI.
+
+Goal: inspect current `main`, Phase 222–230 remediation/dogfood evidence, release/status artifacts, GitHub tag/release absence, local backend/frontend/Docker checks, public status guard, sensitive-file hygiene, and exact release-commit CI; publish only if all gates pass.
+
+Artifacts:
+
+- `docs/release/v0.2.5-writealpha-notes.md` — conservative pre-alpha write-alpha release notes with disabled-by-default and `APP_ENV=test` safety boundaries.
+- `docs/release/v0.2.5-writealpha-checklist.md` — final release checklist.
+- `docs/release/v0.2.5-writealpha-final-gate.md` — final gate decision.
+- `docs/release/v0.2.5-writealpha-publication-evidence.md` — publication evidence for tag/GitHub pre-release.
+- `docs/release/v0.2.5-writealpha-no-release-verdict.md` — historical Phase 221 no-release verdict marked superseded by Phase 231 publication.
+- `README.md`, `README.ru.md`, `CHANGELOG.md`, `docs/ROADMAP.md`, `PROJECT_STATUS.md`, `scripts/check_public_status.py`, and `apps/api/tests/test_public_status_guard.py` — public/status guard synchronization to Phase 231 and `v0.2.5-writealpha` as the current published write-alpha pre-release.
+- `docs/handoff/phase-231.md` — phase handoff.
+
+Finding: the Phase 220 no-release blocker is closed in the narrow synthetic/disposable evidence sense. Phase 222 fixed backup artifact collision/overwrite risk, Phases 223–225 proved backup/audit/restore evidence, Phase 226 rechecked the default read-only path, Phase 228 rechecked fresh-clone/upgrade with disabled writes, Phase 229 refreshed drift guards, and Phase 230 produced a green final release-candidate dogfood pack. Phase 231 local checks and exact release/status commit CI passed before publication.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains default and `APP_ENV=test` was not weakened. Publication created only an annotated tag and GitHub pre-release. No package, binary artifact, Docker image, production deployment, write-default change, write-scope expansion, real/private/only-copy book, runtime book, app DB, backup artifact, `.env`, screenshot/export, token, key, cert, raw path, account name, memo, amount, production/security/stable/public-internet/broad-compatibility claim, or real/private-book write-safety claim was added.
+
+Verification result: backend pytest passed; frontend check/auth-routes/build passed; Docker Compose config passed; rendered Compose and `.env.example` kept `GNUCASH_WRITES_ENABLED=false`; public status guard passed; `git diff --check` passed; sensitive tracked-file hygiene scan passed; tag/release absence was confirmed before publication; exact release/status commit GitHub Actions passed; `HEAD == origin/main` and clean tracked tree were verified after push/publication.
 
 ## Standing constraints
 

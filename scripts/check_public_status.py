@@ -13,10 +13,10 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-CURRENT_COMPLETED_PHASE = "Phase 230"
-CURRENT_RELEASE_BASELINE_PHASE = "Phase 211"
+CURRENT_COMPLETED_PHASE = "Phase 231"
+CURRENT_RELEASE_BASELINE_PHASE = "Phase 231"
 CURRENT_READONLY_RELEASE = "v0.1.7-readonly"
-CURRENT_WRITE_ALPHA_RELEASE = "v0.2.4-writealpha"
+CURRENT_WRITE_ALPHA_RELEASE = "v0.2.5-writealpha"
 WRITE_DEFAULT = "GNUCASH_WRITES_ENABLED=false"
 APP_ENV_GATE = "APP_ENV=test"
 
@@ -35,6 +35,7 @@ PUBLIC_STATUS_FILES = [
     Path("docs/release/v0.2.5-writealpha-final-gate.md"),
     Path("docs/release/v0.2.5-writealpha-no-release-verdict.md"),
     Path("docs/release/v0.2.5-writealpha-blocker-closure.md"),
+    Path("docs/release/v0.2.5-writealpha-publication-evidence.md"),
 ]
 
 CONFIG_FILES = [
@@ -47,13 +48,17 @@ STALE_CURRENT_PATTERNS = [
     re.compile(r"Completed through Phase 172\b"),
     re.compile(r"Completed through Phase 228\b"),
     re.compile(r"Completed through Phase 229\b"),
+    re.compile(r"Completed through Phase 230\b"),
     re.compile(r"Phase 0[–-]228 are complete"),
     re.compile(r"Phase 0[–-]229 are complete"),
+    re.compile(r"Phase 0[–-]230 are complete"),
     re.compile(r"Фазы 0[–-]228 завершены"),
     re.compile(r"Фазы 0[–-]229 завершены"),
+    re.compile(r"Фазы 0[–-]230 завершены"),
     re.compile(r"Current public write-alpha pre-release:\s*`v0\.2\.0-writealpha`"),
     re.compile(r"Current published write-alpha pre-release:\s*`v0\.2\.0-writealpha`"),
     re.compile(r"current public experimental write-alpha GitHub pre-release after Phase 132", re.I),
+    re.compile(r"current public experimental write-alpha GitHub pre-release after Phase 211", re.I),
 ]
 
 UNSAFE_AFFIRMATIVE_PATTERNS = [
@@ -97,11 +102,10 @@ def assert_unreleased_section_is_honest(changelog: str) -> None:
     if not match:
         raise AssertionError("CHANGELOG.md: missing [Unreleased] section")
     body = match.group("body")
-    if "v0.2.5" in body and "no-release verdict" not in body.lower():
-        raise AssertionError("CHANGELOG.md: Unreleased must not mention the next release version except as a no-release verdict")
-    affirmative_publication = re.search(r"\b(published|publication created|released as)\b", body, re.I)
-    if affirmative_publication and "No release was published" not in body:
-        raise AssertionError("CHANGELOG.md: Unreleased must not claim a new release/publication")
+    if "v0.2.6" in body:
+        raise AssertionError("CHANGELOG.md: Unreleased must not mention the next release version")
+    if "v0.2.5" in body and "Phase 231" not in body:
+        raise AssertionError("CHANGELOG.md: v0.2.5 references in Unreleased must be tied to the Phase 231 publication")
 
 
 def main() -> int:
@@ -116,21 +120,21 @@ def main() -> int:
 
     checks = {
         Path("README.md"): [
-            "Phase 0–230 are complete",
+            "Phase 0–231 are complete",
             CURRENT_READONLY_RELEASE,
             CURRENT_WRITE_ALPHA_RELEASE,
             WRITE_DEFAULT,
             CURRENT_RELEASE_BASELINE_PHASE,
         ],
         Path("README.ru.md"): [
-            "Фазы 0–230 завершены",
+            "Фазы 0–231 завершены",
             CURRENT_READONLY_RELEASE,
             CURRENT_WRITE_ALPHA_RELEASE,
             WRITE_DEFAULT,
             CURRENT_RELEASE_BASELINE_PHASE,
         ],
         Path("PROJECT_STATUS.md"): [
-            "Completed through Phase 230",
+            "Completed through Phase 231",
             CURRENT_READONLY_RELEASE,
             CURRENT_WRITE_ALPHA_RELEASE,
             WRITE_DEFAULT,
@@ -143,59 +147,65 @@ def main() -> int:
             WRITE_DEFAULT,
         ],
         Path("docs/ROADMAP.md"): [
-            "Completed through Phase 230",
+            "Completed through Phase 231",
             CURRENT_READONLY_RELEASE,
             CURRENT_WRITE_ALPHA_RELEASE,
             WRITE_DEFAULT,
             CURRENT_RELEASE_BASELINE_PHASE,
         ],
         Path("docs/release/v0.2.4-writealpha-notes.md"): [
-            CURRENT_WRITE_ALPHA_RELEASE,
-            CURRENT_RELEASE_BASELINE_PHASE,
+            "v0.2.4-writealpha",
+            "Phase 211",
             WRITE_DEFAULT,
             APP_ENV_GATE,
         ],
         Path("docs/release/v0.2.4-writealpha-checklist.md"): [
-            CURRENT_WRITE_ALPHA_RELEASE,
-            CURRENT_RELEASE_BASELINE_PHASE,
+            "v0.2.4-writealpha",
+            "Phase 211",
             WRITE_DEFAULT,
         ],
         Path("docs/release/v0.2.4-writealpha-final-gate.md"): [
-            CURRENT_WRITE_ALPHA_RELEASE,
-            CURRENT_RELEASE_BASELINE_PHASE,
+            "v0.2.4-writealpha",
+            "Phase 211",
             WRITE_DEFAULT,
         ],
         Path("docs/release/v0.2.4-writealpha-publication-evidence.md"): [
-            CURRENT_WRITE_ALPHA_RELEASE,
-            CURRENT_RELEASE_BASELINE_PHASE,
+            "v0.2.4-writealpha",
+            "Phase 211",
             WRITE_DEFAULT,
         ],
         Path("docs/release/v0.2.5-writealpha-notes.md"): [
-            "not published",
+            "PUBLISHED AS GITHUB PRE-RELEASE",
             CURRENT_WRITE_ALPHA_RELEASE,
             WRITE_DEFAULT,
             APP_ENV_GATE,
         ],
         Path("docs/release/v0.2.5-writealpha-checklist.md"): [
-            "Do not publish `v0.2.5-writealpha`",
+            "PASS — publish as GitHub pre-release",
             CURRENT_WRITE_ALPHA_RELEASE,
             WRITE_DEFAULT,
         ],
         Path("docs/release/v0.2.5-writealpha-final-gate.md"): [
-            "no release published",
+            "PASS — publish after exact release-commit CI",
             CURRENT_WRITE_ALPHA_RELEASE,
             WRITE_DEFAULT,
             APP_ENV_GATE,
         ],
         Path("docs/release/v0.2.5-writealpha-no-release-verdict.md"): [
-            "not published",
+            "SUPERSEDED BY v0.2.5-writealpha PUBLICATION",
             CURRENT_WRITE_ALPHA_RELEASE,
             WRITE_DEFAULT,
             APP_ENV_GATE,
         ],
         Path("docs/release/v0.2.5-writealpha-blocker-closure.md"): [
             "no release published",
+            "v0.2.4-writealpha",
+            WRITE_DEFAULT,
+            APP_ENV_GATE,
+        ],
+        Path("docs/release/v0.2.5-writealpha-publication-evidence.md"): [
             CURRENT_WRITE_ALPHA_RELEASE,
+            CURRENT_RELEASE_BASELINE_PHASE,
             WRITE_DEFAULT,
             APP_ENV_GATE,
         ],
