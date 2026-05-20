@@ -68,7 +68,7 @@ def _create_minimal_book(path: Path) -> None:
 
 def test_collector_reports_safe_schema_metadata_without_private_values(tmp_path: Path) -> None:
     collector = _load_collector()
-    book_path = tmp_path / "copied-private-book.gnucash.sqlite"
+    book_path = tmp_path / "desktop-synthetic-fixture.gnucash.sqlite"
     _create_minimal_book(book_path)
 
     metadata = collector.collect_metadata(
@@ -83,6 +83,8 @@ def test_collector_reports_safe_schema_metadata_without_private_values(tmp_path:
     assert metadata["versions"] == {"Gnucash": 3_000_000, "Gnucash-Resave": 19_920}
     assert metadata["fixture_origin"] == "desktop-generated-synthetic"
     assert metadata["desktop_generated_synthetic_fixture"] is True
+    assert metadata["candidate_acceptance"]["accepted"] is True
+    assert metadata["candidate_acceptance"]["checked"] is True
     assert metadata["table_counts"] == {
         "accounts": 2,
         "transactions": 1,
@@ -93,7 +95,7 @@ def test_collector_reports_safe_schema_metadata_without_private_values(tmp_path:
     assert metadata["runtime_context"]["python_version"]
     assert metadata["runtime_context"]["sqlite_version"] == sqlite3.sqlite_version
     assert metadata["runtime_context"]["piecash_version"]
-    assert metadata["runtime_context"]["collector_version"] == "phase-197"
+    assert metadata["runtime_context"]["collector_version"] == "phase-203"
     assert "split memos" in metadata["redaction_contract"]["excluded_row_fields"]
     assert "split amounts" in metadata["redaction_contract"]["excluded_row_fields"]
     serialized = json.dumps(metadata, sort_keys=True)
@@ -107,7 +109,7 @@ def test_collector_reports_safe_schema_metadata_without_private_values(tmp_path:
 
 def test_collector_cli_writes_safe_json(tmp_path: Path, capsys) -> None:
     collector = _load_collector()
-    book_path = tmp_path / "copy.gnucash.sqlite"
+    book_path = tmp_path / "desktop-synthetic-fixture.gnucash.sqlite"
     output_path = tmp_path / "metadata.json"
     _create_minimal_book(book_path)
 
@@ -127,8 +129,56 @@ def test_collector_cli_writes_safe_json(tmp_path: Path, capsys) -> None:
     assert data["book_path"] == "<redacted>"
     assert data["gnucash_desktop_version"] == "GnuCash 5.10"
     assert data["desktop_generated_synthetic_fixture"] is True
+    assert data["candidate_acceptance"]["accepted"] is True
     assert data["versions"]["Gnucash"] == 3_000_000
     assert str(book_path) not in output_path.read_text(encoding="utf-8")
+
+
+def test_desktop_fixture_candidate_rejections_are_deterministic_and_path_safe(tmp_path: Path, capsys) -> None:
+    collector = _load_collector()
+    bad_book_path = tmp_path / "private-production-book.gnucash.sqlite"
+    _create_minimal_book(bad_book_path)
+
+    try:
+        collector.main([
+            str(bad_book_path),
+            "--fixture-origin",
+            "desktop-generated-synthetic",
+            "--gnucash-version",
+            "GnuCash 5.10",
+        ])
+    except SystemExit as exc:
+        assert exc.code == 2
+    else:  # pragma: no cover - defensive clarity for failed rejection
+        raise AssertionError("unsafe Desktop fixture candidate was accepted")
+
+    captured = capsys.readouterr()
+    assert "Compatibility metadata rejected" in captured.err
+    assert "forbidden non-disposable marker" in captured.err
+    assert str(bad_book_path) not in captured.err
+    assert "private-production-book" not in captured.err
+
+
+def test_desktop_fixture_candidate_refuses_forbidden_runtime_classes(tmp_path: Path, monkeypatch) -> None:
+    collector = _load_collector()
+    repo_root = tmp_path / "repo"
+    monkeypatch.setattr(collector, "_repo_root", lambda: repo_root)
+    forbidden_book = repo_root / "data" / "backups" / "desktop-synthetic-fixture.gnucash.sqlite"
+    forbidden_book.parent.mkdir(parents=True)
+    _create_minimal_book(forbidden_book)
+
+    try:
+        collector.collect_metadata(
+            forbidden_book,
+            fixture_origin="desktop-generated-synthetic",
+            gnucash_version="GnuCash 5.10",
+        )
+    except collector.SafeCandidateError as exc:
+        serialized = json.dumps(exc.reasons, sort_keys=True)
+        assert "forbidden repo runtime/secrets class" in serialized
+        assert str(forbidden_book) not in serialized
+    else:  # pragma: no cover - defensive clarity for failed rejection
+        raise AssertionError("forbidden runtime class was accepted")
 
 
 def test_desktop_tooling_probe_records_only_safe_availability_metadata(monkeypatch) -> None:

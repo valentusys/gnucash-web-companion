@@ -11,7 +11,7 @@ Last updated: 2026-05-20
 
 ## Current baseline
 
-Completed through Phase 202.
+Completed through Phase 203.
 
 Current public release state:
 
@@ -2672,6 +2672,26 @@ Artifacts:
 Safety result: `GNUCASH_WRITES_ENABLED=false` remains default. Write endpoints still return 403 in default read-only smoke. `APP_ENV=test` write-alpha gating was not changed. Auth remains httpOnly-cookie based; no localStorage/sessionStorage for auth or financial state was added. No real/private book, app DB, backup, `.env`, screenshot/export, token, key, cert, raw path, account name, memo, amount, or private financial data was committed.
 
 Verification result: targeted backend health/auth/books/write-gating tests passed; full backend pytest passed; frontend check/auth-route/static checks/build passed; Docker Compose config validation passed and rendered `GNUCASH_WRITES_ENABLED: "false"`; local Docker/Caddy read-only API smoke passed on the committed synthetic fixture copied to ignored runtime data, including validate/create/PATCH/DELETE 403 probes; `git diff --check` passed; tracked sensitive-file hygiene scan passed; ignored runtime data and dummy local `.env` were removed after smoke.
+
+## Phase 203 — Disposable Desktop fixture capture path
+
+Status: complete. Phase commit pushed after verification.
+
+Goal: advance GnuCash Desktop compatibility evidence by creating a safe path to capture or document a Desktop-generated synthetic SQLite fixture without touching real/private books.
+
+Artifacts:
+
+- `apps/api/scripts/collect_gnucash_compatibility_metadata.py` — strict path-redacted candidate acceptance/rejection for `desktop-generated-synthetic` inputs, including GnuCash version requirement, synthetic/disposable filename requirement, SQLite suffix check, and backup/app/secrets/.env/non-disposable path-class rejection.
+- `apps/api/tests/test_gnucash_compatibility_metadata.py` — deterministic accepted/rejected candidate coverage plus no private path/name serialization.
+- `docs/gnucash-desktop-fixture-capture.md` — manual-safe disposable Desktop fixture capture runbook and suggested GitHub #22 update text.
+- `docs/gnucash-compatibility.md` and `docs/gnucash-version-fixture-plan.md` — compatibility docs updated with Phase 203 blocker/capture-path evidence and safe current candidate command paths, with no new Desktop-version support claim.
+- `docs/handoff/phase-203.md` — phase handoff.
+- GitHub issue #22 — concise evidence comment added: `https://github.com/valentusys/gnucash-web-companion/issues/22#issuecomment-4498500834`.
+- `PROJECT_STATUS.md` — status synchronized.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains default. No Desktop-generated fixture was produced, supplied, copied into runtime storage, or committed. No real/private book, app DB, backup, `.env`, screenshot/export, token, key, cert, raw path, account name, transaction description, memo, amount, row value, or private financial data was committed. The helper rejects unsafe candidate path classes before reading metadata and accepted metadata remains bounded/redacted.
+
+Verification result: targeted compatibility metadata/helper tests passed; compatibility docs/tests passed; full backend pytest passed; frontend `npm run check`, `npm run test:auth-routes`, and `npm run build` passed; Docker Compose config validation passed and rendered `GNUCASH_WRITES_ENABLED: "false"`; `git diff --check` passed; tracked sensitive-file hygiene scan passed.
 
 ## Standing constraints
 

@@ -27,6 +27,17 @@ from pathlib import Path
 from typing import Any
 
 SAFE_COUNT_TABLES = ("accounts", "transactions", "splits", "commodities", "books")
+DISPOSABLE_NAME_MARKERS = ("synthetic", "disposable", "fixture", "test")
+FORBIDDEN_NAME_MARKERS = ("private", "personal", "real", "production", "prod", "backup", "secret")
+SAFE_SQLITE_SUFFIXES = (".gnucash.sqlite", ".sqlite", ".sqlite3", ".db")
+
+
+class SafeCandidateError(ValueError):
+    """Path-redacted candidate rejection for Desktop fixture capture."""
+
+    def __init__(self, reasons: list[str]) -> None:
+        self.reasons = reasons
+        super().__init__("; ".join(reasons))
 
 
 def _package_version(package_name: str) -> str:
@@ -40,11 +51,84 @@ def _runtime_context() -> dict[str, str]:
     """Return safe local toolchain metadata for compatibility provenance."""
 
     return {
-        "collector_version": "phase-197",
+        "collector_version": "phase-203",
         "os": platform.platform(),
         "python_version": sys.version.split()[0],
         "sqlite_version": sqlite3.sqlite_version,
         "piecash_version": _package_version("piecash"),
+    }
+
+
+def _repo_root() -> Path:
+    return Path(__file__).resolve().parents[3]
+
+
+def _is_relative_to(path: Path, base: Path) -> bool:
+    try:
+        path.relative_to(base)
+        return True
+    except ValueError:
+        return False
+
+
+def validate_desktop_fixture_candidate(
+    book_path: str | Path,
+    *,
+    fixture_origin: str | None,
+    gnucash_version: str | None = None,
+) -> dict[str, Any]:
+    """Return deterministic, path-redacted acceptance metadata for a fixture candidate."""
+
+    path = Path(book_path).expanduser()
+    resolved = path.resolve(strict=False)
+    repo_root = _repo_root()
+    lowered_name = path.name.lower()
+    lowered_parts = [part.lower() for part in resolved.parts]
+    reasons: list[str] = []
+
+    if fixture_origin != "desktop-generated-synthetic":
+        return {
+            "accepted": True,
+            "checked": False,
+            "reason": "strict Desktop fixture candidate checks apply only to desktop-generated-synthetic inputs",
+        }
+
+    if not gnucash_version or not gnucash_version.strip():
+        reasons.append("desktop-generated synthetic candidates require an explicit GnuCash Desktop version string")
+    if not path.exists():
+        reasons.append("candidate file does not exist")
+    elif not path.is_file():
+        reasons.append("candidate path is not a regular file")
+    if not any(lowered_name.endswith(suffix) for suffix in SAFE_SQLITE_SUFFIXES):
+        reasons.append("candidate filename must use a SQLite/GnuCash SQLite suffix")
+    if not any(marker in lowered_name for marker in DISPOSABLE_NAME_MARKERS):
+        reasons.append("candidate filename must indicate synthetic/disposable/test fixture provenance")
+    forbidden_hits = sorted({marker for marker in FORBIDDEN_NAME_MARKERS if marker in lowered_name})
+    if forbidden_hits:
+        reasons.append("candidate filename contains forbidden non-disposable marker(s): " + ", ".join(forbidden_hits))
+    forbidden_repo_dirs = (
+        repo_root / "data" / "backups",
+        repo_root / "data" / "app",
+        repo_root / "secrets",
+    )
+    if any(_is_relative_to(resolved, forbidden_dir) for forbidden_dir in forbidden_repo_dirs):
+        reasons.append("candidate path is inside a forbidden repo runtime/secrets class")
+    if any(part in {"backups", "backup", "secrets", ".env"} for part in lowered_parts):
+        reasons.append("candidate path contains a forbidden backups/secrets/env component")
+    if path.name.startswith(".env"):
+        reasons.append("candidate filename is an environment/secret-like file")
+
+    if reasons:
+        raise SafeCandidateError(reasons)
+
+    return {
+        "accepted": True,
+        "checked": True,
+        "fixture_origin": fixture_origin,
+        "path_policy": "input path and parent directories are redacted; only safe path-class metadata is recorded",
+        "path_class": "external_or_ignored_disposable_sqlite_candidate",
+        "filename_policy": "synthetic/disposable/test fixture marker required",
+        "forbidden_path_classes": ["repo data/backups", "repo data/app", "secrets", ".env"],
     }
 
 
@@ -80,6 +164,11 @@ def collect_metadata(
     """Return non-sensitive compatibility metadata for a copied SQLite book."""
 
     path = Path(book_path)
+    candidate_acceptance = validate_desktop_fixture_candidate(
+        path,
+        fixture_origin=fixture_origin,
+        gnucash_version=gnucash_version,
+    )
     with sqlite3.connect(f"file:{path}?mode=ro", uri=True) as conn:
         versions = _read_versions(conn)
         table_counts = _safe_table_counts(conn)
@@ -90,6 +179,7 @@ def collect_metadata(
         "source_policy": "copied/disposable SQL book only; original untouched",
         "fixture_origin": fixture_origin or "not recorded",
         "desktop_generated_synthetic_fixture": fixture_origin == "desktop-generated-synthetic",
+        "candidate_acceptance": candidate_acceptance,
         "contains_real_data": "unknown-to-script; do not commit book or row data",
         "gnucash_desktop_version": gnucash_version or "not recorded",
         "backend": "SQLite",
@@ -143,11 +233,19 @@ def _parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> None:
     args = _parser().parse_args(argv)
-    metadata = collect_metadata(
-        args.book,
-        gnucash_version=args.gnucash_version,
-        fixture_origin=args.fixture_origin,
-    )
+    try:
+        metadata = collect_metadata(
+            args.book,
+            gnucash_version=args.gnucash_version,
+            fixture_origin=args.fixture_origin,
+        )
+    except SafeCandidateError as exc:
+        print(
+            "Compatibility metadata rejected: "
+            + json.dumps({"accepted": False, "reasons": exc.reasons}, sort_keys=True),
+            file=sys.stderr,
+        )
+        raise SystemExit(2) from exc
     payload = json.dumps(metadata, indent=2, sort_keys=True) + "\n"
     if args.output:
         output = Path(args.output)

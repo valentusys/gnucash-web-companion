@@ -128,7 +128,7 @@ Phase 92 improves the test-copy procedure without committing a new binary fixtur
 
    ```bash
    python apps/api/scripts/collect_gnucash_compatibility_metadata.py \
-     /tmp/copied-book.gnucash.sqlite \
+     /tmp/gwc-desktop-fixture/desktop-synthetic-fixture.gnucash.sqlite \
      --gnucash-version "GnuCash 5.10" \
      --fixture-origin desktop-generated-synthetic \
      --output /tmp/compatibility-metadata.json
