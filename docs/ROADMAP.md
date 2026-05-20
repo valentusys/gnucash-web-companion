@@ -5,14 +5,14 @@ This roadmap is intentionally conservative. Safety and trust come before feature
 ## Current release posture
 
 - Status: pre-alpha / MVP in progress.
-- Completed through Phase 231.
+- Completed through Phase 232.
 - Current public read-only pre-release: `v0.1.7-readonly`.
 - Current published write-alpha pre-release: `v0.2.5-writealpha`, published in Phase 231 after the cycle-3 release gate and exact release-commit CI as pre-alpha/experimental and disabled by default.
 - MVP v0.1 remains read-only by default.
 - `GNUCASH_WRITES_ENABLED=false` remains the default.
 - Controlled writes, where present, are post-MVP/write-alpha, disabled by default, constrained by the existing backend `APP_ENV=test` gate when explicitly enabled, and not safe for real/private production books.
 - Current compatibility evidence is synthetic/disposable fixture evidence only; broad GnuCash Desktop version support is not claimed.
-- Latest public release baseline: Phase 231 published `v0.2.5-writealpha` after local backend/frontend/Docker checks, exact release-commit CI, rendered `GNUCASH_WRITES_ENABLED=false`, public status guard, and sensitive tracked-file hygiene. Phase 221 previously recorded a no-release verdict for the Phase 220 DELETE backup-count anomaly; Phases 222–230 remediated and re-verified that blocker only as synthetic/disposable backup-audit, default-disabled fresh-clone/upgrade, and final release-candidate dogfood evidence before publication.
+- Latest public release baseline: Phase 231 published `v0.2.5-writealpha` after local backend/frontend/Docker checks, exact release-commit CI, rendered `GNUCASH_WRITES_ENABLED=false`, public status guard, and sensitive tracked-file hygiene. Phase 232 reconciled public status/changelog wording after publication. Phase 221 previously recorded a no-release verdict for the Phase 220 DELETE backup-count anomaly; Phases 222–230 remediated and re-verified that blocker only as synthetic/disposable backup-audit, default-disabled fresh-clone/upgrade, and final release-candidate dogfood evidence before publication.
 - No further tag, GitHub release, package, or publication is planned by this roadmap page unless a later explicit release phase and authorization say so.
 
 ## Recently completed maintenance phases
@@ -36,6 +36,7 @@ This roadmap is intentionally conservative. Safety and trust come before feature
 - Phase 229 — public status and release-support drift guard refreshed after Phases 222–228 while `v0.2.4-writealpha` was still current and before `v0.2.5-writealpha` publication.
 - Phase 230 — final release-candidate dogfood pack passed: default-read-only API/browser evidence, bounded synthetic/disposable create/PATCH/DELETE write-alpha evidence, DELETE restore proof, default-false reset, cleanup, and no release/tag publication in that phase.
 - Phase 231 — authorized `v0.2.5-writealpha` GitHub pre-release publication after final release gate, local checks, public status guard, sensitive-file hygiene, and exact release/status commit CI.
+- Phase 232 — reconciled public status/changelog wording after `v0.2.5-writealpha` publication, keeping default-disabled/`APP_ENV=test`/synthetic-disposable evidence boundaries explicit.
 
 ## Completed phase groups
 
