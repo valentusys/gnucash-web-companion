@@ -3033,6 +3033,24 @@ Safety result: `GNUCASH_WRITES_ENABLED=false` remains default and `APP_ENV=test`
 
 Verification result: write-alpha DELETE smoke passed for one DELETE, API/runtime absence, one backup increment, one success-audit increment, backup transaction evidence, and stale-released/non-active lock evidence; container-side restore proof passed on the same backup; default read-only API smoke passed after reset with validate/create/PATCH/DELETE returning 403; stopped-runtime cleanup passed with `--via-compose` for root-owned artifacts; full backend pytest passed; frontend check/auth-routes/build passed; Docker Compose config validation passed; `git diff --check` passed.
 
+## Phase 225 — Combined create/PATCH/DELETE backup-audit matrix
+
+Status: complete. A fresh bounded synthetic/disposable write-alpha create, PATCH, and DELETE backup-audit matrix passed after the Phase 222/223/224 backup evidence hardening.
+
+Goal: produce aligned route-family backup/audit/read-back/lock evidence for create, PATCH, and DELETE without expanding write scope or claiming real/private-book write safety.
+
+Artifacts:
+
+- `docs/dogfood/phase-225-write-alpha-matrix.md` — redacted combined write-alpha route-family matrix evidence.
+- `docs/handoff/phase-225.md` — phase handoff.
+- `CHANGELOG.md` and `PROJECT_STATUS.md` — status synchronized.
+
+Finding: create, PATCH, and DELETE each passed once on isolated ignored synthetic/disposable runtime copies. Every successful routed write had one backup file count and one successful audit row with backup evidence in its isolated run. Create validation probes rejected unbalanced/invalid-account/placeholder-style payloads before mutation; PATCH missing-transaction returned 404 with no backup and one failed no-backup audit row; DELETE restore/read-back passed from the host-readable backup. Locks were stale-released/not active after each route family, and helpers did not rerun successful mutations after evidence collection.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains default and `APP_ENV=test` was not weakened. Write-enabled runs were explicit, local, synthetic/disposable only, and cleaned afterward. No write endpoint, write feature expansion, release/tag/package/image, real/private/only-copy book, committed runtime book, app DB, backup artifact, `.env`, screenshot/export, token, key, cert, raw path, account name, memo, amount, production/security claim, or real/private-book write-safety claim was added.
+
+Verification result: write-alpha create, PATCH, and DELETE smoke helpers passed; redacted per-run count checks showed one backup and one success-audit per successful route-family write; default read-only API smoke passed after reset with validate/create/PATCH/DELETE returning 403; stopped-runtime cleanup passed and final dry-run reported zero runtime artifacts; targeted backend route-family pytest passed; full backend/frontend/Docker/diff/sensitive-file checks passed.
+
 ## Standing constraints
 
 - MVP v0.1 is strictly read-only for GnuCash.
