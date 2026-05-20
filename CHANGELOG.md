@@ -6,9 +6,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.2.2-writealpha] - 2026-05-20
+
 ### Added
 
-- Phase 183 — tightened write-alpha stale-lock/root-owned-lock recovery evidence: backend and smoke-helper lock inspection now distinguish active, stale released, unreadable, and absent lock states with path-safe operator messages; recovery docs and write-mode warning copy were updated without automatic lock deletion, write-scope expansion, default-write enablement, release publication, or real/private-book claims.
+- Phase 191 — published `v0.2.2-writealpha` as a conservative pre-alpha write-alpha GitHub pre-release after the cycle-2 release-readiness gate passed, local backend/frontend/Docker checks passed, rendered `GNUCASH_WRITES_ENABLED=false` was confirmed, sensitive tracked-file hygiene passed, and GitHub Actions on the exact release/status commit completed successfully. Publication created only the annotated tag and GitHub pre-release.
+- Phase 190 — reran combined cycle-2 release-candidate dogfood: default read-only API/browser smokes passed with validate/create/PATCH/DELETE probes returning 403, and separate explicit local-only create/PATCH/DELETE write-alpha route-family evidence was collected on synthetic/disposable runtime copies.
+- Phase 189 — ran fresh-clone Docker smokes against `v0.1.7-readonly`, `v0.2.1-writealpha`, and current `main`, all with synthetic fixture data, dummy local-only secrets, default `GNUCASH_WRITES_ENABLED=false`, disabled write probes, browser dogfood, and no-artifact teardown.
+- Phase 188 — strengthened read-only reporting correctness for mixed-currency split exclusion, unknown `XXX` base-currency warnings, zero-balance fallback, signed contra balances, Decimal/string amounts, and drilldown URL parity.
+- Phase 187 — hardened multi-book read-only access and selected-book recovery after write-alpha work while keeping write UI hidden under default false.
+- Phase 186 — added a read-only, redacted write-alpha audit summary endpoint/UI for disposable write-alpha runs, with auth/access controls and no backup-path/private-path/raw-payload/memo/amount leakage.
+- Phase 185 — ran bounded synthetic/disposable DELETE dogfood with restore proof, backup/audit evidence, default-disabled reset, and teardown.
+- Phase 184 — ran bounded synthetic/disposable PATCH metadata/split-memo dogfood with read-back, backup/audit evidence, safe missing-transaction behavior, default-disabled reset, and teardown.
+- Phase 183 — tightened write-alpha stale-lock/root-owned-lock recovery evidence: backend and smoke-helper lock inspection now distinguish active, stale released, unreadable, and absent lock states with path-safe operator messages; recovery docs and write-mode warning copy were updated without automatic lock deletion, write-scope expansion, default-write enablement, or real/private-book claims.
+
+### Release notes
+
+- `v0.2.2-writealpha` remains pre-alpha and experimental. `GNUCASH_WRITES_ENABLED=false` remains the default; write-alpha execution remains gated by explicit local enablement plus `APP_ENV=test`.
+- New write-alpha evidence is synthetic/disposable only. It does not establish safe writes for real/private or only-copy books.
+- Publication created only a GitHub pre-release and annotated git tag; no package, binary artifact, Docker image, production deployment, write default change, write-scope expansion, or real/private data artifact was published.
+
+### Known limitations
+
+- Not production-ready and not security-audited.
+- Do not expose early deployments directly to the public internet.
+- Write-alpha remains unsafe for real/private or only-copy books; evidence is synthetic/disposable only for this cycle.
+- No broad GnuCash Desktop/backend compatibility, hosted SaaS readiness, collaborative accounting, CSV/OFX import, banking integration, or production-safe write mode is claimed.
 
 ## [0.2.1-writealpha] - 2026-05-20
 

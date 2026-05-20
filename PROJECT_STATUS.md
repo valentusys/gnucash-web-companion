@@ -7,16 +7,17 @@ Last updated: 2026-05-20
 - GitHub: `valentusys/gnucash-web-companion`
 - Local path: `/home/val/gnucash-web-companion`
 - Branch: `main`
-- Status: pre-alpha / v0.1.7-readonly read-only pre-release published in Phase 171; public status reconciliation completed through Phase 172; Phase 182 published `v0.2.1-writealpha` as the current experimental write-alpha pre-release after a fresh green gate on the prepared Phase 181 candidate; Phase 190 completed combined cycle-2 release-candidate dogfood with default read-only API/browser evidence and bounded synthetic/disposable create/PATCH/DELETE write-alpha evidence
+- Status: pre-alpha / v0.1.7-readonly read-only pre-release published in Phase 171; public status reconciliation completed through Phase 172; Phase 182 published `v0.2.1-writealpha`; Phase 191 completed the cycle-2 release-readiness gate and published `v0.2.2-writealpha` as the current experimental write-alpha pre-release after green local checks, green exact-commit GitHub Actions, default-false verification, and sensitive tracked-file hygiene
 
 ## Current baseline
 
-Completed through Phase 190.
+Completed through Phase 191.
 
 Current public release state:
 
 - `v0.1.7-readonly` is the current public read-only pre-alpha GitHub pre-release after Phase 171 publication, prepared/published only after Val authorization and final release-gate checks.
-- `v0.2.1-writealpha` is the current public experimental write-alpha GitHub pre-release after Phase 182 publication, prepared in Phase 181 and published only after explicit Val authorization, a fresh green pre-publish gate, tag/release absence checks, green GitHub Actions on the exact release commit, rendered `GNUCASH_WRITES_ENABLED=false`, and sensitive tracked-file hygiene. It is pre-alpha, disabled by default, `APP_ENV=test` gated when explicitly enabled, not production-ready, not security-audited, and not safe for real/private or only-copy books.
+- `v0.2.2-writealpha` is the current public experimental write-alpha GitHub pre-release after Phase 191 publication. It is pre-alpha, disabled by default, `APP_ENV=test` gated when explicitly enabled, based on synthetic/disposable evidence only for this cycle, not production-ready, not security-audited, and not safe for real/private or only-copy books.
+- `v0.2.1-writealpha` remains available as the previous public experimental write-alpha GitHub pre-release after Phase 182 publication, prepared in Phase 181 and published only after explicit Val authorization, a fresh green pre-publish gate, tag/release absence checks, green GitHub Actions on the exact release commit, rendered `GNUCASH_WRITES_ENABLED=false`, and sensitive tracked-file hygiene. It is pre-alpha, disabled by default, `APP_ENV=test` gated when explicitly enabled, not production-ready, not security-audited, and not safe for real/private or only-copy books.
 - `v0.1.6-readonly` remains available as the previous public read-only pre-alpha GitHub pre-release, published in Phase 161 after Val authorization and final release-gate checks.
 - `v0.1.5-readonly` remains available as an earlier public read-only pre-alpha GitHub pre-release, published in Phase 152 after Val authorization and final release-gate checks.
 - Previous public read-only pre-release `v0.1.3-readonly` remains available and was published in Phase 125 after Val authorization and cleanup of the temporary live personal-book deployment.
@@ -87,6 +88,7 @@ Current public release state:
 - Phase 188 is a read-only reporting correctness edge-case phase: dashboard/reporting tests now pin mixed-currency split exclusion and disclosure, unknown `XXX` base-currency zero-total warnings, zero-balance split fallback, signed negative/contra asset/liability balances, Decimal/string JSON amounts, and no fake FX conversion. Report limitations now disclose excluded currencies seen in transaction splits as well as account listings. Dashboard drilldown static checks pin URL-filter parity for `account_id`, date ranges, `limit=50`, `offset=0`, and no `Number()` usage on dashboard/reporting paths. `docs/money-model.md` documents mixed-currency split exclusion and unknown-base zero-total semantics. `GNUCASH_WRITES_ENABLED=false` remains default; no write behavior, release/tag/package, real/private book, app DB, backup, `.env`, token, key, cert, screenshot/export, private path, account name, memo, amount, or private financial data was added.
 - Phase 189 is a fresh-clone install smoke v2 phase: `scripts/smoke/fresh-clone-docker-smoke.sh` was run against current public read-only tag `v0.1.7-readonly`, current public write-alpha tag `v0.2.1-writealpha`, and current `main`, each from a temporary clone with only the committed synthetic fixture, dummy local-only secrets, and `GNUCASH_WRITES_ENABLED=false`. All three passed Docker Compose config/startup, `/api/health`, login/auth, books, accounts, transactions, transaction detail, CSV export, reports summary, browser dogfood, hidden write UI, disabled validate/create/PATCH/DELETE probes returning 403, and no-artifact checks. Teardown left no fresh-clone temp directories and no `gwc_fresh_clone` Docker containers/volumes/networks. No smoke helper/product code change, write-enabled run, release/tag/package/image, real/private book, runtime artifact, `.env`, token, key, cert, screenshot/export, private path, account name, memo, amount, or private financial data was added.
 - Phase 190 is a combined cycle-2 release-candidate dogfood phase: local Docker/Caddy default-read-only dogfood passed with `GNUCASH_WRITES_ENABLED=false`; API read-only flows passed; validate/create/PATCH/DELETE probes returned 403; browser dogfood passed at mobile 320x720 and desktop 1280x900 with hidden write UI, auth cookie not readable from `document.cookie`, CSV fetch success, no-overflow checks, and no screenshot/download/CSV artifacts. Separate explicit local-only `APP_ENV=test` plus `GNUCASH_WRITES_ENABLED=true` disposable write-alpha smokes collected bounded create/PATCH/DELETE route-family evidence: create success audit/backup, PATCH expected failed missing-transaction audit plus success audit/backup, DELETE success audit/backup, and non-active stale lock evidence from inside the API container. Host-side root-owned runtime readability limited the smoke helpers' final lock/restore checks, so no new restore claim is made here; the stack was returned to default false and read-only API smoke passed again with disabled write probes. Runtime book/app DB/backups/locks were removed after verification; no product code change, release/tag/package/image, real/private/only-copy book, raw artifact, `.env`, token, key, cert, screenshot/export, private path, account name, memo, amount, production/security claim, or real/private-book write-safety claim was added.
+- Phase 191 is the cycle-2 release-readiness gate and publication phase: README, README.ru, CHANGELOG, release docs, dogfood evidence, GitHub releases/actions, open issues, and current `main` were compared against actual repository state; target `v0.2.2-writealpha` was selected because cycle-2 includes write-alpha evidence and safety/operator hardening after `v0.2.1-writealpha`; local backend/frontend/Docker checks, `GNUCASH_WRITES_ENABLED=false` defaults, `git diff --check`, sensitive tracked-file hygiene, tag/release absence, and GitHub Actions on the exact release/status commit passed; then `v0.2.2-writealpha` was published as a conservative GitHub pre-release. Publication created only the annotated tag and GitHub pre-release; no package, image, production deployment, write default change, write-scope expansion, real/private book, app DB, backup, `.env`, token, key, cert, screenshot/export, private path, amount, production/security claim, public-internet safety claim, or real/private-book write-safety claim was added.
 - Previous public release `v0.1.2-readonly` remains available and points to its Phase 117 release commit.
 - Previous public release `v0.1.1-readonly` remains available and points to `a4d04150c043ad4da3dea577b30ed7ffd2032df0`, after Phase 104.
 
@@ -282,6 +284,8 @@ Completed phases:
 - Phase 187 — Multi-book read-only access regression and UX hardening
 - Phase 188 — Read-only reporting correctness edge cases
 - Phase 189 — Fresh-clone install smoke v2 with published/current tags
+- Phase 190 — Combined release-candidate dogfood after cycle-2 changes
+- Phase 191 — Cycle-2 release-readiness gate and publication
 
 - Phase 87 completed the large-book read-only benchmark v1 on generated synthetic data only: a local CLI now creates a disposable synthetic GnuCash SQLite book and measures accounts tree, transactions first page, transaction filters, account detail transactions, dashboard summary, and CSV export through read-only authenticated API paths. Results are documented in `docs/performance/phase-87-large-book-benchmark.md`. The 1,000-transaction run found no endpoint failure, but account-detail transactions measured above one second locally and CSV export returned only 500 rows while reporting `csv_total=1000` and `truncated=false`; GitHub #39 tracks that follow-up. GitHub #30 was closed as the benchmark now exists. No real/private data was committed, no new tag/release was published, writes remain disabled by default, and no v0.2 work was started.
 
@@ -2518,6 +2522,27 @@ Dogfood result: default Docker/Caddy read-only smoke passed using only `apps/api
 Safety result: `GNUCASH_WRITES_ENABLED=false` remains default before and after the write-enabled smokes. No release/tag/package/image, product code change, real/private/only-copy book, runtime book/app DB/backup/lock artifact, `.env`, token, key, cert, screenshot/export, private path, account name, memo, amount, production/security claim, or real/private-book write-safety claim was added.
 
 Verification result: default false Compose config passed before and after; read-only API smoke passed before and after; mobile and desktop browser dogfood passed; explicit write-alpha config showed `GNUCASH_WRITES_ENABLED: "true"` only for local disposable write smoke runs; redacted container inspection verified audit/backup/lock evidence; teardown/no-artifact scan found zero non-placeholder runtime files under `data/books`, `data/app`, `data/backups`, and `data/locks`. Final standard checks are recorded in the final Phase 190 report.
+
+## Phase 191 — Cycle-2 Release-Readiness Gate and Publication
+
+Status: complete. Phase commit pushed; tag and GitHub pre-release published after exact release-commit CI passed.
+
+Goal: perform the final cycle-2 release-readiness gate and publish only if evidence warrants it and the exact release commit is green.
+
+Artifacts:
+
+- `docs/release/v0.2.2-writealpha-notes.md` — conservative pre-alpha/write-alpha release notes.
+- `docs/release/v0.2.2-writealpha-checklist.md` — release-prep checklist and safety checklist.
+- `docs/release/v0.2.2-writealpha-final-gate.md` — final gate and publication decision.
+- `docs/release/v0.2.2-writealpha-publication-evidence.md` — local checks, exact-commit CI, and publication evidence.
+- `README.md`, `README.ru.md`, `CHANGELOG.md`, `PROJECT_STATUS.md`, and `docs/handoff/phase-191.md` — status/handoff synchronized.
+- Git tag and GitHub pre-release `v0.2.2-writealpha` — published after the Phase 191 release/status commit was pushed and CI passed.
+
+Release result: `v0.2.2-writealpha` is published as a conservative GitHub pre-release. A write-alpha maintenance pre-release was warranted because cycle-2 includes write-alpha evidence and safety/operator hardening beyond `v0.2.1-writealpha`; a read-only maintenance tag would not match the scope. Publication created only the annotated git tag and GitHub pre-release. No package, binary artifact, Docker image, production deployment, product-code change, write-scope expansion, runtime default change, or real/private data artifact was added.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/configured default. Write-alpha execution remains experimental and requires explicit local enablement plus `APP_ENV=test`; cycle-2 evidence remains synthetic/disposable only. No production readiness, security audit, hosted SaaS readiness, broad GnuCash compatibility, public-internet safety, or real/private/only-copy write-safety claim was added.
+
+Verification result: release-readiness gate passed: clean tracked tree except ignored `.hermes/`, `HEAD == origin/main` before release artifacts, local/remote tag absence, GitHub release absence, `gh` authenticated, backend suite passed, frontend check/auth-routes/build passed, Docker Compose config validation passed, rendered Compose kept `GNUCASH_WRITES_ENABLED: "false"`, `.env.example` kept `GNUCASH_WRITES_ENABLED=false`, `git diff --check` passed, tracked sensitive-file hygiene scan passed, GitHub Actions on the exact release/status commit passed before tagging, and post-publication tag/release checks passed. GitHub Actions emitted a non-blocking Node.js 20 deprecation warning for `actions/checkout@v4`.
 
 ## Standing constraints
 
