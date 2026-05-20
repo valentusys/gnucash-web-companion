@@ -22,7 +22,7 @@
 
 ## Текущий публичный статус
 
-- Фазы 0–215 завершены.
+- Фазы 0–220 завершены.
 - MVP v0.1 остаётся **read-only by default**.
 - `GNUCASH_WRITES_ENABLED=false` — безопасный дефолт.
 - Controlled-write код, если присутствует, является experimental post-MVP/write-alpha, отключён по умолчанию и дополнительно ограничен backend `APP_ENV=test` gate при явном включении.

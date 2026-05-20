@@ -13,7 +13,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-CURRENT_COMPLETED_PHASE = "Phase 215"
+CURRENT_COMPLETED_PHASE = "Phase 220"
 CURRENT_RELEASE_BASELINE_PHASE = "Phase 211"
 CURRENT_READONLY_RELEASE = "v0.1.7-readonly"
 CURRENT_WRITE_ALPHA_RELEASE = "v0.2.4-writealpha"
@@ -105,21 +105,21 @@ def main() -> int:
 
     checks = {
         Path("README.md"): [
-            "Phase 0–215 are complete",
+            "Phase 0–220 are complete",
             CURRENT_READONLY_RELEASE,
             CURRENT_WRITE_ALPHA_RELEASE,
             WRITE_DEFAULT,
             CURRENT_RELEASE_BASELINE_PHASE,
         ],
         Path("README.ru.md"): [
-            "Фазы 0–215 завершены",
+            "Фазы 0–220 завершены",
             CURRENT_READONLY_RELEASE,
             CURRENT_WRITE_ALPHA_RELEASE,
             WRITE_DEFAULT,
             CURRENT_RELEASE_BASELINE_PHASE,
         ],
         Path("PROJECT_STATUS.md"): [
-            "Completed through Phase 215",
+            "Completed through Phase 220",
             CURRENT_READONLY_RELEASE,
             CURRENT_WRITE_ALPHA_RELEASE,
             WRITE_DEFAULT,
@@ -132,7 +132,7 @@ def main() -> int:
             WRITE_DEFAULT,
         ],
         Path("docs/ROADMAP.md"): [
-            "Completed through Phase 215",
+            "Completed through Phase 220",
             CURRENT_READONLY_RELEASE,
             CURRENT_WRITE_ALPHA_RELEASE,
             WRITE_DEFAULT,

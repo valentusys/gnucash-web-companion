@@ -11,7 +11,7 @@ Last updated: 2026-05-21
 
 ## Current baseline
 
-Completed through Phase 219.
+Completed through Phase 220.
 
 Current public release state:
 
@@ -2931,6 +2931,26 @@ Artifacts:
 Safety result: `GNUCASH_WRITES_ENABLED=false` remains default. No backend API localization overhaul, product behavior change, write-default change, `APP_ENV=test` gate change, release/tag/package/image, real/private book, app DB, backup artifact, `.env`, screenshot/export, token, key, cert, raw private path, account name, memo, amount, production/security claim, or real/private-book write-safety claim was added. The new static checks reject unsafe softened wording and new browser storage use in the localization slice.
 
 Verification result: full backend pytest passed; frontend check/auth-routes/build passed; Docker Compose config validation passed; `git diff --check` passed. Docs-link check was limited to confirming no dedicated link-check script exists and the docs update references only tracked paths.
+
+## Phase 220 — Cycle-2 full default-readonly and bounded write-alpha dogfood
+
+Status: complete with no-release blocker. Phase commit prepared after dogfood and standard verification.
+
+Goal: collect a fresh release-candidate evidence pack after Phases 212–219 with default read-only Docker/Caddy API/browser dogfood and a separate bounded synthetic/disposable write-alpha safety drill.
+
+Artifacts:
+
+- `docs/dogfood/phase-220-cycle-2-release-candidate-dogfood.md` — redacted dogfood evidence, including default-read-only pass and the write-alpha DELETE backup-count blocker.
+- `docs/handoff/phase-220.md` — phase handoff.
+- `CHANGELOG.md` and `PROJECT_STATUS.md` — status synchronized.
+
+Dogfood result: local Docker/Caddy default read-only mode passed with the committed synthetic fixture copied into ignored runtime data and `GNUCASH_WRITES_ENABLED=false`. API smoke passed for health, login/auth, books/default book, accounts, transactions, transaction detail, CSV export, reports summary, scheduled transaction metadata, write-alpha audit summary, and validate/create/PATCH/DELETE disabled-write probes returning 403. Browser dogfood passed at `320x720` and `1280x900` with hidden write UI, auth-cookie no-readability, CSV fetch, no-overflow checks, and no screenshot/download/CSV artifacts.
+
+Write-alpha result: a separate explicit local-only `APP_ENV=test` plus `GNUCASH_WRITES_ENABLED=true` drill used only synthetic/disposable ignored runtime copies. Preflight, create smoke, and PATCH smoke passed. DELETE route execution succeeded and redacted inspection confirmed API/runtime absence, bounded backup evidence, one successful DELETE audit row, and stale-released/not-active lock evidence, but the helper failed because backup file count did not increase by exactly one after DELETE. Redacted inspection showed three successful backup-bearing route-family audit entries but only two backup files. This is a no-release blocker until investigated and re-smoked.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains default and was re-confirmed after reset. `APP_ENV=test` was not weakened. Smoke runtime book/backups/locks/generated app DB were cleaned; a pre-existing ignored local app DB was restored as untracked local state. No real/private/only-copy book, release/tag/package/image, committed runtime artifact, `.env`, backup, token, cookie, key, cert, raw private path, account name, memo, amount, production/security claim, or real/private-book write-safety claim was added.
+
+Verification result: rendered Compose false before and after passed; read-only API smoke passed before and after write-alpha reset; mobile and desktop browser dogfood passed; write-alpha preflight/create/PATCH passed; write-alpha DELETE+restore smoke recorded the backup-count blocker after successful DELETE; full backend pytest passed; frontend check/auth-routes/build passed; Docker Compose config validation passed; `git diff --check` passed; tracked sensitive-file hygiene scan passed.
 
 ## Standing constraints
 
