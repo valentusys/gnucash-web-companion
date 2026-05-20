@@ -7,11 +7,11 @@ Last updated: 2026-05-21
 - GitHub: `valentusys/gnucash-web-companion`
 - Local path: `/home/val/gnucash-web-companion`
 - Branch: `main`
-- Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release; `v0.2.4-writealpha` remains the current public experimental write-alpha pre-release. Completed through Phase 228. Phase 228 verified current-HEAD fresh-clone Docker/Caddy read-only smoke and a synthetic `v0.2.4-writealpha` to current-HEAD upgrade path with `GNUCASH_WRITES_ENABLED=false`, dummy app metadata preserved, validate/create/PATCH/DELETE probes returning 403, and no release or real/private-book write-safety claim added.
+- Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release; `v0.2.4-writealpha` remains the current public experimental write-alpha pre-release. Completed through Phase 229. Phase 229 refreshed public status and release-doc drift guard expectations after Phases 222–228 while retaining `v0.2.4-writealpha` as current, confirming no `v0.2.5-writealpha` tag/release publication in this phase, and preserving `GNUCASH_WRITES_ENABLED=false`, `APP_ENV=test` write-alpha gating, and no real/private-book write-safety claim.
 
 ## Current baseline
 
-Completed through Phase 228.
+Completed through Phase 229.
 
 Current public release state:
 
@@ -3106,6 +3106,24 @@ Finding: `scripts/smoke/fresh-clone-docker-smoke.sh --repo /home/val/gnucash-web
 Safety result: `GNUCASH_WRITES_ENABLED=false` remained active throughout, and `APP_ENV=test` was not weakened. Temporary clones used only the committed synthetic fixture, dummy local-only credentials, and ignored runtime paths; helper teardown removed Docker runtime and temp clones. No write-enabled run, migration feature work, release/tag/package/image, real/private/only-copy book, committed runtime book, app DB, backup artifact, `.env`, screenshot/export, token, key, cert, raw path, account name, memo, amount, production/security claim, broad migration guarantee, or real/private-book write-safety claim was added.
 
 Verification result: fresh-clone smoke passed; synthetic upgrade smoke passed; post-smoke Docker cleanup check reported no `gwc_fresh_clone`/`gwc_synthetic_upgrade` leftovers; public status guard passed; full backend pytest passed; frontend check/auth-routes/build passed; Docker Compose config validation and rendered-false grep passed; `git diff --check` passed; tracked sensitive-file hygiene scan passed.
+
+## Phase 229 — Public status and release-doc drift guard refresh
+
+Status: complete. Public status and release-support drift guard expectations refreshed after Phases 222–228; no release or tag was published.
+
+Goal: refresh public status guard expectations after the Phase 222–228 write-alpha backup/audit remediation so release docs cannot drift again before the later release-gate phase.
+
+Artifacts:
+
+- `README.md`, `README.ru.md`, `CHANGELOG.md`, `docs/ROADMAP.md`, `PROJECT_STATUS.md`, and `docs/release/v0.2.5-writealpha-*` — public/release-support posture synchronized to completed Phase 229 while retaining `v0.2.4-writealpha` as the current published write-alpha pre-release and `v0.1.7-readonly` as the current read-only pre-release.
+- `scripts/check_public_status.py` and `apps/api/tests/test_public_status_guard.py` — guard expectations updated to Phase 229 and expanded to cover the `v0.2.5-writealpha` no-release/support docs, while still reading only declared public docs/config files.
+- `docs/handoff/phase-229.md` — phase handoff.
+
+Finding: public docs now agree that Phase 229 is complete, `v0.2.5-writealpha` remains unpublished with no tag or GitHub release from this phase, and the Phase 220 no-release blocker closure is described only as synthetic/disposable evidence remediation. The current public release state remains `v0.1.7-readonly` for read-only and `v0.2.4-writealpha` for write-alpha until a later authorized release phase succeeds.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains default and `APP_ENV=test` was not weakened. The status guard reads only tracked public docs/config files and does not inspect `.env`, runtime books, app DBs, backups, private paths, screenshots, exports, tokens, or secrets. No product behavior, write route, write scope, release/tag/package/image, real/private/only-copy book, committed runtime book, app DB, backup artifact, `.env`, screenshot/export, token, key, cert, raw path, account name, memo, amount, production/security claim, public-internet-safety claim, or real/private-book write-safety claim was added.
+
+Verification result: public status guard passed; backend public-status guard tests passed; full backend pytest passed; frontend check/auth-routes/build passed; Docker Compose config validation passed; `git diff --check` passed; tracked sensitive-file hygiene scan passed.
 
 ## Standing constraints
 

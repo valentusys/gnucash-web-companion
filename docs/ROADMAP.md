@@ -5,14 +5,14 @@ This roadmap is intentionally conservative. Safety and trust come before feature
 ## Current release posture
 
 - Status: pre-alpha / MVP in progress.
-- Completed through Phase 228.
+- Completed through Phase 229.
 - Current public read-only pre-release: `v0.1.7-readonly`.
 - Current published write-alpha pre-release: `v0.2.4-writealpha`, published in Phase 211 after the cycle-1 release gate and exact release-commit CI as pre-alpha/experimental and disabled by default.
 - MVP v0.1 remains read-only by default.
 - `GNUCASH_WRITES_ENABLED=false` remains the default.
 - Controlled writes, where present, are post-MVP/write-alpha, disabled by default, constrained by the existing backend `APP_ENV=test` gate when explicitly enabled, and not safe for real/private production books.
 - Current compatibility evidence is synthetic/disposable fixture evidence only; broad GnuCash Desktop version support is not claimed.
-- Latest public release baseline: Phase 211 published `v0.2.4-writealpha` after local backend/frontend/Docker checks, exact release-commit CI, rendered `GNUCASH_WRITES_ENABLED=false`, and sensitive tracked-file hygiene. Phase 212 added this public status drift guard; Phase 213 verified the published tag from a fresh clone with default-disabled writes; Phase 214 verified synthetic local upgrade from that tag/runtime state to current `main`; Phase 221 evaluated `v0.2.5-writealpha` and recorded a no-release verdict because Phase 220 found a bounded write-alpha DELETE backup-count anomaly. Phases 222–228 remediated, documented, and smoke-verified that blocker closure only as synthetic/disposable backup-audit plus default-disabled fresh-clone/upgrade evidence. No new release was published.
+- Latest public release baseline: Phase 211 published `v0.2.4-writealpha` after local backend/frontend/Docker checks, exact release-commit CI, rendered `GNUCASH_WRITES_ENABLED=false`, and sensitive tracked-file hygiene. Phase 212 added this public status drift guard; Phase 213 verified the published tag from a fresh clone with default-disabled writes; Phase 214 verified synthetic local upgrade from that tag/runtime state to current `main`; Phase 221 evaluated `v0.2.5-writealpha` and recorded a no-release verdict because Phase 220 found a bounded write-alpha DELETE backup-count anomaly. Phases 222–228 remediated, documented, and smoke-verified that blocker closure only as synthetic/disposable backup-audit plus default-disabled fresh-clone/upgrade evidence. Phase 229 refreshed the public status and release-doc drift guard after that remediation. No new release was published.
 - No further tag, GitHub release, package, or publication is planned by this roadmap page unless a later explicit release phase and authorization say so.
 
 ## Recently completed maintenance phases
@@ -33,6 +33,7 @@ This roadmap is intentionally conservative. Safety and trust come before feature
 - Phase 221 — `v0.2.5-writealpha` release gate recorded an explicit no-release verdict because Phase 220 write-alpha DELETE backup-count evidence was not release-green.
 - Phase 227 — operator/release docs recorded the Phase 220 blocker closure narrowly as synthetic/disposable evidence remediation, with `v0.2.4-writealpha` still current.
 - Phase 228 — current-HEAD fresh-clone and `v0.2.4-writealpha` to current-HEAD synthetic upgrade smokes passed with default-disabled writes and no release publication.
+- Phase 229 — public status and release-support drift guard refreshed after Phases 222–228; `v0.2.4-writealpha` remains current and no `v0.2.5-writealpha` tag/release exists.
 
 ## Completed phase groups
 
