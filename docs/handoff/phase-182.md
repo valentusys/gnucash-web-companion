@@ -24,7 +24,7 @@ Publish the already prepared `v0.2.1-writealpha` only if a fresh pre-publish gat
 - Confirmed rendered Docker Compose kept `GNUCASH_WRITES_ENABLED=false` for API and web and `.env.example` default remained false.
 - Ran local backend/frontend/Docker checks, `git diff --check`, and sensitive tracked-file hygiene scan.
 - Updated publication/status artifacts and committed/pushed the release/status commit.
-- Waited for GitHub Actions on the exact release/status commit to pass before tag/release publication.
+- Waited for GitHub Actions run `26140519337` on exact release/status commit `8c316b9f5c8028b519b603da0ba3cb37542bc4c0` to pass before tag/release publication.
 - Published annotated tag and GitHub pre-release `v0.2.1-writealpha` from the prepared notes.
 - Verified post-publication tag/release state and default-false Compose render.
 
@@ -90,7 +90,7 @@ Results:
 - Frontend production build passed.
 - `git diff --check` passed.
 - Sensitive tracked-file hygiene scan passed.
-- GitHub Actions on the exact release/status commit passed before tag/release publication.
+- GitHub Actions run `26140519337` on exact release/status commit `8c316b9f5c8028b519b603da0ba3cb37542bc4c0` passed before tag/release publication.
 - Post-publication tag/release checks passed.
 
 ## Publication result
@@ -98,7 +98,7 @@ Results:
 - Release URL: https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.1-writealpha
 - Annotated tag: `v0.2.1-writealpha`
 - GitHub release type: pre-release
-- Release target: the Phase 182 release/status commit containing this handoff and publication evidence.
+- Release target: Phase 182 release/status commit `8c316b9f5c8028b519b603da0ba3cb37542bc4c0`; annotated tag object `a86bbcb3e70972b57eff89c1a305805f72ad0908`.
 
 ## Safety boundaries
 
