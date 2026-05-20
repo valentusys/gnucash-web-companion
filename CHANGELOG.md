@@ -9,6 +9,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - Phase 172 — reconciled public status documentation after the published `v0.1.7-readonly` read-only pre-release and published `v0.2.0-writealpha` experimental write-alpha pre-release. README, README.ru, PROJECT_STATUS, and release artifacts now consistently say Phase 0–172 complete, current read-only release is `v0.1.7-readonly`, and write-alpha remains pre-alpha/experimental, disabled by default, not safe for real/private or only-copy books, and limited to synthetic/disposable or copied test books when explicitly enabled. No product code, Docker/runtime default, release/tag publication, or private artifact changed.
+- Phase 173 — added the local-only copied/disposable write-alpha dogfood runbook and safe preflight interface without running a write or changing defaults.
+- Phase 174 — implemented the redacted write-alpha copied-book preflight harness that fails closed for unsafe source/runtime/backup paths and emits only bounded metadata.
+- Phase 175 — ran exactly one controlled write-alpha create dogfood on a synthetic/disposable copied book under explicit local `APP_ENV=test` plus `GNUCASH_WRITES_ENABLED=true`, then verified backup, audit, lock release, restore, and return to default disabled writes.
+- Phase 176 — verified the disposable write-alpha mutated book with GnuCash CLI tooling inside a temporary Debian container, recording only narrow bounded evidence and no broad Desktop compatibility claim.
+- Phase 177 — completed a disposable backup/restore drill proving the pre-write state can be restored and read-only-smoked again with validate/create/PATCH/DELETE probes returning 403 under default false.
+- Phase 178 — improved write-alpha UX guardrails and safe frontend error handling so disposable/test-copy boundaries are clearer and raw path-like backend details are not rendered.
+- Phase 179 — hardened backend write-alpha lock-contention and path-like error handling without expanding create/PATCH/DELETE scope, keeping backup/audit evidence for post-backup failures.
+- Phase 180 — reran combined default-read-only Docker/Caddy API/browser dogfood plus a separate explicit local synthetic/disposable write-alpha create smoke; default validate/create/PATCH/DELETE probes returned 403 and no runtime artifacts were committed.
+- Phase 181 — prepared unpublished `v0.2.1-writealpha` release notes, checklist, and final release-readiness gate. Verdict: ready for release only after explicit owner authorization and a fresh green pre-publish gate; no tag/GitHub release/package/image was created.
+
+### Release notes
+
+- `v0.2.1-writealpha` is prepared as an unpublished candidate after the Phase 173–180 write-alpha dogfood/hardening cycle.
+- Publication is blocked until explicit Val authorization and a fresh green gate for the exact release commit.
+- `GNUCASH_WRITES_ENABLED=false` remains the default; write-alpha execution remains gated by explicit local enablement plus `APP_ENV=test`.
+
+### Known limitations
+
+- Not production-ready and not security-audited.
+- Write-alpha remains unsafe for real/private or only-copy books; evidence is synthetic/disposable or copied-test-book only.
+- No broad GnuCash Desktop/backend compatibility, hosted SaaS readiness, collaborative accounting, CSV/OFX import, banking integration, or production-safe write mode is claimed.
 
 ## [0.1.7-readonly] - 2026-05-20
 

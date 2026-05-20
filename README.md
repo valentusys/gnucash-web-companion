@@ -40,7 +40,7 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–172 are complete.
+- Phase 0–181 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by default.
 - First public pre-alpha release: `v0.0.1-prealpha`.
@@ -48,6 +48,7 @@ This project is not a fit if you need:
 - Latest published read-only release notes: [docs/release/v0.1.7-readonly-notes.md](docs/release/v0.1.7-readonly-notes.md) ([checklist](docs/release/v0.1.7-readonly-checklist.md), [final gate](docs/release/v0.1.7-readonly-final-gate.md), [publication evidence](docs/release/v0.1.7-readonly-publication-evidence.md)).
 - Previous public read-only release: [`v0.1.6-readonly`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.6-readonly) ([notes](docs/release/v0.1.6-readonly-notes.md), [checklist](docs/release/v0.1.6-readonly-checklist.md), [final gate](docs/release/v0.1.6-readonly-final-gate.md), [publication evidence](docs/release/v0.1.6-readonly-publication-evidence.md)).
 - `v0.2.0-writealpha` is published as a pre-alpha write-alpha GitHub pre-release after explicit authorization: [notes](docs/release/v0.2.0-writealpha-notes.md), [checklist](docs/release/v0.2.0-writealpha-checklist.md), [final gate](docs/release/v0.2.0-writealpha-final-gate.md).
+- `v0.2.1-writealpha` is prepared as an unpublished write-alpha maintenance candidate after the Phase 173–180 copied/disposable dogfood and safety-hardening cycle: [notes](docs/release/v0.2.1-writealpha-notes.md), [checklist](docs/release/v0.2.1-writealpha-checklist.md), [final gate](docs/release/v0.2.1-writealpha-final-gate.md). No tag/GitHub release exists for this candidate; publication requires explicit owner authorization and a fresh green gate.
 - Compatibility matrix: [docs/gnucash-compatibility.md](docs/gnucash-compatibility.md). Current compatibility evidence is synthetic/disposable fixture evidence only; no real GnuCash Desktop version support is claimed yet.
 - Recent post-release maintenance:
   - Phase 133 improved read-only empty/error states.
@@ -90,6 +91,15 @@ This project is not a fit if you need:
   - Phase 170 reran full cycle 2 synthetic/disposable Docker/Caddy API and browser release-candidate dogfood with `GNUCASH_WRITES_ENABLED=false`.
   - Phase 171 re-ran the final release gate and published `v0.1.7-readonly` as an authorized GitHub pre-release after clean `main`, `HEAD == origin/main`, green local checks, green GitHub CI for the release commit, tag/release absence, write-disabled Compose defaults, and sensitive tracked-file hygiene were confirmed.
   - Phase 172 reconciled public status documentation after the published `v0.1.7-readonly` and `v0.2.0-writealpha` pre-releases, without product-code changes.
+  - Phase 173 designed the local-only copied/disposable write-alpha dogfood command path and safety stop conditions.
+  - Phase 174 implemented the redacted write-alpha copied-book preflight harness.
+  - Phase 175 ran one controlled write-alpha create dogfood on a synthetic/disposable copied book with explicit local `APP_ENV=test` and `GNUCASH_WRITES_ENABLED=true`.
+  - Phase 176 verified the disposable mutated book through GnuCash CLI tooling inside a temporary Debian container.
+  - Phase 177 completed a disposable backup/restore drill and returned the restored copy to default read-only smoke.
+  - Phase 178 improved write-alpha UX guardrails and safe error handling for disposable/test-copy boundaries.
+  - Phase 179 hardened backend write-alpha lock-contention and path-like error handling without expanding write scope.
+  - Phase 180 reran combined default-read-only Docker/Caddy dogfood plus a separate explicit disposable write-alpha smoke.
+  - Phase 181 prepared the unpublished `v0.2.1-writealpha` release-readiness gate and stopped before publication pending explicit owner authorization.
 - Russian localization/i18n foundation started in Phase 52; English documentation remains canonical. See [README.ru.md](README.ru.md) and [docs/localization.md](docs/localization.md).
 - Community announcement drafts and where-to-share guidance were refreshed in Phase 53 for cautious feedback collection, not production marketing.
 - Startup diagnostics, a richer non-sensitive health endpoint, and troubleshooting guidance were added in Phase 54 for self-hosted deployments.
