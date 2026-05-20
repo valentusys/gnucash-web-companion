@@ -196,6 +196,7 @@ export type FirstRunCheckStatus = 'ok' | 'warning' | 'action_required' | string;
 export type FirstRunCheck = {
 	status: FirstRunCheckStatus;
 	message: string;
+	safe_next_actions?: string[];
 };
 
 export type FirstRunDiagnostics = {

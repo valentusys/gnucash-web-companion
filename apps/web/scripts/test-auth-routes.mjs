@@ -125,7 +125,7 @@ assert.match(loginServer, /localeFromCookie\(cookies\)[\s\S]*response\.status ==
 assert.match(i18nMessages, /login\.error\.operatorConfiguration[\s\S]*JWT_SECRET[\s\S]*APP_ADMIN_PASSWORD_HASH or APP_ADMIN_PASSWORD[\s\S]*Вход настроен не полностью/s, 'login operator configuration guidance must preserve canonical English and Russian safety wording');
 const loginPage = read('src/routes/login/+page.svelte');
 assert.match(loginPage, /jwt_secret[\s\S]*admin_bootstrap[\s\S]*default_book[\s\S]*cors[\s\S]*write_mode[\s\S]*data\.firstRun[\s\S]*login\.firstRun\.title/s, 'login page must render mobile-safe redacted first-run health diagnostics for critical deployment states');
-assert.match(loginPage, /min-w-0[\s\S]*statusLabel\(check\.status\)[\s\S]*break-words/s, 'login first-run diagnostics must be mobile-safe and status-labelled');
+assert.match(loginPage, /min-w-0[\s\S]*statusLabel\(check\.status\)[\s\S]*break-words[\s\S]*safe_next_actions[\s\S]*list-disc/s, 'login first-run diagnostics must be mobile-safe, status-labelled, and show redacted next actions');
 assert.doesNotMatch(loginPage, /localStorage|sessionStorage|JWT_SECRET=|APP_ADMIN_PASSWORD=/, 'login first-run diagnostics must not persist or display secret values');
 assert.match(i18nMessages, /First-run read-only deployment checks[\s\S]*placeholder JWT secret[\s\S]*admin bootstrap[\s\S]*write-disabled status[\s\S]*Проверки first-run read-only deployment/s, 'login first-run diagnostics copy must be localized in EN/RU and cover critical deployment states');
 assert.doesNotMatch(loginServer, /localStorage|sessionStorage/, 'login must not use browser storage');

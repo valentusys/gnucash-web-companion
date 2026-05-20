@@ -106,6 +106,13 @@
 								<span class="w-fit rounded-full px-2 py-1 text-xs font-semibold" style="background-color: var(--app-hover-bg); color: var(--app-muted);">{statusLabel(check.status)}</span>
 							</div>
 							<p class="mt-2 break-words text-xs" style="color: var(--app-muted);">{check.message}</p>
+							{#if check.safe_next_actions?.length}
+								<ul class="mt-2 list-disc space-y-1 pl-4 text-xs" style="color: var(--app-muted);">
+									{#each check.safe_next_actions as action}
+										<li class="break-words">{action}</li>
+									{/each}
+								</ul>
+							{/if}
 						</li>
 					{/each}
 				</ul>

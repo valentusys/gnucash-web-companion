@@ -62,6 +62,7 @@ def test_health_returns_richer_non_sensitive_payload(monkeypatch, tmp_path):
     assert payload["first_run"]["checks"]["write_mode"] == {
         "status": "ok",
         "message": "GnuCash writes are disabled; read-only deployment default is active.",
+        "safe_next_actions": ["Keep GNUCASH_WRITES_ENABLED=false for the default read-only first run."],
     }
     assert payload["checks"]["cors"] == {
         "wildcard_enabled": True,
@@ -85,7 +86,12 @@ def test_health_returns_richer_non_sensitive_payload(monkeypatch, tmp_path):
         "readable": True,
         "filename": "sample-book.gnucash.sqlite",
         "parent_exists": True,
+        "path_kind": "local_file",
         "message": "Default GnuCash book file is present.",
+        "safe_next_actions": [
+            "Continue with the normal read-only login flow.",
+            "Use GnuCash Desktop for edits; web writes remain disabled by default.",
+        ],
     }
     assert payload["checks"]["writes_enabled"] is False
 
@@ -106,7 +112,9 @@ def test_health_explains_missing_default_book_without_full_path(tmp_path):
     assert default_book["exists"] is False
     assert default_book["readable"] is False
     assert default_book["filename"] == "missing.gnucash.sqlite"
+    assert default_book["path_kind"] == "missing_file"
     assert "missing or not mounted" in default_book["message"]
+    assert "Verify the configured default book is mounted" in default_book["safe_next_actions"][0]
     assert str(tmp_path) not in str(payload)
 
 
@@ -124,8 +132,10 @@ def test_health_explains_unreadable_default_book_without_full_path(monkeypatch, 
     assert default_book["exists"] is True
     assert default_book["readable"] is False
     assert default_book["filename"] == "unreadable-book.gnucash.sqlite"
+    assert default_book["path_kind"] == "unreadable_file"
     assert "not readable" in default_book["message"]
     assert "permissions" in default_book["message"]
+    assert "permissions" in default_book["safe_next_actions"][0]
     assert str(tmp_path) not in str(payload)
 
 
@@ -173,15 +183,44 @@ def test_health_first_run_summary_distinguishes_actionable_states_without_sensit
     assert first_run["summary"] == "First-run configuration needs operator action."
     assert first_run["action_required"] == ["jwt_secret", "admin_bootstrap", "default_book", "cors"]
     assert first_run["checks"]["jwt_secret"]["message"] == "JWT_SECRET is missing or still a placeholder. Set a long random value and restart."
+    assert "Set JWT_SECRET" in first_run["checks"]["jwt_secret"]["safe_next_actions"][0]
     assert "APP_ADMIN_PASSWORD_HASH or APP_ADMIN_PASSWORD is missing" in first_run["checks"]["admin_bootstrap"]["message"]
+    assert "APP_ADMIN_PASSWORD_HASH or APP_ADMIN_PASSWORD" in first_run["checks"]["admin_bootstrap"]["safe_next_actions"][0]
     assert "missing or not mounted" in first_run["checks"]["default_book"]["message"]
+    assert "GNUCASH_DEFAULT_BOOK_PATH" in first_run["checks"]["default_book"]["safe_next_actions"][1]
     assert "Narrow CORS_ORIGINS" in first_run["checks"]["cors"]["message"]
+    assert "Narrow CORS_ORIGINS" in first_run["checks"]["cors"]["safe_next_actions"][0]
     assert first_run["checks"]["write_mode"]["message"] == "GnuCash writes are disabled; read-only deployment default is active."
+    assert "Keep GNUCASH_WRITES_ENABLED=false" in first_run["checks"]["write_mode"]["safe_next_actions"][0]
 
     payload_text = str(payload)
     assert "change-me" not in payload_text
     assert str(tmp_path) not in payload_text
     assert "owner-book.gnucash.sqlite" in payload_text
+
+
+def test_health_marks_explicit_write_mode_as_warning_without_changing_action_required(tmp_path):
+    book_path = tmp_path / "sample-book.gnucash.sqlite"
+    book_path.write_bytes(b"synthetic test fixture placeholder")
+    settings = Settings(
+        app_env="test",
+        app_database_url=f"sqlite:///{tmp_path / 'app.db'}",
+        gnucash_default_book_path=str(book_path),
+        jwt_secret="test-health-secret",
+        app_admin_password="test-password",
+        gnucash_writes_enabled=True,
+    )
+
+    payload = build_health_payload(settings, _in_memory_engine())
+
+    assert payload["status"] == "ok"
+    assert payload["first_run"]["action_required"] == []
+    write_mode = payload["first_run"]["checks"]["write_mode"]
+    assert write_mode["status"] == "warning"
+    assert "Experimental writes are explicitly enabled" in write_mode["message"]
+    assert "Return GNUCASH_WRITES_ENABLED to false" in write_mode["safe_next_actions"][0]
+    assert payload["checks"]["writes_enabled"] is True
+    assert str(tmp_path) not in str(payload)
 
 
 def test_cors_posture_warns_for_wildcard_outside_development_like_env(tmp_path):

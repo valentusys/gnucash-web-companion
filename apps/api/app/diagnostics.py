@@ -63,7 +63,12 @@ def _safe_book_path_status(path_value: str) -> dict[str, Any]:
             "readable": False,
             "filename": None,
             "parent_exists": False,
+            "path_kind": "not_configured",
             "message": "GNUCASH_DEFAULT_BOOK_PATH is not configured.",
+            "safe_next_actions": [
+                "Set GNUCASH_DEFAULT_BOOK_PATH to the container-visible default book path.",
+                "Mount the books volume from the host; do not upload or browse books through the web UI.",
+            ],
         }
 
     path = Path(path_value)
@@ -76,10 +81,25 @@ def _safe_book_path_status(path_value: str) -> dict[str, Any]:
             "Default GnuCash book file exists but is not readable by this runtime. "
             "Check host/container file permissions and mount ownership."
         )
+        path_kind = "unreadable_file"
+        safe_next_actions = [
+            "Check host/container file permissions and mount ownership for the books volume.",
+            "Keep using a synthetic or disposable copy until the read-only path is verified.",
+        ]
     elif exists:
         message = "Default GnuCash book file is present."
+        path_kind = "local_file"
+        safe_next_actions = [
+            "Continue with the normal read-only login flow.",
+            "Use GnuCash Desktop for edits; web writes remain disabled by default.",
+        ]
     else:
         message = "Default GnuCash book file is missing or not mounted. Check GNUCASH_DEFAULT_BOOK_PATH and the books volume."
+        path_kind = "missing_file"
+        safe_next_actions = [
+            "Verify the configured default book is mounted into the API container.",
+            "Check GNUCASH_DEFAULT_BOOK_PATH and the books volume without exposing host paths in the UI.",
+        ]
 
     return {
         "configured": True,
@@ -87,7 +107,9 @@ def _safe_book_path_status(path_value: str) -> dict[str, Any]:
         "readable": readable,
         "filename": path.name,
         "parent_exists": parent_exists,
+        "path_kind": path_kind,
         "message": message,
+        "safe_next_actions": safe_next_actions,
     }
 
 
@@ -185,6 +207,11 @@ def build_health_payload(settings: Settings, engine: Engine) -> dict[str, Any]:
                 if auth_config["jwt_secret_configured"]
                 else "JWT_SECRET is missing or still a placeholder. Set a long random value and restart."
             ),
+            "safe_next_actions": (
+                ["No action needed for JWT_SECRET."]
+                if auth_config["jwt_secret_configured"]
+                else ["Set JWT_SECRET to a long random value in the local .env/deployment environment and restart."]
+            ),
         },
         "admin_bootstrap": {
             "status": "ok" if auth_config["admin_credentials_configured"] else "action_required",
@@ -193,14 +220,25 @@ def build_health_payload(settings: Settings, engine: Engine) -> dict[str, Any]:
                 if auth_config["admin_credentials_configured"]
                 else "APP_ADMIN_PASSWORD_HASH or APP_ADMIN_PASSWORD is missing; first-run admin login cannot be seeded."
             ),
+            "safe_next_actions": (
+                ["Sign in with the configured local admin account."]
+                if auth_config["admin_credentials_configured"]
+                else ["Set APP_ADMIN_PASSWORD_HASH or APP_ADMIN_PASSWORD for first-run admin bootstrap and restart."]
+            ),
         },
         "default_book": {
             "status": "ok" if default_book["exists"] and default_book["readable"] else "action_required",
             "message": default_book["message"],
+            "safe_next_actions": default_book["safe_next_actions"],
         },
         "cors": {
             "status": "action_required" if cors["risk_level"] == "warning" else "ok",
             "message": cors["message"],
+            "safe_next_actions": (
+                ["Narrow CORS_ORIGINS to exact localhost, LAN, or VPN browser origins before shared deployment."]
+                if cors["risk_level"] == "warning"
+                else ["No CORS action needed for this environment posture."]
+            ),
         },
         "write_mode": {
             "status": "warning" if settings.gnucash_writes_enabled else "ok",
@@ -208,6 +246,11 @@ def build_health_payload(settings: Settings, engine: Engine) -> dict[str, Any]:
                 "Experimental writes are explicitly enabled for this runtime. Use only APP_ENV=test with disposable copies."
                 if settings.gnucash_writes_enabled
                 else "GnuCash writes are disabled; read-only deployment default is active."
+            ),
+            "safe_next_actions": (
+                ["Return GNUCASH_WRITES_ENABLED to false unless this is an explicit APP_ENV=test disposable write-alpha run."]
+                if settings.gnucash_writes_enabled
+                else ["Keep GNUCASH_WRITES_ENABLED=false for the default read-only first run."]
             ),
         },
     }
