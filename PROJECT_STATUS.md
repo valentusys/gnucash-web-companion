@@ -7,11 +7,11 @@ Last updated: 2026-05-21
 - GitHub: `valentusys/gnucash-web-companion`
 - Local path: `/home/val/gnucash-web-companion`
 - Branch: `main`
-- Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release; `v0.2.4-writealpha` remains the current public experimental write-alpha pre-release. Completed through Phase 227. Phase 227 documented the resolved Phase 220 no-release blocker narrowly for operators/release artifacts: Phases 222–226 remediated synthetic/disposable backup-audit evidence after backup identity collisions and default-read-only regression passed with `GNUCASH_WRITES_ENABLED=false`, but no release was published and no real/private-book write-safety claim was added.
+- Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release; `v0.2.4-writealpha` remains the current public experimental write-alpha pre-release. Completed through Phase 228. Phase 228 verified current-HEAD fresh-clone Docker/Caddy read-only smoke and a synthetic `v0.2.4-writealpha` to current-HEAD upgrade path with `GNUCASH_WRITES_ENABLED=false`, dummy app metadata preserved, validate/create/PATCH/DELETE probes returning 403, and no release or real/private-book write-safety claim added.
 
 ## Current baseline
 
-Completed through Phase 227.
+Completed through Phase 228.
 
 Current public release state:
 
@@ -3088,6 +3088,24 @@ Finding: the Phase 220 blocker is closed only as synthetic/disposable evidence r
 Safety result: `GNUCASH_WRITES_ENABLED=false` remains default and `APP_ENV=test` was not weakened. No UI/product behavior, write route, write scope, release/tag/package/image, real/private/only-copy book, committed runtime book, app DB, backup artifact, `.env`, screenshot/export, token, key, cert, raw path, account name, memo, amount, production/security claim, public-internet-safety claim, or real/private-book write-safety claim was added.
 
 Verification result: public status guard passed; markdown readability/link spot check passed; full backend pytest passed; frontend check/auth-routes/build passed; Docker Compose config validation and rendered-false grep passed; `git diff --check` passed; tracked sensitive-file hygiene scan passed.
+
+## Phase 228 — Fresh-clone and upgrade smoke after remediation
+
+Status: complete. Current `HEAD` passed fresh-clone Docker/Caddy smoke and synthetic `v0.2.4-writealpha` runtime-state upgrade smoke with default-disabled writes.
+
+Goal: verify a clean checkout and synthetic upgrade path after the write-alpha backup/audit remediation, before any release gate.
+
+Artifacts:
+
+- `docs/dogfood/phase-228-fresh-clone-upgrade-after-remediation.md` — redacted fresh-clone and synthetic upgrade evidence.
+- `docs/handoff/phase-228.md` — phase handoff.
+- `CHANGELOG.md` and `PROJECT_STATUS.md` — factual status synchronization.
+
+Finding: `scripts/smoke/fresh-clone-docker-smoke.sh --repo /home/val/gnucash-web-companion --ref HEAD --port 18084` passed for current `HEAD` `059b40f` with the committed synthetic fixture copied into a temporary ignored runtime path, read-only API smoke, browser dogfood at `320x720` and `1280x900`, hidden write UI, auth-cookie no-readability, CSV fetch without saved raw artifact, and validate/create/PATCH/DELETE disabled-write probes returning 403. `scripts/smoke/synthetic-upgrade-smoke.sh --repo /home/val/gnucash-web-companion --previous-ref v0.2.4-writealpha --current-ref HEAD --port 18085` passed from previous checkout `05f9080` to current `059b40f`, preserving dummy app metadata DB readability, default book access, selected-book recovery, read-only route access, write-alpha audit summary, and disabled validate/create/PATCH/DELETE probes returning 403 after upgrade.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remained active throughout, and `APP_ENV=test` was not weakened. Temporary clones used only the committed synthetic fixture, dummy local-only credentials, and ignored runtime paths; helper teardown removed Docker runtime and temp clones. No write-enabled run, migration feature work, release/tag/package/image, real/private/only-copy book, committed runtime book, app DB, backup artifact, `.env`, screenshot/export, token, key, cert, raw path, account name, memo, amount, production/security claim, broad migration guarantee, or real/private-book write-safety claim was added.
+
+Verification result: fresh-clone smoke passed; synthetic upgrade smoke passed; post-smoke Docker cleanup check reported no `gwc_fresh_clone`/`gwc_synthetic_upgrade` leftovers; public status guard passed; full backend pytest passed; frontend check/auth-routes/build passed; Docker Compose config validation and rendered-false grep passed; `git diff --check` passed; tracked sensitive-file hygiene scan passed.
 
 ## Standing constraints
 
