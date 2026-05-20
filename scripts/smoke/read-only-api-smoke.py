@@ -16,8 +16,9 @@ Optional environment variables:
     SMOKE_ADMIN_PASSWORD     admin password, default APP_ADMIN_PASSWORD
 
 The script verifies health, login, /auth/me, default book discovery, accounts,
-transactions, reports summary, and that controlled-write endpoints return 403
-while GNUCASH_WRITES_ENABLED=false.
+transactions, scheduled transaction metadata, reports summary, write-alpha audit
+summary, and that controlled-write endpoints return 403 while
+GNUCASH_WRITES_ENABLED=false.
 """
 
 from __future__ import annotations
@@ -244,6 +245,49 @@ def run(args: argparse.Namespace | None = None) -> None:
     summary = client.request("GET", f"/books/{book_id}/reports/summary", authenticated=True)
     _require_mapping(summary.body, f"/books/{book_id}/reports/summary")
     print("ok: reports summary")
+
+    scheduled = client.request(
+        "GET",
+        f"/books/{book_id}/scheduled-transactions",
+        authenticated=True,
+    )
+    scheduled_body = _require_list(scheduled.body, f"/books/{book_id}/scheduled-transactions")
+    for index, item in enumerate(scheduled_body):
+        scheduled_item = _require_mapping(item, f"/books/{book_id}/scheduled-transactions[{index}]")
+        _check("id" in scheduled_item, "scheduled transaction item is missing id")
+        unsafe_keys = {
+            "template_transaction_description",
+            "template_split_memo",
+            "template_split_amount",
+            "raw_sql",
+        }
+        _check(
+            unsafe_keys.isdisjoint(scheduled_item.keys()),
+            f"scheduled transaction item exposed unsafe template/source keys: {scheduled_item.keys()}",
+        )
+    print("ok: scheduled transactions endpoint")
+
+    audit = client.request(
+        "GET",
+        f"/books/{book_id}/write-alpha-audit-summary",
+        authenticated=True,
+    )
+    audit_body = _require_mapping(audit.body, f"/books/{book_id}/write-alpha-audit-summary")
+    _check(isinstance(audit_body.get("items"), list), "audit summary response is missing items")
+    _check(
+        isinstance(audit_body.get("counts_by_action"), dict),
+        "audit summary response is missing counts_by_action",
+    )
+    _check(
+        isinstance(audit_body.get("counts_by_result"), dict),
+        "audit summary response is missing counts_by_result",
+    )
+    _check(
+        isinstance(audit_body.get("status_summary"), list),
+        "audit summary response is missing status_summary",
+    )
+    _check(isinstance(audit_body.get("time_window"), dict), "audit summary response is missing time_window")
+    print("ok: write-alpha audit summary endpoint")
 
     create_payload = {
         "date": "2026-05-18",

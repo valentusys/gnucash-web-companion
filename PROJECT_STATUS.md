@@ -1,6 +1,6 @@
 # PROJECT_STATUS
 
-Last updated: 2026-05-20
+Last updated: 2026-05-21
 
 ## Repository
 
@@ -11,7 +11,7 @@ Last updated: 2026-05-20
 
 ## Current baseline
 
-Completed through Phase 208.
+Completed through Phase 209.
 
 Current public release state:
 
@@ -2776,6 +2776,25 @@ Artifacts:
 Safety result: `GNUCASH_WRITES_ENABLED=false` remains default. No backend API localization, write route behavior, write gate, release/tag, product marketing claim, production-readiness/security-audit claim, real/private book, app DB, backup artifact, `.env`, screenshot/export, token, key, cert, raw path, account name, memo, amount, browser auth/locale/financial storage, or private financial data was added. Russian remains a conservative operator-safety slice only, not a full localization guarantee.
 
 Verification result: full backend pytest passed; frontend `npm run check`, `npm run test:auth-routes`, and `npm run build` passed; Docker Compose config validation passed; `git diff --check` passed; default-read-only browser dogfood passed on the committed synthetic fixture copied into ignored runtime data with hidden write UI, httpOnly auth-cookie check, mobile no-overflow checks, CSV route check, and no screenshot/download/CSV artifacts.
+
+## Phase 209 — Default-read-only full dogfood refresh
+
+Status: complete. Phase commit pushed after verification.
+
+Goal: re-run a full default-read-only Docker/Caddy API and browser dogfood after Phases 202–208 to prove the safe default still works.
+
+Artifacts:
+
+- `scripts/smoke/read-only-api-smoke.py` — full API smoke now explicitly covers scheduled transaction metadata and the read-only write-alpha audit-summary endpoint in addition to health/login/books/accounts/transactions/details/CSV/reports and disabled validate/create/PATCH/DELETE probes.
+- `docs/dogfood/phase-209-default-readonly-dogfood.md` — redacted local default-read-only Docker/Caddy API and browser evidence.
+- `docs/handoff/phase-209.md` — phase handoff.
+- `CHANGELOG.md` and `PROJECT_STATUS.md` — status synchronized.
+
+Dogfood result: local Docker/Caddy ran with only `apps/api/tests/fixtures/test-book.gnucash.sqlite` copied into ignored `data/books/main.gnucash.sqlite`, dummy local-only `.env` values, and `GNUCASH_WRITES_ENABLED=false`. API smoke passed for health, login/auth, books/default book, accounts, transactions, transaction detail, CSV export, reports summary, scheduled transaction metadata, write-alpha audit summary, and disabled validate/create/PATCH/DELETE probes returning 403. Browser dogfood passed at `320x720` and `1280x900` with hidden write UI, auth cookie not readable from `document.cookie`, CSV fetch success, no-overflow checks, and no screenshot/download/CSV artifacts.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains default and rendered false for API and web. No write-enabled mode was run. No real/private/only-copy book, release/tag/package/image, committed runtime artifact, `.env`, backup, token, key, cert, private path, account name, memo, amount, or private financial data was added. The ignored smoke runtime book and generated app DB were removed after teardown; a pre-existing ignored local `data/app/app.db` was restored and remains untracked local state.
+
+Verification result: Docker Compose config validation passed and rendered `GNUCASH_WRITES_ENABLED: "false"`; read-only API smoke passed; mobile and desktop browser dogfood passed; full backend pytest passed; frontend `npm run check`, auth-route/static checks, and build passed; `git diff --check` passed; tracked sensitive-file hygiene scan passed.
 
 ## Standing constraints
 
