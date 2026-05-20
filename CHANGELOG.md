@@ -7,6 +7,15 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versione
 
 ## [Unreleased]
 
+- Phase 234 — added `docs/write-alpha/copied-book-dogfood-runbook.md`, a conservative maintainer
+  runbook for future local-only copied/disposable write-alpha dogfood. The runbook forbids original
+  and only-copy books, requires outside-git copies plus independent backups before mutation,
+  explicit `GNUCASH_WRITES_ENABLED=true` and `APP_ENV=test` for a local test run, one mutation at a
+  time, strict stop conditions, redacted evidence, restore verification, and reset back to
+  `GNUCASH_WRITES_ENABLED=false`. No real/private copied-book dogfood, product code, UI feature,
+  release, write default, `APP_ENV=test` gate change, or real/private/only-copy write-safety claim
+  was added.
+
 - Phase 233 — reformatted README, README.ru, CHANGELOG, and PROJECT_STATUS raw markdown source for
   terminal/editor readability, advancing GitHub issue #28 without product behavior changes. Long
   single-line paragraphs and packed list items were wrapped while preserving links, status content,

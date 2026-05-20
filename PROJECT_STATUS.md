@@ -9,18 +9,20 @@ Last updated: 2026-05-21
 - Branch: `main`
 - Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release;
   `v0.2.5-writealpha` is the current public experimental write-alpha pre-release. Completed through
-  Phase 233. Phase 231 ran the final release gate after Phase 230 green release-candidate dogfood,
+  Phase 234. Phase 231 ran the final release gate after Phase 230 green release-candidate dogfood,
   confirmed local/backend/frontend/Docker/public-status/sensitive-file gates, waited for exact
   release/status commit CI, and published only the annotated tag plus GitHub pre-release. Phase 232
   reconciled public status/changelog wording after publication. Phase 233 improved raw markdown
-  readability for README/README.ru/CHANGELOG/PROJECT_STATUS while preserving safety wording.
-  `GNUCASH_WRITES_ENABLED=false` remains default, `APP_ENV=test` write-alpha gating remains intact,
-  and no production/security/public-internet/broad-compatibility or real/private-book write-safety
-  claim is added.
+  readability for README/README.ru/CHANGELOG/PROJECT_STATUS while preserving safety wording. Phase
+  234 added a conservative copied-book write-alpha dogfood runbook for future local-only
+  copied/disposable testing without running real/private copied-book dogfood. `GNUCASH_WRITES_ENABLED=false`
+  remains default, `APP_ENV=test` write-alpha gating remains intact, and no
+  production/security/public-internet/broad-compatibility or real/private-book write-safety claim is
+  added.
 
 ## Current baseline
 
-Completed through Phase 233.
+Completed through Phase 234.
 
 Current public release state:
 
@@ -38,6 +40,11 @@ Current public release state:
 - Phase 233 reformatted README, README.ru, CHANGELOG, and PROJECT_STATUS raw markdown source for
   terminal/editor readability while preserving links, content, safety warnings, and the current
   no-production/no-security/no-real-private-book-write-safety posture.
+- Phase 234 added `docs/write-alpha/copied-book-dogfood-runbook.md`, a conservative maintainer
+  runbook for future local-only copied/disposable write-alpha dogfood. It requires outside-git copied
+  books, independent backups before mutation, explicit `GNUCASH_WRITES_ENABLED=true` plus
+  `APP_ENV=test`, one mutation at a time, stop conditions, redacted evidence, restore verification,
+  and reset back to default false; no real/private copied-book dogfood was run.
 - `v0.2.4-writealpha` remains available as the previous public experimental write-alpha GitHub
   pre-release after Phase 211 publication. It is pre-alpha, disabled by default, `APP_ENV=test`
   gated when explicitly enabled, based on synthetic/disposable evidence only for that cycle, not
@@ -6349,6 +6356,39 @@ claim, or real/private-book write-safety claim was added.
 Verification result: markdown link sanity check passed for the reformatted files; public status guard
 passed; backend public-status guard tests passed; `git diff --check` passed; `.env.example` still
 contains `GNUCASH_WRITES_ENABLED=false`; tracked sensitive-file hygiene scan passed.
+
+## Phase 234 — Copied-book write-alpha dogfood runbook v1
+
+Status: complete. A conservative copied/disposable write-alpha dogfood runbook was added for future
+maintainer use; no real/private copied-book dogfood was performed.
+
+Goal: create a narrow runbook for future copied-book write-alpha dogfood that is usable by a
+maintainer while avoiding any implication that real/private or only-copy books are safe write targets.
+
+Artifacts:
+
+- `docs/write-alpha/copied-book-dogfood-runbook.md` — requires copied/disposable books outside git,
+  original/only-copy books forbidden, an independent backup before mutation, local-only Docker,
+  explicit `GNUCASH_WRITES_ENABLED=true` plus `APP_ENV=test`, one mutation at a time, strict stop
+  conditions, redaction rules, restore verification, and reset to `GNUCASH_WRITES_ENABLED=false`.
+- `README.md`, `README.ru.md`, `CHANGELOG.md`, `docs/ROADMAP.md`, `PROJECT_STATUS.md`,
+  `scripts/check_public_status.py`, and `apps/api/tests/test_public_status_guard.py` — public status
+  synchronized to completed Phase 234 while keeping `v0.2.5-writealpha` as the current published
+  write-alpha pre-release and `v0.1.7-readonly` as the current read-only pre-release.
+- `docs/handoff/phase-234.md` — phase handoff.
+
+Finding: the runbook is preparatory and conservative. It tells maintainers to stop before mutation if
+an original/only-copy book, inside-git copy, non-test app environment, missing backup, public exposure,
+inconsistent audit/backup/lock/restore evidence, or unredactable private evidence appears.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains default and `APP_ENV=test` was not weakened. No
+copied-book dogfood, product code, UI feature, release/tag/package/image, write-mode default change,
+real/private/only-copy book, committed runtime book, app DB, backup artifact, `.env`, screenshot/CSV
+export, token, key, cert, raw path, account name, memo, amount, production/security/stable/public-internet/broad-compatibility claim, or real/private-book write-safety claim was added.
+
+Verification result: documentation review passed; `python3 scripts/check_public_status.py` passed;
+`cd apps/api && pytest tests/test_public_status_guard.py -q` passed; `git diff --check` passed;
+`.env.example` still contains `GNUCASH_WRITES_ENABLED=false`.
 
 ## Standing constraints
 

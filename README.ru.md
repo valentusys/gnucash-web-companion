@@ -25,7 +25,7 @@ Desktop остаётся главным редактором.
 
 ## Текущий публичный статус
 
-- Фазы 0–233 завершены.
+- Фазы 0–234 завершены.
 - MVP v0.1 остаётся **read-only by default**.
 - `GNUCASH_WRITES_ENABLED=false` — безопасный дефолт.
 - Controlled-write код, если присутствует, является experimental post-MVP/write-alpha, отключён по
@@ -59,8 +59,10 @@ Desktop остаётся главным редактором.
   remediation; Phase 230 собрал green final release-candidate dogfood pack; Phase 231 опубликовал
   `v0.2.5-writealpha` только после final local gates и green exact release/status commit CI; Phase
   232 сверил public status/changelog wording после публикации; Phase 233 улучшил raw markdown
-  readability README/README.ru/CHANGELOG/PROJECT_STATUS без изменения safety wording. Write-alpha
-  остаётся pre-alpha/experimental, disabled by default, `APP_ENV=test` gated при явном включении и не
+  readability README/README.ru/CHANGELOG/PROJECT_STATUS без изменения safety wording; Phase 234
+  добавил conservative [copied-book write-alpha dogfood runbook](docs/write-alpha/copied-book-dogfood-runbook.md)
+  для будущего local-only copied/disposable тестирования. Write-alpha остаётся
+  pre-alpha/experimental, disabled by default, `APP_ENV=test` gated при явном включении и не
   безопасен для real/private или only-copy books.
 - Compatibility matrix: [docs/gnucash-compatibility.md](docs/gnucash-compatibility.md). Текущие
   evidence boundaries — synthetic/disposable fixtures only; broad real GnuCash Desktop version
