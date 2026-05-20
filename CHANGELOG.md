@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- Phase 192 — updated GitHub Actions JavaScript-action wiring to Node 24-compatible major versions (`actions/checkout@v5`, `actions/setup-node@v6`, and `actions/setup-python@v6`) in the existing foundation, frontend, backend, and Docker Compose jobs to remove the known non-blocking Node.js 20 deprecation warnings seen after `v0.2.2-writealpha`; product behavior, Docker runtime defaults, release state, and `GNUCASH_WRITES_ENABLED=false` remain unchanged.
+
 ## [0.2.2-writealpha] - 2026-05-20
 
 ### Added

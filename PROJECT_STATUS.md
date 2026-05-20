@@ -7,11 +7,11 @@ Last updated: 2026-05-20
 - GitHub: `valentusys/gnucash-web-companion`
 - Local path: `/home/val/gnucash-web-companion`
 - Branch: `main`
-- Status: pre-alpha / v0.1.7-readonly read-only pre-release published in Phase 171; public status reconciliation completed through Phase 172; Phase 182 published `v0.2.1-writealpha`; Phase 191 completed the cycle-2 release-readiness gate and published `v0.2.2-writealpha` as the current experimental write-alpha pre-release after green local checks, green exact-commit GitHub Actions, default-false verification, and sensitive tracked-file hygiene
+- Status: pre-alpha / v0.1.7-readonly read-only pre-release published in Phase 171; public status reconciliation completed through Phase 172; Phase 182 published `v0.2.1-writealpha`; Phase 191 completed the cycle-2 release-readiness gate and published `v0.2.2-writealpha` as the current experimental write-alpha pre-release; Phase 192 cleaned up the known non-blocking GitHub Actions Node.js 20 deprecation warnings by moving CI JavaScript actions to Node 24-compatible major versions without changing product behavior or runtime defaults
 
 ## Current baseline
 
-Completed through Phase 191.
+Completed through Phase 192.
 
 Current public release state:
 
@@ -89,6 +89,7 @@ Current public release state:
 - Phase 189 is a fresh-clone install smoke v2 phase: `scripts/smoke/fresh-clone-docker-smoke.sh` was run against current public read-only tag `v0.1.7-readonly`, current public write-alpha tag `v0.2.1-writealpha`, and current `main`, each from a temporary clone with only the committed synthetic fixture, dummy local-only secrets, and `GNUCASH_WRITES_ENABLED=false`. All three passed Docker Compose config/startup, `/api/health`, login/auth, books, accounts, transactions, transaction detail, CSV export, reports summary, browser dogfood, hidden write UI, disabled validate/create/PATCH/DELETE probes returning 403, and no-artifact checks. Teardown left no fresh-clone temp directories and no `gwc_fresh_clone` Docker containers/volumes/networks. No smoke helper/product code change, write-enabled run, release/tag/package/image, real/private book, runtime artifact, `.env`, token, key, cert, screenshot/export, private path, account name, memo, amount, or private financial data was added.
 - Phase 190 is a combined cycle-2 release-candidate dogfood phase: local Docker/Caddy default-read-only dogfood passed with `GNUCASH_WRITES_ENABLED=false`; API read-only flows passed; validate/create/PATCH/DELETE probes returned 403; browser dogfood passed at mobile 320x720 and desktop 1280x900 with hidden write UI, auth cookie not readable from `document.cookie`, CSV fetch success, no-overflow checks, and no screenshot/download/CSV artifacts. Separate explicit local-only `APP_ENV=test` plus `GNUCASH_WRITES_ENABLED=true` disposable write-alpha smokes collected bounded create/PATCH/DELETE route-family evidence: create success audit/backup, PATCH expected failed missing-transaction audit plus success audit/backup, DELETE success audit/backup, and non-active stale lock evidence from inside the API container. Host-side root-owned runtime readability limited the smoke helpers' final lock/restore checks, so no new restore claim is made here; the stack was returned to default false and read-only API smoke passed again with disabled write probes. Runtime book/app DB/backups/locks were removed after verification; no product code change, release/tag/package/image, real/private/only-copy book, raw artifact, `.env`, token, key, cert, screenshot/export, private path, account name, memo, amount, production/security claim, or real/private-book write-safety claim was added.
 - Phase 191 is the cycle-2 release-readiness gate and publication phase: README, README.ru, CHANGELOG, release docs, dogfood evidence, GitHub releases/actions, open issues, and current `main` were compared against actual repository state; target `v0.2.2-writealpha` was selected because cycle-2 includes write-alpha evidence and safety/operator hardening after `v0.2.1-writealpha`; local backend/frontend/Docker checks, `GNUCASH_WRITES_ENABLED=false` defaults, `git diff --check`, sensitive tracked-file hygiene, tag/release absence, and GitHub Actions on the exact release/status commit passed; then `v0.2.2-writealpha` was published as a conservative GitHub pre-release. Publication created only the annotated tag and GitHub pre-release; no package, image, production deployment, write default change, write-scope expansion, real/private book, app DB, backup, `.env`, token, key, cert, screenshot/export, private path, amount, production/security claim, public-internet safety claim, or real/private-book write-safety claim was added.
+- Phase 192 is a CI/toolchain warning cleanup phase after `v0.2.2-writealpha`: GitHub Actions JavaScript actions now use Node 24-compatible major versions (`actions/checkout@v5`, `actions/setup-node@v6`, and `actions/setup-python@v6`) in the existing foundation, frontend, backend, and Docker Compose jobs, addressing the known non-blocking Node.js 20 deprecation warnings observed around Phase 191/first Phase 192 CI while preserving the same backend/frontend/Docker checks and without changing product code, Docker runtime defaults, writes configuration, releases/tags, issues, or sensitive artifacts. Local verification passed for backend pytest, frontend check/auth-routes/build, Docker Compose config with rendered `GNUCASH_WRITES_ENABLED: "false"`, `.env.example` default false, `git diff --check`, and sensitive tracked-file hygiene; exact pushed CI passed without Node.js 20 action deprecation warnings.
 - Previous public release `v0.1.2-readonly` remains available and points to its Phase 117 release commit.
 - Previous public release `v0.1.1-readonly` remains available and points to `a4d04150c043ad4da3dea577b30ed7ffd2032df0`, after Phase 104.
 
@@ -2543,6 +2544,23 @@ Release result: `v0.2.2-writealpha` is published as a conservative GitHub pre-re
 Safety result: `GNUCASH_WRITES_ENABLED=false` remains the documented/configured default. Write-alpha execution remains experimental and requires explicit local enablement plus `APP_ENV=test`; cycle-2 evidence remains synthetic/disposable only. No production readiness, security audit, hosted SaaS readiness, broad GnuCash compatibility, public-internet safety, or real/private/only-copy write-safety claim was added.
 
 Verification result: release-readiness gate passed: clean tracked tree except ignored `.hermes/`, `HEAD == origin/main` before release artifacts, local/remote tag absence, GitHub release absence, `gh` authenticated, backend suite passed, frontend check/auth-routes/build passed, Docker Compose config validation passed, rendered Compose kept `GNUCASH_WRITES_ENABLED: "false"`, `.env.example` kept `GNUCASH_WRITES_ENABLED=false`, `git diff --check` passed, tracked sensitive-file hygiene scan passed, GitHub Actions on the exact release/status commit passed before tagging, and post-publication tag/release checks passed. GitHub Actions emitted a non-blocking Node.js 20 deprecation warning for `actions/checkout@v4`.
+
+## Phase 192 — CI/toolchain warning cleanup
+
+Status: complete. Phase commit pushed after verification; GitHub Actions run on the exact commit passed.
+
+Goal: remove the known non-blocking Node.js 20 deprecation warning in GitHub Actions after `v0.2.2-writealpha` without changing product behavior.
+
+Artifacts:
+
+- `.github/workflows/ci.yml` — existing checkout/setup steps in the foundation, frontend, backend, and Docker Compose jobs now use Node 24-compatible action major versions (`actions/checkout@v5`, `actions/setup-node@v6`, and `actions/setup-python@v6`); the existing job layout and checks are unchanged.
+- `CHANGELOG.md` — Unreleased support note for the CI/toolchain cleanup.
+- `docs/handoff/phase-192.md` — before/after evidence and handoff.
+- `PROJECT_STATUS.md` — status synchronized.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains default in `.env.example` and rendered Docker Compose config. No product code, API/UI business logic, Docker runtime default, write enablement, release/tag publication, GitHub issue change, real/private book, app DB, backup, `.env`, token, key, cert, screenshot/export, or private financial artifact was added.
+
+Verification result: local backend pytest passed; frontend `npm run check`, `npm run test:auth-routes`, and `npm run build` passed; Docker Compose config validation passed; rendered Compose kept `GNUCASH_WRITES_ENABLED: "false"`; `.env.example` kept `GNUCASH_WRITES_ENABLED=false`; `git diff --check` passed; sensitive tracked-file hygiene scan passed; the exact pushed CI run passed without Node.js 20 action deprecation warnings.
 
 ## Standing constraints
 
