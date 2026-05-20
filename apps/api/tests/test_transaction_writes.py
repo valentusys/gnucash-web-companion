@@ -29,6 +29,7 @@ from app.models import User, Book, UserBookAccess, AuditLog
 from app.routers.auth import get_db
 from app.schemas.gnucash_writes import TransactionCreateRequestDTO, TransactionSplitWriteDTO
 from app.services.auth import hash_password
+from app.services.backup import BackupError
 from app.services.gnucash_write import GnuCashWriteService, GnuCashWriteError
 from app.services.gnucash_book import _guid
 from app.services.write_lock import WriteLockError
@@ -1261,6 +1262,58 @@ class TestWriteAlphaCreateRouteDisposableFixture:
         backup_txs = _read_written_transactions(backup_path)
         assert backup_txs == txs_before
 
+    def test_create_backup_failure_fails_before_mutation_audits_and_releases_lock(
+        self,
+        client,
+        auth_headers,
+        disposable_sample_book,
+        disposable_fixture_book,
+        disposable_write_lock,
+        session_factory,
+        monkeypatch,
+    ):
+        """A backup-directory/creation failure must stop create before opening the write book."""
+        txs_before = _read_written_transactions(disposable_fixture_book)
+        write_open_calls = []
+
+        def fail_backup(book_config):
+            raise BackupError("cannot create backup under redacted-backup-target://unavailable")
+
+        def forbidden_write_open(self, uri_or_path):
+            write_open_calls.append(uri_or_path)
+            raise AssertionError("write book must not be opened when backup creation fails")
+
+        monkeypatch.setattr("app.services.gnucash_write.create_book_backup", fail_backup)
+        monkeypatch.setattr(GnuCashWriteService, "_open_piecash_book_for_write", forbidden_write_open)
+
+        response = client.post(
+            f"/books/{disposable_sample_book}/transactions",
+            json=self._fixture_create_payload("Create blocked by backup failure"),
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 422
+        detail = response.json()["detail"]
+        assert "GnuCash write failed" in detail
+        assert "redacted-backup-target" not in detail
+        assert "://" not in detail
+        assert _read_written_transactions(disposable_fixture_book) == txs_before
+        assert write_open_calls == []
+
+        lock_key = str(disposable_fixture_book)
+        assert disposable_write_lock.acquire(lock_key) is True
+        disposable_write_lock.release(lock_key)
+
+        with session_factory() as session:
+            logs = session.query(AuditLog).filter_by(action="transaction.create").all()
+            assert logs
+            payload = json.loads(logs[-1].payload_json)
+            assert payload["result"] == "failed"
+            assert payload["backup_path"] is None
+            assert "GnuCash write failed" in payload["error"]
+            assert "redacted-backup-target" not in payload["error"]
+            assert "://" not in payload["error"]
+
     def test_path_like_create_failure_uses_safe_api_and_audit_error(
         self,
         client,
@@ -1604,6 +1657,58 @@ class TestWriteAlphaPatchRouteDisposableFixture:
         assert backup_path.exists()
         assert _read_written_transactions(backup_path) == txs_before
 
+    def test_patch_backup_failure_fails_before_mutation_audits_and_releases_lock(
+        self,
+        client,
+        auth_headers,
+        disposable_sample_book,
+        disposable_fixture_book,
+        disposable_write_lock,
+        session_factory,
+        monkeypatch,
+    ):
+        tx_before = self._first_fixture_transaction(disposable_fixture_book)
+        txs_before = _read_written_transactions(disposable_fixture_book)
+        write_open_calls = []
+
+        def fail_backup(book_config):
+            raise BackupError("backup destination unavailable at redacted-backup-target://patch")
+
+        def forbidden_write_open(self, uri_or_path):
+            write_open_calls.append(uri_or_path)
+            raise AssertionError("write book must not be opened when patch backup fails")
+
+        monkeypatch.setattr("app.services.gnucash_write.create_book_backup", fail_backup)
+        monkeypatch.setattr(GnuCashWriteService, "_open_piecash_book_for_write", forbidden_write_open)
+
+        response = client.patch(
+            f"/books/{disposable_sample_book}/transactions/{tx_before['guid']}",
+            json={"description": "patch blocked by backup failure"},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 422
+        detail = response.json()["detail"]
+        assert "GnuCash write failed" in detail
+        assert "redacted-backup-target" not in detail
+        assert "://" not in detail
+        assert _read_written_transactions(disposable_fixture_book) == txs_before
+        assert write_open_calls == []
+
+        lock_key = str(disposable_fixture_book)
+        assert disposable_write_lock.acquire(lock_key) is True
+        disposable_write_lock.release(lock_key)
+
+        with session_factory() as session:
+            logs = session.query(AuditLog).filter_by(action="transaction.patch").all()
+            assert logs
+            payload = json.loads(logs[-1].payload_json)
+            assert payload["result"] == "failed"
+            assert payload["backup_path"] is None
+            assert "GnuCash write failed" in payload["error"]
+            assert "redacted-backup-target" not in payload["error"]
+            assert "://" not in payload["error"]
+
     def test_concurrent_patch_and_create_allows_one_success_and_one_lock_contention(
         self,
         client,
@@ -1799,6 +1904,57 @@ class TestWriteAlphaDeleteRouteDisposableFixture:
 
         assert backup_path.exists()
         assert _read_written_transactions(backup_path) == txs_before
+
+    def test_delete_backup_failure_fails_before_mutation_audits_and_releases_lock(
+        self,
+        client,
+        auth_headers,
+        disposable_sample_book,
+        disposable_fixture_book,
+        disposable_write_lock,
+        session_factory,
+        monkeypatch,
+    ):
+        tx_before = self._first_fixture_transaction(disposable_fixture_book)
+        txs_before = _read_written_transactions(disposable_fixture_book)
+        write_open_calls = []
+
+        def fail_backup(book_config):
+            raise BackupError("delete backup directory unavailable at redacted-backup-target://delete")
+
+        def forbidden_write_open(self, uri_or_path):
+            write_open_calls.append(uri_or_path)
+            raise AssertionError("write book must not be opened when delete backup fails")
+
+        monkeypatch.setattr("app.services.gnucash_write.create_book_backup", fail_backup)
+        monkeypatch.setattr(GnuCashWriteService, "_open_piecash_book_for_write", forbidden_write_open)
+
+        response = client.delete(
+            f"/books/{disposable_sample_book}/transactions/{tx_before['guid']}",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 422
+        detail = response.json()["detail"]
+        assert "GnuCash write failed" in detail
+        assert "redacted-backup-target" not in detail
+        assert "://" not in detail
+        assert _read_written_transactions(disposable_fixture_book) == txs_before
+        assert write_open_calls == []
+
+        lock_key = str(disposable_fixture_book)
+        assert disposable_write_lock.acquire(lock_key) is True
+        disposable_write_lock.release(lock_key)
+
+        with session_factory() as session:
+            logs = session.query(AuditLog).filter_by(action="transaction.delete").all()
+            assert logs
+            payload = json.loads(logs[-1].payload_json)
+            assert payload["result"] == "failed"
+            assert payload["backup_path"] is None
+            assert "GnuCash write failed" in payload["error"]
+            assert "redacted-backup-target" not in payload["error"]
+            assert "://" not in payload["error"]
 
     def test_read_only_book_access_rejects_delete_before_write_service(
         self,
