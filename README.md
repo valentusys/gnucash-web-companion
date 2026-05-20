@@ -47,7 +47,7 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–238 are complete.
+- Phase 0–239 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by
   default.
@@ -95,8 +95,10 @@ This project is not a fit if you need:
   amount-like, memo/account-name, and payload-like data before commit, Phase 237 added an
   explicitly unsafe-for-real-books `.env.writealpha.example` reference plus
   [write-alpha environment guidance](docs/write-alpha/environment.md) for local-only operator
-  testing without changing default read-only config, and Phase 238 added a redacted non-mutating
-  `scripts/write_alpha_readiness.py` readiness command for write-alpha prerequisites. Write-alpha remains pre-alpha/experimental,
+  testing without changing default read-only config, Phase 238 added a redacted non-mutating
+  `scripts/write_alpha_readiness.py` readiness command for write-alpha prerequisites, and Phase 239
+  recorded a synthetic copied-book dry-run through Docker/Caddy using the Phase 236 evidence schema.
+  Write-alpha remains pre-alpha/experimental,
   disabled by default,
   `APP_ENV=test` gated when explicitly enabled, and not safe for real/private or only-copy books.
 - Compatibility matrix: [docs/gnucash-compatibility.md](docs/gnucash-compatibility.md). Current

@@ -7,6 +7,14 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versione
 
 ## [Unreleased]
 
+- Phase 239 — ran a synthetic copied-book dry-run through Docker/Caddy using a disposable fixture
+  copy and the Phase 236 evidence schema. Preflight/readiness reported redacted no-mutation status,
+  Docker/Caddy read-only API and browser smoke passed with `GNUCASH_WRITES_ENABLED=false`, disabled
+  validate/create/PATCH/DELETE probes returned 403, checksum evidence confirmed no runtime book
+  mutation, and no backups/locks/audit rows were produced. No create/PATCH/DELETE write-alpha
+  mutation, release, default-write change, `APP_ENV=test` gate weakening, real/private book use, or
+  raw path/account/memo/amount evidence was added.
+
 - Phase 238 — added `scripts/write_alpha_readiness.py` and backend readiness helper coverage for a
   non-mutating, redacted write-alpha operator preflight. The command reports whether
   `GNUCASH_WRITES_ENABLED=true`, the `APP_ENV=test` gate, derived backup policy, app metadata DB,

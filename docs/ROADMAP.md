@@ -5,7 +5,7 @@ This roadmap is intentionally conservative. Safety and trust come before feature
 ## Current release posture
 
 - Status: pre-alpha / MVP in progress.
-- Completed through Phase 238.
+- Completed through Phase 239.
 - Current public read-only pre-release: `v0.1.7-readonly`.
 - Current published write-alpha pre-release: `v0.2.5-writealpha`, published in Phase 231 after the
   cycle-3 release gate and exact release-commit CI as pre-alpha/experimental and disabled by
@@ -25,8 +25,10 @@ This roadmap is intentionally conservative. Safety and trust come before feature
   write-alpha dogfood runbook, Phase 235 added a redacted local-only target preflight CLI for
   future copied/disposable testing, Phase 236 added a redacted dogfood evidence schema/helper for
   future evidence reports, Phase 237 added a local-only write-alpha environment reference and
-  operator guard documentation, and Phase 238 added a redacted non-mutating write-alpha readiness
-  command without changing default read-only config or running real/private copied-book dogfood. Phase 221 previously recorded a no-release verdict for
+  operator guard documentation, Phase 238 added a redacted non-mutating write-alpha readiness
+  command, and Phase 239 recorded a synthetic copied-book dry-run through Docker/Caddy using the
+  redacted evidence schema without changing default read-only config or running real/private
+  copied-book dogfood. Phase 221 previously recorded a no-release verdict for
   the Phase 220 DELETE backup-count anomaly; Phases 222–230 remediated and re-verified that blocker
   only as synthetic/disposable backup-audit, default-disabled fresh-clone/upgrade, and final
   release-candidate dogfood evidence before publication.
@@ -83,6 +85,9 @@ This roadmap is intentionally conservative. Safety and trust come before feature
 - Phase 238 — added a redacted non-mutating `scripts/write_alpha_readiness.py` command for checking
   write-alpha prerequisites; it reports gate/config/readiness status without constructing the write
   service or mutating books.
+- Phase 239 — ran a synthetic copied-book dry-run through Docker/Caddy with preflight/readiness,
+  default-disabled API/browser smoke, disabled validate/create/PATCH/DELETE probes, checksum
+  no-mutation proof, and redacted Phase 236-schema evidence.
 
 ## Completed phase groups
 
