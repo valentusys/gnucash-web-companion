@@ -40,15 +40,15 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–201 are complete.
+- Phase 0–211 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by default.
 - First public pre-alpha release: `v0.0.1-prealpha`.
 - Current public read-only pre-alpha release after the Phase 171 authorized gate: [`v0.1.7-readonly`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.7-readonly).
 - Latest published read-only release notes: [docs/release/v0.1.7-readonly-notes.md](docs/release/v0.1.7-readonly-notes.md) ([checklist](docs/release/v0.1.7-readonly-checklist.md), [final gate](docs/release/v0.1.7-readonly-final-gate.md), [publication evidence](docs/release/v0.1.7-readonly-publication-evidence.md)).
 - Previous public read-only release: [`v0.1.6-readonly`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.6-readonly) ([notes](docs/release/v0.1.6-readonly-notes.md), [checklist](docs/release/v0.1.6-readonly-checklist.md), [final gate](docs/release/v0.1.6-readonly-final-gate.md), [publication evidence](docs/release/v0.1.6-readonly-publication-evidence.md)).
-- Previous write-alpha pre-releases: [`v0.2.2-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.2-writealpha), [`v0.2.1-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.1-writealpha), and [`v0.2.0-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.0-writealpha).
-- Current published write-alpha pre-release: [`v0.2.3-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.3-writealpha), published after the Phase 201 cycle-3 release-readiness gate: [notes](docs/release/v0.2.3-writealpha-notes.md), [checklist](docs/release/v0.2.3-writealpha-checklist.md), [final gate](docs/release/v0.2.3-writealpha-final-gate.md), [publication evidence](docs/release/v0.2.3-writealpha-publication-evidence.md).
+- Previous write-alpha pre-releases: [`v0.2.3-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.3-writealpha), [`v0.2.2-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.2-writealpha), [`v0.2.1-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.1-writealpha), and [`v0.2.0-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.0-writealpha).
+- Current published write-alpha pre-release: [`v0.2.4-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.4-writealpha), published after the Phase 211 cycle-1 release gate: [notes](docs/release/v0.2.4-writealpha-notes.md), [checklist](docs/release/v0.2.4-writealpha-checklist.md), [final gate](docs/release/v0.2.4-writealpha-final-gate.md), [publication evidence](docs/release/v0.2.4-writealpha-publication-evidence.md).
 - Compatibility matrix: [docs/gnucash-compatibility.md](docs/gnucash-compatibility.md). Current compatibility evidence is synthetic/disposable fixture evidence only; no real GnuCash Desktop version support is claimed yet.
 - Recent post-release maintenance:
   - Phase 133 improved read-only empty/error states.
@@ -120,6 +120,16 @@ This project is not a fit if you need:
   - Phase 199 completed full default-read-only Docker/Caddy API/browser regression dogfood with disabled validate/create/PATCH/DELETE probes returning 403.
   - Phase 200 completed bounded write-alpha create/PATCH/DELETE disposable CRUD/restore dogfood, returned to default false, and cleaned ignored runtime artifacts.
   - Phase 201 passed the cycle-3 release-readiness gate and published `v0.2.3-writealpha` as an authorized GitHub pre-release after exact release-commit CI succeeded.
+  - Phase 202 hardened default read-only first-run diagnostics for health/login/books error states while preserving disabled writes.
+  - Phase 203 refreshed the safe disposable Desktop fixture capture path and recorded the remaining blocker for noninteractive Desktop-generated SQLite fixture creation.
+  - Phase 204 added compatibility-matrix regression coverage from redacted fixture metadata and kept broad backend/Desktop support unclaimed.
+  - Phase 205 polished multi-book read-only recovery for inaccessible, archived, missing, and stale selected-book contexts.
+  - Phase 206 hardened transaction and scheduled read-only edge cases with synthetic mobile/desktop Docker/Caddy dogfood.
+  - Phase 207 strengthened read-only write-alpha audit-summary redaction and bounded count/status/time-window metadata.
+  - Phase 208 polished English/Russian operator safety copy for read-only/write-alpha warnings without claiming full localization.
+  - Phase 209 completed full default-read-only Docker/Caddy API/browser dogfood with disabled validate/create/PATCH/DELETE probes returning 403.
+  - Phase 210 completed bounded write-alpha create/PATCH/DELETE+restore dogfood on fresh ignored synthetic runtime copies, returned to default false, and cleaned ignored runtime artifacts.
+  - Phase 211 passed the cycle-1 release gate and published `v0.2.4-writealpha` as an authorized GitHub pre-release after exact release-commit CI succeeded.
 - Russian localization/i18n foundation started in Phase 52; English documentation remains canonical. See [README.ru.md](README.ru.md) and [docs/localization.md](docs/localization.md).
 - Community announcement drafts and where-to-share guidance were refreshed in Phase 53 for cautious feedback collection, not production marketing.
 - Startup diagnostics, a richer non-sensitive health endpoint, and troubleshooting guidance were added in Phase 54 for self-hosted deployments.
