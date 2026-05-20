@@ -537,6 +537,50 @@ class TestGetTransactionMVP:
         data = response.json()
         assert len(data["splits"]) == 3
 
+    def test_many_split_transaction_keeps_decimal_strings_and_reconciliation_states(
+        self, client, auth_headers, sample_book, tmp_path, session_factory, monkeypatch
+    ):
+        root = FakeAccount(guid="root-guid", name="Root", type="ROOT")
+        checking = FakeAccount(guid="checking-guid", name="Checking", type="BANK", parent=root)
+        split_accounts = [
+            FakeAccount(guid=f"expense-{index:02d}", name=f"Expense {index:02d}", type="EXPENSE", parent=root)
+            for index in range(12)
+        ]
+        splits = [FakeSplit(account=checking, value=Decimal("-78.00"), reconcile_state="c")]
+        splits.extend(
+            FakeSplit(account=account, value=Decimal("6.50"), memo=f"line {index:02d}", reconcile_state="y")
+            for index, account in enumerate(split_accounts)
+        )
+        transaction = FakeTransaction(
+            guid="tx-many-splits",
+            post_date=date(2026, 5, 19),
+            description="Synthetic many split transaction",
+            splits=splits,
+        )
+        book_path = tmp_path / "many-splits.gnucash"
+        book_path.write_text("fake")
+
+        def fake_open_book(path, readonly=False):
+            assert readonly is True
+            return FakeBookWithTransactions(accounts=[root, checking, *split_accounts], transactions=[transaction])
+
+        import app.services.gnucash_book as gb_module
+
+        monkeypatch.setattr(gb_module.piecash, "open_book", fake_open_book)
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(book_path)
+            session.commit()
+
+        response = client.get("/transactions/tx-many-splits", headers=auth_headers)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["splits"]) == 13
+        assert data["splits"][0]["amount"] == "-78.00"
+        assert all(isinstance(split["amount"], str) for split in data["splits"])
+        assert {split["reconcile_state"] for split in data["splits"]} == {"c", "y"}
+
     def test_access_denied(
         self, client, viewer_headers, sample_book, fake_book_with_transactions, session_factory
     ):

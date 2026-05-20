@@ -17,6 +17,12 @@
 		return value ? t(locale, 'scheduled.yes') : t(locale, 'scheduled.no');
 	}
 
+	function templateStatusLabel(status: string): string {
+		return status === 'present_redacted'
+			? t(locale, 'scheduled.templatePresentRedacted')
+			: t(locale, 'scheduled.templateNotPresentRedacted');
+	}
+
 	function activeClass(active: boolean): string {
 		return active ? 'border-transparent text-white' : 'border-[var(--app-border)]';
 	}
@@ -108,7 +114,7 @@
 		{#if data.scheduledTransactions.length}
 			<div class="grid gap-3">
 				{#each data.scheduledTransactions as scheduled (scheduled.id)}
-					<article class="rounded-xl border p-4" style="border-color: var(--app-border); background-color: var(--app-bg);">
+					<article class="min-w-0 rounded-xl border p-4" style="border-color: var(--app-border); background-color: var(--app-bg);">
 						<div class="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
 							<div>
 								<h3 class="text-lg font-semibold" style="color: var(--app-text);">{scheduled.name || t(locale, 'scheduled.unnamed')}</h3>
@@ -143,6 +149,10 @@
 							<div>
 								<dt class="font-medium" style="color: var(--app-muted);">{t(locale, 'scheduled.advanceDays')}</dt>
 								<dd class="mt-1" style="color: var(--app-text);">{t(locale, 'scheduled.advanceDaysValue', { create: formatNumber(scheduled.advance_create_days), notify: formatNumber(scheduled.advance_notify_days) })}</dd>
+							</div>
+							<div>
+								<dt class="font-medium" style="color: var(--app-muted);">{t(locale, 'scheduled.templateReferenceStatus')}</dt>
+								<dd class="mt-1 break-words" style="color: var(--app-text);">{templateStatusLabel(scheduled.template_reference_status)}</dd>
 							</div>
 						</dl>
 

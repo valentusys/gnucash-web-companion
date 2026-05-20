@@ -95,6 +95,10 @@ class ScheduledTransactionDTO(BaseModel):
     advance_notify_days: int | None = Field(None, description="Configured advance notification days")
     instance_count: int | None = Field(None, description="Instance count recorded by GnuCash")
     has_template_account: bool = Field(False, description="Whether a template account reference is present")
+    template_reference_status: str = Field(
+        "not_present_redacted",
+        description="Safe template-reference status only; never exposes template split/source data",
+    )
     recurrence: list[ScheduledTransactionRecurrenceDTO] = Field(default_factory=list)
     limitations: list[str] = Field(default_factory=list)
 

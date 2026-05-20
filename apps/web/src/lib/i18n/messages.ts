@@ -253,6 +253,9 @@ export type MessageKey =
 	| 'scheduled.clearFilters'
 	| 'scheduled.unnamed'
 	| 'scheduled.templateAccount'
+	| 'scheduled.templateReferenceStatus'
+	| 'scheduled.templatePresentRedacted'
+	| 'scheduled.templateNotPresentRedacted'
 	| 'scheduled.occurrences'
 	| 'scheduled.occurrencesValue'
 	| 'scheduled.autoCreateNotify'
@@ -550,6 +553,9 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'scheduled.clearFilters': 'Clear scheduled filters',
 		'scheduled.unnamed': 'Unnamed scheduled transaction',
 		'scheduled.templateAccount': 'Template account',
+		'scheduled.templateReferenceStatus': 'Template reference status',
+		'scheduled.templatePresentRedacted': 'Present; split details redacted',
+		'scheduled.templateNotPresentRedacted': 'No template reference reported; no split details inferred',
 		'scheduled.occurrences': 'Occurrences',
 		'scheduled.occurrencesValue': 'total {total} · remaining {remaining}',
 		'scheduled.autoCreateNotify': 'Auto-create / notify',
@@ -848,6 +854,9 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'scheduled.clearFilters': 'Сбросить фильтры плановых',
 		'scheduled.unnamed': 'Плановая транзакция без названия',
 		'scheduled.templateAccount': 'Template account',
+		'scheduled.templateReferenceStatus': 'Статус template reference',
+		'scheduled.templatePresentRedacted': 'Есть; детали split скрыты',
+		'scheduled.templateNotPresentRedacted': 'Template reference не найден; split-детали не выводятся',
 		'scheduled.occurrences': 'Повторы',
 		'scheduled.occurrencesValue': 'всего {total} · осталось {remaining}',
 		'scheduled.autoCreateNotify': 'Auto-create / notify',

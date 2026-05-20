@@ -102,6 +102,7 @@ export type ScheduledTransaction = {
 	advance_notify_days: number | null;
 	instance_count: number | null;
 	has_template_account: boolean;
+	template_reference_status: string;
 	recurrence: ScheduledTransactionRecurrence[];
 	limitations: string[];
 };

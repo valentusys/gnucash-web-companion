@@ -111,6 +111,7 @@ def test_default_scheduled_transactions_returns_safe_summary(
             "advance_notify_days": 7,
             "instance_count": 0,
             "has_template_account": True,
+            "template_reference_status": "present_redacted",
             "recurrence": [
                 {
                     "period_type": "month",
@@ -123,6 +124,7 @@ def test_default_scheduled_transactions_returns_safe_summary(
                 "Read-only summary metadata only; edit scheduled transactions in GnuCash Desktop.",
                 "Next occurrence dates are not calculated by this pre-alpha view.",
                 "Template split details are intentionally not exposed.",
+                "Template account reference is present, but template split amounts, accounts, memos, transaction descriptions, and raw SQL are redacted.",
             ],
         }
     ]
@@ -160,6 +162,7 @@ def test_scheduled_transactions_sort_and_redact_template_details(
         assert "template_split_memo" not in item
         assert "template_split_amount" not in item
         assert "template_account_name" not in item
+        assert item["template_reference_status"] == "present_redacted"
 
 
 def test_book_aware_scheduled_transactions_empty_state(
@@ -172,6 +175,39 @@ def test_book_aware_scheduled_transactions_empty_state(
 
     assert response.status_code == 200
     assert response.json() == []
+
+
+def test_scheduled_transactions_no_template_reference_stays_redacted(
+    client, auth_headers, sample_book, session_factory, monkeypatch, tmp_path
+):
+    book_path = install_fake_scheduled_book(
+        monkeypatch,
+        tmp_path,
+        [
+            FakeScheduledTransaction(
+                guid="sx-no-template",
+                name="No template edge case",
+                template_act_guid=None,
+                recurrence=[],
+            )
+        ],
+    )
+    point_sample_book_at(session_factory, sample_book, book_path)
+
+    response = client.get(f"/books/{sample_book}/scheduled-transactions", headers=auth_headers)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data[0]["has_template_account"] is False
+    assert data[0]["template_reference_status"] == "not_present_redacted"
+    assert data[0]["recurrence"] == []
+    serialized = str(data[0])
+    assert "No template account reference was reported" in serialized
+    assert "template_split_amount" not in serialized
+    assert "template_split_memo" not in serialized
+    assert "template_transaction_description" not in serialized
+    assert "Private template" not in serialized
+    assert "raw_sql" not in data[0]
 
 
 def test_scheduled_transactions_require_auth(client):

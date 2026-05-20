@@ -11,7 +11,7 @@ Last updated: 2026-05-20
 
 ## Current baseline
 
-Completed through Phase 205.
+Completed through Phase 206.
 
 Current public release state:
 

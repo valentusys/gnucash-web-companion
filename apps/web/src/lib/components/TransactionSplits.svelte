@@ -54,7 +54,7 @@
 							<div class="text-xs font-semibold uppercase" style="color: var(--app-muted);">{t(locale, 'transactionSplits.splitAccount').replace('{index}', String(index + 1))}</div>
 							<div class="break-words text-sm font-medium" style="color: var(--app-text);" title={split.account_name}>{split.account_name}</div>
 						</div>
-						<div class="shrink-0 text-right text-sm font-semibold">
+						<div class="min-w-0 max-w-[45%] text-right text-sm font-semibold">
 							<Money amount={split.amount} currency={split.currency} />
 						</div>
 					</div>

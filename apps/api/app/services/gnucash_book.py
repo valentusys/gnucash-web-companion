@@ -774,10 +774,19 @@ class GnuCashBookService:
         )
 
     def _scheduled_transaction_to_dto(self, scheduled: Any) -> ScheduledTransactionDTO:
+        has_template_account = bool(
+            getattr(scheduled, "template_act_guid", None) or getattr(scheduled, "template_account", None)
+        )
+        template_reference_status = "present_redacted" if has_template_account else "not_present_redacted"
         limitations = [
             "Read-only summary metadata only; edit scheduled transactions in GnuCash Desktop.",
             "Next occurrence dates are not calculated by this pre-alpha view.",
             "Template split details are intentionally not exposed.",
+            (
+                "Template account reference is present, but template split amounts, accounts, memos, transaction descriptions, and raw SQL are redacted."
+                if has_template_account
+                else "No template account reference was reported; template split amounts, accounts, memos, transaction descriptions, and raw SQL are not queried or inferred."
+            ),
         ]
         return ScheduledTransactionDTO(
             id=_guid(scheduled),
@@ -793,9 +802,8 @@ class GnuCashBookService:
             advance_create_days=self._optional_int(getattr(scheduled, "adv_creation", None)),
             advance_notify_days=self._optional_int(getattr(scheduled, "adv_notify", None)),
             instance_count=self._optional_int(getattr(scheduled, "instance_count", None)),
-            has_template_account=bool(
-                getattr(scheduled, "template_act_guid", None) or getattr(scheduled, "template_account", None)
-            ),
+            has_template_account=has_template_account,
+            template_reference_status=template_reference_status,
             recurrence=[self._recurrence_to_dto(item) for item in self._recurrences(scheduled)],
             limitations=limitations,
         )

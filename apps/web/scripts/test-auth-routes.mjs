@@ -355,6 +355,11 @@ assert.match(transactionSplitsComponent, /md:hidden[\s\S]*split\.account_name[\s
 assert.match(transactionSplitsComponent, /hidden overflow-x-hidden md:block[\s\S]*table-fixed[\s\S]*transactionSplits\.reconciliation[\s\S]*reconcileLabel\(split\.reconcile_state\)/s, 'transaction detail split table must be desktop-only, bounded, and expose localized reconciliation state');
 assert.match(transactionSplitsComponent, /splits\.length === 0[\s\S]*transactionSplits\.empty/s, 'transaction detail splits must show a safe localized empty state instead of inventing data');
 assert.doesNotMatch(transactionSplitsComponent, /overflow-x-auto|min-w-full/, 'transaction detail splits must not introduce mobile horizontal scrolling');
+assert.match(
+	read('src/lib/components/Money.svelte'),
+	/inline-flex max-w-full min-w-0 flex-wrap[\s\S]*break-all[\s\S]*shrink-0/s,
+	'money display must keep long Decimal string amounts bounded on many-split mobile cards without coercing to Number()'
+);
 
 const scheduledServer = read('src/routes/scheduled/+page.server.ts');
 assert.match(
@@ -385,6 +390,8 @@ for (const scheduledPhrase of [
 assert.match(scheduledPage, /DEFAULT_LOCALE[\s\S]*t\(locale, 'scheduled\.title'\)[\s\S]*t\(locale, 'scheduled\.metadataHelp'\)/s, 'scheduled page must render release-critical copy through the localized catalog');
 assert.match(scheduledPage, /import EmptyState/, 'scheduled page must reuse EmptyState for no schedules');
 assert.match(scheduledPage, /data\.scheduledSummary\.shown[\s\S]*data\.scheduledSummary\.total[\s\S]*data\.filters\.links\.clear/s, 'scheduled page must show filtered counts and clear URL-only scheduled filters');
+assert.match(scheduledPage, /templateStatusLabel[\s\S]*present_redacted[\s\S]*scheduled\.templatePresentRedacted[\s\S]*scheduled\.templateNotPresentRedacted/s, 'scheduled page must render only redacted template-reference status, including no-template cases');
+assert.match(scheduledPage, /min-w-0 rounded-xl border p-4[\s\S]*scheduled\.templateReferenceStatus[\s\S]*scheduled\.template_reference_status/s, 'scheduled cards must keep bounded layout and show safe template metadata status');
 assert.match(scheduledPage, /<EmptyState[\s\S]*title=\{t\(locale, 'scheduled\.noMatchesTitle'\)\}[\s\S]*href=\{data\.filters\.links\.clear\}[\s\S]*scheduled\.clearFilters/s, 'scheduled filtered empty state must explain URL-only filters and offer a localized clear action');
 assert.match(scheduledPage, /<EmptyState[\s\S]*title=\{t\(locale, 'scheduled\.emptyTitle'\)\}[\s\S]*href="\/transactions"[\s\S]*scheduled\.browseTransactions/s, 'scheduled empty state must include localized copy and keyboard-focusable navigation');
 assert.doesNotMatch(
