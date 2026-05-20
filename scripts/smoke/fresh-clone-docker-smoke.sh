@@ -243,11 +243,21 @@ if "writes are disabled" not in detail and "read-only" not in detail:
 print("ok: delete endpoint is write-disabled")
 PY
 
-  log "run browser dogfood"
+  log "run browser dogfood at mobile viewport"
   SMOKE_ADMIN_PASSWORD="$ADMIN_PASSWORD" \
     scripts/smoke/read-only-browser-dogfood.py \
       --base-url "$BASE_URL" \
-      --fixture-path "$RUNTIME_FIXTURE"
+      --fixture-path "$RUNTIME_FIXTURE" \
+      --viewport-width 320 \
+      --viewport-height 720
+
+  log "run browser dogfood at desktop viewport"
+  SMOKE_ADMIN_PASSWORD="$ADMIN_PASSWORD" \
+    scripts/smoke/read-only-browser-dogfood.py \
+      --base-url "$BASE_URL" \
+      --fixture-path "$RUNTIME_FIXTURE" \
+      --viewport-width 1280 \
+      --viewport-height 900
 
   log "verify no raw screenshot/export/backup artifacts were created in clone"
   python3 - <<'PY'

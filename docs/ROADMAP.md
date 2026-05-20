@@ -5,14 +5,14 @@ This roadmap is intentionally conservative. Safety and trust come before feature
 ## Current release posture
 
 - Status: pre-alpha / MVP in progress.
-- Completed through Phase 212.
+- Completed through Phase 213.
 - Current public read-only pre-release: `v0.1.7-readonly`.
 - Current published write-alpha pre-release: `v0.2.4-writealpha`, published in Phase 211 after the cycle-1 release gate and exact release-commit CI as pre-alpha/experimental and disabled by default.
 - MVP v0.1 remains read-only by default.
 - `GNUCASH_WRITES_ENABLED=false` remains the default.
 - Controlled writes, where present, are post-MVP/write-alpha, disabled by default, constrained by the existing backend `APP_ENV=test` gate when explicitly enabled, and not safe for real/private production books.
 - Current compatibility evidence is synthetic/disposable fixture evidence only; broad GnuCash Desktop version support is not claimed.
-- Latest public release baseline: Phase 211 published `v0.2.4-writealpha` after local backend/frontend/Docker checks, exact release-commit CI, rendered `GNUCASH_WRITES_ENABLED=false`, and sensitive tracked-file hygiene. Phase 212 added this public status drift guard and did not publish a new release.
+- Latest public release baseline: Phase 211 published `v0.2.4-writealpha` after local backend/frontend/Docker checks, exact release-commit CI, rendered `GNUCASH_WRITES_ENABLED=false`, and sensitive tracked-file hygiene. Phase 212 added this public status drift guard; Phase 213 verified the published tag from a fresh clone with default-disabled writes and did not publish a new release.
 - No further tag, GitHub release, package, or publication is planned by this roadmap page unless a later explicit release phase and authorization say so.
 
 ## Recently completed maintenance phases
@@ -28,6 +28,7 @@ This roadmap is intentionally conservative. Safety and trust come before feature
 - Phase 210 — bounded synthetic/disposable write-alpha create/PATCH/DELETE+restore dogfood.
 - Phase 211 — authorized `v0.2.4-writealpha` GitHub pre-release publication after exact release-commit CI.
 - Phase 212 — public status drift guard for README/PROJECT_STATUS/CHANGELOG/docs/ROADMAP/release docs.
+- Phase 213 — `v0.2.4-writealpha` tagged fresh-clone Docker/Caddy smoke with default-disabled writes.
 
 ## Completed phase groups
 

@@ -314,16 +314,18 @@ def run(args: argparse.Namespace) -> list[CheckResult]:
         page.call("Page.enable")
         page.call("Runtime.enable")
         page.call("Browser.setDownloadBehavior", {"behavior": "deny"})
+        is_mobile_viewport = args.viewport_width < 768
         page.call(
             "Emulation.setDeviceMetricsOverride",
             {
                 "width": args.viewport_width,
                 "height": args.viewport_height,
                 "deviceScaleFactor": 2,
-                "mobile": True,
+                "mobile": is_mobile_viewport,
             },
         )
-        results.append(CheckResult("mobile_viewport", f"{args.viewport_width}x{args.viewport_height}"))
+        viewport_kind = "mobile" if is_mobile_viewport else "desktop"
+        results.append(CheckResult("browser_viewport", f"{viewport_kind} {args.viewport_width}x{args.viewport_height}"))
 
         def assert_no_mobile_overflow(route_name: str) -> None:
             metrics = page.evaluate(
@@ -491,8 +493,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--chromium", default=os.environ.get("CHROMIUM_BIN"))
     parser.add_argument("--keep-temp", action="store_true", help="Keep temporary browser profile for debugging only")
     parser.add_argument("--fixture-path", default=None, help="Optional fixture path to hash/report without printing full path")
-    parser.add_argument("--viewport-width", type=int, default=320, help="Mobile/narrow viewport width for read-only UI dogfood")
-    parser.add_argument("--viewport-height", type=int, default=720, help="Mobile/narrow viewport height for read-only UI dogfood")
+    parser.add_argument("--viewport-width", type=int, default=320, help="Viewport width for read-only UI dogfood")
+    parser.add_argument("--viewport-height", type=int, default=720, help="Viewport height for read-only UI dogfood")
     return parser.parse_args(argv)
 
 
