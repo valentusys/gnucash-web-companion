@@ -4,11 +4,11 @@
 Usage:
     python apps/api/scripts/check_dogfood_book_candidate.py /outside/repo/copy.gnucash.sqlite
     python apps/api/scripts/check_dogfood_book_candidate.py --write-alpha-plan \
-        --confirm-disposable-copy /outside/repo/copy.gnucash.sqlite
+        --dry-run --confirm-disposable-copy /outside/repo/copy.gnucash.sqlite
 
-The output intentionally includes only the candidate filename and path classes,
-never the full path, so it can be pasted into phase evidence or GitHub issues
-without leaking private filesystem details.
+The output intentionally includes only a redacted file label, path classes, size,
+and short checksum, never the full path or raw filename, so it can be pasted into
+phase evidence or GitHub issues without leaking private filesystem details.
 """
 
 from __future__ import annotations
@@ -53,6 +53,12 @@ def main() -> int:
         default="data/backups/write-alpha-dogfood",
         help="Repo-relative ignored backup directory for write-alpha dogfood design.",
     )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        default=True,
+        help="Validate only; never copy, open with piecash, or mutate the candidate book (default).",
+    )
     args = parser.parse_args()
 
     if args.write_alpha_plan:
@@ -62,6 +68,7 @@ def main() -> int:
             disposable_copy_acknowledged=args.confirm_disposable_copy,
             runtime_book_path=args.runtime_book,
             backup_dir_path=args.backup_dir,
+            dry_run=args.dry_run,
         )
     else:
         result = check_copied_book_candidate(args.candidate, repo_root=REPO_ROOT)
