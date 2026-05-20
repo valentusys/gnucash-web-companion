@@ -94,7 +94,8 @@
 			</div>
 			<div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
 				<p class="text-xs uppercase tracking-wide text-slate-500">Window</p>
-				<p class="break-words text-slate-700">{data.auditSummary.filters.since ?? 'No start'} → {data.auditSummary.filters.until ?? 'No end'}</p>
+				<p class="break-words text-slate-700">Requested: {data.auditSummary.time_window.requested_since ?? 'No start'} → {data.auditSummary.time_window.requested_until ?? 'No end'}</p>
+				<p class="mt-1 break-words text-slate-600">Returned: {data.auditSummary.time_window.oldest_returned ?? 'none'} → {data.auditSummary.time_window.newest_returned ?? 'none'}</p>
 			</div>
 		</div>
 	{/if}
@@ -111,7 +112,14 @@
 	{:else}
 		<div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
 			<div class="border-b border-slate-100 px-4 py-3 text-sm text-slate-600">
-				Showing {data.auditSummary.returned_count} of {data.auditSummary.total_count} redacted audit entries. Backup is represented only as present/missing.
+				<p>Showing {data.auditSummary.returned_count} of {data.auditSummary.total_count} redacted audit entries. Backup is represented only as present/missing.</p>
+				{#if data.auditSummary.status_summary.length}
+					<ul class="mt-2 list-disc space-y-1 pl-5">
+						{#each data.auditSummary.status_summary as statusLine}
+							<li>{statusLine}</li>
+						{/each}
+					</ul>
+				{/if}
 			</div>
 			<ul class="divide-y divide-slate-100">
 				{#each data.auditSummary.items as item}

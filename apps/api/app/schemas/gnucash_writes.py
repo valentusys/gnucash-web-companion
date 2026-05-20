@@ -108,4 +108,10 @@ class WriteAlphaAuditSummaryDTO(BaseModel):
     filters: dict[str, str | int | None] = Field(
         default_factory=dict, description="Applied non-sensitive filter metadata"
     )
+    time_window: dict[str, str | None] = Field(
+        default_factory=dict, description="Safe requested and returned timestamp window metadata"
+    )
+    status_summary: list[str] = Field(
+        default_factory=list, description="Bounded operator-safe status summary rows"
+    )
     limitations: list[str] = Field(default_factory=list)

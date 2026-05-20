@@ -250,6 +250,13 @@ class TestWriteAlphaAuditSummary:
             "failed": 1,
             "unknown": 0,
         }
+        assert data["time_window"]["newest_returned"] == "2026-05-20T10:10:00+00:00"
+        assert data["time_window"]["oldest_returned"] == "2026-05-20T10:00:00+00:00"
+        assert data["status_summary"] == [
+            "Filtered rows: 3",
+            "Returned rows: 3 of at most 25",
+            "Rows are redacted to action/result/timestamp/opaque transaction prefix/backup-present/safe-error only.",
+        ]
 
         delete_item, patch_item, create_item = data["items"]
         assert delete_item["transaction_id_prefix"] == "deadbeef"
@@ -302,6 +309,59 @@ class TestWriteAlphaAuditSummary:
             "transaction.delete": 1,
         }
         assert data["counts_by_result"]["success"] == 1
+
+    def test_redacts_malicious_payload_status_timestamp_ids_and_error_text(self, client, session_factory, sample_book_with_audit, auth_headers):
+        with session_factory() as session:
+            admin = session.query(User).filter(User.username == "admin").one()
+            session.add(
+                AuditLog(
+                    user_id=admin.id,
+                    book_id=sample_book_with_audit,
+                    action="transaction.patch",
+                    payload_json=json.dumps(
+                        {
+                            "result": "success/../../private",
+                            "timestamp": "/private/path/timestamp.sqlite",
+                            "transaction_id": "/home/val/private-book.gnucash.sqlite",
+                            "backup_path": "/data/backups/private/unsafe.sqlite",
+                            "error": "Account Assets:Private memo SECRET amount 777.42",
+                        }
+                    ),
+                    created_at=datetime(2026, 5, 20, 10, 20, tzinfo=timezone.utc),
+                )
+            )
+            session.commit()
+
+        response = client.get(
+            f"/books/{sample_book_with_audit}/write-alpha-audit-summary?action=transaction.patch&limit=1",
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total_count"] == 2
+        assert data["returned_count"] == 1
+        assert data["counts_by_result"]["unknown"] == 1
+        item = data["items"][0]
+        assert item["result"] == "unknown"
+        assert item["timestamp"] == "2026-05-20T10:20:00"
+        assert item["transaction_id_prefix"] is None
+        assert item["backup_present"] is True
+        assert item["error"] == "Write-alpha request failed safely; check redacted operator evidence."
+
+        encoded = json.dumps(data)
+        for forbidden in [
+            "/home/val",
+            "/private/path",
+            "/data/backups",
+            "private-book",
+            "Assets:Private",
+            "SECRET",
+            "777.42",
+            "success/../../private",
+            "timestamp.sqlite",
+            "unsafe.sqlite",
+        ]:
+            assert forbidden not in encoded
 
     def test_filter_empty_state_and_invalid_filters_are_safe(self, client, sample_book_with_audit, auth_headers):
         empty_response = client.get(

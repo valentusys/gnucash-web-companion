@@ -10,6 +10,7 @@ import csv
 import io
 import json
 import logging
+import re
 from datetime import date, datetime, timezone
 from decimal import Decimal
 from typing import Any
@@ -546,6 +547,12 @@ WRITE_ALPHA_AUDIT_ACTIONS = (
 
 WRITE_ALPHA_AUDIT_RESULTS = ("started", "success", "failed", "unknown")
 
+SAFE_AUDIT_TRANSACTION_ID_RE = re.compile(r"^[A-Za-z0-9-]{8,64}$")
+UNSAFE_AUDIT_TEXT_RE = re.compile(
+    r"(://|/|\\\\|\b(amount|account|memo|description|private|assets?|liabilit(?:y|ies)|income|expense)\b|\d+\.\d{1,})",
+    re.IGNORECASE,
+)
+
 
 def _safe_audit_error(value: object) -> str | None:
     """Return bounded operator-safe audit error text without filesystem/URI details."""
@@ -554,25 +561,56 @@ def _safe_audit_error(value: object) -> str | None:
     text = str(value).strip()
     if not text:
         return None
-    if "://" in text or "/" in text or "\\" in text:
+    if UNSAFE_AUDIT_TEXT_RE.search(text):
         return "Write-alpha request failed safely; check redacted operator evidence."
     return text[:160]
 
 
-def _audit_summary_item(log: AuditLog) -> WriteAlphaAuditSummaryItemDTO:
+def _safe_audit_transaction_id_prefix(value: object) -> str | None:
+    """Expose only an opaque bounded transaction ID prefix, never raw/path-like text."""
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not SAFE_AUDIT_TRANSACTION_ID_RE.fullmatch(text):
+        return None
+    return text[:8]
+
+
+def _safe_audit_timestamp(log: AuditLog, payload: dict[str, Any]) -> str:
+    """Return an ISO timestamp from app metadata unless payload timestamp is safely parseable."""
+    raw_timestamp = payload.get("timestamp")
+    if (
+        isinstance(raw_timestamp, str)
+        and raw_timestamp
+        and len(raw_timestamp) <= 40
+        and "/" not in raw_timestamp
+        and "\\" not in raw_timestamp
+    ):
+        try:
+            datetime.fromisoformat(raw_timestamp.replace("Z", "+00:00"))
+        except ValueError:
+            pass
+        else:
+            return raw_timestamp
+    return log.created_at.isoformat()
+
+
+def _audit_summary_payload(log: AuditLog) -> dict[str, Any]:
     try:
         payload = json.loads(log.payload_json or "{}")
     except json.JSONDecodeError:
-        payload = {}
-    transaction_id = payload.get("transaction_id")
-    transaction_id_prefix = str(transaction_id)[:8] if transaction_id else None
-    timestamp = payload.get("timestamp") or log.created_at.isoformat()
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _audit_summary_item(log: AuditLog) -> WriteAlphaAuditSummaryItemDTO:
+    payload = _audit_summary_payload(log)
     return WriteAlphaAuditSummaryItemDTO(
         id=log.id,
         action=log.action,
-        result=str(payload.get("result") or "unknown"),
-        timestamp=str(timestamp),
-        transaction_id_prefix=transaction_id_prefix,
+        result=_audit_log_result(log),
+        timestamp=_safe_audit_timestamp(log, payload),
+        transaction_id_prefix=_safe_audit_transaction_id_prefix(payload.get("transaction_id")),
         backup_present=bool(payload.get("backup_path")),
         error=_safe_audit_error(payload.get("error")),
     )
@@ -601,10 +639,7 @@ def _parse_audit_window(value: str | None, label: str) -> datetime | None:
 
 
 def _audit_log_result(log: AuditLog) -> str:
-    try:
-        payload = json.loads(log.payload_json or "{}")
-    except json.JSONDecodeError:
-        payload = {}
+    payload = _audit_summary_payload(log)
     result = str(payload.get("result") or "unknown")
     return result if result in WRITE_ALPHA_AUDIT_RESULTS else "unknown"
 
@@ -700,6 +735,9 @@ async def get_write_alpha_audit_summary(
         counts_by_result[log_result] = counts_by_result.get(log_result, 0) + 1
 
     logs = filtered_logs[:limit]
+    returned_timestamps = [
+        _safe_audit_timestamp(log, _audit_summary_payload(log)) for log in logs
+    ]
     return WriteAlphaAuditSummaryDTO(
         book_id=book.id,
         total_count=len(filtered_logs),
@@ -713,6 +751,17 @@ async def get_write_alpha_audit_summary(
             "until": until_dt.isoformat() if until_dt else None,
             "limit": limit,
         },
+        time_window={
+            "requested_since": since_dt.isoformat() if since_dt else None,
+            "requested_until": until_dt.isoformat() if until_dt else None,
+            "newest_returned": max(returned_timestamps) if returned_timestamps else None,
+            "oldest_returned": min(returned_timestamps) if returned_timestamps else None,
+        },
+        status_summary=[
+            f"Filtered rows: {len(filtered_logs)}",
+            f"Returned rows: {len(logs)} of at most {limit}",
+            "Rows are redacted to action/result/timestamp/opaque transaction prefix/backup-present/safe-error only.",
+        ],
         items=[_audit_summary_item(log) for log in logs],
         limitations=[
             "Read-only app metadata summary for synthetic/disposable write-alpha runs only.",
