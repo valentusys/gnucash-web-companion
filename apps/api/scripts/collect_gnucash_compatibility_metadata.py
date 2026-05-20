@@ -10,6 +10,7 @@ Usage:
     python apps/api/scripts/collect_gnucash_compatibility_metadata.py \
         /tmp/copied-book.gnucash.sqlite \
         --gnucash-version "GnuCash 5.10" \
+        --fixture-origin desktop-generated-synthetic \
         --output /tmp/compatibility-metadata.json
 """
 
@@ -39,7 +40,7 @@ def _runtime_context() -> dict[str, str]:
     """Return safe local toolchain metadata for compatibility provenance."""
 
     return {
-        "collector_version": "phase-102",
+        "collector_version": "phase-197",
         "os": platform.platform(),
         "python_version": sys.version.split()[0],
         "sqlite_version": sqlite3.sqlite_version,
@@ -70,7 +71,12 @@ def _safe_table_counts(conn: sqlite3.Connection) -> dict[str, int]:
     return counts
 
 
-def collect_metadata(book_path: str | Path, *, gnucash_version: str | None = None) -> dict[str, Any]:
+def collect_metadata(
+    book_path: str | Path,
+    *,
+    gnucash_version: str | None = None,
+    fixture_origin: str | None = None,
+) -> dict[str, Any]:
     """Return non-sensitive compatibility metadata for a copied SQLite book."""
 
     path = Path(book_path)
@@ -82,6 +88,8 @@ def collect_metadata(book_path: str | Path, *, gnucash_version: str | None = Non
         "format": "GnuCash SQLite",
         "book_path": "<redacted>",
         "source_policy": "copied/disposable SQL book only; original untouched",
+        "fixture_origin": fixture_origin or "not recorded",
+        "desktop_generated_synthetic_fixture": fixture_origin == "desktop-generated-synthetic",
         "contains_real_data": "unknown-to-script; do not commit book or row data",
         "gnucash_desktop_version": gnucash_version or "not recorded",
         "backend": "SQLite",
@@ -93,6 +101,18 @@ def collect_metadata(book_path: str | Path, *, gnucash_version: str | None = Non
             "Review before publishing. This JSON intentionally excludes paths, account names, "
             "transaction descriptions, amounts, memos, and split rows."
         ),
+        "redaction_contract": {
+            "path_policy": "input path is always recorded as <redacted>",
+            "excluded_row_fields": [
+                "account names",
+                "account descriptions",
+                "transaction descriptions",
+                "split memos",
+                "split amounts",
+                "private paths",
+            ],
+            "allowed_book_facts": ["schema versions", "selected table counts", "runtime tool versions"],
+        },
     }
 
 
@@ -106,6 +126,15 @@ def _parser() -> argparse.ArgumentParser:
         help="Exact GnuCash Desktop version used to create/save the copied fixture, e.g. 'GnuCash 5.10'",
     )
     parser.add_argument(
+        "--fixture-origin",
+        choices=("desktop-generated-synthetic", "piecash-generated-synthetic", "copied-disposable"),
+        help=(
+            "Safe provenance label for the copied/disposable input. Use "
+            "desktop-generated-synthetic only after a disposable GnuCash Desktop/GUI session "
+            "created or saved the synthetic SQLite fixture."
+        ),
+    )
+    parser.add_argument(
         "--output",
         help="Write JSON metadata to this path instead of printing it to stdout",
     )
@@ -114,7 +143,11 @@ def _parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> None:
     args = _parser().parse_args(argv)
-    metadata = collect_metadata(args.book, gnucash_version=args.gnucash_version)
+    metadata = collect_metadata(
+        args.book,
+        gnucash_version=args.gnucash_version,
+        fixture_origin=args.fixture_origin,
+    )
     payload = json.dumps(metadata, indent=2, sort_keys=True) + "\n"
     if args.output:
         output = Path(args.output)

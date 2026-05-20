@@ -43,7 +43,7 @@ As of Phase 136, every compatibility evidence row in `docs/gnucash-compatibility
 | `apps/api/tests/fixtures/test-book-multicurrency.gnucash.sqlite` | committed synthetic SQLite test fixture | No | Covers read-only multi-currency limitation behavior; same documented schema markers. |
 | `apps/api/scripts/create_compatibility_fixture_v1.py` | generated synthetic/disposable SQLite fixture path | No | Generated through `piecash`; binary output remains local/ignored. |
 | Redacted metadata collector | tested safe metadata procedure | No by itself | Operator-supplied `--gnucash-version` values document a copied/disposable fixture only; they do not independently prove support for that Desktop release. |
-| Desktop-tooling probes from Phases 111, 127, 154, and 163 | safe blocker evidence | No | Host `gnucash`/`gnucash-cli` were unavailable in earlier phases. Phase 154 adds missing-command reasons plus optional non-mutating package-candidate hints. Phase 163 proves GnuCash 4.13 tooling can be installed inside a disposable Debian 12 container, but no safe noninteractive SQLite fixture creation command was found, so no Desktop-generated fixture was produced. |
+| Desktop-tooling probes from Phases 111, 127, 154, 163, and 197 | safe blocker evidence | No | Host `gnucash`/`gnucash-cli` were unavailable in earlier phases. Phase 154 adds missing-command reasons plus optional non-mutating package-candidate hints. Phase 163/197 prove GnuCash 4.13 tooling can be installed inside a disposable Debian 12 container, but no safe noninteractive SQLite fixture creation command was found, so no Desktop-generated fixture was produced. Phase 197 narrows the next step to an isolated disposable GUI/manual-safe creation path plus redacted metadata/read-only validation. |
 
 Therefore the current tested GnuCash Desktop version list is empty: no real GnuCash Desktop release has been validated by the automated suite. Future rows must remain narrow until a synthetic book is generated/saved by the named Desktop version and read-only tests pass against that fixture.
 
@@ -130,6 +130,7 @@ Phase 92 improves the test-copy procedure without committing a new binary fixtur
    python apps/api/scripts/collect_gnucash_compatibility_metadata.py \
      /tmp/copied-book.gnucash.sqlite \
      --gnucash-version "GnuCash 5.10" \
+     --fixture-origin desktop-generated-synthetic \
      --output /tmp/compatibility-metadata.json
    ```
 
@@ -184,6 +185,7 @@ Phase 136 keeps that boundary explicit: all current compatibility evidence is sy
    python apps/api/scripts/collect_gnucash_compatibility_metadata.py \
      /tmp/gnucash-desktop-fixture.gnucash.sqlite \
      --gnucash-version "GnuCash X.Y" \
+     --fixture-origin desktop-generated-synthetic \
      --output /tmp/gnucash-desktop-fixture-metadata.json
    ```
 
@@ -245,6 +247,18 @@ Phase 163 disposable-container evidence:
 - No host package was installed, no book was opened or generated, no user private directories were searched, no real/private book was used, and no Desktop-generated fixture was produced.
 - Evidence summary: `docs/gnucash-desktop-tooling-phase-163.md`.
 - Regression coverage: `apps/api/tests/test_gnucash_desktop_container_probe.py` asserts the disposable-container probe records tooling availability and package candidates without claiming Desktop-generated fixture evidence or serializing private paths.
+
+Phase 197 blocker refresh evidence:
+
+- `apps/api/scripts/probe_gnucash_desktop_disposable_container.py --output /tmp/phase-197-container-probe.json --timeout-seconds 900` completed with return code `0`.
+- Container image: `debian:12-slim`.
+- Container commands: `gnucash` and `gnucash-cli` available inside the disposable container only.
+- `gnucash-cli --version`: `GnuCash 4.13`.
+- `gnucash-cli --help`: no safe noninteractive create/save-as SQLite fixture command was identified.
+- Exact next requirement: isolated disposable GUI/manual-safe GnuCash Desktop session that creates/saves a synthetic SQLite fixture outside git, followed by `collect_gnucash_compatibility_metadata.py --fixture-origin desktop-generated-synthetic` and read-only API validation with `GNUCASH_WRITES_ENABLED=false`.
+- No host package was installed, no book was opened or generated, no user private directories were searched, no real/private book was used, and no Desktop-generated fixture was produced.
+- Evidence summary: `docs/gnucash-desktop-tooling-phase-197.md`.
+- Regression coverage: `apps/api/tests/test_gnucash_compatibility_metadata.py` asserts the phase-197 collector records provenance/redaction metadata while excluding private paths, account names/descriptions, transaction descriptions, split memos, split amounts, and other row values.
 
 ## Storage and generation policy
 

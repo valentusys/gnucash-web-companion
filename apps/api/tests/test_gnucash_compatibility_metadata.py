@@ -41,6 +41,9 @@ def _create_minimal_book(path: Path) -> None:
         )
         conn.execute("create table accounts (guid text primary key, name text)")
         conn.execute("create table transactions (guid text primary key, description text)")
+        conn.execute("create table splits (guid text primary key, memo text, value_num integer, value_denom integer)")
+        conn.execute("create table commodities (guid text primary key, fullname text)")
+        conn.execute("create table books (guid text primary key, root_account_guid text)")
         conn.executemany(
             "insert into accounts (guid, name) values (?, ?)",
             [("a", "Private Checking"), ("b", "Private Income")],
@@ -49,6 +52,18 @@ def _create_minimal_book(path: Path) -> None:
             "insert into transactions (guid, description) values (?, ?)",
             ("t", "Private salary"),
         )
+        conn.execute(
+            "insert into splits (guid, memo, value_num, value_denom) values (?, ?, ?, ?)",
+            ("s", "Private memo 123", 12345, 100),
+        )
+        conn.execute(
+            "insert into commodities (guid, fullname) values (?, ?)",
+            ("c", "Private commodity name"),
+        )
+        conn.execute(
+            "insert into books (guid, root_account_guid) values (?, ?)",
+            ("book", "a"),
+        )
 
 
 def test_collector_reports_safe_schema_metadata_without_private_values(tmp_path: Path) -> None:
@@ -56,21 +71,38 @@ def test_collector_reports_safe_schema_metadata_without_private_values(tmp_path:
     book_path = tmp_path / "copied-private-book.gnucash.sqlite"
     _create_minimal_book(book_path)
 
-    metadata = collector.collect_metadata(book_path, gnucash_version="GnuCash 5.10")
+    metadata = collector.collect_metadata(
+        book_path,
+        gnucash_version="GnuCash 5.10",
+        fixture_origin="desktop-generated-synthetic",
+    )
 
     assert metadata["format"] == "GnuCash SQLite"
     assert metadata["gnucash_desktop_version"] == "GnuCash 5.10"
     assert metadata["book_path"] == "<redacted>"
     assert metadata["versions"] == {"Gnucash": 3_000_000, "Gnucash-Resave": 19_920}
-    assert metadata["table_counts"] == {"accounts": 2, "transactions": 1}
+    assert metadata["fixture_origin"] == "desktop-generated-synthetic"
+    assert metadata["desktop_generated_synthetic_fixture"] is True
+    assert metadata["table_counts"] == {
+        "accounts": 2,
+        "transactions": 1,
+        "splits": 1,
+        "commodities": 1,
+        "books": 1,
+    }
     assert metadata["runtime_context"]["python_version"]
     assert metadata["runtime_context"]["sqlite_version"] == sqlite3.sqlite_version
     assert metadata["runtime_context"]["piecash_version"]
-    assert metadata["runtime_context"]["collector_version"] == "phase-102"
+    assert metadata["runtime_context"]["collector_version"] == "phase-197"
+    assert "split memos" in metadata["redaction_contract"]["excluded_row_fields"]
+    assert "split amounts" in metadata["redaction_contract"]["excluded_row_fields"]
     serialized = json.dumps(metadata, sort_keys=True)
     assert str(book_path) not in serialized
     assert "Private Checking" not in serialized
     assert "Private salary" not in serialized
+    assert "Private memo" not in serialized
+    assert "12345" not in serialized
+    assert "Private commodity" not in serialized
 
 
 def test_collector_cli_writes_safe_json(tmp_path: Path, capsys) -> None:
@@ -79,13 +111,22 @@ def test_collector_cli_writes_safe_json(tmp_path: Path, capsys) -> None:
     output_path = tmp_path / "metadata.json"
     _create_minimal_book(book_path)
 
-    collector.main([str(book_path), "--gnucash-version", "GnuCash 5.10", "--output", str(output_path)])
+    collector.main([
+        str(book_path),
+        "--gnucash-version",
+        "GnuCash 5.10",
+        "--fixture-origin",
+        "desktop-generated-synthetic",
+        "--output",
+        str(output_path),
+    ])
 
     captured = capsys.readouterr()
     assert "Compatibility metadata written" in captured.out
     data = json.loads(output_path.read_text(encoding="utf-8"))
     assert data["book_path"] == "<redacted>"
     assert data["gnucash_desktop_version"] == "GnuCash 5.10"
+    assert data["desktop_generated_synthetic_fixture"] is True
     assert data["versions"]["Gnucash"] == 3_000_000
     assert str(book_path) not in output_path.read_text(encoding="utf-8")
 
