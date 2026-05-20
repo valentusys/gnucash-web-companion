@@ -14,12 +14,15 @@ No HTTP endpoints are tested — this validates the service layer directly.
 from __future__ import annotations
 
 import shutil
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 import piecash
 import pytest
 
+from app.services import backup as backup_mod
+from app.services.backup import create_book_backup
 from app.schemas.gnucash_writes import (
     TransactionCreateRequestDTO,
     TransactionSplitWriteDTO,
@@ -104,6 +107,38 @@ def write_service(book_copy: Path, tmp_path: Path) -> GnuCashWriteService:
 
 class TestBackupFileValidity:
     """Verify the backup file created before a write is a valid GnuCash book."""
+
+    def test_rapid_backups_have_unique_paths_and_do_not_overwrite(
+        self,
+        book_copy: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        """Multiple backups for one source at the same clock tick must not overwrite evidence."""
+
+        fixed_now = datetime(2026, 5, 21, 4, 30, 1, 123456, tzinfo=timezone.utc)
+
+        class FixedDateTime:
+            @classmethod
+            def now(cls, tz=None):
+                return fixed_now if tz is not None else fixed_now.replace(tzinfo=None)
+
+        monkeypatch.setattr(backup_mod, "datetime", FixedDateTime)
+
+        first = Path(create_book_backup(_book_config(book_copy)))
+        second = Path(create_book_backup(_book_config(book_copy)))
+        third = Path(create_book_backup(_book_config(book_copy)))
+
+        assert first != second != third
+        assert first.exists()
+        assert second.exists()
+        assert third.exists()
+        assert first.name == "test_gnucash_20260521_043001_123456.sqlite"
+        assert second.name == "test_gnucash_20260521_043001_123456_1.sqlite"
+        assert third.name == "test_gnucash_20260521_043001_123456_2.sqlite"
+        assert len(list(first.parent.glob("*.sqlite"))) == 3
+
+        with first.open("rb") as first_handle, second.open("rb") as second_handle, third.open("rb") as third_handle:
+            assert first_handle.read() == second_handle.read() == third_handle.read()
 
     def test_backup_file_exists_and_readable(self, write_service: GnuCashWriteService, book_copy: Path, tmp_path: Path):
         """After a write, the backup file must exist and be readable by piecash."""

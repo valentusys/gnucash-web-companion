@@ -58,14 +58,51 @@ def create_book_backup(book_config) -> str:
         raise BackupError(str(source), "Book file does not exist")
 
     backup_dir = _backup_dir(source)
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_%f")
     safe_stem = "".join(c if c.isalnum() or c in "-_" else "_" for c in source.stem)
-    backup_name = f"{safe_stem}_{timestamp}{source.suffix}"
-    backup_path = backup_dir / backup_name
-
     try:
-        shutil.copy2(str(source), str(backup_path))
+        backup_path = _copy_backup_without_overwrite(source, backup_dir, safe_stem, timestamp, source.suffix)
     except Exception as exc:
         raise BackupError(str(source), str(exc)) from exc
 
     return str(backup_path)
+
+
+def _unique_backup_path(backup_dir: Path, safe_stem: str, timestamp: str, suffix: str) -> Path:
+    """Return a backup path that does not already exist.
+
+    Rapid route-family smokes can create multiple backups for the same source
+    inside one second. Use microseconds for normal uniqueness and a deterministic
+    numeric suffix if the clock is fixed or the candidate already exists, so a
+    successful write never overwrites earlier backup evidence.
+    """
+    candidate = backup_dir / f"{safe_stem}_{timestamp}{suffix}"
+    if not candidate.exists():
+        return candidate
+
+    index = 1
+    while True:
+        candidate = backup_dir / f"{safe_stem}_{timestamp}_{index}{suffix}"
+        if not candidate.exists():
+            return candidate
+        index += 1
+
+
+def _copy_backup_without_overwrite(source: Path, backup_dir: Path, safe_stem: str, timestamp: str, suffix: str) -> Path:
+    """Copy source to a unique backup path without replacing existing artifacts."""
+    while True:
+        backup_path = _unique_backup_path(backup_dir, safe_stem, timestamp, suffix)
+        try:
+            with source.open("rb") as src, backup_path.open("xb") as dst:
+                shutil.copyfileobj(src, dst)
+            shutil.copystat(source, backup_path, follow_symlinks=True)
+            return backup_path
+        except FileExistsError:
+            continue
+        except Exception:
+            try:
+                if backup_path.exists():
+                    backup_path.unlink()
+            except OSError:
+                pass
+            raise

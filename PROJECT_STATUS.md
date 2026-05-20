@@ -11,7 +11,7 @@ Last updated: 2026-05-21
 
 ## Current baseline
 
-Completed through Phase 221.
+Completed through Phase 222.
 
 Current public release state:
 
@@ -2972,6 +2972,26 @@ Gate result: local standard checks and default-read-only safety checks passed, c
 Safety result: no write route, write scope, write default, `APP_ENV=test` gate, product behavior, package/image, tag/release, real/private/only-copy book, app DB, backup artifact, `.env`, screenshot/export, token, key, cert, raw path, account name, memo, amount, production/security claim, or real/private-book write-safety claim was added.
 
 Verification result: full backend pytest passed; frontend check/auth-routes/build passed; Docker Compose config validation passed and rendered `GNUCASH_WRITES_ENABLED=false`; `.env.example` default false was confirmed; `git diff --check` passed; public status guard passed; tracked sensitive-file hygiene scan passed; local/remote tag and GitHub release for `v0.2.5-writealpha` remained absent.
+
+## Phase 222 — DELETE backup artifact/accounting reconciliation
+
+Status: complete. Backup artifact collision/overwrite cause fixed with targeted regression coverage; phase commit prepared after full verification.
+
+Goal: investigate and resolve the Phase 220 write-alpha DELETE backup-count mismatch where successful backup-bearing route-family audit rows exceeded readable backup files.
+
+Artifacts:
+
+- `apps/api/app/services/backup.py` — backup filenames now include microseconds, deterministic suffix fallback, and exclusive-create copy so existing backup artifacts are not overwritten silently.
+- `apps/api/tests/test_backup_restore.py` — regression freezes the backup clock and proves three rapid backups for one synthetic fixture copy produce three distinct readable artifacts with no overwrite.
+- `docs/dogfood/phase-222-delete-backup-reconciliation.md` — redacted investigation/fix evidence.
+- `docs/handoff/phase-222.md` — phase handoff.
+- `CHANGELOG.md` and `PROJECT_STATUS.md` — status synchronized.
+
+Finding: the Phase 220 evidence shape is explained by second-precision backup filename collisions for rapid same-named disposable runtime copies plus overwrite-capable `shutil.copy2`. The fix hardens backup evidence identity only; create/PATCH/DELETE mutation semantics, write scope, defaults, and gates are unchanged.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains default and `APP_ENV=test` was not weakened. No write endpoint, write route family, release/tag/package/image, real/private/only-copy book, runtime book, app DB, backup artifact, `.env`, screenshot/export, token, key, cert, raw path, account name, memo, amount, production/security claim, or real/private-book write-safety claim was added.
+
+Verification result: targeted backend tests passed for backup uniqueness/no-overwrite and default-disabled write probes; smoke helpers compiled; full backend pytest passed; frontend check/auth-routes/build passed; Docker Compose config validation passed; `git diff --check` passed; tracked sensitive-file hygiene scan passed. Later roadmap phases still need to rerun bounded synthetic/disposable write-alpha route-family dogfood before any release gate.
 
 ## Standing constraints
 
