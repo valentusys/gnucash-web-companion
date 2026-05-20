@@ -548,10 +548,20 @@ assert.match(
 	/csvReliabilityStatus[\s\S]*transactions\.export\.emptyStatus[\s\S]*transactions\.export\.truncatedStatus[\s\S]*transactions\.export\.countStatus[\s\S]*csv-export-reliability-status/s,
 	'transactions page CSV export UX must explain empty, counted, and capped/truncated export states'
 );
+assert.doesNotMatch(
+	transactionListPage,
+	/Number\(|parseFloat\(|parseInt\(|localStorage|sessionStorage/,
+	'transactions page export/filter UI must keep financial filters URL-only and must not coerce money strings in the browser'
+);
 assert.match(
 	accountDetailPage,
 	/accountCsvReliabilityStatus[\s\S]*transactions\.export\.emptyStatus[\s\S]*transactions\.export\.truncatedStatus[\s\S]*transactions\.export\.countStatus[\s\S]*account-csv-export-reliability-status/s,
 	'account detail CSV export UX must explain empty, counted, and capped/truncated account-scoped export states'
+);
+assert.doesNotMatch(
+	accountDetailPage,
+	/Number\(|parseFloat\(|parseInt\(|localStorage|sessionStorage/,
+	'account detail export/filter UI must keep account-scoped financial filters URL-only and must not coerce money strings in the browser'
 );
 assert.match(
 	transactionListPage,

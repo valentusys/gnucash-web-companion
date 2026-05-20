@@ -172,6 +172,7 @@ class FakeTransaction:
     post_date: date
     description: str
     splits: list[FakeSplit]
+    notes: str = ""
 
 
 class FakeBookForExport:
@@ -217,6 +218,7 @@ def fake_export_data():
             FakeSplit(account=tax, value=Decimal("10")),
             FakeSplit(account=food, value=Decimal("40")),
         ],
+        notes="Utility bill follow-up",
     )
 
     tx3 = FakeTransaction(
@@ -408,6 +410,54 @@ class TestExportTransactionsCSV:
         assert rows[1][0] == "tx-1"
         assert rows[1][2] == "ICA"
         assert response.headers["X-CSV-Export-Total"] == "1"
+
+    def test_export_query_filter_matches_transaction_notes_like_list_view(
+        self, client, auth_headers, sample_book, fake_book_for_export, session_factory
+    ):
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(fake_book_for_export)
+            session.commit()
+
+        response = client.get(
+            f"/books/{sample_book}/transactions/export?query=utility",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        rows = _parse_csv_response(response)
+        assert len(rows) == 2
+        assert rows[1][0] == "tx-2"
+        assert rows[1][2] == "Split transaction test"
+        assert response.headers["X-CSV-Export-Total"] == "1"
+
+    def test_empty_account_scoped_export_is_header_only_and_preserves_metadata(
+        self, client, auth_headers, sample_book, fake_book_for_export, session_factory
+    ):
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(fake_book_for_export)
+            session.commit()
+
+        response = client.get(
+            f"/books/{sample_book}/transactions/export?account_id=tax-guid&query=salary",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        rows = _parse_csv_response(response)
+        assert rows == [[
+            "id",
+            "date",
+            "description",
+            "amount",
+            "currency",
+            "account_id",
+            "account_name",
+            "counter_account_name",
+        ]]
+        assert response.headers["X-CSV-Export-Total"] == "0"
+        assert response.headers["X-CSV-Export-Truncated"] == "false"
 
     def test_export_respects_amount_range_filter(
         self, client, auth_headers, sample_book, fake_book_for_export, session_factory
