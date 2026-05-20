@@ -7,6 +7,14 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versione
 
 ## [Unreleased]
 
+- Phase 236 — added `docs/write-alpha/dogfood-evidence-schema.md` plus
+  `scripts/redact_dogfood_evidence.py` and targeted tests so future copied/disposable dogfood
+  evidence can record phase/scenario/classification/commands/result/redacted artifact refs,
+  backup/audit counts, lock/restore/default-reset statuses, while rejecting or redacting raw paths,
+  amount-like values, memo/account-name fields, and payload-like values before commit. No mutation,
+  copied-book dogfood, release, default write enablement, `APP_ENV=test` gate change, or
+  real/private/only-copy write-safety claim was added.
+
 - Phase 235 — added `scripts/write_alpha_preflight.py`, a local-only redacted preflight CLI for
   future copied/disposable write-alpha dogfood targets. It requires an explicit existing readable
   target outside the git working tree, validates backup destinations as outside git or git-ignored,

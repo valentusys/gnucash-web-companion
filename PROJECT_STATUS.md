@@ -9,21 +9,23 @@ Last updated: 2026-05-21
 - Branch: `main`
 - Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release;
   `v0.2.5-writealpha` is the current public experimental write-alpha pre-release. Completed through
-  Phase 235. Phase 231 ran the final release gate after Phase 230 green release-candidate dogfood,
+  Phase 236. Phase 231 ran the final release gate after Phase 230 green release-candidate dogfood,
   confirmed local/backend/frontend/Docker/public-status/sensitive-file gates, waited for exact
   release/status commit CI, and published only the annotated tag plus GitHub pre-release. Phase 232
   reconciled public status/changelog wording after publication. Phase 233 improved raw markdown
   readability for README/README.ru/CHANGELOG/PROJECT_STATUS while preserving safety wording. Phase
   234 added a conservative copied-book write-alpha dogfood runbook for future local-only
   copied/disposable testing without running real/private copied-book dogfood. Phase 235 added a
-  redacted local-only preflight CLI for future copied/disposable write-alpha targets.
+  redacted local-only preflight CLI for future copied/disposable write-alpha targets. Phase 236 added
+  a redacted dogfood evidence schema and helper so later dogfood reports can reject or redact raw
+  path-like, amount-like, memo/account-name, and payload-like data before commit.
   `GNUCASH_WRITES_ENABLED=false` remains default, `APP_ENV=test` write-alpha gating remains intact, and no
   production/security/public-internet/broad-compatibility or real/private-book write-safety claim is
   added.
 
 ## Current baseline
 
-Completed through Phase 235.
+Completed through Phase 236.
 
 Current public release state:
 
@@ -52,6 +54,10 @@ Current public release state:
   write-alpha environment values unless `GNUCASH_WRITES_ENABLED=true` and `APP_ENV=test`, warns on
   original/production-looking names without printing raw paths, and performs no opening, copying, or
   mutation.
+- Phase 236 added `docs/write-alpha/dogfood-evidence-schema.md` and
+  `scripts/redact_dogfood_evidence.py` to standardize future dogfood evidence fields and reject or
+  redact path-like values, amount-like values, memo/account-name fields, and payload-like values. No
+  copied/private book was used and no dogfood mutation was run.
 - `v0.2.4-writealpha` remains available as the previous public experimental write-alpha GitHub
   pre-release after Phase 211 publication. It is pre-alpha, disabled by default, `APP_ENV=test`
   gated when explicitly enabled, based on synthetic/disposable evidence only for that cycle, not
@@ -6432,6 +6438,43 @@ Verification result: targeted preflight tests passed; public status guard and pu
 passed; `git diff --check` passed; sensitive tracked-file hygiene scan passed; `.env.example` still
 contains `GNUCASH_WRITES_ENABLED=false`; Docker Compose config rendered successfully with dummy local
 secrets.
+
+## Phase 236 — Redacted dogfood evidence schema
+
+Status: complete. A redacted dogfood evidence schema and helper were added for future
+copied/disposable reports; no copied/private book was opened, copied, backed up, or mutated.
+
+Goal: standardize future dogfood evidence so phase/scenario/classification/commands/result/redacted
+artifact refs, backup/audit counts, lock/restore/default-reset statuses, and pass/fail state can be
+recorded without leaking private financial data.
+
+Artifacts:
+
+- `docs/write-alpha/dogfood-evidence-schema.md` — required field schema, JSON placeholder example,
+  review checklist, and explicit ban on raw paths, account names, descriptions, memos, amounts,
+  payloads, screenshots, CSV exports, books, backups, app DBs, `.env`, tokens, keys, or certs.
+- `scripts/redact_dogfood_evidence.py` — local JSON helper with reject/redact modes for path-like,
+  amount-like, sensitive-key, and float values.
+- `apps/api/tests/test_redact_dogfood_evidence.py` — targeted helper regression coverage for safe
+  schema evidence, reject mode, redact mode, and CLI non-leak behavior.
+- `README.md`, `README.ru.md`, `CHANGELOG.md`, `docs/ROADMAP.md`, `PROJECT_STATUS.md`,
+  `scripts/check_public_status.py`, and `apps/api/tests/test_public_status_guard.py` — public status
+  synchronized to completed Phase 236 while preserving the current public release posture.
+- `docs/handoff/phase-236.md` — phase handoff.
+
+Finding: the helper is a redaction/rejection guard only. It does not open GnuCash books, parse
+financial rows, create backups, acquire locks, call write routes, or mutate data.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains default and `APP_ENV=test` was not weakened.
+No real/private/only-copy book, copied-book dogfood run, product runtime default change, release/tag,
+app DB, backup artifact, `.env`, screenshot/CSV export, token, key, cert, raw path, account name,
+memo, amount, production/security/stable/public-internet/broad-compatibility claim, or
+real/private-book write-safety claim was added.
+
+Verification result: targeted redaction-helper tests passed; public status guard and public-status
+tests passed; `git diff --check` passed; sensitive tracked-file hygiene scan passed; `.env.example`
+still contains `GNUCASH_WRITES_ENABLED=false`; Docker Compose config rendered successfully with dummy
+local secrets.
 
 ## Standing constraints
 
