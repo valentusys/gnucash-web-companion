@@ -232,6 +232,11 @@ assert.match(
 );
 assert.match(
 	newTransactionServer,
+	/getActiveBookContext\(fetch, cookies, token\)[\s\S]*apiFetch<Account\[\]>\(fetch, `\$\{bookPrefix\}\/accounts`, token\)/s,
+	'new transaction page must resolve accounts through the active accessible book context when writes are explicitly enabled'
+);
+assert.match(
+	newTransactionServer,
 	/hasWriteAcknowledgement\(formData\)[\s\S]*experimental controlled-write transaction/,
 	'final create action must require explicit write acknowledgement'
 );
@@ -657,8 +662,13 @@ const bookSwitcher = read('src/lib/components/BookSwitcher.svelte');
 assert.match(bookSwitcher, /Current book:/, 'book switcher must label the current book clearly');
 assert.match(
 	bookSwitcher,
-	/goto\(`\$\{window\.location\.pathname\}\$\{window\.location\.search\}`\)/,
-	'book switcher must preserve the current route and query string when switching books'
+	/currentRouteNext\(\)[\s\S]*window\.location\.pathname[\s\S]*window\.location\.search[\s\S]*\/books\/\$\{encodeURIComponent\(bookId\)\}\/select\?next=\$\{encodeURIComponent\(currentRouteNext\(\)\)\}[\s\S]*goto\(safeBookSelectHref\(bookId\)\)/s,
+	'book switcher must preserve the current route and query string through the server-validated safe-link route when switching books'
+);
+assert.doesNotMatch(
+	bookSwitcher,
+	/document\.cookie|selected_book_id\s*=/,
+	'book switcher must not set selected-book cookies client-side'
 );
 assert.match(
 	bookSwitcher,

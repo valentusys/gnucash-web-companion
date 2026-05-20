@@ -8,12 +8,19 @@
 		compact = false
 	}: { books: Book[]; activeBook: Book | null; compact?: boolean } = $props();
 
+	function currentRouteNext(): string {
+		return `${window.location.pathname}${window.location.search}`;
+	}
+
+	function safeBookSelectHref(bookId: string): string {
+		return `/books/${encodeURIComponent(bookId)}/select?next=${encodeURIComponent(currentRouteNext())}`;
+	}
+
 	function handleChange(event: Event) {
 		const select = event.target as HTMLSelectElement;
 		const bookId = select.value;
 		if (bookId) {
-			document.cookie = `selected_book_id=${bookId};path=/;max-age=2592000;samesite=lax`;
-			goto(`${window.location.pathname}${window.location.search}`);
+			goto(safeBookSelectHref(bookId));
 		}
 	}
 </script>

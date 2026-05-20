@@ -157,16 +157,26 @@ def require_book_view_access(book: Book, user: User, session: Session) -> None:
 
 
 def handle_gnucash_error(exc: Exception) -> None:
-    """Translate GnuCash service-layer errors to stable HTTP responses."""
-    if isinstance(exc, (BookNotFoundError, EntityNotFoundError)):
+    """Translate GnuCash service-layer errors to stable, path-safe HTTP responses."""
+    if isinstance(exc, EntityNotFoundError):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(exc),
         ) from exc
-    if isinstance(exc, (BookNotConfiguredError, GnuCashReadError)):
+    if isinstance(exc, BookNotFoundError):
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=str(exc),
+            detail="Configured GnuCash book storage is unavailable from this runtime.",
+        ) from exc
+    if isinstance(exc, BookNotConfiguredError):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="GnuCash book storage is not configured for this entry.",
+        ) from exc
+    if isinstance(exc, GnuCashReadError):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="GnuCash book cannot be read safely from this runtime.",
         ) from exc
     raise exc
 

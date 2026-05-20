@@ -1,9 +1,8 @@
 import { env } from '$env/dynamic/private';
 import { redirect, type Actions } from '@sveltejs/kit';
-import { apiFetch, getAuthToken } from '$lib/api/server';
+import { apiFetch, getActiveBookContext, getAuthToken } from '$lib/api/server';
 import type {
 	Account,
-	Book,
 	TransactionValidationResult,
 	TransactionWriteResult
 } from '$lib/api/types';
@@ -86,14 +85,12 @@ export const load: PageServerLoad = async ({ cookies, fetch }) => {
 		throw redirect(303, '/transactions');
 	}
 	const token = getAuthToken(cookies);
-	const [books, accounts] = await Promise.all([
-		apiFetch<Book[]>(fetch, '/books', token),
-		apiFetch<Account[]>(fetch, '/accounts', token)
-	]);
+	const { books, activeBook, bookPrefix } = await getActiveBookContext(fetch, cookies, token);
+	const accounts = activeBook ? await apiFetch<Account[]>(fetch, `${bookPrefix}/accounts`, token) : [];
 	return {
 		books,
 		accounts: accounts.filter((account) => !account.placeholder && !account.hidden),
-		activeBook: books.find((book) => book.is_default) ?? books[0] ?? null
+		activeBook
 	};
 };
 
