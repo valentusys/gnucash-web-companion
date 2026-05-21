@@ -13,10 +13,10 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-CURRENT_COMPLETED_PHASE = "Phase 240"
-CURRENT_RELEASE_BASELINE_PHASE = "Phase 231"
+CURRENT_COMPLETED_PHASE = "Phase 241"
+CURRENT_RELEASE_BASELINE_PHASE = "Phase 241"
 CURRENT_READONLY_RELEASE = "v0.1.7-readonly"
-CURRENT_WRITE_ALPHA_RELEASE = "v0.2.5-writealpha"
+CURRENT_WRITE_ALPHA_RELEASE = "v0.2.6-writealpha"
 WRITE_DEFAULT = "GNUCASH_WRITES_ENABLED=false"
 APP_ENV_GATE = "APP_ENV=test"
 
@@ -39,6 +39,7 @@ PUBLIC_STATUS_FILES = [
     Path("docs/release/v0.2.6-writealpha-notes.md"),
     Path("docs/release/v0.2.6-writealpha-checklist.md"),
     Path("docs/release/v0.2.6-writealpha-final-gate.md"),
+    Path("docs/release/v0.2.6-writealpha-publication-evidence.md"),
 ]
 
 CONFIG_FILES = [
@@ -61,6 +62,7 @@ STALE_CURRENT_PATTERNS = [
     re.compile(r"Completed through Phase 237\b"),
     re.compile(r"Completed through Phase 238\b"),
     re.compile(r"Completed through Phase 239\b"),
+    re.compile(r"Completed through Phase 240\b"),
     re.compile(r"Phase 0[–-]228 are complete"),
     re.compile(r"Phase 0[–-]229 are complete"),
     re.compile(r"Phase 0[–-]230 are complete"),
@@ -73,6 +75,7 @@ STALE_CURRENT_PATTERNS = [
     re.compile(r"Phase 0[–-]237 are complete"),
     re.compile(r"Phase 0[–-]238 are complete"),
     re.compile(r"Phase 0[–-]239 are complete"),
+    re.compile(r"Phase 0[–-]240 are complete"),
     re.compile(r"Фазы 0[–-]228 завершены"),
     re.compile(r"Фазы 0[–-]229 завершены"),
     re.compile(r"Фазы 0[–-]230 завершены"),
@@ -85,6 +88,7 @@ STALE_CURRENT_PATTERNS = [
     re.compile(r"Фазы 0[–-]237 завершены"),
     re.compile(r"Фазы 0[–-]238 завершены"),
     re.compile(r"Фазы 0[–-]239 завершены"),
+    re.compile(r"Фазы 0[–-]240 завершены"),
     re.compile(r"Current public write-alpha pre-release:\s*`v0\.2\.0-writealpha`"),
     re.compile(r"Current published write-alpha pre-release:\s*`v0\.2\.0-writealpha`"),
     re.compile(r"current public experimental write-alpha GitHub pre-release after Phase 132", re.I),
@@ -154,21 +158,21 @@ def main() -> int:
 
     checks = {
         Path("README.md"): [
-            "Phase 0–240 are complete",
+            "Phase 0–241 are complete",
             CURRENT_READONLY_RELEASE,
             CURRENT_WRITE_ALPHA_RELEASE,
             WRITE_DEFAULT,
             CURRENT_RELEASE_BASELINE_PHASE,
         ],
         Path("README.ru.md"): [
-            "Фазы 0–240 завершены",
+            "Фазы 0–241 завершены",
             CURRENT_READONLY_RELEASE,
             CURRENT_WRITE_ALPHA_RELEASE,
             WRITE_DEFAULT,
             CURRENT_RELEASE_BASELINE_PHASE,
         ],
         Path("PROJECT_STATUS.md"): [
-            "Completed through Phase 240",
+            "Completed through Phase 241",
             CURRENT_READONLY_RELEASE,
             CURRENT_WRITE_ALPHA_RELEASE,
             WRITE_DEFAULT,
@@ -181,7 +185,7 @@ def main() -> int:
             WRITE_DEFAULT,
         ],
         Path("docs/ROADMAP.md"): [
-            "Completed through Phase 240",
+            "Completed through Phase 241",
             CURRENT_READONLY_RELEASE,
             CURRENT_WRITE_ALPHA_RELEASE,
             WRITE_DEFAULT,
@@ -210,58 +214,64 @@ def main() -> int:
         ],
         Path("docs/release/v0.2.5-writealpha-notes.md"): [
             "PUBLISHED AS GITHUB PRE-RELEASE",
-            CURRENT_WRITE_ALPHA_RELEASE,
+            "v0.2.5-writealpha",
             WRITE_DEFAULT,
             APP_ENV_GATE,
         ],
         Path("docs/release/v0.2.5-writealpha-checklist.md"): [
             "PASS — publish as GitHub pre-release",
-            CURRENT_WRITE_ALPHA_RELEASE,
+            "v0.2.5-writealpha",
             WRITE_DEFAULT,
         ],
         Path("docs/release/v0.2.5-writealpha-final-gate.md"): [
             "PASS — publish after exact release-commit CI",
-            CURRENT_WRITE_ALPHA_RELEASE,
+            "v0.2.5-writealpha",
             WRITE_DEFAULT,
             APP_ENV_GATE,
         ],
         Path("docs/release/v0.2.5-writealpha-no-release-verdict.md"): [
             "SUPERSEDED BY v0.2.5-writealpha PUBLICATION",
-            CURRENT_WRITE_ALPHA_RELEASE,
+            "v0.2.5-writealpha",
             WRITE_DEFAULT,
             APP_ENV_GATE,
         ],
         Path("docs/release/v0.2.5-writealpha-blocker-closure.md"): [
             "superseded by Phase 231 publication",
-            CURRENT_WRITE_ALPHA_RELEASE,
+            "v0.2.5-writealpha",
             WRITE_DEFAULT,
             APP_ENV_GATE,
         ],
         Path("docs/release/v0.2.5-writealpha-publication-evidence.md"): [
-            CURRENT_WRITE_ALPHA_RELEASE,
-            CURRENT_RELEASE_BASELINE_PHASE,
+            "v0.2.5-writealpha",
+            "Phase 231",
             WRITE_DEFAULT,
             APP_ENV_GATE,
         ],
         Path("docs/release/v0.2.6-writealpha-notes.md"): [
-            "RELEASE CANDIDATE ONLY",
+            "PUBLISHED AS GITHUB PRE-RELEASE",
             "v0.2.6-writealpha",
             WRITE_DEFAULT,
             APP_ENV_GATE,
             "No real/private or only-copy write safety is claimed",
         ],
         Path("docs/release/v0.2.6-writealpha-checklist.md"): [
-            "RELEASE CANDIDATE ONLY",
+            "PASS — publish as GitHub pre-release",
             "v0.2.6-writealpha",
             WRITE_DEFAULT,
-            "publication requires PM/release gate",
+            "PM authorization for publication",
         ],
         Path("docs/release/v0.2.6-writealpha-final-gate.md"): [
-            "DRAFT RELEASE GATE",
+            "PASS — publish after exact release-commit CI",
             "v0.2.6-writealpha",
             WRITE_DEFAULT,
             APP_ENV_GATE,
-            "publication blocked until PM/release gate",
+            "PM decision: `AUTHORIZE_RELEASE`",
+        ],
+        Path("docs/release/v0.2.6-writealpha-publication-evidence.md"): [
+            CURRENT_WRITE_ALPHA_RELEASE,
+            CURRENT_RELEASE_BASELINE_PHASE,
+            WRITE_DEFAULT,
+            APP_ENV_GATE,
         ],
         Path(".env.example"): [WRITE_DEFAULT],
         Path("docker-compose.yml"): ["GNUCASH_WRITES_ENABLED=${GNUCASH_WRITES_ENABLED:-false}"],

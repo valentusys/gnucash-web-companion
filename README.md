@@ -47,7 +47,7 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–240 are complete.
+- Phase 0–241 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by
   default.
@@ -66,6 +66,7 @@ This project is not a fit if you need:
   gate](docs/release/v0.1.6-readonly-final-gate.md), [publication
   evidence](docs/release/v0.1.6-readonly-publication-evidence.md)).
 - Previous write-alpha pre-releases:
+  [`v0.2.5-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.5-writealpha),
   [`v0.2.4-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.4-writealpha),
   [`v0.2.3-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.3-writealpha),
   [`v0.2.2-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.2-writealpha),
@@ -73,12 +74,12 @@ This project is not a fit if you need:
   and
   [`v0.2.0-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.0-writealpha).
 - Current published write-alpha pre-release:
-  [`v0.2.5-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.5-writealpha),
-  published after the Phase 231 cycle-3 release gate:
-  [notes](docs/release/v0.2.5-writealpha-notes.md),
-  [checklist](docs/release/v0.2.5-writealpha-checklist.md), [final
-  gate](docs/release/v0.2.5-writealpha-final-gate.md), [publication
-  evidence](docs/release/v0.2.5-writealpha-publication-evidence.md).
+  [`v0.2.6-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.6-writealpha),
+  published after the Phase 241 cycle-1 release gate:
+  [notes](docs/release/v0.2.6-writealpha-notes.md),
+  [checklist](docs/release/v0.2.6-writealpha-checklist.md), [final
+  gate](docs/release/v0.2.6-writealpha-final-gate.md), [publication
+  evidence](docs/release/v0.2.6-writealpha-publication-evidence.md).
 - Phase 221 evaluated `v0.2.5-writealpha` and recorded an explicit no-release verdict because Phase
   220 found a bounded write-alpha DELETE backup-count anomaly. Phases 222–228 remediated,
   documented, and smoke-verified that blocker closure as synthetic/disposable backup-audit and
@@ -98,8 +99,9 @@ This project is not a fit if you need:
   testing without changing default read-only config, Phase 238 added a redacted non-mutating
   `scripts/write_alpha_readiness.py` readiness command for write-alpha prerequisites, Phase 239
   recorded a synthetic copied-book dry-run through Docker/Caddy using the Phase 236 evidence schema,
-  and Phase 240 prepared `v0.2.6-writealpha` release-candidate docs only, pending a later PM/release
-  gate before any tag or GitHub pre-release.
+  and Phase 240 prepared `v0.2.6-writealpha` release-candidate docs. Phase 241 called PM, reran the
+  release gate, waited for exact release/status commit CI, and published `v0.2.6-writealpha` as a
+  conservative GitHub pre-release.
   Write-alpha remains pre-alpha/experimental,
   disabled by default,
   `APP_ENV=test` gated when explicitly enabled, and not safe for real/private or only-copy books.

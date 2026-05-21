@@ -7,11 +7,20 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versione
 
 ## [Unreleased]
 
-- Phase 240 — prepared release-candidate notes, checklist, and final-gate draft for the next
-  write-alpha maintenance candidate because Phases 232–239 added meaningful operator-safety tooling
-  and evidence: copied-book runbook, redacted preflight, evidence redaction schema/helper,
-  environment guidance, readiness inspection, and synthetic no-mutation Docker/Caddy dry-run. The
-  candidate is explicitly not tagged or published; publication requires a later PM/release gate.
+## [v0.2.6-writealpha] - 2026-05-21
+
+- Phase 241 — called PM for the Cycle 1 release/no-release gate, received `AUTHORIZE_RELEASE`, reran
+  the final local release gate, waited for exact release/status commit CI, and published
+  `v0.2.6-writealpha` as a conservative GitHub pre-release. Publication created only an annotated
+  tag and GitHub pre-release; no package, image, production deployment, write default change,
+  `APP_ENV=test` gate weakening, production/security/public-internet/broad-compatibility claim, or
+  real/private/only-copy write-safety claim was added.
+
+- Phase 240 — prepared release-candidate notes, checklist, and final-gate draft for the write-alpha
+  maintenance candidate because Phases 232–239 added meaningful operator-safety tooling and evidence:
+  copied-book runbook, redacted preflight, evidence redaction schema/helper, environment guidance,
+  readiness inspection, and synthetic no-mutation Docker/Caddy dry-run. The candidate was not tagged
+  or published in Phase 240; publication required the later PM/release gate completed in Phase 241.
   `GNUCASH_WRITES_ENABLED=false` remains default, `APP_ENV=test` gating remains intact, and no
   production/security/public-internet/broad-compatibility or real/private/only-copy write-safety
   claim was added.

@@ -8,18 +8,18 @@ Last updated: 2026-05-21
 - Local path: `/home/val/gnucash-web-companion`
 - Branch: `main`
 - Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release;
-  `v0.2.5-writealpha` is the current public experimental write-alpha pre-release. Completed through
-  Phase 240. Phase 231 ran the final release gate after Phase 230 green release-candidate dogfood,
-  confirmed local/backend/frontend/Docker/public-status/sensitive-file gates, waited for exact
-  release/status commit CI, and published only the annotated tag plus GitHub pre-release. Phase 232
-  reconciled public status/changelog wording after publication. Phase 233 improved raw markdown
-  readability for README/README.ru/CHANGELOG/PROJECT_STATUS while preserving safety wording. Phase
-  234 added a conservative copied-book write-alpha dogfood runbook for future local-only
-  copied/disposable testing without running real/private copied-book dogfood. Phase 235 added a
-  redacted local-only preflight CLI for future copied/disposable write-alpha targets. Phase 236 added
-  a redacted dogfood evidence schema and helper so later dogfood reports can reject or redact raw
-  path-like, amount-like, memo/account-name, and payload-like data before commit. Phase 237 added an
-  explicitly unsafe-for-real-books `.env.writealpha.example` reference and
+  `v0.2.6-writealpha` is the current public experimental write-alpha pre-release. Completed through
+  Phase 241. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
+  release-candidate dogfood, confirmed local/backend/frontend/Docker/public-status/sensitive-file
+  gates, waited for exact release/status commit CI, and published only the annotated tag plus GitHub
+  pre-release. Phase 232 reconciled public status/changelog wording after publication. Phase 233
+  improved raw markdown readability for README/README.ru/CHANGELOG/PROJECT_STATUS while preserving
+  safety wording. Phase 234 added a conservative copied-book write-alpha dogfood runbook for future
+  local-only copied/disposable testing without running real/private copied-book dogfood. Phase 235
+  added a redacted local-only preflight CLI for future copied/disposable write-alpha targets. Phase
+  236 added a redacted dogfood evidence schema and helper so later dogfood reports can reject or
+  redact raw path-like, amount-like, memo/account-name, and payload-like data before commit. Phase
+  237 added an explicitly unsafe-for-real-books `.env.writealpha.example` reference and
   `docs/write-alpha/environment.md` operator guidance for local-only write-alpha testing without
   changing default read-only config. Phase 238 added a redacted, non-mutating
   `scripts/write_alpha_readiness.py` readiness command plus backend helper/tests so operators can
@@ -30,25 +30,30 @@ Last updated: 2026-05-21
   passed or blocked exactly as expected, default-disabled API/browser smoke passed, disabled
   validate/create/PATCH/DELETE probes returned 403, checksum evidence matched before/after, and no
   backups/locks/audit rows were produced. Phase 240 prepared `v0.2.6-writealpha` release-candidate
-  notes, checklist, and final-gate draft only because Cycle 1 produced meaningful operator-safety
-  tooling and synthetic no-mutation dry-run evidence; no tag/GitHub release was published, and a
-  later PM/release gate is required before any publication decision.
-  `GNUCASH_WRITES_ENABLED=false` remains default, `APP_ENV=test` write-alpha gating remains intact, and no
-  production/security/public-internet/broad-compatibility or real/private-book write-safety claim is
-  added.
+  notes, checklist, and final-gate draft because Cycle 1 produced meaningful operator-safety tooling
+  and synthetic no-mutation dry-run evidence. Phase 241 called PM, received authorization, reran the
+  final gate, waited for exact release/status commit CI, and published `v0.2.6-writealpha` as a
+  conservative GitHub pre-release. `GNUCASH_WRITES_ENABLED=false` remains default, `APP_ENV=test`
+  write-alpha gating remains intact, and no production/security/public-internet/broad-compatibility
+  or real/private-book write-safety claim is added.
 
 ## Current baseline
 
-Completed through Phase 240.
+Completed through Phase 241.
 
 Current public release state:
 
 - `v0.1.7-readonly` is the current public read-only pre-alpha GitHub pre-release after Phase 171
   publication, prepared/published only after Val authorization and final release-gate checks.
-- `v0.2.5-writealpha` is the current public experimental write-alpha GitHub pre-release after Phase
-  231 publication. It is pre-alpha, disabled by default, `APP_ENV=test` gated when explicitly
-  enabled, based on synthetic/disposable and copied-test-book evidence only for this cycle, not
-  production-ready, not stable, not security-audited, not public-internet safe, and not safe for
+- `v0.2.6-writealpha` is the current public experimental write-alpha GitHub pre-release after Phase
+  241 publication. It is pre-alpha, disabled by default, `APP_ENV=test` gated when explicitly
+  enabled, based on synthetic/disposable no-mutation Cycle 1 evidence and operator-safety tooling
+  only, not production-ready, not stable, not security-audited, not public-internet safe, and not
+  safe for real/private or only-copy books.
+- `v0.2.5-writealpha` remains available as the previous public experimental write-alpha GitHub
+  pre-release after Phase 231 publication. It is pre-alpha, disabled by default, `APP_ENV=test`
+  gated when explicitly enabled, based on synthetic/disposable and copied-test-book evidence only,
+  not production-ready, not stable, not security-audited, not public-internet safe, and not safe for
   real/private or only-copy books.
 - Phase 232 reconciled the public repository status after the Phase 231 publication:
   README/README.ru/PROJECT_STATUS/CHANGELOG/docs/ROADMAP and the public-status guard now agree that
@@ -92,12 +97,18 @@ Current public release state:
 - Phase 240 prepared `docs/release/v0.2.6-writealpha-notes.md`,
   `docs/release/v0.2.6-writealpha-checklist.md`, and
   `docs/release/v0.2.6-writealpha-final-gate.md` as release-candidate-only artifacts for a possible
-  later write-alpha maintenance pre-release. The rationale is that Phases 232–239 produced
+  later write-alpha maintenance pre-release. The rationale was that Phases 232–239 produced
   meaningful operator-safety tooling and synthetic no-mutation Docker/Caddy evidence, not merely
   internal churn. No tag, GitHub release, package, write default change, `APP_ENV=test` gate
   weakening, real/private-book write-safety claim, production/security claim, or publication
-  authorization was added; Phase 241 or a later explicit release gate must call PM before any
-  publication decision.
+  authorization was added in Phase 240.
+- Phase 241 called PM, received `AUTHORIZE_RELEASE`, reran the final release gate, updated
+  `docs/release/v0.2.6-writealpha-notes.md`, checklist, final-gate, publication evidence, public
+  status docs, and public-status guard, waited for exact release/status commit CI, and published
+  `v0.2.6-writealpha` as a conservative GitHub pre-release. Publication created only an annotated
+  tag and GitHub pre-release; no package, image, production deployment, write default change,
+  `APP_ENV=test` gate weakening, real/private-book write-safety claim, production/security claim, or
+  private data artifact was added.
 - `v0.2.4-writealpha` remains available as the previous public experimental write-alpha GitHub
   pre-release after Phase 211 publication. It is pre-alpha, disabled by default, `APP_ENV=test`
   gated when explicitly enabled, based on synthetic/disposable evidence only for that cycle, not

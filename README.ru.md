@@ -25,7 +25,7 @@ Desktop остаётся главным редактором.
 
 ## Текущий публичный статус
 
-- Фазы 0–240 завершены.
+- Фазы 0–241 завершены.
 - MVP v0.1 остаётся **read-only by default**.
 - `GNUCASH_WRITES_ENABLED=false` — безопасный дефолт.
 - Controlled-write код, если присутствует, является experimental post-MVP/write-alpha, отключён по
@@ -35,6 +35,7 @@ Desktop остаётся главным редактором.
 - Предыдущий публичный read-only pre-alpha release:
   [`v0.1.6-readonly`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.6-readonly).
 - Предыдущие write-alpha pre-release:
+  [`v0.2.5-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.5-writealpha),
   [`v0.2.4-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.4-writealpha),
   [`v0.2.3-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.3-writealpha),
   [`v0.2.2-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.2-writealpha),
@@ -44,12 +45,12 @@ Desktop остаётся главным редактором.
   они pre-alpha/experimental, disabled by default, не production-ready, не security-audited и не
   заявляют безопасность записей в real/private books.
 - Текущий опубликованный write-alpha pre-release:
-  [`v0.2.5-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.5-writealpha),
-  опубликован в Phase 231 после cycle-3 release gate и green exact-commit CI:
-  [notes](docs/release/v0.2.5-writealpha-notes.md),
-  [checklist](docs/release/v0.2.5-writealpha-checklist.md), [final
-  gate](docs/release/v0.2.5-writealpha-final-gate.md), [publication
-  evidence](docs/release/v0.2.5-writealpha-publication-evidence.md). Write-alpha нельзя использовать
+  [`v0.2.6-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.6-writealpha),
+  опубликован в Phase 241 после cycle-1 release gate, PM authorization и green exact-commit CI:
+  [notes](docs/release/v0.2.6-writealpha-notes.md),
+  [checklist](docs/release/v0.2.6-writealpha-checklist.md), [final
+  gate](docs/release/v0.2.6-writealpha-final-gate.md), [publication
+  evidence](docs/release/v0.2.6-writealpha-publication-evidence.md). Write-alpha нельзя использовать
   на real/private books или единственной копии книги; только synthetic/disposable или copied test
   books, которые можно восстановить или удалить.
 - Phase 221 проверил `v0.2.5-writealpha` и зафиксировал explicit no-release verdict: Phase 220 нашёл
@@ -69,9 +70,10 @@ Desktop остаётся главным редактором.
   для local-only operator testing без изменения default read-only config; Phase 238 добавил
   redacted non-mutating `scripts/write_alpha_readiness.py` readiness command для проверки
   write-alpha prerequisites; Phase 239 записал synthetic copied-book dry-run через Docker/Caddy по
-  Phase 236 evidence schema; Phase 240 подготовил только release-candidate docs для
-  `v0.2.6-writealpha`, без tag/GitHub release и с требованием отдельного PM/release gate перед
-  публикацией. Write-alpha остаётся
+  Phase 236 evidence schema; Phase 240 подготовил release-candidate docs для
+  `v0.2.6-writealpha`; Phase 241 вызвал PM, повторил release gate, дождался green exact
+  release/status commit CI и опубликовал `v0.2.6-writealpha` как conservative GitHub pre-release.
+  Write-alpha остаётся
   pre-alpha/experimental, disabled by default, `APP_ENV=test` gated при явном включении и не безопасен
   для real/private или only-copy books.
 - Compatibility matrix: [docs/gnucash-compatibility.md](docs/gnucash-compatibility.md). Текущие

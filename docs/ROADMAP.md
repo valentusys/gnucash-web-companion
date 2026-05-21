@@ -5,11 +5,11 @@ This roadmap is intentionally conservative. Safety and trust come before feature
 ## Current release posture
 
 - Status: pre-alpha / MVP in progress.
-- Completed through Phase 240.
+- Completed through Phase 241.
 - Current public read-only pre-release: `v0.1.7-readonly`.
-- Current published write-alpha pre-release: `v0.2.5-writealpha`, published in Phase 231 after the
-  cycle-3 release gate and exact release-commit CI as pre-alpha/experimental and disabled by
-  default.
+- Current published write-alpha pre-release: `v0.2.6-writealpha`, published in Phase 241 after the
+  cycle-1 release gate, PM authorization, and exact release-commit CI as pre-alpha/experimental and
+  disabled by default.
 - MVP v0.1 remains read-only by default.
 - `GNUCASH_WRITES_ENABLED=false` remains the default.
 - Controlled writes, where present, are post-MVP/write-alpha, disabled by default, constrained by
@@ -17,8 +17,8 @@ This roadmap is intentionally conservative. Safety and trust come before feature
   production books.
 - Current compatibility evidence is synthetic/disposable fixture evidence only; broad GnuCash
   Desktop version support is not claimed.
-- Latest public release baseline: Phase 231 published `v0.2.5-writealpha` after local
-  backend/frontend/Docker checks, exact release-commit CI, rendered `GNUCASH_WRITES_ENABLED=false`,
+- Latest public release baseline: Phase 241 published `v0.2.6-writealpha` after PM authorization,
+  local backend/frontend/Docker checks, exact release-commit CI, rendered `GNUCASH_WRITES_ENABLED=false`,
   public status guard, and sensitive tracked-file hygiene. Phase 232 reconciled public
   status/changelog wording after publication, Phase 233 improved raw markdown readability for
   README/status sources without changing safety posture, Phase 234 added a conservative copied-book
@@ -28,9 +28,10 @@ This roadmap is intentionally conservative. Safety and trust come before feature
   operator guard documentation, Phase 238 added a redacted non-mutating write-alpha readiness
   command, Phase 239 recorded a synthetic copied-book dry-run through Docker/Caddy using the
   redacted evidence schema without changing default read-only config or running real/private
-  copied-book dogfood, and Phase 240 prepared `v0.2.6-writealpha` release-candidate docs only,
-  pending a later PM/release gate before any tag or GitHub pre-release. Phase 221 previously
-  recorded a no-release verdict for
+  copied-book dogfood, Phase 240 prepared `v0.2.6-writealpha` release-candidate docs, and Phase 241
+  called PM, reran the release gate, waited for exact release/status commit CI, and published
+  `v0.2.6-writealpha` as a conservative GitHub pre-release. Phase 221 previously recorded a
+  no-release verdict for
   the Phase 220 DELETE backup-count anomaly; Phases 222–230 remediated and re-verified that blocker
   only as synthetic/disposable backup-audit, default-disabled fresh-clone/upgrade, and final
   release-candidate dogfood evidence before publication.
@@ -93,6 +94,9 @@ This roadmap is intentionally conservative. Safety and trust come before feature
 - Phase 240 — prepared `v0.2.6-writealpha` release-candidate notes/checklist/final-gate draft only;
   no tag, GitHub release, write default change, `APP_ENV=test` gate weakening, or real/private-book
   safety claim was added.
+- Phase 241 — called PM, received `AUTHORIZE_RELEASE`, reran the final gate, waited for exact
+  release/status commit CI, and published `v0.2.6-writealpha` as a conservative GitHub pre-release
+  with no package/image/default/gate/safety-claim expansion.
 
 ## Completed phase groups
 
