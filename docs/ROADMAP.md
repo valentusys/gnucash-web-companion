@@ -5,7 +5,7 @@ This roadmap is intentionally conservative. Safety and trust come before feature
 ## Current release posture
 
 - Status: pre-alpha / MVP in progress.
-- Completed through Phase 249.
+- Completed through Phase 250.
 - Current public read-only pre-release: `v0.1.7-readonly`.
 - Current published write-alpha pre-release: `v0.2.6-writealpha`, published in Phase 241 after the
   cycle-1 release gate, PM authorization, and exact release-commit CI as pre-alpha/experimental and
@@ -36,7 +36,9 @@ This roadmap is intentionally conservative. Safety and trust come before feature
   ownership guard, Phase 246 aligned the transaction detail UI with backend ownership state, Phase
   247 recorded synthetic/disposable ownership route-family dogfood, Phase 248 exposed safe ownership
   counters in the read-only audit summary, and Phase 249 documented the operator-facing ownership
-  boundary. CREATE creates write-alpha-owned transactions; PATCH/DELETE are limited to
+  boundary, and Phase 250 prepared `v0.2.7-writealpha` release-candidate notes/checklist/final-gate
+  only for a later Phase 251 release/no-release decision. CREATE creates write-alpha-owned
+  transactions; PATCH/DELETE are limited to
   write-alpha-owned transactions; historical/imported/manual transactions remain read-only in this
   app. Non-owned historical/imported/manual transactions are rejected before write-service
   construction for PATCH/DELETE. Phase 221 previously recorded a no-release verdict for
@@ -105,6 +107,10 @@ This roadmap is intentionally conservative. Safety and trust come before feature
 - Phase 241 — called PM, received `AUTHORIZE_RELEASE`, reran the final gate, waited for exact
   release/status commit CI, and published `v0.2.6-writealpha` as a conservative GitHub pre-release
   with no package/image/default/gate/safety-claim expansion.
+- Phase 250 — prepared `v0.2.7-writealpha` release-candidate notes/checklist/final-gate only after
+  confirming backend ownership guards, synthetic/disposable route-family dogfood, and synchronized
+  ownership docs. No tag, GitHub release, PM authorization, write default change, `APP_ENV=test`
+  gate weakening, or real/private-book safety claim was added.
 
 ## Completed phase groups
 

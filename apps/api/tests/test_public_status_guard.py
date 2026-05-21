@@ -40,7 +40,18 @@ def test_public_status_guard_rejects_phase_172_as_current_baseline():
 
 
 def test_public_status_guard_tracks_current_completed_phase():
-    assert guard.CURRENT_COMPLETED_PHASE == "Phase 249"
+    assert guard.CURRENT_COMPLETED_PHASE == "Phase 250"
+
+
+def test_public_status_guard_rejects_phase_249_as_current_baseline():
+    stale = "- Completed through Phase 249."
+
+    try:
+        guard.reject_patterns(Path("docs/ROADMAP.md"), stale, guard.STALE_CURRENT_PATTERNS)
+    except AssertionError as exc:
+        assert "Phase 249" in str(exc)
+    else:
+        raise AssertionError("stale Phase 249 current baseline should fail guard")
 
 
 def test_public_status_guard_rejects_phase_248_as_current_baseline():

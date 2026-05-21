@@ -47,7 +47,7 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–249 are complete.
+- Phase 0–250 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by
   default.
@@ -106,8 +106,10 @@ This project is not a fit if you need:
   PATCH to write-alpha-owned transactions, Phase 245 restricted DELETE to write-alpha-owned
   transactions, Phase 246 aligned the transaction detail UI with the backend ownership boundary,
   Phase 247 recorded synthetic/disposable ownership route-family dogfood, Phase 248 extended the
-  read-only write-alpha audit summary with safe ownership evidence counters, and Phase 249
-  documented the operator-facing ownership boundary across write-alpha docs.
+  read-only write-alpha audit summary with safe ownership evidence counters, Phase 249 documented
+  the operator-facing ownership boundary across write-alpha docs, and Phase 250 prepared
+  `v0.2.7-writealpha` release-candidate notes/checklist/final-gate only for a later Phase 251
+  release/no-release decision.
   CREATE creates write-alpha-owned transactions; PATCH/DELETE are limited to write-alpha-owned
   transactions for the same app metadata book; historical/manual GnuCash transactions remain
   read-only in this app.

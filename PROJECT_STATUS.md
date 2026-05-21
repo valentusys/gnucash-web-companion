@@ -9,7 +9,7 @@ Last updated: 2026-05-21
 - Branch: `main`
 - Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release;
   `v0.2.6-writealpha` is the current public experimental write-alpha pre-release. Completed through
-  Phase 249. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
+  Phase 250. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
   release-candidate dogfood, confirmed local/backend/frontend/Docker/public-status/sensitive-file
   gates, waited for exact release/status commit CI, and published only the annotated tag plus GitHub
   pre-release. Phase 232 reconciled public status/changelog wording after publication. Phase 233
@@ -61,13 +61,19 @@ Last updated: 2026-05-21
   CREATE creates write-alpha-owned transactions, PATCH/DELETE are limited to write-alpha-owned
   transactions for the same app metadata book, and historical/imported/manual GnuCash transactions
   remain read-only in this app. The warnings also state that this does not make real/private,
-  original, production, shared, or only-copy books safe for write-alpha.
+  original, production, shared, or only-copy books safe for write-alpha. Phase 250 prepared
+  `v0.2.7-writealpha` release-candidate notes, checklist, and final-gate draft because the Cycle 2
+  gates are satisfied: backend ownership guards are implemented, synthetic route-family dogfood
+  passed, and operator docs are synchronized. The candidate is release-candidate only; no PM
+  authorization, tag, GitHub release, package/image, write default change, `APP_ENV=test` gate
+  weakening, production/security/public-internet/broad-compatibility claim, or real/private-book
+  write-safety claim was added.
   `GNUCASH_WRITES_ENABLED=false` remains
   default, `APP_ENV=test` write-alpha gating remains intact, and no production/security/public-internet/broad-compatibility or real/private-book write-safety claim is added.
 
 ## Current baseline
 
-Completed through Phase 249.
+Completed through Phase 250.
 
 Current public release state:
 
@@ -198,6 +204,15 @@ Current public release state:
   not make real/private, original, production, shared, or only-copy books safe for write-alpha. No
   release, product-code change, write default change, `APP_ENV=test` gate weakening, or
   production/safety overclaim was added.
+- Phase 250 prepared `docs/release/v0.2.7-writealpha-notes.md`,
+  `docs/release/v0.2.7-writealpha-checklist.md`, and
+  `docs/release/v0.2.7-writealpha-final-gate.md` as release-candidate-only artifacts for a possible
+  later write-alpha maintenance pre-release. The release-candidate decision is justified by the
+  implemented backend PATCH/DELETE ownership guards, the Phase 247 synthetic/disposable ownership
+  route-family dogfood pass, and synchronized Phase 249 ownership-boundary operator docs. No PM was
+  called, no tag/GitHub release/package/image was published, and no write default change,
+  `APP_ENV=test` gate weakening, real/private-book use, production/security/public-internet/broad
+  compatibility claim, or real/private/only-copy write-safety claim was added.
 - `v0.2.4-writealpha` remains available as the previous public experimental write-alpha GitHub
   pre-release after Phase 211 publication. It is pre-alpha, disabled by default, `APP_ENV=test`
   gated when explicitly enabled, based on synthetic/disposable evidence only for that cycle, not

@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versioned releases begin.
 
 ## [Unreleased]
+- Phase 250 — prepared `v0.2.7-writealpha` release-candidate notes, checklist, and final-gate draft
+  because Cycle 2 produced meaningful ownership-boundary safety work: app metadata-only ownership
+  markers, backend PATCH/DELETE ownership guards, aligned frontend controls, synthetic/disposable
+  ownership route-family dogfood, safe audit-summary ownership counters, and synchronized operator
+  warnings. The candidate is not published; Phase 251 must call PM and rerun the release gate before
+  any tag/GitHub release. No write default change, `APP_ENV=test` gate weakening,
+  production/security/public-internet/broad-compatibility claim, real/private-book use, or
+  real/private/only-copy write-safety claim was added.
+
 - Phase 249 — documented the write-alpha ownership boundary across operator docs. The docs now state
   that CREATE creates write-alpha-owned transactions, PATCH/DELETE are limited to those
   write-alpha-owned transactions for the same app metadata book, and historical/imported/manual
