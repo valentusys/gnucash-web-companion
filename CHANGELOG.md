@@ -7,6 +7,16 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versione
 
 ## [Unreleased]
 
+- Phase 258 — ran the maintainer copied-book package rehearsal on synthetic/disposable fixture copies.
+  The dry-run wrapper passed, Docker/Caddy create-one passed with read-back, backup/audit/lock evidence,
+  restore verification passed with checksum and piecash read-back, a temporary Debian GnuCash CLI probe
+  passed, and reset read-only API smoke verified validate/create/PATCH/DELETE all return 403 when
+  `GNUCASH_WRITES_ENABLED=false`. Host `gnucash-cli` remained unavailable for the compatibility
+  harness and is recorded as blocked rather than compatibility evidence. No owner/private/original/
+  only-copy book, release/tag, default-write change, `APP_ENV=test` gate weakening, raw path/account/
+  memo/amount evidence, broad compatibility claim, or real/private/only-copy write-safety claim was
+  added.
+
 - Phase 257 — added `scripts/write_alpha_restore_verify.py`, a local-only restore verification
   harness for copied/disposable write-alpha dogfood. It restores only an outside-git copied working
   book from an outside-git pre-mutation backup, verifies checksum/read-back state, supports an
