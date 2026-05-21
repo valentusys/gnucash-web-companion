@@ -25,7 +25,7 @@ Desktop остаётся главным редактором.
 
 ## Текущий публичный статус
 
-- Фазы 0–258 завершены.
+- Фазы 0–259 завершены.
 - MVP v0.1 остаётся **read-only by default**.
 - `GNUCASH_WRITES_ENABLED=false` — безопасный дефолт.
 - Controlled-write код, если присутствует, является experimental post-MVP/write-alpha, отключён по
@@ -94,7 +94,10 @@ Desktop остаётся главным редактором.
   заявляет broad Desktop/version compatibility, а Phase 257 добавил redacted
   `scripts/write_alpha_restore_verify.py`: harness восстанавливает outside-git copied working book из
   outside-git pre-mutation backup, проверяет checksum/read-back state, поддерживает optional
-  read-only web/API probe и не заявляет production disaster recovery.
+  read-only web/API probe и не заявляет production disaster recovery. Phase 258 провёл full
+  maintainer copied-book package rehearsal на synthetic/disposable fixture copies, а Phase 259 решил,
+  что следующий разумный owner ask — только copied-book dry-run; CREATE-one не является немедленным
+  owner ask и может рассматриваться только после review owner dry-run evidence.
   Write-alpha остаётся
   pre-alpha/experimental, disabled by default, `APP_ENV=test` gated при явном включении и не безопасен
   для real/private или only-copy books.

@@ -7,6 +7,14 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versione
 
 ## [Unreleased]
 
+- Phase 259 — completed the owner copied-book decision gate. Verdict: ready to ask the owner for a
+  local copied-book dry-run only, with original untouched and private data kept outside git; not ready
+  to ask for CREATE-one as the first owner action. CREATE-one can be considered only after owner
+  dry-run evidence is reviewed and confirms preflight, independent backup, redaction, local-only
+  runtime, restore plan, and reset to `GNUCASH_WRITES_ENABLED=false`. No owner/private/original/
+  only-copy book was used or requested, no release/tag was published, and no real/private/only-copy
+  write-safety claim was added.
+
 - Phase 258 — ran the maintainer copied-book package rehearsal on synthetic/disposable fixture copies.
   The dry-run wrapper passed, Docker/Caddy create-one passed with read-back, backup/audit/lock evidence,
   restore verification passed with checksum and piecash read-back, a temporary Debian GnuCash CLI probe

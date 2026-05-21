@@ -9,7 +9,7 @@ Last updated: 2026-05-21
 - Branch: `main`
 - Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release;
   `v0.2.7-writealpha` is the current public experimental write-alpha pre-release. Completed through
-  Phase 258. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
+  Phase 259. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
   release-candidate dogfood, confirmed local/backend/frontend/Docker/public-status/sensitive-file
   gates, waited for exact release/status commit CI, and published only the annotated tag plus GitHub
   pre-release. Phase 232 reconciled public status/changelog wording after publication. Phase 233
@@ -95,13 +95,19 @@ Last updated: 2026-05-21
   default-disabled API smoke verified validate/create/PATCH/DELETE 403 probes. The host compatibility
   harness still records missing host `gnucash-cli` as blocked rather than broad compatibility evidence,
   and no owner/private/original/only-copy book, release/tag, default write change, `APP_ENV=test` gate
-  weakening, raw private evidence, or real/private/only-copy write-safety claim was added.
+  weakening, raw private evidence, or real/private/only-copy write-safety claim was added. Phase 259
+  completed the owner copied-book decision gate: the next reasonable owner ask is dry-run only with an
+  outside-git copied/restorable book and the original untouched; CREATE-one is not the immediate ask and
+  can be considered only after owner dry-run evidence confirms preflight, independent backup,
+  redaction, local-only runtime, restore plan, and reset to `GNUCASH_WRITES_ENABLED=false`. No owner
+  dogfood was executed, no private data was requested, no release/tag was published, and no
+  real/private/only-copy write-safety claim was added.
   `GNUCASH_WRITES_ENABLED=false` remains
   default, `APP_ENV=test` write-alpha gating remains intact, and no production/security/public-internet/broad-compatibility or real/private-book write-safety claim is added.
 
 ## Current baseline
 
-Completed through Phase 258.
+Completed through Phase 259.
 
 Current public release state:
 
@@ -319,6 +325,13 @@ Current public release state:
   than broad compatibility evidence. No owner/private/original/only-copy book, release/tag, default
   write change, `APP_ENV=test` gate weakening, raw private evidence, production/security/public-
   internet/broad compatibility claim, or real/private/only-copy write-safety claim was added.
+- Phase 259 recorded `docs/audits/phase-259-owner-copied-book-decision.md`, an owner copied-book
+  decision gate. Verdict: ready to ask the owner for local copied-book dry-run only, with an
+  outside-git copied/restorable book and the original untouched. It is not ready to ask for CREATE-one
+  as the first owner action; CREATE-one can be considered only after owner dry-run evidence is reviewed
+  and confirms preflight, independent backup, redaction, local-only runtime, restore plan, and reset
+  to `GNUCASH_WRITES_ENABLED=false`. No owner dogfood was executed, no private paths/data were
+  requested, no release/tag was published, and no real/private/only-copy write-safety claim was added.
 - `v0.2.4-writealpha` remains available as the previous public experimental write-alpha GitHub
   pre-release after Phase 211 publication. It is pre-alpha, disabled by default, `APP_ENV=test`
   gated when explicitly enabled, based on synthetic/disposable evidence only for that cycle, not
