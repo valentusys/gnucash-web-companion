@@ -9,7 +9,7 @@ Last updated: 2026-05-21
 - Branch: `main`
 - Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release;
   `v0.2.7-writealpha` is the current public experimental write-alpha pre-release. Completed through
-  Phase 253. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
+  Phase 254. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
   release-candidate dogfood, confirmed local/backend/frontend/Docker/public-status/sensitive-file
   gates, waited for exact release/status commit CI, and published only the annotated tag plus GitHub
   pre-release. Phase 232 reconciled public status/changelog wording after publication. Phase 233
@@ -72,13 +72,17 @@ Last updated: 2026-05-21
   copied/restorable targets plus independent backup, restricts the optional mutation path to one
   CREATE first, defers PATCH to later explicit review, prohibits DELETE unless separately authorized
   for a write-alpha-created test transaction, requires redacted evidence and restore proof, and ends
-  with cleanup plus reset to `GNUCASH_WRITES_ENABLED=false`.
+  with cleanup plus reset to `GNUCASH_WRITES_ENABLED=false`. Phase 254 added
+  `scripts/write_alpha_copied_book_dogfood.py`, a local-only copied-book dogfood wrapper with
+  explicit `--dry-run` and `--create-one` modes, required confirmations, redacted preflight,
+  pre-step backup creation, redacted evidence writing, unsafe-path rejection, and default-disabled
+  reset proof after each run.
   `GNUCASH_WRITES_ENABLED=false` remains
   default, `APP_ENV=test` write-alpha gating remains intact, and no production/security/public-internet/broad-compatibility or real/private-book write-safety claim is added.
 
 ## Current baseline
 
-Completed through Phase 253.
+Completed through Phase 254.
 
 Current public release state:
 
@@ -243,6 +247,18 @@ Current public release state:
   `GNUCASH_WRITES_ENABLED=false`. No dogfood run, mutation, release/tag, default-write change,
   `APP_ENV=test` gate weakening, private-book use, or real/private/only-copy write-safety claim was
   added.
+- Phase 254 added `scripts/write_alpha_copied_book_dogfood.py`, a local-only explicit-step wrapper
+  for future copied-book dogfood. The wrapper supports separate `--dry-run` and `--create-one` modes,
+  requires copied/disposable/original-untouched/outside-git confirmations, requires an extra explicit
+  mutation confirmation for `--create-one`, calls the Phase 235 redacted preflight, creates a
+  pre-step backup before dry-run/create-one, delegates the actual CREATE to a caller-supplied or
+  default local smoke command, writes redacted JSON evidence, rejects unsafe paths, and verifies the
+  committed/default `GNUCASH_WRITES_ENABLED=false` posture after each run. Script tests cover dry-run,
+  create-one command delegation, missing mutation confirmation, unsafe inside-repo targets, and
+  unsafe write-alpha environment values; synthetic local wrapper dogfood passed for dry-run and
+  create-one with a harmless delegated command. No real/private/only-copy book, raw path/account/memo/
+  amount evidence, DELETE mode, release/tag, default-write change, `APP_ENV=test` gate weakening, or
+  real/private/only-copy write-safety claim was added.
 - `v0.2.4-writealpha` remains available as the previous public experimental write-alpha GitHub
   pre-release after Phase 211 publication. It is pre-alpha, disabled by default, `APP_ENV=test`
   gated when explicitly enabled, based on synthetic/disposable evidence only for that cycle, not

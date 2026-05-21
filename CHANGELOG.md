@@ -7,6 +7,14 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versione
 
 ## [Unreleased]
 
+- Phase 254 — added `scripts/write_alpha_copied_book_dogfood.py`, a local-only explicit-step wrapper
+  for future copied-book dogfood. It supports separate `--dry-run` and `--create-one` modes, requires
+  copied/disposable/original-untouched/outside-git confirmations plus an extra mutation confirmation
+  for `--create-one`, calls redacted preflight, creates a pre-step backup, writes redacted JSON
+  evidence, rejects unsafe paths, and verifies the committed/default `GNUCASH_WRITES_ENABLED=false`
+  posture after each run. No DELETE mode, default-write change, `APP_ENV=test` gate weakening,
+  real/private-book use, or real/private/only-copy write-safety claim was added.
+
 - Phase 253 — added `docs/write-alpha/maintainer-copied-book-dogfood-packet.md`, a complete
   owner/maintainer packet for future copied-book dogfood. It defaults to dry-run first, forbids
   original and only-copy books, requires outside-git copied/restorable targets with independent

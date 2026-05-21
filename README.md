@@ -47,7 +47,7 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–253 are complete.
+- Phase 0–254 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by
   default.
@@ -112,10 +112,13 @@ This project is not a fit if you need:
   `v0.2.7-writealpha` release-candidate notes/checklist/final-gate, and Phase 251 called PM,
   reran the release gate, waited for exact release/status commit CI, and published
   `v0.2.7-writealpha` as a conservative GitHub pre-release. Phase 252 passed the Cycle 3 analyst
-  gate, and Phase 253 added a maintainer copied-book dogfood packet that defaults to dry-run first,
+  gate, Phase 253 added a maintainer copied-book dogfood packet that defaults to dry-run first,
   forbids original/only-copy books, requires copied/restorable outside-git targets plus independent
   backup, limits optional mutation to one CREATE first, defers PATCH to later explicit review, and
-  prohibits DELETE unless separately authorized for a write-alpha-created test transaction.
+  prohibits DELETE unless separately authorized for a write-alpha-created test transaction, and
+  Phase 254 added `scripts/write_alpha_copied_book_dogfood.py`, a local-only explicit-step wrapper
+  with separate `--dry-run` and `--create-one` modes, required confirmations, preflight,
+  pre-step backup, redacted evidence, unsafe-path rejection, and default-disabled reset proof.
   CREATE creates write-alpha-owned transactions; PATCH/DELETE are limited to write-alpha-owned
   transactions for the same app metadata book; historical/manual GnuCash transactions remain
   read-only in this app.
