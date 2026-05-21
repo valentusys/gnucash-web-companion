@@ -9,7 +9,7 @@ Last updated: 2026-05-21
 - Branch: `main`
 - Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release;
   `v0.2.6-writealpha` is the current public experimental write-alpha pre-release. Completed through
-  Phase 247. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
+  Phase 248. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
   release-candidate dogfood, confirmed local/backend/frontend/Docker/public-status/sensitive-file
   gates, waited for exact release/status commit CI, and published only the annotated tag plus GitHub
   pre-release. Phase 232 reconciled public status/changelog wording after publication. Phase 233
@@ -52,12 +52,17 @@ Last updated: 2026-05-21
   route-family dogfood: one write-alpha-owned synthetic transaction was created, PATCHed, and
   DELETEd; non-owned PATCH/DELETE probes returned 403 without backup growth; backup/audit/lock/restore
   evidence was recorded as redacted counts/statuses; and the reset default-disabled API smoke verified
-  validate/create/PATCH/DELETE probes still return 403. `GNUCASH_WRITES_ENABLED=false` remains
+  validate/create/PATCH/DELETE probes still return 403. Phase 248 extended the read-only
+  write-alpha audit summary endpoint/UI with safe ownership evidence — write-alpha-created marker
+  count, non-owned mutation rejection count, and last successful mutation type — while continuing to
+  render only bounded counters/action labels, safe transaction ID prefixes, opaque backup refs, and
+  safe errors. Raw payloads, amounts, memos, account names, and paths remain hidden.
+  `GNUCASH_WRITES_ENABLED=false` remains
   default, `APP_ENV=test` write-alpha gating remains intact, and no production/security/public-internet/broad-compatibility or real/private-book write-safety claim is added.
 
 ## Current baseline
 
-Completed through Phase 247.
+Completed through Phase 248.
 
 Current public release state:
 
@@ -171,6 +176,14 @@ Current public release state:
   validate/create/PATCH/DELETE probes still return 403. No real/private/only-copy book, raw
   path/account/memo/amount/payload evidence, release/tag, default write change, `APP_ENV=test` gate
   weakening, or real/private-book write-safety claim was added.
+- Phase 248 extended the read-only write-alpha audit summary endpoint and operator UI with safe
+  ownership evidence. The API now returns an `ownership_summary` containing the app-metadata
+  write-alpha-created transaction marker count, the non-owned mutation rejection count visible in the
+  filtered redacted audit rows, and the last successful mutation type. The UI renders only those
+  bounded counters/action labels plus existing safe transaction prefixes, opaque backup refs, and
+  safe errors. Viewer/outsider access remains blocked, raw audit payloads/amounts/memos/account
+  names/paths are not rendered, and no write default change, `APP_ENV=test` gate weakening,
+  release/tag, real/private-book use, or real/private/only-copy write-safety claim was added.
 - `v0.2.4-writealpha` remains available as the previous public experimental write-alpha GitHub
   pre-release after Phase 211 publication. It is pre-alpha, disabled by default, `APP_ENV=test`
   gated when explicitly enabled, based on synthetic/disposable evidence only for that cycle, not

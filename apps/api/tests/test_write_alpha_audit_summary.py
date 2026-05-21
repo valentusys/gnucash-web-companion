@@ -15,7 +15,7 @@ from sqlalchemy.pool import StaticPool
 from app.config import Settings, get_settings
 from app.database import Base
 from app.main import app
-from app.models import AuditLog, Book, User, UserBookAccess
+from app.models import AuditLog, Book, User, UserBookAccess, WriteAlphaTransactionOwnership
 from app.routers.auth import get_db
 from app.services.auth import hash_password
 
@@ -134,11 +134,19 @@ def sample_book_with_audit(session_factory, tmp_path: Path) -> int:
         session.add(book)
         session.flush()
         users = {user.username: user for user in session.query(User).all()}
+        ownership = WriteAlphaTransactionOwnership()
+        ownership.book_id = book.id
+        ownership.transaction_id = "abcdef1234567890"
+        ownership.created_by_user_id = users["admin"].id
+        ownership.created_by_write_alpha = True
+        ownership.created_at = datetime(2026, 5, 20, 10, 0, tzinfo=timezone.utc)
+        ownership.last_mutated_at = datetime(2026, 5, 20, 10, 0, tzinfo=timezone.utc)
         session.add_all(
             [
                 UserBookAccess(user_id=users["admin"].id, book_id=book.id, role="owner"),
                 UserBookAccess(user_id=users["editor"].id, book_id=book.id, role="editor"),
                 UserBookAccess(user_id=users["viewer"].id, book_id=book.id, role="viewer"),
+                ownership,
             ]
         )
         session.add_all(
@@ -203,6 +211,24 @@ def sample_book_with_audit(session_factory, tmp_path: Path) -> int:
                 AuditLog(
                     user_id=users["admin"].id,
                     book_id=book.id,
+                    action="transaction.patch",
+                    payload_json=json.dumps(
+                        {
+                            "action": "transaction.patch",
+                            "result": "failed",
+                            "timestamp": "2026-05-20T10:15:00+00:00",
+                            "transaction_id": "feedface12345678",
+                            "backup_path": None,
+                            "ownership_status": "non_owned_rejected",
+                            "error": "Write-alpha PATCH is allowed only for transactions created by write-alpha for this book. Historical or manually imported GnuCash transactions remain read-only.",
+                            "fields_updated": {"description": "SECRET", "split_memos": {"s": "MEMO"}},
+                        }
+                    ),
+                    created_at=datetime(2026, 5, 20, 10, 15, tzinfo=timezone.utc),
+                ),
+                AuditLog(
+                    user_id=users["admin"].id,
+                    book_id=book.id,
                     action="auth.login",
                     payload_json=json.dumps({"secret": "not relevant"}),
                     created_at=datetime(2026, 5, 20, 10, 6, tzinfo=timezone.utc),
@@ -236,28 +262,35 @@ class TestWriteAlphaAuditSummary:
         data = response.json()
         assert data["book_id"] == sample_book_with_audit
         assert [item["action"] for item in data["items"]] == [
+            "transaction.patch",
             "transaction.delete",
             "transaction.patch",
             "transaction.create",
         ]
-        assert data["total_count"] == 3
-        assert data["returned_count"] == 3
+        assert data["total_count"] == 4
+        assert data["returned_count"] == 4
         assert data["counts_by_action"] == {
             "transaction.create": 1,
-            "transaction.patch": 1,
+            "transaction.patch": 2,
             "transaction.delete": 1,
         }
         assert data["counts_by_result"] == {
             "started": 0,
             "success": 2,
-            "failed": 1,
+            "failed": 2,
             "unknown": 0,
         }
-        assert data["time_window"]["newest_returned"] == "2026-05-20T10:10:00+00:00"
+        assert data["ownership_summary"] == {
+            "write_alpha_created_count": 1,
+            "non_owned_mutation_rejections_count": 1,
+            "last_mutation_type": "transaction.delete",
+        }
+        assert data["time_window"]["newest_returned"] == "2026-05-20T10:15:00+00:00"
         assert data["time_window"]["oldest_returned"] == "2026-05-20T10:00:00+00:00"
         assert data["status_summary"] == [
-            "Filtered rows: 3",
-            "Returned rows: 3 of at most 25 from offset 0",
+            "Filtered rows: 4",
+            "Returned rows: 4 of at most 25 from offset 0",
+            "Ownership evidence: 1 write-alpha-created transaction markers; 1 non-owned mutation rejections in the filtered audit rows.",
             "Rows are redacted to action/result/timestamp/opaque transaction prefix/backup-present/opaque backup reference/safe-error only.",
         ]
         assert data["pagination"] == {
@@ -269,7 +302,11 @@ class TestWriteAlphaAuditSummary:
             "has_previous": False,
         }
 
-        delete_item, patch_item, create_item = data["items"]
+        rejection_item, delete_item, patch_item, create_item = data["items"]
+        assert rejection_item["transaction_id_prefix"] == "feedface"
+        assert rejection_item["backup_present"] is False
+        assert rejection_item["backup_artifact_ref"] is None
+        assert "created by write-alpha" in rejection_item["error"]
         assert delete_item["transaction_id_prefix"] == "deadbeef"
         assert delete_item["backup_present"] is True
         assert delete_item["backup_artifact_ref"].startswith("bkp-")
@@ -367,7 +404,7 @@ class TestWriteAlphaAuditSummary:
         assert second_response.status_code == 200
         first_page = first_response.json()
         second_page = second_response.json()
-        assert first_page["total_count"] == 153
+        assert first_page["total_count"] == 154
         assert first_page["returned_count"] == 10
         assert len(first_page["items"]) == 10
         assert first_page["pagination"] == {
@@ -425,7 +462,7 @@ class TestWriteAlphaAuditSummary:
         )
         assert response.status_code == 200
         data = response.json()
-        assert data["total_count"] == 2
+        assert data["total_count"] == 3
         assert data["returned_count"] == 1
         assert data["counts_by_result"]["unknown"] == 1
         item = data["items"][0]

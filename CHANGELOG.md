@@ -7,6 +7,13 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versione
 
 ## [Unreleased]
 
+- Phase 248 — extended the read-only write-alpha audit summary endpoint/UI with safe ownership
+  evidence: app-metadata write-alpha-created marker count, non-owned mutation rejection count from
+  redacted audit rows, and last successful mutation type. The UI renders only bounded counters and
+  action labels alongside existing safe transaction ID prefixes/backup refs; raw audit payloads,
+  amounts, memos, account names, and paths remain hidden. Viewer/outsider access stays blocked, and
+  no write default, `APP_ENV=test` gate, real/private-book use, or release/tag was added.
+
 - Phase 247 — ran synthetic/disposable Docker/Caddy ownership route-family dogfood after the new
   backend ownership guards. One write-alpha-owned synthetic transaction was created, PATCHed, and
   DELETEd; separate PATCH/DELETE attempts against one non-owned fixture transaction returned 403

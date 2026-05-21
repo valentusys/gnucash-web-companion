@@ -47,7 +47,7 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–247 are complete.
+- Phase 0–248 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by
   default.
@@ -103,8 +103,10 @@ This project is not a fit if you need:
   release gate, waited for exact release/status commit CI, and published `v0.2.6-writealpha` as a
   conservative GitHub pre-release. Phase 242 passed the Cycle 2 analyst gate, Phase 243 added
   app metadata-only ownership markers for write-alpha-created transactions, Phase 244 restricted
-  PATCH to write-alpha-owned transactions, and Phase 245 restricted DELETE to write-alpha-owned
-  transactions.
+  PATCH to write-alpha-owned transactions, Phase 245 restricted DELETE to write-alpha-owned
+  transactions, Phase 246 aligned the transaction detail UI with the backend ownership boundary,
+  Phase 247 recorded synthetic/disposable ownership route-family dogfood, and Phase 248 extended the
+  read-only write-alpha audit summary with safe ownership evidence counters.
   Write-alpha remains pre-alpha/experimental,
   disabled by default,
   `APP_ENV=test` gated when explicitly enabled, and not safe for real/private or only-copy books.

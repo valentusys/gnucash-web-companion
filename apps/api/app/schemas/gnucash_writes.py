@@ -109,6 +109,13 @@ class WriteAlphaAuditSummaryDTO(BaseModel):
     counts_by_result: dict[str, int] = Field(
         default_factory=dict, description="Filtered row counts grouped by safe result label"
     )
+    ownership_summary: dict[str, int | str | None] = Field(
+        default_factory=dict,
+        description=(
+            "Safe app-metadata ownership evidence: write-alpha-created count, "
+            "non-owned mutation rejection count, and last mutation type"
+        ),
+    )
     filters: dict[str, str | int | None] = Field(
         default_factory=dict, description="Applied non-sensitive filter metadata"
     )

@@ -190,6 +190,7 @@ export type WriteAlphaAuditSummary = {
 	returned_count: number;
 	counts_by_action: Record<string, number>;
 	counts_by_result: Record<string, number>;
+	ownership_summary: Record<string, number | string | null>;
 	filters: Record<string, string | number | null>;
 	pagination: Record<string, number | boolean | null>;
 	time_window: Record<string, string | null>;

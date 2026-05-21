@@ -733,6 +733,22 @@ def _audit_summary_item(log: AuditLog) -> WriteAlphaAuditSummaryItemDTO:
     )
 
 
+def _audit_summary_is_non_owned_rejection(payload: dict[str, Any]) -> bool:
+    """Return true for audit rows that safely indicate an ownership guard rejection."""
+    if payload.get("ownership_status") == "non_owned_rejected":
+        return True
+    safe_error = _safe_audit_error(payload.get("error")) or ""
+    return "created by write-alpha" in safe_error and "Historical or manually imported" in safe_error
+
+
+def _audit_summary_last_mutation_type(logs: list[AuditLog]) -> str | None:
+    """Return the newest successful mutation action without exposing raw payload details."""
+    for log in logs:
+        if log.action in WRITE_ALPHA_AUDIT_ACTIONS and _audit_log_result(log) == "success":
+            return log.action
+    return None
+
+
 def _parse_audit_window(value: str | None, label: str) -> datetime | None:
     """Parse an ISO datetime filter without accepting path-like/private values."""
     if value is None or not value.strip():
@@ -854,6 +870,17 @@ async def get_write_alpha_audit_summary(
         counts_by_action[log.action] = counts_by_action.get(log.action, 0) + 1
         log_result = _audit_log_result(log)
         counts_by_result[log_result] = counts_by_result.get(log_result, 0) + 1
+    ownership_created_count = len(
+        session.query(WriteAlphaTransactionOwnership.id)
+        .filter(
+            WriteAlphaTransactionOwnership.book_id == book.id,
+            WriteAlphaTransactionOwnership.created_by_write_alpha == True,  # noqa: E712
+        )
+        .all()
+    )
+    non_owned_rejections_count = sum(
+        1 for log in filtered_logs if _audit_summary_is_non_owned_rejection(_audit_summary_payload(log))
+    )
 
     logs = filtered_logs[offset : offset + limit]
     next_offset = offset + limit if offset + limit < len(filtered_logs) else None
@@ -867,6 +894,11 @@ async def get_write_alpha_audit_summary(
         returned_count=len(logs),
         counts_by_action=counts_by_action,
         counts_by_result=counts_by_result,
+        ownership_summary={
+            "write_alpha_created_count": ownership_created_count,
+            "non_owned_mutation_rejections_count": non_owned_rejections_count,
+            "last_mutation_type": _audit_summary_last_mutation_type(filtered_logs),
+        },
         filters={
             "action": action,
             "result": result,
@@ -892,6 +924,7 @@ async def get_write_alpha_audit_summary(
         status_summary=[
             f"Filtered rows: {len(filtered_logs)}",
             f"Returned rows: {len(logs)} of at most {limit} from offset {offset}",
+            f"Ownership evidence: {ownership_created_count} write-alpha-created transaction markers; {non_owned_rejections_count} non-owned mutation rejections in the filtered audit rows.",
             "Rows are redacted to action/result/timestamp/opaque transaction prefix/backup-present/opaque backup reference/safe-error only.",
         ],
         items=[_audit_summary_item(log) for log in logs],

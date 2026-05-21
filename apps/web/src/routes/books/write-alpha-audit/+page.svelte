@@ -9,6 +9,7 @@
 	let locale = $derived<Locale>(data.locale ?? DEFAULT_LOCALE);
 	const appliedFilters = $derived(data.auditSummary?.filters ?? {});
 	const pagination = $derived(data.auditSummary?.pagination ?? {});
+	const ownershipSummary = $derived(data.auditSummary?.ownership_summary ?? {});
 
 	function pageHref(targetOffset: unknown): string {
 		const params = new URLSearchParams();
@@ -99,7 +100,7 @@
 	</form>
 
 	{#if data.auditSummary}
-		<div class="grid min-w-0 gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4" aria-label={t(locale, 'audit.countsLabel')}>
+		<div class="grid min-w-0 gap-3 text-sm sm:grid-cols-2 lg:grid-cols-5" aria-label={t(locale, 'audit.countsLabel')}>
 			<div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
 				<p class="text-xs uppercase tracking-wide text-slate-500">{t(locale, 'audit.filteredRows')}</p>
 				<p class="mt-1 text-2xl font-semibold text-slate-900">{data.auditSummary.total_count}</p>
@@ -117,6 +118,11 @@
 				<p class="text-xs uppercase tracking-wide text-slate-500">{t(locale, 'audit.window')}</p>
 				<p class="break-words text-slate-700">{t(locale, 'audit.requestedWindow', { since: data.auditSummary.time_window.requested_since ?? t(locale, 'audit.noStart'), until: data.auditSummary.time_window.requested_until ?? t(locale, 'audit.noEnd') })}</p>
 				<p class="mt-1 break-words text-slate-600">{t(locale, 'audit.returnedWindow', { oldest: data.auditSummary.time_window.oldest_returned ?? t(locale, 'audit.none'), newest: data.auditSummary.time_window.newest_returned ?? t(locale, 'audit.none') })}</p>
+			</div>
+			<div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+				<p class="text-xs uppercase tracking-wide text-slate-500">{t(locale, 'audit.ownership')}</p>
+				<p class="break-words text-slate-700">{t(locale, 'audit.ownedCreated')}: {ownershipSummary.write_alpha_created_count ?? 0} · {t(locale, 'audit.nonOwnedRejected')}: {ownershipSummary.non_owned_mutation_rejections_count ?? 0}</p>
+				<p class="mt-1 break-words text-slate-600">{t(locale, 'audit.lastMutation')}: {ownershipSummary.last_mutation_type ?? t(locale, 'audit.none')}</p>
 			</div>
 		</div>
 	{/if}

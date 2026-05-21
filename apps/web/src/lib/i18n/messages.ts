@@ -208,6 +208,10 @@ export type MessageKey =
 	| 'audit.actions'
 	| 'audit.results'
 	| 'audit.window'
+	| 'audit.ownership'
+	| 'audit.ownedCreated'
+	| 'audit.nonOwnedRejected'
+	| 'audit.lastMutation'
 	| 'audit.requestedWindow'
 	| 'audit.returnedWindow'
 	| 'audit.noStart'
@@ -567,6 +571,10 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'audit.actions': 'Actions',
 		'audit.results': 'Results',
 		'audit.window': 'Window',
+		'audit.ownership': 'Ownership',
+		'audit.ownedCreated': 'write-alpha-created',
+		'audit.nonOwnedRejected': 'non-owned rejected',
+		'audit.lastMutation': 'Last mutation',
 		'audit.requestedWindow': 'Requested: {since} → {until}',
 		'audit.returnedWindow': 'Returned: {oldest} → {newest}',
 		'audit.noStart': 'No start',
@@ -947,6 +955,10 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'audit.actions': 'Действия',
 		'audit.results': 'Результаты',
 		'audit.window': 'Окно времени',
+		'audit.ownership': 'Ownership',
+		'audit.ownedCreated': 'write-alpha-created',
+		'audit.nonOwnedRejected': 'non-owned rejected',
+		'audit.lastMutation': 'Последняя mutation',
 		'audit.requestedWindow': 'Запрошено: {since} → {until}',
 		'audit.returnedWindow': 'Вернулось: {oldest} → {newest}',
 		'audit.noStart': 'Без начала',
