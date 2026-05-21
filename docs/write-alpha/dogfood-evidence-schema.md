@@ -39,7 +39,11 @@ Dogfood evidence reports should include the following fields.
 | `audit_row_count` | integer | yes | Count only. Do not include raw audit payloads or transaction identifiers unless already redacted to a safe bounded prefix. |
 | `lock_status` | string | yes | Controlled status such as `not-acquired-no-mutation`, `acquired-and-released`, `rejected-before-lock`, or `blocked`. |
 | `restore_proof_status` | string | yes | Controlled status such as `not-applicable-no-mutation`, `verified`, `blocked`, or `failed`. |
-| `disabled_reset_status` | string | yes | Controlled status such as `verified-default-false`, `not-applicable-default-unchanged`, or `failed`. |
+| `restore_status` | string | required for restore scenarios | Controlled status such as `restored-from-pre-mutation-backup`, `not-applicable-no-mutation`, or `failed`. |
+| `checksum_status` | string | required for restore scenarios | Controlled checksum result such as `verified-backup-matches-restored`, `not-provided-backup-match-used`, or `failed-mismatch`. Use at most short digest prefixes; never include raw filenames or paths. |
+| `read_back` | object | required for restore scenarios | Bounded read-only restore read-back result: `status` plus counts only. No account names, descriptions, memos, amounts, transaction payloads, or raw errors. |
+| `api_read` | object | required for restore scenarios | Read-only web/API probe status and placeholder command label only. Raw URLs, cookies, response bodies, paths, and payloads are excluded. |
+| `disabled_reset_status` | string | yes | Controlled status such as `verified-default-false`, `verified-default-disabled`, `not-applicable-default-unchanged`, or `failed`. |
 | `ownership_summary` | object | required for PATCH/DELETE scenarios | Redacted ownership evidence such as `created_transaction_owned=true`, `non_owned_patch_rejected=true`, and `non_owned_delete_rejected=true`. Do not include raw transaction IDs beyond existing safe prefixes. |
 | `notes` | string | optional | Redacted operator note only. Do not include private row details, amounts, names, paths, or payloads. |
 

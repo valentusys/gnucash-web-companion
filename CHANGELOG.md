@@ -7,6 +7,14 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versione
 
 ## [Unreleased]
 
+- Phase 257 — added `scripts/write_alpha_restore_verify.py`, a local-only restore verification
+  harness for copied/disposable write-alpha dogfood. It restores only an outside-git copied working
+  book from an outside-git pre-mutation backup, verifies checksum/read-back state, supports an
+  optional read-only web/API probe, writes redacted JSON evidence, and checks the committed/default
+  `GNUCASH_WRITES_ENABLED=false` posture. This is not production disaster-recovery evidence and adds
+  no mutation expansion, release/tag, default-write change, `APP_ENV=test` gate weakening, raw path/
+  account/memo/amount evidence, or real/private/only-copy write-safety claim.
+
 - Phase 256 — added `scripts/write_alpha_compatibility_check.py`, a local-only best-effort
   compatibility harness for post-mutation copied/disposable dogfood. It opens the target read-only
   with piecash, optionally runs already-available `gnucash-cli` report probing, records clear

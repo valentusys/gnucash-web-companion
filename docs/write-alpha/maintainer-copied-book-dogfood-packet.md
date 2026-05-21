@@ -237,9 +237,28 @@ Restore steps:
 1. Stop the app stack.
 2. Keep the mutated copied working book isolated outside git.
 3. Restore the copied working book from the independent pre-mutation backup.
-4. Verify the restored copy is readable through the intended read-only path.
-5. Verify the test mutation is absent when restore is expected to remove it.
-6. Record only redacted restore status and counts.
+4. Verify the restored copy checksum matches the backup checksum, or an operator-recorded expected full sha256.
+5. Verify the restored copy is readable through piecash/read-only app paths.
+6. Verify web/API read-back with a local read-only probe when the stack is available.
+7. Verify the test mutation is absent when restore is expected to remove it.
+8. Record only redacted restore status and counts.
+
+Phase 257 adds a local restore harness for the bounded copied/disposable flow:
+
+```bash
+python3 scripts/write_alpha_restore_verify.py \
+  --target <copied-working-book-path> \
+  --backup <pre-mutation-backup-path> \
+  --output <redacted-restore-evidence-json> \
+  --expected-restored-sha256 <optional-full-backup-sha256> \
+  --api-read-command <read-only-api-or-web-probe-command> \
+  --confirm-copied-disposable \
+  --confirm-original-untouched \
+  --confirm-restore-over-copy \
+  --confirm-backup-pre-mutation
+```
+
+The harness rejects paths inside the git checkout, writes redacted evidence only, and treats a missing API/web probe as `blocked` rather than complete restore evidence.
 
 Never restore over or otherwise modify the original book.
 

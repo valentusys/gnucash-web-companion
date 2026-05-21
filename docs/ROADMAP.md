@@ -5,7 +5,7 @@ This roadmap is intentionally conservative. Safety and trust come before feature
 ## Current release posture
 
 - Status: pre-alpha / MVP in progress.
-- Completed through Phase 256.
+- Completed through Phase 257.
 - Current public read-only pre-release: `v0.1.7-readonly`.
 - Current published write-alpha pre-release: `v0.2.7-writealpha`, published in Phase 251 after the
   cycle-2 release gate, PM authorization, and exact release-commit CI as pre-alpha/experimental and
@@ -54,6 +54,10 @@ This roadmap is intentionally conservative. Safety and trust come before feature
   best-effort post-mutation compatibility harness that opens copied/disposable targets read-only with
   piecash, optionally runs already-available `gnucash-cli` report probing, records missing Desktop/CLI
   tooling as a blocker rather than evidence, and makes no broad Desktop/version compatibility claim.
+  Phase 257 added `scripts/write_alpha_restore_verify.py`, a redacted restore verification harness
+  that restores an outside-git copied working book from an outside-git pre-mutation backup, verifies
+  checksum/read-back state, supports an optional read-only web/API probe, and makes no production
+  disaster-recovery claim.
   CREATE creates write-alpha-owned transactions; PATCH/DELETE are limited to
   write-alpha-owned transactions; historical/imported/manual transactions remain read-only in this
   app. Non-owned historical/imported/manual transactions are rejected before write-service

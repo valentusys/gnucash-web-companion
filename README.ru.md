@@ -25,7 +25,7 @@ Desktop остаётся главным редактором.
 
 ## Текущий публичный статус
 
-- Фазы 0–256 завершены.
+- Фазы 0–257 завершены.
 - MVP v0.1 остаётся **read-only by default**.
 - `GNUCASH_WRITES_ENABLED=false` — безопасный дефолт.
 - Controlled-write код, если присутствует, является experimental post-MVP/write-alpha, отключён по
@@ -87,11 +87,14 @@ Desktop остаётся главным редактором.
   `scripts/write_alpha_copied_book_dogfood.py` с отдельными `--dry-run` и `--create-one` modes,
   обязательными confirmations, preflight, pre-step backup, redacted evidence, unsafe-path rejection и
   proof/reset проверкой default `GNUCASH_WRITES_ENABLED=false`. Phase 255 усилил UI warnings для
-  create-only copied-book dogfood, а Phase 256 добавил redacted best-effort
+  create-only copied-book dogfood, Phase 256 добавил redacted best-effort
   `scripts/write_alpha_compatibility_check.py`: harness открывает copied/disposable target read-only
   через piecash, optional запускает уже доступный `gnucash-cli` report probe, пишет `pass`/`blocked`/
   `fail` evidence, считает отсутствие Desktop/CLI tooling blocker, а не compatibility evidence, и не
-  заявляет broad Desktop/version compatibility.
+  заявляет broad Desktop/version compatibility, а Phase 257 добавил redacted
+  `scripts/write_alpha_restore_verify.py`: harness восстанавливает outside-git copied working book из
+  outside-git pre-mutation backup, проверяет checksum/read-back state, поддерживает optional
+  read-only web/API probe и не заявляет production disaster recovery.
   Write-alpha остаётся
   pre-alpha/experimental, disabled by default, `APP_ENV=test` gated при явном включении и не безопасен
   для real/private или only-copy books.
