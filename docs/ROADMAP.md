@@ -5,7 +5,7 @@ This roadmap is intentionally conservative. Safety and trust come before feature
 ## Current release posture
 
 - Status: pre-alpha / MVP in progress.
-- Completed through Phase 244.
+- Completed through Phase 245.
 - Current public read-only pre-release: `v0.1.7-readonly`.
 - Current published write-alpha pre-release: `v0.2.6-writealpha`, published in Phase 241 after the
   cycle-1 release gate, PM authorization, and exact release-commit CI as pre-alpha/experimental and
@@ -32,9 +32,9 @@ This roadmap is intentionally conservative. Safety and trust come before feature
   called PM, reran the release gate, waited for exact release/status commit CI, and published
   `v0.2.6-writealpha` as a conservative GitHub pre-release. Cycle 2 then passed the Phase 242
   analyst gate, Phase 243 added app metadata-only write-alpha transaction ownership markers for
-  CREATE, and Phase 244 added a backend PATCH ownership guard that rejects non-owned
-  historical/imported/manual transactions before write-service construction. Phase 221 previously
-  recorded a no-release verdict for
+  CREATE, Phase 244 added a backend PATCH ownership guard, and Phase 245 added a backend DELETE
+  ownership guard. Non-owned historical/imported/manual transactions are rejected before
+  write-service construction for PATCH/DELETE. Phase 221 previously recorded a no-release verdict for
   the Phase 220 DELETE backup-count anomaly; Phases 222–230 remediated and re-verified that blocker
   only as synthetic/disposable backup-audit, default-disabled fresh-clone/upgrade, and final
   release-candidate dogfood evidence before publication.

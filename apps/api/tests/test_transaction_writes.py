@@ -2003,7 +2003,24 @@ class TestWriteAlphaDeleteRouteDisposableFixture:
         assert transactions, "fixture must contain at least one transaction"
         return transactions[0]
 
-    def test_enabled_delete_route_deletes_transaction_with_backup_audit_and_lock(
+    def _create_payload(self, description: str):
+        return TestWriteAlphaCreateRouteDisposableFixture()._fixture_create_payload(description)
+
+    def _mark_owned(self, session_factory, book_id: int, transaction_id: str):
+        with session_factory() as session:
+            admin = session.query(User).filter(User.username == "admin").one()
+            marker = WriteAlphaTransactionOwnership()
+            marker.book_id = book_id
+            marker.transaction_id = transaction_id
+            marker.created_by_user_id = admin.id
+            marker.created_by_write_alpha = True
+            marker.created_at = datetime(2026, 5, 20, tzinfo=timezone.utc)
+            marker.last_mutated_at = datetime(2026, 5, 20, tzinfo=timezone.utc)
+            session.add(marker)
+            session.commit()
+            return marker.id
+
+    def test_enabled_delete_route_deletes_write_alpha_created_transaction_with_backup_audit_and_lock(
         self,
         client,
         auth_headers,
@@ -2012,17 +2029,24 @@ class TestWriteAlphaDeleteRouteDisposableFixture:
         disposable_write_lock,
         session_factory,
     ):
-        tx_before = self._first_fixture_transaction(disposable_fixture_book)
-        txs_before = _read_written_transactions(disposable_fixture_book)
+        create_response = client.post(
+            f"/books/{disposable_sample_book}/transactions",
+            json=self._create_payload("Phase 245 owned delete source"),
+            headers=auth_headers,
+        )
+        assert create_response.status_code == 201
+        created_transaction_id = create_response.json()["transaction_id"]
+        txs_before_delete = _read_written_transactions(disposable_fixture_book)
+        tx_before = next(tx for tx in txs_before_delete if tx["guid"] == created_transaction_id)
 
         response = client.delete(
-            f"/books/{disposable_sample_book}/transactions/{tx_before['guid']}",
+            f"/books/{disposable_sample_book}/transactions/{created_transaction_id}",
             headers=auth_headers,
         )
 
         assert response.status_code == 200
         data = response.json()
-        assert data["transaction_id"] == tx_before["guid"]
+        assert data["transaction_id"] == created_transaction_id
         backup_path = Path(data["backup_path"])
         assert backup_path.exists()
         assert backup_path.is_file()
@@ -2030,11 +2054,11 @@ class TestWriteAlphaDeleteRouteDisposableFixture:
         assert data["audit_log_id"] is not None
 
         txs_after = _read_written_transactions(disposable_fixture_book)
-        assert len(txs_after) == len(txs_before) - 1
-        assert all(tx["guid"] != tx_before["guid"] for tx in txs_after)
+        assert len(txs_after) == len(txs_before_delete) - 1
+        assert all(tx["guid"] != created_transaction_id for tx in txs_after)
 
         backup_txs = _read_written_transactions(backup_path)
-        backup_original = next(tx for tx in backup_txs if tx["guid"] == tx_before["guid"])
+        backup_original = next(tx for tx in backup_txs if tx["guid"] == created_transaction_id)
         assert backup_original["splits"] == tx_before["splits"]
 
         lock_key = str(disposable_fixture_book)
@@ -2047,10 +2071,58 @@ class TestWriteAlphaDeleteRouteDisposableFixture:
             payload = json.loads(audit_log.payload_json)
             assert audit_log.action == "transaction.delete"
             assert payload["result"] == "success"
-            assert payload["transaction_id"] == tx_before["guid"]
+            assert payload["transaction_id"] == created_transaction_id
             assert payload["backup_path"] == str(backup_path)
+            ownership = (
+                session.query(WriteAlphaTransactionOwnership)
+                .filter_by(book_id=disposable_sample_book, transaction_id=created_transaction_id)
+                .one()
+            )
+            assert ownership.created_by_write_alpha is True
+            assert ownership.last_mutated_at >= ownership.created_at
 
-    def test_delete_missing_transaction_returns_404_without_backup_or_lock_leak(
+    def test_non_owned_fixture_transaction_delete_is_rejected_before_write_service(
+        self,
+        client,
+        auth_headers,
+        disposable_sample_book,
+        disposable_fixture_book,
+        disposable_write_lock,
+        session_factory,
+        monkeypatch,
+    ):
+        calls = []
+
+        def forbidden_write_service(*args, **kwargs):
+            calls.append((args, kwargs))
+            raise AssertionError("write service must not be constructed for non-owned DELETE")
+
+        monkeypatch.setattr("app.routers.transactions._write_service_for", forbidden_write_service)
+        tx_before = self._first_fixture_transaction(disposable_fixture_book)
+        txs_before = _read_written_transactions(disposable_fixture_book)
+
+        response = client.delete(
+            f"/books/{disposable_sample_book}/transactions/{tx_before['guid']}",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 403
+        assert "Write-alpha DELETE" in response.json()["detail"]
+        assert "created by write-alpha" in response.json()["detail"]
+        assert "Historical or manually imported" in response.json()["detail"]
+        assert calls == []
+        assert _read_written_transactions(disposable_fixture_book) == txs_before
+        backups_root = disposable_fixture_book.parent.parent / "backups"
+        assert not backups_root.exists()
+        lock_key = str(disposable_fixture_book)
+        assert disposable_write_lock.acquire(lock_key) is True
+        disposable_write_lock.release(lock_key)
+
+        with session_factory() as session:
+            logs = session.query(AuditLog).filter_by(action="transaction.delete").all()
+            assert logs == []
+
+    def test_owned_missing_transaction_returns_404_without_backup_or_lock_leak(
         self,
         client,
         auth_headers,
@@ -2059,10 +2131,12 @@ class TestWriteAlphaDeleteRouteDisposableFixture:
         disposable_write_lock,
         session_factory,
     ):
+        missing_transaction_id = "missing-delete-write-alpha-tx"
+        self._mark_owned(session_factory, disposable_sample_book, missing_transaction_id)
         txs_before = _read_written_transactions(disposable_fixture_book)
 
         response = client.delete(
-            f"/books/{disposable_sample_book}/transactions/missing-delete-write-alpha-tx",
+            f"/books/{disposable_sample_book}/transactions/{missing_transaction_id}",
             headers=auth_headers,
         )
 
@@ -2097,6 +2171,7 @@ class TestWriteAlphaDeleteRouteDisposableFixture:
 
         monkeypatch.setattr(GnuCashWriteService, "_do_delete_transaction", fail_after_backup)
         tx_before = self._first_fixture_transaction(disposable_fixture_book)
+        self._mark_owned(session_factory, disposable_sample_book, tx_before["guid"])
         txs_before = _read_written_transactions(disposable_fixture_book)
 
         response = client.delete(
@@ -2133,6 +2208,7 @@ class TestWriteAlphaDeleteRouteDisposableFixture:
         monkeypatch,
     ):
         tx_before = self._first_fixture_transaction(disposable_fixture_book)
+        self._mark_owned(session_factory, disposable_sample_book, tx_before["guid"])
         txs_before = _read_written_transactions(disposable_fixture_book)
         write_open_calls = []
 
@@ -2219,6 +2295,7 @@ class TestWriteAlphaDeleteRouteDisposableFixture:
 
         monkeypatch.setattr(GnuCashWriteService, "_do_delete_transaction", slow_do_delete)
         tx_before = self._first_fixture_transaction(disposable_fixture_book)
+        self._mark_owned(session_factory, disposable_sample_book, tx_before["guid"])
         txs_before = _read_written_transactions(disposable_fixture_book)
         create_payload = TestWriteAlphaCreateRouteDisposableFixture()._fixture_create_payload(
             "Concurrent write-alpha create blocked by delete"

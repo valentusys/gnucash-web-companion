@@ -555,6 +555,7 @@ def _require_write_alpha_transaction_ownership(
     *,
     book_id: int,
     transaction_id: str,
+    mutation: str = "mutation",
 ) -> WriteAlphaTransactionOwnership:
     """Require app metadata ownership before mutating an existing transaction."""
     ownership = (
@@ -570,7 +571,7 @@ def _require_write_alpha_transaction_ownership(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=(
-                "Write-alpha PATCH is allowed only for transactions created by write-alpha "
+                f"Write-alpha {mutation} is allowed only for transactions created by write-alpha "
                 "for this book. Historical or manually imported GnuCash transactions remain read-only."
             ),
         )
@@ -996,6 +997,7 @@ async def patch_book_transaction(
         session,
         book_id=book.id,
         transaction_id=transaction_id,
+        mutation="PATCH",
     )
 
     service = _write_service_for(book)
@@ -1085,6 +1087,12 @@ async def delete_book_transaction(
     book = _resolve_viewable_book(book_id, user, session)
     _require_book_edit_access(book, user, session)
     _ensure_write_alpha_test_scope(settings)
+    ownership = _require_write_alpha_transaction_ownership(
+        session,
+        book_id=book.id,
+        transaction_id=transaction_id,
+        mutation="DELETE",
+    )
 
     service = _write_service_for(book)
     audit_payload = {
@@ -1140,6 +1148,7 @@ async def delete_book_transaction(
         }
     )
     _update_audit_log(session, log, audit_payload)
+    _mark_write_alpha_transaction_mutated(session, ownership)
     result.audit_log_id = log.id
 
     return result

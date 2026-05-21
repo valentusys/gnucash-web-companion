@@ -1,7 +1,7 @@
 # Write-alpha transaction ownership model
 
 Date: 2026-05-21
-Status: Phase 244 PATCH guard baseline
+Status: Phase 245 PATCH/DELETE guard baseline
 
 ## Purpose
 
@@ -20,7 +20,7 @@ The app metadata database now contains `write_alpha_transaction_ownership` rows 
 | `created_by_user_id` | App metadata user id that requested CREATE, nullable if the user is later removed. |
 | `created_by_write_alpha` | Boolean marker; `true` for rows created by the write-alpha CREATE route. |
 | `created_at` | App metadata timestamp when ownership was recorded. |
-| `last_mutated_at` | App metadata timestamp for the latest write-alpha mutation known to the app. Phase 243 initializes it to `created_at`; Phase 244 refreshes it after allowed PATCH mutations. |
+| `last_mutated_at` | App metadata timestamp for the latest write-alpha mutation known to the app. Phase 243 initializes it to `created_at`; Phase 244 refreshes it after allowed PATCH mutations; Phase 245 refreshes it after allowed DELETE mutations. |
 
 `book_id + transaction_id` is unique so one app metadata DB has at most one ownership marker for a given transaction in a given book.
 
@@ -56,10 +56,19 @@ Phase 244 uses this table as the authoritative backend guard source for PATCH:
   changes remain out of scope.
 - Successful allowed PATCH refreshes `last_mutated_at` in app metadata only.
 
-## Later guard use
+## DELETE guard behavior
 
-Phase 245 should use the same ownership model before destructive DELETE mutation. Rejected non-owned
-DELETE attempts should fail before GnuCash mutation and should not imply historical/manual
-transactions are editable.
+Phase 245 uses the same table as the authoritative backend guard source for DELETE:
+
+- DELETE allows only transactions with an ownership row for the same `book_id` and `transaction_id`
+  where `created_by_write_alpha=true`.
+- The check runs after the existing write-enabled, edit-access, and `APP_ENV=test` gates, but before
+  constructing `GnuCashWriteService`.
+- Rejected non-owned DELETE attempts return 403 before backup, lock, audit row, or GnuCash mutation.
+- Allowed DELETE keeps the existing write-alpha lock → backup → piecash delete → audit → unlock flow.
+- Successful allowed DELETE refreshes `last_mutated_at` in app metadata only.
+
+Rejected non-owned DELETE attempts should not imply historical/manual transactions are editable or
+deletable.
 
 Frontend hiding remains supporting UX only; backend ownership checks are authoritative.

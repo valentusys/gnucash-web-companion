@@ -47,7 +47,7 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–244 are complete.
+- Phase 0–245 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by
   default.
@@ -101,7 +101,10 @@ This project is not a fit if you need:
   recorded a synthetic copied-book dry-run through Docker/Caddy using the Phase 236 evidence schema,
   and Phase 240 prepared `v0.2.6-writealpha` release-candidate docs. Phase 241 called PM, reran the
   release gate, waited for exact release/status commit CI, and published `v0.2.6-writealpha` as a
-  conservative GitHub pre-release.
+  conservative GitHub pre-release. Phase 242 passed the Cycle 2 analyst gate, Phase 243 added
+  app metadata-only ownership markers for write-alpha-created transactions, Phase 244 restricted
+  PATCH to write-alpha-owned transactions, and Phase 245 restricted DELETE to write-alpha-owned
+  transactions.
   Write-alpha remains pre-alpha/experimental,
   disabled by default,
   `APP_ENV=test` gated when explicitly enabled, and not safe for real/private or only-copy books.

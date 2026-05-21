@@ -7,6 +7,16 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versione
 
 ## [Unreleased]
 
+- Phase 245 — added the backend write-alpha DELETE ownership guard. Enabled DELETE now checks the app
+  metadata `write_alpha_transaction_ownership` row for the same book and transaction before
+  constructing the GnuCash write service; non-owned historical/imported/manual transactions return
+  403 without backup, lock, audit row, or GnuCash mutation. Write-alpha-created synthetic
+  transactions still pass the existing lock/backup/delete/audit flow and successful allowed DELETE
+  refreshes `last_mutated_at`. Viewer/outsider access and default-disabled writes remain blocked
+  before ownership checks. No broad delete support, undo feature, release, write default change,
+  `APP_ENV=test` gate weakening, real/private-book use, or real/private/only-copy write-safety claim
+  was added.
+
 - Phase 244 — added the backend write-alpha PATCH ownership guard. Enabled PATCH now checks the app
   metadata `write_alpha_transaction_ownership` row for the same book and transaction before
   constructing the GnuCash write service; non-owned historical/imported/manual transactions return
