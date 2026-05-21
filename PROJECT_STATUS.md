@@ -9,7 +9,7 @@ Last updated: 2026-05-21
 - Branch: `main`
 - Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release;
   `v0.2.6-writealpha` is the current public experimental write-alpha pre-release. Completed through
-  Phase 246. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
+  Phase 247. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
   release-candidate dogfood, confirmed local/backend/frontend/Docker/public-status/sensitive-file
   gates, waited for exact release/status commit CI, and published only the annotated tag plus GitHub
   pre-release. Phase 232 reconciled public status/changelog wording after publication. Phase 233
@@ -48,14 +48,16 @@ Last updated: 2026-05-21
   those backend ownership boundaries: edit/delete controls are hidden for non-owned historical/manual
   transactions, write-alpha-owned synthetic transactions can show experimental controls only under
   explicit write mode, and non-owned transactions show safe explanatory read-only copy. Backend
-  ownership guards remain authoritative. `GNUCASH_WRITES_ENABLED=false` remains default,
-  `APP_ENV=test` write-alpha gating remains intact, and no
-  production/security/public-internet/broad-compatibility or real/private-book write-safety claim is
-  added.
+  ownership guards remain authoritative. Phase 247 ran synthetic/disposable Docker/Caddy ownership
+  route-family dogfood: one write-alpha-owned synthetic transaction was created, PATCHed, and
+  DELETEd; non-owned PATCH/DELETE probes returned 403 without backup growth; backup/audit/lock/restore
+  evidence was recorded as redacted counts/statuses; and the reset default-disabled API smoke verified
+  validate/create/PATCH/DELETE probes still return 403. `GNUCASH_WRITES_ENABLED=false` remains
+  default, `APP_ENV=test` write-alpha gating remains intact, and no production/security/public-internet/broad-compatibility or real/private-book write-safety claim is added.
 
 ## Current baseline
 
-Completed through Phase 246.
+Completed through Phase 247.
 
 Current public release state:
 
@@ -160,6 +162,15 @@ Current public release state:
   explanatory read-only copy instead of edit/delete controls. Backend PATCH/DELETE ownership guards
   remain authoritative, and no write default change, `APP_ENV=test` gate weakening, broad editor,
   release/tag, real/private-book use, or real/private/only-copy write-safety claim was added.
+- Phase 247 recorded `docs/dogfood/phase-247-ownership-route-family.md`, a synthetic/disposable
+  Docker/Caddy ownership route-family dogfood pass. One write-alpha-owned synthetic transaction was
+  created, PATCHed, and DELETEd; one non-owned fixture transaction rejected PATCH and DELETE with 403
+  without backup growth; backup/audit evidence showed one allowed create, one allowed PATCH, and one
+  allowed DELETE; lock evidence was stale-released/not active; DELETE restore read-back passed after
+  restoring the disposable runtime copy; and the reset default-disabled API smoke verified disabled
+  validate/create/PATCH/DELETE probes still return 403. No real/private/only-copy book, raw
+  path/account/memo/amount/payload evidence, release/tag, default write change, `APP_ENV=test` gate
+  weakening, or real/private-book write-safety claim was added.
 - `v0.2.4-writealpha` remains available as the previous public experimental write-alpha GitHub
   pre-release after Phase 211 publication. It is pre-alpha, disabled by default, `APP_ENV=test`
   gated when explicitly enabled, based on synthetic/disposable evidence only for that cycle, not

@@ -5,7 +5,7 @@ This roadmap is intentionally conservative. Safety and trust come before feature
 ## Current release posture
 
 - Status: pre-alpha / MVP in progress.
-- Completed through Phase 246.
+- Completed through Phase 247.
 - Current public read-only pre-release: `v0.1.7-readonly`.
 - Current published write-alpha pre-release: `v0.2.6-writealpha`, published in Phase 241 after the
   cycle-1 release gate, PM authorization, and exact release-commit CI as pre-alpha/experimental and

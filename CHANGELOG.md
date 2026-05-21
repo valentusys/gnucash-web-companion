@@ -7,6 +7,14 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versione
 
 ## [Unreleased]
 
+- Phase 247 — ran synthetic/disposable Docker/Caddy ownership route-family dogfood after the new
+  backend ownership guards. One write-alpha-owned synthetic transaction was created, PATCHed, and
+  DELETEd; separate PATCH/DELETE attempts against one non-owned fixture transaction returned 403
+  without backup growth. Backup/audit/lock/restore evidence was recorded only as redacted
+  counts/statuses, the stack was reset to `GNUCASH_WRITES_ENABLED=false`, disabled
+  validate/create/PATCH/DELETE probes returned 403, and no real/private/only-copy write-safety claim
+  was added.
+
 - Phase 246 — aligned the transaction detail UI with the backend write-alpha ownership boundary. The
   detail API now exposes a safe app-metadata-only `is_write_alpha_owned` hint; the Svelte detail page
   shows experimental delete controls only when write mode is explicitly enabled, an active book is
