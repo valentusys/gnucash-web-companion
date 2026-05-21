@@ -50,6 +50,19 @@ Never use:
 The original book must never be mounted, referenced, opened, backed up, or mutated by write-alpha
 runs.
 
+## Ownership boundary
+
+Enabling write-alpha does not make existing GnuCash history editable:
+
+- CREATE creates app-metadata ownership markers for transactions created by this app's write-alpha
+  flow.
+- PATCH and DELETE require that same write-alpha-owned marker for the same book record.
+- Historical, imported, or manually created GnuCash transactions remain read-only in this app.
+- Non-owned transaction edit/delete hiding in the frontend is supporting UX only; backend guards are
+  authoritative.
+- This boundary does not make real/private, original, production, shared, or only-copy books safe for
+  write-alpha.
+
 ## Exposure boundary
 
 Write-alpha testing is local-only:

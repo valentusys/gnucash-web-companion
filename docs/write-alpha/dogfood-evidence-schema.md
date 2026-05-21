@@ -40,6 +40,7 @@ Dogfood evidence reports should include the following fields.
 | `lock_status` | string | yes | Controlled status such as `not-acquired-no-mutation`, `acquired-and-released`, `rejected-before-lock`, or `blocked`. |
 | `restore_proof_status` | string | yes | Controlled status such as `not-applicable-no-mutation`, `verified`, `blocked`, or `failed`. |
 | `disabled_reset_status` | string | yes | Controlled status such as `verified-default-false`, `not-applicable-default-unchanged`, or `failed`. |
+| `ownership_summary` | object | required for PATCH/DELETE scenarios | Redacted ownership evidence such as `created_transaction_owned=true`, `non_owned_patch_rejected=true`, and `non_owned_delete_rejected=true`. Do not include raw transaction IDs beyond existing safe prefixes. |
 | `notes` | string | optional | Redacted operator note only. Do not include private row details, amounts, names, paths, or payloads. |
 
 ## JSON example
@@ -99,4 +100,7 @@ Use the helper as an additional guard, not as permission to commit private evide
 - Counts are numeric counts only; no raw backup/audit paths or filenames are present.
 - Lock, restore, and disabled-reset statuses use bounded labels.
 - No account names, memos, descriptions, amounts, CSV rows, screenshots, app DBs, books, backups, `.env`, tokens, keys, or certs are committed.
+- For PATCH/DELETE scenarios, `ownership_summary` confirms that the transaction created by
+  write-alpha was the only allowed mutation target and that non-owned historical/manual targets were
+  rejected.
 - For any future write-enabled run, evidence includes reset proof that default-disabled posture was restored.

@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versioned releases begin.
 
 ## [Unreleased]
+- Phase 249 — documented the write-alpha ownership boundary across operator docs. The docs now state
+  that CREATE creates write-alpha-owned transactions, PATCH/DELETE are limited to those
+  write-alpha-owned transactions for the same app metadata book, and historical/imported/manual
+  GnuCash transactions remain read-only in this app. The warnings also repeat that ownership guards
+  do not make real/private, original, production, shared, or only-copy books safe for write-alpha.
+  No release, product-code change, write default change, `APP_ENV=test` gate weakening, or
+  production/safety overclaim was added.
 
 - Phase 248 — extended the read-only write-alpha audit summary endpoint/UI with safe ownership
   evidence: app-metadata write-alpha-created marker count, non-owned mutation rejection count from

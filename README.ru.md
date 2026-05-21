@@ -25,7 +25,7 @@ Desktop остаётся главным редактором.
 
 ## Текущий публичный статус
 
-- Фазы 0–248 завершены.
+- Фазы 0–249 завершены.
 - MVP v0.1 остаётся **read-only by default**.
 - `GNUCASH_WRITES_ENABLED=false` — безопасный дефолт.
 - Controlled-write код, если присутствует, является experimental post-MVP/write-alpha, отключён по
@@ -73,6 +73,9 @@ Desktop остаётся главным редактором.
   Phase 236 evidence schema; Phase 240 подготовил release-candidate docs для
   `v0.2.6-writealpha`; Phase 241 вызвал PM, повторил release gate, дождался green exact
   release/status commit CI и опубликовал `v0.2.6-writealpha` как conservative GitHub pre-release.
+  Cycle 2 затем добавил ownership boundary: CREATE создаёт write-alpha-owned транзакции, PATCH/DELETE
+  ограничены write-alpha-owned транзакциями, а historical/manual GnuCash transactions остаются
+  read-only в этом app. Phase 249 зафиксировал эти operator warnings в write-alpha docs.
   Write-alpha остаётся
   pre-alpha/experimental, disabled by default, `APP_ENV=test` gated при явном включении и не безопасен
   для real/private или only-copy books.

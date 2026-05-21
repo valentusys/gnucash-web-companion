@@ -76,6 +76,24 @@ Run at most one mutation per dogfood step:
 
 Never mix CREATE, PATCH, and DELETE in an unreviewed batch. Never mutate historical/manual transactions from the source book.
 
+## Ownership boundary for PATCH and DELETE
+
+Write-alpha is not a general editor for existing GnuCash history:
+
+- CREATE creates transactions that are recorded as write-alpha-owned in the app metadata DB.
+- PATCH and DELETE are limited to transactions that were created by this app's write-alpha CREATE
+  flow for the same app metadata book record.
+- Historical, imported, or manually created GnuCash transactions remain read-only in this app, even
+  during an explicit local `APP_ENV=test` write-alpha run.
+- The UI may hide edit/delete controls for non-owned transactions, but backend ownership guards are
+  authoritative.
+- This ownership guard does not make copied, real/private, original, production, shared, or only-copy
+  books safe for writes.
+
+For dogfood, PATCH or DELETE only the test transaction created earlier in the same bounded
+write-alpha scenario, and only when the current phase/runbook explicitly allows that operation.
+Never choose an arbitrary historical transaction from the source book to test PATCH or DELETE.
+
 ## Stop conditions
 
 Stop immediately and keep the copied working book isolated if any of these occur:

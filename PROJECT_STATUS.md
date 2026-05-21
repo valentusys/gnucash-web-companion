@@ -9,7 +9,7 @@ Last updated: 2026-05-21
 - Branch: `main`
 - Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release;
   `v0.2.6-writealpha` is the current public experimental write-alpha pre-release. Completed through
-  Phase 248. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
+  Phase 249. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
   release-candidate dogfood, confirmed local/backend/frontend/Docker/public-status/sensitive-file
   gates, waited for exact release/status commit CI, and published only the annotated tag plus GitHub
   pre-release. Phase 232 reconciled public status/changelog wording after publication. Phase 233
@@ -56,13 +56,18 @@ Last updated: 2026-05-21
   write-alpha audit summary endpoint/UI with safe ownership evidence — write-alpha-created marker
   count, non-owned mutation rejection count, and last successful mutation type — while continuing to
   render only bounded counters/action labels, safe transaction ID prefixes, opaque backup refs, and
-  safe errors. Raw payloads, amounts, memos, account names, and paths remain hidden.
+  safe errors. Raw payloads, amounts, memos, account names, and paths remain hidden. Phase 249
+  documented the write-alpha ownership boundary and operator warnings across write-alpha docs:
+  CREATE creates write-alpha-owned transactions, PATCH/DELETE are limited to write-alpha-owned
+  transactions for the same app metadata book, and historical/imported/manual GnuCash transactions
+  remain read-only in this app. The warnings also state that this does not make real/private,
+  original, production, shared, or only-copy books safe for write-alpha.
   `GNUCASH_WRITES_ENABLED=false` remains
   default, `APP_ENV=test` write-alpha gating remains intact, and no production/security/public-internet/broad-compatibility or real/private-book write-safety claim is added.
 
 ## Current baseline
 
-Completed through Phase 248.
+Completed through Phase 249.
 
 Current public release state:
 
@@ -184,6 +189,15 @@ Current public release state:
   safe errors. Viewer/outsider access remains blocked, raw audit payloads/amounts/memos/account
   names/paths are not rendered, and no write default change, `APP_ENV=test` gate weakening,
   release/tag, real/private-book use, or real/private/only-copy write-safety claim was added.
+- Phase 249 documented the write-alpha ownership boundary and operator warnings in
+  `docs/write-alpha/transaction-ownership.md`, `docs/write-alpha/copied-book-dogfood-runbook.md`,
+  `docs/write-alpha/environment.md`, and the redacted dogfood evidence schema. The docs now state
+  that CREATE creates app-metadata write-alpha-owned transactions, PATCH/DELETE are limited to those
+  write-alpha-owned transactions for the same app metadata book, and historical/imported/manual
+  GnuCash transactions remain read-only in this app. The warnings also state that ownership guards do
+  not make real/private, original, production, shared, or only-copy books safe for write-alpha. No
+  release, product-code change, write default change, `APP_ENV=test` gate weakening, or
+  production/safety overclaim was added.
 - `v0.2.4-writealpha` remains available as the previous public experimental write-alpha GitHub
   pre-release after Phase 211 publication. It is pre-alpha, disabled by default, `APP_ENV=test`
   gated when explicitly enabled, based on synthetic/disposable evidence only for that cycle, not
