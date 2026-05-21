@@ -1184,7 +1184,6 @@ class TestWriteAlphaCreateRouteDisposableFixture:
                 return fixed_now if tz is not None else fixed_now.replace(tzinfo=None)
 
         monkeypatch.setattr(backup_mod, "datetime", FixedDateTime)
-        original_tx = _read_written_transactions(disposable_fixture_book)[0]
 
         create_response = client.post(
             f"/books/{disposable_sample_book}/transactions",
@@ -1193,12 +1192,13 @@ class TestWriteAlphaCreateRouteDisposableFixture:
         )
         assert create_response.status_code == 201
         created_id = create_response.json()["transaction_id"]
+        created_tx = next(tx for tx in _read_written_transactions(disposable_fixture_book) if tx["guid"] == created_id)
 
         patch_response = client.patch(
-            f"/books/{disposable_sample_book}/transactions/{original_tx['guid']}",
+            f"/books/{disposable_sample_book}/transactions/{created_id}",
             json={
-                "description": "Phase 223 route-family patch",
-                "split_memos": {original_tx["splits"][0]["guid"]: "phase 223 patched memo"},
+                "description": "Phase 244 owned route-family patch",
+                "split_memos": {created_tx["splits"][0]["guid"]: "phase 244 owned patched memo"},
             },
             headers=auth_headers,
         )
@@ -1537,7 +1537,7 @@ class TestPatchTransaction:
         )
         # Should not be 405 for missing endpoint. Missing fixture book may produce
         # controlled 404/422 depending on whether book or tx validation fails first.
-        assert response.status_code in (200, 404, 422)
+        assert response.status_code in (200, 403, 404, 422)
 
     def test_patch_requires_auth(self, client, sample_book):
         payload = {"description": "Updated"}
@@ -1564,7 +1564,7 @@ class TestPatchTransaction:
             json={},
             headers=auth_headers,
         )
-        assert response.status_code in (404, 422)
+        assert response.status_code in (403, 404, 422)
 
     def test_patch_rejects_split_amount_edit(self, client, auth_headers, sample_book):
         """PATCH must not allow editing split amounts or accounts."""
@@ -1595,6 +1595,20 @@ class TestWriteAlphaPatchRouteDisposableFixture:
     def _create_payload(self, description: str):
         return TestWriteAlphaCreateRouteDisposableFixture()._fixture_create_payload(description)
 
+    def _mark_owned(self, session_factory, book_id: int, transaction_id: str):
+        with session_factory() as session:
+            admin = session.query(User).filter(User.username == "admin").one()
+            marker = WriteAlphaTransactionOwnership()
+            marker.book_id = book_id
+            marker.transaction_id = transaction_id
+            marker.created_by_user_id = admin.id
+            marker.created_by_write_alpha = True
+            marker.created_at = datetime(2026, 5, 20, tzinfo=timezone.utc)
+            marker.last_mutated_at = datetime(2026, 5, 20, tzinfo=timezone.utc)
+            session.add(marker)
+            session.commit()
+            return marker.id
+
     def test_enabled_patch_route_updates_disposable_fixture_with_backup_audit_and_lock(
         self,
         client,
@@ -1605,6 +1619,7 @@ class TestWriteAlphaPatchRouteDisposableFixture:
         session_factory,
     ):
         tx_before = self._first_fixture_transaction(disposable_fixture_book)
+        ownership_id = self._mark_owned(session_factory, disposable_sample_book, tx_before["guid"])
         split_guid = tx_before["splits"][0]["guid"]
 
         response = client.patch(
@@ -1651,8 +1666,52 @@ class TestWriteAlphaPatchRouteDisposableFixture:
             assert payload["transaction_id"] == tx_before["guid"]
             assert payload["backup_path"] == str(backup_path)
             assert set(payload["request_summary"]["fields_updated"]) == {"description", "date", "split_memos"}
+            ownership = session.get(WriteAlphaTransactionOwnership, ownership_id)
+            assert ownership is not None
+            assert ownership.last_mutated_at > datetime(2026, 5, 20)
 
-    def test_patch_missing_transaction_returns_404_without_backup_or_lock_leak(
+    def test_non_owned_fixture_transaction_patch_is_rejected_before_write_service(
+        self,
+        client,
+        auth_headers,
+        disposable_sample_book,
+        disposable_fixture_book,
+        disposable_write_lock,
+        session_factory,
+        monkeypatch,
+    ):
+        calls = []
+
+        def forbidden_write_service(*args, **kwargs):
+            calls.append((args, kwargs))
+            raise AssertionError("write service must not be constructed for non-owned PATCH")
+
+        monkeypatch.setattr("app.routers.transactions._write_service_for", forbidden_write_service)
+        tx_before = self._first_fixture_transaction(disposable_fixture_book)
+        txs_before = _read_written_transactions(disposable_fixture_book)
+
+        response = client.patch(
+            f"/books/{disposable_sample_book}/transactions/{tx_before['guid']}",
+            json={"description": "should not write historical fixture transaction"},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 403
+        assert "created by write-alpha" in response.json()["detail"]
+        assert "Historical or manually imported" in response.json()["detail"]
+        assert calls == []
+        assert _read_written_transactions(disposable_fixture_book) == txs_before
+        backups_root = disposable_fixture_book.parent.parent / "backups"
+        assert not backups_root.exists()
+        lock_key = str(disposable_fixture_book)
+        assert disposable_write_lock.acquire(lock_key) is True
+        disposable_write_lock.release(lock_key)
+
+        with session_factory() as session:
+            logs = session.query(AuditLog).filter_by(action="transaction.patch").all()
+            assert logs == []
+
+    def test_owned_missing_transaction_returns_404_without_backup_or_lock_leak(
         self,
         client,
         auth_headers,
@@ -1661,11 +1720,13 @@ class TestWriteAlphaPatchRouteDisposableFixture:
         disposable_write_lock,
         session_factory,
     ):
+        missing_transaction_id = "missing-write-alpha-tx"
+        self._mark_owned(session_factory, disposable_sample_book, missing_transaction_id)
         txs_before = _read_written_transactions(disposable_fixture_book)
 
         response = client.patch(
-            f"/books/{disposable_sample_book}/transactions/missing-write-alpha-tx",
-            json={"description": "should not write"},
+            f"/books/{disposable_sample_book}/transactions/{missing_transaction_id}",
+            json={"description": "should not write missing owned marker"},
             headers=auth_headers,
         )
 
@@ -1683,7 +1744,55 @@ class TestWriteAlphaPatchRouteDisposableFixture:
             payload = json.loads(logs[-1].payload_json)
             assert payload["result"] == "failed"
             assert payload["backup_path"] is None
-            assert "missing-write-alpha-tx" in payload["error"]
+            assert missing_transaction_id in payload["error"]
+
+    def test_write_alpha_created_transaction_patch_succeeds(
+        self,
+        client,
+        auth_headers,
+        disposable_sample_book,
+        disposable_fixture_book,
+        disposable_write_lock,
+        session_factory,
+    ):
+        create_response = client.post(
+            f"/books/{disposable_sample_book}/transactions",
+            json=self._create_payload("Phase 244 owned patch source"),
+            headers=auth_headers,
+        )
+        assert create_response.status_code == 201
+        created_transaction_id = create_response.json()["transaction_id"]
+
+        txs_after_create = _read_written_transactions(disposable_fixture_book)
+        created_before_patch = next(tx for tx in txs_after_create if tx["guid"] == created_transaction_id)
+        split_guid = created_before_patch["splits"][0]["guid"]
+
+        patch_response = client.patch(
+            f"/books/{disposable_sample_book}/transactions/{created_transaction_id}",
+            json={"description": "Phase 244 owned patch succeeded", "split_memos": {split_guid: "owned patch memo"}},
+            headers=auth_headers,
+        )
+
+        assert patch_response.status_code == 200
+        data = patch_response.json()
+        assert data["transaction_id"] == created_transaction_id
+        assert Path(data["backup_path"]).exists()
+        txs_after_patch = _read_written_transactions(disposable_fixture_book)
+        patched = next(tx for tx in txs_after_patch if tx["guid"] == created_transaction_id)
+        assert patched["description"] == "Phase 244 owned patch succeeded"
+        assert any(split["memo"] == "owned patch memo" for split in patched["splits"])
+        lock_key = str(disposable_fixture_book)
+        assert disposable_write_lock.acquire(lock_key) is True
+        disposable_write_lock.release(lock_key)
+
+        with session_factory() as session:
+            ownership = (
+                session.query(WriteAlphaTransactionOwnership)
+                .filter_by(book_id=disposable_sample_book, transaction_id=created_transaction_id)
+                .one()
+            )
+            assert ownership.created_by_write_alpha is True
+            assert ownership.last_mutated_at >= ownership.created_at
 
     def test_patch_validation_error_causes_no_mutation_no_backup_and_failed_audit(
         self,
@@ -1695,6 +1804,7 @@ class TestWriteAlphaPatchRouteDisposableFixture:
         session_factory,
     ):
         tx_before = self._first_fixture_transaction(disposable_fixture_book)
+        self._mark_owned(session_factory, disposable_sample_book, tx_before["guid"])
         txs_before = _read_written_transactions(disposable_fixture_book)
 
         response = client.patch(
@@ -1735,6 +1845,7 @@ class TestWriteAlphaPatchRouteDisposableFixture:
 
         monkeypatch.setattr(GnuCashWriteService, "_do_patch_transaction", fail_after_backup)
         tx_before = self._first_fixture_transaction(disposable_fixture_book)
+        self._mark_owned(session_factory, disposable_sample_book, tx_before["guid"])
         txs_before = _read_written_transactions(disposable_fixture_book)
 
         response = client.patch(
@@ -1772,6 +1883,7 @@ class TestWriteAlphaPatchRouteDisposableFixture:
         monkeypatch,
     ):
         tx_before = self._first_fixture_transaction(disposable_fixture_book)
+        self._mark_owned(session_factory, disposable_sample_book, tx_before["guid"])
         txs_before = _read_written_transactions(disposable_fixture_book)
         write_open_calls = []
 
@@ -1834,6 +1946,7 @@ class TestWriteAlphaPatchRouteDisposableFixture:
 
         monkeypatch.setattr(GnuCashWriteService, "_do_patch_transaction", slow_do_patch)
         tx_before = self._first_fixture_transaction(disposable_fixture_book)
+        self._mark_owned(session_factory, disposable_sample_book, tx_before["guid"])
         txs_before = _read_written_transactions(disposable_fixture_book)
 
         def patch_tx():

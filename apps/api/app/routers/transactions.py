@@ -550,6 +550,43 @@ def _record_write_alpha_transaction_ownership(
     return ownership
 
 
+def _require_write_alpha_transaction_ownership(
+    session: Session,
+    *,
+    book_id: int,
+    transaction_id: str,
+) -> WriteAlphaTransactionOwnership:
+    """Require app metadata ownership before mutating an existing transaction."""
+    ownership = (
+        session.query(WriteAlphaTransactionOwnership)
+        .filter(
+            WriteAlphaTransactionOwnership.book_id == book_id,
+            WriteAlphaTransactionOwnership.transaction_id == transaction_id,
+            WriteAlphaTransactionOwnership.created_by_write_alpha == True,  # noqa: E712
+        )
+        .one_or_none()
+    )
+    if ownership is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                "Write-alpha PATCH is allowed only for transactions created by write-alpha "
+                "for this book. Historical or manually imported GnuCash transactions remain read-only."
+            ),
+        )
+    return ownership
+
+
+def _mark_write_alpha_transaction_mutated(
+    session: Session,
+    ownership: WriteAlphaTransactionOwnership,
+) -> None:
+    """Refresh app-metadata-only mutation timestamp after an allowed write-alpha mutation."""
+    ownership.last_mutated_at = datetime.now(timezone.utc)
+    session.add(ownership)
+    session.commit()
+
+
 def _write_error_detail(exc: GnuCashWriteError) -> str:
     """Return a write-alpha error string safe for API responses and audit error fields.
 
@@ -955,6 +992,11 @@ async def patch_book_transaction(
     book = _resolve_viewable_book(book_id, user, session)
     _require_book_edit_access(book, user, session)
     _ensure_write_alpha_test_scope(settings)
+    ownership = _require_write_alpha_transaction_ownership(
+        session,
+        book_id=book.id,
+        transaction_id=transaction_id,
+    )
 
     service = _write_service_for(book)
     fields_updated = {
@@ -1021,6 +1063,7 @@ async def patch_book_transaction(
         }
     )
     _update_audit_log(session, log, audit_payload)
+    _mark_write_alpha_transaction_mutated(session, ownership)
     result.audit_log_id = log.id
 
     return result

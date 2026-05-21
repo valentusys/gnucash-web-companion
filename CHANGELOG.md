@@ -7,6 +7,16 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versione
 
 ## [Unreleased]
 
+- Phase 244 — added the backend write-alpha PATCH ownership guard. Enabled PATCH now checks the app
+  metadata `write_alpha_transaction_ownership` row for the same book and transaction before
+  constructing the GnuCash write service; non-owned historical/imported/manual transactions return
+  403 without backup, lock, audit row, or GnuCash mutation. Write-alpha-created synthetic
+  transactions still pass the existing description/date/split-memo-only PATCH path and refresh
+  `last_mutated_at`. Viewer/outsider access and default-disabled writes remain blocked before
+  ownership checks. No amount/account mutation expansion, DELETE ownership guard, release, write
+  default change, `APP_ENV=test` gate weakening, real/private-book use, or real/private/only-copy
+  write-safety claim was added.
+
 - Phase 243 — added an app metadata-only write-alpha transaction ownership marker for successful
   CREATE requests. The model links `book_id`, `transaction_id`, `created_by_user_id`,
   `created_by_write_alpha`, `created_at`, and `last_mutated_at` so later PATCH/DELETE phases can

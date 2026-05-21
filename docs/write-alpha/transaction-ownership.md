@@ -1,7 +1,7 @@
 # Write-alpha transaction ownership model
 
 Date: 2026-05-21
-Status: Phase 243 implementation baseline
+Status: Phase 244 PATCH guard baseline
 
 ## Purpose
 
@@ -20,7 +20,7 @@ The app metadata database now contains `write_alpha_transaction_ownership` rows 
 | `created_by_user_id` | App metadata user id that requested CREATE, nullable if the user is later removed. |
 | `created_by_write_alpha` | Boolean marker; `true` for rows created by the write-alpha CREATE route. |
 | `created_at` | App metadata timestamp when ownership was recorded. |
-| `last_mutated_at` | App metadata timestamp for the latest write-alpha mutation known to the app. Phase 243 initializes it to `created_at`; later PATCH/DELETE guard phases can update it. |
+| `last_mutated_at` | App metadata timestamp for the latest write-alpha mutation known to the app. Phase 243 initializes it to `created_at`; Phase 244 refreshes it after allowed PATCH mutations. |
 
 `book_id + transaction_id` is unique so one app metadata DB has at most one ownership marker for a given transaction in a given book.
 
@@ -43,12 +43,23 @@ Failed validation, lock, or GnuCash write errors do not create ownership markers
 - `GNUCASH_WRITES_ENABLED=false` remains the default and the backend `APP_ENV=test` gate remains required for explicit write-alpha runs.
 - This does not make real/private or only-copy books safe for writes; evidence remains synthetic/disposable or copied-test-book only.
 
+## PATCH guard behavior
+
+Phase 244 uses this table as the authoritative backend guard source for PATCH:
+
+- PATCH allows only transactions with an ownership row for the same `book_id` and `transaction_id`
+  where `created_by_write_alpha=true`.
+- The check runs after the existing write-enabled, edit-access, and `APP_ENV=test` gates, but before
+  constructing `GnuCashWriteService`.
+- Rejected non-owned PATCH attempts return 403 before backup, lock, audit row, or GnuCash mutation.
+- Allowed PATCH remains limited to description, date, and split memo metadata; amount and account
+  changes remain out of scope.
+- Successful allowed PATCH refreshes `last_mutated_at` in app metadata only.
+
 ## Later guard use
 
-Phase 244/245 can use this table as the authoritative backend guard source:
-
-- PATCH should allow only transactions with an ownership row for the same `book_id` and `transaction_id` where `created_by_write_alpha=true`.
-- DELETE should use the same check before destructive mutation.
-- Rejected non-owned PATCH/DELETE attempts should fail before GnuCash mutation and should not imply historical/manual transactions are editable.
+Phase 245 should use the same ownership model before destructive DELETE mutation. Rejected non-owned
+DELETE attempts should fail before GnuCash mutation and should not imply historical/manual
+transactions are editable.
 
 Frontend hiding remains supporting UX only; backend ownership checks are authoritative.
