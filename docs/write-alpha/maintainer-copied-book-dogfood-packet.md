@@ -48,10 +48,11 @@ Use this checklist in order.
 4. Optional one CREATE only.
 5. Optional PATCH later, only after review.
 6. DELETE prohibited unless separately authorized for a write-alpha-created test transaction.
-7. Evidence redaction.
-8. Restore verification.
-9. Cleanup.
-10. Reset to default false.
+7. Compatibility check after mutation.
+8. Evidence redaction.
+9. Restore verification.
+10. Cleanup.
+11. Reset to default false.
 
 ## 1. Preflight
 
@@ -174,7 +175,27 @@ fresh backup, audit/lock evidence, restore proof, and reset proof.
 
 If there is no explicit DELETE authorization, do not run DELETE.
 
-## 7. Evidence redaction
+## 7. Compatibility check after mutation
+
+After CREATE, and after any later authorized PATCH/DELETE, run the Phase 256 compatibility harness before restore verification:
+
+```bash
+python3 scripts/write_alpha_compatibility_check.py \
+  <copied-book-path> \
+  --output <redacted-compatibility-evidence-json>
+```
+
+Expected result semantics:
+
+- `pass` means piecash read passed and already-available `gnucash-cli` report probing passed.
+- `blocked` means piecash read passed but Desktop/CLI tooling was unavailable; Desktop compatibility evidence remains blocked.
+- `fail` means piecash read failed, or available Desktop/CLI tooling failed or timed out.
+
+This is a best-effort local check only. It does not prove broad GnuCash Desktop/version compatibility and does not make real/private, production, original, shared, or only-copy books safe for write-alpha.
+
+The compatibility evidence must be redacted: no raw paths, account names, transaction descriptions, split memos, amounts, Desktop stdout/stderr, screenshots, CSV rows, or payloads.
+
+## 8. Evidence redaction
 
 Evidence may include only bounded, redacted facts:
 
@@ -206,7 +227,7 @@ python3 scripts/redact_dogfood_evidence.py <redacted-evidence-json>
 Treat helper success as an extra guard, not as permission to commit private data. Human review still
 must confirm the evidence contains placeholders only.
 
-## 8. Restore verification
+## 9. Restore verification
 
 After CREATE, and after any later authorized PATCH/DELETE, verify restore before treating the run as
 usable evidence.
@@ -222,7 +243,7 @@ Restore steps:
 
 Never restore over or otherwise modify the original book.
 
-## 9. Stop conditions
+## 10. Stop conditions
 
 Stop immediately if any of these happen:
 
@@ -241,7 +262,7 @@ Stop immediately if any of these happen:
 On stop, do not try a second mutation. Preserve local-only evidence for operator review, then restore
 and reset before any later attempt.
 
-## 10. Cleanup
+## 11. Cleanup
 
 After dry-run or mutation run:
 
@@ -256,7 +277,7 @@ If runtime files are root-owned, stop the runtime first and use the repository c
 container-side cleanup only for ignored runtime paths. Do not use cleanup as permission to touch the
 original book.
 
-## 11. Reset to default false
+## 12. Reset to default false
 
 Every run ends by proving the default disabled posture.
 
@@ -291,6 +312,8 @@ mutation performed: no|create-one
 backup_count: <count>
 audit_row_count: <count>
 lock_status: <bounded-status>
+compatibility_check_status: pass|blocked|fail|not-run
+compatibility_scope: best-effort-one-run-no-broad-claim
 restore_proof_status: <bounded-status>
 disabled_reset_status: verified-default-false|failed
 private data in committed evidence: no

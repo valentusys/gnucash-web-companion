@@ -47,7 +47,7 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–255 are complete.
+- Phase 0–256 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by
   default.
@@ -118,7 +118,12 @@ This project is not a fit if you need:
   prohibits DELETE unless separately authorized for a write-alpha-created test transaction, and
   Phase 254 added `scripts/write_alpha_copied_book_dogfood.py`, a local-only explicit-step wrapper
   with separate `--dry-run` and `--create-one` modes, required confirmations, preflight,
-  pre-step backup, redacted evidence, unsafe-path rejection, and default-disabled reset proof.
+  pre-step backup, redacted evidence, unsafe-path rejection, and default-disabled reset proof. Phase
+  255 strengthened the transaction create/write-alpha UI warnings for create-only copied-book
+  dogfood, and Phase 256 added `scripts/write_alpha_compatibility_check.py`, a redacted best-effort
+  post-mutation compatibility harness that opens copied/disposable targets read-only with piecash,
+  optionally runs already-available `gnucash-cli` report probing, records missing Desktop/CLI tooling
+  as a blocker, and does not claim broad Desktop/version compatibility.
   CREATE creates write-alpha-owned transactions; PATCH/DELETE are limited to write-alpha-owned
   transactions for the same app metadata book; historical/manual GnuCash transactions remain
   read-only in this app.

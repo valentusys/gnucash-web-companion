@@ -7,6 +7,15 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versione
 
 ## [Unreleased]
 
+- Phase 256 — added `scripts/write_alpha_compatibility_check.py`, a local-only best-effort
+  compatibility harness for post-mutation copied/disposable dogfood. It opens the target read-only
+  with piecash, optionally runs already-available `gnucash-cli` report probing, records clear
+  `pass`/`blocked`/`fail` redacted JSON evidence, and explicitly keeps
+  `broad_compatibility_claimed=false`. Missing Desktop/CLI tooling is recorded as a blocker, not as
+  compatibility evidence. No tool installation, mutation, release/tag, write-default change,
+  `APP_ENV=test` gate weakening, raw path/account/memo/amount evidence, broad Desktop/version claim,
+  or real/private/only-copy write-safety claim was added.
+
 - Phase 255 — strengthened transaction create/write-alpha UI warnings for future maintainer
   copied-book create-only dogfood. English/Russian release-critical copy now says the write form is
   only for outside-git copied/restorable test books with originals untouched, at most one CREATE test
