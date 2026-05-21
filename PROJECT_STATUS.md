@@ -9,7 +9,7 @@ Last updated: 2026-05-21
 - Branch: `main`
 - Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release;
   `v0.2.7-writealpha` is the current public experimental write-alpha pre-release. Completed through
-  Phase 251. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
+  Phase 253. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
   release-candidate dogfood, confirmed local/backend/frontend/Docker/public-status/sensitive-file
   gates, waited for exact release/status commit CI, and published only the annotated tag plus GitHub
   pre-release. Phase 232 reconciled public status/changelog wording after publication. Phase 233
@@ -66,13 +66,19 @@ Last updated: 2026-05-21
   gates are satisfied: backend ownership guards are implemented, synthetic route-family dogfood
   passed, and operator docs are synchronized. Phase 251 called PM, received `AUTHORIZE_RELEASE`,
   reran the final local release gate, waited for exact release/status commit CI, and published
-  `v0.2.7-writealpha` as a conservative GitHub pre-release.
+  `v0.2.7-writealpha` as a conservative GitHub pre-release. Phase 252 passed the Cycle 3 analyst gate
+  for maintainer copied-book dogfood packaging. Phase 253 added a maintainer copied-book dogfood
+  packet that defaults to dry-run first, forbids original and only-copy books, requires outside-git
+  copied/restorable targets plus independent backup, restricts the optional mutation path to one
+  CREATE first, defers PATCH to later explicit review, prohibits DELETE unless separately authorized
+  for a write-alpha-created test transaction, requires redacted evidence and restore proof, and ends
+  with cleanup plus reset to `GNUCASH_WRITES_ENABLED=false`.
   `GNUCASH_WRITES_ENABLED=false` remains
   default, `APP_ENV=test` write-alpha gating remains intact, and no production/security/public-internet/broad-compatibility or real/private-book write-safety claim is added.
 
 ## Current baseline
 
-Completed through Phase 251.
+Completed through Phase 253.
 
 Current public release state:
 
@@ -224,6 +230,19 @@ Current public release state:
   Publication created only an annotated tag and GitHub pre-release; no package, image, production
   deployment, write default change, `APP_ENV=test` gate weakening, real/private-book write-safety
   claim, production/security claim, or private data artifact was added.
+- Phase 252 passed the Cycle 3 analyst gate in `docs/audits/phase-252-cycle-3-gate.md`. The audit
+  allowed maintainer copied-book dogfood package work to start and did not authorize real/private,
+  original, only-copy book writes, release publication, write default changes, `APP_ENV=test` gate
+  weakening, or production/security/write-safety claims.
+- Phase 253 added `docs/write-alpha/maintainer-copied-book-dogfood-packet.md`, a complete
+  owner/maintainer procedure for future copied-book dogfood. The packet defaults to dry-run first,
+  forbids original and only-copy books, requires outside-git copied/restorable targets with
+  independent backups, limits optional mutation to one CREATE first, defers PATCH to later explicit
+  review, prohibits DELETE unless separately authorized for a write-alpha-created test transaction,
+  requires redacted evidence and restore proof, and ends with cleanup plus reset to
+  `GNUCASH_WRITES_ENABLED=false`. No dogfood run, mutation, release/tag, default-write change,
+  `APP_ENV=test` gate weakening, private-book use, or real/private/only-copy write-safety claim was
+  added.
 - `v0.2.4-writealpha` remains available as the previous public experimental write-alpha GitHub
   pre-release after Phase 211 publication. It is pre-alpha, disabled by default, `APP_ENV=test`
   gated when explicitly enabled, based on synthetic/disposable evidence only for that cycle, not

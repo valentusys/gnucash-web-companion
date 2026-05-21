@@ -7,6 +7,15 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versione
 
 ## [Unreleased]
 
+- Phase 253 — added `docs/write-alpha/maintainer-copied-book-dogfood-packet.md`, a complete
+  owner/maintainer packet for future copied-book dogfood. It defaults to dry-run first, forbids
+  original and only-copy books, requires outside-git copied/restorable targets with independent
+  backups, limits optional mutation to one CREATE first, defers PATCH to later explicit review,
+  prohibits DELETE unless separately authorized for a write-alpha-created test transaction, requires
+  redacted evidence and restore proof, and ends with cleanup plus reset to `GNUCASH_WRITES_ENABLED=false`.
+  No dogfood run, mutation, release/tag, default-write change, `APP_ENV=test` gate weakening,
+  private-book use, or real/private/only-copy write-safety claim was added.
+
 ## [v0.2.7-writealpha] - 2026-05-21
 
 - Phase 251 — called PM for the Cycle 2 release/no-release gate, received `AUTHORIZE_RELEASE`, reran

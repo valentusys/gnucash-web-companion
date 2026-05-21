@@ -5,7 +5,7 @@ This roadmap is intentionally conservative. Safety and trust come before feature
 ## Current release posture
 
 - Status: pre-alpha / MVP in progress.
-- Completed through Phase 251.
+- Completed through Phase 253.
 - Current public read-only pre-release: `v0.1.7-readonly`.
 - Current published write-alpha pre-release: `v0.2.7-writealpha`, published in Phase 251 after the
   cycle-2 release gate, PM authorization, and exact release-commit CI as pre-alpha/experimental and
@@ -38,7 +38,12 @@ This roadmap is intentionally conservative. Safety and trust come before feature
   counters in the read-only audit summary, Phase 249 documented the operator-facing ownership
   boundary, Phase 250 prepared `v0.2.7-writealpha` release-candidate notes/checklist/final-gate,
   and Phase 251 published `v0.2.7-writealpha` as a conservative GitHub pre-release after PM
-  authorization, full release gate, and exact commit CI. CREATE creates write-alpha-owned
+  authorization, full release gate, and exact commit CI. Phase 252 passed the Cycle 3 analyst gate,
+  and Phase 253 added a maintainer copied-book dogfood packet with dry-run first, original/only-copy
+  books forbidden, copied/restorable outside-git targets plus independent backup required, optional
+  one CREATE first, PATCH deferred to later explicit review, DELETE prohibited unless separately
+  authorized for a write-alpha-created test transaction, redacted evidence, restore proof, cleanup,
+  and reset to `GNUCASH_WRITES_ENABLED=false`. CREATE creates write-alpha-owned
   transactions; PATCH/DELETE are limited to
   write-alpha-owned transactions; historical/imported/manual transactions remain read-only in this
   app. Non-owned historical/imported/manual transactions are rejected before write-service
@@ -115,6 +120,10 @@ This roadmap is intentionally conservative. Safety and trust come before feature
 - Phase 251 — called PM, received `AUTHORIZE_RELEASE`, reran the final local release gate, waited for
   exact release/status commit CI, and published `v0.2.7-writealpha` as a conservative GitHub
   pre-release.
+- Phase 252 — passed the Cycle 3 analyst gate for maintainer copied-book dogfood package work.
+- Phase 253 — added `docs/write-alpha/maintainer-copied-book-dogfood-packet.md`, defaulting to
+  dry-run first and requiring copied/restorable outside-git targets, independent backup, redacted
+  evidence, restore proof, cleanup, and reset to default false; no mutation or release was run.
 
 ## Completed phase groups
 
