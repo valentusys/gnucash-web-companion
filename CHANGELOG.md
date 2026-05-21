@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versioned releases begin.
 
 ## [Unreleased]
+
+## [v0.2.7-writealpha] - 2026-05-21
+
+- Phase 251 — called PM for the Cycle 2 release/no-release gate, received `AUTHORIZE_RELEASE`, reran
+  the final local release gate, waited for exact release/status commit CI, and published
+  `v0.2.7-writealpha` as a conservative GitHub pre-release. Publication created only an annotated
+  tag and GitHub pre-release; no package, image, production deployment, write default change,
+  `APP_ENV=test` gate weakening, production/security/public-internet/broad-compatibility claim, or
+  real/private/only-copy write-safety claim was added.
+
 - Phase 250 — prepared `v0.2.7-writealpha` release-candidate notes, checklist, and final-gate draft
   because Cycle 2 produced meaningful ownership-boundary safety work: app metadata-only ownership
   markers, backend PATCH/DELETE ownership guards, aligned frontend controls, synthetic/disposable

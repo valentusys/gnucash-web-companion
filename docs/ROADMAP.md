@@ -5,10 +5,10 @@ This roadmap is intentionally conservative. Safety and trust come before feature
 ## Current release posture
 
 - Status: pre-alpha / MVP in progress.
-- Completed through Phase 250.
+- Completed through Phase 251.
 - Current public read-only pre-release: `v0.1.7-readonly`.
-- Current published write-alpha pre-release: `v0.2.6-writealpha`, published in Phase 241 after the
-  cycle-1 release gate, PM authorization, and exact release-commit CI as pre-alpha/experimental and
+- Current published write-alpha pre-release: `v0.2.7-writealpha`, published in Phase 251 after the
+  cycle-2 release gate, PM authorization, and exact release-commit CI as pre-alpha/experimental and
   disabled by default.
 - MVP v0.1 remains read-only by default.
 - `GNUCASH_WRITES_ENABLED=false` remains the default.
@@ -17,7 +17,7 @@ This roadmap is intentionally conservative. Safety and trust come before feature
   production books.
 - Current compatibility evidence is synthetic/disposable fixture evidence only; broad GnuCash
   Desktop version support is not claimed.
-- Latest public release baseline: Phase 241 published `v0.2.6-writealpha` after PM authorization,
+- Latest public release baseline: Phase 251 published `v0.2.7-writealpha` after PM authorization,
   local backend/frontend/Docker checks, exact release-commit CI, rendered `GNUCASH_WRITES_ENABLED=false`,
   public status guard, and sensitive tracked-file hygiene. Phase 232 reconciled public
   status/changelog wording after publication, Phase 233 improved raw markdown readability for
@@ -35,9 +35,10 @@ This roadmap is intentionally conservative. Safety and trust come before feature
   CREATE, Phase 244 added a backend PATCH ownership guard, Phase 245 added a backend DELETE
   ownership guard, Phase 246 aligned the transaction detail UI with backend ownership state, Phase
   247 recorded synthetic/disposable ownership route-family dogfood, Phase 248 exposed safe ownership
-  counters in the read-only audit summary, and Phase 249 documented the operator-facing ownership
-  boundary, and Phase 250 prepared `v0.2.7-writealpha` release-candidate notes/checklist/final-gate
-  only for a later Phase 251 release/no-release decision. CREATE creates write-alpha-owned
+  counters in the read-only audit summary, Phase 249 documented the operator-facing ownership
+  boundary, Phase 250 prepared `v0.2.7-writealpha` release-candidate notes/checklist/final-gate,
+  and Phase 251 published `v0.2.7-writealpha` as a conservative GitHub pre-release after PM
+  authorization, full release gate, and exact commit CI. CREATE creates write-alpha-owned
   transactions; PATCH/DELETE are limited to
   write-alpha-owned transactions; historical/imported/manual transactions remain read-only in this
   app. Non-owned historical/imported/manual transactions are rejected before write-service
@@ -111,6 +112,9 @@ This roadmap is intentionally conservative. Safety and trust come before feature
   confirming backend ownership guards, synthetic/disposable route-family dogfood, and synchronized
   ownership docs. No tag, GitHub release, PM authorization, write default change, `APP_ENV=test`
   gate weakening, or real/private-book safety claim was added.
+- Phase 251 — called PM, received `AUTHORIZE_RELEASE`, reran the final local release gate, waited for
+  exact release/status commit CI, and published `v0.2.7-writealpha` as a conservative GitHub
+  pre-release.
 
 ## Completed phase groups
 

@@ -8,8 +8,8 @@ Last updated: 2026-05-21
 - Local path: `/home/val/gnucash-web-companion`
 - Branch: `main`
 - Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release;
-  `v0.2.6-writealpha` is the current public experimental write-alpha pre-release. Completed through
-  Phase 250. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
+  `v0.2.7-writealpha` is the current public experimental write-alpha pre-release. Completed through
+  Phase 251. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
   release-candidate dogfood, confirmed local/backend/frontend/Docker/public-status/sensitive-file
   gates, waited for exact release/status commit CI, and published only the annotated tag plus GitHub
   pre-release. Phase 232 reconciled public status/changelog wording after publication. Phase 233
@@ -64,26 +64,30 @@ Last updated: 2026-05-21
   original, production, shared, or only-copy books safe for write-alpha. Phase 250 prepared
   `v0.2.7-writealpha` release-candidate notes, checklist, and final-gate draft because the Cycle 2
   gates are satisfied: backend ownership guards are implemented, synthetic route-family dogfood
-  passed, and operator docs are synchronized. The candidate is release-candidate only; no PM
-  authorization, tag, GitHub release, package/image, write default change, `APP_ENV=test` gate
-  weakening, production/security/public-internet/broad-compatibility claim, or real/private-book
-  write-safety claim was added.
+  passed, and operator docs are synchronized. Phase 251 called PM, received `AUTHORIZE_RELEASE`,
+  reran the final local release gate, waited for exact release/status commit CI, and published
+  `v0.2.7-writealpha` as a conservative GitHub pre-release.
   `GNUCASH_WRITES_ENABLED=false` remains
   default, `APP_ENV=test` write-alpha gating remains intact, and no production/security/public-internet/broad-compatibility or real/private-book write-safety claim is added.
 
 ## Current baseline
 
-Completed through Phase 250.
+Completed through Phase 251.
 
 Current public release state:
 
 - `v0.1.7-readonly` is the current public read-only pre-alpha GitHub pre-release after Phase 171
   publication, prepared/published only after Val authorization and final release-gate checks.
-- `v0.2.6-writealpha` is the current public experimental write-alpha GitHub pre-release after Phase
-  241 publication. It is pre-alpha, disabled by default, `APP_ENV=test` gated when explicitly
-  enabled, based on synthetic/disposable no-mutation Cycle 1 evidence and operator-safety tooling
-  only, not production-ready, not stable, not security-audited, not public-internet safe, and not
-  safe for real/private or only-copy books.
+- `v0.2.7-writealpha` is the current public experimental write-alpha GitHub pre-release after Phase
+  251 publication. It is pre-alpha, disabled by default, `APP_ENV=test` gated when explicitly
+  enabled, based on synthetic/disposable Cycle 2 ownership-guard evidence only, not production-ready,
+  not stable, not security-audited, not public-internet safe, and not safe for real/private or
+  only-copy books.
+- `v0.2.6-writealpha` remains available as the previous public experimental write-alpha GitHub
+  pre-release after Phase 241 publication. It is pre-alpha, disabled by default, `APP_ENV=test` gated
+  when explicitly enabled, based on synthetic/disposable no-mutation Cycle 1 evidence and
+  operator-safety tooling only, not production-ready, not stable, not security-audited, not
+  public-internet safe, and not safe for real/private or only-copy books.
 - `v0.2.5-writealpha` remains available as the previous public experimental write-alpha GitHub
   pre-release after Phase 231 publication. It is pre-alpha, disabled by default, `APP_ENV=test`
   gated when explicitly enabled, based on synthetic/disposable and copied-test-book evidence only,
@@ -213,6 +217,13 @@ Current public release state:
   called, no tag/GitHub release/package/image was published, and no write default change,
   `APP_ENV=test` gate weakening, real/private-book use, production/security/public-internet/broad
   compatibility claim, or real/private/only-copy write-safety claim was added.
+- Phase 251 called PM for the Cycle 2 release/no-release gate, received `AUTHORIZE_RELEASE`, reran
+  the final local release gate, updated `docs/release/v0.2.7-writealpha-notes.md`, checklist,
+  final-gate, publication evidence, public status docs, and public-status guard, waited for exact
+  release/status commit CI, and published `v0.2.7-writealpha` as a conservative GitHub pre-release.
+  Publication created only an annotated tag and GitHub pre-release; no package, image, production
+  deployment, write default change, `APP_ENV=test` gate weakening, real/private-book write-safety
+  claim, production/security claim, or private data artifact was added.
 - `v0.2.4-writealpha` remains available as the previous public experimental write-alpha GitHub
   pre-release after Phase 211 publication. It is pre-alpha, disabled by default, `APP_ENV=test`
   gated when explicitly enabled, based on synthetic/disposable evidence only for that cycle, not
