@@ -5,7 +5,7 @@ This roadmap is intentionally conservative. Safety and trust come before feature
 ## Current release posture
 
 - Status: pre-alpha / MVP in progress.
-- Completed through Phase 254.
+- Completed through Phase 255.
 - Current public read-only pre-release: `v0.1.7-readonly`.
 - Current published write-alpha pre-release: `v0.2.7-writealpha`, published in Phase 251 after the
   cycle-2 release gate, PM authorization, and exact release-commit CI as pre-alpha/experimental and
@@ -46,8 +46,11 @@ This roadmap is intentionally conservative. Safety and trust come before feature
   and reset to `GNUCASH_WRITES_ENABLED=false`. Phase 254 then added
   `scripts/write_alpha_copied_book_dogfood.py`, a local-only explicit-step wrapper with separate
   `--dry-run` and `--create-one` modes, required confirmations, preflight, pre-step backup,
-  redacted evidence, unsafe-path rejection, and default-disabled reset proof. CREATE creates write-alpha-owned
-  transactions; PATCH/DELETE are limited to
+  redacted evidence, unsafe-path rejection, and default-disabled reset proof. Phase 255 strengthened
+  transaction create/write-alpha warnings for maintainer copied-book create-only dogfood: use only an
+  outside-git copied/restorable test book, keep the original untouched, dry-run first, at most one
+  CREATE test transaction, independent backup plus restore plan, audit/app-backup/lock evidence, and
+  no production use. CREATE creates write-alpha-owned transactions; PATCH/DELETE are limited to
   write-alpha-owned transactions; historical/imported/manual transactions remain read-only in this
   app. Non-owned historical/imported/manual transactions are rejected before write-service
   construction for PATCH/DELETE. Phase 221 previously recorded a no-release verdict for

@@ -130,7 +130,7 @@ export const actions: Actions = {
 		if (!hasWriteAcknowledgement(formData)) {
 			return {
 				error:
-					'Explicit acknowledgement is required before creating an experimental controlled-write transaction. Use only disposable/test copies with backups.',
+					'Explicit acknowledgement is required before creating one experimental controlled-write test transaction. Use only an outside-git copied/restorable test book with the original untouched, independent backup, restore plan, audit, app backup, and lock-release checks. This is not for production use.',
 				payload
 			};
 		}

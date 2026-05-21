@@ -239,13 +239,18 @@ for (const catalogPhrase of [
 	'GNUCASH_WRITES_ENABLED=false is the safe default',
 	'GnuCash Desktop remains the authoritative editor',
 	'Not production-ready or security-audited',
-	'disposable-copy only',
+	'outside-git copied/restorable test book',
 	'not production-ready, not security-audited, and not a production audit log product',
-	'Use only disposable/test copies copied into ignored runtime storage',
+	'Use only an outside-git copied/restorable test book in ignored runtime storage',
+	'one small CREATE test transaction',
+	'independent backup, restore plan, audit row, app backup evidence',
+	'not for production use',
 	'no currency conversion is performed',
 	'GnuCash Desktop остаётся главным редактором',
 	'не production-ready и не security-audited',
-	'только для disposable copies',
+	'outside-git copied/restorable test book',
+	'одной небольшой CREATE test transaction',
+	'Это не для production use',
 	'без FX-конвертации'
 ]) {
 	assert.ok(i18nMessages.includes(catalogPhrase), `release-critical i18n catalog must preserve glossary phrase: ${catalogPhrase}`);
@@ -319,7 +324,7 @@ assert.match(
 );
 assert.match(
 	newTransactionServer,
-	/hasWriteAcknowledgement\(formData\)[\s\S]*experimental controlled-write transaction/,
+	/hasWriteAcknowledgement\(formData\)[\s\S]*experimental controlled-write test transaction[\s\S]*not for production use/,
 	'final create action must require explicit write acknowledgement'
 );
 assert.ok(
@@ -418,7 +423,7 @@ const readOnlyStatusBanner = read('src/lib/components/ReadOnlyStatusBanner.svelt
 assert.match(readOnlyStatusBanner, /activeBook\?: Book \| null[\s\S]*activeBook\?\.name[\s\S]*safety\.currentBook/s, 'read-only status banner must show the current active book name');
 assert.match(readOnlyStatusBanner, /href="\/books"[\s\S]*safety\.reviewBooks/s, 'read-only status banner must provide a safe link to review books');
 assert.match(readOnlyStatusBanner, /safety\.releaseCritical/s, 'app shell safety banner must expose release-critical pre-alpha/not-production wording');
-assert.match(i18nMessages, /Pre-alpha read-only MVP[\s\S]*GNUCASH_WRITES_ENABLED=false[\s\S]*Not production-ready or security-audited[\s\S]*disposable-copy only[\s\S]*Pre-alpha MVP[\s\S]*Не production-ready/s, 'localized safety copy must state pre-alpha, default-disabled, not-production, not-security-audited, and disposable-only boundaries');
+assert.match(i18nMessages, /Pre-alpha read-only MVP[\s\S]*GNUCASH_WRITES_ENABLED=false[\s\S]*Not production-ready or security-audited[\s\S]*outside-git copied\/restorable test books[\s\S]*originals untouched[\s\S]*Pre-alpha MVP[\s\S]*Не production-ready[\s\S]*outside-git copied\/restorable test books/s, 'localized safety copy must state pre-alpha, default-disabled, not-production, not-security-audited, and copied-book-only boundaries');
 const bookSwitcherComponent = read('src/lib/components/BookSwitcher.svelte');
 assert.match(bookSwitcherComponent, /compact = false[\s\S]*min-h-11[\s\S]*max-w-full[\s\S]*truncate/s, 'book switcher must support compact mobile rendering with 44px touch height and no overflow');
 const localeSwitcherComponentForMobile = read('src/lib/components/LocaleSwitcher.svelte');
@@ -862,11 +867,21 @@ assert.match(
 	'new transaction final create form must include a required acknowledgement checkbox'
 );
 
-assert.match(writeModeWarningComponent, /writeMode\.title[\s\S]*writeMode\.message[\s\S]*writeMode\.desktop[\s\S]*writeMode\.disposableOnly[\s\S]*writeMode\.evidence[\s\S]*writeMode\.staleLock[\s\S]*writeMode\.neverRealBook/s, 'write warning component must render localized warning keys');
+assert.match(writeModeWarningComponent, /writeMode\.title[\s\S]*writeMode\.message[\s\S]*writeMode\.desktop[\s\S]*writeMode\.disposableOnly[\s\S]*writeMode\.createOnlyDogfood[\s\S]*writeMode\.evidence[\s\S]*writeMode\.staleLock[\s\S]*writeMode\.neverRealBook/s, 'write warning component must render localized warning keys');
 assert.match(
 	newTransactionPage,
 	/write_acknowledgement[\s\S]*writeMode\.acknowledgement/s,
 	'new transaction acknowledgement must pin disposable copy and evidence checks'
+);
+assert.match(
+	i18nMessages,
+	/writeMode\.newTransactionHelp[\s\S]*one simple two-split test transaction only for copied-book dogfood[\s\S]*not for production entries[\s\S]*одну простую two-split test transaction для copied-book dogfood/s,
+	'new transaction help must pin one-create copied-book dogfood copy in EN/RU'
+);
+assert.match(
+	i18nMessages,
+	/writeMode\.acknowledgement[\s\S]*outside-git copied\/restorable test book[\s\S]*original untouched[\s\S]*one CREATE test transaction[\s\S]*This is not for production use[\s\S]*original untouched[\s\S]*одну CREATE test transaction[\s\S]*Это не для production use/s,
+	'write acknowledgement must require copied/restorable target, original untouched, one CREATE, backup/restore, and no production use in EN/RU'
 );
 assert.match(
 	newTransactionPage,

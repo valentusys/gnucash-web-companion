@@ -21,6 +21,7 @@
 	<ul class="mt-2 list-disc space-y-1 pl-5">
 		<li>{t(locale, 'writeMode.desktop')}</li>
 		<li>{t(locale, 'writeMode.disposableOnly')}</li>
+		<li>{t(locale, 'writeMode.createOnlyDogfood')}</li>
 		<li>{t(locale, 'writeMode.evidence')}</li>
 		<li>{t(locale, 'writeMode.staleLock')}</li>
 		<li>{t(locale, 'writeMode.neverRealBook')}</li>

@@ -28,6 +28,7 @@ export const safetyGlossaryTerms: SafetyGlossaryTerm[] = [
 			'audit.emptyMessage',
 			'writeMode.message',
 			'writeMode.disposableOnly',
+			'writeMode.createOnlyDogfood',
 			'writeMode.neverRealBook',
 			'writeMode.finalConfirm',
 			'writeMode.acknowledgement',

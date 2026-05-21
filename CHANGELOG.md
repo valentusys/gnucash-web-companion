@@ -7,6 +7,14 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versione
 
 ## [Unreleased]
 
+- Phase 255 — strengthened transaction create/write-alpha UI warnings for future maintainer
+  copied-book create-only dogfood. English/Russian release-critical copy now says the write form is
+  only for outside-git copied/restorable test books with originals untouched, at most one CREATE test
+  transaction after dry-run, independent backup plus restore plan, audit/app-backup/lock evidence,
+  and no production use. Backend write gates remain authoritative; no new write capability, default
+  write change, `APP_ENV=test` gate weakening, mutation run, or real/private/only-copy write-safety
+  claim was added.
+
 - Phase 254 — added `scripts/write_alpha_copied_book_dogfood.py`, a local-only explicit-step wrapper
   for future copied-book dogfood. It supports separate `--dry-run` and `--create-one` modes, requires
   copied/disposable/original-untouched/outside-git confirmations plus an extra mutation confirmation

@@ -237,6 +237,7 @@ export type MessageKey =
 	| 'writeMode.message'
 	| 'writeMode.desktop'
 	| 'writeMode.disposableOnly'
+	| 'writeMode.createOnlyDogfood'
 	| 'writeMode.evidence'
 	| 'writeMode.staleLock'
 	| 'writeMode.neverRealBook'
@@ -388,7 +389,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'safety.message':
 			'Pre-alpha read-only MVP by default. GNUCASH_WRITES_ENABLED=false is the safe default; GnuCash Desktop remains the authoritative editor.',
 		'safety.releaseCritical':
-			'Not production-ready or security-audited. Experimental write-alpha flows are hidden by default and are disposable-copy only when explicitly enabled.',
+			'Not production-ready or security-audited. Experimental write-alpha flows are hidden by default and, when explicitly enabled, are only for outside-git copied/restorable test books with originals untouched.',
 		'safety.currentBook': 'Current book',
 		'safety.noActiveBook': 'No active book selected',
 		'safety.reviewBooks': 'Review books',
@@ -603,18 +604,20 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 			'MVP v0.1 remains read-only by default and GNUCASH_WRITES_ENABLED=false is the safe default. This write form is experimental post-MVP functionality only, not production-ready or security-audited, and should be reachable only in an explicit APP_ENV=test disposable run.',
 		'writeMode.desktop': 'GnuCash Desktop remains the authoritative editor.',
 		'writeMode.disposableOnly':
-			'Use only disposable/test copies copied into ignored runtime storage; never point this at the source or only copy.',
-		'writeMode.evidence': 'Confirm backup, audit, and lock-release evidence before treating a write-alpha run as complete.',
+			'Use only an outside-git copied/restorable test book in ignored runtime storage; never point this at the original/source book or the only existing copy.',
+		'writeMode.createOnlyDogfood':
+			'For copied-book dogfood, stop after dry-run unless explicitly continuing to one small CREATE test transaction. Do not use this form for production entries, PATCH, or DELETE.',
+		'writeMode.evidence': 'Confirm an independent backup, restore plan, audit row, app backup evidence, and lock-release evidence before treating a write-alpha CREATE run as complete.',
 		'writeMode.staleLock':
 			'If a stale lock file remains, stop the runtime first and follow the recovery runbook; never assume a host permission error means an active writer.',
 		'writeMode.neverRealBook': 'Never use this experimental path with your only real financial book.',
 		'writeMode.finalConfirm':
-			'Final warning: this experimental post-MVP action will write to a GnuCash book copy. Continue only in APP_ENV=test with an ignored disposable copy, backups, audit, and lock-release checks. Never use a source or only copy. Continue?',
+			'Final warning: this experimental post-MVP action will write one test transaction to a copied/restorable GnuCash book. Continue only in APP_ENV=test with the original untouched, an outside-git copied test book, independent backup, restore plan, audit, app backup, and lock-release checks. Never use a source/original, only copy, or production book. Continue?',
 		'writeMode.acknowledgement':
-			'I acknowledge that controlled writes are experimental post-MVP functionality, MVP v0.1 remains read-only by default, GNUCASH_WRITES_ENABLED=false is the safe default, GnuCash Desktop remains the authoritative editor, and I am using only an ignored disposable/test copy with backup, audit, and lock-release checks.',
+			'I acknowledge that controlled writes are experimental post-MVP functionality, MVP v0.1 remains read-only by default, GNUCASH_WRITES_ENABLED=false is the safe default, GnuCash Desktop remains the authoritative editor, and I am using only an outside-git copied/restorable test book with the original untouched, one CREATE test transaction, independent backup, restore plan, audit, app backup, and lock-release checks. This is not for production use.',
 		'writeMode.kicker': 'Controlled write',
 		'writeMode.newTransactionTitle': 'New transaction',
-		'writeMode.newTransactionHelp': 'Creates a simple two-split transaction. A backup is made before the final write.',
+		'writeMode.newTransactionHelp': 'Creates one simple two-split test transaction only for copied-book dogfood. It is not for production entries; verify backup/restore evidence before and after the final write.',
 		'transactions.filters.title': 'Transaction filters',
 		'transactions.filters.subtitle':
 			'Narrow the read-only transaction list and CSV export; filters never modify your GnuCash book.',
@@ -772,7 +775,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'safety.message':
 			'Pre-alpha MVP по умолчанию работает только на чтение. GNUCASH_WRITES_ENABLED=false — безопасное значение по умолчанию; GnuCash Desktop остаётся главным редактором.',
 		'safety.releaseCritical':
-			'Не production-ready и не проходило security audit. Экспериментальные write-alpha flows скрыты по умолчанию и при явном включении предназначены только для disposable copies.',
+			'Не production-ready и не проходило security audit. Экспериментальные write-alpha flows скрыты по умолчанию и при явном включении предназначены только для outside-git copied/restorable test books с untouched originals.',
 		'safety.currentBook': 'Текущая книга',
 		'safety.noActiveBook': 'Активная книга не выбрана',
 		'safety.reviewBooks': 'Проверить книги',
@@ -987,18 +990,20 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 			'MVP v0.1 по умолчанию остаётся read-only, а GNUCASH_WRITES_ENABLED=false — безопасное значение по умолчанию. Эта write form — только экспериментальная post-MVP функциональность, не production-ready и не security-audited; она должна быть доступна только при явном APP_ENV=test disposable запуске.',
 		'writeMode.desktop': 'GnuCash Desktop остаётся главным редактором.',
 		'writeMode.disposableOnly':
-			'Используйте только disposable/test copies, скопированные в ignored runtime storage; никогда не указывайте source или only copy.',
-		'writeMode.evidence': 'Проверьте backup, audit и lock-release evidence перед тем, как считать write-alpha запуск завершённым.',
+			'Используйте только outside-git copied/restorable test book в ignored runtime storage; никогда не указывайте original/source book или единственную существующую копию.',
+		'writeMode.createOnlyDogfood':
+			'Для copied-book dogfood остановитесь после dry-run, если нет явного решения продолжить с одной небольшой CREATE test transaction. Не используйте эту форму для production entries, PATCH или DELETE.',
+		'writeMode.evidence': 'Проверьте independent backup, restore plan, audit row, app backup evidence и lock-release evidence перед тем, как считать write-alpha CREATE запуск завершённым.',
 		'writeMode.staleLock':
 			'Если остался stale lock file, сначала остановите runtime и следуйте recovery runbook; не считайте host permission error признаком активного writer.',
 		'writeMode.neverRealBook': 'Никогда не используйте этот экспериментальный path с единственной реальной финансовой книгой.',
 		'writeMode.finalConfirm':
-			'Последнее предупреждение: это experimental post-MVP действие запишет в копию книги GnuCash. Продолжайте только в APP_ENV=test с ignored disposable copy, backups, audit и lock-release checks. Никогда не используйте source или only copy. Продолжить?',
+			'Последнее предупреждение: это experimental post-MVP действие запишет одну test transaction в copied/restorable книгу GnuCash. Продолжайте только в APP_ENV=test, когда original untouched, используется outside-git copied test book, есть independent backup, restore plan, audit, app backup и lock-release checks. Никогда не используйте source/original, only copy или production book. Продолжить?',
 		'writeMode.acknowledgement':
-			'Я понимаю, что controlled writes — экспериментальная post-MVP функциональность, MVP v0.1 остаётся read-only по умолчанию, GNUCASH_WRITES_ENABLED=false — безопасное значение по умолчанию, GnuCash Desktop остаётся главным редактором, и я использую только ignored disposable/test copy с backup, audit и lock-release checks.',
+			'Я понимаю, что controlled writes — экспериментальная post-MVP функциональность, MVP v0.1 остаётся read-only по умолчанию, GNUCASH_WRITES_ENABLED=false — безопасное значение по умолчанию, GnuCash Desktop остаётся главным редактором, и я использую только outside-git copied/restorable test book, original untouched, одну CREATE test transaction, independent backup, restore plan, audit, app backup и lock-release checks. Это не для production use.',
 		'writeMode.kicker': 'Controlled write',
 		'writeMode.newTransactionTitle': 'Новая транзакция',
-		'writeMode.newTransactionHelp': 'Создаёт простую транзакцию с двумя splits. Backup создаётся перед финальной записью.',
+		'writeMode.newTransactionHelp': 'Создаёт только одну простую two-split test transaction для copied-book dogfood. Это не для production entries; проверьте backup/restore evidence до и после финальной записи.',
 		'transactions.filters.title': 'Фильтры транзакций',
 		'transactions.filters.subtitle':
 			'Сужают read-only список транзакций и CSV export; фильтры никогда не изменяют вашу книгу GnuCash.',
