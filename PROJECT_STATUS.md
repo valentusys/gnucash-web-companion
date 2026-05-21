@@ -9,7 +9,7 @@ Last updated: 2026-05-21
 - Branch: `main`
 - Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release;
   `v0.2.6-writealpha` is the current public experimental write-alpha pre-release. Completed through
-  Phase 245. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
+  Phase 246. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
   release-candidate dogfood, confirmed local/backend/frontend/Docker/public-status/sensitive-file
   gates, waited for exact release/status commit CI, and published only the annotated tag plus GitHub
   pre-release. Phase 232 reconciled public status/changelog wording after publication. Phase 233
@@ -44,14 +44,18 @@ Last updated: 2026-05-21
   the same same-book app-metadata ownership marker before constructing the write service, rejects
   historical/imported/manual non-owned transactions with 403 before backup/lock/audit/mutation,
   still allows DELETE for write-alpha-created synthetic transactions, and refreshes
-  `last_mutated_at` after allowed DELETE. `GNUCASH_WRITES_ENABLED=false` remains default,
+  `last_mutated_at` after allowed DELETE. Phase 246 aligned the frontend transaction detail page with
+  those backend ownership boundaries: edit/delete controls are hidden for non-owned historical/manual
+  transactions, write-alpha-owned synthetic transactions can show experimental controls only under
+  explicit write mode, and non-owned transactions show safe explanatory read-only copy. Backend
+  ownership guards remain authoritative. `GNUCASH_WRITES_ENABLED=false` remains default,
   `APP_ENV=test` write-alpha gating remains intact, and no
   production/security/public-internet/broad-compatibility or real/private-book write-safety claim is
   added.
 
 ## Current baseline
 
-Completed through Phase 245.
+Completed through Phase 246.
 
 Current public release state:
 
@@ -149,6 +153,13 @@ Current public release state:
   allowed DELETE refreshes `last_mutated_at` in app metadata. Viewer access and default-disabled writes
   remain blocked before ownership checks. No broad delete support, undo feature, release/tag,
   real/private-book use, or real/private/only-copy write-safety claim was added.
+- Phase 246 aligned the frontend transaction detail page with the Phase 244/245 backend ownership
+  guards. The transaction detail API now exposes a safe app-metadata-only `is_write_alpha_owned` hint;
+  the UI shows experimental delete controls only when write mode is explicitly enabled, an active book
+  is present, and the transaction is write-alpha-owned. Non-owned historical/manual transactions show
+  explanatory read-only copy instead of edit/delete controls. Backend PATCH/DELETE ownership guards
+  remain authoritative, and no write default change, `APP_ENV=test` gate weakening, broad editor,
+  release/tag, real/private-book use, or real/private/only-copy write-safety claim was added.
 - `v0.2.4-writealpha` remains available as the previous public experimental write-alpha GitHub
   pre-release after Phase 211 publication. It is pre-alpha, disabled by default, `APP_ENV=test`
   gated when explicitly enabled, based on synthetic/disposable evidence only for that cycle, not

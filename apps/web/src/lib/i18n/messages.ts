@@ -115,6 +115,8 @@ export type MessageKey =
 	| 'transactionDetail.id'
 	| 'transactionDetail.splitSingular'
 	| 'transactionDetail.splitPlural'
+	| 'transactionDetail.nonOwnedTitle'
+	| 'transactionDetail.nonOwnedHelper'
 	| 'transactionDetail.deleteTitle'
 	| 'transactionDetail.deleteHelper'
 	| 'transactionDetail.deleteAcknowledgement'
@@ -461,8 +463,11 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'transactionDetail.id': 'ID',
 		'transactionDetail.splitSingular': 'split',
 		'transactionDetail.splitPlural': 'splits',
+		'transactionDetail.nonOwnedTitle': 'Historical/manual transaction remains read-only',
+		'transactionDetail.nonOwnedHelper':
+			'Edit/delete controls are hidden because this transaction is not marked as write-alpha-owned in app metadata. Backend ownership guards remain authoritative. Experimental controls appear only for write-alpha-owned synthetic/disposable transactions when write mode is explicitly enabled in APP_ENV=test.',
 		'transactionDetail.deleteTitle': 'Experimental delete transaction',
-		'transactionDetail.deleteHelper': 'This button is hidden unless write mode is explicitly enabled. Use only ignored copied/disposable test books in APP_ENV=test; GnuCash Desktop remains the authoritative editor.',
+		'transactionDetail.deleteHelper': 'This button is hidden unless write mode is explicitly enabled and the transaction is write-alpha-owned in app metadata. Use only ignored copied/disposable test books in APP_ENV=test; GnuCash Desktop remains the authoritative editor.',
 		'transactionDetail.deleteAcknowledgement': 'I acknowledge this experimental DELETE is for ignored disposable/test copies only and requires backup, audit, and lock-release checks.',
 		'transactionDetail.deleteButton': 'Delete transaction',
 		'transactionDetail.deleteConfirm': 'Delete this transaction from the disposable/test GnuCash book? This experimental write-alpha action creates a backup first and cannot be undone here.',
@@ -838,8 +843,11 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'transactionDetail.id': 'ID',
 		'transactionDetail.splitSingular': 'split',
 		'transactionDetail.splitPlural': 'splits',
+		'transactionDetail.nonOwnedTitle': 'Историческая/manual транзакция остаётся read-only',
+		'transactionDetail.nonOwnedHelper':
+			'Edit/delete controls скрыты, потому что эта транзакция не отмечена в app metadata как write-alpha-owned. Backend ownership guards остаются главным enforcement. Экспериментальные controls появляются только для write-alpha-owned synthetic/disposable транзакций при явном write mode в APP_ENV=test.',
 		'transactionDetail.deleteTitle': 'Экспериментальное удаление транзакции',
-		'transactionDetail.deleteHelper': 'Эта кнопка скрыта, если write mode явно не включён. Используйте только ignored скопированные/disposable тестовые книги в APP_ENV=test; GnuCash Desktop остаётся главным редактором.',
+		'transactionDetail.deleteHelper': 'Эта кнопка скрыта, если write mode явно не включён и транзакция не write-alpha-owned в app metadata. Используйте только ignored скопированные/disposable тестовые книги в APP_ENV=test; GnuCash Desktop остаётся главным редактором.',
 		'transactionDetail.deleteAcknowledgement': 'Я понимаю, что экспериментальный DELETE предназначен только для ignored disposable/test копий и требует backup, audit и lock-release checks.',
 		'transactionDetail.deleteButton': 'Удалить транзакцию',
 		'transactionDetail.deleteConfirm': 'Удалить эту транзакцию из disposable/test книги GnuCash? Это экспериментальное write-alpha действие сначала создаёт backup и не может быть отменено здесь.',

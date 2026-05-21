@@ -707,13 +707,18 @@ assert.match(
 );
 assert.match(
 	transactionDetailPage,
-	/data\.writesEnabled && data\.activeBook[\s\S]*action="\?\/delete"[\s\S]*confirm\(t\(locale, 'transactionDetail\.deleteConfirm'\)[\s\S]*transactionDetail\.deleteAcknowledgement/s,
-	'transaction delete form must be hidden by default and require browser confirmation plus disposable/test acknowledgement'
+	/canShowWriteAlphaControls[\s\S]*data\.writesEnabled && data\.activeBook && tx\.is_write_alpha_owned[\s\S]*\{#if canShowWriteAlphaControls\}[\s\S]*action="\?\/delete"[\s\S]*confirm\(t\(locale, 'transactionDetail\.deleteConfirm'\)[\s\S]*transactionDetail\.deleteAcknowledgement/s,
+	'transaction delete form must be hidden unless write mode is enabled and the transaction is write-alpha-owned, then require browser confirmation plus disposable/test acknowledgement'
+);
+assert.match(
+	transactionDetailPage,
+	/showNonOwnedWriteAlphaCopy[\s\S]*!tx\.is_write_alpha_owned[\s\S]*transactionDetail\.nonOwnedTitle[\s\S]*transactionDetail\.nonOwnedHelper/s,
+	'transaction detail page must show safe explanatory copy instead of edit/delete controls for non-owned transactions when write mode is enabled'
 );
 assert.match(
 	i18nMessages,
-	/transactionDetail\.deleteHelper[\s\S]*APP_ENV=test[\s\S]*transactionDetail\.deleteAcknowledgement[\s\S]*backup, audit, and lock-release checks[\s\S]*Экспериментальное удаление транзакции[\s\S]*APP_ENV=test/s,
-	'localized delete write-alpha guardrails must mention ignored disposable copies, APP_ENV=test, and backup/audit/lock-release checks'
+	/transactionDetail\.nonOwnedHelper[\s\S]*Backend ownership guards remain authoritative[\s\S]*write-alpha-owned synthetic\/disposable transactions[\s\S]*transactionDetail\.deleteHelper[\s\S]*write-alpha-owned in app metadata[\s\S]*APP_ENV=test[\s\S]*transactionDetail\.deleteAcknowledgement[\s\S]*backup, audit, and lock-release checks[\s\S]*Экспериментальное удаление транзакции[\s\S]*APP_ENV=test/s,
+	'localized delete write-alpha guardrails must mention ownership, backend authority, ignored disposable copies, APP_ENV=test, and backup/audit/lock-release checks'
 );
 
 const serverApi = read('src/lib/api/server.ts');

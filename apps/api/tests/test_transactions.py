@@ -16,7 +16,7 @@ from sqlalchemy.pool import StaticPool
 from app.config import Settings, get_settings
 from app.database import Base
 from app.main import app
-from app.models import User, Book, UserBookAccess
+from app.models import User, Book, UserBookAccess, WriteAlphaTransactionOwnership
 from app.routers.auth import get_db
 from app.services.auth import hash_password
 
@@ -506,6 +506,7 @@ class TestGetTransactionMVP:
         assert data["date"] == "2026-05-16"
         assert data["description"] == "ICA"
         assert data["currency"] == "SEK"
+        assert data["is_write_alpha_owned"] is False
         assert len(data["splits"]) == 2
         assert data["splits"][0]["account_name"] == "Assets:Bank:Checking"
         assert data["splits"][0]["amount"] == "-320.00"
@@ -707,7 +708,34 @@ class TestGetBookTransaction:
         assert response.status_code == 200
         data = response.json()
         assert data["id"] == "tx-1"
+        assert data["is_write_alpha_owned"] is False
         assert len(data["splits"]) == 2
+
+    def test_returns_write_alpha_owned_hint_for_app_metadata_owned_transaction(
+        self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory
+    ):
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(fake_book_with_transactions)
+            user = session.query(User).filter(User.username == "admin").one()
+            session.add(
+                WriteAlphaTransactionOwnership(
+                    book_id=sample_book,
+                    transaction_id="tx-1",
+                    created_by_user_id=user.id,
+                    created_by_write_alpha=True,
+                )
+            )
+            session.commit()
+
+        response = client.get(
+            f"/books/{sample_book}/transactions/tx-1",
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["id"] == "tx-1"
+        assert data["is_write_alpha_owned"] is True
 
     def test_unknown_transaction_returns_404(
         self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory

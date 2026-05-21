@@ -6,6 +6,8 @@
 	let locale = $derived<Locale>(data.locale ?? DEFAULT_LOCALE);
 	const tx = $derived(data.transaction);
 	const splitCountLabel = $derived(`${tx.splits.length} ${tx.splits.length === 1 ? t(locale, 'transactionDetail.splitSingular') : t(locale, 'transactionDetail.splitPlural')}`);
+	const canShowWriteAlphaControls = $derived(Boolean(data.writesEnabled && data.activeBook && tx.is_write_alpha_owned));
+	const showNonOwnedWriteAlphaCopy = $derived(Boolean(data.writesEnabled && data.activeBook && !tx.is_write_alpha_owned));
 </script>
 
 <svelte:head>
@@ -58,7 +60,22 @@
 			</p>
 		{/if}
 
-		{#if data.writesEnabled && data.activeBook}
+		{#if showNonOwnedWriteAlphaCopy}
+			<section
+				class="mt-6 rounded-2xl p-4"
+				aria-labelledby="transaction-ownership-heading"
+				style="background: #eff6ff; border: 1px solid #bfdbfe;"
+			>
+				<p id="transaction-ownership-heading" class="text-sm font-semibold" style="color: #1e3a8a;">
+					{t(locale, 'transactionDetail.nonOwnedTitle')}
+				</p>
+				<p class="mt-2 text-sm" style="color: #1e3a8a;">
+					{t(locale, 'transactionDetail.nonOwnedHelper')}
+				</p>
+			</section>
+		{/if}
+
+		{#if canShowWriteAlphaControls}
 			<form
 				method="POST"
 				action="?/delete"

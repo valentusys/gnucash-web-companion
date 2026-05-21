@@ -7,6 +7,14 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versione
 
 ## [Unreleased]
 
+- Phase 246 — aligned the transaction detail UI with the backend write-alpha ownership boundary. The
+  detail API now exposes a safe app-metadata-only `is_write_alpha_owned` hint; the Svelte detail page
+  shows experimental delete controls only when write mode is explicitly enabled, an active book is
+  present, and the transaction is write-alpha-owned. Non-owned historical/manual transactions show
+  explanatory read-only copy instead of edit/delete controls. Backend PATCH/DELETE ownership guards
+  remain authoritative, `GNUCASH_WRITES_ENABLED=false` remains default, the `APP_ENV=test` gate is
+  unchanged, and no real/private/only-copy write-safety claim was added.
+
 - Phase 245 — added the backend write-alpha DELETE ownership guard. Enabled DELETE now checks the app
   metadata `write_alpha_transaction_ownership` row for the same book and transaction before
   constructing the GnuCash write service; non-owned historical/imported/manual transactions return

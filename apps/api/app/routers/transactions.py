@@ -62,8 +62,32 @@ def _serialize_transaction_list_item(item: TransactionListItemDTO) -> dict[str, 
     return item.model_dump()
 
 
-def _serialize_transaction_detail(detail: TransactionDetailDTO) -> dict[str, Any]:
-    return detail.model_dump()
+def _is_write_alpha_owned_transaction(session: Session, book_id: int, transaction_id: str) -> bool:
+    """Return app-metadata ownership status for safe UI hints only.
+
+    Backend write routes remain authoritative and re-check ownership before any
+    PATCH/DELETE mutation path can construct the write service.
+    """
+    return (
+        session.query(WriteAlphaTransactionOwnership.id)
+        .filter(
+            WriteAlphaTransactionOwnership.book_id == book_id,
+            WriteAlphaTransactionOwnership.transaction_id == transaction_id,
+            WriteAlphaTransactionOwnership.created_by_write_alpha == True,  # noqa: E712
+        )
+        .first()
+        is not None
+    )
+
+
+def _serialize_transaction_detail(
+    detail: TransactionDetailDTO,
+    *,
+    is_write_alpha_owned: bool = False,
+) -> dict[str, Any]:
+    payload = detail.model_dump()
+    payload["is_write_alpha_owned"] = is_write_alpha_owned
+    return payload
 
 
 # ---------------------------------------------------------------------------
@@ -227,7 +251,10 @@ async def get_book_transaction(
         detail = transaction_service_for(book).get_transaction(transaction_id)
     except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
         handle_gnucash_error(exc)
-    return _serialize_transaction_detail(detail)
+    return _serialize_transaction_detail(
+        detail,
+        is_write_alpha_owned=_is_write_alpha_owned_transaction(session, book.id, transaction_id),
+    )
 
 
 @router.get("/books/{book_id}/accounts/{account_id}/transactions")
@@ -346,7 +373,10 @@ async def get_default_book_transaction(
         detail = transaction_service_for(book).get_transaction(transaction_id)
     except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
         handle_gnucash_error(exc)
-    return _serialize_transaction_detail(detail)
+    return _serialize_transaction_detail(
+        detail,
+        is_write_alpha_owned=_is_write_alpha_owned_transaction(session, book.id, transaction_id),
+    )
 
 
 @router.get("/accounts/{account_id}/transactions")

@@ -78,6 +78,7 @@ export type TransactionDetail = {
 	description: string;
 	currency: string;
 	splits: TransactionSplit[];
+	is_write_alpha_owned?: boolean;
 };
 
 export type ScheduledTransactionRecurrence = {
