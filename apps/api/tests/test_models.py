@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
 
 from app.database import Base
-from app.models import User, Book, UserBookAccess, AuditLog
+from app.models import User, Book, UserBookAccess, AuditLog, WriteAlphaTransactionOwnership
 
 
 @pytest.fixture
@@ -163,3 +163,52 @@ class TestAuditLogModel:
         assert log.id is not None
         assert log.action == "view_accounts"
         assert log.created_at is not None
+
+
+class TestWriteAlphaTransactionOwnershipModel:
+    def test_create_write_alpha_ownership_marker(self, session):
+        user = User(username="writer", display_name="Writer", password_hash="pw")
+        book = Book(name="B", storage_type="sqlite", uri_or_path="/b.gnucash.sqlite")
+        session.add_all([user, book])
+        session.commit()
+
+        marker = WriteAlphaTransactionOwnership(
+            book_id=book.id,
+            transaction_id="phase-243-synthetic-guid",
+            created_by_user_id=user.id,
+            created_by_write_alpha=True,
+        )
+        session.add(marker)
+        session.commit()
+
+        assert marker.id is not None
+        assert marker.book_id == book.id
+        assert marker.transaction_id == "phase-243-synthetic-guid"
+        assert marker.created_by_user_id == user.id
+        assert marker.created_by_write_alpha is True
+        assert marker.created_at is not None
+        assert marker.last_mutated_at is not None
+
+    def test_write_alpha_ownership_marker_is_book_transaction_unique(self, session):
+        user = User(username="writer2", display_name="Writer", password_hash="pw")
+        book = Book(name="B", storage_type="sqlite", uri_or_path="/b.gnucash.sqlite")
+        session.add_all([user, book])
+        session.commit()
+
+        session.add(
+            WriteAlphaTransactionOwnership(
+                book_id=book.id,
+                transaction_id="duplicate-synthetic-guid",
+                created_by_user_id=user.id,
+            )
+        )
+        session.commit()
+        session.add(
+            WriteAlphaTransactionOwnership(
+                book_id=book.id,
+                transaction_id="duplicate-synthetic-guid",
+                created_by_user_id=user.id,
+            )
+        )
+        with pytest.raises(IntegrityError):
+            session.commit()

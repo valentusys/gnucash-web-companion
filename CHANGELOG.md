@@ -7,6 +7,14 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versione
 
 ## [Unreleased]
 
+- Phase 243 — added an app metadata-only write-alpha transaction ownership marker for successful
+  CREATE requests. The model links `book_id`, `transaction_id`, `created_by_user_id`,
+  `created_by_write_alpha`, `created_at`, and `last_mutated_at` so later PATCH/DELETE phases can
+  reject historical/manual transactions. The CREATE path now records ownership after successful
+  synthetic/disposable write-alpha creates, with tests and operator documentation. No write default,
+  `APP_ENV=test` gate, amount/account mutation scope, release, GnuCash-book metadata write, or
+  real/private/only-copy write-safety claim was added.
+
 ## [v0.2.6-writealpha] - 2026-05-21
 
 - Phase 241 — called PM for the Cycle 1 release/no-release gate, received `AUTHORIZE_RELEASE`, reran

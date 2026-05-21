@@ -11,6 +11,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
 
@@ -49,6 +50,9 @@ class Book(Base):
 
     access_entries = relationship("UserBookAccess", back_populates="book")
     audit_logs = relationship("AuditLog", back_populates="book")
+    write_alpha_transaction_ownership = relationship(
+        "WriteAlphaTransactionOwnership", back_populates="book"
+    )
 
 
 class UserBookAccess(Base):
@@ -86,3 +90,39 @@ class AuditLog(Base):
 
     user = relationship("User", back_populates="audit_logs")
     book = relationship("Book", back_populates="audit_logs")
+
+
+class WriteAlphaTransactionOwnership(Base):
+    """App-metadata-only marker for transactions created through write-alpha.
+
+    This table intentionally stores only a book-scoped transaction GUID and safe
+    metadata needed for later PATCH/DELETE ownership guards. It does not write
+    anything into the GnuCash book and does not store amounts, account names,
+    memos, request payloads, backup paths, or private file paths.
+    """
+
+    __tablename__ = "write_alpha_transaction_ownership"
+    __table_args__ = (
+        UniqueConstraint(
+            "book_id",
+            "transaction_id",
+            name="uq_write_alpha_transaction_ownership_book_transaction",
+        ),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    book_id = Column(Integer, ForeignKey("books.id", ondelete="CASCADE"), nullable=False)
+    transaction_id = Column(String(64), nullable=False)
+    created_by_user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    created_by_write_alpha = Column(Boolean, default=True, nullable=False)
+    created_at = Column(
+        DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+    last_mutated_at = Column(
+        DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+
+    book = relationship("Book", back_populates="write_alpha_transaction_ownership")
+    created_by_user = relationship("User")

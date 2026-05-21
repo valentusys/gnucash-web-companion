@@ -25,7 +25,7 @@ from sqlalchemy.pool import StaticPool
 from app.config import Settings, get_settings
 from app.database import Base
 from app.main import app
-from app.models import User, Book, UserBookAccess, AuditLog
+from app.models import User, Book, UserBookAccess, AuditLog, WriteAlphaTransactionOwnership
 from app.routers.auth import get_db
 from app.schemas.gnucash_writes import TransactionCreateRequestDTO, TransactionSplitWriteDTO
 from app.services.auth import hash_password
@@ -1117,6 +1117,15 @@ class TestWriteAlphaCreateRouteDisposableFixture:
             assert payload["transaction_id"] == data["transaction_id"]
             assert payload["backup_path"] == str(backup_path)
             assert payload["request_summary"]["split_count"] == 2
+            ownership = (
+                session.query(WriteAlphaTransactionOwnership)
+                .filter_by(book_id=disposable_sample_book, transaction_id=data["transaction_id"])
+                .one()
+            )
+            assert ownership.created_by_user_id == audit_log.user_id
+            assert ownership.created_by_write_alpha is True
+            assert ownership.created_at is not None
+            assert ownership.last_mutated_at is not None
 
     def test_enabled_create_validation_failure_is_audited_without_backup_or_lock_leak(
         self,

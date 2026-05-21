@@ -21,7 +21,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
-from app.models import Book, User, AuditLog
+from app.models import Book, User, AuditLog, WriteAlphaTransactionOwnership
 from app.routers.auth import get_current_user, get_db
 from app.routers.accounts import resolve_default_viewable_book
 from app.routers.books import (
@@ -527,6 +527,29 @@ def _update_audit_log(session: Session, log: AuditLog, payload: dict) -> None:
     session.refresh(log)
 
 
+def _record_write_alpha_transaction_ownership(
+    session: Session,
+    *,
+    book_id: int,
+    transaction_id: str,
+    user_id: int | None,
+) -> WriteAlphaTransactionOwnership:
+    """Persist app-metadata-only ownership for a successful write-alpha CREATE."""
+    now = datetime.now(timezone.utc)
+    ownership = WriteAlphaTransactionOwnership(
+        book_id=book_id,
+        transaction_id=transaction_id,
+        created_by_user_id=user_id,
+        created_by_write_alpha=True,
+        created_at=now,
+        last_mutated_at=now,
+    )
+    session.add(ownership)
+    session.commit()
+    session.refresh(ownership)
+    return ownership
+
+
 def _write_error_detail(exc: GnuCashWriteError) -> str:
     """Return a write-alpha error string safe for API responses and audit error fields.
 
@@ -901,6 +924,12 @@ async def create_book_transaction(
         }
     )
     _update_audit_log(session, log, audit_payload)
+    _record_write_alpha_transaction_ownership(
+        session,
+        book_id=book.id,
+        transaction_id=result.transaction_id,
+        user_id=user.id,
+    )
     result.audit_log_id = log.id
 
     return result
