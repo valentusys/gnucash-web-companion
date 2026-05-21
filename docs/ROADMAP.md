@@ -5,7 +5,7 @@ This roadmap is intentionally conservative. Safety and trust come before feature
 ## Current release posture
 
 - Status: pre-alpha / MVP in progress.
-- Completed through Phase 259.
+- Completed through Phase 260.
 - Current public read-only pre-release: `v0.1.7-readonly`.
 - Current published write-alpha pre-release: `v0.2.7-writealpha`, published in Phase 251 after the
   cycle-2 release gate, PM authorization, and exact release-commit CI as pre-alpha/experimental and
@@ -59,7 +59,10 @@ This roadmap is intentionally conservative. Safety and trust come before feature
   checksum/read-back state, supports an optional read-only web/API probe, and makes no production
   disaster-recovery claim. Phase 258 rehearsed the full package on synthetic/disposable fixture
   copies. Phase 259 recorded the owner copied-book decision gate: the next reasonable owner ask is
-  dry-run only, and CREATE-one can be considered only after owner dry-run evidence is reviewed.
+  dry-run only, and CREATE-one can be considered only after owner dry-run evidence is reviewed. Phase
+  260 prepared unpublished `v0.2.8-writealpha` release-candidate notes/checklist/final-gate because
+  the copied-book package is strong enough for a candidate while owner copied-book dogfood may still be
+  pending.
   CREATE creates write-alpha-owned transactions; PATCH/DELETE are limited to
   write-alpha-owned transactions; historical/imported/manual transactions remain read-only in this
   app. Non-owned historical/imported/manual transactions are rejected before write-service

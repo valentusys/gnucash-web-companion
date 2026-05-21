@@ -9,7 +9,7 @@ Last updated: 2026-05-21
 - Branch: `main`
 - Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release;
   `v0.2.7-writealpha` is the current public experimental write-alpha pre-release. Completed through
-  Phase 259. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
+  Phase 260. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
   release-candidate dogfood, confirmed local/backend/frontend/Docker/public-status/sensitive-file
   gates, waited for exact release/status commit CI, and published only the annotated tag plus GitHub
   pre-release. Phase 232 reconciled public status/changelog wording after publication. Phase 233
@@ -101,13 +101,18 @@ Last updated: 2026-05-21
   can be considered only after owner dry-run evidence confirms preflight, independent backup,
   redaction, local-only runtime, restore plan, and reset to `GNUCASH_WRITES_ENABLED=false`. No owner
   dogfood was executed, no private data was requested, no release/tag was published, and no
-  real/private/only-copy write-safety claim was added.
+  real/private/only-copy write-safety claim was added. Phase 260 prepared unpublished
+  `v0.2.8-writealpha` release-candidate notes, checklist, and final-gate draft because the Cycle 3
+  copied-book package is strong enough for a conservative candidate while owner copied-book dogfood may
+  still be pending. Phase 260 did not publish a tag or GitHub release, did not authorize owner
+  CREATE-one as the next immediate action, did not use owner/private/original/only-copy books, and did
+  not add any real/private/only-copy write-safety claim.
   `GNUCASH_WRITES_ENABLED=false` remains
   default, `APP_ENV=test` write-alpha gating remains intact, and no production/security/public-internet/broad-compatibility or real/private-book write-safety claim is added.
 
 ## Current baseline
 
-Completed through Phase 259.
+Completed through Phase 260.
 
 Current public release state:
 
@@ -332,6 +337,17 @@ Current public release state:
   and confirms preflight, independent backup, redaction, local-only runtime, restore plan, and reset
   to `GNUCASH_WRITES_ENABLED=false`. No owner dogfood was executed, no private paths/data were
   requested, no release/tag was published, and no real/private/only-copy write-safety claim was added.
+- Phase 260 prepared `docs/release/v0.2.8-writealpha-notes.md`,
+  `docs/release/v0.2.8-writealpha-checklist.md`, and
+  `docs/release/v0.2.8-writealpha-final-gate.md` as unpublished release-candidate artifacts because
+  the Cycle 3 maintainer copied-book package is strong enough for a conservative candidate: wrapper
+  dry-run/create-one evidence, restore verification, bounded compatibility harnesses, synthetic
+  end-to-end package rehearsal, and the dry-run-only owner decision gate are all documented. Owner
+  copied-book dogfood may still be pending, CREATE-one is not the immediate owner ask, Phase 261 must
+  call PM and rerun the final release/no-release gate before any publication, and no release/tag,
+  write default change, `APP_ENV=test` gate weakening, owner/private/original/only-copy book use,
+  production/security/public-internet/broad-compatibility claim, or real/private/only-copy write-safety
+  claim was added.
 - `v0.2.4-writealpha` remains available as the previous public experimental write-alpha GitHub
   pre-release after Phase 211 publication. It is pre-alpha, disabled by default, `APP_ENV=test`
   gated when explicitly enabled, based on synthetic/disposable evidence only for that cycle, not

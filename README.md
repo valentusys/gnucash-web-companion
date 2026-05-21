@@ -47,7 +47,7 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–259 are complete.
+- Phase 0–260 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by
   default.
@@ -128,9 +128,11 @@ This project is not a fit if you need:
   outside-git copied working book from an outside-git pre-mutation backup, verifies checksum/read-back
   state, supports an optional read-only web/API probe, and does not claim production disaster
   recovery. Phase 258 rehearsed the full maintainer copied-book package on synthetic/disposable
-  fixture copies, and Phase 259 decided the next reasonable owner ask is copied-book dry-run only;
-  CREATE-one is not the immediate ask and can be considered only after owner dry-run evidence is
-  reviewed.
+  fixture copies, Phase 259 decided the next reasonable owner ask is copied-book dry-run only, and
+  Phase 260 prepared unpublished `v0.2.8-writealpha` release-candidate notes/checklist/final-gate
+  because the copied-book package is strong enough for a candidate while owner copied-book dogfood may
+  still be pending. CREATE-one is not the immediate owner ask and can be considered only after owner
+  dry-run evidence is reviewed.
   CREATE creates write-alpha-owned transactions; PATCH/DELETE are limited to write-alpha-owned
   transactions for the same app metadata book; historical/manual GnuCash transactions remain
   read-only in this app.
