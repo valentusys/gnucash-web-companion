@@ -47,7 +47,7 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–260 are complete.
+- Phase 0–261 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by
   default.
@@ -66,6 +66,7 @@ This project is not a fit if you need:
   gate](docs/release/v0.1.6-readonly-final-gate.md), [publication
   evidence](docs/release/v0.1.6-readonly-publication-evidence.md)).
 - Previous write-alpha pre-releases:
+  [`v0.2.7-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.7-writealpha),
   [`v0.2.6-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.6-writealpha),
   [`v0.2.5-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.5-writealpha),
   [`v0.2.4-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.4-writealpha),
@@ -75,12 +76,12 @@ This project is not a fit if you need:
   and
   [`v0.2.0-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.0-writealpha).
 - Current published write-alpha pre-release:
-  [`v0.2.7-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.7-writealpha),
-  published after the Phase 251 cycle-2 release gate:
-  [notes](docs/release/v0.2.7-writealpha-notes.md),
-  [checklist](docs/release/v0.2.7-writealpha-checklist.md), [final
-  gate](docs/release/v0.2.7-writealpha-final-gate.md), [publication
-  evidence](docs/release/v0.2.7-writealpha-publication-evidence.md).
+  [`v0.2.8-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.8-writealpha),
+  published after the Phase 261 cycle-3 release gate:
+  [notes](docs/release/v0.2.8-writealpha-notes.md),
+  [checklist](docs/release/v0.2.8-writealpha-checklist.md), [final
+  gate](docs/release/v0.2.8-writealpha-final-gate.md), [publication
+  evidence](docs/release/v0.2.8-writealpha-publication-evidence.md).
 - Phase 221 evaluated `v0.2.5-writealpha` and recorded an explicit no-release verdict because Phase
   220 found a bounded write-alpha DELETE backup-count anomaly. Phases 222–228 remediated,
   documented, and smoke-verified that blocker closure as synthetic/disposable backup-audit and
@@ -128,11 +129,12 @@ This project is not a fit if you need:
   outside-git copied working book from an outside-git pre-mutation backup, verifies checksum/read-back
   state, supports an optional read-only web/API probe, and does not claim production disaster
   recovery. Phase 258 rehearsed the full maintainer copied-book package on synthetic/disposable
-  fixture copies, Phase 259 decided the next reasonable owner ask is copied-book dry-run only, and
-  Phase 260 prepared unpublished `v0.2.8-writealpha` release-candidate notes/checklist/final-gate
-  because the copied-book package is strong enough for a candidate while owner copied-book dogfood may
-  still be pending. CREATE-one is not the immediate owner ask and can be considered only after owner
-  dry-run evidence is reviewed.
+  fixture copies, Phase 259 decided the next reasonable owner ask is copied-book dry-run only, Phase
+  260 prepared `v0.2.8-writealpha` release-candidate notes/checklist/final-gate, and Phase 261 called
+  PM, reran the release gate, waited for exact release/status commit CI, and published
+  `v0.2.8-writealpha` as a conservative GitHub pre-release. Owner copied-book dogfood may still be
+  pending. CREATE-one is not the immediate owner ask and can be considered only after owner dry-run
+  evidence is reviewed.
   CREATE creates write-alpha-owned transactions; PATCH/DELETE are limited to write-alpha-owned
   transactions for the same app metadata book; historical/manual GnuCash transactions remain
   read-only in this app.

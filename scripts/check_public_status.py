@@ -13,10 +13,10 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-CURRENT_COMPLETED_PHASE = "Phase 260"
-CURRENT_RELEASE_BASELINE_PHASE = "Phase 251"
+CURRENT_COMPLETED_PHASE = "Phase 261"
+CURRENT_RELEASE_BASELINE_PHASE = "Phase 261"
 CURRENT_READONLY_RELEASE = "v0.1.7-readonly"
-CURRENT_WRITE_ALPHA_RELEASE = "v0.2.7-writealpha"
+CURRENT_WRITE_ALPHA_RELEASE = "v0.2.8-writealpha"
 WRITE_DEFAULT = "GNUCASH_WRITES_ENABLED=false"
 APP_ENV_GATE = "APP_ENV=test"
 
@@ -47,6 +47,7 @@ PUBLIC_STATUS_FILES = [
     Path("docs/release/v0.2.8-writealpha-notes.md"),
     Path("docs/release/v0.2.8-writealpha-checklist.md"),
     Path("docs/release/v0.2.8-writealpha-final-gate.md"),
+    Path("docs/release/v0.2.8-writealpha-publication-evidence.md"),
 ]
 
 CONFIG_FILES = [
@@ -89,6 +90,7 @@ STALE_CURRENT_PATTERNS = [
     re.compile(r"Completed through Phase 257\b"),
     re.compile(r"Completed through Phase 258\b"),
     re.compile(r"Completed through Phase 259\b"),
+    re.compile(r"Completed through Phase 260\b"),
     re.compile(r"Phase 0[–-]228 are complete"),
     re.compile(r"Phase 0[–-]229 are complete"),
     re.compile(r"Phase 0[–-]230 are complete"),
@@ -121,6 +123,7 @@ STALE_CURRENT_PATTERNS = [
     re.compile(r"Phase 0[–-]257 are complete"),
     re.compile(r"Phase 0[–-]258 are complete"),
     re.compile(r"Phase 0[–-]259 are complete"),
+    re.compile(r"Phase 0[–-]260 are complete"),
     re.compile(r"Фазы 0[–-]228 завершены"),
     re.compile(r"Фазы 0[–-]229 завершены"),
     re.compile(r"Фазы 0[–-]230 завершены"),
@@ -153,6 +156,7 @@ STALE_CURRENT_PATTERNS = [
     re.compile(r"Фазы 0[–-]257 завершены"),
     re.compile(r"Фазы 0[–-]258 завершены"),
     re.compile(r"Фазы 0[–-]259 завершены"),
+    re.compile(r"Фазы 0[–-]260 завершены"),
     re.compile(r"Current public write-alpha pre-release:\s*`v0\.2\.0-writealpha`"),
     re.compile(r"Current published write-alpha pre-release:\s*`v0\.2\.0-writealpha`"),
     re.compile(r"current public experimental write-alpha GitHub pre-release after Phase 132", re.I),
@@ -204,7 +208,7 @@ def assert_unreleased_section_is_honest(changelog: str) -> None:
     if not match:
         raise AssertionError("CHANGELOG.md: missing [Unreleased] section")
     body = match.group("body")
-    if "v0.2.7" in body:
+    if "v0.2.8" in body:
         raise AssertionError("CHANGELOG.md: Unreleased must not mention the current release version")
     if "v0.2.5" in body and "Phase 231" not in body:
         raise AssertionError("CHANGELOG.md: v0.2.5 references in Unreleased must be tied to the Phase 231 publication")
@@ -222,21 +226,21 @@ def main() -> int:
 
     checks = {
         Path("README.md"): [
-            "Phase 0–260 are complete",
+            "Phase 0–261 are complete",
             CURRENT_READONLY_RELEASE,
             CURRENT_WRITE_ALPHA_RELEASE,
             WRITE_DEFAULT,
             CURRENT_RELEASE_BASELINE_PHASE,
         ],
         Path("README.ru.md"): [
-            "Фазы 0–260 завершены",
+            "Фазы 0–261 завершены",
             CURRENT_READONLY_RELEASE,
             CURRENT_WRITE_ALPHA_RELEASE,
             WRITE_DEFAULT,
             CURRENT_RELEASE_BASELINE_PHASE,
         ],
         Path("PROJECT_STATUS.md"): [
-            "Completed through Phase 260",
+            "Completed through Phase 261",
             CURRENT_READONLY_RELEASE,
             CURRENT_WRITE_ALPHA_RELEASE,
             WRITE_DEFAULT,
@@ -249,7 +253,7 @@ def main() -> int:
             WRITE_DEFAULT,
         ],
         Path("docs/ROADMAP.md"): [
-            "Completed through Phase 260",
+            "Completed through Phase 261",
             CURRENT_READONLY_RELEASE,
             CURRENT_WRITE_ALPHA_RELEASE,
             WRITE_DEFAULT,
@@ -358,30 +362,36 @@ def main() -> int:
             "PM decision: `AUTHORIZE_RELEASE`",
         ],
         Path("docs/release/v0.2.7-writealpha-publication-evidence.md"): [
-            CURRENT_WRITE_ALPHA_RELEASE,
-            CURRENT_RELEASE_BASELINE_PHASE,
+            "v0.2.7-writealpha",
+            "Phase 251",
             WRITE_DEFAULT,
             APP_ENV_GATE,
         ],
         Path("docs/release/v0.2.8-writealpha-notes.md"): [
-            "RELEASE CANDIDATE ONLY — NOT PUBLISHED",
+            "PUBLISHED AS GITHUB PRE-RELEASE",
             "v0.2.8-writealpha",
             WRITE_DEFAULT,
             APP_ENV_GATE,
             "No real/private or only-copy write safety is claimed",
         ],
         Path("docs/release/v0.2.8-writealpha-checklist.md"): [
-            "PASS — prepare candidate; Phase 261 must decide publish/no-release",
+            "PASS — publish as GitHub pre-release",
             "v0.2.8-writealpha",
             WRITE_DEFAULT,
             "Phase 258",
         ],
         Path("docs/release/v0.2.8-writealpha-final-gate.md"): [
-            "PASS — candidate prepared; Phase 261 must decide publish/no-release",
+            "PASS — publish after exact release-commit CI",
             "v0.2.8-writealpha",
             WRITE_DEFAULT,
             APP_ENV_GATE,
-            "Publication is explicitly out of scope for Phase 260",
+            "PM decision: `AUTHORIZE_RELEASE`",
+        ],
+        Path("docs/release/v0.2.8-writealpha-publication-evidence.md"): [
+            CURRENT_WRITE_ALPHA_RELEASE,
+            CURRENT_RELEASE_BASELINE_PHASE,
+            WRITE_DEFAULT,
+            APP_ENV_GATE,
         ],
         Path(".env.example"): [WRITE_DEFAULT],
         Path("docker-compose.yml"): ["GNUCASH_WRITES_ENABLED=${GNUCASH_WRITES_ENABLED:-false}"],

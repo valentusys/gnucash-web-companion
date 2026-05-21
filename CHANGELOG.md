@@ -6,13 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versioned releases begin.
 
 ## [Unreleased]
+
+## [v0.2.8-writealpha] - 2026-05-21
+
+- Phase 261 — called PM for the Cycle 3 release/no-release gate, received `AUTHORIZE_RELEASE`, reran
+  the full local release gate, checked tag/release absence, waited for exact release/status commit CI,
+  and published `v0.2.8-writealpha` as a conservative GitHub pre-release. Publication created only an
+  annotated git tag and GitHub pre-release; owner copied-book dogfood may still be pending, the next
+  owner action remains dry-run only, `GNUCASH_WRITES_ENABLED=false` remains default, the `APP_ENV=test`
+  gate remains intact, and no real/private/only-copy write-safety claim was added.
+
 - Phase 260 — prepared unpublished `v0.2.8-writealpha` release-candidate notes, checklist, and
   final-gate draft because the Cycle 3 maintainer copied-book package is strong enough for a candidate:
   dry-run/create-one wrapper evidence, restore verification, bounded compatibility checks, synthetic
   end-to-end package rehearsal, and a conservative owner dry-run-only decision gate. No tag/release was
-  published, owner copied-book dogfood may still be pending, CREATE-one is not the immediate owner ask,
-  `GNUCASH_WRITES_ENABLED=false` remains default, the `APP_ENV=test` gate remains intact, and no
-  real/private/only-copy write-safety claim was added.
+  published in Phase 260, owner copied-book dogfood may still be pending, CREATE-one is not the
+  immediate owner ask, `GNUCASH_WRITES_ENABLED=false` remains default, the `APP_ENV=test` gate remains
+  intact, and no real/private/only-copy write-safety claim was added.
 
 
 - Phase 259 — completed the owner copied-book decision gate. Verdict: ready to ask the owner for a

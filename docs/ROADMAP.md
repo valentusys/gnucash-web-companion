@@ -5,10 +5,10 @@ This roadmap is intentionally conservative. Safety and trust come before feature
 ## Current release posture
 
 - Status: pre-alpha / MVP in progress.
-- Completed through Phase 260.
+- Completed through Phase 261.
 - Current public read-only pre-release: `v0.1.7-readonly`.
-- Current published write-alpha pre-release: `v0.2.7-writealpha`, published in Phase 251 after the
-  cycle-2 release gate, PM authorization, and exact release-commit CI as pre-alpha/experimental and
+- Current published write-alpha pre-release: `v0.2.8-writealpha`, published in Phase 261 after the
+  cycle-3 release gate, PM authorization, and exact release-commit CI as pre-alpha/experimental and
   disabled by default.
 - MVP v0.1 remains read-only by default.
 - `GNUCASH_WRITES_ENABLED=false` remains the default.
@@ -17,7 +17,7 @@ This roadmap is intentionally conservative. Safety and trust come before feature
   production books.
 - Current compatibility evidence is synthetic/disposable fixture evidence only; broad GnuCash
   Desktop version support is not claimed.
-- Latest public release baseline: Phase 251 published `v0.2.7-writealpha` after PM authorization,
+- Latest public release baseline: Phase 261 published `v0.2.8-writealpha` after PM authorization,
   local backend/frontend/Docker checks, exact release-commit CI, rendered `GNUCASH_WRITES_ENABLED=false`,
   public status guard, and sensitive tracked-file hygiene. Phase 232 reconciled public
   status/changelog wording after publication, Phase 233 improved raw markdown readability for
@@ -60,9 +60,10 @@ This roadmap is intentionally conservative. Safety and trust come before feature
   disaster-recovery claim. Phase 258 rehearsed the full package on synthetic/disposable fixture
   copies. Phase 259 recorded the owner copied-book decision gate: the next reasonable owner ask is
   dry-run only, and CREATE-one can be considered only after owner dry-run evidence is reviewed. Phase
-  260 prepared unpublished `v0.2.8-writealpha` release-candidate notes/checklist/final-gate because
-  the copied-book package is strong enough for a candidate while owner copied-book dogfood may still be
-  pending.
+  260 prepared `v0.2.8-writealpha` release-candidate notes/checklist/final-gate, and Phase 261 called
+  PM, reran the release gate, waited for exact release/status commit CI, and published
+  `v0.2.8-writealpha` as a conservative GitHub pre-release while owner copied-book dogfood may still
+  be pending.
   CREATE creates write-alpha-owned transactions; PATCH/DELETE are limited to
   write-alpha-owned transactions; historical/imported/manual transactions remain read-only in this
   app. Non-owned historical/imported/manual transactions are rejected before write-service
