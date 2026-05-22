@@ -25,7 +25,7 @@ Desktop остаётся главным редактором.
 
 ## Текущий публичный статус
 
-- Фазы 0–279 завершены.
+- Фазы 0–280 завершены.
 - MVP v0.1 остаётся **read-only by default**.
 - `GNUCASH_WRITES_ENABLED=false` — безопасный дефолт.
 - Controlled-write код, если присутствует, является experimental post-MVP/write-alpha, отключён по
@@ -59,7 +59,7 @@ Desktop остаётся главным редактором.
   [docs/write-alpha/copied-book-write-alpha-posture.md](docs/write-alpha/copied-book-write-alpha-posture.md):
   owner copied-book dry-run evidence принято **только как dry-run**, ровно один owner copied-book
   CREATE evidence run принят для одной copied/restorable working copy outside git, а owner PATCH/DELETE
-  остаются не запущены и не авторизованы. Phase 279 зафиксировала PM no-release verdict; новый write-alpha release не опубликован.
+  остаются не запущены и не авторизованы. Phase 279 зафиксировала PM no-release verdict, а Phase 280 закрыла Cycle 2 с рекомендацией начать только Phase 281 analyst PATCH-readiness review; новый write-alpha release не опубликован.
 - Phase 221 проверил `v0.2.5-writealpha` и зафиксировал explicit no-release verdict: Phase 220 нашёл
   DELETE backup-count anomaly в bounded write-alpha evidence. Phases 222–228 закрыли и
   smoke-verified blocker только как synthetic/disposable backup-audit evidence и default-disabled
@@ -110,7 +110,7 @@ Desktop остаётся главным редактором.
   прошла synthetic/disposable CREATE-one rehearsal, Phase 275 подготовила owner CREATE-one request packet
   после synthetic/disposable `gnucash-cli` compatibility pass, Phase 276 приняла ровно один owner
   copied-book CREATE-one evidence run, Phase 277 не нашла concrete CREATE-one bug для исправления,
-  а Phase 278 обновила copied-book posture. Phase 279 зафиксировала PM no-release verdict; PATCH/DELETE остаются не запущены и не авторизованы.
+  а Phase 278 обновила copied-book posture. Phase 279 зафиксировала PM no-release verdict, а Phase 280 закрыла Cycle 2 с рекомендацией начать только Phase 281 analyst PATCH-readiness review; PATCH/DELETE остаются не запущены и не авторизованы.
   Write-alpha остаётся
   pre-alpha/experimental, disabled by default, `APP_ENV=test` gated при явном включении и не безопасен
   для real/private или only-copy books.
