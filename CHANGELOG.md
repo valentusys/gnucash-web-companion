@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versioned releases begin.
 
 ## [Unreleased]
+- Phase 287 — completed DELETE block decision.
+  PM was invoked for destructive mutation risk review and decided DELETE remains blocked for owner
+  copied-book dogfood. No DELETE was executed, no owner DELETE packet was prepared, and any future
+  consideration would require a separate roadmap gate and explicit owner/PM authorization.
+
 - Phase 286 — completed owner PATCH evidence intake with evidence absent.
   No exact owner PATCH confirmation block was provided after Phase 285, and no owner copied-book PATCH
   was run. Owner PATCH evidence is therefore not accepted and cannot support DELETE progression or release
