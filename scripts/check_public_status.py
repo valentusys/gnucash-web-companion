@@ -13,7 +13,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-CURRENT_COMPLETED_PHASE = "Phase 276"
+CURRENT_COMPLETED_PHASE = "Phase 278"
 CURRENT_RELEASE_BASELINE_PHASE = "Phase 261"
 CURRENT_READONLY_RELEASE = "v0.1.7-readonly"
 CURRENT_WRITE_ALPHA_RELEASE = "v0.2.8-writealpha"
@@ -107,6 +107,8 @@ STALE_CURRENT_PATTERNS = [
     re.compile(r"Completed through Phase 273\b"),
     re.compile(r"Completed through Phase 274\b"),
     re.compile(r"Completed through Phase 275\b"),
+    re.compile(r"Completed through Phase 276\b"),
+    re.compile(r"Completed through Phase 277\b"),
     re.compile(r"Phase 0[–-]228 are complete"),
     re.compile(r"Phase 0[–-]229 are complete"),
     re.compile(r"Phase 0[–-]230 are complete"),
@@ -155,6 +157,8 @@ STALE_CURRENT_PATTERNS = [
     re.compile(r"Phase 0[–-]273 are complete"),
     re.compile(r"Phase 0[–-]274 are complete"),
     re.compile(r"Phase 0[–-]275 are complete"),
+    re.compile(r"Phase 0[–-]276 are complete"),
+    re.compile(r"Phase 0[–-]277 are complete"),
     re.compile(r"Фазы 0[–-]228 завершены"),
     re.compile(r"Фазы 0[–-]229 завершены"),
     re.compile(r"Фазы 0[–-]230 завершены"),
@@ -203,6 +207,8 @@ STALE_CURRENT_PATTERNS = [
     re.compile(r"Фазы 0[–-]273 завершены"),
     re.compile(r"Фазы 0[–-]274 завершены"),
     re.compile(r"Фазы 0[–-]275 завершены"),
+    re.compile(r"Фазы 0[–-]276 завершены"),
+    re.compile(r"Фазы 0[–-]277 завершены"),
     re.compile(r"Current public write-alpha pre-release:\s*`v0\.2\.0-writealpha`"),
     re.compile(r"Current published write-alpha pre-release:\s*`v0\.2\.0-writealpha`"),
     re.compile(r"current public experimental write-alpha GitHub pre-release after Phase 132", re.I),
@@ -272,21 +278,21 @@ def main() -> int:
 
     checks = {
         Path("README.md"): [
-            "Phase 0–276 are complete",
+            "Phase 0–278 are complete",
             CURRENT_READONLY_RELEASE,
             CURRENT_WRITE_ALPHA_RELEASE,
             WRITE_DEFAULT,
             CURRENT_RELEASE_BASELINE_PHASE,
         ],
         Path("README.ru.md"): [
-            "Фазы 0–276 завершены",
+            "Фазы 0–278 завершены",
             CURRENT_READONLY_RELEASE,
             CURRENT_WRITE_ALPHA_RELEASE,
             WRITE_DEFAULT,
             CURRENT_RELEASE_BASELINE_PHASE,
         ],
         Path("PROJECT_STATUS.md"): [
-            "Completed through Phase 276",
+            "Completed through Phase 278",
             CURRENT_READONLY_RELEASE,
             CURRENT_WRITE_ALPHA_RELEASE,
             WRITE_DEFAULT,
@@ -299,7 +305,7 @@ def main() -> int:
             WRITE_DEFAULT,
         ],
         Path("docs/ROADMAP.md"): [
-            "Completed through Phase 276",
+            "Completed through Phase 278",
             CURRENT_READONLY_RELEASE,
             CURRENT_WRITE_ALPHA_RELEASE,
             WRITE_DEFAULT,

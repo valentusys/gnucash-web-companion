@@ -47,7 +47,7 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–276 are complete.
+- Phase 0–278 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by
   default.
@@ -82,13 +82,11 @@ This project is not a fit if you need:
   [checklist](docs/release/v0.2.8-writealpha-checklist.md), [final
   gate](docs/release/v0.2.8-writealpha-final-gate.md), [publication
   evidence](docs/release/v0.2.8-writealpha-publication-evidence.md).
-- After Phase 271, owner copied-book dry-run evidence is accepted as **dry-run only**; Phase 272
-  prepared the no-mutation
-  [CREATE-one copied-book readiness plan](docs/write-alpha/create-one-copied-book-plan.md), Phase 273
-  passed synthetic/disposable CREATE-one rehearsal, Phase 275 prepared the
-  [owner CREATE-one request packet](docs/write-alpha/owner-create-one-request.md), and Phase 276
-  accepted exactly one owner copied-book CREATE-one evidence run with backup/read-back/audit/lock/
-  compatibility/restore/reset evidence. PATCH/DELETE remain not run and not authorized.
+- Current copied-book write-alpha posture is summarized in
+  [docs/write-alpha/copied-book-write-alpha-posture.md](docs/write-alpha/copied-book-write-alpha-posture.md):
+  owner copied-book dry-run evidence is accepted as **dry-run only**, exactly one owner copied-book
+  CREATE evidence run is accepted for one copied/restorable working copy outside git, and owner
+  PATCH/DELETE remain not run and not authorized.
 - Phase 221 evaluated `v0.2.5-writealpha` and recorded an explicit no-release verdict because Phase
   220 found a bounded write-alpha DELETE backup-count anomaly. Phases 222–228 remediated,
   documented, and smoke-verified that blocker closure as synthetic/disposable backup-audit and
@@ -142,8 +140,9 @@ This project is not a fit if you need:
   `v0.2.8-writealpha` as a conservative GitHub pre-release. Owner copied-book dry-run evidence is now accepted
   as dry-run-only evidence, Phase 272 prepared a no-mutation CREATE-one readiness plan, Phase 273
   passed synthetic/disposable CREATE-one rehearsal, Phase 275 prepared the owner CREATE-one request packet
-  after a synthetic/disposable `gnucash-cli` compatibility pass, and Phase 276 accepted exactly one owner
-  copied-book CREATE-one evidence run. PATCH/DELETE remain not run and not authorized.
+  after a synthetic/disposable `gnucash-cli` compatibility pass, Phase 276 accepted exactly one owner
+  copied-book CREATE-one evidence run, Phase 277 found no concrete CREATE-one bug to fix, and Phase
+  278 refreshed the copied-book posture. PATCH/DELETE remain not run and not authorized.
   CREATE creates write-alpha-owned transactions; PATCH/DELETE are limited to write-alpha-owned
   transactions for the same app metadata book; historical/manual GnuCash transactions remain
   read-only in this app.

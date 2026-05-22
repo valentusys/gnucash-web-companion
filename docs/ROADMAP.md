@@ -5,9 +5,9 @@ This roadmap is intentionally conservative. Safety and trust come before feature
 ## Current release posture
 
 - Status: pre-alpha / MVP in progress.
-- Completed through Phase 276.
+- Completed through Phase 278.
 
-Phase 276 accepted exactly one owner copied-book CREATE-one evidence run after the exact Phase 275 confirmation block was provided. PATCH/DELETE remain not run and not authorized.
+Phase 276 accepted exactly one owner copied-book CREATE-one evidence run after the exact Phase 275 confirmation block was provided. Phase 277 found no concrete CREATE-one bug to fix. Phase 278 refreshed the copied-book write-alpha posture: dry-run accepted, exactly one copied-book CREATE accepted, no PATCH/DELETE, and no broad safety claim.
 - Current public read-only pre-release: `v0.1.7-readonly`.
 - Current published write-alpha pre-release: `v0.2.8-writealpha`, published in Phase 261 after the
   cycle-3 release gate, PM authorization, and exact release-commit CI as pre-alpha/experimental and
@@ -73,7 +73,8 @@ Phase 276 accepted exactly one owner copied-book CREATE-one evidence run after t
   disposable CREATE-one rehearsal, Phase 275 rechecked installed `gnucash-cli` with synthetic/
   disposable compatibility pass evidence and prepared the owner CREATE-one request packet, and Phase
   276 accepted exactly one owner copied-book CREATE-one evidence run with backup/read-back/audit/lock/
-  compatibility/restore/reset evidence. PATCH/DELETE remain not run and not authorized.
+  compatibility/restore/reset evidence. Phase 277 found no concrete CREATE-one bug to fix, and Phase
+  278 refreshed the copied-book write-alpha posture. PATCH/DELETE remain not run and not authorized.
   CREATE creates write-alpha-owned transactions; PATCH/DELETE are limited to
   write-alpha-owned transactions; historical/imported/manual transactions remain read-only in this
   app. Non-owned historical/imported/manual transactions are rejected before write-service

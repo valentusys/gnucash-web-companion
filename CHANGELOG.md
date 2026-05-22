@@ -7,6 +7,14 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versione
 
 ## [Unreleased]
 
+- Phase 278 — refreshed the copied-book write-alpha posture.
+  Public/status docs and `docs/write-alpha/copied-book-write-alpha-posture.md` now state that owner
+  copied-book dry-run evidence is accepted as dry-run-only evidence, exactly one owner copied-book
+  CREATE evidence run is accepted for one copied/restorable working copy outside git, and owner PATCH/
+  DELETE remain not run and unauthorized. `GNUCASH_WRITES_ENABLED=false` remains default, `APP_ENV=test`
+  gating remains intact, and no production/security/public-internet/broad-compatibility or real/private/
+  original/only-copy write-safety claim was added.
+
 - Phase 277 — reviewed the accepted owner copied-book CREATE-one evidence for concrete findings or bugs.
   No CREATE-one bug, failed check, restore mismatch, backup/audit mismatch, redaction concern,
   write-gate regression, or compatibility finding was identified, so no code change or regression test

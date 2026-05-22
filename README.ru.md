@@ -25,7 +25,7 @@ Desktop остаётся главным редактором.
 
 ## Текущий публичный статус
 
-- Фазы 0–276 завершены.
+- Фазы 0–278 завершены.
 - MVP v0.1 остаётся **read-only by default**.
 - `GNUCASH_WRITES_ENABLED=false` — безопасный дефолт.
 - Controlled-write код, если присутствует, является experimental post-MVP/write-alpha, отключён по
@@ -55,13 +55,11 @@ Desktop остаётся главным редактором.
   evidence](docs/release/v0.2.8-writealpha-publication-evidence.md). Write-alpha нельзя использовать
   на real/private books или единственной копии книги; только synthetic/disposable или copied test
   books, которые можно восстановить или удалить.
-- После Phase 271 owner copied-book dry-run evidence принято **только как dry-run**; Phase 272
-  подготовила no-mutation
-  [CREATE-one copied-book readiness plan](docs/write-alpha/create-one-copied-book-plan.md), Phase 273
-  прошла synthetic/disposable CREATE-one rehearsal, Phase 275 подготовила
-  [owner CREATE-one request packet](docs/write-alpha/owner-create-one-request.md), а Phase 276 приняла
-  ровно один owner copied-book CREATE-one evidence run с backup/read-back/audit/lock/compatibility/
-  restore/reset evidence. PATCH/DELETE остаются не запущены и не авторизованы.
+- Текущая copied-book write-alpha posture зафиксирована в
+  [docs/write-alpha/copied-book-write-alpha-posture.md](docs/write-alpha/copied-book-write-alpha-posture.md):
+  owner copied-book dry-run evidence принято **только как dry-run**, ровно один owner copied-book
+  CREATE evidence run принят для одной copied/restorable working copy outside git, а owner PATCH/DELETE
+  остаются не запущены и не авторизованы.
 - Phase 221 проверил `v0.2.5-writealpha` и зафиксировал explicit no-release verdict: Phase 220 нашёл
   DELETE backup-count anomaly в bounded write-alpha evidence. Phases 222–228 закрыли и
   smoke-verified blocker только как synthetic/disposable backup-audit evidence и default-disabled
@@ -110,8 +108,9 @@ Desktop остаётся главным редактором.
   conservative GitHub pre-release. Owner copied-book dry-run evidence теперь принято
   только как dry-run evidence, Phase 272 подготовила no-mutation CREATE-one readiness plan, Phase 273
   прошла synthetic/disposable CREATE-one rehearsal, Phase 275 подготовила owner CREATE-one request packet
-  после synthetic/disposable `gnucash-cli` compatibility pass, а Phase 276 приняла ровно один owner
-  copied-book CREATE-one evidence run. PATCH/DELETE остаются не запущены и не авторизованы.
+  после synthetic/disposable `gnucash-cli` compatibility pass, Phase 276 приняла ровно один owner
+  copied-book CREATE-one evidence run, Phase 277 не нашла concrete CREATE-one bug для исправления,
+  а Phase 278 обновила copied-book posture. PATCH/DELETE остаются не запущены и не авторизованы.
   Write-alpha остаётся
   pre-alpha/experimental, disabled by default, `APP_ENV=test` gated при явном включении и не безопасен
   для real/private или only-copy books.
