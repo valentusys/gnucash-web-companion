@@ -159,10 +159,15 @@ Last updated: 2026-05-22
   `APP_ENV=test` gate weakening, or broad safety claim was authorized. Owner PATCH/DELETE remain not
   run and unauthorized, and original/only-copy books remain forbidden.
 
+- Phase 281 completed the PATCH readiness analyst gate: accepted owner copied-book CREATE-one evidence
+  allows no-mutation PATCH-one planning only. PATCH execution, owner PATCH request, DELETE work, release,
+  default write changes, `APP_ENV=test` gate weakening, amount/account edits, and real/private/original/
+  only-copy write-safety claims remain unauthorized.
+
 
 ## Current baseline
 
-Completed through Phase 280.
+Completed through Phase 281.
 
 Current public release state:
 
