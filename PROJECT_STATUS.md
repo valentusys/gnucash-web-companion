@@ -114,10 +114,20 @@ Last updated: 2026-05-22
   next owner-facing step remains copied-book dry-run preparation only.
   `GNUCASH_WRITES_ENABLED=false` remains
   default, `APP_ENV=test` write-alpha gating remains intact, and no production/security/public-internet/broad-compatibility or real/private-book write-safety claim is added. Phase 263 added the single owner-facing dry-run-only entrypoint `scripts/write_alpha_owner_dry_run.py`, documented it in `docs/write-alpha/owner-dry-run-quickstart.md`, updated the maintainer copied-book packet to point to that command, added no-mutation tests, and recorded redacted synthetic dry-run evidence. The entrypoint has no CREATE/PATCH/DELETE mode and validates `mutation_requested=false`, `mutation_performed=false`, and `create_command_status=not-run` before success.
+- Phase 275 rechecked the Phase 274 compatibility blocker after host `gnucash-cli` became available.
+  `/usr/bin/gnucash-cli` reports GnuCash 5.14, and the redacted compatibility harness passed on a
+  synthetic/disposable outside-git fixture copy with piecash status pass, Desktop/CLI status pass, and
+  `broad_compatibility_claimed=false`. PM was invoked because this is an owner-risk write decision and
+  authorized preparing the owner CREATE-one request packet only. No owner copied-book CREATE/PATCH/DELETE
+  was run; CREATE execution still requires explicit owner confirmation in the execution context;
+  PATCH/DELETE remain blocked; `GNUCASH_WRITES_ENABLED=false` remains default; `APP_ENV=test` remains
+  required when writes are explicitly enabled; and no broad compatibility or real/private/only-copy
+  write-safety claim was added.
+
 
 ## Current baseline
 
-Completed through Phase 274.
+Completed through Phase 275.
 
 Current public release state:
 
@@ -128,9 +138,15 @@ Current public release state:
   cleanup, Phase 264 evidence-redaction hardening, Phase 265 abort guidance, and Phase 266 public
   status guard refresh. It is pre-alpha, disabled by default, `APP_ENV=test` gated when explicitly
   enabled, based on synthetic/disposable Cycle 3 copied-book package plus Phase 263 synthetic
-  dry-run-only entrypoint evidence plus Phase 267 fresh-clone synthetic rehearsal evidence; Phase 268 says the owner may be asked for dry-run only, Phase 269 provides the request packet, Phase 271 accepted owner copied-book dry-run evidence as dry-run-only evidence, Phase 272 prepared a no-mutation CREATE-one readiness plan, Phase 273 passed synthetic/disposable CREATE-one rehearsal, and Phase 274 kept owner copied-book CREATE blocked pending later authorization and explicit owner request, not production-ready, not
-  stable, not security-audited, not public-internet safe, and not safe for real/private or only-copy
-  books.
+  dry-run-only entrypoint evidence plus Phase 267 fresh-clone synthetic rehearsal evidence; Phase 268
+  says the owner may be asked for dry-run only, Phase 269 provides the request packet, Phase 271
+  accepted owner copied-book dry-run evidence as dry-run-only evidence, Phase 272 prepared a no-mutation
+  CREATE-one readiness plan, Phase 273 passed synthetic/disposable CREATE-one rehearsal, Phase 274 kept
+  owner copied-book CREATE blocked pending compatibility closure, and Phase 275 prepared the owner
+  CREATE-one request packet after a synthetic/disposable `gnucash-cli` compatibility pass. CREATE
+  execution still requires explicit owner confirmation in the execution context. It is not
+  production-ready, not stable, not security-audited, not public-internet safe, and not safe for
+  real/private or only-copy books.
 - `v0.2.7-writealpha` remains available as the previous public experimental write-alpha GitHub
   pre-release after Phase 251 publication. It is pre-alpha, disabled by default, `APP_ENV=test` gated
   when explicitly enabled, based on synthetic/disposable Cycle 2 ownership-guard evidence only, not

@@ -25,7 +25,7 @@ Desktop остаётся главным редактором.
 
 ## Текущий публичный статус
 
-- Фазы 0–274 завершены.
+- Фазы 0–275 завершены.
 - MVP v0.1 остаётся **read-only by default**.
 - `GNUCASH_WRITES_ENABLED=false` — безопасный дефолт.
 - Controlled-write код, если присутствует, является experimental post-MVP/write-alpha, отключён по
@@ -58,9 +58,11 @@ Desktop остаётся главным редактором.
 - После Phase 271 owner copied-book dry-run evidence принято **только как dry-run**; Phase 272
   подготовила no-mutation
   [CREATE-one copied-book readiness plan](docs/write-alpha/create-one-copied-book-plan.md), Phase 273
-  прошла synthetic/disposable CREATE-one rehearsal, а Phase 274 оставила owner copied-book CREATE
-  blocked. Не запускать owner copied-book CREATE без последующего authorization gate и явного owner
-  request.
+  прошла synthetic/disposable CREATE-one rehearsal, Phase 274 оставила owner copied-book CREATE
+  blocked из-за отсутствия host CLI compatibility, а Phase 275 подготовила
+  [owner CREATE-one request packet](docs/write-alpha/owner-create-one-request.md) после
+  synthetic/disposable compatibility recheck с установленным `gnucash-cli`. Не запускать owner
+  copied-book CREATE без явного owner confirmation из Phase 275 в момент выполнения.
 - Phase 221 проверил `v0.2.5-writealpha` и зафиксировал explicit no-release verdict: Phase 220 нашёл
   DELETE backup-count anomaly в bounded write-alpha evidence. Phases 222–228 закрыли и
   smoke-verified blocker только как synthetic/disposable backup-audit evidence и default-disabled
@@ -108,8 +110,10 @@ Desktop остаётся главным редактором.
   release gate, дождался green exact release/status commit CI и опубликовал `v0.2.8-writealpha` как
   conservative GitHub pre-release. Owner copied-book dry-run evidence теперь принято
   только как dry-run evidence, Phase 272 подготовила no-mutation CREATE-one readiness plan, Phase 273
-  прошла synthetic/disposable CREATE-one rehearsal, а Phase 274 оставила owner copied-book CREATE
-  blocked до последующего authorization gate и явного owner request.
+  прошла synthetic/disposable CREATE-one rehearsal, Phase 274 оставила owner copied-book CREATE
+  blocked до закрытия compatibility blocker, а Phase 275 подготовила owner CREATE-one request packet
+  после synthetic/disposable `gnucash-cli` compatibility pass. CREATE execution всё ещё требует
+  явного owner confirmation в момент выполнения.
   Write-alpha остаётся
   pre-alpha/experimental, disabled by default, `APP_ENV=test` gated при явном включении и не безопасен
   для real/private или only-copy books.

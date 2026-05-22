@@ -2,7 +2,7 @@
 
 Status: Phase 263 dry-run-only owner entrypoint.
 
-This is the single recommended entrypoint for the next owner-facing copied-book step. It performs a
+This remains the single recommended entrypoint for the owner copied-book dry-run step. It performs a
 local dry-run only: redacted preflight, pre-step backup creation for rehearsal discipline, redacted
 evidence writing, and default-disabled reset verification. It has no CREATE, PATCH, or DELETE mode.
 
@@ -83,5 +83,5 @@ local notes, reset to `GNUCASH_WRITES_ENABLED=false`, and ask for review before 
 | Any write endpoint succeeds during disabled smoke | validate/create/PATCH/DELETE returns success while writes should be disabled. | Stop immediately. This is a write-gate regression. Do not run further dogfood. |
 
 After a clean dry-run, the next step is review of redacted dry-run evidence only. Do not proceed to
-CREATE if dry-run is not clean. CREATE-one remains blocked until a later explicit phase accepts that
-evidence and authorizes a separate plan.
+CREATE if dry-run is not clean. CREATE-one must use the separate Phase 275 owner request packet and
+still requires explicit owner confirmation in the execution context.

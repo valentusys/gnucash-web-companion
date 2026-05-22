@@ -7,6 +7,16 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versione
 
 ## [Unreleased]
 
+- Phase 275 — rechecked the Phase 274 compatibility blocker and prepared the owner CREATE-one request packet.
+  PM was invoked because this changed an owner-risk write authorization decision. Host `gnucash-cli`
+  is now available as GnuCash 5.14, and a synthetic/disposable compatibility recheck passed with
+  piecash and Desktop/CLI status `pass` while keeping `broad_compatibility_claimed=false`. The owner
+  CREATE-one request packet is prepared, but no owner CREATE/PATCH/DELETE was run; CREATE execution
+  still requires explicit owner confirmation in the execution context, PATCH/DELETE remain blocked,
+  `GNUCASH_WRITES_ENABLED=false` remains default, `APP_ENV=test` gating remains intact, and no
+  production/security/public-internet/broad-compatibility or real/private/only-copy write-safety claim
+  was added.
+
 - Phase 274 — completed the PM/analyst CREATE-one authorization gate with a conservative no-owner-mutation decision.
   PM was invoked because this was an owner-risk write authorization gate. Owner copied-book dry-run
   evidence is accepted and the synthetic CREATE-one rehearsal passed, but host Desktop/CLI compatibility

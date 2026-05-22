@@ -47,7 +47,7 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–274 are complete.
+- Phase 0–275 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by
   default.
@@ -85,9 +85,11 @@ This project is not a fit if you need:
 - After Phase 271, owner copied-book dry-run evidence is accepted as **dry-run only**; Phase 272
   prepared the no-mutation
   [CREATE-one copied-book readiness plan](docs/write-alpha/create-one-copied-book-plan.md), Phase 273
-  passed synthetic/disposable CREATE-one rehearsal, and Phase 274 kept owner copied-book CREATE
-  blocked. Do not run owner copied-book CREATE unless a later authorization gate and explicit owner
-  request allow it.
+  passed synthetic/disposable CREATE-one rehearsal, Phase 274 kept owner copied-book CREATE
+  blocked while host CLI compatibility was unavailable, and Phase 275 prepared the
+  [owner CREATE-one request packet](docs/write-alpha/owner-create-one-request.md) after installed
+  `gnucash-cli` passed a synthetic/disposable compatibility recheck. Do not run owner copied-book
+  CREATE unless the owner explicitly confirms the Phase 275 mutation text at execution time.
 - Phase 221 evaluated `v0.2.5-writealpha` and recorded an explicit no-release verdict because Phase
   220 found a bounded write-alpha DELETE backup-count anomaly. Phases 222–228 remediated,
   documented, and smoke-verified that blocker closure as synthetic/disposable backup-audit and
@@ -140,8 +142,10 @@ This project is not a fit if you need:
   PM, reran the release gate, waited for exact release/status commit CI, and published
   `v0.2.8-writealpha` as a conservative GitHub pre-release. Owner copied-book dry-run evidence is now accepted
   as dry-run-only evidence, Phase 272 prepared a no-mutation CREATE-one readiness plan, Phase 273
-  passed synthetic/disposable CREATE-one rehearsal, and Phase 274 kept owner copied-book CREATE
-  blocked pending a later authorization gate and explicit owner request.
+  passed synthetic/disposable CREATE-one rehearsal, Phase 274 kept owner copied-book CREATE
+  blocked pending compatibility closure, and Phase 275 prepared the owner CREATE-one request packet
+  after a synthetic/disposable `gnucash-cli` compatibility pass. CREATE execution still requires
+  explicit owner confirmation in the execution context.
   CREATE creates write-alpha-owned transactions; PATCH/DELETE are limited to write-alpha-owned
   transactions for the same app metadata book; historical/manual GnuCash transactions remain
   read-only in this app.
