@@ -9,7 +9,7 @@ Last updated: 2026-05-22
 - Branch: `main`
 - Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release;
   `v0.2.8-writealpha` is the current public experimental write-alpha pre-release. Completed through
-  Phase 278. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
+  Phase 279. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
   release-candidate dogfood, confirmed local/backend/frontend/Docker/public-status/sensitive-file
   gates, waited for exact release/status commit CI, and published only the annotated tag plus GitHub
   pre-release. Phase 232 reconciled public status/changelog wording after publication. Phase 233
@@ -146,11 +146,18 @@ Last updated: 2026-05-22
   `GNUCASH_WRITES_ENABLED=false` remains default, enabled write-alpha remains `APP_ENV=test` gated, and
   no production/security/public-internet/broad-compatibility or real/private/original/only-copy write-
   safety claim was added.
+- Phase 279 invoked PM for the Cycle 2 release/no-release decision and recorded a no-release
+  verdict in `docs/release/v0.2.10-writealpha-no-release-verdict.md`. No `v0.2.9-writealpha` or
+  `v0.2.10-writealpha` tag/GitHub release/package/image was published because the new state is narrow
+  evidence/posture progress rather than a product behavior change, and a release could overstate one
+  copied-book CREATE evidence run. PATCH/DELETE remain not run and unauthorized, `GNUCASH_WRITES_ENABLED=false`
+  remains default, enabled write-alpha remains `APP_ENV=test` gated, and no production/security/public-
+  internet/broad-compatibility or real/private/original/only-copy write-safety claim was added.
 
 
 ## Current baseline
 
-Completed through Phase 278.
+Completed through Phase 279.
 
 Current public release state:
 
@@ -169,7 +176,7 @@ Current public release state:
   CREATE-one request packet after a synthetic/disposable `gnucash-cli` compatibility pass. Phase 276 then
   accepted exactly one owner copied-book CREATE-one evidence run with backup/read-back/audit/lock/
   compatibility/restore/reset evidence. Phase 277 found no concrete CREATE-one bug to fix, and Phase
-  278 refreshed the copied-book write-alpha posture. PATCH/DELETE remain not run and not authorized. It is not
+  278 refreshed the copied-book write-alpha posture. Phase 279 invoked PM and recorded a no-release verdict. PATCH/DELETE remain not run and not authorized. It is not
   production-ready, not stable, not security-audited, not public-internet safe, and not safe for
   real/private or only-copy books.
 - `v0.2.7-writealpha` remains available as the previous public experimental write-alpha GitHub
