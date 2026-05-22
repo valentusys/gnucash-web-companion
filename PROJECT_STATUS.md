@@ -182,10 +182,11 @@ Last updated: 2026-05-22
 - Phase 290 practical verdict: use read-only as the practical path; synthetic/disposable write-alpha remains development-only; owner PATCH absent; DELETE blocked; original/only-copy writes forbidden.
 - Phase 291 PM decision: freeze active write-alpha progression until the owner provides redacted Phase 285 PATCH-one evidence or explicitly chooses read-only maintenance. No release was published and no new writes were authorized.
 - Phase 292 PATCH-one execution gate: exact Phase 285 owner confirmation was present, but the private working target could not verify the required precondition because the app metadata ownership marker points to the accepted CREATE-one transaction while that transaction is absent from the current copied working book after prior restore/reset. No PATCH was attempted or performed, DELETE was not run, writes were reset/observed disabled, and owner PATCH remains blocked pending a copied/restorable working book that still contains the Phase 276 write-alpha-created transaction.
+- Phase 293 fresh CREATE-to-PATCH chain gate: the owner selected the fresh-chain direction after Phase 292, but mutation was blocked before execution because this is a new owner mutation scope. The Phase 275 CREATE-one exact authorization was already consumed in Phase 276, and the Phase 285 PATCH-one authorization targeted the Phase 276-created transaction that Phase 292 could not verify. Prepared `docs/write-alpha/owner-create-patch-chain-request.md` with the exact same-context confirmation block required before any new chain. No CREATE/PATCH/DELETE was attempted or performed, defaults/gates remain unchanged, and no release was published.
 
 ## Current baseline
 
-Completed through Phase 292.
+Completed through Phase 293.
 
 Current public release state:
 
@@ -204,7 +205,7 @@ Current public release state:
   CREATE-one request packet after a synthetic/disposable `gnucash-cli` compatibility pass. Phase 276 then
   accepted exactly one owner copied-book CREATE-one evidence run with backup/read-back/audit/lock/
   compatibility/restore/reset evidence. Phase 277 found no concrete CREATE-one bug to fix, and Phase
-  278 refreshed the copied-book write-alpha posture. Phase 279 invoked PM and recorded a no-release verdict. Phase 280 closed Cycle 2 and recommends Phase 281 analyst PATCH-readiness review only. PATCH/DELETE remain not run and not authorized. It is not
+  278 refreshed the copied-book write-alpha posture. Phase 279 invoked PM and recorded a no-release verdict. Phase 280 closed Cycle 2 and recommended Phase 281 analyst PATCH-readiness review only; Phases 281–292 prepared and then blocked owner PATCH before mutation; Phase 293 blocked a fresh CREATE-to-PATCH chain before mutation pending exact same-context owner confirmation. Owner PATCH/DELETE remain not accepted/run. It is not
   production-ready, not stable, not security-audited, not public-internet safe, and not safe for
   real/private or only-copy books.
 - `v0.2.7-writealpha` remains available as the previous public experimental write-alpha GitHub

@@ -47,7 +47,7 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–292 are complete.
+- Phase 0–293 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by
   default.
@@ -85,8 +85,9 @@ This project is not a fit if you need:
 - Current copied-book write-alpha posture is summarized in
   [docs/write-alpha/copied-book-write-alpha-posture.md](docs/write-alpha/copied-book-write-alpha-posture.md):
   owner copied-book dry-run evidence is accepted as **dry-run only**, exactly one owner copied-book
-  CREATE evidence run is accepted for one copied/restorable working copy outside git, and owner
-  PATCH remains blocked before mutation because the current copied working book could not verify the Phase 276 write-alpha-created target transaction. DELETE remains not run. No new write-alpha release was published.
+  CREATE evidence run is accepted for one copied/restorable working copy outside git, owner PATCH
+  remains blocked/not accepted, and a fresh owner CREATE-to-PATCH chain is blocked before mutation pending
+  exact same-context confirmation for the new mutation scope. DELETE remains not run. No new write-alpha release was published.
 - Phase 221 evaluated `v0.2.5-writealpha` and recorded an explicit no-release verdict because Phase
   220 found a bounded write-alpha DELETE backup-count anomaly. Phases 222–228 remediated,
   documented, and smoke-verified that blocker closure as synthetic/disposable backup-audit and

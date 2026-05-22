@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versioned releases begin.
 
 ## [Unreleased]
+- Phase 293 — blocked the new owner CREATE-to-PATCH chain before mutation pending exact confirmation.
+  The owner selected the fresh-chain direction after Phase 292, but the existing exact confirmations cannot
+  be reused: the Phase 275 CREATE-one authorization was already consumed in Phase 276, and the Phase 285
+  PATCH-one authorization targeted the Phase 276-created transaction that Phase 292 could not verify.
+  Added `docs/write-alpha/owner-create-patch-chain-request.md` with the exact same-context block required
+  before any new CREATE-to-PATCH chain. No CREATE/PATCH/DELETE was attempted, no private artifact was
+  committed, defaults/gates remain unchanged, and no release was published.
+
 - Phase 292 — blocked owner PATCH-one before mutation.
   Exact Phase 285 owner confirmation was present, and preflight against the outside-git copied target
   passed, but the required target transaction could not be verified: the app metadata ownership marker

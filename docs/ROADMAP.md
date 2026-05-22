@@ -5,9 +5,9 @@ This roadmap is intentionally conservative. Safety and trust come before feature
 ## Current release posture
 
 - Status: pre-alpha / MVP in progress.
-- Completed through Phase 292.
+- Completed through Phase 293.
 
-Phase 276 accepted exactly one owner copied-book CREATE-one evidence run after the exact Phase 275 confirmation block was provided. Phases 281–285 prepared PATCH-one readiness/plan/request without mutation. Phase 291 froze progression pending owner PATCH evidence or read-only maintenance. Phase 292 received exact owner PATCH confirmation but blocked before mutation because the current copied working book no longer contains the accepted CREATE-one target transaction required for PATCH verification. No owner PATCH/DELETE was run, and no broad safety claim or release was added.
+Phase 276 accepted exactly one owner copied-book CREATE-one evidence run after the exact Phase 275 confirmation block was provided. Phases 281–285 prepared PATCH-one readiness/plan/request without mutation. Phase 291 froze progression pending owner PATCH evidence or read-only maintenance. Phase 292 received exact owner PATCH confirmation but blocked before mutation because the current copied working book no longer contains the accepted CREATE-one target transaction required for PATCH verification. Phase 293 analyzed the owner-selected fresh-chain direction and blocked before mutation because a new CREATE-to-PATCH chain is a new owner mutation scope requiring an exact same-context confirmation block. No new owner CREATE/PATCH/DELETE was run, and no broad safety claim or release was added.
 - Current public read-only pre-release: `v0.1.7-readonly`.
 - Current published write-alpha pre-release: `v0.2.8-writealpha`, published in Phase 261 after the
   cycle-3 release gate, PM authorization, and exact release-commit CI as pre-alpha/experimental and
@@ -74,7 +74,7 @@ Phase 276 accepted exactly one owner copied-book CREATE-one evidence run after t
   disposable compatibility pass evidence and prepared the owner CREATE-one request packet, and Phase
   276 accepted exactly one owner copied-book CREATE-one evidence run with backup/read-back/audit/lock/
   compatibility/restore/reset evidence. Phase 277 found no concrete CREATE-one bug to fix, and Phase
-  278 refreshed the copied-book write-alpha posture. Phase 279 invoked PM and recorded a no-release verdict. Phase 280 closed Cycle 2 and recommended Phase 281 analyst PATCH-readiness review only. Phases 281–285 prepared PATCH-one planning and the exact owner request packet; Phase 286 recorded evidence absent at that time; Phase 291 froze active progression pending owner PATCH evidence or read-only maintenance; Phase 292 received exact owner confirmation but blocked before mutation because the current copied working book could not verify the Phase 276 write-alpha-created target transaction. PATCH/DELETE remain not run.
+  278 refreshed the copied-book write-alpha posture. Phase 279 invoked PM and recorded a no-release verdict. Phase 280 closed Cycle 2 and recommended Phase 281 analyst PATCH-readiness review only. Phases 281–285 prepared PATCH-one planning and the exact owner request packet; Phase 286 recorded evidence absent at that time; Phase 291 froze active progression pending owner PATCH evidence or read-only maintenance; Phase 292 received exact owner confirmation but blocked before mutation because the current copied working book could not verify the Phase 276 write-alpha-created target transaction. Phase 293 prepared an exact-confirmation packet for a possible future fresh CREATE-to-PATCH chain and blocked before mutation; no new CREATE/PATCH/DELETE was run.
   CREATE creates write-alpha-owned transactions; PATCH/DELETE are limited to
   write-alpha-owned transactions; historical/imported/manual transactions remain read-only in this
   app. Non-owned historical/imported/manual transactions are rejected before write-service

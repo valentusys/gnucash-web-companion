@@ -25,7 +25,7 @@ Desktop остаётся главным редактором.
 
 ## Текущий публичный статус
 
-- Фазы 0–292 завершены.
+- Фазы 0–293 завершены.
 - MVP v0.1 остаётся **read-only by default**.
 - `GNUCASH_WRITES_ENABLED=false` — безопасный дефолт.
 - Controlled-write код, если присутствует, является experimental post-MVP/write-alpha, отключён по
@@ -58,8 +58,9 @@ Desktop остаётся главным редактором.
 - Текущая copied-book write-alpha posture зафиксирована в
   [docs/write-alpha/copied-book-write-alpha-posture.md](docs/write-alpha/copied-book-write-alpha-posture.md):
   owner copied-book dry-run evidence принято **только как dry-run**, ровно один owner copied-book
-  CREATE evidence run принят для одной copied/restorable working copy outside git, а owner PATCH
-  заблокирован до мутации: текущая copied working book не подтверждает наличие Phase 276 write-alpha-created target transaction. DELETE не запускался. Новый write-alpha release не опубликован.
+  CREATE evidence run принят для одной copied/restorable working copy outside git, owner PATCH
+  остаётся blocked/not accepted, а fresh owner CREATE-to-PATCH chain заблокирован до мутации до получения
+  exact same-context confirmation для нового mutation scope. DELETE не запускался. Новый write-alpha release не опубликован.
 - Phase 221 проверил `v0.2.5-writealpha` и зафиксировал explicit no-release verdict: Phase 220 нашёл
   DELETE backup-count anomaly в bounded write-alpha evidence. Phases 222–228 закрыли и
   smoke-verified blocker только как synthetic/disposable backup-audit evidence и default-disabled
