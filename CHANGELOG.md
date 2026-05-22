@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versioned releases begin.
 
 ## [Unreleased]
+- Phase 292 — blocked owner PATCH-one before mutation.
+  Exact Phase 285 owner confirmation was present, and preflight against the outside-git copied target
+  passed, but the required target transaction could not be verified: the app metadata ownership marker
+  still references the accepted CREATE-one transaction while that transaction is absent from the current
+  copied working book after prior restore/reset. No PATCH was attempted or performed, DELETE was not run,
+  no release was published, and owner PATCH remains blocked until a copied/restorable working book that
+  still contains the Phase 276 write-alpha-created transaction is provided/selected.
+
 - Phase 291 — completed stop/continue decision.
   PM was invoked for owner dogfood/write-mode strategy. Active write-alpha progression is frozen until
   the owner provides redacted Phase 285 PATCH-one evidence or explicitly chooses read-only maintenance.
