@@ -7,6 +7,14 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versione
 
 ## [Unreleased]
 
+- Phase 269 — added the owner copied-book dry-run request packet.
+  `docs/write-alpha/owner-dry-run-request.md` gives the owner one dry-run-only command, local
+  redaction validation, a safe redacted checklist to paste back, and stop conditions. It forbids
+  original/only-copy books, raw private evidence, screenshots, CSV exports, app DBs, books, backups,
+  secrets, and CREATE/PATCH/DELETE. No product code, release/tag, owner/private/original/only-copy
+  book use, default write change, `APP_ENV=test` gate weakening, mutation, or real/private/only-copy
+  write-safety claim was added.
+
 - Phase 268 — passed the analyst owner dry-run readiness gate.
   The review covered the owner dry-run-only entrypoint, quickstart, redaction/evidence schema,
   troubleshooting abort guidance, Phase 267 fresh-clone rehearsal, and issue #36 evidence comments.
