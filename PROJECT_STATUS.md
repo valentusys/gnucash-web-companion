@@ -9,7 +9,7 @@ Last updated: 2026-05-22
 - Branch: `main`
 - Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release;
   `v0.2.8-writealpha` is the current public experimental write-alpha pre-release. Completed through
-  Phase 276. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
+  Phase 277. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
   release-candidate dogfood, confirmed local/backend/frontend/Docker/public-status/sensitive-file
   gates, waited for exact release/status commit CI, and published only the annotated tag plus GitHub
   pre-release. Phase 232 reconciled public status/changelog wording after publication. Phase 233
@@ -132,11 +132,18 @@ Last updated: 2026-05-22
   PATCH/DELETE was run, no private artifact was committed, `GNUCASH_WRITES_ENABLED=false` remains
   default, enabled write-alpha remains `APP_ENV=test` gated, and no production/security/public-internet/
   broad-compatibility or real/private/only-copy write-safety claim was added.
+- Phase 277 reviewed the accepted owner copied-book CREATE-one evidence for concrete findings or bugs.
+  No CREATE-one bug, failed check, restore mismatch, backup/audit mismatch, redaction concern,
+  write-gate regression, or compatibility finding was identified, so no code or regression-test change
+  was needed. Owner dry-run remains accepted, exactly one owner copied-book CREATE evidence remains
+  accepted, PATCH/DELETE remain not run and unauthorized, `GNUCASH_WRITES_ENABLED=false` remains default,
+  enabled write-alpha remains `APP_ENV=test` gated, and no production/security/public-internet/broad-
+  compatibility or real/private/only-copy write-safety claim was added.
 
 
 ## Current baseline
 
-Completed through Phase 276.
+Completed through Phase 277.
 
 Current public release state:
 
