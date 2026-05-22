@@ -10,6 +10,11 @@ production, shared, or only-copy books.
 
 Start with dry-run only.
 
+For the owner-facing dry-run, use the single dry-run-only entrypoint in
+`docs/write-alpha/owner-dry-run-quickstart.md`. The command is
+`python3 scripts/write_alpha_owner_dry_run.py`; it has no CREATE, PATCH, or DELETE mode and validates
+that no mutation was requested or performed before reporting success.
+
 Do not proceed to CREATE until the dry-run, external backup, restore plan, redaction plan, and
 explicit local write-alpha gates have all passed. Do not perform PATCH in the same session unless a
 later maintainer decision explicitly authorizes it. Do not perform DELETE unless it is separately and
@@ -108,19 +113,21 @@ Dry-run goals:
 - confirm reset to default false;
 - perform no create, no PATCH, no DELETE, and no write-enabled mutation.
 
-Suggested dry-run command shapes:
+Suggested dry-run command shape:
 
 ```bash
 GNUCASH_WRITES_ENABLED=true APP_ENV=test \
-python3 scripts/write_alpha_preflight.py \
+python3 scripts/write_alpha_owner_dry_run.py \
   --target <copied-book-path> \
-  --backup-dir <external-or-ignored-backup-dir>
+  --backup-dir <external-or-ignored-backup-dir> \
+  --evidence-file <redacted-evidence-json> \
+  --confirm-copied-disposable \
+  --confirm-original-untouched \
+  --confirm-outside-git
 ```
 
-```bash
-GNUCASH_WRITES_ENABLED=true APP_ENV=test \
-python3 scripts/write_alpha_readiness.py --redacted
-```
+This dry-run entrypoint has no CREATE/PATCH/DELETE mode. It records `mutation_requested=false`,
+`mutation_performed=false`, and `create_command_status=not-run` when it succeeds.
 
 If using Docker/Caddy for a default-disabled browser/API smoke, render or run it with the safe default:
 

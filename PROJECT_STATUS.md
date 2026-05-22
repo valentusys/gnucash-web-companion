@@ -1,6 +1,6 @@
 # PROJECT_STATUS
 
-Last updated: 2026-05-21
+Last updated: 2026-05-22
 
 ## Repository
 
@@ -9,7 +9,7 @@ Last updated: 2026-05-21
 - Branch: `main`
 - Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release;
   `v0.2.8-writealpha` is the current public experimental write-alpha pre-release. Completed through
-  Phase 261. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
+  Phase 263. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
   release-candidate dogfood, confirmed local/backend/frontend/Docker/public-status/sensitive-file
   gates, waited for exact release/status commit CI, and published only the annotated tag plus GitHub
   pre-release. Phase 232 reconciled public status/changelog wording after publication. Phase 233
@@ -113,19 +113,19 @@ Last updated: 2026-05-21
   rendered Compose defaults, and public-status guard were coherent; no safety blocker was found; the
   next owner-facing step remains copied-book dry-run preparation only.
   `GNUCASH_WRITES_ENABLED=false` remains
-  default, `APP_ENV=test` write-alpha gating remains intact, and no production/security/public-internet/broad-compatibility or real/private-book write-safety claim is added.
+  default, `APP_ENV=test` write-alpha gating remains intact, and no production/security/public-internet/broad-compatibility or real/private-book write-safety claim is added. Phase 263 added the single owner-facing dry-run-only entrypoint `scripts/write_alpha_owner_dry_run.py`, documented it in `docs/write-alpha/owner-dry-run-quickstart.md`, updated the maintainer copied-book packet to point to that command, added no-mutation tests, and recorded redacted synthetic dry-run evidence. The entrypoint has no CREATE/PATCH/DELETE mode and validates `mutation_requested=false`, `mutation_performed=false`, and `create_command_status=not-run` before success.
 
 ## Current baseline
 
-Completed through Phase 262.
+Completed through Phase 263.
 
 Current public release state:
 
 - `v0.1.7-readonly` is the current public read-only pre-alpha GitHub pre-release after Phase 171
   publication, prepared/published only after Val authorization and final release-gate checks.
 - `v0.2.8-writealpha` is the current public experimental write-alpha GitHub pre-release after Phase
-  261 publication and Phase 262 current-state analyst gate. It is pre-alpha, disabled by default, `APP_ENV=test` gated when explicitly
-  enabled, based on synthetic/disposable Cycle 3 copied-book package evidence only, owner dry-run may
+  261 publication and Phase 262 current-state analyst gate and Phase 263 owner dry-run-only entrypoint cleanup. It is pre-alpha, disabled by default, `APP_ENV=test` gated when explicitly
+  enabled, based on synthetic/disposable Cycle 3 copied-book package plus Phase 263 synthetic dry-run-only entrypoint evidence, owner dry-run may
   still be pending, not production-ready, not stable, not security-audited, not public-internet safe,
   and not safe for real/private or only-copy books.
 - `v0.2.7-writealpha` remains available as the previous public experimental write-alpha GitHub
@@ -365,6 +365,18 @@ Current public release state:
   book use, production/security/public-internet/broad compatibility claim, or real/private/only-copy
   write-safety claim was added. The final next owner action is copied-book dry-run only; CREATE-one
   can be considered only after owner dry-run evidence review.
+
+- Phase 263 added `scripts/write_alpha_owner_dry_run.py` and
+  `docs/write-alpha/owner-dry-run-quickstart.md` as the single owner-facing copied-book dry-run-only
+  path. The command has no CREATE/PATCH/DELETE mode, delegates only to the no-mutation wrapper path,
+  validates `mutation_requested=false`, `mutation_performed=false`, and
+  `create_command_status=not-run`, and writes redacted evidence only. Targeted tests passed, a
+  synthetic outside-git fixture dry-run passed, and
+  `docs/dogfood/phase-263-owner-dry-run-synthetic-evidence.json` passed redaction validation. No
+  owner/private/original/only-copy book was used, no release/tag was published, `GNUCASH_WRITES_ENABLED=false`
+  remains default, the `APP_ENV=test` gate remains intact, and no real/private/only-copy write-safety
+  claim was added.
+
 - `v0.2.4-writealpha` remains available as the previous public experimental write-alpha GitHub
   pre-release after Phase 211 publication. It is pre-alpha, disabled by default, `APP_ENV=test`
   gated when explicitly enabled, based on synthetic/disposable evidence only for that cycle, not

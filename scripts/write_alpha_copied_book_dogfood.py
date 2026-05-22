@@ -191,9 +191,9 @@ def run(args: argparse.Namespace) -> DogfoodEvidence:
     disabled_status = _default_disabled_status()
     result = "pass" if disabled_status.startswith("verified") or disabled_status.startswith("blocked-compose") else "blocked"
     evidence = DogfoodEvidence(
-        phase_number=254,
+        phase_number=getattr(args, "phase_number", 254),
         scenario_type="copied-book-dogfood-wrapper",
-        classification="synthetic-or-copied-disposable-only",
+        classification=getattr(args, "classification", "synthetic-or-copied-disposable-only"),
         mode=mode,
         preflight_status=preflight.status,
         backup_status="created-before-step",

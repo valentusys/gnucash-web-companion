@@ -1,0 +1,31 @@
+{
+  "audit_row_count": 0,
+  "backup_count": 1,
+  "backup_status": "created-before-step",
+  "classification": "synthetic",
+  "commands_run": [
+    "python3 scripts/write_alpha_preflight.py <redacted-target> --backup-dir <redacted-backup-dir>",
+    "dry-run only; no mutation command executed"
+  ],
+  "create_command_status": "not-run",
+  "delete_status": "not-supported-by-default",
+  "disabled_reset_status": "verified-default-disabled",
+  "location_redaction_status": "redacted",
+  "lock_status": "not-inspected-by-wrapper",
+  "mode": "dry-run",
+  "mutation_performed": false,
+  "mutation_requested": false,
+  "notes": [
+    "target path redacted",
+    "backup path redacted",
+    "target label <redacted.gnucash.sqlite>",
+    "backup ref opaque-backup-ref-ab0193ccb16e"
+  ],
+  "patch_status": "not-supported-by-default",
+  "phase_number": 263,
+  "preflight_status": "ready",
+  "redaction_status": "validated-before-write",
+  "restore_proof_status": "operator-required-after-mutation",
+  "result": "pass",
+  "scenario_type": "copied-book-dogfood-wrapper"
+}

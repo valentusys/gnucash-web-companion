@@ -7,6 +7,14 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versione
 
 ## [Unreleased]
 
+- Phase 263 — added a single owner-facing copied-book dry-run-only entrypoint and quickstart.
+  `scripts/write_alpha_owner_dry_run.py` has no CREATE/PATCH/DELETE mode, validates that
+  `mutation_requested=false`, `mutation_performed=false`, and `create_command_status=not-run` before
+  success, and writes redacted evidence only. Targeted tests and a synthetic outside-git fixture
+  dry-run passed; redacted evidence was committed under `docs/dogfood/`. No owner/private/original/
+  only-copy book was used, no release was published, `GNUCASH_WRITES_ENABLED=false` remains default,
+  the `APP_ENV=test` gate remains intact, and no real/private/only-copy write-safety claim was added.
+
 - Phase 262 — passed the current-state analyst gate after the current write-alpha publication. Public status docs,
   release list, open issues, recent CI, `.env.example`, rendered Docker Compose defaults, and the
   public-status guard are coherent. No safety blocker was found; `GNUCASH_WRITES_ENABLED=false`
