@@ -108,20 +108,23 @@ Last updated: 2026-05-21
   checked tag/release absence, waited for exact release/status commit CI, and published
   `v0.2.8-writealpha` as a conservative GitHub pre-release. Phase 261 did not authorize owner
   CREATE-one as the next immediate action, did not use owner/private/original/only-copy books, and did
-  not add any real/private/only-copy write-safety claim.
+  not add any real/private/only-copy write-safety claim. Phase 262 passed the current-state analyst
+  gate after `v0.2.8-writealpha`: public docs, releases, open issues, recent CI, `.env.example`,
+  rendered Compose defaults, and public-status guard were coherent; no safety blocker was found; the
+  next owner-facing step remains copied-book dry-run preparation only.
   `GNUCASH_WRITES_ENABLED=false` remains
   default, `APP_ENV=test` write-alpha gating remains intact, and no production/security/public-internet/broad-compatibility or real/private-book write-safety claim is added.
 
 ## Current baseline
 
-Completed through Phase 261.
+Completed through Phase 262.
 
 Current public release state:
 
 - `v0.1.7-readonly` is the current public read-only pre-alpha GitHub pre-release after Phase 171
   publication, prepared/published only after Val authorization and final release-gate checks.
 - `v0.2.8-writealpha` is the current public experimental write-alpha GitHub pre-release after Phase
-  261 publication. It is pre-alpha, disabled by default, `APP_ENV=test` gated when explicitly
+  261 publication and Phase 262 current-state analyst gate. It is pre-alpha, disabled by default, `APP_ENV=test` gated when explicitly
   enabled, based on synthetic/disposable Cycle 3 copied-book package evidence only, owner dry-run may
   still be pending, not production-ready, not stable, not security-audited, not public-internet safe,
   and not safe for real/private or only-copy books.
@@ -6815,6 +6818,33 @@ Verification result: Docker Compose config rendered successfully with dummy loca
 `GNUCASH_WRITES_ENABLED=false`; public status guard passed; public-status tests passed; `git diff
 --check` passed; sensitive tracked-file hygiene scan passed with `.env.writealpha.example` allowlisted
 as an intended operator reference.
+
+## Phase 262 — current-state analyst gate after v0.2.8
+
+Phase 262 passed the post-`v0.2.8-writealpha` current-state analyst gate. The review covered
+README, README.ru, PROJECT_STATUS, CHANGELOG, docs/ROADMAP, recent git history, GitHub releases,
+open issues, recent CI, `.env.example`, rendered Docker Compose defaults, and the public-status
+guard. The repository is coherent after publication: `v0.2.8-writealpha` is published as the current
+experimental write-alpha pre-release, `v0.1.7-readonly` remains the current public read-only
+pre-release, issue #36 remains the controlled-write readiness tracker, and recent `main` CI was green
+through Phase 261.
+
+Safety result: `GNUCASH_WRITES_ENABLED=false` remains default in `.env.example` and rendered Compose,
+the backend write-alpha posture remains `APP_ENV=test` gated when explicitly enabled, and the public
+docs still avoid production/security/public-internet/broad-compatibility and real/private/only-copy
+write-safety claims. Owner copied-book dogfood remains pending/absent in the repository evidence; the
+next approved owner-facing step remains dry-run preparation only, not CREATE-one.
+
+Verification result: `git status --short`, `git log --oneline -20`, `gh release list --limit 10`,
+`gh issue list --state open --limit 50`, `gh run list --limit 10`, rendered Compose grep for
+`GNUCASH_WRITES_ENABLED`/`APP_ENV`, `python3 scripts/check_public_status.py`, and `git diff --check`
+were run. The local pre-existing untracked `.hermes/` runtime logs were not used as evidence and were
+not committed.
+
+Artifacts:
+
+- `docs/audits/phase-262-current-state-gate.md`
+- `docs/handoff/phase-262.md`
 
 ## Standing constraints
 

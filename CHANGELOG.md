@@ -7,6 +7,13 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versione
 
 ## [Unreleased]
 
+- Phase 262 — passed the current-state analyst gate after the current write-alpha publication. Public status docs,
+  release list, open issues, recent CI, `.env.example`, rendered Docker Compose defaults, and the
+  public-status guard are coherent. No safety blocker was found; `GNUCASH_WRITES_ENABLED=false`
+  remains default, the enabled write-alpha posture remains `APP_ENV=test` gated, no real/private or
+  only-copy write-safety claim was added, and the next owner-facing step remains copied-book dry-run
+  preparation only, not CREATE-one.
+
 ## [v0.2.8-writealpha] - 2026-05-21
 
 - Phase 261 — called PM for the Cycle 3 release/no-release gate, received `AUTHORIZE_RELEASE`, reran
