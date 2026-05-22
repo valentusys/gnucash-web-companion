@@ -7,6 +7,14 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versione
 
 ## [Unreleased]
 
+- Phase 270 — completed the Cycle 1 release/no-release decision with PM invoked.
+  PM decision: no `v0.2.9-writealpha` release now because Phases 267–269 add useful synthetic
+  rehearsal evidence and owner dry-run request documentation but no new product behavior and no owner
+  copied-book dry-run evidence. Backend tests, frontend checks/build, Docker Compose config, public
+  status guard, and diff check passed. No tag, GitHub release, package, image, production deployment,
+  owner/private/original/only-copy book use, default write change, `APP_ENV=test` gate weakening,
+  mutation, or real/private/only-copy write-safety claim was added.
+
 - Phase 269 — added the owner copied-book dry-run request packet.
   `docs/write-alpha/owner-dry-run-request.md` gives the owner one dry-run-only command, local
   redaction validation, a safe redacted checklist to paste back, and stop conditions. It forbids
