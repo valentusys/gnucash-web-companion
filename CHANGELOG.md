@@ -7,6 +7,14 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versione
 
 ## [Unreleased]
 
+- Phase 271 — completed the owner copied-book dry-run evidence intake gate and stopped mutation
+  progression because owner evidence is absent.
+  Repository artifacts and GitHub issue #36 comments were checked; no owner-provided redacted dry-run
+  checklist/evidence was found or accepted. CREATE-one planning was not started, PATCH/DELETE remain
+  blocked, and the prepared owner request packet remains the next practical owner-facing step. No
+  product code, release/tag, owner/private/original/only-copy book use, default write change,
+  `APP_ENV=test` gate weakening, mutation, or real/private/only-copy write-safety claim was added.
+
 - Phase 270 — completed the Cycle 1 release/no-release decision with PM invoked.
   PM decision: no `v0.2.9-writealpha` release now because Phases 267–269 add useful synthetic
   rehearsal evidence and owner dry-run request documentation but no new product behavior and no owner
