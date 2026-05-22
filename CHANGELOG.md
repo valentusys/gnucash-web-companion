@@ -7,6 +7,13 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versione
 
 ## [Unreleased]
 
+- Phase 266 — refreshed the public docs drift guard for the current owner dry-run posture.
+  README, README.ru, PROJECT_STATUS, docs/ROADMAP, `scripts/check_public_status.py`, and guard tests
+  now agree that Phases 0–266 are complete, the already-published current write-alpha pre-release
+  remains current, and the next owner-facing step remains copied-book dry-run only. No product code,
+  release/tag, mutation, private-book use, default write change, `APP_ENV=test` gate weakening, or
+  real/private/only-copy write-safety claim was added.
+
 - Phase 265 — added owner dry-run troubleshooting and abort guidance.
   `docs/write-alpha/owner-dry-run-quickstart.md` now covers missing copied books, unsafe/original/
   only-copy paths, backup preflight failures, missing `APP_ENV=test`, unsafe write defaults,

@@ -47,7 +47,7 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–262 are complete.
+- Phase 0–266 are complete.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by
   default.
@@ -82,6 +82,9 @@ This project is not a fit if you need:
   [checklist](docs/release/v0.2.8-writealpha-checklist.md), [final
   gate](docs/release/v0.2.8-writealpha-final-gate.md), [publication
   evidence](docs/release/v0.2.8-writealpha-publication-evidence.md).
+- After Phases 262–266, owner copied-book dogfood remains **dry-run only**: use
+  [docs/write-alpha/owner-dry-run-quickstart.md](docs/write-alpha/owner-dry-run-quickstart.md);
+  do not run CREATE unless later evidence review and authorization explicitly allow it.
 - Phase 221 evaluated `v0.2.5-writealpha` and recorded an explicit no-release verdict because Phase
   220 found a bounded write-alpha DELETE backup-count anomaly. Phases 222–228 remediated,
   documented, and smoke-verified that blocker closure as synthetic/disposable backup-audit and

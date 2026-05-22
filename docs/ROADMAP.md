@@ -5,7 +5,7 @@ This roadmap is intentionally conservative. Safety and trust come before feature
 ## Current release posture
 
 - Status: pre-alpha / MVP in progress.
-- Completed through Phase 262.
+- Completed through Phase 266.
 - Current public read-only pre-release: `v0.1.7-readonly`.
 - Current published write-alpha pre-release: `v0.2.8-writealpha`, published in Phase 261 after the
   cycle-3 release gate, PM authorization, and exact release-commit CI as pre-alpha/experimental and
@@ -64,6 +64,9 @@ This roadmap is intentionally conservative. Safety and trust come before feature
   PM, reran the release gate, waited for exact release/status commit CI, and published
   `v0.2.8-writealpha` as a conservative GitHub pre-release while owner copied-book dogfood may still
   be pending.
+  Phases 262–266 then refreshed the current-state gate, added and tested a dry-run-only owner
+  entrypoint, hardened evidence redaction for owner dry-run review, documented abort conditions, and
+  updated the public status guard; the next owner-facing step remains copied-book dry-run only.
   CREATE creates write-alpha-owned transactions; PATCH/DELETE are limited to
   write-alpha-owned transactions; historical/imported/manual transactions remain read-only in this
   app. Non-owned historical/imported/manual transactions are rejected before write-service

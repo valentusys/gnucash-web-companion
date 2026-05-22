@@ -25,7 +25,7 @@ Desktop остаётся главным редактором.
 
 ## Текущий публичный статус
 
-- Фазы 0–262 завершены.
+- Фазы 0–266 завершены.
 - MVP v0.1 остаётся **read-only by default**.
 - `GNUCASH_WRITES_ENABLED=false` — безопасный дефолт.
 - Controlled-write код, если присутствует, является experimental post-MVP/write-alpha, отключён по
@@ -55,6 +55,9 @@ Desktop остаётся главным редактором.
   evidence](docs/release/v0.2.8-writealpha-publication-evidence.md). Write-alpha нельзя использовать
   на real/private books или единственной копии книги; только synthetic/disposable или copied test
   books, которые можно восстановить или удалить.
+- После Phases 262–266 owner copied-book dogfood остаётся **только dry-run**: использовать
+  [docs/write-alpha/owner-dry-run-quickstart.md](docs/write-alpha/owner-dry-run-quickstart.md);
+  не запускать CREATE без последующего review evidence и явной авторизации.
 - Phase 221 проверил `v0.2.5-writealpha` и зафиксировал explicit no-release verdict: Phase 220 нашёл
   DELETE backup-count anomaly в bounded write-alpha evidence. Phases 222–228 закрыли и
   smoke-verified blocker только как synthetic/disposable backup-audit evidence и default-disabled
