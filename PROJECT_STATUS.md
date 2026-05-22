@@ -180,10 +180,11 @@ Last updated: 2026-05-22
 - Phase 288 refreshed `docs/write-alpha/evidence-matrix.md`: owner dry-run accepted, exactly one owner CREATE accepted, synthetic PATCH passed, owner PATCH absent, DELETE blocked.
 - Phase 289 PM decision: no v0.2.x release. No tag, GitHub release, package, or release notes were published.
 - Phase 290 practical verdict: use read-only as the practical path; synthetic/disposable write-alpha remains development-only; owner PATCH absent; DELETE blocked; original/only-copy writes forbidden.
+- Phase 291 PM decision: freeze active write-alpha progression until the owner provides redacted Phase 285 PATCH-one evidence or explicitly chooses read-only maintenance. No release was published and no new writes were authorized.
 
 ## Current baseline
 
-Completed through Phase 290.
+Completed through Phase 291.
 
 Current public release state:
 
