@@ -168,10 +168,15 @@ Last updated: 2026-05-22
   limits any later separately authorized PATCH to metadata/memo-only changes on a same-book write-alpha-
   owned test transaction in a copied/restorable working copy, with backup/read-back/compatibility/restore/
   reset/redaction evidence. Owner PATCH remains not requested or authorized; DELETE remains blocked.
+- Phase 283 rehearsed PATCH-one on synthetic/disposable data only. One write-alpha-owned synthetic
+  transaction was created and PATCHed exactly once with metadata/memo-only markers; amount/account
+  fingerprint stayed unchanged, backup/audit/read-back/compatibility/restore/default-disabled reset
+  evidence passed, and targeted backend PATCH tests passed. Owner PATCH remains not run/unauthorized;
+  DELETE remains blocked.
 
 ## Current baseline
 
-Completed through Phase 282.
+Completed through Phase 283.
 
 Current public release state:
 

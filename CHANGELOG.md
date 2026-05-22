@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versioned releases begin.
 
 ## [Unreleased]
+- Phase 283 — rehearsed PATCH-one on synthetic/disposable data only.
+  A local Docker/Caddy write-alpha runtime created one write-alpha-owned synthetic transaction and PATCHed
+  exactly that target once with metadata/memo-only markers; API/runtime read-back passed, amount/account
+  fingerprint stayed unchanged, backup/audit/compatibility/restore/default-disabled reset evidence passed,
+  and targeted backend PATCH route tests passed. No owner/private/original/only-copy book was used, owner
+  PATCH remains not run and not authorized, DELETE remains blocked, and no release/default/gate/safety
+  overclaim was added.
+
 - Phase 282 — prepared `docs/write-alpha/patch-one-copied-book-plan.md` without mutation.
   The plan permits only a later separately authorized one-PATCH metadata/memo update on a same-book
   write-alpha-owned test transaction in a copied/restorable working copy, with backup/read-back/
