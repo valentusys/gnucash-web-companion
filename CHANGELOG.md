@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versioned releases begin.
 
 ## [Unreleased]
+- Phase 290 — added practical-use verdict.
+  The verdict states read-only use is the practical path; synthetic/disposable write-alpha remains
+  development-only; owner dry-run and exactly one owner CREATE are accepted; owner PATCH evidence is
+  absent; DELETE is blocked; original/only-copy writes are forbidden.
+
 - Phase 289 — completed v0.2.x release candidate decision: no release.
   PM was invoked for write-alpha publication risk. No tag, GitHub release, package, or release notes
   were published because owner PATCH evidence is absent and DELETE remains blocked.

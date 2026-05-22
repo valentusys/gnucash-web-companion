@@ -179,10 +179,11 @@ Last updated: 2026-05-22
 - Phase 287 PM/Analyst decision: DELETE remains blocked for owner copied-book dogfood. No DELETE was executed and no owner DELETE packet was prepared.
 - Phase 288 refreshed `docs/write-alpha/evidence-matrix.md`: owner dry-run accepted, exactly one owner CREATE accepted, synthetic PATCH passed, owner PATCH absent, DELETE blocked.
 - Phase 289 PM decision: no v0.2.x release. No tag, GitHub release, package, or release notes were published.
+- Phase 290 practical verdict: use read-only as the practical path; synthetic/disposable write-alpha remains development-only; owner PATCH absent; DELETE blocked; original/only-copy writes forbidden.
 
 ## Current baseline
 
-Completed through Phase 289.
+Completed through Phase 290.
 
 Current public release state:
 
