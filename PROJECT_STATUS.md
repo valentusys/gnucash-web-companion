@@ -9,7 +9,7 @@ Last updated: 2026-05-22
 - Branch: `main`
 - Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release;
   `v0.2.8-writealpha` is the current public experimental write-alpha pre-release. Completed through
-  Phase 264. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
+  Phase 265. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
   release-candidate dogfood, confirmed local/backend/frontend/Docker/public-status/sensitive-file
   gates, waited for exact release/status commit CI, and published only the annotated tag plus GitHub
   pre-release. Phase 232 reconciled public status/changelog wording after publication. Phase 233
@@ -117,7 +117,7 @@ Last updated: 2026-05-22
 
 ## Current baseline
 
-Completed through Phase 264.
+Completed through Phase 265.
 
 Current public release state:
 
@@ -385,6 +385,16 @@ Current public release state:
   and nested payload-like failure cases while preserving useful bounded evidence fields. No mutation,
   release/tag, owner/private/original/only-copy book use, write default change, `APP_ENV=test` gate
   weakening, or real/private/only-copy write-safety claim was added.
+
+
+- Phase 265 added owner dry-run troubleshooting and abort guidance to
+  `docs/write-alpha/owner-dry-run-quickstart.md` and linked it from the maintainer copied-book packet.
+  The guidance covers missing copied books, unsafe/original/only-copy paths, backup preflight failures,
+  missing `APP_ENV=test`, unsafe write defaults, Docker/config/auth/health failures, redaction failures,
+  missing no-mutation proof, and disabled-write endpoint success, always recommending stop/review
+  rather than weakening gates or proceeding to CREATE. No mutation, release/tag, owner/private/
+  original/only-copy book use, write default change, `APP_ENV=test` gate weakening, or real/private/
+  only-copy write-safety claim was added.
 
 - `v0.2.4-writealpha` remains available as the previous public experimental write-alpha GitHub
   pre-release after Phase 211 publication. It is pre-alpha, disabled by default, `APP_ENV=test`

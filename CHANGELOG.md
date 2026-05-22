@@ -7,6 +7,14 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versione
 
 ## [Unreleased]
 
+- Phase 265 — added owner dry-run troubleshooting and abort guidance.
+  `docs/write-alpha/owner-dry-run-quickstart.md` now covers missing copied books, unsafe/original/
+  only-copy paths, backup preflight failures, missing `APP_ENV=test`, unsafe write defaults,
+  Docker/config/auth/health failures, redaction failures, missing no-mutation proof, and disabled-write
+  endpoint success, with safe stop/review actions. It explicitly says not to proceed to CREATE unless
+  dry-run is clean. No mutation, release, private-book use, default write change, gate weakening, or
+  real/private/only-copy write-safety claim was added.
+
 - Phase 264 — hardened owner dry-run evidence schema acceptance tests and nested payload redaction.
   Redaction tests now cover private path-like, amount-like, memo-like, account-name-like, and nested
   payload-like data; `scripts/redact_dogfood_evidence.py` now rejects or redacts strings/numeric

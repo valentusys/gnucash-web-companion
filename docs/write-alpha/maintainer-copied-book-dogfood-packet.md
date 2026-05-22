@@ -271,6 +271,10 @@ Never restore over or otherwise modify the original book.
 
 ## 10. Stop conditions
 
+For owner dry-run troubleshooting and abort handling, prefer the concise table in
+`docs/write-alpha/owner-dry-run-quickstart.md`. The broader packet stop list remains below for any
+later explicitly authorized copied-book mutation step.
+
 Stop immediately if any of these happen:
 
 - original or only-copy book is selected as the app target;
