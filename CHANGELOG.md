@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versioned releases begin.
 
 ## [Unreleased]
+- Phase 294 — accepted one bounded owner copied-book CREATE-to-PATCH chain after exact confirmation.
+  Exactly one CREATE was attempted/performed on a fresh copied/restorable working book outside git, followed
+  by exactly one metadata/memo-only PATCH on that same write-alpha-created transaction. Backups before each
+  mutation, read-back, audit/lock evidence, readable backup artifact checks, piecash plus `gnucash-cli`
+  compatibility, restore verification, default-disabled reset, disabled validate/create/PATCH/DELETE probes,
+  and redaction validation passed. DELETE was not run; private artifacts stayed outside git; defaults/gates
+  remain unchanged; no release was published; and no production/security/public-internet/broad-compatibility
+  or real/private/original/only-copy write-safety claim was added.
+
 - Phase 293 — blocked the new owner CREATE-to-PATCH chain before mutation pending exact confirmation.
   The owner selected the fresh-chain direction after Phase 292, but the existing exact confirmations cannot
   be reused: the Phase 275 CREATE-one authorization was already consumed in Phase 276, and the Phase 285

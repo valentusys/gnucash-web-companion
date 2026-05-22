@@ -40,7 +40,7 @@ def test_public_status_guard_rejects_phase_172_as_current_baseline():
 
 
 def test_public_status_guard_tracks_current_completed_phase():
-    assert guard.CURRENT_COMPLETED_PHASE == "Phase 292"
+    assert guard.CURRENT_COMPLETED_PHASE == "Phase 294"
 
 
 def test_public_status_guard_rejects_phase_264_as_current_baseline():
