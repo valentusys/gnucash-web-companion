@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versioned releases begin.
 
 ## [Unreleased]
+- Phase 286 — completed owner PATCH evidence intake with evidence absent.
+  No exact owner PATCH confirmation block was provided after Phase 285, and no owner copied-book PATCH
+  was run. Owner PATCH evidence is therefore not accepted and cannot support DELETE progression or release
+  claims. Continue only to conservative documentation/decision closeout.
+
 - Phase 285 — prepared `docs/write-alpha/owner-patch-one-request.md`.
   The packet requires an exact owner confirmation block before any owner PATCH execution, limits scope to
   one metadata/memo-only PATCH on the write-alpha-created test transaction in a copied/restorable working
