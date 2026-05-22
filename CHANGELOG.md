@@ -7,6 +7,15 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versione
 
 ## [Unreleased]
 
+- Phase 276 — stopped before owner copied-book CREATE because the exact packet confirmation block was missing.
+  The current execution context contained Russian approval for one CREATE on a copy, but the Phase 275
+  packet requires the exact multi-line authorization block before private financial write-risk execution.
+  No CREATE/PATCH/DELETE was attempted or performed, no owner/private/original/only-copy book was used,
+  no private artifact was committed, `GNUCASH_WRITES_ENABLED=false` remains default, `APP_ENV=test`
+  gating remains intact, and no production/security/public-internet/broad-compatibility or real/private/
+  only-copy write-safety claim was added. To proceed, the owner must paste the exact confirmation block
+  from `docs/write-alpha/owner-create-one-request.md` in the same execution context.
+
 - Phase 275 — rechecked the Phase 274 compatibility blocker and prepared the owner CREATE-one request packet.
   PM was invoked because this changed an owner-risk write authorization decision. Host `gnucash-cli`
   is now available as GnuCash 5.14, and a synthetic/disposable compatibility recheck passed with

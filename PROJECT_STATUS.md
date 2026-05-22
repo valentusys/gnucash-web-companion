@@ -123,6 +123,12 @@ Last updated: 2026-05-22
   PATCH/DELETE remain blocked; `GNUCASH_WRITES_ENABLED=false` remains default; `APP_ENV=test` remains
   required when writes are explicitly enabled; and no broad compatibility or real/private/only-copy
   write-safety claim was added.
+- Phase 276 stopped before owner copied-book CREATE because the current execution context did not contain
+  the exact multi-line confirmation block required by the Phase 275 packet. Russian approval for one
+  CREATE on a copy was present, but the private financial write-risk gate was kept conservative. No
+  CREATE/PATCH/DELETE was attempted or performed, no owner/private/original/only-copy book was used, no
+  private artifact was committed, defaults remain write-disabled and `APP_ENV=test` gated, and resuming
+  requires the exact packet confirmation block in the same execution context.
 
 
 ## Current baseline
