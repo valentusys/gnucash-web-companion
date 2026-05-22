@@ -177,10 +177,11 @@ Last updated: 2026-05-22
 - Phase 285 prepared the owner PATCH-one request packet with an exact confirmation block. No owner PATCH was run; DELETE remains blocked; amount/account/currency/split-count edits remain forbidden.
 - Phase 286 recorded owner PATCH evidence as absent: no exact owner PATCH confirmation was provided and no owner PATCH was run. Owner PATCH evidence is not accepted and cannot support DELETE progression or release claims.
 - Phase 287 PM/Analyst decision: DELETE remains blocked for owner copied-book dogfood. No DELETE was executed and no owner DELETE packet was prepared.
+- Phase 288 refreshed `docs/write-alpha/evidence-matrix.md`: owner dry-run accepted, exactly one owner CREATE accepted, synthetic PATCH passed, owner PATCH absent, DELETE blocked.
 
 ## Current baseline
 
-Completed through Phase 287.
+Completed through Phase 288.
 
 Current public release state:
 

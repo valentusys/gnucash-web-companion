@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versioned releases begin.
 
 ## [Unreleased]
+- Phase 288 — refreshed the write-alpha evidence matrix.
+  Added a concise matrix separating synthetic/disposable evidence, copied-test-book/package rehearsal,
+  owner dry-run, owner CREATE-one, synthetic PATCH-one, owner PATCH absence, and DELETE-blocked status
+  without private details or overclaiming.
+
 - Phase 287 — completed DELETE block decision.
   PM was invoked for destructive mutation risk review and decided DELETE remains blocked for owner
   copied-book dogfood. No DELETE was executed, no owner DELETE packet was prepared, and any future
