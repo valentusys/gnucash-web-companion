@@ -178,10 +178,11 @@ Last updated: 2026-05-22
 - Phase 286 recorded owner PATCH evidence as absent: no exact owner PATCH confirmation was provided and no owner PATCH was run. Owner PATCH evidence is not accepted and cannot support DELETE progression or release claims.
 - Phase 287 PM/Analyst decision: DELETE remains blocked for owner copied-book dogfood. No DELETE was executed and no owner DELETE packet was prepared.
 - Phase 288 refreshed `docs/write-alpha/evidence-matrix.md`: owner dry-run accepted, exactly one owner CREATE accepted, synthetic PATCH passed, owner PATCH absent, DELETE blocked.
+- Phase 289 PM decision: no v0.2.x release. No tag, GitHub release, package, or release notes were published.
 
 ## Current baseline
 
-Completed through Phase 288.
+Completed through Phase 289.
 
 Current public release state:
 

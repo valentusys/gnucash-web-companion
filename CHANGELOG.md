@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versioned releases begin.
 
 ## [Unreleased]
+- Phase 289 — completed v0.2.x release candidate decision: no release.
+  PM was invoked for write-alpha publication risk. No tag, GitHub release, package, or release notes
+  were published because owner PATCH evidence is absent and DELETE remains blocked.
+
 - Phase 288 — refreshed the write-alpha evidence matrix.
   Added a concise matrix separating synthetic/disposable evidence, copied-test-book/package rehearsal,
   owner dry-run, owner CREATE-one, synthetic PATCH-one, owner PATCH absence, and DELETE-blocked status
