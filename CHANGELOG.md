@@ -7,14 +7,16 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versione
 
 ## [Unreleased]
 
-- Phase 276 — stopped before owner copied-book CREATE because the exact packet confirmation block was missing.
-  The current execution context contained Russian approval for one CREATE on a copy, but the Phase 275
-  packet requires the exact multi-line authorization block before private financial write-risk execution.
-  No CREATE/PATCH/DELETE was attempted or performed, no owner/private/original/only-copy book was used,
-  no private artifact was committed, `GNUCASH_WRITES_ENABLED=false` remains default, `APP_ENV=test`
-  gating remains intact, and no production/security/public-internet/broad-compatibility or real/private/
-  only-copy write-safety claim was added. To proceed, the owner must paste the exact confirmation block
-  from `docs/write-alpha/owner-create-one-request.md` in the same execution context.
+- Phase 276 — accepted one owner copied-book CREATE-one evidence run after the exact Phase 275
+  confirmation block was provided in the execution context. Exactly one CREATE was attempted and
+  performed on a copied/restorable working copy outside git under `APP_ENV=test` with explicit temporary
+  writes enabled; a pre-mutation backup was created, read-back passed, audit evidence showed one
+  successful create, lock evidence was released/stale-safe, compatibility passed with piecash and
+  installed `gnucash-cli`, restore verification from the pre-mutation backup passed, and reset/default-
+  disabled probes returned 403 for validate/create/PATCH/DELETE. No PATCH/DELETE was run, no private
+  artifact was committed, `GNUCASH_WRITES_ENABLED=false` remains default, `APP_ENV=test` gating remains
+  intact, and no production/security/public-internet/broad-compatibility or real/private/only-copy
+  write-safety claim was added.
 
 - Phase 275 — rechecked the Phase 274 compatibility blocker and prepared the owner CREATE-one request packet.
   PM was invoked because this changed an owner-risk write authorization decision. Host `gnucash-cli`

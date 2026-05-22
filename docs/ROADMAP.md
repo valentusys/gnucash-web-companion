@@ -5,9 +5,9 @@ This roadmap is intentionally conservative. Safety and trust come before feature
 ## Current release posture
 
 - Status: pre-alpha / MVP in progress.
-- Completed through Phase 275.
+- Completed through Phase 276.
 
-Phase 275 rechecked the installed `gnucash-cli` compatibility blocker with synthetic/disposable evidence and prepared `docs/write-alpha/owner-create-one-request.md`. Owner CREATE execution still requires explicit owner confirmation; PATCH/DELETE remain blocked.
+Phase 276 accepted exactly one owner copied-book CREATE-one evidence run after the exact Phase 275 confirmation block was provided. PATCH/DELETE remain not run and not authorized.
 - Current public read-only pre-release: `v0.1.7-readonly`.
 - Current published write-alpha pre-release: `v0.2.8-writealpha`, published in Phase 261 after the
   cycle-3 release gate, PM authorization, and exact release-commit CI as pre-alpha/experimental and
@@ -70,8 +70,10 @@ Phase 275 rechecked the installed `gnucash-cli` compatibility blocker with synth
   entrypoint, hardened evidence redaction for owner dry-run review, documented abort conditions, and
   updated the public status guard. Phase 271 accepted owner copied-book dry-run evidence as dry-run
   only, Phase 272 prepared a no-mutation CREATE-one readiness plan, Phase 273 passed synthetic/
-  disposable CREATE-one rehearsal, and Phase 274 kept owner copied-book CREATE blocked pending a later
-  authorization gate and explicit owner request, and Phase 275 rechecked installed `gnucash-cli` with synthetic/disposable compatibility pass evidence and prepared the owner CREATE-one request packet. CREATE execution still requires explicit owner confirmation.
+  disposable CREATE-one rehearsal, Phase 275 rechecked installed `gnucash-cli` with synthetic/
+  disposable compatibility pass evidence and prepared the owner CREATE-one request packet, and Phase
+  276 accepted exactly one owner copied-book CREATE-one evidence run with backup/read-back/audit/lock/
+  compatibility/restore/reset evidence. PATCH/DELETE remain not run and not authorized.
   CREATE creates write-alpha-owned transactions; PATCH/DELETE are limited to
   write-alpha-owned transactions; historical/imported/manual transactions remain read-only in this
   app. Non-owned historical/imported/manual transactions are rejected before write-service

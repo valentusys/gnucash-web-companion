@@ -9,7 +9,7 @@ Last updated: 2026-05-22
 - Branch: `main`
 - Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release;
   `v0.2.8-writealpha` is the current public experimental write-alpha pre-release. Completed through
-  Phase 271. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
+  Phase 276. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
   release-candidate dogfood, confirmed local/backend/frontend/Docker/public-status/sensitive-file
   gates, waited for exact release/status commit CI, and published only the annotated tag plus GitHub
   pre-release. Phase 232 reconciled public status/changelog wording after publication. Phase 233
@@ -123,17 +123,20 @@ Last updated: 2026-05-22
   PATCH/DELETE remain blocked; `GNUCASH_WRITES_ENABLED=false` remains default; `APP_ENV=test` remains
   required when writes are explicitly enabled; and no broad compatibility or real/private/only-copy
   write-safety claim was added.
-- Phase 276 stopped before owner copied-book CREATE because the current execution context did not contain
-  the exact multi-line confirmation block required by the Phase 275 packet. Russian approval for one
-  CREATE on a copy was present, but the private financial write-risk gate was kept conservative. No
-  CREATE/PATCH/DELETE was attempted or performed, no owner/private/original/only-copy book was used, no
-  private artifact was committed, defaults remain write-disabled and `APP_ENV=test` gated, and resuming
-  requires the exact packet confirmation block in the same execution context.
+- Phase 276 accepted one owner copied-book CREATE-one evidence run after the exact Phase 275 confirmation
+  block was provided in the current execution context. Exactly one CREATE was attempted and performed on
+  a copied/restorable working copy outside git under `APP_ENV=test` with temporary explicit writes enabled;
+  pre-mutation backup, read-back, one-success audit evidence, released/stale-safe lock evidence,
+  compatibility through piecash plus installed `gnucash-cli`, restore verification from pre-mutation
+  backup, default-disabled reset, and disabled validate/create/PATCH/DELETE probes all passed. No
+  PATCH/DELETE was run, no private artifact was committed, `GNUCASH_WRITES_ENABLED=false` remains
+  default, enabled write-alpha remains `APP_ENV=test` gated, and no production/security/public-internet/
+  broad-compatibility or real/private/only-copy write-safety claim was added.
 
 
 ## Current baseline
 
-Completed through Phase 275.
+Completed through Phase 276.
 
 Current public release state:
 
@@ -149,8 +152,9 @@ Current public release state:
   accepted owner copied-book dry-run evidence as dry-run-only evidence, Phase 272 prepared a no-mutation
   CREATE-one readiness plan, Phase 273 passed synthetic/disposable CREATE-one rehearsal, Phase 274 kept
   owner copied-book CREATE blocked pending compatibility closure, and Phase 275 prepared the owner
-  CREATE-one request packet after a synthetic/disposable `gnucash-cli` compatibility pass. CREATE
-  execution still requires explicit owner confirmation in the execution context. It is not
+  CREATE-one request packet after a synthetic/disposable `gnucash-cli` compatibility pass. Phase 276 then
+  accepted exactly one owner copied-book CREATE-one evidence run with backup/read-back/audit/lock/
+  compatibility/restore/reset evidence. PATCH/DELETE remain not run and not authorized. It is not
   production-ready, not stable, not security-audited, not public-internet safe, and not safe for
   real/private or only-copy books.
 - `v0.2.7-writealpha` remains available as the previous public experimental write-alpha GitHub
