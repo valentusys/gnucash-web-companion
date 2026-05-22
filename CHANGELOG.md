@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versioned releases begin.
 
 ## [Unreleased]
+- Phase 282 — prepared `docs/write-alpha/patch-one-copied-book-plan.md` without mutation.
+  The plan permits only a later separately authorized one-PATCH metadata/memo update on a same-book
+  write-alpha-owned test transaction in a copied/restorable working copy, with backup/read-back/
+  compatibility/restore/reset/redaction evidence. Amount/account/currency/split-count edits, owner
+  PATCH execution, DELETE, release, default write changes, `APP_ENV=test` gate weakening, and real/
+  private/original/only-copy write-safety claims remain excluded.
+
 - Phase 281 — completed the PATCH readiness analyst gate.
   Verdict: ready to prepare a no-mutation PATCH-one copied-book plan only. The accepted owner
   copied-book CREATE-one evidence satisfies the precondition for PATCH planning, and no CREATE

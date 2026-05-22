@@ -164,10 +164,14 @@ Last updated: 2026-05-22
   default write changes, `APP_ENV=test` gate weakening, amount/account edits, and real/private/original/
   only-copy write-safety claims remain unauthorized.
 
+- Phase 282 prepared `docs/write-alpha/patch-one-copied-book-plan.md` without mutation. The plan
+  limits any later separately authorized PATCH to metadata/memo-only changes on a same-book write-alpha-
+  owned test transaction in a copied/restorable working copy, with backup/read-back/compatibility/restore/
+  reset/redaction evidence. Owner PATCH remains not requested or authorized; DELETE remains blocked.
 
 ## Current baseline
 
-Completed through Phase 281.
+Completed through Phase 282.
 
 Current public release state:
 
