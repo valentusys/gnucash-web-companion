@@ -7,13 +7,38 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versione
 
 ## [Unreleased]
 
-- Phase 271 — completed the owner copied-book dry-run evidence intake gate and stopped mutation
-  progression because owner evidence is absent.
-  Repository artifacts and GitHub issue #36 comments were checked; no owner-provided redacted dry-run
-  checklist/evidence was found or accepted. CREATE-one planning was not started, PATCH/DELETE remain
-  blocked, and the prepared owner request packet remains the next practical owner-facing step. No
-  product code, release/tag, owner/private/original/only-copy book use, default write change,
-  `APP_ENV=test` gate weakening, mutation, or real/private/only-copy write-safety claim was added.
+- Phase 274 — completed the PM/analyst CREATE-one authorization gate with a conservative no-owner-mutation decision.
+  PM was invoked because this was an owner-risk write authorization gate. Owner copied-book dry-run
+  evidence is accepted and the synthetic CREATE-one rehearsal passed, but host Desktop/CLI compatibility
+  remains blocked because `gnucash-cli` is unavailable, so owner copied-book CREATE is not authorized to
+  request or run. Phase 275 was not started. No release/tag, owner/private/original/only-copy mutation,
+  default write change, `APP_ENV=test` gate weakening, private artifact commit, or real/private/
+  only-copy write-safety claim was added.
+
+- Phase 273 — rehearsed CREATE-one on synthetic/disposable fixtures only.
+  The wrapper create-one path, routed CREATE smoke, backup/audit/lock/read-back evidence, restore
+  verification with read-only API probe, redaction checks, and default-disabled reset passed. The
+  compatibility harness recorded piecash read-back pass but host Desktop/CLI blocked because
+  `gnucash-cli` is unavailable, with no broad compatibility claim. No owner/private/original/only-copy
+  book was used, no owner mutation was run, and CREATE/PATCH/DELETE owner mutations remain
+  unauthorized.
+
+- Phase 272 — prepared the CREATE-one copied-book readiness plan without mutation.
+  The plan permits only a future one-minimal-two-split CREATE on an outside-git copied/restorable book
+  after a later authorization gate and explicit owner request, requires backup/read-back/audit/lock/
+  compatibility/restore/redaction/default-disabled evidence, and keeps PATCH/DELETE blocked. No
+  product code, release/tag, owner/private/original/only-copy book mutation, default write change,
+  `APP_ENV=test` gate weakening, or real/private/only-copy write-safety claim was added.
+
+- Phase 271 — re-opened the owner copied-book dry-run evidence intake gate and accepted the newly
+  provided redacted evidence as dry-run-only evidence.
+  Redaction validation passed; safe evidence says dry-run passed, preflight was ready, a pre-step
+  backup was created, mutation was not requested or performed, CREATE was not run, PATCH/DELETE were
+  unsupported by default, redaction was validated before write, and default-disabled reset was
+  verified. Private copied-book files, backups, and evidence remained outside git. CREATE-one planning
+  may proceed only as no-mutation planning; owner CREATE/PATCH/DELETE remain unauthorized. No release,
+  default write change, `APP_ENV=test` gate weakening, mutation, private artifact commit, or real/
+  private/only-copy write-safety claim was added.
 
 - Phase 270 — completed the Cycle 1 release/no-release decision with PM invoked.
   PM decision: no `v0.2.9-writealpha` release now because Phases 267–269 add useful synthetic

@@ -5,7 +5,7 @@ This roadmap is intentionally conservative. Safety and trust come before feature
 ## Current release posture
 
 - Status: pre-alpha / MVP in progress.
-- Completed through Phase 271.
+- Completed through Phase 274.
 - Current public read-only pre-release: `v0.1.7-readonly`.
 - Current published write-alpha pre-release: `v0.2.8-writealpha`, published in Phase 261 after the
   cycle-3 release gate, PM authorization, and exact release-commit CI as pre-alpha/experimental and
@@ -66,7 +66,10 @@ This roadmap is intentionally conservative. Safety and trust come before feature
   be pending.
   Phases 262–266 then refreshed the current-state gate, added and tested a dry-run-only owner
   entrypoint, hardened evidence redaction for owner dry-run review, documented abort conditions, and
-  updated the public status guard; the next owner-facing step remains copied-book dry-run only.
+  updated the public status guard. Phase 271 accepted owner copied-book dry-run evidence as dry-run
+  only, Phase 272 prepared a no-mutation CREATE-one readiness plan, Phase 273 passed synthetic/
+  disposable CREATE-one rehearsal, and Phase 274 kept owner copied-book CREATE blocked pending a later
+  authorization gate and explicit owner request.
   CREATE creates write-alpha-owned transactions; PATCH/DELETE are limited to
   write-alpha-owned transactions; historical/imported/manual transactions remain read-only in this
   app. Non-owned historical/imported/manual transactions are rejected before write-service

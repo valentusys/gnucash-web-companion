@@ -25,7 +25,7 @@ Desktop остаётся главным редактором.
 
 ## Текущий публичный статус
 
-- Фазы 0–271 завершены.
+- Фазы 0–274 завершены.
 - MVP v0.1 остаётся **read-only by default**.
 - `GNUCASH_WRITES_ENABLED=false` — безопасный дефолт.
 - Controlled-write код, если присутствует, является experimental post-MVP/write-alpha, отключён по
@@ -55,9 +55,12 @@ Desktop остаётся главным редактором.
   evidence](docs/release/v0.2.8-writealpha-publication-evidence.md). Write-alpha нельзя использовать
   на real/private books или единственной копии книги; только synthetic/disposable или copied test
   books, которые можно восстановить или удалить.
-- После Phases 262–266 owner copied-book dogfood остаётся **только dry-run**: использовать
-  [docs/write-alpha/owner-dry-run-quickstart.md](docs/write-alpha/owner-dry-run-quickstart.md);
-  не запускать CREATE без последующего review evidence и явной авторизации.
+- После Phase 271 owner copied-book dry-run evidence принято **только как dry-run**; Phase 272
+  подготовила no-mutation
+  [CREATE-one copied-book readiness plan](docs/write-alpha/create-one-copied-book-plan.md), Phase 273
+  прошла synthetic/disposable CREATE-one rehearsal, а Phase 274 оставила owner copied-book CREATE
+  blocked. Не запускать owner copied-book CREATE без последующего authorization gate и явного owner
+  request.
 - Phase 221 проверил `v0.2.5-writealpha` и зафиксировал explicit no-release verdict: Phase 220 нашёл
   DELETE backup-count anomaly в bounded write-alpha evidence. Phases 222–228 закрыли и
   smoke-verified blocker только как synthetic/disposable backup-audit evidence и default-disabled
@@ -103,8 +106,10 @@ Desktop остаётся главным редактором.
   что следующий разумный owner ask — только copied-book dry-run, Phase 260 подготовил
   `v0.2.8-writealpha` release-candidate notes/checklist/final-gate, а Phase 261 вызвал PM, повторил
   release gate, дождался green exact release/status commit CI и опубликовал `v0.2.8-writealpha` как
-  conservative GitHub pre-release. Owner copied-book dogfood может оставаться pending. CREATE-one не
-  является немедленным owner ask и может рассматриваться только после review owner dry-run evidence.
+  conservative GitHub pre-release. Owner copied-book dry-run evidence теперь принято
+  только как dry-run evidence, Phase 272 подготовила no-mutation CREATE-one readiness plan, Phase 273
+  прошла synthetic/disposable CREATE-one rehearsal, а Phase 274 оставила owner copied-book CREATE
+  blocked до последующего authorization gate и явного owner request.
   Write-alpha остаётся
   pre-alpha/experimental, disabled by default, `APP_ENV=test` gated при явном включении и не безопасен
   для real/private или only-copy books.

@@ -1,62 +1,59 @@
 # Phase 271 — Owner dry-run evidence intake gate
 
-Status: COMPLETE — owner copied-book dry-run evidence is absent.
+Status: COMPLETE — owner copied-book dry-run evidence accepted, dry-run only.
 
 ## Analyst objective
 
-Check whether the owner has voluntarily provided redacted copied-book dry-run evidence. If evidence exists, validate redaction/completeness and confirm no mutation. If evidence is absent, record the blocker and stop copied-book mutation progression.
+Re-open the previous Phase 271 absent-evidence decision because the owner voluntarily provided a copied-book dry-run artifact and explicitly stated it is a copy that must not be committed. Validate only the redacted evidence summary, keep all private artifacts outside git, and decide whether CREATE-one planning may proceed without authorizing mutation.
 
-## Evidence search
+## Evidence source and handling
 
-Sources checked:
+The owner-provided copied-book, extracted working copy, backups, and full private work area remain outside the repository under a private Hermes directory. They were not added to git and are not referenced here with raw paths, filenames, account names, memos, amounts, balances, screenshots, CSV exports, tokens, keys, certs, app DBs, or private financial data.
 
-- Repository docs and tracked artifacts for owner dry-run evidence references.
-- GitHub issue #36 comments.
-- Recent Phase 267–270 artifacts.
+Committed artifacts include only this redacted/safe decision record.
 
-Commands/checks:
+## Validation
+
+Redaction validation was rerun against the private redacted evidence JSON before accepting it:
 
 ```text
-rg/search_files owner dry-run/evidence terms in the repository
-gh issue view 36 --comments --json comments
+python3 scripts/redact_dogfood_evidence.py <private-redacted-owner-evidence-json>
 ```
 
-GitHub issue #36 result:
+Safe allowlisted result summary:
 
 ```text
-comments_checked=21
-owner_evidence_candidates=0
+result=pass
+mode=dry-run
+preflight_status=ready
+backup_status=created-before-step
+mutation_requested=false
+mutation_performed=false
+create_command_status=not-run
+patch_status=not-supported-by-default
+delete_status=not-supported-by-default
+redaction_status=validated-before-write
+disabled_reset_status=verified-default-disabled
 ```
 
 ## Decision
 
-Evidence status: ABSENT.
+Evidence status: ACCEPTED FOR DRY-RUN ONLY.
 
-No owner-provided copied-book dry-run evidence was found. Existing evidence remains synthetic/disposable preparation evidence only.
+The accepted evidence proves only that the copied-book dry-run path completed with preflight ready, a pre-step backup created, no mutation requested, no mutation performed, no CREATE command run, PATCH/DELETE unsupported by default, redaction validated, and default-disabled reset verified.
+
+It does not authorize owner copied-book CREATE/PATCH/DELETE, original/only-copy book use, production use, public-internet use, broad GnuCash compatibility, or any real/private write-safety claim.
 
 ## Safety review
 
-Because owner copied-book dry-run evidence is absent:
-
-- copied-book mutation progression stops here;
-- CREATE-one planning is not started;
-- PATCH planning is not started;
-- DELETE remains blocked;
-- no owner mutation request is authorized;
-- no release is justified from owner evidence.
-
-## Preserved boundaries
-
+- Owner dry-run evidence was accepted only as redacted pass/fail evidence.
+- The private copied-book, backups, extracted files, and private evidence remain outside git.
+- No raw private path, account name, memo, amount, balance, export, screenshot, app DB, token, key, cert, or financial artifact is committed.
 - `GNUCASH_WRITES_ENABLED=false` remains the default.
 - Explicit write-alpha execution remains `APP_ENV=test` gated.
+- CREATE/PATCH/DELETE owner mutations remain unauthorized.
 - Original and only-copy books remain forbidden.
-- No private financial artifacts were requested, used, committed, or accepted.
-- No real/private/original/only-copy write-safety, production, stable, security-audit, public-internet, or broad compatibility claim is made.
-
-## Blocker
-
-Owner redacted copied-book dry-run evidence is required before any owner copied-book CREATE/PATCH planning can continue. The prepared request packet is `docs/write-alpha/owner-dry-run-request.md`.
 
 ## Next action
 
-Stop this resumed run. Wait for the owner to voluntarily provide the redacted dry-run checklist from the Phase 269 packet, or for a later explicit PM decision to continue synthetic-only preparation. Without that, do not proceed to Phase 272 CREATE-one planning.
+Proceed to Phase 272 only as a no-mutation CREATE-one readiness plan. Any owner copied-book CREATE requires a later authorization gate plus explicit owner confirmation. PATCH and DELETE remain blocked.

@@ -117,7 +117,7 @@ Last updated: 2026-05-22
 
 ## Current baseline
 
-Completed through Phase 271.
+Completed through Phase 274.
 
 Current public release state:
 
@@ -128,7 +128,7 @@ Current public release state:
   cleanup, Phase 264 evidence-redaction hardening, Phase 265 abort guidance, and Phase 266 public
   status guard refresh. It is pre-alpha, disabled by default, `APP_ENV=test` gated when explicitly
   enabled, based on synthetic/disposable Cycle 3 copied-book package plus Phase 263 synthetic
-  dry-run-only entrypoint evidence plus Phase 267 fresh-clone synthetic rehearsal evidence; Phase 268 says the owner may be asked for dry-run only, Phase 269 provides the request packet, and Phase 271 confirmed owner dry-run evidence is still absent, stopping copied-book mutation progression, not production-ready, not
+  dry-run-only entrypoint evidence plus Phase 267 fresh-clone synthetic rehearsal evidence; Phase 268 says the owner may be asked for dry-run only, Phase 269 provides the request packet, Phase 271 accepted owner copied-book dry-run evidence as dry-run-only evidence, Phase 272 prepared a no-mutation CREATE-one readiness plan, Phase 273 passed synthetic/disposable CREATE-one rehearsal, and Phase 274 kept owner copied-book CREATE blocked pending later authorization and explicit owner request, not production-ready, not
   stable, not security-audited, not public-internet safe, and not safe for real/private or only-copy
   books.
 - `v0.2.7-writealpha` remains available as the previous public experimental write-alpha GitHub
