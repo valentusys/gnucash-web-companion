@@ -7,6 +7,14 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versione
 
 ## [Unreleased]
 
+- Phase 267 — rehearsed the owner copied-book dry-run path from a fresh clone with synthetic data.
+  A temporary fresh checkout ran the documented dry-run-only entrypoint against an outside-git
+  synthetic fixture copy, produced redacted evidence, created one pre-step backup, proved the target
+  checksum was unchanged, and passed a fresh-clone default-disabled Docker/Caddy smoke where
+  validate/create/PATCH/DELETE probes returned 403. No product code, release/tag, owner/private/
+  original/only-copy book use, default write change, `APP_ENV=test` gate weakening, mutation, or
+  real/private/only-copy write-safety claim was added.
+
 - Phase 266 — refreshed the public docs drift guard for the current owner dry-run posture.
   README, README.ru, PROJECT_STATUS, docs/ROADMAP, `scripts/check_public_status.py`, and guard tests
   now agree that Phases 0–266 are complete, the already-published current write-alpha pre-release
