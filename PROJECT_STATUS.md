@@ -174,10 +174,11 @@ Last updated: 2026-05-22
   evidence passed, and targeted backend PATCH tests passed. Owner PATCH remains not run/unauthorized;
   DELETE remains blocked.
 - Phase 284 invoked PM and authorized preparing an owner PATCH-one request packet only. Owner PATCH execution still requires later exact owner confirmation; DELETE remains blocked; defaults and gates remain unchanged.
+- Phase 285 prepared the owner PATCH-one request packet with an exact confirmation block. No owner PATCH was run; DELETE remains blocked; amount/account/currency/split-count edits remain forbidden.
 
 ## Current baseline
 
-Completed through Phase 284.
+Completed through Phase 285.
 
 Current public release state:
 

@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versioned releases begin.
 
 ## [Unreleased]
+- Phase 285 — prepared `docs/write-alpha/owner-patch-one-request.md`.
+  The packet requires an exact owner confirmation block before any owner PATCH execution, limits scope to
+  one metadata/memo-only PATCH on the write-alpha-created test transaction in a copied/restorable working
+  book, requests only redacted checklist evidence, and keeps amount/account/currency/split-count edits and
+  DELETE forbidden. No owner PATCH was run.
+
 - Phase 284 — invoked PM for the owner PATCH authorization gate.
   Verdict: authorized to prepare an owner PATCH-one request packet only, based on accepted dry-run,
   exactly one accepted owner CREATE, clean CREATE findings, a metadata/memo-only plan, and a passing
