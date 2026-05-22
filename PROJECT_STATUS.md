@@ -173,10 +173,11 @@ Last updated: 2026-05-22
   fingerprint stayed unchanged, backup/audit/read-back/compatibility/restore/default-disabled reset
   evidence passed, and targeted backend PATCH tests passed. Owner PATCH remains not run/unauthorized;
   DELETE remains blocked.
+- Phase 284 invoked PM and authorized preparing an owner PATCH-one request packet only. Owner PATCH execution still requires later exact owner confirmation; DELETE remains blocked; defaults and gates remain unchanged.
 
 ## Current baseline
 
-Completed through Phase 283.
+Completed through Phase 284.
 
 Current public release state:
 

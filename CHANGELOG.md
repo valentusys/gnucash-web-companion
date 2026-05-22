@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versioned releases begin.
 
 ## [Unreleased]
+- Phase 284 — invoked PM for the owner PATCH authorization gate.
+  Verdict: authorized to prepare an owner PATCH-one request packet only, based on accepted dry-run,
+  exactly one accepted owner CREATE, clean CREATE findings, a metadata/memo-only plan, and a passing
+  synthetic PATCH rehearsal. No owner PATCH execution, DELETE, release, default write change, gate
+  weakening, amount/account edits, or broad write-safety claim was authorized.
+
 - Phase 283 — rehearsed PATCH-one on synthetic/disposable data only.
   A local Docker/Caddy write-alpha runtime created one write-alpha-owned synthetic transaction and PATCHed
   exactly that target once with metadata/memo-only markers; API/runtime read-back passed, amount/account
