@@ -133,18 +133,33 @@ def sanitize_evidence(data: Any, *, mode: Mode = "reject") -> Any:
     """
     findings: list[SanitizationFinding] = []
 
-    def walk(value: Any, pointer: str, key: str | None) -> Any:
+    def walk(value: Any, pointer: str, key: str | None, inherited_sensitive: bool = False) -> Any:
+        current_key_sensitive = key is not None and _key_is_sensitive(key)
+        child_sensitive = inherited_sensitive or current_key_sensitive
         if isinstance(value, dict):
-            return {str(k): walk(v, _json_pointer(pointer, str(k)), str(k)) for k, v in value.items()}
+            return {
+                str(k): walk(v, _json_pointer(pointer, str(k)), str(k), child_sensitive)
+                for k, v in value.items()
+            }
         if isinstance(value, list):
-            return [walk(item, _json_pointer(pointer, str(index)), key) for index, item in enumerate(value)]
+            return [
+                walk(item, _json_pointer(pointer, str(index)), key, child_sensitive)
+                for index, item in enumerate(value)
+            ]
         if isinstance(value, str):
             reason = _classify_string(value, key=key)
+            if reason is None and inherited_sensitive:
+                reason = "sensitive"
             if reason is None:
                 return value
             findings.append(SanitizationFinding(pointer=pointer or "/", reason=reason))
             return PLACEHOLDERS[reason]
-        if isinstance(value, int | bool) or value is None:
+        if isinstance(value, bool) or value is None:
+            return value
+        if isinstance(value, int):
+            if inherited_sensitive:
+                findings.append(SanitizationFinding(pointer=pointer or "/", reason="sensitive"))
+                return PLACEHOLDERS["sensitive"]
             return value
         if isinstance(value, float):
             findings.append(SanitizationFinding(pointer=pointer or "/", reason="amount"))

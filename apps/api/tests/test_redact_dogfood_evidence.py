@@ -126,3 +126,68 @@ def test_cli_redacts_unsafe_json(tmp_path):
     assert "~/private" not in result.stdout
     assert "book.gnucash.sqlite" not in result.stdout
     assert "<redacted-path>" in result.stdout
+
+
+def test_reject_mode_blocks_owner_evidence_schema_failure_cases():
+    evidence = _safe_evidence() | {
+        "artifact_refs": ["<redacted-artifact-ref:phase-264>"],
+        "operator_private_path": "/Users/example/private/book.gnucash.sqlite",
+        "account_name": "Assets:Checking",
+        "split_memo": "Dinner with private counterparty",
+        "observed_amount": "42.99 USD",
+        "request_payload": {
+            "transaction": {
+                "description": "Private transaction description",
+                "splits": [{"account": "Expenses:Private", "value": "21.00"}],
+            }
+        },
+    }
+
+    try:
+        redactor.sanitize_evidence(evidence, mode="reject")
+    except redactor.EvidenceRejected as exc:
+        pointers = {finding.pointer for finding in exc.findings}
+        reasons = {finding.reason for finding in exc.findings}
+    else:  # pragma: no cover - defensive
+        raise AssertionError("owner evidence containing private schema fields should be rejected")
+
+    assert "path" in reasons
+    assert "amount" in reasons
+    assert "sensitive" in reasons
+    assert "/operator_private_path" in pointers
+    assert "/account_name" in pointers
+    assert "/split_memo" in pointers
+    assert "/observed_amount" in pointers
+    assert "/request_payload/transaction/description" in pointers
+    assert "/request_payload/transaction/splits/0/account" in pointers
+    assert "/request_payload/transaction/splits/0/value" in pointers
+
+
+def test_redact_mode_preserves_useful_bounded_evidence_and_redacts_private_payload():
+    evidence = _safe_evidence() | {
+        "phase_number": 264,
+        "scenario_type": "owner-dry-run-redaction-acceptance",
+        "classification": "copied_disposable",
+        "commands_run": ["python3 scripts/write_alpha_owner_dry_run.py <redacted-target>"],
+        "backup_count": 1,
+        "audit_row_count": 0,
+        "lock_status": "not-inspected-by-wrapper",
+        "restore_proof_status": "operator-required-after-mutation",
+        "disabled_reset_status": "verified-default-disabled",
+        "request_payload": {"description": "Private transaction description", "amount": "10.00"},
+        "operator_path": "C:\\Private\\book.gnucash.sqlite",
+    }
+
+    sanitized = redactor.sanitize_evidence(evidence, mode="redact")
+    rendered = json.dumps(sanitized, sort_keys=True)
+
+    assert sanitized["phase_number"] == 264
+    assert sanitized["classification"] == "copied_disposable"
+    assert sanitized["backup_count"] == 1
+    assert sanitized["audit_row_count"] == 0
+    assert sanitized["disabled_reset_status"] == "verified-default-disabled"
+    assert "Private transaction" not in rendered
+    assert "10.00" not in rendered
+    assert "C:\\Private" not in rendered
+    assert "<redacted-sensitive-field>" in rendered
+    assert "<redacted-path>" in rendered

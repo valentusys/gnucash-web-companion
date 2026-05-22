@@ -7,6 +7,13 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versione
 
 ## [Unreleased]
 
+- Phase 264 — hardened owner dry-run evidence schema acceptance tests and nested payload redaction.
+  Redaction tests now cover private path-like, amount-like, memo-like, account-name-like, and nested
+  payload-like data; `scripts/redact_dogfood_evidence.py` now rejects or redacts strings/numeric
+  values below sensitive container keys such as `payload`/`splits` so free-form payloads cannot bypass
+  the schema. Bounded evidence fields remain usable. No mutation, release, private-book use, default
+  write change, `APP_ENV=test` gate weakening, or real/private/only-copy write-safety claim was added.
+
 - Phase 263 — added a single owner-facing copied-book dry-run-only entrypoint and quickstart.
   `scripts/write_alpha_owner_dry_run.py` has no CREATE/PATCH/DELETE mode, validates that
   `mutation_requested=false`, `mutation_performed=false`, and `create_command_status=not-run` before

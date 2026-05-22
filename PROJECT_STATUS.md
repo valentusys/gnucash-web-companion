@@ -9,7 +9,7 @@ Last updated: 2026-05-22
 - Branch: `main`
 - Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release;
   `v0.2.8-writealpha` is the current public experimental write-alpha pre-release. Completed through
-  Phase 263. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
+  Phase 264. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
   release-candidate dogfood, confirmed local/backend/frontend/Docker/public-status/sensitive-file
   gates, waited for exact release/status commit CI, and published only the annotated tag plus GitHub
   pre-release. Phase 232 reconciled public status/changelog wording after publication. Phase 233
@@ -117,7 +117,7 @@ Last updated: 2026-05-22
 
 ## Current baseline
 
-Completed through Phase 263.
+Completed through Phase 264.
 
 Current public release state:
 
@@ -376,6 +376,15 @@ Current public release state:
   owner/private/original/only-copy book was used, no release/tag was published, `GNUCASH_WRITES_ENABLED=false`
   remains default, the `APP_ENV=test` gate remains intact, and no real/private/only-copy write-safety
   claim was added.
+
+
+- Phase 264 hardened owner dry-run evidence schema acceptance tests and nested payload redaction. The
+  redaction helper now rejects or redacts strings and numeric values below sensitive container keys such
+  as `payload`/`splits`, preventing free-form request/response payload data from bypassing the schema
+  through neutral child key names. Tests cover private path-like, amount-like, memo-like, account-name-like,
+  and nested payload-like failure cases while preserving useful bounded evidence fields. No mutation,
+  release/tag, owner/private/original/only-copy book use, write default change, `APP_ENV=test` gate
+  weakening, or real/private/only-copy write-safety claim was added.
 
 - `v0.2.4-writealpha` remains available as the previous public experimental write-alpha GitHub
   pre-release after Phase 211 publication. It is pre-alpha, disabled by default, `APP_ENV=test`

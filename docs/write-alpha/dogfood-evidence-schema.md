@@ -92,7 +92,9 @@ The helper is conservative and detects:
 
 - absolute, home-relative, Windows, runtime-data, and GnuCash/SQLite/backup/CSV path-like strings;
 - decimal or currency-like amount strings;
-- sensitive-key values such as `path`, `uri`, `filename`, `account_name`, `memo`, `description`, `amount`, `split`, and `payload`.
+- sensitive-key values such as `path`, `uri`, `filename`, `account_name`, `memo`, `description`, `amount`, `split`, and `payload`;
+- nested strings and numeric values below sensitive container keys such as `payload` or `splits`, so
+  free-form request/response payloads cannot bypass redaction by using neutral child key names.
 
 Use the helper as an additional guard, not as permission to commit private evidence. Human review must still confirm that examples and reports contain placeholders only.
 
