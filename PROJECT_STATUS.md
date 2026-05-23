@@ -9,7 +9,14 @@ Last updated: 2026-05-23
 - Branch: `main`
 - Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release;
   `v0.2.8-writealpha` is the current public experimental write-alpha pre-release. Completed through
-  Phase 320. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
+  Phase 330. Phases 321–330 ran Cycle 1 copied-book write-alpha dogfood on an owner-provided
+  copied/restorable working book outside git: analyst/intake/preflight/read-only smoke passed, PM
+  authorized exactly one CREATE, exactly one CREATE was attempted/performed, backup/read-back/audit/
+  ownership/lock/compatibility/restore/reset evidence passed, CREATE evidence was accepted narrowly,
+  PM chose NO_RELEASE, no tag/release/package/image/stable release/production deployment was created,
+  PATCH and DELETE were not run, raw private artifacts remained outside git, `GNUCASH_WRITES_ENABLED=false`
+  remains default, enabled write-alpha remains `APP_ENV=test` gated, and no original/private/only-copy or
+  broad write-safety claim was added. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
   release-candidate dogfood, confirmed local/backend/frontend/Docker/public-status/sensitive-file
   gates, waited for exact release/status commit CI, and published only the annotated tag plus GitHub
   pre-release. Phase 232 reconciled public status/changelog wording after publication. Phase 233

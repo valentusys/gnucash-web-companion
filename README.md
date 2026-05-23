@@ -85,10 +85,11 @@ This project is not a fit if you need:
   evidence](docs/release/v0.2.8-writealpha-publication-evidence.md).
 - Current copied-book write-alpha posture is summarized in
   [docs/write-alpha/copied-book-write-alpha-posture.md](docs/write-alpha/copied-book-write-alpha-posture.md):
-  owner copied-book dry-run evidence is accepted as **dry-run only**, exactly one owner copied-book
-  CREATE evidence run is accepted for one copied/restorable working copy outside git, owner PATCH
-  remains blocked/not accepted, and a fresh owner CREATE-to-PATCH chain is blocked before mutation pending
-  exact same-context confirmation for the new mutation scope. DELETE remains not run. No new write-alpha release was published.
+  owner copied-book dry-run evidence is accepted as **dry-run only**, earlier bounded CREATE and
+  CREATE-to-PATCH evidence is accepted narrowly, and Phases 321–330 added one new copied/restorable
+  working-book CREATE-only dogfood run with backup/read-back/audit/compatibility/restore/reset evidence.
+  PATCH was not run in Cycle 1, DELETE remains not run, and Phase 329/330 recorded PM `NO_RELEASE`.
+  No new write-alpha release was published.
 - Phase 221 evaluated `v0.2.5-writealpha` and recorded an explicit no-release verdict because Phase
   220 found a bounded write-alpha DELETE backup-count anomaly. Phases 222–228 remediated,
   documented, and smoke-verified that blocker closure as synthetic/disposable backup-audit and
