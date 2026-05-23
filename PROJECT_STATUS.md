@@ -1,6 +1,6 @@
 # PROJECT_STATUS
 
-Last updated: 2026-05-22
+Last updated: 2026-05-23
 
 ## Repository
 
@@ -9,7 +9,7 @@ Last updated: 2026-05-22
 - Branch: `main`
 - Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release;
   `v0.2.8-writealpha` is the current public experimental write-alpha pre-release. Completed through
-  Phase 294. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
+  Phase 295. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
   release-candidate dogfood, confirmed local/backend/frontend/Docker/public-status/sensitive-file
   gates, waited for exact release/status commit CI, and published only the annotated tag plus GitHub
   pre-release. Phase 232 reconciled public status/changelog wording after publication. Phase 233
@@ -184,10 +184,17 @@ Last updated: 2026-05-22
 - Phase 292 PATCH-one execution gate: exact Phase 285 owner confirmation was present, but the private working target could not verify the required precondition because the app metadata ownership marker points to the accepted CREATE-one transaction while that transaction is absent from the current copied working book after prior restore/reset. No PATCH was attempted or performed, DELETE was not run, writes were reset/observed disabled, and owner PATCH remains blocked pending a copied/restorable working book that still contains the Phase 276 write-alpha-created transaction.
 - Phase 293 fresh CREATE-to-PATCH chain gate: the owner selected the fresh-chain direction after Phase 292, but mutation was blocked before execution because this is a new owner mutation scope. The Phase 275 CREATE-one exact authorization was already consumed in Phase 276, and the Phase 285 PATCH-one authorization targeted the Phase 276-created transaction that Phase 292 could not verify. Prepared `docs/write-alpha/owner-create-patch-chain-request.md` with the exact same-context confirmation block required before any new chain. No CREATE/PATCH/DELETE was attempted or performed, defaults/gates remain unchanged, and no release was published.
 - Phase 294 owner copied-book CREATE-to-PATCH chain evidence: exact same-context owner confirmation was present, preconditions passed, and exactly one CREATE plus exactly one metadata/memo-only PATCH on that same Phase 294 write-alpha-created transaction were attempted and performed on a fresh copied/restorable working book outside git. Backups before both mutations, read-back, audit/lock evidence, readable backup artifact checks, piecash plus installed `gnucash-cli` compatibility, restore verification, reset/default-disabled verification, disabled validate/create/PATCH/DELETE probes, and redaction validation passed. DELETE was not run, private artifacts stayed outside git, defaults/gates remain unchanged, no release was published, and no production/security/public-internet/broad-compatibility or real/private/original/only-copy write-safety claim was added.
+- Phase 295 audited the Phase 294 owner copied-book CREATE-to-PATCH evidence and accepted it narrowly:
+  exactly one CREATE plus exactly one metadata/memo-only PATCH on the same Phase 294 write-alpha-created
+  transaction in one copied/restorable working book outside git. DELETE remains not run/blocked,
+  `GNUCASH_WRITES_ENABLED=false` remains default, enabled write-alpha remains `APP_ENV=test` gated, no
+  private artifacts were committed, latest visible Phase 294 CI was green, public-status guard passed,
+  and no production/security/public-internet/broad-compatibility or real/private/original/only-copy
+  write-safety claim was added.
 
 ## Current baseline
 
-Completed through Phase 294.
+Completed through Phase 295.
 
 Current public release state:
 

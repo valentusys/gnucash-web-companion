@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versioned releases begin.
 
 ## [Unreleased]
+- Phase 295 — audited and narrowly accepted the Phase 294 owner copied-book CREATE-to-PATCH evidence.
+  The accepted scope is exactly one CREATE plus exactly one metadata/memo-only PATCH on the same Phase 294
+  write-alpha-created transaction in one copied/restorable working book outside git. DELETE remains not
+  run/blocked; `GNUCASH_WRITES_ENABLED=false` remains default; enabled write-alpha remains `APP_ENV=test`
+  gated; no release was published; and no production/security/public-internet/broad-compatibility or real/
+  private/original/only-copy write-safety claim was added.
+
 - Phase 294 — accepted one bounded owner copied-book CREATE-to-PATCH chain after exact confirmation.
   Exactly one CREATE was attempted/performed on a fresh copied/restorable working book outside git, followed
   by exactly one metadata/memo-only PATCH on that same write-alpha-created transaction. Backups before each
