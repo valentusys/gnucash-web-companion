@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versioned releases begin.
 
 ## [Unreleased]
+- Phase 296 — reconciled the copied-book write-alpha evidence matrix and posture.
+  Public/status docs now distinguish synthetic/disposable evidence, maintainer copied-test-book/package
+  rehearsal, owner dry-run, owner CREATE-one, synthetic PATCH, superseded/absent owner PATCH-one,
+  accepted Phase 294/295 CREATE-to-PATCH fresh-chain evidence, and owner DELETE blocked/not run.
+  Defaults/gates remain unchanged, no release was published, and no broad write-safety claim was added.
+
 - Phase 295 — audited and narrowly accepted the Phase 294 owner copied-book CREATE-to-PATCH evidence.
   The accepted scope is exactly one CREATE plus exactly one metadata/memo-only PATCH on the same Phase 294
   write-alpha-created transaction in one copied/restorable working book outside git. DELETE remains not

@@ -1,19 +1,19 @@
 # Copied-book write-alpha posture
 
-Status: Phase 294 posture refresh after one owner-confirmed fresh CREATE-to-PATCH chain was accepted.
+Status: Phase 296 posture refresh after the Phase 295 audit accepted one owner-confirmed fresh CREATE-to-PATCH chain narrowly.
 
 ## Evidence that exists
 
 - Synthetic/disposable write-alpha evidence exists for the earlier route-family and copied-book package rehearsals.
 - Owner copied-book dry-run evidence is accepted as dry-run-only evidence.
 - Owner copied-book CREATE evidence is accepted for bounded copied/restorable working-copy runs: the Phase 276 CREATE-one evidence and the Phase 294 fresh-chain CREATE.
-- Owner copied-book PATCH evidence is accepted only for the Phase 294 fresh-chain metadata/memo-only PATCH on the same Phase 294 write-alpha-created transaction.
+- Owner copied-book PATCH evidence is accepted only for the Phase 294 fresh-chain metadata/memo-only PATCH on the same Phase 294 write-alpha-created transaction, as narrowly audited in Phase 295.
 
 The Phase 294 chain evidence covered pre-mutation backups before CREATE and PATCH, read-back, bounded audit evidence, backup-bearing audit rows matched to readable backup artifacts, lock release/stale-safe status, compatibility through piecash plus installed `gnucash-cli`, restore verification after chain evidence collection, reset to default-disabled config, and disabled validate/create/PATCH/DELETE probes returning 403.
 
 ## Evidence that does not exist
 
-- No owner copied-book DELETE evidence exists.
+- No owner copied-book DELETE evidence exists; DELETE remains blocked/not run for owner dogfood.
 - No evidence here proves broad GnuCash compatibility.
 - No evidence here proves production readiness, public-internet safety, security audit status, or safe writes for real/private/original/only-copy books.
 - No evidence here authorizes changing amounts, accounts, currency, split count, reconciliation state, schedule, import state, or account data.
