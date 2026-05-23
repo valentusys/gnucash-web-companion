@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versioned releases begin.
 
 ## [Unreleased]
+- Phase 299 — completed the final `v0.2.9-writealpha` no-release gate.
+  Backend, frontend, Docker config, public-status, diff hygiene, sensitive tracked-file scan, and latest
+  GitHub Actions checks passed. Gate decision remained no release; no tag, release, package, image,
+  stable release, or production deployment was created.
+
 - Phase 298 — updated the current `v0.2.9-writealpha` no-release support document.
   The verdict explains why Phase 294/295 copied-book CREATE-to-PATCH evidence should not be published as
   a new release and confirms no release-candidate artifacts, tag, GitHub release, package, image, or
