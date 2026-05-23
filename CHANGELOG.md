@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versioned releases begin.
 
 ## [Unreleased]
+- Phase 303 — added `docs/write-alpha/owner-next-steps.md` as the short owner-facing posture guide.
+  It consolidates read-only as the practical path, dry-run-only evidence, narrow CREATE-one and
+  CREATE-to-PATCH evidence, DELETE blocked/not run/no packet, original/only-copy prohibitions, and
+  unchanged default/gate requirements.
+
 - Phase 302 — kept owner copied-book DELETE blocked after an analyst readiness gate.
   Existing owner evidence supports dry-run, one CREATE-one, and one fresh CREATE-to-PATCH chain only;
   DELETE has no owner copied-book evidence, remains destructive, and no owner DELETE request packet was
