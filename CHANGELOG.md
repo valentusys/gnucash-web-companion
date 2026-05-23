@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versioned releases begin.
 
 ## [Unreleased]
+- Phase 298 — updated the current `v0.2.9-writealpha` no-release support document.
+  The verdict explains why Phase 294/295 copied-book CREATE-to-PATCH evidence should not be published as
+  a new release and confirms no release-candidate artifacts, tag, GitHub release, package, image, or
+  stable release were created.
+
 - Phase 297 — recorded the `v0.2.9-writealpha` release value decision: no release.
   PM decided the accepted CREATE-to-PATCH evidence is narrow copied-book evidence, not a user-facing
   runtime capability or broad safety correction, and publishing could overstate write safety. No tag,
