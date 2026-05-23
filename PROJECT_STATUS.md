@@ -9,7 +9,7 @@ Last updated: 2026-05-23
 - Branch: `main`
 - Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release;
   `v0.2.8-writealpha` is the current public experimental write-alpha pre-release. Completed through
-  Phase 301. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
+  Phase 302. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
   release-candidate dogfood, confirmed local/backend/frontend/Docker/public-status/sensitive-file
   gates, waited for exact release/status commit CI, and published only the annotated tag plus GitHub
   pre-release. Phase 232 reconciled public status/changelog wording after publication. Phase 233
@@ -219,10 +219,15 @@ Last updated: 2026-05-23
   DELETE probes returned 403; write UI stayed hidden; the auth cookie was not visible through
   `document.cookie`; and no screenshots, CSVs, app DBs, books, backups, or private artifacts were
   committed.
+- Phase 302 completed the owner DELETE readiness analyst gate and kept owner DELETE blocked. Existing
+  owner evidence supports dry-run, one CREATE-one, and one fresh CREATE-to-PATCH chain only; DELETE has
+  no owner copied-book evidence, remains destructive, and no owner DELETE request packet was prepared.
+  No DELETE execution, write-enabled run, release, default write change, APP_ENV gate weakening, or
+  broad write-safety claim was added.
 
 ## Current baseline
 
-Completed through Phase 301.
+Completed through Phase 302.
 
 Current public release state:
 

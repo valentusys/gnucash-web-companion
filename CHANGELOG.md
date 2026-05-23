@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versioned releases begin.
 
 ## [Unreleased]
+- Phase 302 — kept owner copied-book DELETE blocked after an analyst readiness gate.
+  Existing owner evidence supports dry-run, one CREATE-one, and one fresh CREATE-to-PATCH chain only;
+  DELETE has no owner copied-book evidence, remains destructive, and no owner DELETE request packet was
+  prepared. No DELETE execution, release, default write change, or broad write-safety claim was added.
+
 - Phase 301 — completed the post-Cycle-1 default-read-only Docker/Caddy regression.
   API and browser dogfood passed on the committed synthetic fixture with `GNUCASH_WRITES_ENABLED=false`:
   login, dashboard, accounts, transactions, CSV export, reports, scheduled transactions, and write-alpha
