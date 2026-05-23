@@ -9,7 +9,7 @@ Last updated: 2026-05-23
 - Branch: `main`
 - Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release;
   `v0.2.8-writealpha` is the current public experimental write-alpha pre-release. Completed through
-  Phase 299. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
+  Phase 300. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
   release-candidate dogfood, confirmed local/backend/frontend/Docker/public-status/sensitive-file
   gates, waited for exact release/status commit CI, and published only the annotated tag plus GitHub
   pre-release. Phase 232 reconciled public status/changelog wording after publication. Phase 233
@@ -209,10 +209,13 @@ Last updated: 2026-05-23
   public-status guard, diff hygiene, sensitive tracked-file scan, and latest GitHub Actions checks passed.
   Gate decision remained NO_RELEASE; no tag, release, package, image, stable release, or production
   deployment was created.
+- Phase 300 executed the publication step for the no-release decision: `v0.2.9-writealpha` was not
+  published. Local/remote tag and GitHub release checks confirmed `v0.2.9-writealpha` absent, while
+  `v0.2.8-writealpha` remains the current public experimental write-alpha pre-release.
 
 ## Current baseline
 
-Completed through Phase 299.
+Completed through Phase 300.
 
 Current public release state:
 
