@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versioned releases begin.
 
 ## [Unreleased]
+- Phase 301 — completed the post-Cycle-1 default-read-only Docker/Caddy regression.
+  API and browser dogfood passed on the committed synthetic fixture with `GNUCASH_WRITES_ENABLED=false`:
+  login, dashboard, accounts, transactions, CSV export, reports, scheduled transactions, and write-alpha
+  audit summary remained healthy; disabled validate/create/PATCH/DELETE probes returned 403; write UI stayed
+  hidden; the auth cookie was not visible to browser JavaScript; and no runtime/private artifacts were committed.
+
 - Phase 300 — executed the `v0.2.9-writealpha` publication step as no-publication.
   Local/remote tag and GitHub release checks confirmed `v0.2.9-writealpha` is absent; the existing public
   experimental write-alpha pre-release remains current. No release, tag, package, image, stable release, or
