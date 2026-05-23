@@ -9,7 +9,7 @@ Last updated: 2026-05-23
 - Branch: `main`
 - Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release;
   `v0.2.8-writealpha` is the current public experimental write-alpha pre-release. Completed through
-  Phase 306. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
+  Phase 320. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
   release-candidate dogfood, confirmed local/backend/frontend/Docker/public-status/sensitive-file
   gates, waited for exact release/status commit CI, and published only the annotated tag plus GitHub
   pre-release. Phase 232 reconciled public status/changelog wording after publication. Phase 233
@@ -244,7 +244,7 @@ Last updated: 2026-05-23
 
 ## Current baseline
 
-Completed through Phase 306.
+Completed through Phase 320.
 
 Current public release state:
 
@@ -7014,6 +7014,130 @@ Artifacts:
 
 - `docs/audits/phase-262-current-state-gate.md`
 - `docs/handoff/phase-262.md`
+
+## Phase 307 — Phase 306 docs-only verification
+
+Status: complete. Phase 306 reset/default-disabled checklist hardening was verified as a docs-only outcome. Link target, public status guard, diff hygiene, and sensitive tracked-file hygiene passed; no mutation or release work occurred.
+
+Artifacts:
+
+- `docs/handoff/phase-307.md`
+
+## Phase 308 — Public status reconciliation
+
+Status: complete. Public status sources were reconciled to completed Phase 308 while preserving `v0.1.7-readonly` and `v0.2.8-writealpha` as the current public releases.
+
+Artifacts:
+
+- `docs/handoff/phase-308.md`
+
+## Phase 309 — Cycle 2 release/no-release decision
+
+Status: complete. PM decision: `NO_RELEASE`. Cycle 2 maintenance documentation and verification did not warrant a release.
+
+Artifacts:
+
+- `docs/release/cycle-2-release-decision.md`
+- `docs/handoff/phase-309.md`
+
+## Phase 310 — Cycle 2 no-publication execution
+
+Status: complete. The no-release decision was executed as no-publication; no tag, release, package, image, stable release, or production deployment was created.
+
+Artifacts:
+
+- `docs/release/cycle-2-no-release-verdict.md`
+- `docs/handoff/phase-310.md`
+
+## Phase 311 — Cycle 3 analyst gate
+
+Status: complete. Cycle 3 selected exactly one practical maintenance task: an owner-feedback gate for future write-alpha dogfood progression.
+
+Artifacts:
+
+- `docs/audits/phase-311-cycle-3-gate.md`
+- `docs/handoff/phase-311.md`
+
+## Phase 312 — Owner-feedback gate
+
+Status: complete. Added the owner-feedback gate for future write-alpha dogfood. New owner mutation scope now requires fresh live-stand feedback or exact same-context confirmation.
+
+Artifacts:
+
+- `docs/write-alpha/owner-feedback-gate.md`
+- `docs/handoff/phase-312.md`
+
+## Phase 313 — Regression and hygiene pass
+
+Status: complete. Public status, diff hygiene, and sensitive tracked-file hygiene were included in the final gate; no runtime/private artifacts were staged.
+
+Artifacts:
+
+- `docs/handoff/phase-313.md`
+
+## Phase 314 — Owner-facing status digest
+
+Status: complete. Added a concise owner status digest: read-only use is the practical path; write-alpha waits for fresh owner need and a new exact confirmation packet.
+
+Artifacts:
+
+- `docs/write-alpha/owner-status-digest.md`
+- `docs/handoff/phase-314.md`
+
+## Phase 315 — Cycle 3 release/no-release decision
+
+Status: complete. PM decision: `NO_RELEASE`. Guidance-only maintenance changes do not warrant a release.
+
+Artifacts:
+
+- `docs/release/cycle-3-release-decision.md`
+- `docs/handoff/phase-315.md`
+
+## Phase 316 — Cycle 3 no-publication execution
+
+Status: complete. The no-release decision was executed as no-publication; `v0.2.8-writealpha` remains the current public experimental write-alpha pre-release.
+
+Artifacts:
+
+- `docs/release/cycle-3-no-release-verdict.md`
+- `docs/handoff/phase-316.md`
+
+## Phase 317 — Maintenance-mode decision
+
+Status: complete. PM decision: enter maintenance/wait mode for active write-alpha phase work until fresh owner live-stand feedback or a new exact same-context confirmation packet exists.
+
+Artifacts:
+
+- `docs/audits/phase-317-maintenance-decision.md`
+- `docs/handoff/phase-317.md`
+
+## Phase 318 — Maintenance-mode implementation
+
+Status: complete. Added `docs/MAINTENANCE_MODE.md` and updated public/status docs to avoid implying active write-alpha phase momentum.
+
+Artifacts:
+
+- `docs/MAINTENANCE_MODE.md`
+- `docs/handoff/phase-318.md`
+
+## Phase 319 — Open-issue triage without noise
+
+Status: complete. Open issues #36, #22, #28, #17, #29, and #13 were inspected. No comments were posted because GitHub CLI auth is invalid and no closure/comment was necessary.
+
+Artifacts:
+
+- `docs/handoff/phase-319.md`
+
+## Phase 320 — Final 30-phase summary and next owner action
+
+Status: complete. Final summary recorded. Active write-alpha phase work is in maintenance/wait mode. No immediate owner action is required; continue read-only use/testing and provide fresh live-stand feedback before any future write-alpha mutation.
+
+Artifacts:
+
+- `docs/handoff/phase-320-final-summary.md`
+- `docs/handoff/phase-320.md`
+
+Safety result for Phases 307–320: `GNUCASH_WRITES_ENABLED=false` remains default, enabled write-alpha remains `APP_ENV=test` gated, owner DELETE remains blocked/not run/no packet, no original/private/only-copy mutation was run or authorized, no release/tag/package/image/production deployment was created, and no production/security/public-internet/broad-compatibility or real/private-book write-safety claim was added.
 
 ## Standing constraints
 

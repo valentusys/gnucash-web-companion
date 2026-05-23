@@ -47,7 +47,8 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–306 are complete.
+- Phase 0–320 are complete.
+- Active write-alpha phase work is now in maintenance/wait mode; see [docs/MAINTENANCE_MODE.md](docs/MAINTENANCE_MODE.md).
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by
   default.

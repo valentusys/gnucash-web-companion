@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versioned releases begin.
 
 ## [Unreleased]
+- Phase 320 / Phases 307–320 — verified Phase 306 docs-only hardening, reconciled public status, recorded Cycle 2 and Cycle 3 no-release/no-publication decisions, added the owner-feedback gate and owner status digest, entered maintenance/wait mode for active write-alpha phase work, triaged open issues without noisy comments, and recorded the final next owner action. The current public experimental write-alpha pre-release remains unchanged; `GNUCASH_WRITES_ENABLED=false` remains default; enabled write-alpha remains `APP_ENV=test` gated; owner DELETE remains blocked/not run/no packet; no tag, release, package, image, production deployment, original/private/only-copy mutation, or broad write-safety claim was added.
+
 - Phase 305 — completed the Cycle 2 analyst gate and selected write-alpha maintenance hardening.
   Phase 306 is constrained to one narrow non-mutating maintenance-hardening outcome around existing
   safety/runbook/test boundaries; owner DELETE execution/packets, new owner mutations, release preparation,
