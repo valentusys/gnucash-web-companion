@@ -82,6 +82,7 @@ Relevant docs:
 - `docs/write-alpha/owner-patch-one-request.md`
 - `docs/write-alpha/owner-create-patch-chain-request.md`
 - `docs/write-alpha/transaction-ownership.md`
+- `docs/write-alpha/default-disabled-reset-checklist.md`
 - `docs/write-alpha/copied-book-write-alpha-posture.md`
 - `docs/write-alpha/evidence-matrix.md`
 
