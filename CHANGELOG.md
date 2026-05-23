@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versioned releases begin.
 
 ## [Unreleased]
+- Phase 304 — closed Cycle 1 without blockers and selected the next-cycle direction.
+  PM chose continued owner copied-book hardening through narrow write-alpha maintenance hardening, with no
+  owner DELETE execution, DELETE request packet, new owner mutation request, release preparation, default
+  write change, or `APP_ENV=test` gate weakening.
+
 - Phase 303 — added `docs/write-alpha/owner-next-steps.md` as the short owner-facing posture guide.
   It consolidates read-only as the practical path, dry-run-only evidence, narrow CREATE-one and
   CREATE-to-PATCH evidence, DELETE blocked/not run/no packet, original/only-copy prohibitions, and

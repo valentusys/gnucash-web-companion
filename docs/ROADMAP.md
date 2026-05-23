@@ -5,7 +5,7 @@ This roadmap is intentionally conservative. Safety and trust come before feature
 ## Current release posture
 
 - Status: pre-alpha / MVP in progress.
-- Completed through Phase 303.
+- Completed through Phase 304.
 
 Phase 276 accepted exactly one owner copied-book CREATE-one evidence run after the exact Phase 275 confirmation block was provided. Phases 281–285 prepared PATCH-one readiness/plan/request without mutation. Phase 291 froze progression pending owner PATCH evidence or read-only maintenance. Phase 292 received exact owner PATCH confirmation but blocked before mutation because the current copied working book no longer contains the accepted CREATE-one target transaction required for PATCH verification. Phase 293 prepared the exact confirmation packet for a new fresh-chain scope. Phase 294 accepted one owner-confirmed fresh copied-book CREATE-to-PATCH chain: exactly one CREATE followed by exactly one metadata/memo-only PATCH on that same write-alpha-created transaction, with required backup/read-back/audit/compatibility/restore/reset/redaction evidence. DELETE remains not run/blocked, and no broad safety claim or release was added.
 - Current public read-only pre-release: `v0.1.7-readonly`.
