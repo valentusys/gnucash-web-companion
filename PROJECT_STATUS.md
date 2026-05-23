@@ -7241,6 +7241,99 @@ Artifacts:
 
 Safety result for Phases 331–340: exactly one PATCH attempted/performed; DELETE not run; `GNUCASH_WRITES_ENABLED=false` remains default; enabled write-alpha remains `APP_ENV=test` gated; original/read-only upload and independent upload backup were not mutated; no release/tag/package/image/production deployment was created; and no production/security/public-internet/broad-compatibility or real/private-book write-safety claim was added.
 
+## Phase 341 — DELETE risk analyst gate
+
+Status: complete. Analyst verdict: DELETE planning-only allowed, synthetic-only, conservative; DELETE execution remains blocked.
+
+Artifacts:
+
+- `docs/audits/phase-341-delete-risk-gate.md`
+- `docs/handoff/phase-341.md`
+
+## Phase 342 — PM DELETE planning decision
+
+Status: complete. PM approved DELETE planning only and explicitly did not authorize DELETE execution.
+
+Artifacts:
+
+- `docs/write-alpha/phase-342-delete-planning-decision.md`
+- `docs/handoff/phase-342.md`
+
+## Phase 343 — DELETE plan and abort criteria
+
+Status: complete. Conservative DELETE copied-book plan recorded with target limits, backups, restore/read-back requirements, evidence redaction, and abort criteria.
+
+Artifacts:
+
+- `docs/write-alpha/delete-copied-book-plan.md`
+- `docs/handoff/phase-343.md`
+
+## Phase 344 — DELETE dry-run capability review
+
+Status: complete. Existing mutation-capable DELETE route was rejected for planning dry-run; PM approved implementing a narrow non-mutating helper.
+
+Artifacts:
+
+- `docs/handoff/phase-344.md`
+
+## Phase 345 — Optional DELETE dry-run helper implementation
+
+Status: complete. Added `scripts/write_alpha_delete_dry_run.py` and tests proving no book/app DB mutation, no delete-route call, and stable audit row count.
+
+Artifacts:
+
+- `scripts/write_alpha_delete_dry_run.py`
+- `apps/api/tests/test_write_alpha_delete_dry_run.py`
+- `docs/handoff/phase-345.md`
+
+## Phase 346 — DELETE dry-run synthetic rehearsal
+
+Status: complete. Non-mutating DELETE dry-run passed on synthetic/disposable fixtures only; no owner copied book was used.
+
+Artifacts:
+
+- `docs/dogfood/phase-346-delete-dry-run-synthetic.md`
+- `docs/handoff/phase-346.md`
+
+## Phase 347 — DELETE planning analyst verdict
+
+Status: complete. DELETE remains blocked and not recommended now; future consideration requires fresh owner DELETE execution authorization and PM approval.
+
+Artifacts:
+
+- `docs/audits/phase-347-delete-planning-verdict.md`
+- `docs/handoff/phase-347.md`
+
+## Phase 348 — Final write-alpha practical posture
+
+Status: complete. Owner-facing practical posture summary recorded.
+
+Artifacts:
+
+- `docs/write-alpha/practical-posture-summary.md`
+- `docs/handoff/phase-348.md`
+
+## Phase 349 — Future release/no-release decision
+
+Status: complete. PM decision: `NO_RELEASE`; Cycle 3 planning/helper work should not be published as a new release.
+
+Artifacts:
+
+- `docs/release/phase-349-release-decision.md`
+- `docs/handoff/phase-349.md`
+
+## Phase 350 — Execute final decision and stop
+
+Status: complete. No-release decision executed; no tag, release, package, image, stable release, or production deployment was created. Cycle 3 stops here.
+
+Artifacts:
+
+- `docs/release/phase-350-no-release-verdict.md`
+- `docs/handoff/phase-350.md`
+
+Safety result for Phases 341–350: DELETE planning only; no DELETE execution; helper/dry-run synthetic-only and non-mutating; `GNUCASH_WRITES_ENABLED=false` remains default; enabled write-alpha remains `APP_ENV=test` gated; original/read-only upload and independent upload backup were not mutated; no release/tag/package/image/production deployment was created; and no production/security/public-internet/broad-compatibility or real/private-book write-safety claim was added.
+
+
 ## Standing constraints
 
 - MVP v0.1 is strictly read-only for GnuCash.
