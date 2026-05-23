@@ -1,15 +1,17 @@
 # Copied-book write-alpha posture
 
-Status: Phase 296 posture refresh after the Phase 295 audit accepted one owner-confirmed fresh CREATE-to-PATCH chain narrowly.
+Status: Phase 336 posture refresh after the Phase 335 audit accepted the current Cycle 2 copied-book PATCH evidence narrowly.
 
 ## Evidence that exists
 
 - Synthetic/disposable write-alpha evidence exists for the earlier route-family and copied-book package rehearsals.
 - Owner copied-book dry-run evidence is accepted as dry-run-only evidence.
 - Owner copied-book CREATE evidence is accepted for bounded copied/restorable working-copy runs: the Phase 276 CREATE-one evidence and the Phase 294 fresh-chain CREATE.
-- Owner copied-book PATCH evidence is accepted only for the Phase 294 fresh-chain metadata/memo-only PATCH on the same Phase 294 write-alpha-created transaction, as narrowly audited in Phase 295.
+- Owner copied-book PATCH evidence is accepted only for bounded metadata/memo-only PATCH evidence: the Phase 294 fresh-chain PATCH on its same write-alpha-created transaction, and the current Cycle 2 Phase 333 PATCH on the verified existing Cycle 1 write-alpha-created copied-book test transaction as narrowly audited in Phase 335.
 
 The Phase 294 chain evidence covered pre-mutation backups before CREATE and PATCH, read-back, bounded audit evidence, backup-bearing audit rows matched to readable backup artifacts, lock release/stale-safe status, compatibility through piecash plus installed `gnucash-cli`, restore verification after chain evidence collection, reset to default-disabled config, and disabled validate/create/PATCH/DELETE probes returning 403.
+
+The current Cycle 2 evidence covered ownership verification of the existing write-alpha-created copied-book test transaction, a pre-PATCH backup, exactly one metadata/memo-only PATCH, unchanged amount/account/currency/split-count fingerprint, read-back, audit/lock and backup evidence, piecash plus installed `gnucash-cli` compatibility, restore verification from the pre-PATCH backup, default-disabled reset, and disabled validate/create/PATCH/DELETE probes returning 403.
 
 ## Evidence that does not exist
 

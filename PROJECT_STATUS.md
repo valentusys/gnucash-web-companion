@@ -9,14 +9,18 @@ Last updated: 2026-05-23
 - Branch: `main`
 - Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release;
   `v0.2.8-writealpha` is the current public experimental write-alpha pre-release. Completed through
-  Phase 330. Phases 321–330 ran Cycle 1 copied-book write-alpha dogfood on an owner-provided
+  Phase 340. Phases 321–330 ran Cycle 1 copied-book write-alpha dogfood on an owner-provided
   copied/restorable working book outside git: analyst/intake/preflight/read-only smoke passed, PM
   authorized exactly one CREATE, exactly one CREATE was attempted/performed, backup/read-back/audit/
   ownership/lock/compatibility/restore/reset evidence passed, CREATE evidence was accepted narrowly,
-  PM chose NO_RELEASE, no tag/release/package/image/stable release/production deployment was created,
-  PATCH and DELETE were not run, raw private artifacts remained outside git, `GNUCASH_WRITES_ENABLED=false`
-  remains default, enabled write-alpha remains `APP_ENV=test` gated, and no original/private/only-copy or
-  broad write-safety claim was added. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
+  and PM chose NO_RELEASE. Phases 331–340 continued Cycle 2 after explicit owner continuation: PM
+  authorized exactly one metadata/memo-only PATCH on the verified existing write-alpha-owned copied-book
+  test transaction, exactly one PATCH was attempted/performed, backup/read-back/audit/compatibility/
+  restore/reset evidence passed, PATCH evidence was accepted narrowly, PM chose NO_RELEASE, no tag/
+  release/package/image/stable release/production deployment was created, DELETE was not run, raw private
+  artifacts remained outside git, `GNUCASH_WRITES_ENABLED=false` remains default, enabled write-alpha
+  remains `APP_ENV=test` gated, and no original/private/only-copy, broad compatibility, or broad
+  write-safety claim was added. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
   release-candidate dogfood, confirmed local/backend/frontend/Docker/public-status/sensitive-file
   gates, waited for exact release/status commit CI, and published only the annotated tag plus GitHub
   pre-release. Phase 232 reconciled public status/changelog wording after publication. Phase 233
@@ -7145,6 +7149,97 @@ Artifacts:
 - `docs/handoff/phase-320.md`
 
 Safety result for Phases 307–320: `GNUCASH_WRITES_ENABLED=false` remains default, enabled write-alpha remains `APP_ENV=test` gated, owner DELETE remains blocked/not run/no packet, no original/private/only-copy mutation was run or authorized, no release/tag/package/image/production deployment was created, and no production/security/public-internet/broad-compatibility or real/private-book write-safety claim was added.
+
+## Phase 331 — PATCH readiness analyst gate
+
+Status: complete. Analyst found Cycle 2 ready for PM PATCH authorization: the existing Cycle 1 write-alpha-created test transaction was verifiable as present and write-alpha-owned, with metadata/memo-only scope and no original/only-copy target.
+
+Artifacts:
+
+- `docs/audits/phase-331-patch-readiness.md`
+- `docs/handoff/phase-331.md`
+
+## Phase 332 — PM PATCH authorization gate
+
+Status: complete. PM authorized exactly one metadata/memo-only copied-book PATCH on the verified write-alpha-owned test transaction. DELETE and release remained out of scope.
+
+Artifacts:
+
+- `docs/write-alpha/phase-332-patch-authorization.md`
+- `docs/handoff/phase-332.md`
+
+## Phase 333 — Execute exactly one copied-book PATCH
+
+Status: complete. Exactly one PATCH attempt was made and succeeded. The mutation was metadata/memo-only, amount/account/currency/split-count fingerprints stayed unchanged, and read-back/audit/backup/default-disabled reset evidence passed.
+
+Artifacts:
+
+- `docs/dogfood/phase-333-copied-book-patch-one.md`
+- `docs/handoff/phase-333.md`
+
+## Phase 334 — Post-PATCH compatibility and restore proof
+
+Status: complete. Post-PATCH piecash and installed `gnucash-cli` checks passed, and restore verification from the pre-PATCH backup passed on a separate copied/restorable restore target.
+
+Artifacts:
+
+- `docs/dogfood/phase-334-patch-compat-restore.md`
+- `docs/handoff/phase-334.md`
+
+## Phase 335 — PATCH evidence analyst acceptance
+
+Status: complete. Analyst accepted Cycle 2 PATCH evidence narrowly for exactly one metadata/memo-only PATCH on a write-alpha-owned copied-book test transaction.
+
+Artifacts:
+
+- `docs/audits/phase-335-patch-evidence-audit.md`
+- `docs/handoff/phase-335.md`
+
+## Phase 336 — Copied-book CREATE/PATCH posture update
+
+Status: complete. Evidence matrix and copied-book posture docs now distinguish synthetic/disposable evidence, bounded owner copied-book CREATE/PATCH evidence, and DELETE blocked/not run.
+
+Artifacts:
+
+- `docs/write-alpha/evidence-matrix.md`
+- `docs/write-alpha/copied-book-write-alpha-posture.md`
+- `docs/handoff/phase-336.md`
+
+## Phase 337 — Optional regression fix from CREATE/PATCH dogfood
+
+Status: complete/no-op. No reproducible product bug was found during Cycle 2 dogfood, so no code or regression-test change was needed.
+
+Artifacts:
+
+- `docs/handoff/phase-337.md`
+
+## Phase 338 — Cycle-2 release/no-release decision
+
+Status: complete. PM chose NO_RELEASE because Cycle 2 produced narrow private copied-book dogfood evidence and posture docs only.
+
+Artifacts:
+
+- `docs/release/phase-338-release-decision.md`
+- `docs/handoff/phase-338.md`
+
+## Phase 339 — Execute Cycle-2 release/no-release
+
+Status: complete. No tag, GitHub release, package, image, stable release, or production deployment was created.
+
+Artifacts:
+
+- `docs/handoff/phase-339.md`
+
+## Phase 340 — Cycle-2 stop summary
+
+Status: complete. Cycle 2 stops here unless the owner explicitly requests DELETE planning. DELETE was not started.
+
+Artifacts:
+
+- `docs/handoff/phase-340-final-summary.md`
+- `docs/handoff/phase-340.md`
+
+Safety result for Phases 331–340: exactly one PATCH attempted/performed; DELETE not run; `GNUCASH_WRITES_ENABLED=false` remains default; enabled write-alpha remains `APP_ENV=test` gated; original/read-only upload and independent upload backup were not mutated; no release/tag/package/image/production deployment was created; and no production/security/public-internet/broad-compatibility or real/private-book write-safety claim was added.
 
 ## Standing constraints
 
