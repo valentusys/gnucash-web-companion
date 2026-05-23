@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versioned releases begin.
 
 ## [Unreleased]
+- Phase 297 — recorded the `v0.2.9-writealpha` release value decision: no release.
+  PM decided the accepted CREATE-to-PATCH evidence is narrow copied-book evidence, not a user-facing
+  runtime capability or broad safety correction, and publishing could overstate write safety. No tag,
+  GitHub release, package, image, or stable release was published.
+
 - Phase 296 — reconciled the copied-book write-alpha evidence matrix and posture.
   Public/status docs now distinguish synthetic/disposable evidence, maintainer copied-test-book/package
   rehearsal, owner dry-run, owner CREATE-one, synthetic PATCH, superseded/absent owner PATCH-one,

@@ -9,7 +9,7 @@ Last updated: 2026-05-23
 - Branch: `main`
 - Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release;
   `v0.2.8-writealpha` is the current public experimental write-alpha pre-release. Completed through
-  Phase 296. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
+  Phase 297. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
   release-candidate dogfood, confirmed local/backend/frontend/Docker/public-status/sensitive-file
   gates, waited for exact release/status commit CI, and published only the annotated tag plus GitHub
   pre-release. Phase 232 reconciled public status/changelog wording after publication. Phase 233
@@ -197,10 +197,14 @@ Last updated: 2026-05-23
   owner dry-run, owner CREATE-one, synthetic PATCH, superseded/absent owner PATCH-one, the accepted
   Phase 294/295 CREATE-to-PATCH fresh-chain evidence, and owner DELETE blocked/not run. Defaults/gates
   remain unchanged and no broad write-safety claim was added.
+- Phase 297 invoked PM for the `v0.2.9-writealpha` release value decision and recorded NO_RELEASE in
+  `docs/release/v0.2.9-writealpha-release-decision.md`. The accepted CREATE-to-PATCH evidence is narrow
+  copied-book evidence rather than a user-facing runtime capability or broad safety correction; publishing
+  could overstate safety. No tag, GitHub release, package, or image was published.
 
 ## Current baseline
 
-Completed through Phase 296.
+Completed through Phase 297.
 
 Current public release state:
 
