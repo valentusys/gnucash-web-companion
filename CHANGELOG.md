@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versioned releases begin.
 
 ## [Unreleased]
+- Phase 305 — completed the Cycle 2 analyst gate and selected write-alpha maintenance hardening.
+  Phase 306 is constrained to one narrow non-mutating maintenance-hardening outcome around existing
+  safety/runbook/test boundaries; owner DELETE execution/packets, new owner mutations, release preparation,
+  default write changes, and `APP_ENV=test` gate weakening remain out of scope.
+
 - Phase 304 — closed Cycle 1 without blockers and selected the next-cycle direction.
   PM chose continued owner copied-book hardening through narrow write-alpha maintenance hardening, with no
   owner DELETE execution, DELETE request packet, new owner mutation request, release preparation, default

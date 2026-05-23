@@ -9,7 +9,7 @@ Last updated: 2026-05-23
 - Branch: `main`
 - Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release;
   `v0.2.8-writealpha` is the current public experimental write-alpha pre-release. Completed through
-  Phase 304. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
+  Phase 305. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
   release-candidate dogfood, confirmed local/backend/frontend/Docker/public-status/sensitive-file
   gates, waited for exact release/status commit CI, and published only the annotated tag plus GitHub
   pre-release. Phase 232 reconciled public status/changelog wording after publication. Phase 233
@@ -233,10 +233,14 @@ Last updated: 2026-05-23
   copied-book hardening through narrow write-alpha maintenance hardening. The decision explicitly did
   not select owner DELETE execution, DELETE request packets, new owner mutations, release preparation,
   broad feature work, default write changes, or APP_ENV gate weakening.
+- Phase 305 completed the Cycle 2 analyst gate and selected option B: write-alpha maintenance hardening.
+  Phase 306 must implement exactly one narrow non-mutating maintenance-hardening outcome around existing
+  safety/runbook/test boundaries; owner DELETE execution/packets, new owner mutations, release
+  preparation, default write changes, and APP_ENV gate weakening remain out of scope.
 
 ## Current baseline
 
-Completed through Phase 304.
+Completed through Phase 305.
 
 Current public release state:
 
