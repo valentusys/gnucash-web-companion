@@ -1,6 +1,6 @@
 # PROJECT_STATUS
 
-Last updated: 2026-05-23
+Last updated: 2026-05-25
 
 ## Repository
 
@@ -9,18 +9,24 @@ Last updated: 2026-05-23
 - Branch: `main`
 - Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release;
   `v0.2.8-writealpha` is the current public experimental write-alpha pre-release. Completed through
-  Phase 340. Phases 321–330 ran Cycle 1 copied-book write-alpha dogfood on an owner-provided
-  copied/restorable working book outside git: analyst/intake/preflight/read-only smoke passed, PM
-  authorized exactly one CREATE, exactly one CREATE was attempted/performed, backup/read-back/audit/
-  ownership/lock/compatibility/restore/reset evidence passed, CREATE evidence was accepted narrowly,
-  and PM chose NO_RELEASE. Phases 331–340 continued Cycle 2 after explicit owner continuation: PM
-  authorized exactly one metadata/memo-only PATCH on the verified existing write-alpha-owned copied-book
-  test transaction, exactly one PATCH was attempted/performed, backup/read-back/audit/compatibility/
-  restore/reset evidence passed, PATCH evidence was accepted narrowly, PM chose NO_RELEASE, no tag/
-  release/package/image/stable release/production deployment was created, DELETE was not run, raw private
-  artifacts remained outside git, `GNUCASH_WRITES_ENABLED=false` remains default, enabled write-alpha
-  remains `APP_ENV=test` gated, and no original/private/only-copy, broad compatibility, or broad
-  write-safety claim was added. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
+  Phase 353. Phases 351–353 reviewed DELETE readiness, recorded PM's contingent exactly-one DELETE
+  authorization, then stopped before mutation because this session provided only the copied GnuCash
+  book and no matching app metadata DB with a `write_alpha_transaction_ownership` marker. Therefore no
+  transaction could be proven write-alpha-owned/test-owned; no DELETE/CREATE/PATCH was attempted, no
+  backup/audit/runtime artifact was created in repo, `GNUCASH_WRITES_ENABLED=false` remains default,
+  enabled write-alpha remains `APP_ENV=test` gated, and no original/private/only-copy, broad
+  compatibility, or broad write-safety claim was added. Phases 321–330 ran Cycle 1 copied-book
+  write-alpha dogfood on an owner-provided copied/restorable working book outside git: analyst/intake/
+  preflight/read-only smoke passed, PM authorized exactly one CREATE, exactly one CREATE was attempted/
+  performed, backup/read-back/audit/ownership/lock/compatibility/restore/reset evidence passed, CREATE
+  evidence was accepted narrowly, and PM chose NO_RELEASE. Phases 331–340 continued Cycle 2 after
+  explicit owner continuation: PM authorized exactly one metadata/memo-only PATCH on the verified
+  existing write-alpha-owned copied-book test transaction, exactly one PATCH was attempted/performed,
+  backup/read-back/audit/compatibility/restore/reset evidence passed, PATCH evidence was accepted
+  narrowly, PM chose NO_RELEASE, no tag/release/package/image/stable release/production deployment was
+  created, DELETE was not run, raw private artifacts remained outside git, `GNUCASH_WRITES_ENABLED=false`
+  remains default, enabled write-alpha remains `APP_ENV=test` gated, and no original/private/only-copy,
+  broad compatibility, or broad write-safety claim was added. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
   release-candidate dogfood, confirmed local/backend/frontend/Docker/public-status/sensitive-file
   gates, waited for exact release/status commit CI, and published only the annotated tag plus GitHub
   pre-release. Phase 232 reconciled public status/changelog wording after publication. Phase 233
