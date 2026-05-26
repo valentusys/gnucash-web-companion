@@ -7375,3 +7375,7 @@ Docker config:
 ```bash
 JWT_SECRET=<dummy-local-secret> APP_ADMIN_PASSWORD=<dummy-local-password> docker compose config --quiet
 ```
+
+## Phase 351-380 completion summary
+
+Completed through Phase 380 on the phase-351-380 background roadmap branch. Phase 354 executed a copied-book CREATE-to-DELETE chain on an owner-provided copied/restorable book outside git: exactly one CREATE and exactly one DELETE of that same write-alpha-owned disposable transaction; backup/read-back/audit/ownership/restore/compatibility/reset evidence passed. Phase 363 executed the PM-authorized small batch: exactly two CREATE operations and exactly one metadata/memo-only PATCH, zero DELETE; backup/read-back/audit/ownership/restore/compatibility/reset evidence passed. Phases 359, 369, and 379 PM decisions were NO_RELEASE; Phase 380 executed final no-release and stopped. No original/private/only-copy book, raw evidence, backup, app DB, GnuCash book, private paths/account names/memos/amounts, .env, secrets, tag, GitHub release, package, image, stable release, production deployment, default write enablement, or APP_ENV=test weakening was committed.

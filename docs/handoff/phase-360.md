@@ -1,9 +1,9 @@
-# Phase 368 — Practical write-alpha posture update
+# Phase 360 — Cycle-1 no-release execution
 
 Status: PASS.
 
 Summary:
-- Posture: copied-book small-batch experimental dogfood is accepted narrowly for 2 CREATE + 1 metadata/memo-only PATCH after backup/restore/compatibility/reset checks. Single-operation DELETE evidence is accepted only for a write-alpha-owned disposable transaction. Original/private/only-copy books remain forbidden; defaults remain disabled.
+- Executed PM NO_RELEASE decision. No v0.2.9+ pre-release was published. README/PROJECT_STATUS/docs remain conservative; default disabled write posture and APP_ENV=test gate remain unchanged.
 
 Safety:
 - No original/private/only-copy book was mutated.

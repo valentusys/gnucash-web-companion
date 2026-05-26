@@ -1,9 +1,9 @@
-# Phase 368 — Practical write-alpha posture update
+# Phase 362 — PM small batch authorization
 
 Status: PASS.
 
 Summary:
-- Posture: copied-book small-batch experimental dogfood is accepted narrowly for 2 CREATE + 1 metadata/memo-only PATCH after backup/restore/compatibility/reset checks. Single-operation DELETE evidence is accepted only for a write-alpha-owned disposable transaction. Original/private/only-copy books remain forbidden; defaults remain disabled.
+- PM decision: AUTHORIZE_SMALL_BATCH. Authorized exactly two CREATE operations and exactly one metadata/memo-only PATCH on the first write-alpha-created transaction. DELETE count authorized: zero. Abort on any backup/read-back/audit/ownership/restore/compatibility/reset failure. Original/private/only-copy books excluded; committed evidence must remain redacted.
 
 Safety:
 - No original/private/only-copy book was mutated.

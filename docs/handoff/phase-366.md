@@ -1,9 +1,9 @@
-# Phase 368 — Practical write-alpha posture update
+# Phase 366 — Write-alpha UX/operator warning review
 
 Status: PASS.
 
 Summary:
-- Posture: copied-book small-batch experimental dogfood is accepted narrowly for 2 CREATE + 1 metadata/memo-only PATCH after backup/restore/compatibility/reset checks. Single-operation DELETE evidence is accepted only for a write-alpha-owned disposable transaction. Original/private/only-copy books remain forbidden; defaults remain disabled.
+- Reviewed existing write-alpha warning posture. No UI/code copy change was required: docs and operator copy continue to require copied/restorable books, original untouched, backups/restores, disabled defaults, APP_ENV=test, and no production/real-book claims.
 
 Safety:
 - No original/private/only-copy book was mutated.

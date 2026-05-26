@@ -1,9 +1,9 @@
-# Phase 368 — Practical write-alpha posture update
+# Phase 364 — Small batch restore and compatibility
 
 Status: PASS.
 
 Summary:
-- Posture: copied-book small-batch experimental dogfood is accepted narrowly for 2 CREATE + 1 metadata/memo-only PATCH after backup/restore/compatibility/reset checks. Single-operation DELETE evidence is accepted only for a write-alpha-owned disposable transaction. Original/private/only-copy books remain forbidden; defaults remain disabled.
+- Restore and compatibility passed for the small batch. The pre-batch backup was restored to an outside-git target with checksum match and piecash read-back pass. The mutated copied book passed piecash read-only compatibility and gnucash-cli/Desktop report probe via the compatibility harness. This remains copied-book dogfood evidence only.
 
 Safety:
 - No original/private/only-copy book was mutated.

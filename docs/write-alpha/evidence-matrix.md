@@ -23,3 +23,16 @@ This matrix separates evidence types so write-alpha status is not overstated. It
 - Synthetic/disposable write-alpha evidence is useful for development only.
 - Owner copied-book evidence currently supports: dry-run accepted, CREATE evidence accepted for bounded copied-book runs, Phase 294/295 fresh-chain evidence accepted for one metadata/memo-only PATCH on its same write-alpha-created transaction, and Phase 321-335 current Cycle 1-2 evidence accepted for exactly one CREATE followed by exactly one metadata/memo-only PATCH on a verified write-alpha-owned copied-book test transaction. DELETE remains blocked/not run.
 - Original/only-copy/private production-book writes remain forbidden and unsupported.
+
+## Phase 351-380 copied-book DELETE and small-batch update
+
+Accepted narrowly:
+- copied-book CREATE/PATCH evidence from prior cycles;
+- Phase 354 one write-alpha-owned disposable DELETE chain on a copied/restorable owner book outside git;
+- Phase 363 small batch: exactly two CREATE operations plus one metadata/memo-only PATCH, zero DELETE.
+
+Still forbidden/unclaimed:
+- original/private/only-copy book writes;
+- historical/manual transaction DELETE;
+- production/stable/security/public-internet readiness;
+- default write enablement or APP_ENV=test gate weakening.

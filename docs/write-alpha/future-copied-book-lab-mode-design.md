@@ -1,9 +1,9 @@
-# Phase 368 — Practical write-alpha posture update
+# Phase 374 — Future copied-book lab mode design
 
 Status: PASS.
 
 Summary:
-- Posture: copied-book small-batch experimental dogfood is accepted narrowly for 2 CREATE + 1 metadata/memo-only PATCH after backup/restore/compatibility/reset checks. Single-operation DELETE evidence is accepted only for a write-alpha-owned disposable transaction. Original/private/only-copy books remain forbidden; defaults remain disabled.
+- Design only: a future non-APP_ENV=test copied-book lab mode would require a separate explicit lab flag, copied-book marker/manifest outside git, source-original exclusion proof, per-run backup/restore enforcement, owner acknowledgement, redacted evidence output, rate/operation limits, and hard default-disabled config. Current APP_ENV=test gate remains unchanged.
 
 Safety:
 - No original/private/only-copy book was mutated.

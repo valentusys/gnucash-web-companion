@@ -1,9 +1,9 @@
-# Phase 368 — Practical write-alpha posture update
+# Phase 375 — Future gate design review
 
 Status: PASS.
 
 Summary:
-- Posture: copied-book small-batch experimental dogfood is accepted narrowly for 2 CREATE + 1 metadata/memo-only PATCH after backup/restore/compatibility/reset checks. Single-operation DELETE evidence is accepted only for a write-alpha-owned disposable transaction. Original/private/only-copy books remain forbidden; defaults remain disabled.
+- Analyst verdict: acceptable design direction for future planning only. Do not implement until prerequisites, threat model, marker format, and restore/Desktop validation workflow are separately reviewed. Immediate APP_ENV=test removal is not acceptable.
 
 Safety:
 - No original/private/only-copy book was mutated.

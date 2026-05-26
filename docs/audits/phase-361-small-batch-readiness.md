@@ -1,9 +1,9 @@
-# Phase 368 — Practical write-alpha posture update
+# Phase 361 — Small batch workflow analyst gate
 
 Status: PASS.
 
 Summary:
-- Posture: copied-book small-batch experimental dogfood is accepted narrowly for 2 CREATE + 1 metadata/memo-only PATCH after backup/restore/compatibility/reset checks. Single-operation DELETE evidence is accepted only for a write-alpha-owned disposable transaction. Original/private/only-copy books remain forbidden; defaults remain disabled.
+- Analyst verdict: ready for PM small-batch authorization. Accepted prerequisites: prior copied-book CREATE/PATCH evidence, Phase 356 narrow DELETE acceptance, available copied/restorable book outside git, backup/restore tools, redaction discipline, and disabled defaults. Recommended next phase: Phase 362 only.
 
 Safety:
 - No original/private/only-copy book was mutated.

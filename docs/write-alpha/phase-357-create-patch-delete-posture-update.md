@@ -1,9 +1,9 @@
-# Phase 368 — Practical write-alpha posture update
+# Phase 357 — CREATE/PATCH/DELETE posture update
 
 Status: PASS.
 
 Summary:
-- Posture: copied-book small-batch experimental dogfood is accepted narrowly for 2 CREATE + 1 metadata/memo-only PATCH after backup/restore/compatibility/reset checks. Single-operation DELETE evidence is accepted only for a write-alpha-owned disposable transaction. Original/private/only-copy books remain forbidden; defaults remain disabled.
+- Posture updated by recording the accepted narrow copied-book DELETE evidence alongside prior copied-book CREATE and metadata/memo-only PATCH evidence. Original/private/only-copy safety remains unclaimed; APP_ENV=test and GNUCASH_WRITES_ENABLED=false defaults remain required.
 
 Safety:
 - No original/private/only-copy book was mutated.
