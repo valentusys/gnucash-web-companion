@@ -47,9 +47,9 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–530 are complete; PR #40 has been verified as merged into `main`.
-- Phases 481–530 converted the public read-only beta track into a release candidate and PM authorized `v0.5.0-public-readonly-beta` as a conservative GitHub pre-release. `v0.4.0-owner-writebeta` remains deferred.
-- Phases 481–530 performed no mutations: CREATE 0, PATCH 0, DELETE 0. No real/original/private/only-copy book was touched.
+- Phase 0–830 are complete. Phases 731–830 reconciled the missing `v0.5.1-public-readonly-beta` claim as no-release; `v0.5.0-public-readonly-beta` remains the current public read-only beta.
+- Issues #41 and #42 are closed after Phase 731–830 verification; #43 remains open for owner-writebeta routed/copied-book work. `v0.4.0-owner-writebeta` remains deferred.
+- Phases 731–830 performed no real or copied-book mutations: CREATE 0, PATCH 0, DELETE 0. No real/original/private/only-copy book was touched.
 - MVP/read-only access remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by
   default.

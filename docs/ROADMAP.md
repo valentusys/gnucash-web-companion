@@ -1,6 +1,6 @@
 # Roadmap
 
-Status after Phase 630: Completed through Phase 630 with final NO_RELEASE. Current public read-only beta remains `v0.5.0-public-readonly-beta`; current experimental write-alpha release remains `v0.2.8-writealpha`; the current write-alpha release baseline remains Phase 261. `GNUCASH_WRITES_ENABLED=false` remains the default.
+Status after Phase 830: Completed through Phase 830 with final NO_RELEASE. Current public read-only beta remains `v0.5.0-public-readonly-beta`; current experimental write-alpha release remains `v0.2.8-writealpha`; the current write-alpha release baseline remains Phase 261. `GNUCASH_WRITES_ENABLED=false` remains the default.
 
 ## v0.4.0-owner-writebeta
 
@@ -24,4 +24,4 @@ Exit criteria: see `docs/strategy/v0.5-public-readonly-beta-exit-criteria.md`.
 - security-audited or public-internet safety claim;
 - public write beta;
 - only-copy or original-book write safety claim;
-- Phase 481+ planning without a concrete owner bug, blocker or milestone.
+- Phase 831+ planning without a concrete owner bug, blocker or milestone.

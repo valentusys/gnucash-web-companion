@@ -1,25 +1,34 @@
-# Phase 517 — Owner-writebeta posture after real-book decision
+# Owner-writebeta posture after Phase 830
 
-Goal: Complete the phase objective from the Phase 481–530 roadmap.
+Status: owner-writebeta remains experimental, owner/developer-only, disabled by default, and blocked for real working-book mutation.
 
-Scope: Repository docs, release evidence, GitHub state, and safe verification only.
+Accepted in this run:
+- `v0.5.1-public-readonly-beta` mismatch reconciled as no-release; current public read-only beta remains `v0.5.0-public-readonly-beta`.
+- State-machine primitives are stronger: redacted preview hash, confirmation token reference, expiry, exact preview matching, and post-mutation audit/restore/lock/default-reset hard-stop helpers now have tests.
+- Synthetic state-transition tests passed.
 
-Non-goals: No private data, no original GnuCash book access, no stable/production release, and no public write-safety claim.
+Not accepted / still blocked:
+- No owner copied-book routed mutation dogfood was run in Phases 731–830.
+- No real working-book mutation was authorized or run.
+- Public write beta remains out of scope.
+- Trusted tester writebeta remains not ready.
+- `v0.4.0-owner-writebeta` remains deferred.
 
-Acceptance criteria: The phase decision/evidence is recorded with safety boundaries intact.
+Mutation counts in Phases 731–830: CREATE 0, PATCH 0, DELETE 0.
 
-Safety checks: GNUCASH_WRITES_ENABLED=false remains default; APP_ENV=test write gate is not weakened; no private books, app DBs, exports, secrets, raw paths, account names, descriptions, memos, or amounts are committed.
+Safety boundaries:
+- `GNUCASH_WRITES_ENABLED=false` remains the default.
+- Enabled write routes remain `APP_ENV=test` gated.
+- No production-ready, security-audited, public-internet-safe, public-write-safe, broad compatibility, real/private-book-safe, original-book-safe, or only-copy-safe claim is made.
+- No private/raw book evidence, app DB, backup, export, screenshot, account name, memo, description, amount, private path, `.env`, secret, token, key, or certificate belongs in git.
 
-Verification: Git/GitHub state reviewed; public status guard and release/doc posture checked where relevant.
+Exact owner action required for further owner-writebeta progress:
+Provide an outside-git copied/restorable book target and explicitly authorize a routed copied-book dogfood run in the same context, including exact operation counts and backup/restore expectations. This is not authorization for a real working book.
 
-Expected artifacts: This handoff plus the referenced audit/release/strategy/dogfood document.
+## Phase 759 addendum
 
-Findings:
-Posture: no real working-book mutation occurred; copied-book v0.4 session evidence is absent; real-book write trial remains blocked.
+Issue #43 remains open after Phase 759 because routed state-machine primitives improved, but copied-book routed dogfood and real-book gates remain incomplete.
 
-Final verdict: NO_RELEASE
+## Phase 777 addendum
 
-
-## Phase 730 posture update
-
-State-machine primitives and conservative docs were added in Phases 631–730, but full routed owner-writebeta session integration, copied-book state-machine dogfood, recovery hardening, and any real working-book authorization remain blocked. Real working-book mutation is not authorized. Public write beta remains out of scope. Mutation counts for this run: CREATE 0, PATCH 0, DELETE 0.
+Real working-book mutation remains blocked. The broad Phase 731–830 launch instruction is not exact same-context owner authorization for a real working-book CREATE.

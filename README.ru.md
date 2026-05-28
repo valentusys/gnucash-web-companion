@@ -25,9 +25,9 @@ Desktop остаётся главным редактором.
 
 ## Текущий публичный статус
 
-- Фазы 0–530 завершены; PR #40 повторно проверен как влитый в `main`.
-- Фазы 481–530 подготовили public read-only beta и PM разрешил `v0.5.0-public-readonly-beta` как conservative GitHub pre-release. `v0.4.0-owner-writebeta` отложен.
-- Новых мутаций в фазах 481–530 не было: CREATE 0, PATCH 0, DELETE 0. Real/original/private/only-copy book не трогались.
+- Фазы 0–830 завершены. Фазы 731–830 сверили live release/status и зафиксировали отсутствие `v0.5.1-public-readonly-beta`; текущий public read-only beta остаётся `v0.5.0-public-readonly-beta`.
+- Issues #41 и #42 закрыты после проверки Phases 731–830; #43 остаётся открытым для owner-writebeta routed/copied-book работы. `v0.4.0-owner-writebeta` отложен.
+- В фазах 731–830 реальных или copied-book мутаций не было: CREATE 0, PATCH 0, DELETE 0. Real/original/private/only-copy book не трогались.
 - Последнее copied-book write-alpha evidence остаётся узким и экспериментальным: Phase 354 принял ровно один CREATE и затем ровно один DELETE той же write-alpha-owned disposable transaction, а Phase 363 принял ровно два CREATE и ровно один metadata/memo-only PATCH, всё только на copied/restorable books outside git.
 - MVP/read-only доступ остаётся **read-only by default**.
 - `GNUCASH_WRITES_ENABLED=false` — безопасный дефолт.

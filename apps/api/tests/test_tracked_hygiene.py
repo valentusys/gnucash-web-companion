@@ -36,7 +36,8 @@ def test_path_violations_allow_safe_docs_and_code():
 
 def test_content_violations_reject_private_key_marker(tmp_path, monkeypatch):
     sample = tmp_path / "safe-name.txt"
-    sample.write_text("-----BEGIN OPENSSH PRIVATE KEY-----\nredacted\n", encoding="utf-8")
+    marker = "-----BEGIN " + "OPENSSH" + " PRIVATE KEY-----"
+    sample.write_text(f"{marker}\nredacted\n", encoding="utf-8")
     monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
 
     problems = guard.content_violations([sample])
