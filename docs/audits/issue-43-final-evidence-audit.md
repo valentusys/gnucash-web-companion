@@ -10,19 +10,18 @@ Evidence reviewed:
 - Targeted backend route-family and existing write-alpha tests passed.
 - Public status guard passed.
 
-Dogfood result: ATTEMPTED_AND_BLOCKED_BEFORE_MUTATION. The owner-provided copied/restorable SQL book is staged outside git, and redacted copied-book path-class preflight passed. The routed dogfood run stopped before mutation because the copied SQL book carries a GnuCash lock marker from the source environment; API data routes fail closed instead of opening it. No copied-book mutation occurred.
+Dogfood result: PARTIAL_PASS_WITH_EVIDENCE_GAP. A fresh owner-provided copied/restorable SQL book was staged outside git after the owner closed GnuCash on the source host. Redacted preflight passed and the locked PM mutation counts were executed only through the routed owner-writebeta/write-alpha path: 2 CREATE, 1 metadata/memo-only PATCH of a created disposable transaction, and 1 DELETE of a created disposable transaction. Post-run collected evidence shows read-back, 4 route backup refs, 4 successful audit rows, ownership rows for the 2 created transactions, restore verification, piecash compatibility read, and disabled CREATE/PATCH/DELETE probes returning 403. However, the local evidence helper aborted after the DELETE mutation on an audit payload field-name bug before capturing the final owner-writebeta `verify-reset`/`reset-disabled` transition for that DELETE session. No extra mutation was run after the abort.
 
 PM decision: KEEP_ISSUE_43_OPEN_WITH_EXACT_BLOCKERS.
 
 Exact blockers:
-1. Resolve the staged copied-book GnuCash lock marker safely without touching any original/working/private/only-copy book and without direct out-of-band mutation of the dogfood target unless PM records an explicit safe lock-release procedure.
-2. Run the locked routed dogfood counts only after the copied-book lock/read gate passes: 2 CREATE, 1 metadata/memo-only PATCH, 1 DELETE of a created disposable transaction.
-3. Record redacted backup/read-back/audit/lock/restore/compatibility/default-reset evidence.
-4. Add final verification that routed mutation sessions complete/reset after dogfood.
+1. Fix the local routed dogfood evidence helper so it reads `AuditLog.payload_json` and cannot abort after a successful mutation while collecting evidence.
+2. On a new fresh copied/restorable outside-git book, rerun the same PM-locked routed dogfood counts end-to-end and capture final owner-writebeta `verify-reset`/`reset-disabled` evidence after DELETE.
+3. Keep #43 open until the uninterrupted end-to-end evidence exists; do not perform additional mutations on the already-mutated copied dogfood target.
 
 Safety checks:
 - Do not close #43 until copied-book dogfood passes.
 - Do not claim real working-book safety or public write beta.
 - Defaults remain write-disabled and APP_ENV=test gated.
 
-Final verdict: KEEP_ISSUE_43_OPEN_WITH_EXACT_BLOCKERS.
+Final verdict: KEEP_ISSUE_43_OPEN_WITH_EXACT_BLOCKERS / NO_RELEASE.

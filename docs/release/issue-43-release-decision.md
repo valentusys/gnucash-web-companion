@@ -5,11 +5,12 @@ Goal: PM decides release/no-release after #43 evidence.
 Decision: NO_RELEASE.
 
 Why:
-- Routed owner-writebeta foundation landed, but copied-book routed dogfood did not pass.
-- The owner copy is staged outside git; the dogfood attempt stopped before mutation on a copied-book GnuCash lock marker and failed closed.
+- Routed owner-writebeta foundation landed and a fresh copied-book routed dogfood run executed the PM-locked mutation counts.
+- Post-run redacted evidence passed for read-back, route backups, audit rows, restore verification, compatibility read, and default-disabled probes.
+- The run still has an evidence gap: the final DELETE owner-writebeta reset transition was not captured because a local evidence helper aborted after the successful DELETE on an audit payload field-name bug.
 - Issue #43 remains open with exact blockers.
 - No public-readonly user-facing fix requires a v0.5.x patch.
-- Owner-writebeta is not ready for a prerelease because copied-book mutation evidence is incomplete.
+- Owner-writebeta is not ready for a prerelease because uninterrupted copied-book state-machine evidence is incomplete.
 
 Safety checks:
 - No stable release.

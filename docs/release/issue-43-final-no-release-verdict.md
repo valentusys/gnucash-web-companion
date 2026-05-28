@@ -9,11 +9,11 @@ What changed:
 - Added a conservative UI information page for the owner-writebeta state machine.
 
 What did not happen:
-- No copied-book mutation.
+- No uninterrupted copied-book state-machine evidence sufficient to close #43.
 - No original/working/private/only-copy mutation.
 - No release publication.
 - No public write beta.
 
-Reason: issue #43 requires copied-book dogfood evidence before closure or owner-writebeta prerelease. The owner-provided copied/restorable book is now staged outside git, but dogfood is blocked by a copied-book GnuCash lock marker from the source environment; the API fails closed before mutation. The locked operation counts can resume only after the copied-book lock/read gate and all backup/read-back/audit/lock/restore/compatibility/default-reset gates pass.
+Reason: issue #43 requires uninterrupted copied-book routed state-machine dogfood evidence before closure or owner-writebeta prerelease. A fresh copied/restorable book run executed the locked mutation counts and post-run safety evidence passed, but the final DELETE owner-writebeta reset transition was not captured because the local evidence helper aborted after the successful DELETE on an audit payload field-name bug.
 
 Final verdict: NO_RELEASE.

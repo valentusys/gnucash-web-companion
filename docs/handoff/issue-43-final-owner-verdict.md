@@ -2,16 +2,16 @@
 
 Last phase: Phase M.
 
-Issue #43 status: kept open. Do not close until copied-book routed dogfood passes.
+Issue #43 status: kept open. Do not close until copied-book routed dogfood has uninterrupted end-to-end state-machine evidence.
 
-Dogfood result: attempted and blocked before mutation. The owner copy is staged outside git, but the copied SQL book has a GnuCash lock marker from the source environment, so routed API data access failed closed before any CREATE/PATCH/DELETE mutation.
+Dogfood result: partial pass with an evidence gap. A fresh copied/restorable SQL book was staged outside git, preflight passed, and the PM-locked routed mutation counts executed. Post-run safety evidence passed for read-back, 4 route backups, 4 successful audit rows, restore verification, piecash compatibility read, and disabled CREATE/PATCH/DELETE probes. The final DELETE owner-writebeta verify/reset transition was not captured because the local evidence helper aborted after successful DELETE on an audit payload field-name bug.
 
 Release result: NO_RELEASE. No tag or GitHub release was published.
 
 Mutation counts in this run:
-- CREATE: 0
-- PATCH: 0
-- DELETE: 0
+- CREATE: 2 succeeded
+- PATCH: 1 metadata/memo-only PATCH succeeded
+- DELETE: 1 succeeded
 
 What changed safely:
 - Routed owner-writebeta backend endpoints now expose redacted preflight/status, preview, confirmation, verification/reset, and disabled-reset state.
@@ -25,4 +25,4 @@ Checks:
 - Full final verification recorded in Phase M handoff.
 
 Owner action required to continue #43:
-Provide a fresh copied/restorable SQL book made after closing GnuCash on the source PC, or let PM define an explicit safe copied-book stale-lock release procedure. Then rerun the locked routed dogfood counts. Do not provide or use the original/working/private/only-copy book.
+After the evidence helper is fixed, provide a new fresh copied/restorable SQL book made after closing GnuCash on the source PC. Then rerun the same locked routed dogfood counts end-to-end and capture final DELETE verify/reset evidence. Do not reuse the already-mutated dogfood target for extra mutations; do not provide or use the original/working/private/only-copy book.
