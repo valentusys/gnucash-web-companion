@@ -1,6 +1,6 @@
 # Write-alpha evidence matrix
 
-Status: refreshed in Phase 336 after the Phase 335 audit accepted Cycle 2 copied-book PATCH evidence narrowly.
+Status: refreshed in Phase 399 after the Phase 398 audit accepted the bounded realistic copied-book session narrowly.
 
 This matrix separates evidence types so write-alpha status is not overstated. It intentionally excludes private paths, account names, memos, amounts, screenshots, exports, tokens, keys, and raw book artifacts.
 
@@ -15,13 +15,14 @@ This matrix separates evidence types so write-alpha status is not overstated. It
 | Owner copied-book CREATE-to-PATCH fresh chain | Phases 294–295 | Exactly one CREATE followed by exactly one metadata/memo-only PATCH | Fresh owner copied/restorable working book outside git; PATCH targeted the same write-alpha-created transaction | Restore verification passed after chain evidence collection | Read-back, audit/lock, backup artifact, piecash, gnucash-cli, reset, disabled probe, and redaction checks passed | Accepted narrowly by the Phase 295 audit for this one bounded chain only | Does not prove production, broad compatibility, DELETE, original/only-copy, or general private-book write safety |
 | Owner copied-book CREATE/PATCH current Cycle 1-2 chain | Phases 321-335 | Exactly one CREATE in Cycle 1, then exactly one metadata/memo-only PATCH in Cycle 2 | Owner copied/restorable working book outside git; PATCH targeted the existing write-alpha-created test transaction after ownership/current-book verification | Restore verification passed after CREATE and after PATCH | Read-back, audit/lock, backup, piecash, installed `gnucash-cli`, reset, disabled probes, and redaction checks passed | Accepted narrowly by the Phase 335 audit for this bounded copied-book evidence only | Does not prove production, broad compatibility, DELETE, original/only-copy, historical/manual transaction, or general private-book write safety |
 | DELETE | Phase 287 and carried through Phase 340 | None run for owner copied-book dogfood | Synthetic-only remains the maximum allowed status | No owner DELETE restore proof | No owner DELETE read-back/compatibility evidence | Blocked for owner dogfood | Destructive; no owner packet; no execution authorization |
+| Owner copied-book realistic bounded session | Phases 391-398 | Exactly two CREATE operations, exactly one metadata/memo-only PATCH, zero DELETE | Owner-provided copied/restorable SQL working book outside git; PATCH targeted a transaction created in the same session | Pre-batch backup restore proof passed | Read-back, audit summary, ownership rows, route backups, piecash read-only open, and default-disabled probes passed | Accepted narrowly by the Phase 398 audit | Does not prove production, broad compatibility, DELETE, original/only-copy, historical/manual transaction, or general private-book write safety |
 
 ## Conservative interpretation
 
 - Read-only use remains the practical safe path.
 - Write-alpha remains disabled by default and APP_ENV=test gated when explicitly enabled.
 - Synthetic/disposable write-alpha evidence is useful for development only.
-- Owner copied-book evidence currently supports: dry-run accepted, CREATE evidence accepted for bounded copied-book runs, Phase 294/295 fresh-chain evidence accepted for one metadata/memo-only PATCH on its same write-alpha-created transaction, and Phase 321-335 current Cycle 1-2 evidence accepted for exactly one CREATE followed by exactly one metadata/memo-only PATCH on a verified write-alpha-owned copied-book test transaction. DELETE remains blocked/not run.
+- Owner copied-book evidence currently supports: dry-run accepted, CREATE evidence accepted for bounded copied-book runs, Phase 294/295 fresh-chain evidence accepted for one metadata/memo-only PATCH on its same write-alpha-created transaction, Phase 321-335 current Cycle 1-2 evidence accepted for exactly one CREATE followed by exactly one metadata/memo-only PATCH, Phase 351-380 disposable DELETE/small-batch evidence, and Phase 391-398 realistic bounded evidence of exactly 2 CREATE + 1 metadata/memo-only PATCH + 0 DELETE. DELETE remains limited to prior write-alpha-owned disposable evidence and was not run in Phase 391-398.
 - Original/only-copy/private production-book writes remain forbidden and unsupported.
 
 ## Phase 351-380 copied-book DELETE and small-batch update
@@ -36,3 +37,7 @@ Still forbidden/unclaimed:
 - historical/manual transaction DELETE;
 - production/stable/security/public-internet readiness;
 - default write enablement or APP_ENV=test gate weakening.
+
+## Phase 391-398 realistic session update
+
+Accepted narrowly: exactly two CREATE operations and exactly one metadata/memo-only PATCH, zero DELETE, on an owner-provided copied/restorable SQL working book outside git. Backup/read-back/audit/ownership/restore/piecash compatibility/default-disabled reset evidence passed. No private paths, account names, memos, descriptions, amounts, app DBs, backups, books, screenshots, or raw evidence are committed.

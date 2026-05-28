@@ -1,13 +1,13 @@
 # Copied-book write-alpha posture
 
-Status: Phase 336 posture refresh after the Phase 335 audit accepted the current Cycle 2 copied-book PATCH evidence narrowly.
+Status: Phase 399 posture refresh after the Phase 398 audit accepted the bounded realistic copied-book session narrowly.
 
 ## Evidence that exists
 
 - Synthetic/disposable write-alpha evidence exists for the earlier route-family and copied-book package rehearsals.
 - Owner copied-book dry-run evidence is accepted as dry-run-only evidence.
 - Owner copied-book CREATE evidence is accepted for bounded copied/restorable working-copy runs: the Phase 276 CREATE-one evidence and the Phase 294 fresh-chain CREATE.
-- Owner copied-book PATCH evidence is accepted only for bounded metadata/memo-only PATCH evidence: the Phase 294 fresh-chain PATCH on its same write-alpha-created transaction, and the current Cycle 2 Phase 333 PATCH on the verified existing Cycle 1 write-alpha-created copied-book test transaction as narrowly audited in Phase 335.
+- Owner copied-book PATCH evidence is accepted only for bounded metadata/memo-only PATCH evidence: the Phase 294 fresh-chain PATCH on its same write-alpha-created transaction, the current Cycle 2 Phase 333 PATCH on the verified existing Cycle 1 write-alpha-created copied-book test transaction as narrowly audited in Phase 335, and the Phase 395 metadata/memo-only PATCH on a transaction created in the same Phase 391-398 bounded realistic session.
 
 The Phase 294 chain evidence covered pre-mutation backups before CREATE and PATCH, read-back, bounded audit evidence, backup-bearing audit rows matched to readable backup artifacts, lock release/stale-safe status, compatibility through piecash plus installed `gnucash-cli`, restore verification after chain evidence collection, reset to default-disabled config, and disabled validate/create/PATCH/DELETE probes returning 403.
 
@@ -34,3 +34,7 @@ Read-only use remains the practical default. Write-alpha remains experimental po
 ## Phase 351-380 posture update
 
 Write-alpha has narrow copied-book dogfood evidence for CREATE, metadata/memo-only PATCH, one disposable write-alpha-owned DELETE chain, and one small batch of 2 CREATE + 1 metadata/memo-only PATCH. This is not a broad safety claim. Use only copied/restorable books outside git; keep GNUCASH_WRITES_ENABLED=false by default and require APP_ENV=test for explicit write-alpha runs.
+
+## Phase 391-398 posture update
+
+A bounded realistic copied-book session was accepted narrowly: exactly 2 CREATE, exactly 1 metadata/memo-only PATCH on a same-session write-alpha-created transaction, and 0 DELETE. Backup/read-back/audit/ownership/restore/piecash compatibility/default-disabled reset evidence passed. This still does not authorize original/private/only-copy books, production use, amount/account/split changes, historical/manual transaction mutation, or default write enablement.
