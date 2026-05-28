@@ -1,0 +1,59 @@
+name: Safe compatibility report
+about: Report public read-only beta compatibility without private financial data
+title: "Compatibility: <OS/browser/backend/app tag>"
+labels: [compatibility, read-only, safety]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not upload GnuCash books, app DBs, backups, CSV exports, screenshots, .env files, tokens, private paths, account names, transaction descriptions, memos, or amounts.
+        Use synthetic, disposable, or copied-restorable books first.
+  - type: input
+    id: app-ref
+    attributes:
+      label: App tag or commit
+      placeholder: v0.5.x-public-readonly-beta or short commit
+    validations:
+      required: true
+  - type: dropdown
+    id: fixture-scope
+    attributes:
+      label: Book/test scope
+      options:
+        - synthetic
+        - disposable
+        - copied-restorable
+        - unknown
+    validations:
+      required: true
+  - type: dropdown
+    id: backend
+    attributes:
+      label: GnuCash backend type
+      options:
+        - sqlite
+        - postgres
+        - mysql
+        - unknown
+    validations:
+      required: true
+  - type: input
+    id: os-browser
+    attributes:
+      label: OS/browser/Docker/GnuCash versions only
+      placeholder: Debian 12, Firefox, Docker 26, GnuCash 5.x
+  - type: textarea
+    id: safe-summary
+    attributes:
+      label: Safe summary / redacted error class
+      description: Include status labels and generic error class only. No paths, financial data, or screenshots.
+      placeholder: API /health first_run.default_book=action_required; error class=BookNotConfiguredError
+    validations:
+      required: true
+  - type: checkboxes
+    id: privacy-confirmation
+    attributes:
+      label: Privacy confirmation
+      options:
+        - label: I did not attach books, app DBs, backups, exports, screenshots, .env files, secrets, private paths, account names, descriptions, memos, or amounts.
+          required: true

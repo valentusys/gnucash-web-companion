@@ -142,3 +142,8 @@ The probe checks `gnucash` and `gnucash-cli` command availability and bounded `-
 - Record GnuCash Desktop version, SQL backend, OS, piecash version, and schema markers for each fixture.
 - Add read-only integration tests for each fixture.
 - Add a compatibility CI job only after the fixture set is non-sensitive and reproducible.
+
+
+## Safe public compatibility feedback workflow
+
+For public read-only beta reports, share redacted metadata only: app tag/commit, OS/browser/Docker/GnuCash versions, backend type, fixture scope, and generic error class. You may run `python3 scripts/safe_compatibility_report.py --app-ref <tag-or-commit> --backend-type sqlite --fixture-scope synthetic` and paste only the JSON output. Do not upload books, app DBs, backups, CSV exports, screenshots, `.env`, tokens, private paths, account names, transaction descriptions, memos, or amounts. Compatibility evidence remains classified as tested synthetic fixture, tested disposable fixture, copied-restorable report, or unverified; reported metadata alone is not a broad support claim.

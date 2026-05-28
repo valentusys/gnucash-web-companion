@@ -8,7 +8,7 @@ Last updated: 2026-05-25
 - Local path: `/home/val/gnucash-web-companion`
 - Branch: `main`
 - Status: beta/pre-alpha mix / `v0.5.0-public-readonly-beta` remains the current public read-only beta pre-release;
-  `v0.2.8-writealpha` remains the current public experimental write-alpha pre-release. Completed through Phase 630. Phases 531–630 produced public-readonly support/safety artifacts, a tracked-file hygiene
+  `v0.2.8-writealpha` remains the current public experimental write-alpha pre-release. Completed through Phase 730. Phases 631–730 reconciled the missing `v0.5.1-public-readonly-beta` claim as NO_RELEASE, added a public read-only first-run diagnostics UI at `/diagnostics`, added a safe compatibility feedback issue form/helper, added owner-writebeta state-machine primitives/tests/docs, and stopped with owner-writebeta blocked before copied-book/real-book mutation dogfood. No GitHub release was published in this run unless later Phase 729 evidence says otherwise; mutation counts remain CREATE 0, PATCH 0, DELETE 0; no original/private/working book was touched. Completed through Phase 630 was the prior baseline before this run. Phases 531–630 produced public-readonly support/safety artifacts, a tracked-file hygiene
   guard, owner-writebeta workflow posture docs, deployment diagnostics/privacy guidance, and a final
   PM NO_RELEASE decision plus follow-up GitHub issues #41, #42, and #43. No new GitHub pre-release was published: `v0.4.0-owner-writebeta` remains
   deferred, no public write beta was created, and no Phase 631+ was opened. Mutation counts in

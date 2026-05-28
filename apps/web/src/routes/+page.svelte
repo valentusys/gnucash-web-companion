@@ -11,11 +11,20 @@
 	<p class="mt-4 max-w-xl text-lg" style="color: var(--app-muted);">
 		{t(DEFAULT_LOCALE, 'home.subtitle')}
 	</p>
-	<a
-		href="/login"
-		class="mt-8 rounded-xl px-5 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:opacity-90"
-		style="background-color: var(--app-accent);"
-	>
-		{t(DEFAULT_LOCALE, 'login.submit')}
-	</a>
+	<div class="mt-8 flex flex-col gap-3 sm:flex-row">
+		<a
+			href="/login"
+			class="rounded-xl px-5 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:opacity-90"
+			style="background-color: var(--app-accent);"
+		>
+			{t(DEFAULT_LOCALE, 'login.submit')}
+		</a>
+		<a
+			href="/diagnostics"
+			class="rounded-xl border px-5 py-3 text-sm font-semibold shadow-sm transition-colors hover:underline"
+			style="border-color: var(--app-border); color: var(--app-accent);"
+		>
+			First-run diagnostics
+		</a>
+	</div>
 </main>
