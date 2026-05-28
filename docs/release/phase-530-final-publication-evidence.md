@@ -16,11 +16,14 @@ Expected artifacts: This handoff plus the referenced audit/release/strategy/dogf
 
 Findings:
 Execution plan/result:
-- Publish v0.5.0-public-readonly-beta as GitHub pre-release after committing docs and rechecking gates.
+- Published v0.5.0-public-readonly-beta as GitHub pre-release.
+- Release URL: https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.5.0-public-readonly-beta
+- Published at: 2026-05-28T03:52:54Z.
+- GitHub release state: draft=false, prerelease=true.
 - Defer v0.4 owner-writebeta.
 - Real-book write trial remains blocked.
 - Project moves to issue-based maintenance; no Phase 531+ plan is generated.
 
 Mutation counts in this run: CREATE 0, PATCH 0, DELETE 0.
 
-Final verdict: RELEASE_READY
+Final verdict: STOP
