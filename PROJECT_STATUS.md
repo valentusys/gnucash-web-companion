@@ -9,16 +9,15 @@ Last updated: 2026-05-25
 - Branch: `main`
 - Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release;
   `v0.2.8-writealpha` is the current public experimental write-alpha pre-release. Completed through
-  Phase 430. PR #40 was merged into `main` during Phase 385; Phase 430 executed final no-release and stopped. Phase 354 executed exactly one
-  copied-book CREATE followed by exactly one DELETE of the same write-alpha-owned disposable
-  transaction on an owner-provided copied/restorable book outside git; backup/read-back/audit/
-  ownership/restore/compatibility/reset evidence passed. Phase 363 executed the PM-authorized small
-  batch: exactly two CREATE operations and exactly one metadata/memo-only PATCH, zero DELETE; backup/
-  read-back/audit/ownership/restore/compatibility/reset evidence passed. Phases 359, 369, 379, and
-  380 were NO_RELEASE/stop decisions. No original/private/only-copy book, raw evidence, backup, app
-  DB, GnuCash book, private paths/account names/memos/amounts, `.env`, secrets, tag, GitHub release,
-  package, image, stable-release publication, production deployment, default write enablement, or `APP_ENV=test`
-  weakening was committed. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
+  Phase 480. PR #40 was re-verified as merged into `main` during Phase 431. Phases 431–480 completed
+  the owner-writebeta/public-readonly-beta roadmap run with final NO_RELEASE: v0.4.0-owner-writebeta
+  and v0.5.0-public-readonly-beta were both deferred; no tag, GitHub release, package, image, stable
+  release, production deployment, default write enablement, `APP_ENV=test` weakening, private evidence,
+  or broad safety claim was added. New safe artifacts include v0.4/v0.5 exit criteria, a non-mutating
+  owner write-session preflight/manifest prototype, UI warning copy, owner-writebeta posture docs, and
+  public read-only beta draft install/security/feedback docs. PM decisions: Cycle 1 NO_RELEASE; Cycle 2
+  NO_RELEASE; copied-book mutation blocked for this run; real working-book mutation blocked; v0.4
+  NO_RELEASE; v0.5/final NO_RELEASE. Mutation counts in Phases 431–480: CREATE 0, PATCH 0, DELETE 0. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
   release-candidate dogfood, confirmed local/backend/frontend/Docker/public-status/sensitive-file
   gates, waited for exact release/status commit CI, and published only the annotated tag plus GitHub
   pre-release. Phase 232 reconciled public status/changelog wording after publication. Phase 233
@@ -253,7 +252,7 @@ Last updated: 2026-05-25
 
 ## Current baseline
 
-Completed through Phase 430.
+Completed through Phase 480.
 
 Current public release state:
 

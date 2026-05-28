@@ -47,8 +47,9 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–430 are complete; PR #40 has been merged into `main`.
-- Latest copied-book write-alpha evidence remains narrow and experimental: Phase 354 accepted exactly one CREATE followed by exactly one DELETE of the same write-alpha-owned disposable transaction, and Phase 363 accepted exactly two CREATE operations plus exactly one metadata/memo-only PATCH, all on copied/restorable books outside git.
+- Phase 0–480 are complete; PR #40 has been verified as merged into `main`.
+- Phase 431–480 added owner-writebeta planning, a non-mutating owner write-session preflight/manifest prototype, UI warning copy, and public read-only beta draft docs. Final decision: **NO_RELEASE**; no v0.4.0/v0.5.0 tag or GitHub release was published.
+- Latest copied-book write-alpha evidence remains narrow and experimental: Phase 354 accepted exactly one CREATE followed by exactly one DELETE of the same write-alpha-owned disposable transaction, and Phase 363 accepted exactly two CREATE operations plus exactly one metadata/memo-only PATCH, all on copied/restorable books outside git. Phases 431–480 performed no new mutations: CREATE 0, PATCH 0, DELETE 0.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by
   default.

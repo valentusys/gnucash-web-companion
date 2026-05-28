@@ -25,7 +25,9 @@ Desktop остаётся главным редактором.
 
 ## Текущий публичный статус
 
-- Фазы 0–430 завершены; PR #40 влит в `main`.
+- Фазы 0–480 завершены; PR #40 повторно проверен как влитый в `main`.
+- Фазы 431–480 добавили план v0.4/v0.5, non-mutating owner write-session preflight/manifest prototype, UI warning copy и черновики public read-only beta docs. Итог: **NO_RELEASE**; v0.4.0/v0.5.0 tag/GitHub release не публиковались.
+- Новых мутаций в фазах 431–480 не было: CREATE 0, PATCH 0, DELETE 0.
 - Последнее copied-book write-alpha evidence остаётся узким и экспериментальным: Phase 354 принял ровно один CREATE и затем ровно один DELETE той же write-alpha-owned disposable transaction, а Phase 363 принял ровно два CREATE и ровно один metadata/memo-only PATCH, всё только на copied/restorable books outside git.
 - MVP v0.1 остаётся **read-only by default**.
 - `GNUCASH_WRITES_ENABLED=false` — безопасный дефолт.

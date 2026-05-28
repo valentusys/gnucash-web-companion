@@ -26,4 +26,12 @@
 		<li>{t(locale, 'writeMode.staleLock')}</li>
 		<li>{t(locale, 'writeMode.neverRealBook')}</li>
 	</ul>
+	<div class="mt-4 rounded-xl p-3" style="border: 1px solid #d97706; background: #fef3c7;">
+		<p class="font-semibold">Owner-writebeta session gate prototype</p>
+		<ul class="mt-2 list-disc space-y-1 pl-5">
+			<li>Preflight, outside-git copied/working target fingerprint, independent backup readiness, and restore readiness must pass before any future write.</li>
+			<li>Exact operation preview and confirmation are required; failed preflight keeps mutation controls disabled.</li>
+			<li>This banner is a warning prototype only; it does not make real, only-copy, production, or public write use safe.</li>
+		</ul>
+	</div>
 </div>
