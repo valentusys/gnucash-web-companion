@@ -1,4 +1,4 @@
-# Phase 517 — Owner-writebeta posture after real-book decision
+# Phase 525 — Final read-only/public smoke
 
 Goal: Complete the phase objective from the Phase 481–530 roadmap.
 
@@ -15,6 +15,16 @@ Verification: Git/GitHub state reviewed; public status guard and release/doc pos
 Expected artifacts: This handoff plus the referenced audit/release/strategy/dogfood document.
 
 Findings:
-Posture: no real working-book mutation occurred; copied-book v0.4 session evidence is absent; real-book write trial remains blocked.
+Final read-only/public gate evidence in this run:
+- Backend pytest: 590 passed.
+- Frontend check: passed.
+- Frontend auth route tests: passed.
+- Frontend build: passed.
+- Docker Compose config validation: passed.
+- public-status guard: passed.
+- git diff --check: passed.
+- GNUCASH_WRITES_ENABLED=false default verified in .env.example and Docker Compose.
 
-Final verdict: NO_RELEASE
+No write mutation was run.
+
+Final verdict: CONTINUE

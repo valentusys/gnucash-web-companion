@@ -1,4 +1,4 @@
-# Phase 517 — Owner-writebeta posture after real-book decision
+# Phase 482 — PR #40 and stale PR UI resolution
 
 Goal: Complete the phase objective from the Phase 481–530 roadmap.
 
@@ -12,9 +12,11 @@ Safety checks: GNUCASH_WRITES_ENABLED=false remains default; APP_ENV=test write 
 
 Verification: Git/GitHub state reviewed; public status guard and release/doc posture checked where relevant.
 
-Expected artifacts: This handoff plus the referenced audit/release/strategy/dogfood document.
+Expected artifacts: docs/handoff/phase-482.md and linked phase artifact(s).
 
 Findings:
-Posture: no real working-book mutation occurred; copied-book v0.4 session evidence is absent; real-book write trial remains blocked.
+- gh pr view 40 confirmed state MERGED, base main, merge commit 5d672254ab08ec82279eb268d7bb9399946410ff.
+- No close/comment action was needed because GitHub state is unambiguous.
+- No history rewrite, merge, or unsafe artifact handling occurred.
 
-Final verdict: NO_RELEASE
+Final verdict: CONTINUE

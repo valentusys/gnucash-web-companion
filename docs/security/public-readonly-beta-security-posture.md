@@ -1,12 +1,12 @@
 # Public read-only beta security/privacy posture
 
-This project is not production-ready, not security-audited and not safe to expose directly to the public internet.
+Status: honest beta posture, not a security audit.
 
-Recommended testing posture:
-- self-host on localhost, trusted LAN or VPN;
-- use a disposable/test copy first;
-- configure strong JWT/admin secrets outside git;
-- keep write mode disabled;
-- share only redacted bug reports.
-
-Never post GnuCash books, app DBs, backups, `.env`, screenshots, CSV exports, raw paths, account names, descriptions, memos, amounts, tokens, keys or certificates.
+- Not production-ready.
+- Not security-audited.
+- Do not expose directly to the public internet. Use trusted LAN/VPN only.
+- Write mode is disabled by default: `GNUCASH_WRITES_ENABLED=false`.
+- Public read-only beta does not authorize public write testing.
+- Do not upload books, app DBs, backups, exports, screenshots, account names, transaction descriptions, memos, amounts, tokens, keys, certificates, `.env`, or raw private paths to issues.
+- Start with synthetic/disposable or copied/restorable books, never an only copy.
+- GnuCash Desktop remains the authoritative editor.

@@ -1,6 +1,6 @@
 # Roadmap
 
-Status after Phase 480: Completed through Phase 480 with final NO_RELEASE. Current public releases remain `v0.1.7-readonly` and `v0.2.8-writealpha`; the current write-alpha release baseline remains Phase 261. `GNUCASH_WRITES_ENABLED=false` remains the default.
+Status after Phase 480: Completed through Phase 530 with final NO_RELEASE. Current public releases remain `v0.1.7-readonly` and `v0.2.8-writealpha`; the current write-alpha release baseline remains Phase 261. `GNUCASH_WRITES_ENABLED=false` remains the default.
 
 ## v0.4.0-owner-writebeta
 

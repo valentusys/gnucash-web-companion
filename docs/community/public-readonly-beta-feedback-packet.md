@@ -1,13 +1,16 @@
 # Public read-only beta feedback packet
 
-Status after Phase 480: draft; no public release/announcement yet.
+Use this for v0.5.0-public-readonly-beta feedback.
 
-Ask careful testers for:
-- install friction in read-only mode;
-- browser/mobile UI issues;
-- compatibility problems using synthetic/disposable books;
-- documentation gaps.
+## Good reports
+- App version/tag and commit if known.
+- Operating system and browser.
+- Whether the book is synthetic/disposable or a copied/restorable test book.
+- Redacted steps to reproduce.
+- Error message text after removing private paths, names, amounts, memos, and descriptions.
 
-Do not ask for or accept private books, exports, screenshots, account names, transaction descriptions, memos, amounts, raw paths, tokens, keys, certificates or `.env` files.
+## Do not upload
+GnuCash books, SQLite DBs, app DBs, backups, CSV exports, screenshots containing finances, `.env`, tokens, keys, certificates, private paths, account names, transaction descriptions, memos, or amounts.
 
-Write mode is out of scope for public testers.
+## Scope
+Read-only beta feedback only. Do not request or attempt public write-mode testing through this beta.

@@ -12,9 +12,10 @@ Safety checks: GNUCASH_WRITES_ENABLED=false remains default; APP_ENV=test write 
 
 Verification: Git/GitHub state reviewed; public status guard and release/doc posture checked where relevant.
 
-Expected artifacts: This handoff plus the referenced audit/release/strategy/dogfood document.
+Expected artifacts: docs/handoff/phase-517.md and linked phase artifact(s).
 
 Findings:
-Posture: no real working-book mutation occurred; copied-book v0.4 session evidence is absent; real-book write trial remains blocked.
+- Posture: no real working-book mutation occurred; copied-book v0.4 session evidence is absent; real-book write trial remains blocked.
+- Safety defaults unchanged.
 
 Final verdict: NO_RELEASE

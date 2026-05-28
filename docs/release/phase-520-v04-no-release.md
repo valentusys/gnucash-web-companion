@@ -1,4 +1,4 @@
-# Phase 517 — Owner-writebeta posture after real-book decision
+# Phase 520 — Execute v0.4 release/no-release
 
 Goal: Complete the phase objective from the Phase 481–530 roadmap.
 
@@ -15,6 +15,6 @@ Verification: Git/GitHub state reviewed; public status guard and release/doc pos
 Expected artifacts: This handoff plus the referenced audit/release/strategy/dogfood document.
 
 Findings:
-Posture: no real working-book mutation occurred; copied-book v0.4 session evidence is absent; real-book write trial remains blocked.
+Executed PM decision: no v0.4 tag/GitHub release/package/image. No write mutation occurred.
 
 Final verdict: NO_RELEASE

@@ -1,4 +1,4 @@
-# Phase 517 — Owner-writebeta posture after real-book decision
+# Phase 512 — PM and owner exact real-book trial authorization
 
 Goal: Complete the phase objective from the Phase 481–530 roadmap.
 
@@ -12,9 +12,10 @@ Safety checks: GNUCASH_WRITES_ENABLED=false remains default; APP_ENV=test write 
 
 Verification: Git/GitHub state reviewed; public status guard and release/doc posture checked where relevant.
 
-Expected artifacts: This handoff plus the referenced audit/release/strategy/dogfood document.
+Expected artifacts: docs/handoff/phase-512.md and linked phase artifact(s).
 
 Findings:
-Posture: no real working-book mutation occurred; copied-book v0.4 session evidence is absent; real-book write trial remains blocked.
+- PM decision: KEEP_REAL_BOOK_BLOCKED. The owner did not provide same-context exact target/trial authorization for a real working book; broad launch instruction is not sufficient.
+- Safety defaults unchanged.
 
 Final verdict: NO_RELEASE

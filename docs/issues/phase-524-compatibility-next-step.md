@@ -1,4 +1,4 @@
-# Phase 517 — Owner-writebeta posture after real-book decision
+# Phase 524 — Compatibility issue #22 next-step decision
 
 Goal: Complete the phase objective from the Phase 481–530 roadmap.
 
@@ -15,6 +15,8 @@ Verification: Git/GitHub state reviewed; public status guard and release/doc pos
 Expected artifacts: This handoff plus the referenced audit/release/strategy/dogfood document.
 
 Findings:
-Posture: no real working-book mutation occurred; copied-book v0.4 session evidence is absent; real-book write trial remains blocked.
+Decision: keep #22 open as a known limitation / compatibility-expansion tracker.
 
-Final verdict: NO_RELEASE
+It does not block v0.5 public read-only beta because the beta is conservative and documents limited compatibility evidence. Do not close #22 until real version/backend fixture coverage is materially improved.
+
+Final verdict: CONTINUE

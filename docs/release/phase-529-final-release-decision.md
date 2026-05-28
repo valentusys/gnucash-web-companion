@@ -1,4 +1,4 @@
-# Phase 517 — Owner-writebeta posture after real-book decision
+# Phase 529 — PM final release/no-release decision
 
 Goal: Complete the phase objective from the Phase 481–530 roadmap.
 
@@ -15,6 +15,12 @@ Verification: Git/GitHub state reviewed; public status guard and release/doc pos
 Expected artifacts: This handoff plus the referenced audit/release/strategy/dogfood document.
 
 Findings:
-Posture: no real working-book mutation occurred; copied-book v0.4 session evidence is absent; real-book write trial remains blocked.
+PM decision: RELEASE_V0_5_PUBLIC_READONLY_BETA.
 
-Final verdict: NO_RELEASE
+Explicit non-decisions:
+- Do not release v0.4 owner-writebeta.
+- Do not run a real working-book trial.
+- Do not publish stable/production release.
+- Do not claim public write safety, security audit, public-internet safety, broad compatibility, or only-copy safety.
+
+Final verdict: RELEASE_READY

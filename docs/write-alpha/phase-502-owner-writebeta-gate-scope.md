@@ -1,4 +1,4 @@
-# Phase 517 — Owner-writebeta posture after real-book decision
+# Phase 502 — PM owner-writebeta gate scope decision
 
 Goal: Complete the phase objective from the Phase 481–530 roadmap.
 
@@ -15,6 +15,6 @@ Verification: Git/GitHub state reviewed; public status guard and release/doc pos
 Expected artifacts: This handoff plus the referenced audit/release/strategy/dogfood document.
 
 Findings:
-Posture: no real working-book mutation occurred; copied-book v0.4 session evidence is absent; real-book write trial remains blocked.
+PM decision: keep APP_ENV=test for enabled writes and require an additional non-default owner-writebeta session gate before any v0.4 release. Forbidden shortcuts: no silent writes, no default enablement, no only-copy safety, no public write beta.
 
-Final verdict: NO_RELEASE
+Final verdict: CONTINUE

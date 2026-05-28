@@ -1,4 +1,4 @@
-# Phase 517 — Owner-writebeta posture after real-book decision
+# Phase 511 — Real working-book trial analyst gate
 
 Goal: Complete the phase objective from the Phase 481–530 roadmap.
 
@@ -15,6 +15,6 @@ Verification: Git/GitHub state reviewed; public status guard and release/doc pos
 Expected artifacts: This handoff plus the referenced audit/release/strategy/dogfood document.
 
 Findings:
-Posture: no real working-book mutation occurred; copied-book v0.4 session evidence is absent; real-book write trial remains blocked.
+Verdict: KEEP_REAL_BOOK_BLOCKED. v0.4 copied-session evidence is incomplete, and exact owner authorization for a real working-book trial is absent.
 
 Final verdict: NO_RELEASE

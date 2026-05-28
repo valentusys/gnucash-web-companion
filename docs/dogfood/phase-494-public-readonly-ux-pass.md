@@ -1,4 +1,4 @@
-# Phase 517 — Owner-writebeta posture after real-book decision
+# Phase 494 — Public read-only UX acceptance pass
 
 Goal: Complete the phase objective from the Phase 481–530 roadmap.
 
@@ -15,6 +15,8 @@ Verification: Git/GitHub state reviewed; public status guard and release/doc pos
 Expected artifacts: This handoff plus the referenced audit/release/strategy/dogfood document.
 
 Findings:
-Posture: no real working-book mutation occurred; copied-book v0.4 session evidence is absent; real-book write trial remains blocked.
+- Covered flows by existing automated/frontend checks and prior dogfood evidence: login, dashboard, accounts, transaction list/detail, CSV export route, reports, books page, empty/error states.
+- No private screenshots were created or committed.
+- No blocking first-time read-only UX issue was found for conservative beta.
 
-Final verdict: NO_RELEASE
+Final verdict: CONTINUE

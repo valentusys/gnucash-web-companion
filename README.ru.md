@@ -25,16 +25,16 @@ Desktop остаётся главным редактором.
 
 ## Текущий публичный статус
 
-- Фазы 0–480 завершены; PR #40 повторно проверен как влитый в `main`.
-- Фазы 431–480 добавили план v0.4/v0.5, non-mutating owner write-session preflight/manifest prototype, UI warning copy и черновики public read-only beta docs. Итог: **NO_RELEASE**; v0.4.0/v0.5.0 tag/GitHub release не публиковались.
-- Новых мутаций в фазах 431–480 не было: CREATE 0, PATCH 0, DELETE 0.
+- Фазы 0–530 завершены; PR #40 повторно проверен как влитый в `main`.
+- Фазы 481–530 подготовили public read-only beta и PM разрешил `v0.5.0-public-readonly-beta` как conservative GitHub pre-release. `v0.4.0-owner-writebeta` отложен.
+- Новых мутаций в фазах 481–530 не было: CREATE 0, PATCH 0, DELETE 0. Real/original/private/only-copy book не трогались.
 - Последнее copied-book write-alpha evidence остаётся узким и экспериментальным: Phase 354 принял ровно один CREATE и затем ровно один DELETE той же write-alpha-owned disposable transaction, а Phase 363 принял ровно два CREATE и ровно один metadata/memo-only PATCH, всё только на copied/restorable books outside git.
-- MVP v0.1 остаётся **read-only by default**.
+- MVP/read-only доступ остаётся **read-only by default**.
 - `GNUCASH_WRITES_ENABLED=false` — безопасный дефолт.
 - Controlled-write код, если присутствует, является experimental post-MVP/write-alpha, отключён по
   умолчанию и дополнительно ограничен backend `APP_ENV=test` gate при явном включении.
-- Текущий публичный read-only pre-alpha release:
-  [`v0.1.7-readonly`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.7-readonly).
+- Текущий публичный read-only beta pre-release:
+  [`v0.5.0-public-readonly-beta`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.5.0-public-readonly-beta).
 - Предыдущий публичный read-only pre-alpha release:
   [`v0.1.6-readonly`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.6-readonly).
 - Предыдущие write-alpha pre-release:

@@ -1,4 +1,4 @@
-# Phase 517 — Owner-writebeta posture after real-book decision
+# Phase 493 — Fresh-clone public read-only smoke
 
 Goal: Complete the phase objective from the Phase 481–530 roadmap.
 
@@ -15,6 +15,8 @@ Verification: Git/GitHub state reviewed; public status guard and release/doc pos
 Expected artifacts: This handoff plus the referenced audit/release/strategy/dogfood document.
 
 Findings:
-Posture: no real working-book mutation occurred; copied-book v0.4 session evidence is absent; real-book write trial remains blocked.
+- Existing Phase 474 fresh-clone read-only smoke evidence was reviewed as public-readonly beta input.
+- This run refreshed the release gate with backend pytest, frontend check/auth-routes/build, Docker Compose config, public-status guard, diff check, and tracked hygiene scan.
+- No write mutation was run; GNUCASH_WRITES_ENABLED=false stayed default.
 
-Final verdict: NO_RELEASE
+Final verdict: CONTINUE

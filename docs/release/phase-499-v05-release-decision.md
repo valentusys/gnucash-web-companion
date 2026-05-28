@@ -1,4 +1,4 @@
-# Phase 517 — Owner-writebeta posture after real-book decision
+# Phase 499 — PM v0.5 release/no-release decision
 
 Goal: Complete the phase objective from the Phase 481–530 roadmap.
 
@@ -15,6 +15,12 @@ Verification: Git/GitHub state reviewed; public status guard and release/doc pos
 Expected artifacts: This handoff plus the referenced audit/release/strategy/dogfood document.
 
 Findings:
-Posture: no real working-book mutation occurred; copied-book v0.4 session evidence is absent; real-book write trial remains blocked.
+PM decision: AUTHORIZE_V0_5_PRE_RELEASE.
 
-Final verdict: NO_RELEASE
+Constraints:
+- Publish only a GitHub pre-release.
+- Tag: v0.5.0-public-readonly-beta.
+- Messaging must say read-only beta, not production-ready, not stable, not security-audited, not public-internet safe, and not public write beta.
+- Abort if final checks or tag/release absence fail.
+
+Final verdict: RELEASE_READY

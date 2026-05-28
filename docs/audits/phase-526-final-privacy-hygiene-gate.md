@@ -1,4 +1,4 @@
-# Phase 517 — Owner-writebeta posture after real-book decision
+# Phase 526 — Final privacy/secrets hygiene gate
 
 Goal: Complete the phase objective from the Phase 481–530 roadmap.
 
@@ -15,6 +15,10 @@ Verification: Git/GitHub state reviewed; public status guard and release/doc pos
 Expected artifacts: This handoff plus the referenced audit/release/strategy/dogfood document.
 
 Findings:
-Posture: no real working-book mutation occurred; copied-book v0.4 session evidence is absent; real-book write trial remains blocked.
+- `git ls-files` reviewed.
+- Targeted sensitive-name scan found only expected code/test names such as backup service/tests, not committed books/app DBs/backups/exports from this run.
+- Targeted private-string scan surfaced historical docs/test redaction examples and local-path mentions already present before this run; no new private runtime artifact was introduced.
+- `.hermes/` remains untracked.
+- No .env, secret, GnuCash book, app DB, backup, CSV export, screenshot, raw financial evidence, token, key, or certificate was committed.
 
-Final verdict: NO_RELEASE
+Final verdict: CONTINUE

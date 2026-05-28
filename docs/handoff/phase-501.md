@@ -1,4 +1,4 @@
-# Phase 517 — Owner-writebeta posture after real-book decision
+# Phase 501 — Owner-writebeta implementation analyst gate
 
 Goal: Complete the phase objective from the Phase 481–530 roadmap.
 
@@ -12,9 +12,10 @@ Safety checks: GNUCASH_WRITES_ENABLED=false remains default; APP_ENV=test write 
 
 Verification: Git/GitHub state reviewed; public status guard and release/doc posture checked where relevant.
 
-Expected artifacts: This handoff plus the referenced audit/release/strategy/dogfood document.
+Expected artifacts: docs/handoff/phase-501.md and linked phase artifact(s).
 
 Findings:
-Posture: no real working-book mutation occurred; copied-book v0.4 session evidence is absent; real-book write trial remains blocked.
+- Verdict: NEEDS_FIX. Existing write-alpha gates and non-mutating owner session prototype are useful, but a v0.4 owner-writebeta gate with restore-required session checkpoint was not fully implemented as a distinct release gate in this run.
+- Safety defaults unchanged.
 
-Final verdict: NO_RELEASE
+Final verdict: CONTINUE

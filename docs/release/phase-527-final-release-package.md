@@ -1,4 +1,4 @@
-# Phase 517 — Owner-writebeta posture after real-book decision
+# Phase 527 — Final release package preparation
 
 Goal: Complete the phase objective from the Phase 481–530 roadmap.
 
@@ -15,6 +15,8 @@ Verification: Git/GitHub state reviewed; public status guard and release/doc pos
 Expected artifacts: This handoff plus the referenced audit/release/strategy/dogfood document.
 
 Findings:
-Posture: no real working-book mutation occurred; copied-book v0.4 session evidence is absent; real-book write trial remains blocked.
+- v0.5 public read-only beta release package is ready: notes, checklist, final gate, publication evidence template.
+- v0.4 owner-writebeta package is not ready and remains deferred with explicit blockers.
+- Release notes scope evidence exactly and avoid production/security/public-write/only-copy claims.
 
-Final verdict: NO_RELEASE
+Final verdict: RELEASE_READY

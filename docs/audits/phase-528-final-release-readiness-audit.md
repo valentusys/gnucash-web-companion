@@ -1,4 +1,4 @@
-# Phase 517 — Owner-writebeta posture after real-book decision
+# Phase 528 — Final release readiness audit
 
 Goal: Complete the phase objective from the Phase 481–530 roadmap.
 
@@ -15,6 +15,10 @@ Verification: Git/GitHub state reviewed; public status guard and release/doc pos
 Expected artifacts: This handoff plus the referenced audit/release/strategy/dogfood document.
 
 Findings:
-Posture: no real working-book mutation occurred; copied-book v0.4 session evidence is absent; real-book write trial remains blocked.
+Recommendation: RELEASE_V0_5_PUBLIC_READONLY_BETA only.
 
-Final verdict: NO_RELEASE
+Do not release v0.4 owner-writebeta. Reasons: distinct gate implementation, copied-session dogfood, restore/read-back/compat/default-reset evidence, and exact owner real-book authorization are missing.
+
+v0.5 is acceptable as a conservative pre-release because it is read-only, docs are honest, checks passed, and defaults remain disabled.
+
+Final verdict: RELEASE_READY

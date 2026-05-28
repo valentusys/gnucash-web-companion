@@ -1,4 +1,4 @@
-# Phase 517 — Owner-writebeta posture after real-book decision
+# Phase 498 — v0.5 release readiness audit
 
 Goal: Complete the phase objective from the Phase 481–530 roadmap.
 
@@ -15,6 +15,13 @@ Verification: Git/GitHub state reviewed; public status guard and release/doc pos
 Expected artifacts: This handoff plus the referenced audit/release/strategy/dogfood document.
 
 Findings:
-Posture: no real working-book mutation occurred; copied-book v0.4 session evidence is absent; real-book write trial remains blocked.
+Analyst verdict: RELEASE_CANDIDATE for v0.5.0-public-readonly-beta.
 
-Final verdict: NO_RELEASE
+Reasons:
+- Scope is read-only beta only.
+- Install/security/feedback/release docs are present and conservative.
+- Full local backend/frontend/Docker/public-status/diff checks passed.
+- No default write enablement or public write claim exists.
+- Known limitations are acceptable for a pre-release when explicitly documented.
+
+Final verdict: RELEASE_READY

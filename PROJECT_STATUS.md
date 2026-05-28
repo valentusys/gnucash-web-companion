@@ -7,17 +7,16 @@ Last updated: 2026-05-25
 - GitHub: `valentusys/gnucash-web-companion`
 - Local path: `/home/val/gnucash-web-companion`
 - Branch: `main`
-- Status: pre-alpha / v0.1.7-readonly remains the current public read-only pre-release;
-  `v0.2.8-writealpha` is the current public experimental write-alpha pre-release. Completed through
-  Phase 480. PR #40 was re-verified as merged into `main` during Phase 431. Phases 431–480 completed
-  the owner-writebeta/public-readonly-beta roadmap run with final NO_RELEASE: v0.4.0-owner-writebeta
-  and v0.5.0-public-readonly-beta were both deferred; no tag, GitHub release, package, image, stable
-  release, production deployment, default write enablement, `APP_ENV=test` weakening, private evidence,
-  or broad safety claim was added. New safe artifacts include v0.4/v0.5 exit criteria, a non-mutating
-  owner write-session preflight/manifest prototype, UI warning copy, owner-writebeta posture docs, and
-  public read-only beta draft install/security/feedback docs. PM decisions: Cycle 1 NO_RELEASE; Cycle 2
-  NO_RELEASE; copied-book mutation blocked for this run; real working-book mutation blocked; v0.4
-  NO_RELEASE; v0.5/final NO_RELEASE. Mutation counts in Phases 431–480: CREATE 0, PATCH 0, DELETE 0. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
+- Status: beta/pre-alpha mix / `v0.5.0-public-readonly-beta` is the current public read-only beta pre-release;
+  `v0.2.8-writealpha` remains the current public experimental write-alpha pre-release. Completed through
+  Phase 530. PR #40 was re-verified as merged into `main`; Phases 481–530 published
+  `v0.5.0-public-readonly-beta` as a conservative read-only GitHub pre-release and deferred
+  `v0.4.0-owner-writebeta`. No stable release, production deployment, default write enablement,
+  `APP_ENV=test` weakening, private evidence, or broad safety claim was added. Phases 431–480 had
+  previously completed the owner-writebeta/public-readonly-beta roadmap run with final NO_RELEASE and
+  produced safe v0.4/v0.5 exit criteria, non-mutating owner write-session preflight/manifest prototype,
+  UI warning copy, owner-writebeta posture docs, and public read-only beta draft install/security/
+  feedback docs. Mutation counts in Phases 481–530: CREATE 0, PATCH 0, DELETE 0. Phase 231 ran the `v0.2.5-writealpha` final release gate after Phase 230 green
   release-candidate dogfood, confirmed local/backend/frontend/Docker/public-status/sensitive-file
   gates, waited for exact release/status commit CI, and published only the annotated tag plus GitHub
   pre-release. Phase 232 reconciled public status/changelog wording after publication. Phase 233
@@ -252,7 +251,10 @@ Last updated: 2026-05-25
 
 ## Current baseline
 
-Completed through Phase 480.
+- Phases 481–530 completed the public-readonly/owner-writebeta run. PR #40 was verified MERGED. PM selected dual-track with v0.5 first where safe, authorized `v0.5.0-public-readonly-beta` as a conservative GitHub pre-release, and kept `v0.4.0-owner-writebeta` deferred. No real working-book trial was authorized. Mutation counts in this run: CREATE 0, PATCH 0, DELETE 0. Final checks passed: backend pytest (590), frontend check/auth-routes/build, Docker Compose config, public-status guard, diff hygiene, and tracked hygiene review. `GNUCASH_WRITES_ENABLED=false` remains default and `APP_ENV=test` write gating was not weakened.
+
+
+Completed through Phase 530.
 
 Current public release state:
 
