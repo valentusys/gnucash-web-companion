@@ -14,6 +14,6 @@ What did not happen:
 - No release publication.
 - No public write beta.
 
-Reason: issue #43 requires copied-book dogfood evidence before closure or owner-writebeta prerelease. That dogfood is blocked until an owner-provided outside-git copied/restorable book is staged on this host and the locked operation counts can run through all backup/read-back/audit/lock/restore/compatibility/default-reset gates.
+Reason: issue #43 requires copied-book dogfood evidence before closure or owner-writebeta prerelease. The owner-provided copied/restorable book is now staged outside git, but dogfood is blocked by a copied-book GnuCash lock marker from the source environment; the API fails closed before mutation. The locked operation counts can resume only after the copied-book lock/read gate and all backup/read-back/audit/lock/restore/compatibility/default-reset gates pass.
 
 Final verdict: NO_RELEASE.

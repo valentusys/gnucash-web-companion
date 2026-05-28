@@ -4,7 +4,7 @@ Last phase: Phase M.
 
 Issue #43 status: kept open. Do not close until copied-book routed dogfood passes.
 
-Dogfood result: not run. No CREATE/PATCH/DELETE mutation occurred in this session.
+Dogfood result: attempted and blocked before mutation. The owner copy is staged outside git, but the copied SQL book has a GnuCash lock marker from the source environment, so routed API data access failed closed before any CREATE/PATCH/DELETE mutation.
 
 Release result: NO_RELEASE. No tag or GitHub release was published.
 
@@ -25,4 +25,4 @@ Checks:
 - Full final verification recorded in Phase M handoff.
 
 Owner action required to continue #43:
-Stage an owner-provided outside-git copied/restorable GnuCash SQL book on this Linux host, then rerun the copied-book dogfood gate. Do not provide or use the original/working/private/only-copy book.
+Provide a fresh copied/restorable SQL book made after closing GnuCash on the source PC, or let PM define an explicit safe copied-book stale-lock release procedure. Then rerun the locked routed dogfood counts. Do not provide or use the original/working/private/only-copy book.

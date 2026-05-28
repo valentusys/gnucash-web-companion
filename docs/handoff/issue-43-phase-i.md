@@ -2,11 +2,11 @@
 
 Goal: copied-book dogfood authorization gate.
 
-Scope: focused issue #43 Phases A-M only.
+Scope: focused issue #43 Phases I-M only after routed foundation; owner copy availability and PM operation-count lock.
 
 Non-goals: no broad roadmap, no Phase 831+, no real/private/original/only-copy mutation, no public write beta, no stable/production/security-audited claim.
 
-Acceptance criteria: conditional operation counts locked; dogfood blocked until owner copy is staged.
+Acceptance criteria: PM operation counts remain locked; owner copy is staged outside git; dogfood remains blocked until the copied-book GnuCash lock/read gate is resolved safely.
 
 Safety checks:
 - `GNUCASH_WRITES_ENABLED=false` remains default.
@@ -14,8 +14,8 @@ Safety checks:
 - No raw private evidence, books, app DBs, backups, exports, screenshots, secrets, tokens, account names, memos, descriptions, amounts, or private paths are committed.
 - Historical/manual transaction deletion remains forbidden.
 
-Verification: see final Phase M command log and artifact `docs/write-alpha/issue-43-copied-dogfood-authorization.md`.
+Verification: redacted copied-book path-class preflight passed; routed API read failed closed on the copied-book lock marker before mutation.
 
 Expected artifacts: `docs/write-alpha/issue-43-copied-dogfood-authorization.md` plus this handoff.
 
-Final verdict: conditional operation counts locked; dogfood blocked until owner copy is staged.
+Final verdict: BLOCKED_SAFETY.

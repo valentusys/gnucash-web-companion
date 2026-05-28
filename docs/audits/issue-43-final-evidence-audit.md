@@ -10,13 +10,13 @@ Evidence reviewed:
 - Targeted backend route-family and existing write-alpha tests passed.
 - Public status guard passed.
 
-Dogfood result: NOT RUN. No copied-book mutation occurred.
+Dogfood result: ATTEMPTED_AND_BLOCKED_BEFORE_MUTATION. The owner-provided copied/restorable SQL book is staged outside git, and redacted copied-book path-class preflight passed. The routed dogfood run stopped before mutation because the copied SQL book carries a GnuCash lock marker from the source environment; API data routes fail closed instead of opening it. No copied-book mutation occurred.
 
 PM decision: KEEP_ISSUE_43_OPEN_WITH_EXACT_BLOCKERS.
 
 Exact blockers:
-1. Stage an owner-provided outside-git copied/restorable book on this host.
-2. Run the locked routed dogfood counts: 2 CREATE, 1 metadata/memo-only PATCH, 1 DELETE of a created disposable transaction.
+1. Resolve the staged copied-book GnuCash lock marker safely without touching any original/working/private/only-copy book and without direct out-of-band mutation of the dogfood target unless PM records an explicit safe lock-release procedure.
+2. Run the locked routed dogfood counts only after the copied-book lock/read gate passes: 2 CREATE, 1 metadata/memo-only PATCH, 1 DELETE of a created disposable transaction.
 3. Record redacted backup/read-back/audit/lock/restore/compatibility/default-reset evidence.
 4. Add final verification that routed mutation sessions complete/reset after dogfood.
 

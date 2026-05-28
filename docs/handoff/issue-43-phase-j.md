@@ -2,11 +2,11 @@
 
 Goal: copied-book routed dogfood.
 
-Scope: focused issue #43 Phases A-M only.
+Scope: focused issue #43 Phases I-M only; run copied-book routed dogfood only if all gates pass.
 
 Non-goals: no broad roadmap, no Phase 831+, no real/private/original/only-copy mutation, no public write beta, no stable/production/security-audited claim.
 
-Acceptance criteria: NOT RUN; no mutation; blocked missing staged copied/restorable book and final dogfood run.
+Acceptance criteria: ATTEMPTED_AND_BLOCKED_BEFORE_MUTATION. No mutation occurred. Staged copied/restorable book exists, but the copied-book GnuCash lock/read gate failed closed before any CREATE/PATCH/DELETE request.
 
 Safety checks:
 - `GNUCASH_WRITES_ENABLED=false` remains default.
@@ -14,8 +14,8 @@ Safety checks:
 - No raw private evidence, books, app DBs, backups, exports, screenshots, secrets, tokens, account names, memos, descriptions, amounts, or private paths are committed.
 - Historical/manual transaction deletion remains forbidden.
 
-Verification: see final Phase M command log and artifact `docs/audits/issue-43-dogfood-readiness.md`.
+Verification: see `docs/dogfood/issue-43-routed-copied-book-dogfood.md`.
 
-Expected artifacts: `docs/audits/issue-43-dogfood-readiness.md` plus this handoff.
+Expected artifacts: `docs/dogfood/issue-43-routed-copied-book-dogfood.md` plus this handoff.
 
-Final verdict: NOT RUN; no mutation; blocked missing staged copied/restorable book and final dogfood run.
+Final verdict: BLOCKED_SAFETY / NO_MUTATION.
