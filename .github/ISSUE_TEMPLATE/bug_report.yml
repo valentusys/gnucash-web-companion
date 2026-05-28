@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for reporting a bug. Do not include real financial data, secrets, or private GnuCash files.
+        Thanks for reporting a bug. Do not include real financial data, secrets, private GnuCash files, app DBs, backups, CSV exports, screenshots with finances, private paths, account names, transaction descriptions, memos, or amounts.
   - type: textarea
     id: summary
     attributes:

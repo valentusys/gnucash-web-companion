@@ -7,12 +7,17 @@ Last updated: 2026-05-25
 - GitHub: `valentusys/gnucash-web-companion`
 - Local path: `/home/val/gnucash-web-companion`
 - Branch: `main`
-- Status: beta/pre-alpha mix / `v0.5.0-public-readonly-beta` is the current public read-only beta pre-release;
-  `v0.2.8-writealpha` remains the current public experimental write-alpha pre-release. Completed through
-  Phase 530. PR #40 was re-verified as merged into `main`; Phases 481–530 published
-  `v0.5.0-public-readonly-beta` as a conservative read-only GitHub pre-release and deferred
-  `v0.4.0-owner-writebeta`. No stable release, production deployment, default write enablement,
-  `APP_ENV=test` weakening, private evidence, or broad safety claim was added. Phases 431–480 had
+- Status: beta/pre-alpha mix / `v0.5.0-public-readonly-beta` remains the current public read-only beta pre-release;
+  `v0.2.8-writealpha` remains the current public experimental write-alpha pre-release. Completed through Phase 630. Phases 531–630 produced public-readonly support/safety artifacts, a tracked-file hygiene
+  guard, owner-writebeta workflow posture docs, deployment diagnostics/privacy guidance, and a final
+  PM NO_RELEASE decision plus follow-up GitHub issues #41, #42, and #43. No new GitHub pre-release was published: `v0.4.0-owner-writebeta` remains
+  deferred, no public write beta was created, and no Phase 631+ was opened. Mutation counts in
+  Phases 531–630: CREATE 0, PATCH 0, DELETE 0; the original/working/private GnuCash book was not
+  touched. `GNUCASH_WRITES_ENABLED=false` remains default and enabled write-alpha remains
+  `APP_ENV=test` gated. Phases 481–530 published `v0.5.0-public-readonly-beta` as a conservative
+  read-only GitHub pre-release and deferred `v0.4.0-owner-writebeta`. No stable release,
+  production deployment, default write enablement, private evidence, or broad safety claim was added.
+  Phases 431–480 had
   previously completed the owner-writebeta/public-readonly-beta roadmap run with final NO_RELEASE and
   produced safe v0.4/v0.5 exit criteria, non-mutating owner write-session preflight/manifest prototype,
   UI warning copy, owner-writebeta posture docs, and public read-only beta draft install/security/
