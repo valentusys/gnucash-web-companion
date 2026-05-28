@@ -4,6 +4,8 @@ Last updated: 2026-05-25
 
 ## Repository
 
+- Issue #43 focused Phases A-M completed with final NO_RELEASE. Routed owner-writebeta foundation was added: redacted preflight/status, preview, confirmation, verify-reset/reset-disabled API endpoints; active-session guard integration for existing write-alpha CREATE/PATCH/DELETE routes; conservative owner-writebeta UI information shell; and A-M audit/handoff/release decision docs. Copied-book dogfood was NOT RUN because an owner-provided outside-git copied/restorable book is not staged on this host and #43 remains open with exact dogfood blockers. Mutation counts: CREATE 0, PATCH 0, DELETE 0. Real working/private/original/only-copy book mutation remains blocked. Public read-only beta remains `v0.5.0-public-readonly-beta`; no `v0.5.1` or owner-writebeta release was published.
+
 - Phases 731–830 completed. Live checks confirmed `v0.5.1-public-readonly-beta` is absent and `v0.5.0-public-readonly-beta` remains the current public read-only beta. Issues #41/#42 are closed after Phase 731–830 verification; #43 remains open for owner-writebeta routed/copied-book work. No release was published. Mutation counts: CREATE 0, PATCH 0, DELETE 0. Real working-book mutation remains blocked.
 
 - GitHub: `valentusys/gnucash-web-companion`

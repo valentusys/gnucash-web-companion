@@ -16,7 +16,7 @@ from datetime import date, datetime, timezone
 from decimal import Decimal
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
@@ -967,6 +967,8 @@ async def create_book_transaction(
     user: User = Depends(get_current_user),
     session: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
+    x_owner_writebeta_preview_hash: str | None = Header(None),
+    x_owner_writebeta_confirmation_token: str | None = Header(None),
 ) -> TransactionWriteResultDTO:
     """Create a new transaction with the given splits.
 
@@ -976,6 +978,13 @@ async def create_book_transaction(
     book = _resolve_viewable_book(book_id, user, session)
     _require_book_edit_access(book, user, session)
     _ensure_write_alpha_test_scope(settings)
+    from app.routers.owner_writebeta import require_owner_writebeta_if_active
+
+    require_owner_writebeta_if_active(
+        book_id=book.id,
+        preview_hash=x_owner_writebeta_preview_hash,
+        confirmation_token=x_owner_writebeta_confirmation_token,
+    )
 
     service = _write_service_for(book)
     audit_payload = {
@@ -1047,6 +1056,8 @@ async def patch_book_transaction(
     user: User = Depends(get_current_user),
     session: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
+    x_owner_writebeta_preview_hash: str | None = Header(None),
+    x_owner_writebeta_confirmation_token: str | None = Header(None),
 ) -> TransactionWriteResultDTO:
     """Patch description, date, and/or split memos for an existing transaction.
 
@@ -1056,6 +1067,13 @@ async def patch_book_transaction(
     book = _resolve_viewable_book(book_id, user, session)
     _require_book_edit_access(book, user, session)
     _ensure_write_alpha_test_scope(settings)
+    from app.routers.owner_writebeta import require_owner_writebeta_if_active
+
+    require_owner_writebeta_if_active(
+        book_id=book.id,
+        preview_hash=x_owner_writebeta_preview_hash,
+        confirmation_token=x_owner_writebeta_confirmation_token,
+    )
     ownership = _require_write_alpha_transaction_ownership(
         session,
         book_id=book.id,
@@ -1144,12 +1162,21 @@ async def delete_book_transaction(
     user: User = Depends(get_current_user),
     session: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
+    x_owner_writebeta_preview_hash: str | None = Header(None),
+    x_owner_writebeta_confirmation_token: str | None = Header(None),
 ) -> TransactionWriteResultDTO:
     """Delete one existing transaction through the experimental write-alpha path."""
     _ensure_writes_enabled(settings)
     book = _resolve_viewable_book(book_id, user, session)
     _require_book_edit_access(book, user, session)
     _ensure_write_alpha_test_scope(settings)
+    from app.routers.owner_writebeta import require_owner_writebeta_if_active
+
+    require_owner_writebeta_if_active(
+        book_id=book.id,
+        preview_hash=x_owner_writebeta_preview_hash,
+        confirmation_token=x_owner_writebeta_confirmation_token,
+    )
     ownership = _require_write_alpha_transaction_ownership(
         session,
         book_id=book.id,
