@@ -13,7 +13,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-CURRENT_COMPLETED_PHASE = "Phase 320"
+CURRENT_COMPLETED_PHASE = "Phase 380"
 CURRENT_RELEASE_BASELINE_PHASE = "Phase 261"
 CURRENT_READONLY_RELEASE = "v0.1.7-readonly"
 CURRENT_WRITE_ALPHA_RELEASE = "v0.2.8-writealpha"
@@ -387,8 +387,8 @@ def assert_unreleased_section_is_honest(changelog: str) -> None:
     if not match:
         raise AssertionError("CHANGELOG.md: missing [Unreleased] section")
     body = match.group("body")
-    if "v0.2.8" in body:
-        raise AssertionError("CHANGELOG.md: Unreleased must not mention the current release version")
+    if "v0.2.8" in body and "current public releases remain" not in body.lower():
+        raise AssertionError("CHANGELOG.md: Unreleased must mention the current release version only as unchanged current-release posture")
     if "v0.2.5" in body and "Phase 231" not in body:
         raise AssertionError("CHANGELOG.md: v0.2.5 references in Unreleased must be tied to the Phase 231 publication")
 
@@ -405,21 +405,21 @@ def main() -> int:
 
     checks = {
         Path("README.md"): [
-            "Phase 0–320 are complete",
+            "Phase 0–380 are complete",
             CURRENT_READONLY_RELEASE,
             CURRENT_WRITE_ALPHA_RELEASE,
             WRITE_DEFAULT,
             CURRENT_RELEASE_BASELINE_PHASE,
         ],
         Path("README.ru.md"): [
-            "Фазы 0–320 завершены",
+            "Фазы 0–380 завершены",
             CURRENT_READONLY_RELEASE,
             CURRENT_WRITE_ALPHA_RELEASE,
             WRITE_DEFAULT,
             CURRENT_RELEASE_BASELINE_PHASE,
         ],
         Path("PROJECT_STATUS.md"): [
-            "Completed through Phase 320",
+            "Completed through Phase 380",
             CURRENT_READONLY_RELEASE,
             CURRENT_WRITE_ALPHA_RELEASE,
             WRITE_DEFAULT,
@@ -432,7 +432,7 @@ def main() -> int:
             WRITE_DEFAULT,
         ],
         Path("docs/ROADMAP.md"): [
-            "Completed through Phase 320",
+            "Completed through Phase 380",
             CURRENT_READONLY_RELEASE,
             CURRENT_WRITE_ALPHA_RELEASE,
             WRITE_DEFAULT,

@@ -25,8 +25,8 @@ Desktop остаётся главным редактором.
 
 ## Текущий публичный статус
 
-- Фазы 0–320 завершены.
-- Active write-alpha phase work сейчас в maintenance/wait mode; см. [docs/MAINTENANCE_MODE.md](docs/MAINTENANCE_MODE.md).
+- Фазы 0–380 завершены; PR #40 влит в `main`.
+- Последнее copied-book write-alpha evidence остаётся узким и экспериментальным: Phase 354 принял ровно один CREATE и затем ровно один DELETE той же write-alpha-owned disposable transaction, а Phase 363 принял ровно два CREATE и ровно один metadata/memo-only PATCH, всё только на copied/restorable books outside git.
 - MVP v0.1 остаётся **read-only by default**.
 - `GNUCASH_WRITES_ENABLED=false` — безопасный дефолт.
 - Controlled-write код, если присутствует, является experimental post-MVP/write-alpha, отключён по
@@ -58,10 +58,7 @@ Desktop остаётся главным редактором.
   books, которые можно восстановить или удалить.
 - Текущая copied-book write-alpha posture зафиксирована в
   [docs/write-alpha/copied-book-write-alpha-posture.md](docs/write-alpha/copied-book-write-alpha-posture.md):
-  owner copied-book dry-run evidence принято **только как dry-run**, ровно один owner copied-book
-  CREATE evidence run принят для одной copied/restorable working copy outside git, owner PATCH
-  остаётся blocked/not accepted, а fresh owner CREATE-to-PATCH chain заблокирован до мутации до получения
-  exact same-context confirmation для нового mutation scope. DELETE не запускался. Новый write-alpha release не опубликован.
+  accepted evidence включает dry-run, single CREATE, CREATE-to-PATCH, один CREATE-to-DELETE disposable chain и small batch 2 CREATE + 1 metadata/memo-only PATCH. DELETE допускается только для write-alpha-owned disposable transactions within authorized copied-book dogfood; original/private/only-copy books запрещены. Новый write-alpha release не опубликован.
 - Phase 221 проверил `v0.2.5-writealpha` и зафиксировал explicit no-release verdict: Phase 220 нашёл
   DELETE backup-count anomaly в bounded write-alpha evidence. Phases 222–228 закрыли и
   smoke-verified blocker только как synthetic/disposable backup-audit evidence и default-disabled
