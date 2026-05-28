@@ -5,7 +5,7 @@ This roadmap is intentionally conservative. Safety and trust come before feature
 ## Current release posture
 
 - Status: pre-alpha / MVP in progress.
-- Completed through Phase 380, with PR #40 merged into `main` during Phase 385.
+- Completed through Phase 430, with PR #40 merged into `main` during Phase 385.
 - Copied-book write-alpha remains experimental, disabled by default, `APP_ENV=test` gated, and limited to copied/restorable books outside git.
 
 Phase 354 accepted exactly one copied-book CREATE followed by exactly one DELETE of the same write-alpha-owned disposable transaction after backup/read-back/audit/ownership/restore/compatibility/reset evidence passed. Phase 363 accepted a small copied-book batch of exactly two CREATE operations and exactly one metadata/memo-only PATCH, zero DELETE, with backup/read-back/audit/ownership/restore/compatibility/reset evidence passed. Phases 359, 369, 379, and 380 recorded no-release/stop decisions. No broad safety claim, production claim, original/private/only-copy safety claim, or newer write-alpha release was added.

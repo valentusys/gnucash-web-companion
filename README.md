@@ -47,7 +47,7 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–380 are complete; PR #40 has been merged into `main`.
+- Phase 0–430 are complete; PR #40 has been merged into `main`.
 - Latest copied-book write-alpha evidence remains narrow and experimental: Phase 354 accepted exactly one CREATE followed by exactly one DELETE of the same write-alpha-owned disposable transaction, and Phase 363 accepted exactly two CREATE operations plus exactly one metadata/memo-only PATCH, all on copied/restorable books outside git.
 - MVP v0.1 remains **read-only by default**.
 - Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by
