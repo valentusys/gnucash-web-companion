@@ -1,9 +1,9 @@
-# Phase 368 — Practical write-alpha posture update
+# Phase 377 — Read-only maintenance sanity check
 
 Status: PASS.
 
 Summary:
-- Posture: copied-book small-batch experimental dogfood is accepted narrowly for 2 CREATE + 1 metadata/memo-only PATCH after backup/restore/compatibility/reset checks. Single-operation DELETE evidence is accepted only for a write-alpha-owned disposable transaction. Original/private/only-copy books remain forbidden; defaults remain disabled.
+- Read-only sanity check passed through targeted disabled-write probes and public status checks: GNUCASH_WRITES_ENABLED=false remains default, create/patch/delete disabled probes return 403 in harnesses, and no read-only regression was identified in this roadmap run.
 
 Safety:
 - No original/private/only-copy book was mutated.

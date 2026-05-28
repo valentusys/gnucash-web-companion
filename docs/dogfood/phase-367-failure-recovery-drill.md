@@ -1,9 +1,9 @@
-# Phase 368 — Practical write-alpha posture update
+# Phase 367 — Write-alpha failure recovery drill
 
 Status: PASS.
 
 Summary:
-- Posture: copied-book small-batch experimental dogfood is accepted narrowly for 2 CREATE + 1 metadata/memo-only PATCH after backup/restore/compatibility/reset checks. Single-operation DELETE evidence is accepted only for a write-alpha-owned disposable transaction. Original/private/only-copy books remain forbidden; defaults remain disabled.
+- Failure recovery drill documented against synthetic/disposable scope only. Existing route tests and harness behavior cover failed validation/audit, no backup on pre-write rejection, lock release/stale-safe behavior, restore instructions, and default-disabled reset. No owner-book destructive failure test was authorized or run.
 
 Safety:
 - No original/private/only-copy book was mutated.

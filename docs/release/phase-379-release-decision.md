@@ -1,9 +1,9 @@
-# Phase 368 — Practical write-alpha posture update
+# Phase 379 — Final release/no-release decision
 
 Status: PASS.
 
 Summary:
-- Posture: copied-book small-batch experimental dogfood is accepted narrowly for 2 CREATE + 1 metadata/memo-only PATCH after backup/restore/compatibility/reset checks. Single-operation DELETE evidence is accepted only for a write-alpha-owned disposable transaction. Original/private/only-copy books remain forbidden; defaults remain disabled.
+- PM decision: NO_RELEASE. All new evidence is dogfood/posture/planning evidence; release would risk overstating safety. No final release authorized.
 
 Safety:
 - No original/private/only-copy book was mutated.

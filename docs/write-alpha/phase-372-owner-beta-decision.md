@@ -1,9 +1,9 @@
-# Phase 368 — Practical write-alpha posture update
+# Phase 372 — PM owner-only beta decision
 
 Status: PASS.
 
 Summary:
-- Posture: copied-book small-batch experimental dogfood is accepted narrowly for 2 CREATE + 1 metadata/memo-only PATCH after backup/restore/compatibility/reset checks. Single-operation DELETE evidence is accepted only for a write-alpha-owned disposable transaction. Original/private/only-copy books remain forbidden; defaults remain disabled.
+- PM decision: prepare an owner-only copied-book write beta plan. Planning only; no implementation, no runtime relaxation, no release, no original-book use, and no public promise.
 
 Safety:
 - No original/private/only-copy book was mutated.

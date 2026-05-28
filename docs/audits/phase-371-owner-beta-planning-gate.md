@@ -1,9 +1,9 @@
-# Phase 368 — Practical write-alpha posture update
+# Phase 371 — Owner-only beta planning analyst gate
 
 Status: PASS.
 
 Summary:
-- Posture: copied-book small-batch experimental dogfood is accepted narrowly for 2 CREATE + 1 metadata/memo-only PATCH after backup/restore/compatibility/reset checks. Single-operation DELETE evidence is accepted only for a write-alpha-owned disposable transaction. Original/private/only-copy books remain forbidden; defaults remain disabled.
+- Analyst verdict: ready to plan owner-only beta path only as documentation/planning. Evidence supports copied-book single/batch dogfood, not original/private/production writes. APP_ENV=test gate and disabled defaults must not be weakened.
 
 Safety:
 - No original/private/only-copy book was mutated.

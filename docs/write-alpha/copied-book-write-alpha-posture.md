@@ -30,3 +30,7 @@ The current Cycle 2 evidence covered ownership verification of the existing writ
 ## Practical verdict
 
 Read-only use remains the practical default. Write-alpha remains experimental post-MVP work for synthetic/disposable or copied/restorable test targets only, with strict local/test gating and no broad safety claim.
+
+## Phase 351-380 posture update
+
+Write-alpha has narrow copied-book dogfood evidence for CREATE, metadata/memo-only PATCH, one disposable write-alpha-owned DELETE chain, and one small batch of 2 CREATE + 1 metadata/memo-only PATCH. This is not a broad safety claim. Use only copied/restorable books outside git; keep GNUCASH_WRITES_ENABLED=false by default and require APP_ENV=test for explicit write-alpha runs.
