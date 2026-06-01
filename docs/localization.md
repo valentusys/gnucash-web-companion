@@ -117,6 +117,36 @@ English is canonical. Use these Russian terms consistently in the UI/docs when a
 - Full documentation translation is not promised.
 - Controlled-write scope is not expanded by localization work.
 
+## Future localization plan
+
+Russian documentation and UI localization remain post-MVP/community work. Do not block read-only releases on full translation coverage.
+
+Recommended order:
+
+1. Keep safety-critical release/deployment wording English-canonical and translate only after manual review.
+2. Extend Russian UI strings only for visible read-only pages that already have stable behavior.
+3. Prefer short documentation summaries before full-page translation for long operator docs.
+4. Revisit a dedicated SvelteKit i18n library only if the typed in-repo catalog becomes hard to maintain.
+
+Candidate documentation pages, in priority order:
+
+| Area | Candidate | Translation status |
+| --- | --- | --- |
+| Product overview | `README.md` / `README.ru.md` | Russian summary exists; keep it conservative and partial. |
+| Public read-only beta install | `docs/deployment/public-readonly-beta-install.md` | Translate only after safety wording review. |
+| Deployment diagnostics/privacy | `docs/deployment/diagnostics.md` and privacy/security-adjacent docs | Prefer short reviewed RU operator notes first. |
+| Localization policy | `docs/localization.md` | English canonical; update this page before adding broad translation work. |
+| Write-alpha/writebeta docs | `docs/write-alpha/*` | Do not broadly translate until experimental status and no-real-book boundaries are re-reviewed. |
+
+UI string extraction checklist before translating a new page:
+
+- verify the page is read-only or that write-alpha/writebeta warnings are unchanged and still gated;
+- move visible user copy into `apps/web/src/lib/i18n/messages.ts` instead of duplicating inline strings;
+- keep backend/API payloads English unless a narrow proxy/error message is intentionally localized;
+- add or update static route checks for locale switching, safety wording, and no `localStorage`/`sessionStorage` use;
+- use the glossary above for accounting and safety terms;
+- state in docs/comments that Russian remains partial and opt-in.
+
 ## Adding strings
 
 1. Add a typed key to `MessageKey` in `apps/web/src/lib/i18n/messages.ts`.
