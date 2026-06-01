@@ -84,11 +84,9 @@ Final local verification:
 
 ## Issues changed
 
-- #22 updated by commits with compatibility report class implementation/docs. It remains open because Desktop-generated synthetic fixture evidence still requires isolated GUI/manual-safe fixture creation plus read-only validation.
-- #36 updated by commits with explicit zero-mutation readiness plan output. It remains open because broader controlled-write readiness gates remain.
-- #28 updated by commits with markdown readability guidance. It remains open because broader README/PROJECT_STATUS/CHANGELOG cleanup remains possible.
-
-Issue comments were attempted; GitHub GraphQL/API calls were intermittently unreliable during the run. If a comment did not land, the pushed handoffs and this report contain the exact evidence.
+- #22 updated by commits with compatibility report class implementation/docs and issue comment https://github.com/valentusys/gnucash-web-companion/issues/22#issuecomment-4592335399. It remains open because Desktop-generated synthetic fixture evidence still requires isolated GUI/manual-safe fixture creation plus read-only validation.
+- #36 updated by commits with explicit zero-mutation readiness plan output and issue comment https://github.com/valentusys/gnucash-web-companion/issues/36#issuecomment-4592335870. It remains open because broader controlled-write readiness gates remain.
+- #28 updated by commits with markdown readability guidance and issue comment https://github.com/valentusys/gnucash-web-companion/issues/28#issuecomment-4592338198. It remains open because broader README/PROJECT_STATUS/CHANGELOG cleanup remains possible.
 
 ## Release decision
 
