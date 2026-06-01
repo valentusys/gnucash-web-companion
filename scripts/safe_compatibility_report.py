@@ -20,6 +20,20 @@ PATH_RE = re.compile(r"([A-Za-z]:\\[^\s]*|/[^\s]+|\\\\[^\s]+)")
 AMOUNT_RE = re.compile(r"(?i)(amount\s*)\d+[.,]\d{2}")
 
 
+def _evidence_class(backend_type: str, fixture_scope: str) -> str:
+    """Classify public feedback as narrow report evidence, never support."""
+
+    if backend_type != "sqlite":
+        return "unverified"
+    if fixture_scope == "synthetic":
+        return "tested-synthetic-fixture"
+    if fixture_scope == "disposable":
+        return "tested-disposable-report"
+    if fixture_scope == "copied-restorable":
+        return "copied-restorable-report"
+    return "unverified"
+
+
 def _safe_text(value: str) -> str:
     value = PATH_RE.sub("[REDACTED_PATH]", value)
     value = AMOUNT_RE.sub("[REDACTED_AMOUNT]", value)
@@ -48,6 +62,8 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
         "browser_family": _safe_text(args.browser_family or "not_provided"),
         "book_backend_type": args.backend_type,
         "fixture_scope": args.fixture_scope,
+        "evidence_class": _evidence_class(args.backend_type, args.fixture_scope),
+        "support_claim": "redacted report only; not a compatibility guarantee",
         "error_class": _safe_text(args.error_class or "none"),
         "privacy_notice": "No books, app DBs, backups, screenshots, CSV exports, private paths, account names, memos, descriptions, amounts, secrets, or tokens are included.",
     }
