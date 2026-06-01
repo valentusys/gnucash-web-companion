@@ -8,10 +8,12 @@ Elapsed active implementation estimate: about 35-45 minutes in this execution wi
 - `549721b` — `docs: describe compatibility report evidence classes`
 - `c4cf984` — `feat: pin zero-mutation readiness plans`
 - `595142e` — `docs: harden markdown readability guidance`
+- `bda09f5` — `docs: add autonomous run final report`
+- `c3ab201` — `docs: record issue update links`
 
-Latest pushed HEAD: `595142e`.
+Latest pushed HEAD: `c3ab201`.
 
-CI: passed for `595142e` at https://github.com/valentusys/gnucash-web-companion/actions/runs/26752826393.
+CI: passed for `c3ab201` at https://github.com/valentusys/gnucash-web-companion/actions/runs/26753380662.
 
 ## Baseline verified
 
