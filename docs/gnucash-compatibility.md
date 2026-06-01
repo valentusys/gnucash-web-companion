@@ -146,4 +146,15 @@ The probe checks `gnucash` and `gnucash-cli` command availability and bounded `-
 
 ## Safe public compatibility feedback workflow
 
-For public read-only beta reports, share redacted metadata only: app tag/commit, OS/browser/Docker/GnuCash versions, backend type, fixture scope, and generic error class. You may run `python3 scripts/safe_compatibility_report.py --app-ref <tag-or-commit> --backend-type sqlite --fixture-scope synthetic` and paste only the JSON output. Do not upload books, app DBs, backups, CSV exports, screenshots, `.env`, tokens, private paths, account names, transaction descriptions, memos, or amounts. Compatibility evidence remains classified as tested synthetic fixture, tested disposable fixture, copied-restorable report, or unverified; reported metadata alone is not a broad support claim.
+For public read-only beta reports, share redacted metadata only: app tag/commit, OS/browser/Docker/GnuCash versions, backend type, fixture scope, and generic error class. You may run `python3 scripts/safe_compatibility_report.py --app-ref <tag-or-commit> --backend-type sqlite --fixture-scope synthetic` and paste only the JSON output. Do not upload books, app DBs, backups, CSV exports, screenshots, `.env`, tokens, private paths, account names, transaction descriptions, memos, or amounts.
+
+The helper emits an `evidence_class` for triage only. These classes are not support claims and are not a compatibility guarantee:
+
+| `evidence_class` | Meaning | Boundary |
+|---|---|---|
+| `tested-synthetic-fixture` | Redacted report about the committed/generated synthetic SQLite fixture path. | Synthetic fixture evidence only; not real-book or Desktop-version proof. |
+| `tested-disposable-report` | Redacted report about an operator-created disposable SQLite fixture. | Useful for triage after review; not broad backend/version support. |
+| `copied-restorable-report` | Redacted report about a copied/restorable SQLite book that must stay outside git. | Private row data and raw paths remain forbidden; report metadata alone is not a publishable compatibility row. |
+| `unverified` | Non-SQLite backend or unknown fixture scope. | No support claim; needs explicit future scope and safe fixtures before any tested row. |
+
+Reported metadata alone is not a broad support claim. Keep compatibility wording tied to the matrix rows above and treat future Desktop-generated synthetic fixture metadata as blocked/manual until default-read-only validation passes.

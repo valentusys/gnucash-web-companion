@@ -83,6 +83,17 @@ def test_compatibility_docs_separate_tested_blocked_and_unclaimed_sections() -> 
     assert "XML books remain outside the SQL-book MVP" in doc
 
 
+def test_compatibility_docs_describe_safe_public_report_evidence_classes() -> None:
+    doc = COMPATIBILITY_DOC.read_text(encoding="utf-8")
+
+    assert "Safe public compatibility feedback workflow" in doc
+    assert "tested-synthetic-fixture" in doc
+    assert "tested-disposable-report" in doc
+    assert "copied-restorable-report" in doc
+    assert "unverified" in doc
+    assert "not a compatibility guarantee" in doc
+
+
 def test_compatibility_docs_and_changelog_do_not_claim_broad_support() -> None:
     combined = "\n".join(
         [
