@@ -11,7 +11,7 @@ Baseline verified:
 - `GNUCASH_WRITES_ENABLED=false` remains default in `.env.example` and Docker Compose.
 
 Commits pushed:
-- Pending at report write time; final commit/push occurs after this report is created.
+- `dfbf015` — `test: harden compatibility and write-safety guards` pushed to `main`.
 
 Cycles completed:
 1. #22 — added `scripts/build_compatibility_matrix_row.py` and tests for metadata-only conservative compatibility matrix rows.
@@ -21,8 +21,8 @@ Cycles completed:
 5. #36 — wired the write-safety default guard into `scripts/check_public_status.py` with regression coverage.
 
 Issues changed:
-- #22: should be updated, left open. Progress: safer compatibility evidence tooling/workflow. Remaining: actual isolated Desktop-generated synthetic fixture plus default-read-only validation.
-- #36: should be updated, left open. Progress: stronger non-mutating write-safety default guard and integration into public-status checks. Remaining: broader controlled-write readiness gates/copy-book evidence/release gate work.
+- #22: updated at https://github.com/valentusys/gnucash-web-companion/issues/22#issuecomment-4596952998, left open. Progress: safer compatibility evidence tooling/workflow. Remaining: actual isolated Desktop-generated synthetic fixture plus default-read-only validation.
+- #36: updated at https://github.com/valentusys/gnucash-web-companion/issues/36#issuecomment-4596954185, left open. Progress: stronger non-mutating write-safety default guard and integration into public-status checks. Remaining: broader controlled-write readiness gates/copy-book evidence/release gate work.
 - #28: unchanged; not selected because #22/#36 had safe implementation work.
 - No issue should be closed by this run.
 
