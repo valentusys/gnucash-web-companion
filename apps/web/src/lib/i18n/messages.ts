@@ -178,6 +178,15 @@ export type MessageKey =
 	| 'books.contextRecoveryUnavailable'
 	| 'books.contextRecoveryNoBooks'
 	| 'books.auditEvidence'
+	| 'books.registerTitle'
+	| 'books.registerIntro'
+	| 'books.adminOnlyBadge'
+	| 'books.registerName'
+	| 'books.registerCurrency'
+	| 'books.registerPath'
+	| 'books.registerMakeDefault'
+	| 'books.registerSafety'
+	| 'books.registerSubmit'
 	| 'audit.title'
 	| 'audit.bannerTitle'
 	| 'audit.bannerMessage'
@@ -540,6 +549,17 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 			'The selected book is accessible in metadata but currently unavailable for read-only data views. This browser session was safely moved to an available read-only book when one exists; review storage diagnostics and safe next actions without exposing private paths.',
 		'books.contextRecoveryNoBooks':
 			'No accessible configured books are available for this account. The selected-book cookie was cleared; archived and unauthorized books remain hidden or blocked.',
+		'books.registerTitle': 'Register mounted book metadata',
+		'books.registerIntro':
+			'Admin-only app metadata flow for an already-mounted local copied/test SQLite book. The web UI does not upload, copy, open, or mutate GnuCash accounting data.',
+		'books.adminOnlyBadge': 'Admin metadata only',
+		'books.registerName': 'Display name',
+		'books.registerCurrency': 'Base currency (optional)',
+		'books.registerPath': 'Mounted local SQLite path',
+		'books.registerMakeDefault': 'Make this the default fallback book for this installation',
+		'books.registerSafety':
+			'Use only host-mounted copied/test books. Private filesystem paths are sent to the API for metadata registration but are never rendered back in the book list, and no accounts, transactions, memos, amounts, uploads, or screenshots are collected.',
+		'books.registerSubmit': 'Register metadata',
 		'audit.title': 'Write-alpha audit evidence',
 		'audit.bannerTitle': 'Write-alpha audit evidence for disposable runs',
 		'audit.bannerMessage':
@@ -926,6 +946,17 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 			'Выбранная книга доступна в метаданных, но сейчас недоступна для read-only разделов с данными. Браузерная сессия безопасно переключена на доступную read-only книгу, если она есть; проверьте диагностику хранения и безопасные действия без раскрытия приватных путей.',
 		'books.contextRecoveryNoBooks':
 			'Для этой учётной записи нет доступных настроенных книг. Cookie выбранной книги очищен; архивные и неавторизованные книги остаются скрыты или заблокированы.',
+		'books.registerTitle': 'Регистрация метаданных смонтированной книги',
+		'books.registerIntro':
+			'Admin-only поток app metadata для уже смонтированной локальной copied/test SQLite книги. Web UI не загружает, не копирует, не открывает и не изменяет бухгалтерские данные GnuCash.',
+		'books.adminOnlyBadge': 'Только admin metadata',
+		'books.registerName': 'Название',
+		'books.registerCurrency': 'Базовая валюта (необязательно)',
+		'books.registerPath': 'Смонтированный локальный SQLite путь',
+		'books.registerMakeDefault': 'Сделать fallback книгой по умолчанию для этой установки',
+		'books.registerSafety':
+			'Используйте только host-mounted copied/test books. Приватные пути отправляются в API для регистрации метаданных, но не отображаются обратно в списке книг; счета, транзакции, memos, amounts, uploads и screenshots не собираются.',
+		'books.registerSubmit': 'Зарегистрировать метаданные',
 		'audit.title': 'Write-alpha audit evidence',
 		'audit.bannerTitle': 'Write-alpha audit evidence для disposable запусков',
 		'audit.bannerMessage':

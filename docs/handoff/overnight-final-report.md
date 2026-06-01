@@ -1,108 +1,97 @@
 # Overnight final report
 
-Date: 2026-06-01
+Start: 2026-06-01T13:55:41+10:00
+End: 2026-06-01T14:31:00+10:00
+Approximate duration: 35 minutes
 Repository: valentusys/gnucash-web-companion
 Branch: main
 
-## Cycles completed
+## Commits pushed
 
-- Cycle 0 baseline audit: completed.
-- Cycle 1 issue triage: completed #29 closure.
-- Cycle 2 documentation planning: completed #17 closure.
-- Cycle 3 markdown readability guidance: completed #28 update and kept it open.
+Pending at report-write time; final commit/push status is recorded in the chat summary after push.
 
-Stopped after three useful safe cycles because the remaining open issues require either more substantial product implementation (#13), compatibility environment/tooling work (#22), or controlled-write readiness work (#36). No safe copied-book mutation was needed for this run.
+## Issues changed
 
-## Handoff files
+Planned GitHub update:
+- #13 Book management UI: update with completed safe metadata-registration increment and verification evidence.
 
-- `docs/handoff/overnight-baseline.md`
-- `docs/handoff/overnight-cycle-1.md`
-- `docs/handoff/overnight-cycle-2.md`
-- `docs/handoff/overnight-cycle-3.md`
-- `docs/handoff/overnight-final-report.md`
+No issue was closed during this run at report-write time. #13 should remain open unless PM/Auditor later decide the core issue is fully satisfied.
 
-## Files changed
+## What changed
 
-- `docs/localization.md` — added future localization plan, candidate docs priority table, and UI string extraction checklist.
-- `docs/development/markdown-readability.md` — added source-readability guide for new/touched Markdown prose, code fences, safety wording, and checks.
-- Overnight handoff files under `docs/handoff/`.
+Product/API:
+- Added admin-only `POST /books` API endpoint for app metadata registration of an already-mounted local SQLite copied/test book.
+- Endpoint validates admin role, SQLite storage type, existing local file, non-URI target, and redacted error messages.
+- Endpoint creates only app DB metadata rows (`Book` + owner `UserBookAccess`); it does not open, copy, upload, or mutate GnuCash accounting data.
 
-## Issues closed/updated/created
+Web UI:
+- Added localized `/books` admin metadata registration form.
+- Form collects only display name, optional base currency, mounted local path, and optional default-fallback flag.
+- UI uses `mounted_path` as the form field name and does not render raw backend `uri_or_path` in page source.
+- No file upload widget and no accounting-data fields (`amount`, `account_name`, `memo`, `description`).
 
-Closed:
+Tests/guards:
+- Added API coverage for admin registration, non-admin denial, and missing-path redaction/no-row behavior.
+- Updated auth-route static checks to require the safe registration form and continue forbidding uploads/deletes/collaborative/family-wallet framing.
 
-- #29 — closed as completed; glossary already exists in `docs/localization.md` and matches issue scope.
-- #17 — closed after adding the future localization plan and string extraction checklist.
+Handoff docs:
+- Updated `docs/handoff/overnight-baseline.md`.
+- Added `docs/handoff/overnight-cycle-1.md`.
+- Added this final report.
 
-Updated:
+## Tests/checks run
 
-- #28 — commented with new `docs/development/markdown-readability.md` evidence and kept open for gradual cleanup when substantive docs are touched.
-
-Created:
-
-- None.
-
-Remaining open issues after the run:
-
-- #36 Track remaining controlled-write v0.2 readiness gates.
-- #28 Improve markdown source readability before wider announcement.
-- #22 Add compatibility fixtures from real GnuCash versions.
-- #13 Book management UI.
-
-## Tests/checks summary
-
-Baseline and final checks included:
-
-- `git status --short --branch`
-- `gh issue list --state open --limit 100`
-- `gh pr list --state open --limit 50`
-- `gh release list --limit 20`
-- `gh issue view 43 --json number,state,title,closedAt,labels,url`
-- `python3 scripts/check_public_status.py` — passed.
+Passed:
+- `pytest -q apps/api/tests/test_multi_book_access.py` — 39 passed.
+- `cd apps/web && npm run test:auth-routes` — passed.
+- `cd apps/web && npm run check` — 0 errors/warnings.
+- `cd apps/web && npm run build` — passed.
+- `cd apps/api && pytest -q` — 611 passed.
 - `JWT_SECRET=dummy-...cret APP_ADMIN_PASSWORD=*** docker compose config --quiet` — passed.
-- `python3 scripts/check_tracked_hygiene.py` — passed.
+- `python3 scripts/check_public_status.py` — passed.
 - `git diff --check` — passed.
+- Modified-file sensitive artifact scan — no forbidden private artifact paths in the diff.
+- Added-lines static security scan — no hardcoded secret assignment, shell injection, eval/exec, pickle, or SQL string-format findings.
+- Independent reviewer: passed; no security concerns or logic errors.
 
-Backend/frontend full test suites were not run because the committed changes are documentation-only and do not alter API/frontend behavior.
+Notes:
+- `npm install` was run in `apps/web` because dependencies were absent locally; it enabled `npm run check` and `npm run build`. No package-lock change was staged/reported by git status.
+- Existing warnings from piecash/SQLAlchemy and FastAPI deprecation warnings remain; they were not introduced as failures.
 
-## Releases
+## Release decision
 
-No release was published.
+NO_RELEASE.
 
-Release decision: NO_RELEASE for every cycle. The work was issue triage, localization planning docs, and internal Markdown guidance. It does not justify a public read-only patch pre-release or any writebeta/write-alpha publication.
+Reason: this is a useful #13 product increment, but the prompt said not to publish by default. No release was required for the scoped work, and release/no-release should remain conservative.
 
-Visible release status at final check:
+## CI result/link
 
-- Current public read-only beta remains `v0.5.0-public-readonly-beta`.
-- No `v0.5.1-public-readonly-beta` GitHub release is visible.
-- Current experimental write-alpha pre-release remains `v0.2.8-writealpha`.
+Pending until after push. Baseline latest main CI before this work was successful for commit 92ff3fc: https://github.com/valentusys/gnucash-web-companion/actions/runs/26733477779
 
-## Safety summary
+## GnuCash mutation summary
 
-- Public/default app posture remains read-only.
-- `GNUCASH_WRITES_ENABLED=false` remains default.
-- Enabled write-alpha/writebeta flows remain experimental and gated.
-- No copied-book mutation was performed.
-- No original/working/private/only-copy GnuCash book was accessed or mutated.
-- No private books, app DBs, backups, exports, screenshots, `.env`, secrets, private paths, account names, memos, descriptions, amounts, or raw private evidence were committed.
-- Tracked hygiene guard passed.
-- Public-status guard passed.
+CREATE: 0
+PATCH: 0
+DELETE: 0
 
-## Blockers
+Original/private/working/only-copy books touched: none.
 
-No safety blocker occurred.
+No GnuCash book, SQLite book, app DB, backup, export, screenshot, `.env`, token, key, certificate, private path, account name, memo, transaction description, amount, or raw private evidence was committed.
 
-The remaining work is intentionally not forced into this run:
+## Remaining open issues
 
-- #13 needs a deliberately narrow read-only UX implementation slice or a later admin-only management design decision.
-- #22 needs safe Desktop/version fixture workflow evidence without private artifacts.
-- #36 controlled-write readiness should remain conservative and should not run copied-book mutations unless a safe staged copy and PM-authorized exact counts are both present.
+Expected remaining open backlog after this run:
+- #13 Book management UI — update with this increment; close only if PM/Auditor accepts core completion.
+- #22 GnuCash compatibility fixtures/workflow.
+- #28 Markdown readability gradual cleanup.
+- #36 Controlled-write readiness gates.
 
-## Exact next recommended owner action
+## Recommended next task
 
-Review the remaining open issues and pick one ordinary next task, preferably:
+Next safe task: continue #13 if remaining book-management UI acceptance gaps are identified from the issue body/comments; otherwise move to #22 compatibility fixtures/workflow.
 
-1. #13: one narrow read-only book-management UX slice, no registration/deletion/default-change writes; or
-2. #22: safe compatibility report workflow improvement using synthetic/disposable fixtures only.
+Avoid #36 unless copied/restorable book prerequisites are staged outside git and PM authorizes exact copied-book-only operation counts.
 
-No new phase train is needed.
+## Another autonomous run?
+
+Useful: yes, after this commit lands and CI is green. Recommended focus: finish/triage remaining #13 scope or start #22 compatibility-report workflow.

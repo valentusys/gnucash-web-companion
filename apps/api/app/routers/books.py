@@ -6,9 +6,10 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.orm import Session
 
-from app.models import Book, User
+from app.models import Book, User, UserBookAccess
 from app.routers.auth import get_current_user, get_db
 from app.services.book_access import AccessDenied, BookAccessService
 from app.services.book_registry import BookRegistryService
@@ -69,6 +70,69 @@ ACCESS_ROLE_COPY = {
         "description": "Can open read-only views for this assigned independent book.",
     },
 }
+
+
+class BookRegistrationRequest(BaseModel):
+    """Admin-only app metadata registration request.
+
+    This registers an already-mounted local copied/test book in the app metadata
+    database. It never uploads, copies, opens, or mutates GnuCash accounting data.
+    """
+
+    name: str = Field(min_length=1, max_length=256)
+    storage_type: str = "sqlite"
+    uri_or_path: str = Field(min_length=1, max_length=1024)
+    base_currency: str | None = Field(default=None, max_length=16)
+    make_default: bool = False
+
+    @field_validator("name", "storage_type", "uri_or_path", mode="before")
+    @classmethod
+    def _strip_required_text(cls, value: str) -> str:
+        if isinstance(value, str):
+            return value.strip()
+        return value
+
+    @field_validator("base_currency", mode="before")
+    @classmethod
+    def _normalize_base_currency(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        stripped = value.strip().upper()
+        return stripped or None
+
+
+def require_admin_user(user: User) -> None:
+    if not user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin privileges are required for book registry management.",
+        )
+
+
+def validate_safe_registration_target(body: BookRegistrationRequest) -> None:
+    """Validate registration metadata without exposing private paths in errors."""
+    storage_type = body.storage_type.lower()
+    if storage_type != "sqlite":
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Only local sqlite book metadata registration is supported by this admin UI.",
+        )
+    if _is_uri(body.uri_or_path):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="URI data sources are not supported by this metadata registration form.",
+        )
+    path = Path(body.uri_or_path)
+    if not path.exists():
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Configured local SQLite book path does not exist from this runtime.",
+        )
+    if not path.is_file():
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Configured local SQLite book path is not a file.",
+        )
 
 
 def _is_uri(value: str) -> bool:
@@ -267,6 +331,35 @@ async def list_books(
     """List books visible to the current user."""
     books = BookRegistryService(session).list_books_for_user(user)
     return [serialize_book(book, user) for book in books]
+
+
+@router.post("", status_code=status.HTTP_201_CREATED)
+async def register_book(
+    body: BookRegistrationRequest,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+) -> dict[str, Any]:
+    """Register an already-mounted local SQLite book in app metadata only."""
+    require_admin_user(user)
+    validate_safe_registration_target(body)
+
+    if body.make_default:
+        session.query(Book).update({Book.is_default: False})
+
+    book = Book(
+        name=body.name,
+        storage_type=body.storage_type.lower(),
+        uri_or_path=body.uri_or_path,
+        base_currency=body.base_currency,
+        is_default=body.make_default,
+        is_archived=False,
+    )
+    session.add(book)
+    session.flush()
+    session.add(UserBookAccess(user_id=user.id, book_id=book.id, role="owner"))
+    session.commit()
+    session.refresh(book)
+    return serialize_book(book, user)
 
 
 @router.get("/{book_id}")

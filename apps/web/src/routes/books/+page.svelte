@@ -4,7 +4,7 @@
 	import LoadingState from '$lib/components/LoadingState.svelte';
 	import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 
-	let { data } = $props();
+	let { data, form } = $props();
 	let locale = $derived<Locale>(data.locale ?? DEFAULT_LOCALE);
 	let isRouteLoading = $derived(navigating.to?.url.pathname === '/books');
 
@@ -67,6 +67,46 @@
 			{/if}
 		</div>
 	</div>
+
+	<section class="mb-6 rounded-2xl border p-4 shadow-sm" style="border-color: var(--app-border); background-color: var(--app-card-bg);" aria-label={t(locale, 'books.registerTitle')}>
+		<div class="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+			<div>
+				<h2 class="text-lg font-semibold" style="color: var(--app-text);">{t(locale, 'books.registerTitle')}</h2>
+				<p class="mt-1 text-sm" style="color: var(--app-muted);">{t(locale, 'books.registerIntro')}</p>
+			</div>
+			<span class="inline-flex w-fit rounded-full border px-3 py-1 text-xs font-semibold" style="border-color: var(--app-border); color: var(--app-muted);">{t(locale, 'books.adminOnlyBadge')}</span>
+		</div>
+
+		{#if form?.registerSuccess}
+			<p class="mt-4 rounded-xl border p-3 text-sm" style="border-color: var(--app-accent); color: var(--app-text); background-color: var(--app-accent-soft);">{form.registerSuccess}</p>
+		{/if}
+		{#if form?.registerError}
+			<p class="mt-4 rounded-xl border p-3 text-sm" style="border-color: var(--app-danger); color: var(--app-text); background-color: var(--app-card-bg);">{form.registerError}</p>
+		{/if}
+
+		<form method="POST" action="?/registerBook" class="mt-4 grid gap-3 md:grid-cols-2">
+			<label class="text-sm font-medium" style="color: var(--app-text);">
+				{t(locale, 'books.registerName')}
+				<input name="name" required maxlength="256" value={form?.registerName ?? ''} class="mt-1 min-h-11 w-full rounded-lg border px-3 py-2" style="border-color: var(--app-border); background-color: var(--app-bg); color: var(--app-text);" />
+			</label>
+			<label class="text-sm font-medium" style="color: var(--app-text);">
+				{t(locale, 'books.registerCurrency')}
+				<input name="base_currency" maxlength="16" value={form?.registerBaseCurrency ?? ''} placeholder="USD" class="mt-1 min-h-11 w-full rounded-lg border px-3 py-2 uppercase" style="border-color: var(--app-border); background-color: var(--app-bg); color: var(--app-text);" />
+			</label>
+			<label class="text-sm font-medium md:col-span-2" style="color: var(--app-text);">
+				{t(locale, 'books.registerPath')}
+				<input name="mounted_path" required autocomplete="off" placeholder="/data/books/copied-test-book.gnucash.sqlite" class="mt-1 min-h-11 w-full rounded-lg border px-3 py-2 font-mono text-sm" style="border-color: var(--app-border); background-color: var(--app-bg); color: var(--app-text);" />
+			</label>
+			<label class="flex items-start gap-3 text-sm md:col-span-2" style="color: var(--app-muted);">
+				<input name="make_default" type="checkbox" class="mt-1" />
+				<span>{t(locale, 'books.registerMakeDefault')}</span>
+			</label>
+			<p class="text-xs md:col-span-2" style="color: var(--app-muted);">{t(locale, 'books.registerSafety')}</p>
+			<div class="md:col-span-2">
+				<button type="submit" class="min-h-11 rounded-xl px-4 py-2 text-sm font-semibold text-white" style="background-color: var(--app-accent);">{t(locale, 'books.registerSubmit')}</button>
+			</div>
+		</form>
+	</section>
 
 	<section class="rounded-2xl border p-4 shadow-sm" style="border-color: var(--app-border); background-color: var(--app-card-bg);">
 		<div class="mb-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">

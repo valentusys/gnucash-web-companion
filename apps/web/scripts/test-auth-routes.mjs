@@ -160,6 +160,12 @@ const localeRoute = read('src/routes/locale/+server.ts');
 assert.match(localeRoute, /LOCALE_COOKIE[\s\S]*httpOnly:\s*true[\s\S]*sameSite: 'lax'/, 'locale switch must use a sameSite cookie, not browser storage');
 assert.doesNotMatch(localeRoute, /access_token/, 'locale route must not touch auth tokens');
 
+const booksManagementServer = read('src/routes/books/+page.server.ts');
+const booksManagementPage = read('src/routes/books/+page.svelte');
+assert.match(booksManagementServer, /export const actions[\s\S]*registerBook[\s\S]*\/books[\s\S]*method: 'POST'/s, 'books page must expose an admin metadata-only registration action backed by POST /books');
+assert.match(booksManagementPage, /books\.registerTitle[\s\S]*name="mounted_path"[\s\S]*books\.registerSafety[\s\S]*books\.registerSubmit/s, 'books page must render a safe admin metadata registration form without upload widgets');
+assert.doesNotMatch(booksManagementPage, /type="file"|<input[^>]+name="(?:amount|account_name|memo|description)"/, 'books registration UI must not upload books or collect private accounting data');
+
 for (const phrase of [
 	"DEFAULT_LOCALE = 'en'",
 	"supportedLocales = ['en', 'ru']",
@@ -384,7 +390,7 @@ assert.match(booksPage, /book\.storage_diagnostics\.safe_summary[\s\S]*books\.pr
 assert.doesNotMatch(booksPage, /uri_or_path|book\.operator_guidance\.message/, '/books page must not render private book paths or raw backend guidance copy');
 assert.match(booksPage, /book\.is_default[\s\S]*t\(locale, 'books\.defaultBook'\)/s, '/books page must clearly mark the active/default book');
 assert.match(booksPage, /\/books\/\$\{book\.id\}\/select\?next=\/accounts[\s\S]*\/books\/\$\{book\.id\}\/select\?next=\/transactions[\s\S]*\/books\/\$\{book\.id\}\/select\?next=\/scheduled[\s\S]*\/books\/\$\{book\.id\}\/select\?next=\/dashboard/s, '/books page must expose safe book-context links to read-only views');
-assert.doesNotMatch(booksPage, /<form|<input|type="file"|method="POST"|Upload book|Delete book|collaborative|shared wallet|family wallet/i, '/books page must not offer upload/delete controls or collaborative/family-wallet framing');
+assert.doesNotMatch(booksPage, /type="file"|Upload book|Delete book|collaborative|shared wallet|family wallet/i, '/books page must not offer upload/delete controls or collaborative/family-wallet framing');
 assert.match(booksPage, /href="\/books\/write-alpha-audit"[\s\S]*books\.auditEvidence/s, '/books page must link operators to the localized safe write-alpha audit evidence view');
 
 const writeAlphaAuditServer = read('src/routes/books/write-alpha-audit/+page.server.ts');

@@ -1,52 +1,33 @@
 # Overnight baseline audit
 
-Date: 2026-06-01
+Started: 2026-06-01T13:55:41+10:00
 Repository: valentusys/gnucash-web-companion
-Branch: main
+Branch/HEAD: main @ 92ff3fc (`docs: record overnight autonomous issue loop`)
 
-## Checks run
+## Baseline checks
 
-- `git status --short --branch`
-- `gh issue list --state open --limit 100`
-- `gh pr list --state open --limit 50`
-- `gh release list --limit 20`
-- `gh issue view 43 --json number,state,title,closedAt,labels,url`
-- `python3 scripts/check_public_status.py`
-- `JWT_SECRET=dummy-validation-secret APP_ADMIN_PASSWORD=dummy docker compose config --quiet`
-- `python3 scripts/check_tracked_hygiene.py`
-- `git diff --check`
+- Git status: clean at audit start (`git status --short --branch` returned only branch tracking information).
+- Open PRs: none discovered (`gh pr list --state open`).
+- Open issues: #36, #28, #22, #13.
+- Latest public release visible: `v0.5.0-public-readonly-beta`.
+- No `v0.5.1-public-readonly-beta` release is visible in the release list.
+- Latest CI on `main`: success for 92ff3fc, run https://github.com/valentusys/gnucash-web-companion/actions/runs/26733477779.
+- Public status guard: passed (`python3 scripts/check_public_status.py`).
 
-## Baseline result
+## Sensitive/private artifact audit
 
-- Current branch: `main`, tracking `origin/main`.
-- Working tree before this handoff was clean: no tracked or untracked changes reported by `git status --short --branch`.
-- Open PRs: none.
-- Latest visible GitHub release: `v0.5.0-public-readonly-beta`.
-- No `v0.5.1-public-readonly-beta` release is visible in the latest release list.
-- Open issues matched expected baseline: #36, #29, #28, #22, #17, #13.
-- Issue #43 is closed: `https://github.com/valentusys/gnucash-web-companion/issues/43`, closed 2026-06-01T03:02:56Z.
-- README, PROJECT_STATUS, and CHANGELOG consistently state that `v0.5.0-public-readonly-beta` remains the current public read-only beta and do not claim a published `v0.5.1-public-readonly-beta`.
-- README/PROJECT_STATUS already note that #43 is accepted/closed after owner-writebeta copied-book evidence and PM `NO_RELEASE`.
+Tracked hygiene scan found only existing repository fixtures/images already present in git: synthetic test fixtures under `apps/api/tests/fixtures`, documentation images under `docs/images`, and `data/app/.gitkeep`.
 
-## Safety checks
+No staged/tracked private books, app DBs, `.env`, secrets, backups, exports, owner evidence, or raw private artifacts were present at baseline.
 
-- Public/default posture remains read-only.
-- `scripts/check_public_status.py`: passed.
-- Docker Compose rendered with dummy validation secrets: passed.
-- Tracked hygiene scan: passed, 1689 tracked paths inspected.
-- `git diff --check`: passed.
-- No private books, app DBs, backups, exports, screenshots, `.env`, secrets, or raw private evidence were found by the tracked hygiene guard.
-- No copied-book mutation was performed in Cycle 0.
+## Priority order confirmed
 
-## Stop-condition review
+1. #13 Book management UI.
+2. #22 GnuCash compatibility fixtures/workflow.
+3. #28 Markdown readability gradual cleanup.
+4. #36 Controlled-write readiness gates only if copied-book prerequisites are safe and PM-authorized.
 
-No stop condition triggered:
+## Notes
 
-- No unknown tracked changes at baseline.
-- No private tracked artifacts detected.
-- Release/status docs are materially consistent with visible GitHub releases.
-- Default write-disabled posture and public status guard are intact.
-
-## Decision
-
-Proceed to autonomous safe issue-based cycles. Prefer non-mutating/read-only tasks unless a copied/restorable staged book and exact PM counts are both available and useful.
+- GitHub CLI public read operations for issues, releases, and runs succeeded. Auth mutation/push capability will be verified before issue updates or push.
+- No implementation, release, or GnuCash mutation was performed during baseline audit.

@@ -183,6 +183,15 @@ def headers_b(token_b):
     return {"Authorization": f"Bearer {token_b}"}
 
 
+@pytest.fixture
+def admin_headers(client):
+    response = client.post(
+        "/auth/login",
+        json={"username": "admin", "password": "testpassword123"},
+    )
+    return {"Authorization": f"Bearer {response.json()['access_token']}"}
+
+
 BOOK_AWARE_READ_ONLY_ROUTES = [
     "/books/{book_id}/accounts",
     "/books/{book_id}/accounts/tree",
@@ -349,6 +358,84 @@ class TestMultiBookAccessFiltering:
         assert data["storage_diagnostics"]["configured"] is True
         assert data["storage_diagnostics"]["checked"] is False
         assert "uri_or_path" not in data
+
+    def test_admin_can_register_existing_local_sqlite_book_metadata_only(
+        self, client, session_factory, admin_headers, tmp_path
+    ):
+        book_path = tmp_path / "registered-copy.gnucash.sqlite"
+        book_path.write_text("synthetic metadata-only registration target")
+
+        response = client.post(
+            "/books",
+            headers=admin_headers,
+            json={
+                "name": "Registered Copy",
+                "storage_type": "sqlite",
+                "uri_or_path": str(book_path),
+                "base_currency": "USD",
+                "make_default": True,
+            },
+        )
+
+        assert response.status_code == 201
+        data = response.json()
+        assert data["name"] == "Registered Copy"
+        assert data["base_currency"] == "USD"
+        assert data["is_default"] is True
+        assert data["status"] == "available"
+        assert data["access_role"] == "owner"
+        assert data["management_actions"] == []
+        assert "uri_or_path" not in data
+
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == data["id"]).one()
+            assert book.uri_or_path == str(book_path)
+            assert book.is_default is True
+            access = (
+                session.query(UserBookAccess)
+                .filter(UserBookAccess.book_id == book.id, UserBookAccess.role == "owner")
+                .one()
+            )
+            admin = session.query(User).filter(User.username == "admin").one()
+            assert access.user_id == admin.id
+
+    def test_non_admin_cannot_register_book_metadata(self, client, headers_a, tmp_path):
+        book_path = tmp_path / "viewer-copy.gnucash.sqlite"
+        book_path.write_text("synthetic")
+
+        response = client.post(
+            "/books",
+            headers=headers_a,
+            json={
+                "name": "Viewer Attempt",
+                "storage_type": "sqlite",
+                "uri_or_path": str(book_path),
+            },
+        )
+
+        assert response.status_code == 403
+        assert response.json()["detail"] == "Admin privileges are required for book registry management."
+
+    def test_register_book_rejects_missing_local_sqlite_without_storing_private_path(
+        self, client, session_factory, admin_headers, tmp_path
+    ):
+        missing_path = tmp_path / "missing-private-copy.gnucash.sqlite"
+
+        response = client.post(
+            "/books",
+            headers=admin_headers,
+            json={
+                "name": "Missing Copy",
+                "storage_type": "sqlite",
+                "uri_or_path": str(missing_path),
+            },
+        )
+
+        assert response.status_code == 422
+        assert "does not exist" in response.json()["detail"]
+        assert str(missing_path) not in response.json()["detail"]
+        with session_factory() as session:
+            assert session.query(Book).filter(Book.name == "Missing Copy").first() is None
 
     def test_archived_book_detail_is_not_viewable_even_with_access(
         self, client, headers_a, archived_book
