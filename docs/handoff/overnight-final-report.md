@@ -8,14 +8,14 @@ Branch: main
 
 ## Commits pushed
 
-Pending at report-write time; final commit/push status is recorded in the chat summary after push.
+- `91a329f` — `feat: add safe book metadata registration`
+- Follow-up commit `docs: finalize overnight handoff` — records CI completion and issue-comment link.
 
 ## Issues changed
 
-Planned GitHub update:
-- #13 Book management UI: update with completed safe metadata-registration increment and verification evidence.
+- #13 Book management UI: updated with completed safe metadata-registration increment and verification evidence: https://github.com/valentusys/gnucash-web-companion/issues/13#issuecomment-4589558972
 
-No issue was closed during this run at report-write time. #13 should remain open unless PM/Auditor later decide the core issue is fully satisfied.
+No issue was closed during this run. #13 remains open unless PM/Auditor later decide the core issue is fully satisfied.
 
 ## What changed
 
@@ -66,7 +66,7 @@ Reason: this is a useful #13 product increment, but the prompt said not to publi
 
 ## CI result/link
 
-Pending until after push. Baseline latest main CI before this work was successful for commit 92ff3fc: https://github.com/valentusys/gnucash-web-companion/actions/runs/26733477779
+CI passed for commit `91a329f`: https://github.com/valentusys/gnucash-web-companion/actions/runs/26735130772
 
 ## GnuCash mutation summary
 
