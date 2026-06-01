@@ -258,9 +258,8 @@ class TestMultiBookAccessFiltering:
             "storage_type_label": "Read-only sqlite GnuCash book metadata",
             "unsupported_management_actions": [
                 "book_upload",
-                "book_delete",
-                "default_book_change",
-                "registry_edit",
+                "book_file_delete",
+                "book_file_edit",
             ],
             "message": (
                 "This MVP lists configured accessible book metadata only. "
@@ -384,7 +383,7 @@ class TestMultiBookAccessFiltering:
         assert data["is_default"] is True
         assert data["status"] == "available"
         assert data["access_role"] == "owner"
-        assert data["management_actions"] == []
+        assert data["management_actions"] == ["set_default", "remove_from_registry"]
         assert "uri_or_path" not in data
 
         with session_factory() as session:
@@ -436,6 +435,66 @@ class TestMultiBookAccessFiltering:
         assert str(missing_path) not in response.json()["detail"]
         with session_factory() as session:
             assert session.query(Book).filter(Book.name == "Missing Copy").first() is None
+
+    def test_admin_can_set_default_book_without_exposing_private_path(
+        self, client, session_factory, admin_headers, book_a, book_b
+    ):
+        response = client.post(f"/books/{book_b}/default", headers=admin_headers)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["id"] == book_b
+        assert data["is_default"] is True
+        assert "uri_or_path" not in data
+        with session_factory() as session:
+            assert session.query(Book).filter(Book.id == book_a).one().is_default is False
+            assert session.query(Book).filter(Book.id == book_b).one().is_default is True
+
+    def test_non_admin_cannot_set_default_book(self, client, headers_a, book_b):
+        response = client.post(f"/books/{book_b}/default", headers=headers_a)
+
+        assert response.status_code == 403
+        assert response.json()["detail"] == "Admin privileges are required for book registry management."
+
+    def test_admin_can_remove_book_from_registry_without_deleting_file(
+        self, client, session_factory, admin_headers, tmp_path
+    ):
+        book_path = tmp_path / "remove-me.gnucash.sqlite"
+        book_path.write_text("synthetic registry removal target")
+        with session_factory() as session:
+            admin = session.query(User).filter(User.username == "admin").one()
+            book = Book(
+                name="Remove Me",
+                storage_type="sqlite",
+                uri_or_path=str(book_path),
+                base_currency="USD",
+                is_default=False,
+            )
+            session.add(book)
+            session.flush()
+            session.add(UserBookAccess(user_id=admin.id, book_id=book.id, role="owner"))
+            session.commit()
+            book_id = book.id
+
+        response = client.delete(f"/books/{book_id}", headers=admin_headers)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data == {
+            "id": book_id,
+            "removed_from_registry": True,
+            "underlying_file_deleted": False,
+        }
+        assert book_path.exists()
+        with session_factory() as session:
+            archived = session.query(Book).filter(Book.id == book_id).one()
+            assert archived.is_archived is True
+
+    def test_non_admin_cannot_remove_book_from_registry(self, client, headers_a, book_b):
+        response = client.delete(f"/books/{book_b}", headers=headers_a)
+
+        assert response.status_code == 403
+        assert response.json()["detail"] == "Admin privileges are required for book registry management."
 
     def test_archived_book_detail_is_not_viewable_even_with_access(
         self, client, headers_a, archived_book

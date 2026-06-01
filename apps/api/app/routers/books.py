@@ -25,9 +25,13 @@ router = APIRouter(prefix="/books", tags=["books"])
 
 UNSUPPORTED_MVP_MANAGEMENT_ACTIONS = [
     "book_upload",
-    "book_delete",
-    "default_book_change",
-    "registry_edit",
+    "book_file_delete",
+    "book_file_edit",
+]
+
+ADMIN_SAFE_MANAGEMENT_ACTIONS = [
+    "set_default",
+    "remove_from_registry",
 ]
 
 SAFE_OPERATOR_NEXT_ACTIONS = {
@@ -220,7 +224,7 @@ def serialize_book(book: Book, user: User | None = None) -> dict[str, Any]:
         "access_status": "accessible",
         "can_open_read_only_views": status_value not in {"missing_file", "not_configured"},
         "storage_diagnostics": storage_diagnostics,
-        "management_actions": [],
+        "management_actions": ADMIN_SAFE_MANAGEMENT_ACTIONS if user and user.is_admin else [],
         "operator_guidance": {
             "metadata_source": "app_metadata_db",
             "data_access": "gnucash_not_opened_for_listing",
@@ -360,6 +364,54 @@ async def register_book(
     session.commit()
     session.refresh(book)
     return serialize_book(book, user)
+
+
+@router.post("/{book_id}/default")
+async def set_default_book(
+    book_id: int,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+) -> dict[str, Any]:
+    """Set an existing app metadata book as default without opening GnuCash data."""
+    require_admin_user(user)
+    book = BookRegistryService(session).get_book(book_id)
+    if book is None or book.is_archived:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Book not found",
+        )
+
+    session.query(Book).update({Book.is_default: False})
+    book.is_default = True
+    session.commit()
+    session.refresh(book)
+    return serialize_book(book, user)
+
+
+@router.delete("/{book_id}")
+async def remove_book_from_registry(
+    book_id: int,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+) -> dict[str, Any]:
+    """Archive a book metadata entry; never delete the underlying GnuCash file."""
+    require_admin_user(user)
+    book = BookRegistryService(session).get_book(book_id)
+    if book is None or book.is_archived:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Book not found",
+        )
+
+    book.is_archived = True
+    if book.is_default:
+        book.is_default = False
+    session.commit()
+    return {
+        "id": book_id,
+        "removed_from_registry": True,
+        "underlying_file_deleted": False,
+    }
 
 
 @router.get("/{book_id}")

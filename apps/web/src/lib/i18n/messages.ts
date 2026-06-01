@@ -165,6 +165,10 @@ export type MessageKey =
 	| 'books.viewScheduled'
 	| 'books.dashboardSummary'
 	| 'books.noManagementActions'
+	| 'books.registryManagement'
+	| 'books.registryManagementSafety'
+	| 'books.setDefaultAction'
+	| 'books.removeRegistryAction'
 	| 'books.operatorGuidanceTitle'
 	| 'books.metadataSource'
 	| 'books.dataAccess'
@@ -532,6 +536,11 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'books.viewScheduled': 'View scheduled metadata',
 		'books.dashboardSummary': 'Dashboard summary',
 		'books.noManagementActions': 'No registry management actions are available on this read-only page.',
+		'books.registryManagement': 'Registry management',
+		'books.registryManagementSafety':
+			'Admin-only metadata actions. They change the app registry/default only and never delete or edit the underlying GnuCash file.',
+		'books.setDefaultAction': 'Set as default',
+		'books.removeRegistryAction': 'Remove from registry',
 		'books.operatorGuidanceTitle': 'Self-hosting operator guidance',
 		'books.metadataSource': 'Metadata source',
 		'books.dataAccess': 'Listing data access',
@@ -929,6 +938,11 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'books.viewScheduled': 'Плановые метаданные',
 		'books.dashboardSummary': 'Обзор',
 		'books.noManagementActions': 'На этой read-only странице нет действий управления реестром книг.',
+		'books.registryManagement': 'Управление реестром',
+		'books.registryManagementSafety':
+			'Admin-only действия с метаданными. Они меняют только реестр/основную книгу приложения и никогда не удаляют и не редактируют файл GnuCash.',
+		'books.setDefaultAction': 'Сделать основной',
+		'books.removeRegistryAction': 'Убрать из реестра',
 		'books.operatorGuidanceTitle': 'Подсказки для self-hosting оператора',
 		'books.metadataSource': 'Источник метаданных',
 		'books.dataAccess': 'Доступ к данным при списке',

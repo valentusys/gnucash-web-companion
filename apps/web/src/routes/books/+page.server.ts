@@ -32,6 +32,39 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 	};
 };
 
+async function postBookManagementAction(
+	fetch: typeof globalThis.fetch,
+	token: string | null,
+	path: string,
+	method: 'POST' | 'DELETE'
+): Promise<{ ok: true; payload: unknown } | { ok: false; status: number; message: string }> {
+	const apiBase = process.env.API_INTERNAL_URL ?? 'http://localhost:8000';
+	try {
+		const response = await fetch(`${apiBase}${path}`, {
+			method,
+			headers: {
+				authorization: `Bearer ${token}`
+			}
+		});
+		if (!response.ok) {
+			let payload: unknown = null;
+			try {
+				payload = await response.json();
+			} catch {
+				payload = null;
+			}
+			return { ok: false, status: response.status, message: redactedApiError(payload) };
+		}
+		return { ok: true, payload: await response.json() };
+	} catch {
+		return {
+			ok: false,
+			status: 502,
+			message: 'API service is unavailable. No book registry metadata was changed.'
+		};
+	}
+}
+
 export const actions: Actions = {
 	registerBook: async ({ cookies, fetch, request }) => {
 		const token = getAuthToken(cookies);
@@ -91,6 +124,34 @@ export const actions: Actions = {
 		const registered = (await response.json()) as { name?: string };
 		return {
 			registerSuccess: `Registered ${registered.name ?? 'book'} in app metadata only. No GnuCash accounting data was changed.`
+		};
+	},
+	setDefaultBook: async ({ cookies, fetch, request }) => {
+		const token = getAuthToken(cookies);
+		const form = await request.formData();
+		const bookId = Number(form.get('book_id'));
+		if (!Number.isInteger(bookId) || bookId <= 0) {
+			return fail(400, { manageError: 'Book registry metadata update failed.' });
+		}
+		const result = await postBookManagementAction(fetch, token, `/books/${bookId}/default`, 'POST');
+		if (!result.ok) return fail(result.status, { manageError: result.message });
+		const book = result.payload as { name?: string };
+		return {
+			manageSuccess: `Set ${book.name ?? 'book'} as the default metadata entry. No GnuCash accounting data was changed.`
+		};
+	},
+	removeBook: async ({ cookies, fetch, request }) => {
+		const token = getAuthToken(cookies);
+		const form = await request.formData();
+		const bookId = Number(form.get('book_id'));
+		if (!Number.isInteger(bookId) || bookId <= 0) {
+			return fail(400, { manageError: 'Book registry metadata update failed.' });
+		}
+		const result = await postBookManagementAction(fetch, token, `/books/${bookId}`, 'DELETE');
+		if (!result.ok) return fail(result.status, { manageError: result.message });
+		cookies.delete('selected_book_id', { path: '/' });
+		return {
+			manageSuccess: 'Removed the book from the app registry only. The underlying GnuCash file was not deleted.'
 		};
 	}
 };

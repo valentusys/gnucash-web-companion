@@ -32,7 +32,7 @@ export type Book = {
 	access_status: string;
 	can_open_read_only_views: boolean;
 	storage_diagnostics: BookStorageDiagnostics;
-	management_actions: string[];
+	management_actions: Array<'set_default' | 'remove_from_registry' | string>;
 	operator_guidance: BookOperatorGuidance;
 };
 

@@ -4,7 +4,17 @@
 	import LoadingState from '$lib/components/LoadingState.svelte';
 	import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 
-	let { data, form } = $props();
+	let { data, form }: {
+		data: any;
+		form?: {
+			registerSuccess?: string;
+			registerError?: string;
+			registerName?: string;
+			registerBaseCurrency?: string;
+			manageSuccess?: string;
+			manageError?: string;
+		} | null;
+	} = $props();
 	let locale = $derived<Locale>(data.locale ?? DEFAULT_LOCALE);
 	let isRouteLoading = $derived(navigating.to?.url.pathname === '/books');
 
@@ -82,6 +92,12 @@
 		{/if}
 		{#if form?.registerError}
 			<p class="mt-4 rounded-xl border p-3 text-sm" style="border-color: var(--app-danger); color: var(--app-text); background-color: var(--app-card-bg);">{form.registerError}</p>
+		{/if}
+		{#if form?.manageSuccess}
+			<p class="mt-4 rounded-xl border p-3 text-sm" style="border-color: var(--app-accent); color: var(--app-text); background-color: var(--app-accent-soft);">{form.manageSuccess}</p>
+		{/if}
+		{#if form?.manageError}
+			<p class="mt-4 rounded-xl border p-3 text-sm" style="border-color: var(--app-danger); color: var(--app-text); background-color: var(--app-card-bg);">{form.manageError}</p>
 		{/if}
 
 		<form method="POST" action="?/registerBook" class="mt-4 grid gap-3 md:grid-cols-2">
@@ -226,7 +242,28 @@
 							{:else}
 								<p class="mt-3 text-sm" style="color: var(--app-muted);">{t(locale, 'books.unavailableViews')}</p>
 							{/if}
-							<p class="mt-3 text-xs" style="color: var(--app-muted);">{t(locale, 'books.noManagementActions')}</p>
+							{#if book.management_actions.includes('set_default') || book.management_actions.includes('remove_from_registry')}
+								<div class="mt-4 border-t pt-3" style="border-color: var(--app-border);">
+									<p class="text-sm font-semibold" style="color: var(--app-text);">{t(locale, 'books.registryManagement')}</p>
+									<p class="mt-1 text-xs" style="color: var(--app-muted);">{t(locale, 'books.registryManagementSafety')}</p>
+									<div class="mt-3 flex flex-wrap gap-2">
+										{#if book.management_actions.includes('set_default') && !book.is_default}
+											<form method="POST" action="?/setDefaultBook">
+												<input type="hidden" name="book_id" value={book.id} />
+												<button type="submit" class="inline-flex min-h-11 items-center rounded-lg border px-3 py-2 text-sm font-medium" style="border-color: var(--app-border); color: var(--app-text); background-color: var(--app-bg);">{t(locale, 'books.setDefaultAction')}</button>
+											</form>
+										{/if}
+										{#if book.management_actions.includes('remove_from_registry')}
+											<form method="POST" action="?/removeBook">
+												<input type="hidden" name="book_id" value={book.id} />
+												<button type="submit" class="inline-flex min-h-11 items-center rounded-lg border px-3 py-2 text-sm font-medium" style="border-color: var(--app-danger); color: var(--app-danger); background-color: var(--app-bg);">{t(locale, 'books.removeRegistryAction')}</button>
+											</form>
+										{/if}
+									</div>
+								</div>
+							{:else}
+								<p class="mt-3 text-xs" style="color: var(--app-muted);">{t(locale, 'books.noManagementActions')}</p>
+							{/if}
 						</div>
 					</article>
 				{/each}
