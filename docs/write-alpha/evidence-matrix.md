@@ -1,16 +1,14 @@
-# Write-alpha evidence matrix
+# Write evidence matrix
 
-Phase 480 summary:
-
-| Area | Evidence | Status |
+| Area | Current evidence | Status |
 |---|---|---|
-| Default read-only posture | `.env.example` and Docker Compose keep `GNUCASH_WRITES_ENABLED=false` | preserved |
-| Existing copied-book write-alpha evidence | Prior narrow copied/restorable evidence remains historical only | unchanged |
-| Owner write-session preflight | `scripts/owner_write_session_preflight.py` with redacted PASS/BLOCKED output | added |
-| Backup/restore manifest | redacted manifest fields and tests | added |
-| Owner warning UI | `WriteModeWarning.svelte` owner-writebeta gate prototype | added |
-| New copied-book session mutation | CREATE 0 / PATCH 0 / DELETE 0 | absent |
-| Real working-book mutation | CREATE 0 / PATCH 0 / DELETE 0 | blocked |
-| Public write beta | none | blocked |
-
-No production, security-audited, public-internet, broad compatibility, public write, real/private/only-copy safety claim.
+| Public read-only beta | v0.5.0 public read-only beta | Published |
+| Default write-disabled posture | `.env.example`, Compose render, disabled probes | Passed |
+| Owner-writebeta state-machine routes | preflight, preview, confirm, verify-reset, reset-disabled | Passed in tests and copied-book dogfood |
+| CREATE copied-book dogfood | 2 routed disposable creates | Passed |
+| PATCH copied-book dogfood | 1 routed metadata-only patch of owned disposable target | Passed |
+| DELETE copied-book dogfood | 1 routed delete of owned disposable target | Passed |
+| Final DELETE reset evidence | verify-reset `reset_required`, reset-disabled `disabled` | Passed |
+| Disabled route probes | CREATE/PATCH/DELETE -> 403 after reset | Passed |
+| Real working/private/original book | Out of scope | Blocked |
+| Public write beta | Out of scope | Blocked |

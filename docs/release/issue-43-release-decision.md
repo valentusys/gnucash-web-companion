@@ -1,24 +1,11 @@
 # Issue #43 release decision
 
-Goal: PM decides release/no-release after #43 evidence.
-
 Decision: NO_RELEASE.
 
-Why:
-- Routed owner-writebeta foundation landed and a fresh copied-book routed dogfood run executed the PM-locked mutation counts.
-- Post-run redacted evidence passed for read-back, route backups, audit rows, restore verification, compatibility read, and default-disabled probes.
-- The run still has an evidence gap: the final DELETE owner-writebeta reset transition was not captured because a local evidence helper aborted after the successful DELETE on an audit payload field-name bug.
-- Issue #43 remains open with exact blockers.
-- No public-readonly user-facing fix requires a v0.5.x patch.
-- Owner-writebeta is not ready for a prerelease because uninterrupted copied-book state-machine evidence is incomplete.
+Reason:
+- Issue #43 evidence is accepted for internal owner-only copied-book writebeta dogfood.
+- Public/default posture is still read-only.
+- Real working/private/original/only-copy book safety remains out of scope.
+- Public write beta remains out of scope.
 
-Safety checks:
-- No stable release.
-- No public write beta.
-- No production/security-audited/real-book-safety claim.
-- `GNUCASH_WRITES_ENABLED=false` remains default.
-- `APP_ENV=test` write gate remains.
-
-Verification: release list was queried; public read-only beta remains `v0.5.0-public-readonly-beta`; no `v0.5.1` claim was added.
-
-Final verdict: NO_RELEASE.
+No tag or GitHub release should be published for this run. Latest public release remains `v0.5.0-public-readonly-beta`.

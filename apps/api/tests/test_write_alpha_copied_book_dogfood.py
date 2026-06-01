@@ -3,6 +3,7 @@ import json
 import os
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -126,3 +127,40 @@ def test_dry_run_blocks_without_write_alpha_env(tmp_path, monkeypatch):
     )
 
     assert result == 2
+
+
+def test_audit_payload_helper_reads_payload_json_field():
+    log = SimpleNamespace(
+        payload_json=json.dumps(
+            {
+                "result": "success",
+                "transaction_id": "synthetic-guid-should-not-be-emitted",
+                "backup_path": "/private/backup/path/book.gnucash.sqlite",
+            }
+        )
+    )
+
+    payload = wrapper.audit_payload_from_log(log)
+    summary = wrapper.redacted_audit_payload_status(log)
+
+    assert payload["result"] == "success"
+    assert summary == {
+        "status": "collected",
+        "result": "success",
+        "backup_present": True,
+        "transaction_ref_present": True,
+    }
+    assert "synthetic-guid" not in json.dumps(summary)
+    assert "/private/backup/path" not in json.dumps(summary)
+
+
+def test_audit_payload_helper_falls_back_without_aborting_on_bad_diagnostic_payload():
+    log = SimpleNamespace(payload_json="not-json-after-successful-mutation")
+
+    assert wrapper.audit_payload_from_log(log) == {}
+    assert wrapper.redacted_audit_payload_status(log) == {
+        "status": "empty",
+        "result": "unknown",
+        "backup_present": False,
+        "transaction_ref_present": False,
+    }

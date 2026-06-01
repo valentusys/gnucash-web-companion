@@ -1,28 +1,24 @@
 # Issue #43 final owner verdict
 
-Last phase: Phase M.
+Verdict: ISSUE_43_EVIDENCE_ACCEPTED / CLOSE_ISSUE_43 / NO_RELEASE.
 
-Issue #43 status: kept open. Do not close until copied-book routed dogfood has uninterrupted end-to-end state-machine evidence.
+What passed:
+- Fixed the local evidence-helper audit payload bug: helper now reads `AuditLog.payload_json` and does not abort on malformed optional diagnostic payload parsing.
+- Regression tests cover the payload field and redacted summary behavior.
+- Fresh copied/restorable owner-book copy was staged by read-only copy from the authorized Windows source.
+- Routed owner-writebeta/write-alpha copied-book rerun completed uninterrupted locked counts: CREATE 2, metadata-only PATCH 1, DELETE 1.
+- Final DELETE owner-writebeta verify-reset/reset-disabled evidence was captured: `reset_required` -> `disabled`.
+- Read-back, audit refs, backup refs, restore/read proof, and disabled CREATE/PATCH/DELETE probes passed.
 
-Dogfood result: partial pass with an evidence gap. A fresh copied/restorable SQL book was staged outside git, preflight passed, and the PM-locked routed mutation counts executed. Post-run safety evidence passed for read-back, 4 route backups, 4 successful audit rows, restore verification, piecash compatibility read, and disabled CREATE/PATCH/DELETE probes. The final DELETE owner-writebeta verify/reset transition was not captured because the local evidence helper aborted after successful DELETE on an audit payload field-name bug.
+What did not happen:
+- No original/working/private/only-copy source book was mutated.
+- No private book/app DB/backups/raw evidence were committed.
+- No public write beta was launched.
+- No GitHub release was published.
 
-Release result: NO_RELEASE. No tag or GitHub release was published.
+Safe current posture:
+- Public/default app remains read-only.
+- Owner-writebeta copied-book evidence for issue #43 is accepted.
+- Real working/private/original/only-copy mutation remains blocked unless separately authorized.
 
-Mutation counts in this run:
-- CREATE: 2 succeeded
-- PATCH: 1 metadata/memo-only PATCH succeeded
-- DELETE: 1 succeeded
-
-What changed safely:
-- Routed owner-writebeta backend endpoints now expose redacted preflight/status, preview, confirmation, verification/reset, and disabled-reset state.
-- Existing write-alpha mutation routes now fail closed when an owner-writebeta session for that book is armed and the request does not supply the matching preview/token pair.
-- UI has a conservative owner-writebeta state-machine information page with owner-only/copied-book warnings.
-
-Checks:
-- Targeted API tests passed.
-- Existing write-alpha transaction route tests passed.
-- Public status guard passed.
-- Full final verification recorded in Phase M handoff.
-
-Owner action required to continue #43:
-After the evidence helper is fixed, provide a new fresh copied/restorable SQL book made after closing GnuCash on the source PC. Then rerun the same locked routed dogfood counts end-to-end and capture final DELETE verify/reset evidence. Do not reuse the already-mutated dogfood target for extra mutations; do not provide or use the original/working/private/only-copy book.
+Release decision: NO_RELEASE.

@@ -19,7 +19,7 @@ import sys
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Literal, Sequence
+from typing import Any, Literal, Sequence
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent
@@ -152,6 +152,43 @@ def _run_create_command(command: Sequence[str]) -> str:
     if result.returncode != 0:
         raise DogfoodWrapperFailure(f"create-one command failed with exit={result.returncode}; output=redacted")
     return "passed"
+
+
+def audit_payload_from_log(log: Any) -> dict[str, Any]:
+    """Return a parsed AuditLog payload without assuming the obsolete .payload field.
+
+    Current app metadata models store JSON in AuditLog.payload_json. Older local
+    helper snippets used .payload and could abort after a successful mutation
+    while collecting diagnostic evidence. This helper accepts either shape but
+    prefers payload_json, keeps parsing failures local to evidence collection,
+    and never returns raw non-dict values.
+    """
+    raw = getattr(log, "payload_json", None)
+    if raw is None:
+        raw = getattr(log, "payload", None)
+    if isinstance(raw, dict):
+        return raw
+    if raw in (None, ""):
+        return {}
+    try:
+        parsed = json.loads(str(raw))
+    except (TypeError, json.JSONDecodeError):
+        return {}
+    return parsed if isinstance(parsed, dict) else {}
+
+
+def redacted_audit_payload_status(log: Any) -> dict[str, Any]:
+    """Summarize audit payload collection without exposing raw private values."""
+    try:
+        payload = audit_payload_from_log(log)
+    except Exception:  # pragma: no cover - defensive boundary for diagnostics only
+        return {"status": "diagnostic-blocked", "result": "unknown", "backup_present": False}
+    return {
+        "status": "collected" if payload else "empty",
+        "result": str(payload.get("result") or "unknown"),
+        "backup_present": bool(payload.get("backup_path")),
+        "transaction_ref_present": bool(payload.get("transaction_id")),
+    }
 
 
 def _write_evidence(evidence: DogfoodEvidence, evidence_file: Path) -> None:
