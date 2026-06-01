@@ -41,6 +41,15 @@ class WriteAlphaReadiness:
     ready: bool
     checks: dict[str, ReadinessCheck]
     mutation_performed: bool = False
+    mutation_plan: dict[str, Any] = field(
+        default_factory=lambda: {
+            "authorized": False,
+            "create_count": 0,
+            "patch_count": 0,
+            "delete_count": 0,
+            "reason": "readiness inspection never authorizes mutations",
+        }
+    )
     limitations: tuple[str, ...] = (
         "Readiness is an operator preflight only; it does not make write-alpha safe for real/private or only-copy books.",
         "Output is redacted: raw configured paths, account names, memos, amounts, and request payloads are not exposed.",
@@ -51,6 +60,7 @@ class WriteAlphaReadiness:
             "status": self.status,
             "ready": self.ready,
             "mutation_performed": self.mutation_performed,
+            "mutation_plan": self.mutation_plan,
             "checks": {
                 name: {
                     "status": check.status,
@@ -68,6 +78,7 @@ class WriteAlphaReadiness:
             f"status={self.status}",
             f"ready={str(self.ready).lower()}",
             f"mutation_performed={str(self.mutation_performed).lower()}",
+            "authorized_mutations=create:0,patch:0,delete:0",
         ]
         for name, check in self.checks.items():
             parts.append(f"{name}={check.status}")

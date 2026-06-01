@@ -59,6 +59,10 @@ def test_readiness_ready_when_explicit_write_alpha_gates_and_book_are_ok(tmp_pat
     assert result.ready is True
     assert payload["status"] == "ready"
     assert payload["mutation_performed"] is False
+    assert payload["mutation_plan"]["authorized"] is False
+    assert payload["mutation_plan"]["create_count"] == 0
+    assert payload["mutation_plan"]["patch_count"] == 0
+    assert payload["mutation_plan"]["delete_count"] == 0
     assert payload["checks"]["writes_enabled_flag"]["status"] == "ok"
     assert payload["checks"]["app_env_test_gate"]["status"] == "ok"
     assert payload["checks"]["backup_dir_configured"]["status"] == "ok"
@@ -137,6 +141,13 @@ def test_cli_json_output_is_redacted_and_uses_nonzero_for_not_ready(tmp_path, mo
     payload = json.loads(result.stdout)
     assert payload["status"] == "blocked"
     assert payload["mutation_performed"] is False
+    assert payload["mutation_plan"] == {
+        "authorized": False,
+        "create_count": 0,
+        "patch_count": 0,
+        "delete_count": 0,
+        "reason": "readiness inspection never authorizes mutations",
+    }
     assert str(tmp_path) not in result.stdout
     assert "missing.gnucash.sqlite" not in result.stdout
     assert result.stderr == ""
