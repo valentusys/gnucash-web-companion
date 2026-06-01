@@ -49,18 +49,20 @@ Warnings were existing/dependency deprecation/SQLAlchemy warnings and did not fa
 
 ## GitHub issues
 
-- #13 (`Book management UI`) was the relevant issue for this cycle.
-- Local evidence indicates #13 closure criteria are satisfied for registration, registered list, set default, remove from registry, non-admin blocking, safe unavailable-path/schema errors, docs, and focused/full checks.
-- Final GitHub update/closure is expected after the commit/push step if `gh` remains authenticated.
+- #13 (`Book management UI`) was updated and closed with concise evidence after local checks and push.
 
 ## Commits / push / CI
 
-Local branch state at resume:
+Pushed to `origin/main`:
 
 - `b991a70 feat: add safe book registry management`
 - `f03c71b fix: validate mounted book registration targets`
+- `f54584c fix: add safe invalid book diagnostics`
 
-This resume prepares one additional coherent commit for #13 safe storage diagnostics and final docs. Push and CI status are recorded in the final agent response after the GitHub step.
+CI for `f54584cf98e877fac68d63f996997c45499d4a76` passed:
+
+- Run: https://github.com/valentusys/gnucash-web-companion/actions/runs/26742008787
+- Jobs: Docker Compose validation, Backend tests, Frontend checks, Foundation checks — all passed.
 
 ## Release decision
 
