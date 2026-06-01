@@ -6,6 +6,9 @@ and that the book-aware data routes enforce the same access control.
 
 from __future__ import annotations
 
+import sqlite3
+from pathlib import Path
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -192,6 +195,20 @@ def admin_headers(client):
     return {"Authorization": f"Bearer {response.json()['access_token']}"}
 
 
+
+def _create_minimal_gnucash_sqlite(path: Path) -> None:
+    with sqlite3.connect(path) as conn:
+        conn.execute("create table versions (table_name text primary key, table_version integer not null)")
+        conn.executemany(
+            "insert into versions (table_name, table_version) values (?, ?)",
+            [("Gnucash", 3_000_000), ("Gnucash-Resave", 19_920)],
+        )
+        conn.execute("create table accounts (guid text primary key, name text)")
+        conn.execute("create table transactions (guid text primary key, description text)")
+        conn.execute("create table splits (guid text primary key, memo text)")
+        conn.execute("create table commodities (guid text primary key, fullname text)")
+        conn.execute("create table books (guid text primary key, root_account_guid text)")
+
 BOOK_AWARE_READ_ONLY_ROUTES = [
     "/books/{book_id}/accounts",
     "/books/{book_id}/accounts/tree",
@@ -362,7 +379,7 @@ class TestMultiBookAccessFiltering:
         self, client, session_factory, admin_headers, tmp_path
     ):
         book_path = tmp_path / "registered-copy.gnucash.sqlite"
-        book_path.write_text("synthetic metadata-only registration target")
+        _create_minimal_gnucash_sqlite(book_path)
 
         response = client.post(
             "/books",
@@ -400,7 +417,7 @@ class TestMultiBookAccessFiltering:
 
     def test_non_admin_cannot_register_book_metadata(self, client, headers_a, tmp_path):
         book_path = tmp_path / "viewer-copy.gnucash.sqlite"
-        book_path.write_text("synthetic")
+        _create_minimal_gnucash_sqlite(book_path)
 
         response = client.post(
             "/books",
@@ -414,6 +431,51 @@ class TestMultiBookAccessFiltering:
 
         assert response.status_code == 403
         assert response.json()["detail"] == "Admin privileges are required for book registry management."
+
+    def test_register_book_rejects_non_sqlite_file_without_storing_private_path(
+        self, client, session_factory, admin_headers, tmp_path
+    ):
+        private_path = tmp_path / "not-sqlite-private-copy.gnucash.sqlite"
+        private_path.write_text("not sqlite")
+
+        response = client.post(
+            "/books",
+            headers=admin_headers,
+            json={
+                "name": "Not SQLite",
+                "storage_type": "sqlite",
+                "uri_or_path": str(private_path),
+            },
+        )
+
+        assert response.status_code == 422
+        assert response.json()["detail"] == "Configured local book path is not a readable SQLite GnuCash book."
+        assert str(private_path) not in response.json()["detail"]
+        with session_factory() as session:
+            assert session.query(Book).filter(Book.name == "Not SQLite").first() is None
+
+    def test_register_book_rejects_sqlite_without_gnucash_tables_without_private_path(
+        self, client, session_factory, admin_headers, tmp_path
+    ):
+        private_path = tmp_path / "plain-private-copy.gnucash.sqlite"
+        with sqlite3.connect(private_path) as conn:
+            conn.execute("create table unrelated (id integer primary key)")
+
+        response = client.post(
+            "/books",
+            headers=admin_headers,
+            json={
+                "name": "Plain SQLite",
+                "storage_type": "sqlite",
+                "uri_or_path": str(private_path),
+            },
+        )
+
+        assert response.status_code == 422
+        assert response.json()["detail"] == "Configured local SQLite file does not look like a GnuCash book."
+        assert str(private_path) not in response.json()["detail"]
+        with session_factory() as session:
+            assert session.query(Book).filter(Book.name == "Plain SQLite").first() is None
 
     def test_register_book_rejects_missing_local_sqlite_without_storing_private_path(
         self, client, session_factory, admin_headers, tmp_path
@@ -460,7 +522,7 @@ class TestMultiBookAccessFiltering:
         self, client, session_factory, admin_headers, tmp_path
     ):
         book_path = tmp_path / "remove-me.gnucash.sqlite"
-        book_path.write_text("synthetic registry removal target")
+        _create_minimal_gnucash_sqlite(book_path)
         with session_factory() as session:
             admin = session.query(User).filter(User.username == "admin").one()
             book = Book(

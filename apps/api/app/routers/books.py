@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sqlite3
 from pathlib import Path
 from typing import Any
 
@@ -136,6 +137,29 @@ def validate_safe_registration_target(body: BookRegistrationRequest) -> None:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Configured local SQLite book path is not a file.",
+        )
+    _validate_sqlite_gnucash_shape(path)
+
+
+def _validate_sqlite_gnucash_shape(path: Path) -> None:
+    """Confirm the target is a readable SQLite file with GnuCash schema markers."""
+    required_tables = {"versions", "books", "accounts", "transactions", "splits", "commodities"}
+    try:
+        with sqlite3.connect(f"file:{path}?mode=ro", uri=True) as conn:
+            rows = conn.execute(
+                "select name from sqlite_master where type = 'table'"
+            ).fetchall()
+    except sqlite3.DatabaseError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Configured local book path is not a readable SQLite GnuCash book.",
+        ) from exc
+
+    table_names = {str(row[0]) for row in rows}
+    if not required_tables.issubset(table_names):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Configured local SQLite file does not look like a GnuCash book.",
         )
 
 
