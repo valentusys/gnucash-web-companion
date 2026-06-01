@@ -10,10 +10,9 @@ Elapsed active implementation estimate: about 35-45 minutes in this execution wi
 - `595142e` — `docs: harden markdown readability guidance`
 - `bda09f5` — `docs: add autonomous run final report`
 - `c3ab201` — `docs: record issue update links`
+- Later docs-only final-report refresh commits may exist; use `git log --oneline -5` for the absolute latest HEAD.
 
-Latest pushed HEAD: `c3ab201`.
-
-CI: passed for `c3ab201` at https://github.com/valentusys/gnucash-web-companion/actions/runs/26753380662.
+Final implementation CI: passed for `c3ab201` at https://github.com/valentusys/gnucash-web-companion/actions/runs/26753380662.
 
 ## Baseline verified
 
