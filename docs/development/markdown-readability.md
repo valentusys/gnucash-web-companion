@@ -24,6 +24,23 @@ When a doc is already being edited for a substantive reason:
 4. Keep code fences and command blocks mechanically copyable.
 5. Prefer small, reviewable formatting patches over repository-wide churn.
 
+## Status/readability triage
+
+Long-lived status files are useful, but they are also easy to make unreadable. Split long
+status docs before rewriting them when a smaller index plus focused handoff/audit/release
+notes would be clearer. Rule of thumb: Split long status docs before rewriting them in place.
+Prefer links to detailed phase artifacts over repeating full blocks
+inside README, CHANGELOG, or PROJECT_STATUS.
+
+When cleaning release/status language:
+
+1. Do not hide release/no-release decisions, current tags, issue state, or safety blockers.
+2. Keep the newest public read-only beta and unpublished/missing-release facts explicit.
+3. Preserve mutation counts and whether copied-book evidence is synthetic, owner-copied, or absent.
+4. If a long paragraph mixes product status, release evidence, and write-safety posture, split it
+   into bullets rather than changing the meaning.
+5. Avoid whole-file reflow unless the task is explicitly a readability phase.
+
 ## Code fences
 
 Use language tags when the language is known:
