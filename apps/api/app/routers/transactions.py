@@ -830,9 +830,19 @@ async def get_write_alpha_audit_summary(
     """Return a redacted read-only summary of write-alpha audit rows from app metadata."""
     book = _resolve_viewable_book(book_id, user, session)
     _require_book_edit_access(book, user, session)
-    from app.routers.books import require_book_storage_available_for_readonly
+    from app.routers.books import _storage_diagnostics_for
 
-    require_book_storage_available_for_readonly(book)
+    storage_status = _storage_diagnostics_for(book)["status"]
+    if storage_status == "missing_file":
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Configured GnuCash book storage is unavailable from this runtime.",
+        )
+    if storage_status == "not_configured":
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="GnuCash book storage is not configured for this entry.",
+        )
     if action is not None and action not in WRITE_ALPHA_AUDIT_ACTIONS:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

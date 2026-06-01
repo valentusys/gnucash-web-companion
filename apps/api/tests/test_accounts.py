@@ -237,7 +237,7 @@ class TestListBooks:
         assert book["access_role"] == "owner"
         assert book["read_only"] is True
         assert book["status"] == "missing_file"
-        assert book["management_actions"] == []
+        assert book["management_actions"] == ["set_default", "remove_from_registry"]
 
     def test_excludes_books_without_access(
         self, client, auth_headers, second_book
@@ -281,7 +281,7 @@ class TestGetBook:
         assert data["status"] == "missing_file"
         assert data["access_status"] == "accessible"
         assert "uri_or_path" not in data
-        assert data["management_actions"] == []
+        assert data["management_actions"] == ["set_default", "remove_from_registry"]
 
     def test_not_found(self, client, auth_headers):
         response = client.get("/books/99999", headers=auth_headers)

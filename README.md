@@ -203,6 +203,9 @@ This project is not a fit if you need:
     Desktop/version/backend claims.
   - Phase 155 improved multi-book read-only operator diagnostics with safe storage/access metadata,
     private-path redaction, and no upload/delete/default-changing/registry-edit actions.
+  - Autonomous long run for #13 added admin-only metadata registration/registry management for
+    already-mounted local copied/test SQLite GnuCash books: list, set default, remove from registry
+    without deleting files, and path-safe schema validation. No upload or accounting writes were added.
   - Phase 156 added dashboard drilldown links to existing read-only transaction filters while
     preserving base-currency-only/no-conversion limitations.
   - Phase 157 improved scheduled/recurring transaction read-only clarity with URL-only filters,

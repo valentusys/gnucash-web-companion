@@ -280,7 +280,8 @@ class TestMultiBookAccessFiltering:
             ],
             "message": (
                 "This MVP lists configured accessible book metadata only. "
-                "Upload, delete, default-book changes, and registry editing are intentionally unavailable."
+                "Upload, file delete, accounting-data edits, and direct file browsing are intentionally unavailable. "
+                "Admin registry actions are metadata-only."
             ),
         }
         assert "uri_or_path" not in data
@@ -317,11 +318,11 @@ class TestMultiBookAccessFiltering:
         assert data["status"] == "missing_file"
         assert "uri_or_path" not in data
 
-    def test_existing_local_book_reports_available_without_opening_gnucash(
+    def test_existing_local_book_reports_available_without_opening_accounting_values(
         self, client, session_factory, headers_a, book_a, tmp_path
     ):
         book_path = tmp_path / "synthetic.gnucash.sqlite"
-        book_path.write_text("synthetic metadata probe only")
+        _create_minimal_gnucash_sqlite(book_path)
         with session_factory() as session:
             book = session.query(Book).filter(Book.id == book_a).one()
             book.uri_or_path = str(book_path)
@@ -333,7 +334,53 @@ class TestMultiBookAccessFiltering:
         assert data["status"] == "available"
         assert data["storage_diagnostics"]["checked"] is True
         assert data["storage_diagnostics"]["configured"] is True
+        assert data["can_open_read_only_views"] is True
         assert "uri_or_path" not in data
+
+    def test_existing_local_non_gnucash_sqlite_reports_safe_unavailable_diagnostic(
+        self, client, session_factory, headers_a, book_a, tmp_path
+    ):
+        private_path = tmp_path / "plain-private-copy.gnucash.sqlite"
+        with sqlite3.connect(private_path) as conn:
+            conn.execute("create table unrelated (id integer primary key)")
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == book_a).one()
+            book.uri_or_path = str(private_path)
+            session.commit()
+
+        response = client.get(f"/books/{book_a}", headers=headers_a)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "invalid_gnucash_schema"
+        assert data["status_severity"] == "action_required"
+        assert data["can_open_read_only_views"] is False
+        assert str(private_path) not in str(data)
+        assert data["storage_diagnostics"] == {
+            "status": "invalid_gnucash_schema",
+            "configured": True,
+            "checked": True,
+            "safe_summary": "A configured local SQLite book path is present, but it does not look like a readable GnuCash SQLite book.",
+            "safe_next_actions": [
+                "Verify the configured file is a copied/test GnuCash SQLite book mounted from the host.",
+                "Do not upload or browse private books from the web UI; fix the host-side metadata or mount.",
+            ],
+        }
+
+    def test_invalid_gnucash_schema_book_is_blocked_before_readonly_data_open(
+        self, client, session_factory, headers_a, book_a, tmp_path
+    ):
+        private_path = tmp_path / "plain-private-copy.gnucash.sqlite"
+        with sqlite3.connect(private_path) as conn:
+            conn.execute("create table unrelated (id integer primary key)")
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == book_a).one()
+            book.uri_or_path = str(private_path)
+            session.commit()
+
+        response = client.get(f"/books/{book_a}/accounts", headers=headers_a)
+        assert response.status_code == 503
+        assert response.json()["detail"] == "Configured GnuCash book storage is not a readable SQLite GnuCash book."
+        assert str(private_path) not in response.json()["detail"]
 
     def test_unconfigured_book_reports_not_configured_without_private_path(
         self, client, session_factory, headers_a, book_a

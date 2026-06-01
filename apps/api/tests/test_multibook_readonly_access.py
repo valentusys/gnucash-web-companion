@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import sqlite3
 
 import pytest
 from fastapi.testclient import TestClient
@@ -108,12 +109,19 @@ def viewer_headers(client):
     return {"Authorization": f"Bearer {response.json()['access_token']}"}
 
 
+def _create_minimal_gnucash_sqlite(path):
+    required_tables = ["versions", "books", "accounts", "transactions", "splits", "commodities"]
+    with sqlite3.connect(path) as conn:
+        for table in required_tables:
+            conn.execute(f"create table {table} (guid text)")
+
+
 @pytest.fixture
 def multibook_registry(session_factory, tmp_path):
     present_one = tmp_path / "book-one.gnucash.sqlite"
     present_two = tmp_path / "book-two.gnucash.sqlite"
-    present_one.write_text("synthetic book one")
-    present_two.write_text("synthetic book two")
+    _create_minimal_gnucash_sqlite(present_one)
+    _create_minimal_gnucash_sqlite(present_two)
 
     with session_factory() as session:
         admin = session.query(User).filter(User.username == "admin").one()
@@ -309,7 +317,7 @@ class TestMultiBookMetadataBoundaries:
             assert "independent book" in item["access_role_description"] or "write-alpha" in item["access_role_description"]
             assert item["storage_diagnostics"]["safe_summary"]
             assert item["operator_guidance"]["private_path_redacted"] is True
-            assert item["management_actions"] == []
+            assert item["management_actions"] == ["set_default", "remove_from_registry"]
             assert str(item["id"]) not in item["storage_diagnostics"]["safe_summary"]
         statuses = {item["id"]: item["status"] for item in data}
         openable = {item["id"]: item["can_open_read_only_views"] for item in data}

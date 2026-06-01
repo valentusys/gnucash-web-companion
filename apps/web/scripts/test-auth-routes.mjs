@@ -341,7 +341,9 @@ assert.ok(
 
 const booksPageServer = read('src/routes/books/+page.server.ts');
 assert.match(booksPageServer, /getActiveBookContext\(fetch, cookies, token\)/, '/books page must resolve accessible book metadata and the current/default book through the authenticated API context');
-assert.doesNotMatch(booksPageServer, /upload|delete|write|edit/i, '/books page server load must stay metadata/read-only only');
+assert.doesNotMatch(booksPageServer, /upload/i, '/books page server must not add GnuCash file upload handling');
+assert.doesNotMatch(booksPageServer, /transactions|accounts|splits|commodities/i, '/books page server actions must stay app-metadata-only and avoid accounting data routes');
+assert.match(booksPageServer, /removeBook[\s\S]*Removed the book from the app registry only[\s\S]*underlying GnuCash file was not deleted/s, '/books registry remove action must explicitly be registry-only and never file deletion');
 
 const booksSelectRoute = read('src/routes/books/[bookId]/select/+server.ts');
 assert.match(booksSelectRoute, /getActiveBookContext\(fetch, cookies, token\)/, 'book safe-link route must verify selected book against accessible API context before setting a cookie');

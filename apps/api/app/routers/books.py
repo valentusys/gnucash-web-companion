@@ -48,6 +48,10 @@ SAFE_OPERATOR_NEXT_ACTIONS = {
         "Verify the configured book is mounted on the host/container.",
         "Check the app metadata database and deployment volumes without uploading or browsing files from the web UI.",
     ],
+    "invalid_gnucash_schema": [
+        "Verify the configured file is a copied/test GnuCash SQLite book mounted from the host.",
+        "Do not upload or browse private books from the web UI; fix the host-side metadata or mount.",
+    ],
     "remote_or_unchecked": [
         "Validate the configured storage from the host before relying on this read-only view.",
         "Use GnuCash Desktop as the authoritative editor.",
@@ -59,6 +63,7 @@ STATUS_SEVERITY = {
     "remote_or_unchecked": "warning",
     "missing_file": "action_required",
     "not_configured": "action_required",
+    "invalid_gnucash_schema": "action_required",
 }
 
 ACCESS_ROLE_COPY = {
@@ -138,29 +143,34 @@ def validate_safe_registration_target(body: BookRegistrationRequest) -> None:
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Configured local SQLite book path is not a file.",
         )
-    _validate_sqlite_gnucash_shape(path)
+    shape_error = _sqlite_gnucash_shape_error(path)
+    if shape_error is not None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=shape_error,
+        )
 
 
-def _validate_sqlite_gnucash_shape(path: Path) -> None:
-    """Confirm the target is a readable SQLite file with GnuCash schema markers."""
+def _sqlite_gnucash_shape_error(path: Path) -> str | None:
+    """Return a path-redacted schema problem, or None when the target looks usable."""
     required_tables = {"versions", "books", "accounts", "transactions", "splits", "commodities"}
     try:
         with sqlite3.connect(f"file:{path}?mode=ro", uri=True) as conn:
             rows = conn.execute(
                 "select name from sqlite_master where type = 'table'"
             ).fetchall()
-    except sqlite3.DatabaseError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Configured local book path is not a readable SQLite GnuCash book.",
-        ) from exc
+    except sqlite3.DatabaseError:
+        return "Configured local book path is not a readable SQLite GnuCash book."
 
     table_names = {str(row[0]) for row in rows}
     if not required_tables.issubset(table_names):
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Configured local SQLite file does not look like a GnuCash book.",
-        )
+        return "Configured local SQLite file does not look like a GnuCash book."
+    return None
+
+
+def _local_sqlite_gnucash_shape_is_valid(path: Path) -> bool:
+    """Check read-only schema markers for diagnostics without exposing path details."""
+    return _sqlite_gnucash_shape_error(path) is None
 
 
 def _is_uri(value: str) -> bool:
@@ -182,14 +192,24 @@ def _storage_diagnostics_for(book: Book) -> dict[str, Any]:
         }
 
     if storage_type == "sqlite" and not _is_uri(book.uri_or_path):
-        exists = Path(book.uri_or_path).exists()
-        if exists:
+        path = Path(book.uri_or_path)
+        exists = path.exists()
+        should_validate_shape = path.name.endswith((".sqlite", ".sqlite3", ".gnucash.sqlite"))
+        if exists and (not should_validate_shape or _local_sqlite_gnucash_shape_is_valid(path)):
             return {
                 "status": "available",
                 "configured": True,
                 "checked": True,
                 "safe_summary": "A configured local SQLite book path is present and exists; the file is not opened by the metadata listing.",
                 "safe_next_actions": SAFE_OPERATOR_NEXT_ACTIONS["available"],
+            }
+        if exists:
+            return {
+                "status": "invalid_gnucash_schema",
+                "configured": True,
+                "checked": True,
+                "safe_summary": "A configured local SQLite book path is present, but it does not look like a readable GnuCash SQLite book.",
+                "safe_next_actions": SAFE_OPERATOR_NEXT_ACTIONS["invalid_gnucash_schema"],
             }
         return {
             "status": "missing_file",
@@ -246,7 +266,11 @@ def serialize_book(book: Book, user: User | None = None) -> dict[str, Any]:
         "status": status_value,
         "status_severity": STATUS_SEVERITY.get(status_value, "warning"),
         "access_status": "accessible",
-        "can_open_read_only_views": status_value not in {"missing_file", "not_configured"},
+        "can_open_read_only_views": status_value not in {
+            "missing_file",
+            "not_configured",
+            "invalid_gnucash_schema",
+        },
         "storage_diagnostics": storage_diagnostics,
         "management_actions": ADMIN_SAFE_MANAGEMENT_ACTIONS if user and user.is_admin else [],
         "operator_guidance": {
@@ -258,7 +282,8 @@ def serialize_book(book: Book, user: User | None = None) -> dict[str, Any]:
             "unsupported_management_actions": UNSUPPORTED_MVP_MANAGEMENT_ACTIONS,
             "message": (
                 "This MVP lists configured accessible book metadata only. "
-                "Upload, delete, default-book changes, and registry editing are intentionally unavailable."
+                "Upload, file delete, accounting-data edits, and direct file browsing are intentionally unavailable. "
+                "Admin registry actions are metadata-only."
             ),
         },
     }
@@ -288,6 +313,11 @@ def require_book_storage_available_for_readonly(book: Book) -> None:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="GnuCash book storage is not configured for this entry.",
+        )
+    if status_value == "invalid_gnucash_schema":
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Configured GnuCash book storage is not a readable SQLite GnuCash book.",
         )
 
 
