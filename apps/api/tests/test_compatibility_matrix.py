@@ -87,6 +87,9 @@ def test_compatibility_docs_describe_safe_public_report_evidence_classes() -> No
     doc = COMPATIBILITY_DOC.read_text(encoding="utf-8")
 
     assert "Safe public compatibility feedback workflow" in doc
+    assert "scripts/safe_compatibility_report.py" in doc
+    assert "scripts/validate_compatibility_report.py" in doc
+    assert "scripts/build_compatibility_matrix_row.py" in doc
     assert "tested-synthetic-fixture" in doc
     assert "tested-disposable-report" in doc
     assert "copied-restorable-report" in doc

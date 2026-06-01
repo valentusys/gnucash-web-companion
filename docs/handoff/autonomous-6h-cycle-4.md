@@ -1,37 +1,32 @@
 # Autonomous 6h cycle 4
 
-Selected issue/task: #28 markdown readability cleanup after #22/#36 progress.
+Selected issue/task: #36 controlled-write readiness, non-mutating safety hardening.
 
 PM scope:
-- Improve `docs/development/markdown-readability.md` with concrete status/readability triage guidance.
-- Add a small regression test so future docs cleanup preserves safety and release/no-release visibility.
-
-Non-goals:
-- No broad README/PROJECT_STATUS rewrite.
-- No historical claim changes.
-- No safety-warning removal.
-- No release/tag.
+- Add a tracked guard for committed write-safety defaults.
+- Guard only committed config/docs; do not inspect runtime `.env`, app DBs, books, backups, or private paths.
+- Non-goals: no copied-book dogfood, no write-enabled runtime, no CREATE/PATCH/DELETE, no release.
 
 Acceptance criteria:
-- Guidance tells maintainers to split long status docs instead of rewriting/hiding state.
-- Guidance explicitly protects release/no-release decisions, current tags, issue state, safety blockers, mutation counts, and evidence classes.
-- Test verifies the guide preserves key safety wording and triage workflow.
+- Guard passes when `.env.example` keeps `GNUCASH_WRITES_ENABLED=false`, Docker Compose defaults writes false, and write-readiness docs preserve `APP_ENV=test` gate wording.
+- Guard fails on unsafe true defaults without echoing fixture/private paths.
+- Existing write-alpha readiness tests remain green.
 
 Files changed:
-- `docs/development/markdown-readability.md`
-- `apps/api/tests/test_markdown_readability_docs.py`
-- `docs/handoff/autonomous-6h-cycle-4.md`
+- `scripts/check_write_safety_defaults.py`
+- `apps/api/tests/test_write_safety_defaults_guard.py`
 
 Tests run:
-- `cd apps/api && pytest tests/test_markdown_readability_docs.py -q` — passed, 1 test.
+- `cd apps/api && pytest -q tests/test_write_safety_defaults_guard.py tests/test_write_alpha_readiness.py` — passed, 7 tests.
 
 Safety notes:
-- Docs/test only; no GnuCash books, app DBs, backups, exports, screenshots, `.env`, secrets, tokens, private paths/account names/memos/descriptions/amounts, or raw evidence committed.
-- `GNUCASH_WRITES_ENABLED=false` default unchanged.
+- Non-mutating file-content guard only.
+- No GnuCash book/app DB/backup/export/screenshot/private artifact was opened or changed.
+- `GNUCASH_WRITES_ENABLED=false` default and `APP_ENV=test` gate remain unchanged.
+- Mutation counts: CREATE 0 / PATCH 0 / DELETE 0.
 
 Issue update/closure decision:
-- Update #28 after commit/push.
-- #28 remains open because broader README/PROJECT_STATUS/CHANGELOG readability cleanup is still possible.
+- #36 remains open; this adds a useful readiness guard but does not complete copied-book write readiness, release gates, or owner-writebeta evidence closure.
 
 Next candidate task:
-- Final verification and handoff, plus issue comments. If safe time remained, next slice would be more #36 docs for remaining gates.
+- Continue #36 by wiring the guard into public-status/safety checks or documenting it in the readiness guide.

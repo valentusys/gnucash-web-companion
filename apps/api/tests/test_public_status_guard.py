@@ -5,6 +5,17 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(REPO_ROOT))
 
 import scripts.check_public_status as guard
+import scripts.check_write_safety_defaults as write_defaults_guard
+
+
+def test_public_status_guard_reuses_write_safety_defaults_guard() -> None:
+    assert guard.DEFAULT_WRITE_SAFETY_GUARD_FILES == (
+        Path(".env.example"),
+        Path("docker-compose.yml"),
+        Path("docs/write-alpha/owner-writebeta-operating-guide.md"),
+    )
+    assert guard.check_default_write_safety() == []
+    assert write_defaults_guard.WRITE_DEFAULT_TEXT == "GNUCASH_WRITES_ENABLED=false"
 
 
 def test_public_status_guard_reads_only_declared_public_files():

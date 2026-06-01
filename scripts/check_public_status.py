@@ -12,6 +12,10 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from scripts.check_write_safety_defaults import _check as check_write_safety_files
 
 CURRENT_COMPLETED_PHASE = "Phase 830"
 CURRENT_RELEASE_BASELINE_PHASE = "Phase 261"
@@ -56,6 +60,11 @@ CONFIG_FILES = [
     Path(".env.example"),
     Path("docker-compose.yml"),
 ]
+DEFAULT_WRITE_SAFETY_GUARD_FILES = (
+    Path(".env.example"),
+    Path("docker-compose.yml"),
+    Path("docs/write-alpha/owner-writebeta-operating-guide.md"),
+)
 
 # Historical mentions are allowed in changelog/history, but not as current posture.
 STALE_CURRENT_PATTERNS = [
@@ -393,6 +402,13 @@ def assert_unreleased_section_is_honest(changelog: str) -> None:
         raise AssertionError("CHANGELOG.md: v0.2.5 references in Unreleased must be tied to the Phase 231 publication")
 
 
+def check_default_write_safety() -> list[str]:
+    """Run the dedicated committed-default write-safety guard for public status."""
+
+    env_example, compose, gate_doc = (REPO_ROOT / path for path in DEFAULT_WRITE_SAFETY_GUARD_FILES)
+    return check_write_safety_files(env_example, compose, gate_doc)
+
+
 def main() -> int:
     errors: list[str] = []
     texts: dict[Path, str] = {}
@@ -602,6 +618,11 @@ def main() -> int:
             assert_unreleased_section_is_honest(texts[Path("CHANGELOG.md")])
         except AssertionError as exc:
             errors.append(str(exc))
+
+    try:
+        errors.extend(check_default_write_safety())
+    except Exception as exc:  # noqa: BLE001 - status guard reports path-redacted safety helper failures
+        errors.append(str(exc))
 
     if errors:
         for error in errors:

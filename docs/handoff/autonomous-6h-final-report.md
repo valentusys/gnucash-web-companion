@@ -1,113 +1,60 @@
 # Autonomous 6h final report
 
-Elapsed active implementation estimate: about 35-45 minutes in this execution window, with four substantial safe cycles completed before final verification.
+Elapsed estimate: bounded interactive autonomous run; completed 5 substantial safe cycles plus full local verification.
 
-## Commits pushed
+Baseline verified:
+- Read and followed `AGENTS.md`: one sequential agent, no `delegate_task`/parallel subagents.
+- Local branch was `main...origin/main` and initially clean.
+- Open issues observed: #22, #28, #36.
+- #13 was confirmed closed; #41/#42/#43 confirmation was attempted but GitHub GraphQL/network intermittently timed out after #13. Existing project status and open issue list remain consistent with the requested baseline.
+- Release list confirmed `v0.5.0-public-readonly-beta` exists and no `v0.5.1-public-readonly-beta` is published.
+- `GNUCASH_WRITES_ENABLED=false` remains default in `.env.example` and Docker Compose.
 
-- `72d3ad9` — `feat: classify safe compatibility reports`
-- `549721b` — `docs: describe compatibility report evidence classes`
-- `c4cf984` — `feat: pin zero-mutation readiness plans`
-- `595142e` — `docs: harden markdown readability guidance`
-- `bda09f5` — `docs: add autonomous run final report`
-- `c3ab201` — `docs: record issue update links`
-- Later docs-only final-report refresh commits may exist; use `git log --oneline -5` for the absolute latest HEAD.
+Commits pushed:
+- Pending at report write time; final commit/push occurs after this report is created.
 
-Final implementation CI: passed for `c3ab201` at https://github.com/valentusys/gnucash-web-companion/actions/runs/26753380662.
+Cycles completed:
+1. #22 — added `scripts/build_compatibility_matrix_row.py` and tests for metadata-only conservative compatibility matrix rows.
+2. #22 — added `scripts/validate_compatibility_report.py` and tests for safe redacted public compatibility reports.
+3. #22 — documented safe report generation, validation, and matrix-row candidate commands in `docs/gnucash-compatibility.md` with regression coverage.
+4. #36 — added `scripts/check_write_safety_defaults.py` and tests for committed/default write-safety posture.
+5. #36 — wired the write-safety default guard into `scripts/check_public_status.py` with regression coverage.
 
-## Baseline verified
+Issues changed:
+- #22: should be updated, left open. Progress: safer compatibility evidence tooling/workflow. Remaining: actual isolated Desktop-generated synthetic fixture plus default-read-only validation.
+- #36: should be updated, left open. Progress: stronger non-mutating write-safety default guard and integration into public-status checks. Remaining: broader controlled-write readiness gates/copy-book evidence/release gate work.
+- #28: unchanged; not selected because #22/#36 had safe implementation work.
+- No issue should be closed by this run.
 
-- Public read-only beta remains `v0.5.0-public-readonly-beta`.
-- No `v0.5.1-public-readonly-beta` release appears in the latest release list.
-- Open issues after the run: #36, #28, #22.
-- #13, #41, #42, and #43 were verified closed where GitHub API calls succeeded.
-- REST open-PR check returned `0`; GraphQL `gh pr list` intermittently timed out/reset.
-- `GNUCASH_WRITES_ENABLED=false` default was not changed.
-
-## Cycle outcomes
-
-### Cycle 1 — #22 safe compatibility report classes
-
-Added test-backed conservative `evidence_class` output to `scripts/safe_compatibility_report.py`:
-
-- `tested-synthetic-fixture`
-- `tested-disposable-report`
-- `copied-restorable-report`
-- `unverified`
-
-The helper also emits `support_claim: redacted report only; not a compatibility guarantee`.
-
-Handoff: `docs/handoff/autonomous-6h-cycle-1.md`.
-
-### Cycle 2 — #22 compatibility documentation
-
-Documented those evidence classes in `docs/gnucash-compatibility.md` and added a docs regression test ensuring the no-guarantee boundary remains visible.
-
-Handoff: `docs/handoff/autonomous-6h-cycle-2.md`.
-
-### Cycle 3 — #36 zero-mutation readiness plan
-
-Strengthened `inspect_write_alpha_readiness()` output with an explicit non-authorizing mutation plan:
-
-```json
-{
-  "authorized": false,
-  "create_count": 0,
-  "patch_count": 0,
-  "delete_count": 0,
-  "reason": "readiness inspection never authorizes mutations"
-}
-```
-
-This is non-mutating readiness evidence only.
-
-Handoff: `docs/handoff/autonomous-6h-cycle-3.md`.
-
-### Cycle 4 — #28 markdown readability guidance
-
-Improved `docs/development/markdown-readability.md` with status/readability triage rules and a regression test preserving safety/release wording boundaries.
-
-Handoff: `docs/handoff/autonomous-6h-cycle-4.md`.
-
-## Tests and verification
-
-Final local verification:
-
-- `cd apps/api && pytest -q` — passed, 621 tests.
-- `cd apps/web && npm run check` — passed.
+Tests and checks passed:
+- `cd apps/api && pytest -q` — 631 passed, 38 warnings.
+- `cd apps/web && npm run check` — passed, 0 errors/warnings.
 - `cd apps/web && npm run test:auth-routes` — passed.
 - `cd apps/web && npm run build` — passed.
-- `JWT_SECRET=<dummy> APP_ADMIN_PASSWORD=<dummy> docker compose config --quiet` — passed.
+- `JWT_SECRET=dummy-validation-secret APP_ADMIN_PASSWORD=dummy docker compose config --quiet` — passed.
 - `python3 scripts/check_public_status.py` — passed.
+- `python3 scripts/check_write_safety_defaults.py` — passed.
+- `python3 scripts/check_tracked_hygiene.py` — passed, 1704 tracked paths inspected.
 - `git diff --check` — passed.
-- `python3 scripts/check_tracked_hygiene.py` — passed.
-- `gh api repos/valentusys/gnucash-web-companion/pulls?state=open --jq length` — `0`.
-- `gh release list --limit 20` — latest release remains `v0.5.0-public-readonly-beta`; no `v0.5.1-public-readonly-beta` listed.
+- `gh issue list --state open --limit 20` — returned #36/#28/#22 as open.
+- `gh release list --limit 20` — confirmed `v0.5.0-public-readonly-beta` current public read-only beta and no `v0.5.1-public-readonly-beta` in the list.
+- `gh pr list --state open` — attempted twice; GitHub GraphQL timed out/EOF, so no verified PR-list result.
 
-## Issues changed
+Release decision: NO_RELEASE.
+- No tag, GitHub release, package, image, or release notes were published.
+- Work is safe internal tooling/guard progress, not a user-facing release-worthy change.
 
-- #22 updated by commits with compatibility report class implementation/docs and issue comment https://github.com/valentusys/gnucash-web-companion/issues/22#issuecomment-4592335399. It remains open because Desktop-generated synthetic fixture evidence still requires isolated GUI/manual-safe fixture creation plus read-only validation.
-- #36 updated by commits with explicit zero-mutation readiness plan output and issue comment https://github.com/valentusys/gnucash-web-companion/issues/36#issuecomment-4592335870. It remains open because broader controlled-write readiness gates remain.
-- #28 updated by commits with markdown readability guidance and issue comment https://github.com/valentusys/gnucash-web-companion/issues/28#issuecomment-4592338198. It remains open because broader README/PROJECT_STATUS/CHANGELOG cleanup remains possible.
+Safety summary:
+- No original/private/working/only-copy GnuCash books touched.
+- No runtime `.env`, app DB, GnuCash book, backup, CSV export, screenshot, token, key, certificate, private path/account/memo/description/amount, or raw private evidence committed.
+- No GnuCash mutation ran. Mutation counts: CREATE 0 / PATCH 0 / DELETE 0.
+- No write-enabled runtime was started. No copied-book dogfood was run.
+- `GNUCASH_WRITES_ENABLED=false` remains the default; `APP_ENV=test` write gate was not weakened.
+- Public read-only beta remains `v0.5.0-public-readonly-beta`; `v0.5.1-public-readonly-beta` was not published or claimed.
 
-## Release decision
+Remaining open issues and next actions:
+- #22 open: run/provide an isolated Desktop-generated synthetic SQLite fixture, collect redacted metadata, validate with default read-only API flow, and only then consider a tested Desktop-version row.
+- #36 open: continue non-mutating readiness hardening, copied/restorable-book evidence only if already staged and exact PM operation counts are authorized, and keep release default NO_RELEASE.
+- #28 open: use as next safe filler only after #22/#36 safe implementation queues are blocked/exhausted.
 
-NO_RELEASE.
-
-Reason: changes are useful safety/tooling/docs improvements, but not a public-readonly user-facing patch that warrants a new public beta, and no owner-writebeta copied-book mutation evidence/release gate was run. No tag or GitHub release was published.
-
-## Remaining next actions
-
-- #22: satisfy the known Desktop-generated synthetic fixture prerequisite in an isolated disposable GUI/manual-safe environment, then run redacted metadata collection and default-read-only validation.
-- #36: continue safe readiness hardening and gate documentation; do copied-book mutations only with exact PM-authorized operation counts and outside-git copied/restorable staging.
-- #28: continue splitting/shortening status docs and improving README/PROJECT_STATUS/CHANGELOG navigation while preserving safety warnings.
-
-## Safety summary
-
-- GnuCash mutations performed: CREATE 0 / PATCH 0 / DELETE 0.
-- No original/private/working/only-copy GnuCash book was touched.
-- No GnuCash book, SQLite book, app DB, backup, CSV export, screenshot, `.env`, token, key, certificate, private path, account name, transaction description, memo, amount, or raw private evidence was committed.
-- `GNUCASH_WRITES_ENABLED=false` remains default.
-- `APP_ENV=test` write gate was not weakened.
-- No public write beta, production/stable/security-audited claim, or broad compatibility claim was added.
-
-Stop reason: required final handoff completed after four safe cycles and full verification; no release authorized.
+Stop reason: completed the owner-requested target of at least 5 substantial safe cycles and full local verification; no release authorized; PR list verification remained blocked by GitHub GraphQL network timeouts.

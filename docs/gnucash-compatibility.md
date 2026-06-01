@@ -146,7 +146,32 @@ The probe checks `gnucash` and `gnucash-cli` command availability and bounded `-
 
 ## Safe public compatibility feedback workflow
 
-For public read-only beta reports, share redacted metadata only: app tag/commit, OS/browser/Docker/GnuCash versions, backend type, fixture scope, and generic error class. You may run `python3 scripts/safe_compatibility_report.py --app-ref <tag-or-commit> --backend-type sqlite --fixture-scope synthetic` and paste only the JSON output. Do not upload books, app DBs, backups, CSV exports, screenshots, `.env`, tokens, private paths, account names, transaction descriptions, memos, or amounts.
+For public read-only beta reports, share redacted metadata only: app tag/commit, OS/browser/Docker/GnuCash versions, backend type, fixture scope, and generic error class.
+
+Generate and validate the public report before pasting it into GitHub issues or docs:
+
+```bash
+python3 scripts/safe_compatibility_report.py \
+  --app-ref v0.5.0-public-readonly-beta \
+  --backend-type sqlite \
+  --fixture-scope synthetic \
+  --gnucash-version "GnuCash 5.14" \
+  > /tmp/gwc-compatibility-report.json
+
+python3 scripts/validate_compatibility_report.py \
+  /tmp/gwc-compatibility-report.json
+```
+
+Do not upload books, app DBs, backups, CSV exports, screenshots, `.env`, tokens, private paths, account names, transaction descriptions, memos, or amounts.
+
+When a maintainer already has redacted collector metadata and needs a matrix row candidate, build the row from metadata only:
+
+```bash
+python3 scripts/build_compatibility_matrix_row.py \
+  /tmp/compatibility-metadata.json
+```
+
+Add `--read-only-validation-passed` only after the separate default-read-only validation gate has passed. Without that flag, Desktop-generated synthetic metadata stays blocked/manual and must not become a tested Desktop-version row.
 
 The helper emits an `evidence_class` for triage only. These classes are not support claims and are not a compatibility guarantee:
 

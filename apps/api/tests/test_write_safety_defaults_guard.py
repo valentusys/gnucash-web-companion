@@ -1,0 +1,61 @@
+"""Tests for committed write-safety default guard."""
+from __future__ import annotations
+
+import subprocess
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[3]
+SCRIPT = ROOT / "scripts" / "check_write_safety_defaults.py"
+
+
+def test_write_safety_defaults_guard_passes_on_committed_config() -> None:
+    proc = subprocess.run(
+        [sys.executable, str(SCRIPT)],
+        check=False,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        cwd=ROOT,
+    )
+
+    assert proc.returncode == 0
+    assert "write-safety defaults ok" in proc.stdout
+    assert "GNUCASH_WRITES_ENABLED=false" in proc.stdout
+    assert "APP_ENV=test gate text present" in proc.stdout
+    assert proc.stderr == ""
+
+
+def test_write_safety_defaults_guard_rejects_unsafe_fixture(tmp_path: Path) -> None:
+    env_example = tmp_path / ".env.example"
+    compose = tmp_path / "docker-compose.yml"
+    status_doc = tmp_path / "status.md"
+    env_example.write_text("GNUCASH_WRITES_ENABLED=true\n", encoding="utf-8")
+    compose.write_text(
+        "services:\n  api:\n    environment:\n      - GNUCASH_WRITES_ENABLED=${GNUCASH_WRITES_ENABLED:-true}\n",
+        encoding="utf-8",
+    )
+    status_doc.write_text("missing gate text\n", encoding="utf-8")
+
+    proc = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT),
+            "--env-example",
+            str(env_example),
+            "--compose",
+            str(compose),
+            "--gate-doc",
+            str(status_doc),
+        ],
+        check=False,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        cwd=ROOT,
+    )
+
+    assert proc.returncode == 2
+    assert proc.stdout == ""
+    assert "unsafe write-safety defaults" in proc.stderr
+    assert str(tmp_path) not in proc.stderr
