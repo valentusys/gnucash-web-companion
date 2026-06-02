@@ -66,18 +66,13 @@ git diff --check
 
 ## Issue update
 
-Pending at handoff creation. Recommended issue comment summary:
-
-- Added a #36 conservative write-compatibility wording guard.
-- Tests/guards passed as listed above.
-- #36 should stay open because supported-version write compatibility remains pending and future
-  copied/restorable mutation evidence still requires same-context owner/PM authorization.
+Posted #36 update: https://github.com/valentusys/gnucash-web-companion/issues/36#issuecomment-4601583696
 
 ## Commit / CI
 
-- Implementation commit: fill after commit.
-- Issue comment: fill after issue update.
-- CI: fill after push if GitHub Actions run is available.
+- Implementation commit: `64a7b69c2a0d481a6bf1e2f525a0bb18d07ec721`.
+- Issue comment: https://github.com/valentusys/gnucash-web-companion/issues/36#issuecomment-4601583696
+- CI: success for pushed implementation commit, https://github.com/valentusys/gnucash-web-companion/actions/runs/26814508701.
 
 ## Remaining blockers for #36
 
