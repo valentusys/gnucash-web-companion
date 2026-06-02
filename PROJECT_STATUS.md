@@ -20,9 +20,9 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) markdown readability, and
   [#36](https://github.com/valentusys/gnucash-web-companion/issues/36) controlled-write readiness
   gates.
-- Latest handoffs: `docs/handoff/overnight-2026-06-02-worker-11.md`,
-  `docs/handoff/overnight-2026-06-02-worker-10.md`,
-  `docs/handoff/overnight-2026-06-02-worker-09.md`.
+- Latest handoffs: `docs/handoff/overnight-2026-06-02-worker-12.md`,
+  `docs/handoff/overnight-2026-06-02-worker-11.md`,
+  `docs/handoff/overnight-2026-06-02-worker-10.md`.
 
 ## Current status snapshot
 
@@ -36,6 +36,15 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
 - Recently closed queues: #13, #41, #42, #43.
 
 ## Repository
+
+- Overnight worker 12 added a compatibility matrix report renderer/checker to the existing #22
+  matrix helper. The pure helper renders conservative operator summaries from already-redacted rows
+  and validates that summaries preserve synthetic/disposable tested evidence, manual fixture blockers,
+  unclaimed backends, and Desktop candidate gate status. It fails closed for broad compatibility
+  wording and private-looking path/account/memo/description/amount evidence. No Desktop fixture was
+  generated, no private/original/only-copy book was opened/copied/mutated, and #22 remains open for
+  isolated Desktop-generated synthetic fixture creation plus redacted metadata and read-only
+  validation. Handoff: `docs/handoff/overnight-2026-06-02-worker-12.md`.
 
 - Overnight worker `overnight-2026-06-02-worker-11` completed a #28 markdown readability guard
   package. Added `scripts/check_markdown_readability.py` plus focused regression tests so selected

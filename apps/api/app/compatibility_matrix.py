@@ -42,6 +42,10 @@ class CandidatePreflightError(ValueError):
     """Path-redacted Desktop fixture candidate acceptance failure."""
 
 
+class CompatibilityReportError(ValueError):
+    """Fail-closed compatibility report validation failure."""
+
+
 @dataclass(frozen=True)
 class CompatibilityMatrixRow:
     """Display-ready row with explicit claim boundaries for docs/UI."""
@@ -230,6 +234,82 @@ def fixture_scope_boundaries() -> dict[str, dict[str, str]]:
     }
 
 
+REPORT_ONLY_UNSAFE_PHRASES = (
+    "production-ready",
+    "security-audited",
+)
+
+
+def _check_safe_report_text(report: str) -> None:
+    serialized = report.lower()
+    for phrase in (*unsafe_broad_support_phrases(), *REPORT_ONLY_UNSAFE_PHRASES):
+        if phrase in serialized:
+            raise CompatibilityReportError("unsafe broad compatibility claim in matrix report")
+    if PATH_RE.search(report) or AMOUNT_RE.search(report) or PRIVATE_LABEL_RE.search(report):
+        raise CompatibilityReportError("unsafe private-looking value in matrix report")
+
+
+def check_compatibility_matrix_report(report: str) -> dict[str, str | bool]:
+    """Validate rendered compatibility-matrix text before docs/issues use it.
+
+    The checker intentionally accepts only conservative operator summaries and fails
+    closed for broad support wording or raw private-looking evidence. It validates
+    rendered text only; it never opens a GnuCash book or reads any fixture path.
+    """
+
+    if not isinstance(report, str) or not report.strip():
+        raise CompatibilityReportError("compatibility matrix report must be non-empty text")
+    required_fragments = (
+        "Compatibility matrix operator summary",
+        "synthetic and disposable evidence only",
+        "Desktop and manual fixture evidence remains blocked",
+        "unclaimed backend",
+        "Desktop fixture candidate gate status:",
+        "No production, stable, security, public-write, all-version, or real-book claim.",
+    )
+    for fragment in required_fragments:
+        if fragment not in report:
+            raise CompatibilityReportError("compatibility matrix report is missing conservative wording")
+    _check_safe_report_text(report)
+    return {"accepted": True, "report_class": "conservative-compatibility-matrix-summary"}
+
+
+def render_compatibility_matrix_report(rows: list[CompatibilityMatrixRow]) -> str:
+    """Render a conservative operator-facing compatibility summary from matrix rows.
+
+    The renderer uses already-redacted/classified rows only. It summarizes evidence
+    classes and gate state without printing raw source paths, account names,
+    descriptions, memos, amounts, or broad compatibility claims.
+    """
+
+    counts: dict[str, int] = {
+        "tested_synthetic_fixture": 0,
+        "manual_fixture_blocked": 0,
+        "unclaimed_backend": 0,
+    }
+    for row in rows:
+        counts[row.category] = counts.get(row.category, 0) + 1
+
+    gate_status = "blocked"
+    if counts["manual_fixture_blocked"] == 0 and counts["tested_synthetic_fixture"] > 0:
+        gate_status = "no blocked Desktop candidate in supplied rows"
+
+    lines = [
+        "Compatibility matrix operator summary",
+        f"tested_synthetic_fixture: {counts['tested_synthetic_fixture']}",
+        f"manual_fixture_blocked: {counts['manual_fixture_blocked']}",
+        f"unclaimed_backend: {counts['unclaimed_backend']}",
+        "Scope: synthetic and disposable evidence only.",
+        "Manual blockers: Desktop and manual fixture evidence remains blocked until isolated Desktop-generated synthetic metadata passes preflight and default-read-only validation.",
+        "Backend boundary: unclaimed backend rows stay outside tested support until future explicit fixtures and validation exist.",
+        f"Desktop fixture candidate gate status: {gate_status}.",
+        "No production, stable, security, public-write, all-version, or real-book claim.",
+    ]
+    report = "\n".join(lines)
+    check_compatibility_matrix_report(report)
+    return report
+
+
 def unsafe_broad_support_phrases() -> tuple[str, ...]:
     """Phrases compatibility docs/UI must avoid unless a future release changes policy."""
 
@@ -237,8 +317,11 @@ def unsafe_broad_support_phrases() -> tuple[str, ...]:
         "fully compatible",
         "supports all gnucash",
         "compatible with all gnucash",
+        "all versions",
         "all sql backends are supported",
         "postgresql/mysql/mariadb supported",
-        "production-ready compatibility",
         "real-book compatibility guaranteed",
+        "real-book compatible",
+        "stable support",
+        "public write support",
     )

@@ -8,8 +8,11 @@ import sys
 
 from app.compatibility_matrix import (
     CandidatePreflightError,
+    CompatibilityReportError,
     build_matrix_row_from_metadata,
+    check_compatibility_matrix_report,
     fixture_scope_boundaries,
+    render_compatibility_matrix_report,
     unsafe_broad_support_phrases,
     validate_desktop_fixture_candidate_preflight,
 )
@@ -200,6 +203,61 @@ def test_compatibility_docs_describe_safe_public_report_evidence_classes() -> No
     assert "copied-restorable-report" in doc
     assert "unverified" in doc
     assert "not a compatibility guarantee" in doc
+
+
+def test_compatibility_matrix_report_renders_conservative_operator_summary() -> None:
+    tested = build_matrix_row_from_metadata(
+        {
+            "backend": "SQLite",
+            "fixture_origin": "generated-synthetic",
+            "versions": {"Gnucash": 3_000_000},
+            "table_counts": {"accounts": 2, "transactions": 1},
+        }
+    )
+    blocked = build_matrix_row_from_metadata(_desktop_metadata())
+    unclaimed = build_matrix_row_from_metadata({"backend": "PostgreSQL", "table_counts": {"accounts": 2}})
+
+    report = render_compatibility_matrix_report([tested, blocked, unclaimed])
+
+    assert "Compatibility matrix operator summary" in report
+    assert "tested_synthetic_fixture: 1" in report
+    assert "manual_fixture_blocked: 1" in report
+    assert "unclaimed_backend: 1" in report
+    assert "synthetic and disposable evidence only" in report
+    assert "Desktop and manual fixture evidence remains blocked" in report
+    assert "unclaimed backend" in report
+    assert "Desktop fixture candidate gate status: blocked" in report
+    assert check_compatibility_matrix_report(report)["accepted"] is True
+    assert "/" not in report
+    assert "Personal" not in report
+    assert "Lunch" not in report
+
+
+def test_compatibility_matrix_report_checker_fails_closed_for_unsafe_claims_and_private_values() -> None:
+    unsafe_reports = [
+        "Compatibility matrix operator summary\nall versions are supported",
+        "Compatibility matrix operator summary\nreal-book compatible",
+        "Compatibility matrix operator summary\nproduction-ready",
+        "Compatibility matrix operator summary\nstable support",
+        "Compatibility matrix operator summary\nsecurity-audited",
+        "Compatibility matrix operator summary\npublic write support",
+        "Compatibility matrix operator summary\n/private/owner/book.gnucash.sqlite",
+        "Compatibility matrix operator summary\naccount Personal memo Lunch",
+        "Compatibility matrix operator summary\namount 10.00",
+    ]
+
+    for report in unsafe_reports:
+        with pytest.raises(CompatibilityReportError):
+            check_compatibility_matrix_report(report)
+
+
+def test_unsafe_broad_support_phrase_list_covers_report_checker_policy() -> None:
+    phrases = unsafe_broad_support_phrases()
+
+    assert "all versions" in phrases
+    assert "real-book compatible" in phrases
+    assert "stable support" in phrases
+    assert "public write support" in phrases
 
 
 def test_fixture_scope_boundaries_are_explicit_and_non_claiming() -> None:
