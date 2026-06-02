@@ -23,6 +23,8 @@ def test_write_safety_defaults_guard_passes_on_committed_config() -> None:
     assert "write-safety defaults ok" in proc.stdout
     assert "GNUCASH_WRITES_ENABLED=false" in proc.stdout
     assert "APP_ENV=test gate text present" in proc.stdout
+    assert "explicit write enablement present" in proc.stdout
+    assert "reset/default-disabled probe wording present" in proc.stdout
     assert proc.stderr == ""
 
 
@@ -58,4 +60,42 @@ def test_write_safety_defaults_guard_rejects_unsafe_fixture(tmp_path: Path) -> N
     assert proc.returncode == 2
     assert proc.stdout == ""
     assert "unsafe write-safety defaults" in proc.stderr
+    assert str(tmp_path) not in proc.stderr
+
+
+def test_write_safety_defaults_guard_rejects_missing_reset_probe_wording(tmp_path: Path) -> None:
+    env_example = tmp_path / ".env.example"
+    compose = tmp_path / "docker-compose.yml"
+    status_doc = tmp_path / "status.md"
+    env_example.write_text("GNUCASH_WRITES_ENABLED=false\n", encoding="utf-8")
+    compose.write_text(
+        "services:\n  api:\n    environment:\n      - GNUCASH_WRITES_ENABLED=${GNUCASH_WRITES_ENABLED:-false}\n",
+        encoding="utf-8",
+    )
+    status_doc.write_text(
+        "Enabled write-alpha remains APP_ENV=test gated and requires explicit write enablement only.\n",
+        encoding="utf-8",
+    )
+
+    proc = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT),
+            "--env-example",
+            str(env_example),
+            "--compose",
+            str(compose),
+            "--gate-doc",
+            str(status_doc),
+        ],
+        check=False,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        cwd=ROOT,
+    )
+
+    assert proc.returncode == 2
+    assert proc.stdout == ""
+    assert "reset/default-disabled probe wording" in proc.stderr
     assert str(tmp_path) not in proc.stderr

@@ -15,6 +15,14 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 WRITE_DEFAULT_TEXT = "GNUCASH_WRITES_ENABLED=false"
 COMPOSE_WRITE_DEFAULT_TEXT = "GNUCASH_WRITES_ENABLED=${GNUCASH_WRITES_ENABLED:-false}"
 APP_ENV_GATE_TEXT = "APP_ENV=test"
+EXPLICIT_WRITE_ENABLE_TEXT = "explicit write enablement"
+RESET_TEXT = "reset"
+DISABLED_PROBE_TEXT = "disabled-probe"
+
+
+def _normalized(text: str) -> str:
+    """Collapse Markdown wrapping so phrase guards do not depend on line breaks."""
+    return " ".join(text.lower().split())
 
 
 class GuardError(ValueError):
@@ -32,6 +40,7 @@ def _check(env_example: Path, compose: Path, gate_doc: Path) -> list[str]:
     env_text = _read(env_example)
     compose_text = _read(compose)
     gate_text = _read(gate_doc)
+    gate_text_normalized = _normalized(gate_text)
     failures: list[str] = []
 
     if WRITE_DEFAULT_TEXT not in env_text:
@@ -44,6 +53,10 @@ def _check(env_example: Path, compose: Path, gate_doc: Path) -> list[str]:
         failures.append("Docker Compose must not default GNUCASH_WRITES_ENABLED true")
     if APP_ENV_GATE_TEXT not in gate_text:
         failures.append("write-readiness documentation must preserve APP_ENV=test gate text")
+    if EXPLICIT_WRITE_ENABLE_TEXT not in gate_text_normalized:
+        failures.append("write-readiness documentation must require explicit write enablement")
+    if RESET_TEXT not in gate_text_normalized or DISABLED_PROBE_TEXT not in gate_text_normalized:
+        failures.append("write-readiness documentation must preserve reset/default-disabled probe wording")
     return failures
 
 
@@ -65,7 +78,11 @@ def main(argv: list[str] | None = None) -> int:
     if failures:
         print("unsafe write-safety defaults: " + "; ".join(failures), file=sys.stderr)
         return 2
-    print("write-safety defaults ok: GNUCASH_WRITES_ENABLED=false; APP_ENV=test gate text present")
+    print(
+        "write-safety defaults ok: GNUCASH_WRITES_ENABLED=false; "
+        "APP_ENV=test gate text present; explicit write enablement present; "
+        "reset/default-disabled probe wording present"
+    )
     return 0
 
 
