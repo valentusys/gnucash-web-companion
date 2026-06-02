@@ -47,6 +47,24 @@ As of Phase 136, every compatibility evidence row in `docs/gnucash-compatibility
 
 Therefore the current tested GnuCash Desktop version list is empty: no real GnuCash Desktop release has been validated by the automated suite. Future rows must remain narrow until a synthetic book is generated/saved by the named Desktop version and read-only tests pass against that fixture.
 
+## Current #22 maintainer checklist and blocker
+
+The latest autonomous multiqueue probe keeps the issue in a blocked-but-actionable state:
+
+1. `gnucash-cli --version` is available and reports GnuCash 5.14.
+2. `gnucash --version` is present but cannot initialize the graphical interface in this headless
+   session because `$DISPLAY` is unavailable.
+3. `desktop_generated_fixture_possible_now=false`; command/version output is not a
+   Desktop-generated fixture.
+4. No book was opened and no user directory was searched.
+5. The next acceptable maintainer action is an isolated disposable GUI/manual-safe session that
+   creates a synthetic SQLite fixture from the data model below, then runs the redacted metadata
+   collector and read-only validation.
+
+Do not close #22 until that Desktop-generated synthetic fixture evidence exists. Do not turn
+package/tooling availability, operator-supplied version strings, or metadata-only rows into broad
+compatibility claims.
+
 ## OS and source of fixtures
 
 Each fixture entry must record:
