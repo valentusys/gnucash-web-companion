@@ -77,6 +77,40 @@ def test_synthetic_fixture_passes_when_gnucash_cli_report_succeeds(tmp_path, mon
     assert any(call[:2] == ("gnucash-cli", "--report") for call in calls)
 
 
+def test_desktop_checker_fails_closed_on_private_or_ambiguous_version_output(tmp_path, monkeypatch):
+    target = tmp_path / "phase-256-synthetic-copy.gnucash.sqlite"
+    fixture.create_fixture(target)
+    monkeypatch.setattr(compat.shutil, "which", lambda command: f"/usr/bin/{command}")
+
+    class ReportCompleted:
+        returncode = 0
+        stdout = "synthetic report ok\n"
+        stderr = ""
+
+    class VersionCompleted:
+        returncode = 0
+        stdout = "GnuCash 5.14 opened /home/user/private-book.gnucash.sqlite account Checking amount 123.45\n"
+        stderr = ""
+
+    def fake_run(command, **kwargs):
+        if tuple(command[:2]) == ("gnucash-cli", "--version"):
+            return VersionCompleted()
+        return ReportCompleted()
+
+    monkeypatch.setattr(compat.subprocess, "run", fake_run)
+
+    evidence = compat.run_check(target)
+    serialized = json.dumps(compat.asdict(evidence), sort_keys=True)
+
+    assert evidence.result == "fail"
+    assert evidence.desktop_tooling.status == "fail"
+    assert evidence.desktop_tooling.version == "unknown"
+    assert "unsafe or ambiguous gnucash-cli version output" in (evidence.desktop_tooling.reason or "")
+    assert "/home/user" not in serialized
+    assert "Checking" not in serialized
+    assert "123.45" not in serialized
+
+
 def test_missing_target_fails_without_raw_path(tmp_path, capsys):
     missing = tmp_path / "missing-private-book.gnucash.sqlite"
     output = tmp_path / "evidence.json"

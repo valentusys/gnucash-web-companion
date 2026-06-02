@@ -23,6 +23,7 @@ MAX_VERSION_OUTPUT_CHARS = 500
 MAX_PACKAGE_POLICY_CHARS = 1200
 PATH_RE = re.compile(r"([A-Za-z]:\\[^\s]*|/[^\s]+|\\\\[^\s]+)")
 AMOUNT_RE = re.compile(r"(?i)(amount\s*)\d+[.,]\d{2}")
+GNUCASH_VERSION_RE = re.compile(r"(?i)\bGnuCash\s+\d+(?:\.\d+)+\b")
 PRIVATE_LABEL_RES = (
     ("ACCOUNT", re.compile(r"(?i)\baccount\s+.+?(?=\s+memo\b|\s+description\b|\s+amount\b|$)")),
     ("MEMO", re.compile(r"(?i)\bmemo\s+.+?(?=\s+account\b|\s+description\b|\s+amount\b|$)")),
@@ -53,9 +54,16 @@ def _safe_version_output(command: str) -> tuple[bool, str]:
         return False, f"unavailable: {exc.__class__.__name__}"
 
     output = "\n".join(part for part in (completed.stdout.strip(), completed.stderr.strip()) if part)
-    output = _redact_probe_text(output)[:MAX_VERSION_OUTPUT_CHARS]
+    if len(output) > MAX_VERSION_OUTPUT_CHARS:
+        return False, "overlong version output rejected"
+    redacted_output = _redact_probe_text(output)
     if completed.returncode == 0:
+        if redacted_output != output:
+            return False, "unsafe/private-looking version output rejected"
+        if not GNUCASH_VERSION_RE.search(output):
+            return False, "ambiguous version output rejected"
         return True, output or "available; --version returned no output"
+    output = redacted_output[:MAX_VERSION_OUTPUT_CHARS]
     return False, output or f"--version exited {completed.returncode}"
 
 

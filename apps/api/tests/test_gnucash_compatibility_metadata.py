@@ -247,6 +247,56 @@ def test_desktop_tooling_probe_redacts_unexpected_version_output(monkeypatch) ->
     assert "123.45" not in serialized
 
 
+def test_desktop_tooling_probe_fails_closed_on_private_success_output(monkeypatch) -> None:
+    probe = _load_probe()
+
+    monkeypatch.setattr(probe.shutil, "which", lambda command: f"/private/bin/{command}")
+
+    class Completed:
+        returncode = 0
+        stdout = "GnuCash 5.14 opened /home/user/private-book.gnucash.sqlite\n"
+        stderr = "account Checking memo Grocery amount 123.45\n"
+
+    monkeypatch.setattr(probe.subprocess, "run", lambda *args, **kwargs: Completed())
+
+    metadata = probe.probe_tooling()
+    serialized = json.dumps(metadata, sort_keys=True)
+
+    assert metadata["commands"]["gnucash"]["version_command_succeeded"] is False
+    assert "unsafe/private-looking version output rejected" in serialized
+    assert "/home/user" not in serialized
+    assert "Checking" not in serialized
+    assert "Grocery" not in serialized
+    assert "123.45" not in serialized
+
+
+def test_desktop_tooling_probe_fails_closed_on_ambiguous_or_overlong_version(monkeypatch) -> None:
+    probe = _load_probe()
+    outputs = iter([
+        "GnuCash version maybe\n",
+        "GnuCash 5.14 " + ("x" * (probe.MAX_VERSION_OUTPUT_CHARS + 1)),
+    ])
+
+    monkeypatch.setattr(probe.shutil, "which", lambda command: f"/usr/bin/{command}")
+
+    class Completed:
+        returncode = 0
+        stderr = ""
+
+        @property
+        def stdout(self):
+            return next(outputs)
+
+    monkeypatch.setattr(probe.subprocess, "run", lambda *args, **kwargs: Completed())
+
+    metadata = probe.probe_tooling()
+
+    assert metadata["commands"]["gnucash"]["version_command_succeeded"] is False
+    assert metadata["commands"]["gnucash"]["version_output"] == "ambiguous version output rejected"
+    assert metadata["commands"]["gnucash-cli"]["version_command_succeeded"] is False
+    assert metadata["commands"]["gnucash-cli"]["version_output"] == "overlong version output rejected"
+
+
 def test_desktop_tooling_probe_can_add_non_mutating_install_hints(monkeypatch) -> None:
     probe = _load_probe()
     monkeypatch.setattr(

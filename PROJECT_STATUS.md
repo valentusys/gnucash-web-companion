@@ -20,6 +20,17 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
 
 ## Repository
 
+- Overnight worker `overnight-2026-06-02-worker-03` completed a #22 Desktop tooling
+  probe/checker hardening package using mocked command outputs only. The safe Desktop tooling probe
+  now treats successful `--version` output as unsafe unless it is bounded, non-private-looking, and
+  has an unambiguous `GnuCash X.Y` version token; overlong, path/account/memo/description/amount-like,
+  or ambiguous strings fail closed. The post-mutation compatibility checker now also fails closed if
+  `gnucash-cli --version` evidence is unsafe/ambiguous even when the mocked report command succeeds.
+  No GUI was launched, no real/private/only-copy book was opened/copied/mutated, no Desktop-generated
+  fixture was committed, and #22 remains open for isolated disposable GUI/manual-safe Desktop fixture
+  creation plus redacted metadata collection and default-read-only validation. Handoff:
+  `docs/handoff/overnight-2026-06-02-worker-03.md`.
+
 - Overnight worker `overnight-2026-06-02-worker-02` completed a #36 default-disabled reset probe
   package. Owner-writebeta route tests now prove a simulated post-mutation `verify-reset`/`reset-disabled`
   path returns to `disabled`, clears stale active-arm preview/confirmation refs, preserves the default

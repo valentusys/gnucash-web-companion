@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -22,6 +23,11 @@ from typing import Any, Literal
 import piecash
 
 Result = Literal["pass", "blocked", "fail"]
+MAX_VERSION_OUTPUT_CHARS = 500
+PATH_RE = re.compile(r"([A-Za-z]:\\[^\s]*|/[^\s]+|\\\\[^\s]+)")
+AMOUNT_RE = re.compile(r"(?i)(amount\s*)\d+[.,]\d{2}")
+PRIVATE_LABEL_RE = re.compile(r"(?i)\b(account|memo|description)\s+[^,;\n{}\[\]]+")
+GNUCASH_VERSION_RE = re.compile(r"(?i)\bGnuCash\s+\d+(?:\.\d+)+\b")
 
 
 class CompatibilityCheckFailure(Exception):
@@ -108,10 +114,15 @@ def _version_output(command: str) -> str:
         )
     except Exception:
         return "unknown"
-    output = (completed.stdout or completed.stderr or "").strip().splitlines()
-    if not output:
+    output_text = "\n".join(part for part in ((completed.stdout or "").strip(), (completed.stderr or "").strip()) if part)
+    if not output_text or len(output_text) > MAX_VERSION_OUTPUT_CHARS:
         return "unknown"
-    return output[0][:80]
+    if PATH_RE.search(output_text) or AMOUNT_RE.search(output_text) or PRIVATE_LABEL_RE.search(output_text):
+        return "unknown"
+    first_line = output_text.strip().splitlines()[0]
+    if not GNUCASH_VERSION_RE.search(first_line):
+        return "unknown"
+    return first_line[:80]
 
 
 def _run_desktop_tooling(target: Path, timeout_seconds: int) -> DesktopToolEvidence:
@@ -151,19 +162,29 @@ def _run_desktop_tooling(target: Path, timeout_seconds: int) -> DesktopToolEvide
             reason=_safe_error(exc),
         )
 
+    version = _version_output(command)
+    if version == "unknown":
+        return DesktopToolEvidence(
+            status="fail",
+            command="gnucash-cli --report show --name Balance Sheet <redacted-book>",
+            available=True,
+            version="unknown",
+            reason="unsafe or ambiguous gnucash-cli version output; Desktop/CLI compatibility remains blocked",
+        )
+
     if completed.returncode == 0:
         return DesktopToolEvidence(
             status="pass",
             command="gnucash-cli --report show --name Balance Sheet <redacted-book>",
             available=True,
-            version=_version_output(command),
+            version=version,
             reason=None,
         )
     return DesktopToolEvidence(
         status="fail",
         command="gnucash-cli --report show --name Balance Sheet <redacted-book>",
         available=True,
-        version=_version_output(command),
+        version=version,
         reason=f"gnucash-cli exited nonzero ({completed.returncode}); output redacted",
     )
 
