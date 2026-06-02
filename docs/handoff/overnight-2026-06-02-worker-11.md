@@ -124,7 +124,9 @@ Remaining #28 scope if kept open:
 
 ## Commit / CI
 
-Implementation commit SHA: pending push.
+Implementation commit SHA: `768fba553aecdf4f894a2bef92b63cf6bbd97633`.
+
+Handoff SHA update: pending push.
 
 CI: pending push.
 
