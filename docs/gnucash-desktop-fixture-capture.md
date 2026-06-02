@@ -2,6 +2,23 @@
 
 Status: safe helper path available; Desktop-generated fixture evidence is still blocked until a manually supplied synthetic SQLite book exists.
 
+## Exact blocker for #22
+
+Keep #22 open until an isolated disposable GUI/manual-safe environment produces a Desktop-generated
+synthetic SQLite fixture and that fixture passes read-only validation with `GNUCASH_WRITES_ENABLED=false`.
+Current helper/probe evidence is command/tooling evidence only and is not broad GnuCash Desktop compatibility.
+
+Required environment/evidence before the blocker can clear:
+
+1. No private home directory, private book, backup directory, app DB, `.env`, token, key, certificate,
+   screenshot, export, or real account data is mounted or opened.
+2. A human operator creates only synthetic accounts/transactions in GnuCash Desktop inside the isolated
+   disposable GUI/manual-safe environment.
+3. The resulting Desktop-generated synthetic SQLite fixture is handled outside git, then validated by
+   the redacted metadata helper and default-read-only API checks.
+4. Public evidence contains only redacted fixture class, Desktop version string, schema/table-count
+   metadata, and pass/fail status; it contains no row values or private/raw financial data.
+
 This runbook advances GitHub #22 without touching real/private books. It describes the only accepted path for a future Desktop-generated synthetic SQLite fixture and the deterministic rejection behavior used by the metadata helper.
 
 ## Current result

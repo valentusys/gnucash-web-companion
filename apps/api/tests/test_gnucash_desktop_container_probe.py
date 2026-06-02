@@ -10,6 +10,7 @@ from types import ModuleType
 
 ROOT = Path(__file__).resolve().parents[3]
 SCRIPT = ROOT / "apps/api/scripts/probe_gnucash_desktop_disposable_container.py"
+DESKTOP_CAPTURE_DOC = ROOT / "docs/gnucash-desktop-fixture-capture.md"
 
 
 SAMPLE_OUTPUT = """
@@ -96,3 +97,15 @@ def test_run_container_probe_redacts_scope_and_keeps_raw_output_bounded(monkeypa
     assert "No GnuCash book was opened or generated" in payload["privacy"]
     assert "GnuCash 4.13" in payload["raw_output_excerpt"]
     assert "/home" not in serialized
+
+
+def test_desktop_fixture_capture_doc_keeps_exact_blocker_and_evidence_requirements() -> None:
+    text = DESKTOP_CAPTURE_DOC.read_text(encoding="utf-8")
+
+    assert "## Exact blocker for #22" in text
+    assert "isolated disposable GUI/manual-safe environment" in text
+    assert "Desktop-generated synthetic SQLite fixture" in text
+    assert "read-only validation with `GNUCASH_WRITES_ENABLED=false`" in text
+    assert "No private home directory, private book, backup directory" in text
+    assert "not broad GnuCash Desktop compatibility" in text
+    assert "Keep #22 open" in text
