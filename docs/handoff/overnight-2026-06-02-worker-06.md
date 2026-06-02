@@ -47,9 +47,9 @@
 
 ## CI link/status
 
-- Pushed commit: pending.
-- CI run: pending.
-- Status: pending until after push.
+- Pushed commit: `46da4575da1c03677d6925ca35f91d85d1645417`.
+- CI run: https://github.com/valentusys/gnucash-web-companion/actions/runs/26799403683
+- Status: success for the initial pushed implementation commit.
 
 ## Safety summary
 
@@ -64,13 +64,14 @@
 
 ## Issue update
 
-- Pending until after commit/push.
+- Issue comment: https://github.com/valentusys/gnucash-web-companion/issues/28#issuecomment-4598871016
 - Recommendation: keep #28 open. This package materially improves README.ru, but the original issue
   remains broader and still includes gradual cleanup of older release/handoff/status docs.
 
 ## Commit SHA
 
-- Pending.
+- Implementation commit: `46da4575da1c03677d6925ca35f91d85d1645417` (`docs: improve README.ru status readability`).
+- Handoff CI/issue follow-up commit: this file update.
 
 ## Remaining blockers
 
