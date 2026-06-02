@@ -32,6 +32,7 @@ WRITE_COMPATIBILITY_DOCS = (
     Path("docs/v0.2-controlled-writes.md"),
 )
 ISSUE_36_REMAINING_GATES_DOC = Path("docs/write-alpha/issue-36-remaining-gates.md")
+ISSUE_36_DASHBOARD_DOC = Path("docs/write-alpha/controlled-write-readiness-dashboard.md")
 WRITE_COMPATIBILITY_REQUIRED_TEXTS = (
     "supported-version write compatibility remains pending",
     "synthetic/disposable or copied/restorable evidence only",
@@ -103,6 +104,26 @@ def _check_issue_36_remaining_gates(path: Path) -> list[str]:
     return ["#36 remaining gates doc must preserve: " + ", ".join(missing)] if missing else []
 
 
+def _check_issue_36_dashboard(path: Path) -> list[str]:
+    text = _read(REPO_ROOT / path if not path.is_absolute() else path)
+    normalized = _normalized(text)
+    required = (
+        "keep #36 open",
+        "state-machine evidence",
+        "copied-book evidence",
+        "restore evidence",
+        "default-disabled probes",
+        "compatibility gaps",
+        "same-context owner + PM authorization",
+        "GNUCASH_WRITES_ENABLED=false",
+        "APP_ENV=test",
+        "NO_RELEASE",
+        "CREATE 0 / PATCH 0 / DELETE 0",
+    )
+    missing = [needle for needle in required if _normalized(needle) not in normalized]
+    return ["#36 readiness dashboard must preserve: " + ", ".join(missing)] if missing else []
+
+
 def _check(env_example: Path, compose: Path, gate_doc: Path, checklist_doc: Path | None = None) -> list[str]:
     env_text = _read(env_example)
     compose_text = _read(compose)
@@ -137,6 +158,7 @@ def _check(env_example: Path, compose: Path, gate_doc: Path, checklist_doc: Path
             failures.append("#36 audit checklist must preserve: " + ", ".join(missing))
     failures.extend(_check_write_compatibility_docs(WRITE_COMPATIBILITY_DOCS))
     failures.extend(_check_issue_36_remaining_gates(ISSUE_36_REMAINING_GATES_DOC))
+    failures.extend(_check_issue_36_dashboard(ISSUE_36_DASHBOARD_DOC))
     return failures
 
 
