@@ -63,9 +63,9 @@ Issue update should say this package added a compatibility-status guard that rea
 
 ## Commit / CI
 
-- Base HEAD before package: `3c09ad1`.
-- Implementation commit: fill after commit.
-- CI: fill after push if GitHub Actions run is available.
+- Implementation commit: `73466b4c80a37a1b3645c0a0d041994984bb75d9`.
+- Issue comment: https://github.com/valentusys/gnucash-web-companion/issues/22#issuecomment-4601400452
+- CI: success for pushed implementation commit, https://github.com/valentusys/gnucash-web-companion/actions/runs/26813404374.
 
 ## Remaining blockers for #22
 
