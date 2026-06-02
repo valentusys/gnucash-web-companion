@@ -251,3 +251,21 @@ def test_write_safety_defaults_guard_rejects_missing_restore_boundary_marker(
 
     assert any("not real-book safety evidence" in failure for failure in failures)
     assert str(tmp_path) not in "; ".join(failures)
+
+
+def test_write_safety_defaults_guard_rejects_missing_copied_dogfood_packet_marker(
+    tmp_path: Path,
+) -> None:
+    doc = tmp_path / "copied-packet.md"
+    doc.write_text(
+        "non-mutating packet. route family and operation counts. redacted evidence only. "
+        "GNUCASH_WRITES_ENABLED=false. APP_ENV=test. CREATE 0 / PATCH 0 / DELETE 0.\n",
+        encoding="utf-8",
+    )
+
+    failures = write_safety_guard._check_copied_dogfood_packet(doc)
+
+    assert any("same-context owner + PM authorization" in failure for failure in failures)
+    assert any("backup/read-back/audit/lock/restore/reset" in failure for failure in failures)
+    assert any("no original/private/real-working/only-copy" in failure for failure in failures)
+    assert str(tmp_path) not in "; ".join(failures)

@@ -34,6 +34,7 @@ WRITE_COMPATIBILITY_DOCS = (
 ISSUE_36_REMAINING_GATES_DOC = Path("docs/write-alpha/issue-36-remaining-gates.md")
 ISSUE_36_DASHBOARD_DOC = Path("docs/write-alpha/controlled-write-readiness-dashboard.md")
 RESTORE_BOUNDARY_DOC = Path("docs/write-alpha/restore-safety-boundary.md")
+COPIED_DOGFOOD_PACKET_DOC = Path("docs/write-alpha/copied-book-dogfood-readiness-packet.md")
 WRITE_COMPATIBILITY_REQUIRED_TEXTS = (
     "supported-version write compatibility remains pending",
     "synthetic/disposable or copied/restorable evidence only",
@@ -142,6 +143,24 @@ def _check_restore_boundary(path: Path) -> list[str]:
     return ["restore boundary doc must preserve: " + ", ".join(missing)] if missing else []
 
 
+def _check_copied_dogfood_packet(path: Path) -> list[str]:
+    text = _read(REPO_ROOT / path if not path.is_absolute() else path)
+    normalized = _normalized(text)
+    required = (
+        "non-mutating packet",
+        "same-context owner + PM authorization",
+        "route family and operation counts",
+        "backup/read-back/audit/lock/restore/reset",
+        "redacted evidence only",
+        "no original/private/real-working/only-copy",
+        "GNUCASH_WRITES_ENABLED=false",
+        "APP_ENV=test",
+        "CREATE 0 / PATCH 0 / DELETE 0",
+    )
+    missing = [needle for needle in required if _normalized(needle) not in normalized]
+    return ["copied-book dogfood packet must preserve: " + ", ".join(missing)] if missing else []
+
+
 def _check(env_example: Path, compose: Path, gate_doc: Path, checklist_doc: Path | None = None) -> list[str]:
     env_text = _read(env_example)
     compose_text = _read(compose)
@@ -178,6 +197,7 @@ def _check(env_example: Path, compose: Path, gate_doc: Path, checklist_doc: Path
     failures.extend(_check_issue_36_remaining_gates(ISSUE_36_REMAINING_GATES_DOC))
     failures.extend(_check_issue_36_dashboard(ISSUE_36_DASHBOARD_DOC))
     failures.extend(_check_restore_boundary(RESTORE_BOUNDARY_DOC))
+    failures.extend(_check_copied_dogfood_packet(COPIED_DOGFOOD_PACKET_DOC))
     return failures
 
 
