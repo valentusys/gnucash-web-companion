@@ -97,16 +97,16 @@ Static added-line scan for hardcoded secrets, shell injection, eval/exec, pickle
 Fix commit CI:
 
 - Run: https://github.com/valentusys/gnucash-web-companion/actions/runs/26798667904
-- Status at handoff-doc drafting time: in progress.
+- Status: completed, conclusion: success.
 
 Final handoff-doc commit CI:
 
-- Run: `PENDING_CI_LINK`
-- Status: `PENDING_CI_STATUS`
+- Run: https://github.com/valentusys/gnucash-web-companion/actions/runs/26798850525
+- Status: in progress at issue-update time for commit `87bc5e458f8ce8fe5435f3e1884856f42eab4df2`.
 
 ## GitHub issue update
 
-Issue #22 update: `PENDING_ISSUE_COMMENT_URL`.
+Issue #22 update: https://github.com/valentusys/gnucash-web-companion/issues/22#issuecomment-4598784094.
 
 Recommendation left in issue: keep #22 open because the real issue scope still needs isolated Desktop-generated synthetic fixture evidence and default-read-only validation.
 
