@@ -49,9 +49,9 @@
 
 ## CI link/status
 
-- Pushed commit: pending.
-- CI run: pending.
-- Status: pending.
+- Pushed implementation commit: `ab31c511a5164a3008cc4ca96353457964793c57`.
+- CI run for implementation commit: https://github.com/valentusys/gnucash-web-companion/actions/runs/26800616791
+- Status at issue-update time: in progress.
 
 ## Safety summary
 
@@ -68,13 +68,15 @@
 
 ## Issue update
 
-- Issue comment: pending.
+- Issue comment: https://github.com/valentusys/gnucash-web-companion/issues/28#issuecomment-4599014814
 - Recommendation: keep #28 open. This package materially improves `PROJECT_STATUS.md`, but the
   original issue still covers gradual cleanup of older release/handoff/status docs.
 
 ## Commit SHA
 
-- Implementation commit: pending.
+- Implementation commit: `ab31c511a5164a3008cc4ca96353457964793c57`
+  (`docs: improve PROJECT_STATUS navigation`).
+- Handoff issue/CI refresh commit: pending.
 
 ## Remaining blockers
 
