@@ -155,7 +155,8 @@ Local gate:
   - Result: no open PR output.
 
 GitHub Actions:
-- Latest pushed commit `e9d53fc` CI passed: run `26792269104`.
+- Final report commit `88f1d80` CI passed: run `26793145535`.
+- Last code/test cycle commit `e9d53fc` CI passed: run `26792269104`.
 - Prior cycle commits also showed CI success in `gh run list`.
 
 ## Safety summary
