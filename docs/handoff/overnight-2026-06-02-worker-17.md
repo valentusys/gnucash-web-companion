@@ -8,7 +8,9 @@ Compatibility-status broad-claim guard for issue #22.
 
 ## Scope completed
 
-Non-mutating #22 guard package. No GnuCash book, SQLite book, app DB, backup, export, screenshot, private path, account name, memo, amount, or raw private evidence was created, opened, copied, mutated, committed, or posted.
+Non-mutating #22 guard package. No GnuCash book, SQLite book, app DB, backup, export,
+screenshot, private path, account name, memo, amount, or raw private evidence was created, opened,
+copied, mutated, committed, or posted.
 
 Changed files:
 
@@ -59,7 +61,11 @@ public-status-guard: ok
 
 Recommendation: keep #22 open.
 
-Issue update should say this package added a compatibility-status guard that reads `docs/gnucash-compatibility.md`, requires the exact Desktop-generated fixture blocker posture, and fails closed for affirmative Desktop/backend support claims. Remaining blocker: actual isolated Desktop-generated synthetic SQLite fixture plus fail-closed preflight and default-read-only validation.
+Issue update should say this package added a compatibility-status guard that reads
+`docs/gnucash-compatibility.md`, requires the exact Desktop-generated fixture blocker posture, and
+fails closed for affirmative Desktop/backend support claims. Remaining blocker: actual isolated
+Desktop-generated synthetic SQLite fixture plus fail-closed preflight and default-read-only
+validation.
 
 ## Commit / CI
 
@@ -75,4 +81,5 @@ Issue update should say this package added a compatibility-status guard that rea
 
 ## Next supervisor recommendation
 
-Continue to #28 markdown readability cleanup if #22 Desktop fixture creation remains blocked by lack of a safe isolated GUI/manual environment.
+Continue to #28 markdown readability cleanup if #22 Desktop fixture creation remains blocked by lack
+of a safe isolated GUI/manual environment.

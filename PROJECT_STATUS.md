@@ -20,9 +20,9 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) markdown readability, and
   [#36](https://github.com/valentusys/gnucash-web-companion/issues/36) controlled-write readiness
   gates.
-- Latest handoffs: `docs/handoff/overnight-2026-06-02-worker-17.md`,
-  `docs/handoff/overnight-2026-06-02-worker-16.md`,
-  `docs/handoff/overnight-2026-06-02-worker-15.md`.
+- Latest handoffs: `docs/handoff/overnight-2026-06-02-worker-18.md`,
+  `docs/handoff/overnight-2026-06-02-worker-17.md`,
+  `docs/handoff/overnight-2026-06-02-worker-16.md`.
 
 ## Current status snapshot
 
@@ -36,6 +36,15 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
 - Recently closed queues: #13, #41, #42, #43.
 
 ## Repository
+
+- Overnight worker `overnight-2026-06-02-worker-18` completed a #28 compatibility Markdown
+  readability guard package. `docs/gnucash-compatibility.md` now has a wrapped top status/blocker
+  section with #22 Desktop fixture, synthetic/disposable-only evidence, and unclaimed-backend posture
+  visible before the matrix tables. `scripts/check_markdown_readability.py` now includes the
+  compatibility doc and the current handoff in its default scan, requires top #22 Desktop fixture
+  blocker navigation, and bounds compatibility-doc long-line scanning to the current readable
+  status/matrix preamble while allowing table rows. `scripts/check_public_status.py` now accepts
+  wrapped compatibility required fragments. No compatibility/support safety wording was broadened.
 
 - Overnight worker `overnight-2026-06-02-worker-17` completed a #22 compatibility-status claim
   guard package. `scripts/check_public_status.py` now reads `docs/gnucash-compatibility.md`, requires

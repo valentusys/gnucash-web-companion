@@ -22,10 +22,11 @@ PUBLIC_STATUS_DOCS = (
     Path("CHANGELOG.md"),
 )
 DEFAULT_DOCS = PUBLIC_STATUS_DOCS + (
+    Path("docs/gnucash-compatibility.md"),
     Path("docs/release/v0.5.0-public-readonly-beta-notes.md"),
     Path("docs/release/v0.5.0-public-readonly-beta-final-gate.md"),
     Path("docs/development/markdown-readability.md"),
-    Path("docs/handoff/overnight-2026-06-02-worker-13.md"),
+    Path("docs/handoff/overnight-2026-06-02-worker-17.md"),
 )
 
 # Avoid noisy historical whole-file reflow: public/status archives are long by
@@ -34,6 +35,7 @@ DEFAULT_DOCS = PUBLIC_STATUS_DOCS + (
 LONG_LINE_SCAN_LIMITS = {
     Path("CHANGELOG.md"): 105,
     Path("PROJECT_STATUS.md"): 120,
+    Path("docs/gnucash-compatibility.md"): 55,
 }
 
 STATUS_SAFETY_SIGNALS = (
@@ -135,6 +137,17 @@ def check_documents(docs: dict[str, str]) -> list[str]:
             has_handoff_nav = "docs/handoff/" in text or "handoff" in top
             if not (has_issue and has_handoff_nav):
                 problems.append(f"{rel}: missing issue or handoff navigation")
+
+        if path == Path("docs/gnucash-compatibility.md"):
+            top_required = (
+                "#22 stays open until",
+                "Desktop-generated synthetic fixture",
+                "synthetic/disposable fixtures only",
+                "PostgreSQL/MySQL/MariaDB GnuCash backends are unclaimed",
+            )
+            normalized_top = " ".join(top.split())
+            if not all(marker.lower() in normalized_top for marker in top_required):
+                problems.append(f"{rel}: missing #22 Desktop fixture blocker navigation")
 
         if path == Path("docs/development/markdown-readability.md"):
             if not all(marker.lower() in lowered for marker in SAFETY_GUIDANCE_MARKERS):

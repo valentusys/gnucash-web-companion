@@ -12,6 +12,7 @@ PROJECT_STATUS = ROOT / "PROJECT_STATUS.md"
 CHECKER = ROOT / "scripts/check_markdown_readability.py"
 RELEASE_NOTES = ROOT / "docs/release/v0.5.0-public-readonly-beta-notes.md"
 RELEASE_FINAL_GATE = ROOT / "docs/release/v0.5.0-public-readonly-beta-final-gate.md"
+COMPATIBILITY_DOC = ROOT / "docs/gnucash-compatibility.md"
 
 
 def _load_checker():
@@ -102,6 +103,28 @@ def test_release_docs_have_conservative_readable_status_boundaries() -> None:
     assert "## Conservative boundaries" in final_gate
     assert "No public write beta" in final_gate
     assert "No production-ready, stable, or security-audited claim" in final_gate
+
+
+def test_compatibility_doc_has_readable_top_status_and_is_guarded() -> None:
+    text = COMPATIBILITY_DOC.read_text(encoding="utf-8")
+    checker = _load_checker()
+    default_doc_names = {path.as_posix() for path in checker.DEFAULT_DOCS}
+
+    assert "docs/gnucash-compatibility.md" in default_doc_names
+    assert "Status: pre-alpha compatibility notes" in text.splitlines()[2]
+    assert "#22 stays open until" in "\n".join(text.splitlines()[:30])
+    assert "No real GnuCash Desktop version has been tested" in text
+    assert "PostgreSQL/MySQL/MariaDB GnuCash backends are unclaimed" in text
+    assert not checker.check_documents({"docs/gnucash-compatibility.md": text})
+
+
+def test_compatibility_readability_guard_requires_top_blocker_navigation() -> None:
+    checker = _load_checker()
+    docs = {"docs/gnucash-compatibility.md": "# Compatibility\n\nStatus: read-only only.\n"}
+
+    problems = checker.check_documents(docs)
+
+    assert any("missing #22 Desktop fixture blocker navigation" in problem for problem in problems)
 
 
 def test_markdown_readability_checker_fails_closed_for_missing_status_safety_and_links() -> None:

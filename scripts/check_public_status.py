@@ -381,7 +381,10 @@ COMPATIBILITY_UNSAFE_CLAIM_PATTERNS = [
 def check_compatibility_status_claims(path: Path, text: str) -> None:
     """Guard #22 compatibility docs against broad Desktop/backend support drift."""
 
-    require_contains(path, text, COMPATIBILITY_REQUIRED_FRAGMENTS)
+    normalized_text = " ".join(text.split())
+    missing = [needle for needle in COMPATIBILITY_REQUIRED_FRAGMENTS if needle not in normalized_text]
+    if missing:
+        raise AssertionError(f"{path}: missing required current-posture text: {missing}")
     previous_line = ""
     for line_number, line in enumerate(text.splitlines(), start=1):
         lowered = line.lower()

@@ -1,14 +1,29 @@
 # GnuCash Compatibility Matrix
 
-Status: pre-alpha compatibility notes for read-only MVP validation. Compatibility evidence is based on synthetic/disposable fixtures only unless a row explicitly says otherwise.
+Status: pre-alpha compatibility notes for read-only MVP validation. Compatibility evidence is based
+on synthetic/disposable fixtures only unless a row explicitly says otherwise.
 
-`gnucash-web-companion` accesses GnuCash SQL books through `piecash` behind the FastAPI service layer. GnuCash Desktop remains the authoritative editor, and users should test with a disposable copy before pointing the app at any real book.
+#22 stays open until an actual isolated Desktop-generated synthetic fixture exists and passes
+fail-closed preflight plus default-read-only validation. PostgreSQL/MySQL/MariaDB GnuCash backends
+are unclaimed.
+
+`gnucash-web-companion` accesses GnuCash SQL books through `piecash` behind the FastAPI service
+layer. GnuCash Desktop remains the authoritative editor, and users should test with a disposable
+copy before pointing the app at any real book.
 
 ## Current compatibility matrix
 
-This matrix is intentionally narrow. It separates automated synthetic fixture evidence from blocked/manual fixture work and from unclaimed backends. Rows below do not prove compatibility with every GnuCash Desktop release, SQL backend, operating system, or real user book.
+This matrix is intentionally narrow. It separates automated synthetic fixture evidence from
+blocked/manual fixture work and from unclaimed backends. Rows below do not prove compatibility with
+every GnuCash Desktop release, SQL backend, operating system, or real user book.
 
-Phase 204 regression guard plus overnight worker 12 report guard: `apps/api/app/compatibility_matrix.py` and `apps/api/tests/test_compatibility_matrix.py` ingest redacted collector metadata, classify it as tested synthetic evidence, blocked/manual fixture work, or unclaimed backend, and render/check a conservative operator summary. Tests fail if the rendered report implies broad compatibility claims such as all-version, public-write, stable-support, Desktop-real-book support, or if it contains private-looking path/account/memo/description/amount evidence.
+Phase 204 regression guard plus overnight worker 12 report guard:
+`apps/api/app/compatibility_matrix.py` and `apps/api/tests/test_compatibility_matrix.py` ingest
+redacted collector metadata, classify it as tested synthetic evidence, blocked/manual fixture work,
+or unclaimed backend, and render/check a conservative operator summary. Tests fail if the rendered
+report implies broad compatibility claims such as all-version, public-write, stable-support,
+Desktop-real-book support, or if it contains private-looking path/account/memo/description/amount
+evidence.
 
 ## Tested synthetic/disposable fixture evidence
 
@@ -42,7 +57,8 @@ These rows are evidence of safe procedures or blockers. They are not tested Desk
 
 ## Unclaimed backends and formats
 
-These entries are intentionally outside the tested matrix until a later explicit phase adds safe fixtures, read-only validation, and docs/tests.
+These entries are intentionally outside the tested matrix until a later explicit phase adds safe
+fixtures, read-only validation, and docs/tests.
 
 | Backend / format | Current matrix status | Required before a tested row |
 |---|---|---|
