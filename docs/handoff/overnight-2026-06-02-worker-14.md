@@ -4,7 +4,7 @@
 Default-disabled write-safety reset probe guard for issue #36.
 
 ## Commit
-- Commit SHA: 63b41db3c15915bc37b95dae0cfabf4337dfc85a
+- Implementation commit SHA: 6f2bf7119026c1f7050ff0308db479c455768b43
 - Branch: main
 
 ## What changed
