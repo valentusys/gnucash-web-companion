@@ -106,7 +106,8 @@ JWT_SECRET=dummy-...cret APP_ADMIN_PASSWORD=*** docker compose config --quiet
 ## Commits
 
 - Code/docs commit: `bee850b` (`test: add backup restore readiness checklist guard`).
-- Handoff/final commit: pending until this handoff is committed.
+- Handoff commit: `afb3a88` (`docs: add worker 07 handoff`).
+- Final pushed HEAD after SHA correction: this follow-up docs commit.
 
 ## Remaining blockers
 
