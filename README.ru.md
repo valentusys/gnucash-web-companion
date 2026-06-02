@@ -47,6 +47,18 @@ release docs и handoff-файлах, чтобы этот файл не стан
   readiness gates. #28 продолжается как постепенная cleanup-задача без whole-repo reflow.
 - Недавно закрытые очереди: #13, #41, #42, #43.
 
+## Карта открытых очередей
+
+- #22: compatibility fixtures. Открыта до появления isolated disposable
+  Desktop-generated synthetic SQLite fixture evidence; real/private/original/only-copy books не
+  подходят для этого evidence.
+- #28: raw Markdown readability. Цель — сделать публичные/status docs удобными для review в
+  терминале, без массового переписывания исторических handoff/release файлов и без ослабления
+  safety/no-release wording.
+- #36: controlled-write readiness. Открыта до принятия remaining gates: supported-version write
+  compatibility, future copied/restorable authorization packet, restore evidence boundaries,
+  `GNUCASH_WRITES_ENABLED=false`, `APP_ENV=test`, and NO_RELEASE posture.
+
 ## Где смотреть подробности
 
 - Подробный статус и длинная история: [PROJECT_STATUS.md](PROJECT_STATUS.md).

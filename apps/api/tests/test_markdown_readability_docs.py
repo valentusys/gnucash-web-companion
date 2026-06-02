@@ -56,16 +56,20 @@ def test_readme_ru_starts_with_compact_public_status_and_safety_navigation() -> 
     text = README_RU.read_text(encoding="utf-8")
 
     status = text.index("## Текущий публичный статус")
+    queue_map = text.index("## Карта открытых очередей")
     details = text.index("## Где смотреть подробности")
     post_release = text.index("## Последние post-release фазы")
 
-    assert status < details < post_release
+    assert status < queue_map < details < post_release
     assert "Короткая версия для review в терминале" in text
     assert "`v0.5.1-public-readonly-beta` не опубликован" in text
     assert "`v0.4.0-owner-writebeta` отложен" in text
     assert "`GNUCASH_WRITES_ENABLED=false` остаётся безопасным дефолтом" in text
     assert "real/private/original/only-copy books не являются безопасной write-целью" in text
     assert "без whole-repo reflow" in text
+    assert "#22" in text and "Desktop-generated synthetic SQLite fixture" in text
+    assert "#28" in text and "raw Markdown" in text
+    assert "#36" in text and "controlled-write readiness" in text
 
 
 def test_project_status_starts_with_current_status_navigation_links() -> None:
