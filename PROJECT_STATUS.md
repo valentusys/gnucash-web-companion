@@ -20,6 +20,14 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
 
 ## Repository
 
+- Overnight worker `overnight-2026-06-02-worker-01` completed a #28 changelog/release-doc
+  readability slice. `CHANGELOG.md` now starts with quick navigation and grouped current-release
+  posture before the long history; `docs/release/v0.5.0-public-readonly-beta-notes.md` and final-gate
+  evidence gained source-readable navigation/sections. Public release truth is unchanged:
+  `v0.5.0-public-readonly-beta` remains current, `v0.5.1-public-readonly-beta` is not published,
+  `GNUCASH_WRITES_ENABLED=false` remains default, and no public write beta/stable/production/security-
+  audited claim was added.
+
 - Autonomous multiqueue run completed six safe packages across #22/#28/#36 and recorded
   `docs/handoff/autonomous-multiqueue-final-report.md`. #22 remains open with exact headless Desktop
   fixture blocker evidence (`gnucash-cli` 5.14 available; GUI `gnucash` cannot initialize without

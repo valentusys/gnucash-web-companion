@@ -5,28 +5,104 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versioned releases begin.
 
+## Quick navigation
+
+Use this file as the historical release/change ledger. For current status evidence, start with
+`PROJECT_STATUS.md`, recent `docs/handoff/` artifacts, and the linked release docs rather than
+reading the full history linearly.
+
+- Current public read-only beta: `v0.5.0-public-readonly-beta`.
+- Missing/deferred public read-only release: `v0.5.1-public-readonly-beta` is not published.
+- Current public experimental write-alpha pre-release: `v0.2.8-writealpha`.
+- Default write mode remains `GNUCASH_WRITES_ENABLED=false`; enabled write-alpha/writebeta work remains
+  experimental and `APP_ENV=test` gated.
+- No public write beta, stable release, production claim, or security-audited claim is made here.
+- For the current open queue, see GitHub issues #22, #28, and #36 plus recent handoff docs.
+
 ## [Unreleased]
 
-- Autonomous true 6h final for #22 — completed five safe compatibility workflow cycles, updated #22 with the exact remaining Desktop-generated synthetic fixture blocker, ran the full local gate, confirmed latest CI success, and recorded PM `NO_RELEASE`. No book, private evidence, write-mode change, or release publication was added.
+### Current autonomous/readability and compatibility work
 
-- Autonomous true 6h cycle 5 for #22 — added schema-like compatibility-report validator gates for string field types, bounded text fields, allowed backend/fixture-scope enums, and conservative evidence-class matching. Generated safe reports still validate successfully. No book, private evidence, write-mode change, or release publication was added.
+- Autonomous true 6h final for #22:
+  - completed five safe compatibility workflow cycles;
+  - updated #22 with the exact remaining Desktop-generated synthetic fixture blocker;
+  - ran the full local gate, confirmed latest CI success, and recorded PM `NO_RELEASE`;
+  - added no book, private evidence, write-mode change, or release publication.
 
-- Autonomous true 6h cycle 4 for #22 — hardened the safe compatibility-report issue template so public feedback asks only for OS/browser/Docker/GnuCash version/backend/fixture-scope/generic-error metadata and explicitly forbids books, app DBs, backups, exports, screenshots, `.env`, tokens, private paths, account names, transaction descriptions, memos, and amounts. No book, private evidence, write-mode change, or release publication was added.
+- Autonomous true 6h cycle 5 for #22:
+  - added schema-like compatibility-report validator gates for string field types, bounded text fields,
+    allowed backend/fixture-scope enums, and conservative evidence-class matching;
+  - kept generated safe reports validating successfully;
+  - added no book, private evidence, write-mode change, or release publication.
 
-- Autonomous true 6h cycle 3 for #22 — hardened the safe Desktop tooling probe so unexpected private-looking `--version` output is redacted, and documented current local `gnucash-cli` 5.14 availability as command/version evidence only. Desktop-generated fixture evidence remains blocked on isolated disposable GUI/manual-safe fixture creation plus read-only validation. No book, private evidence, write-mode change, or release publication was added.
+- Autonomous true 6h cycle 4 for #22:
+  - hardened the safe compatibility-report issue template so public feedback asks only for OS, browser,
+    Docker/runtime, GnuCash version, backend, fixture scope, and generic error metadata;
+  - explicitly forbids books, app DBs, backups, exports, screenshots, `.env`, tokens, private paths,
+    account names, transaction descriptions, memos, and amounts;
+  - added no book, private evidence, write-mode change, or release publication.
 
-- Autonomous true 6h cycle 2 for #22 — added a code-backed fixture-scope boundary vocabulary for `synthetic`, `disposable`, `copied-restorable`, and `unknown` compatibility reports, with tests and docs guarding against report metadata becoming broad support claims or tested matrix rows by itself. No book, private evidence, write-mode change, or release publication was added.
+- Autonomous true 6h cycle 3 for #22:
+  - hardened the safe Desktop tooling probe so unexpected private-looking `--version` output is redacted;
+  - documented current local `gnucash-cli` 5.14 availability as command/version evidence only;
+  - keeps Desktop-generated fixture evidence blocked on isolated disposable GUI/manual-safe fixture
+    creation plus read-only validation;
+  - added no book, private evidence, write-mode change, or release publication.
 
-- Autonomous true 6h cycle 1 for #22 — hardened safe public compatibility report redaction and validation. The report helper now redacts account-like, memo-like, description-like, amount-like, and path-like operator-provided values, and the validator rejects unsafe account/memo/description-like JSON values while keeping evidence classes conservative. No book, app DB, backup, export, screenshot, private evidence, write-mode change, or release publication was added.
+- Autonomous true 6h cycle 2 for #22:
+  - added code-backed fixture-scope vocabulary for `synthetic`, `disposable`, `copied-restorable`, and
+    `unknown` compatibility reports;
+  - added tests/docs guarding against report metadata becoming broad support claims or tested matrix rows
+    by itself;
+  - added no book, private evidence, write-mode change, or release publication.
 
-- Autonomous long run for #13 — expanded `/books` admin metadata management for already-mounted local copied/test SQLite GnuCash books. Admins can register schema-validated local SQLite GnuCash targets, see registered books, set/change the default metadata book, and remove a book from the app registry without deleting the underlying file. Non-admin routes remain blocked, private paths stay redacted, and no upload, accounting edit, file deletion, write-mode default change, or release publication was added.
+- Autonomous true 6h cycle 1 for #22:
+  - hardened safe public compatibility report redaction and validation;
+  - redacts account-like, memo-like, description-like, amount-like, and path-like operator-provided values;
+  - rejects unsafe account/memo/description-like JSON values while keeping evidence classes conservative;
+  - added no book, app DB, backup, export, screenshot, private evidence, write-mode change, or release
+    publication.
 
-- Phase 830 / Phases 731–830 — completed the owner-writebeta/public-readonly reconciliation run with final `FINAL_NO_RELEASE`. Live checks confirmed `v0.5.1-public-readonly-beta` is absent; `v0.5.0-public-readonly-beta` remains current. Strengthened owner-writebeta state-machine primitives/tests, closed #41/#42 after verification, kept #43 open, and preserved default-disabled/test-gated write posture. Mutation counts: CREATE 0, PATCH 0, DELETE 0. No tag, GitHub release, public write beta, stable release, real/private/original/only-copy mutation, private evidence, default write enablement, or `APP_ENV=test` weakening was added.
+- Autonomous long run for #13:
+  - expanded `/books` admin metadata management for already-mounted local copied/test SQLite GnuCash books;
+  - allows admins to register schema-validated local SQLite GnuCash targets, list registered books,
+    set/change the default metadata book, and remove a book from the app registry without deleting the
+    underlying file;
+  - keeps non-admin routes blocked and private paths redacted;
+  - added no upload, accounting edit, file deletion, write-mode default change, or release publication.
 
-- Phase 630 / Phases 531–630 — completed the next 100-phase run with final `NO_RELEASE`. Added public read-only first-user checklist, safer issue-template wording, owner-writebeta session workflow posture docs, read-only deployment diagnostics/privacy guidance, read-only usefulness plan, final no-release evidence, and a tracked-file hygiene guard with tests. No tag, GitHub release, package, image, public write beta, stable-release publication, production deployment, original/private/working-book mutation, default write enablement, `APP_ENV=test` weakening, private evidence, or broad safety claim was added. Mutation counts in this run: CREATE 0, PATCH 0, DELETE 0. `v0.5.0-public-readonly-beta` remains the current public read-only beta; `v0.2.8-writealpha` remains the current experimental write-alpha pre-release.
+### Recent release/status posture
 
-- Phase 530 / Phases 481–530 — published `v0.5.0-public-readonly-beta` as a conservative GitHub pre-release for public read-only testing. It is not production-ready, not stable, not security-audited, not public-internet safe, and not a public write beta. `GNUCASH_WRITES_ENABLED=false` remains default.
-- Deferred `v0.4.0-owner-writebeta`; mutation counts in Phases 481–530 were CREATE 0, PATCH 0, DELETE 0.
+- Phase 830 / Phases 731–830:
+  - completed the owner-writebeta/public-readonly reconciliation run with final `FINAL_NO_RELEASE`;
+  - confirmed live that `v0.5.1-public-readonly-beta` is absent and
+    `v0.5.0-public-readonly-beta` remains current;
+  - strengthened owner-writebeta state-machine primitives/tests, closed #41/#42 after verification,
+    kept #43 open, and preserved default-disabled/test-gated write posture;
+  - mutation counts: CREATE 0, PATCH 0, DELETE 0;
+  - added no tag, GitHub release, public write beta, stable release, real/private/original/only-copy
+    mutation, private evidence, default write enablement, or `APP_ENV=test` weakening.
+
+- Phase 630 / Phases 531–630:
+  - completed the next 100-phase run with final `NO_RELEASE`;
+  - added public read-only first-user checklist, safer issue-template wording, owner-writebeta session
+    workflow posture docs, read-only deployment diagnostics/privacy guidance, read-only usefulness plan,
+    final no-release evidence, and a tracked-file hygiene guard with tests;
+  - mutation counts: CREATE 0, PATCH 0, DELETE 0;
+  - `v0.5.0-public-readonly-beta` remains the current public read-only beta;
+  - `v0.2.8-writealpha` remains the current experimental write-alpha pre-release;
+  - added no tag, GitHub release, package, image, public write beta, stable-release publication,
+    production deployment, original/private/working-book mutation, default write enablement,
+    `APP_ENV=test` weakening, private evidence, or broad safety claim.
+
+- Phase 530 / Phases 481–530:
+  - published `v0.5.0-public-readonly-beta` as a conservative GitHub pre-release for public read-only
+    testing;
+  - kept it explicitly not production-ready, not stable, not security-audited, not public-internet safe,
+    and not a public write beta;
+  - kept `GNUCASH_WRITES_ENABLED=false` as the default;
+  - deferred `v0.4.0-owner-writebeta`;
+  - mutation counts: CREATE 0, PATCH 0, DELETE 0.
 - Phase 480 / Phases 431–480 — completed the owner-writebeta/public-readonly-beta 50-phase run with final `NO_RELEASE`. PR #40 was verified as merged, v0.4/v0.5 targets and exit criteria were documented, a non-mutating owner write-session preflight/manifest prototype plus UI warning copy were added, public read-only beta install/security/feedback docs were drafted, and PM kept copied-book mutation, real working-book mutation, v0.4 release, and v0.5 release blocked. Mutation counts in this run: CREATE 0, PATCH 0, DELETE 0. No tag, GitHub release, package, image, stable-release publication, production deployment, original/private/only-copy mutation, default write enablement, `APP_ENV=test` weakening, private evidence, or broad safety claim was added.
 
 - Phase 430 / Phases 381–430 — completed the post-PR #40 50-phase run. PR #40 was merged, public docs were reconciled, Cycle 1/2/3/4/final PM decisions were `NO_RELEASE`, and one bounded copied-book session was accepted narrowly: exactly 2 CREATE, exactly 1 metadata/memo-only PATCH, 0 DELETE on a copied/restorable SQL working book outside git. No tag, GitHub release, package, image, stable-release publication, production deployment, original/private/only-copy mutation, default write enablement, `APP_ENV=test` weakening, or broad safety claim was added.
