@@ -81,9 +81,9 @@ reflow.
 
 ## Commit / CI
 
-- Implementation commit: fill after commit.
-- Issue comment: fill after issue update.
-- CI: fill after push if GitHub Actions run is available.
+- Implementation commit: `2b46f694de765efee44cce5ca9d7b3c0334585e5`.
+- Issue comment: https://github.com/valentusys/gnucash-web-companion/issues/28#issuecomment-4601483071
+- CI: success for pushed implementation commit, https://github.com/valentusys/gnucash-web-companion/actions/runs/26813909761.
 
 ## Remaining blockers for #28
 
