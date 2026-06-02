@@ -6,6 +6,7 @@ from pathlib import Path
 
 from app.compatibility_matrix import (
     build_matrix_row_from_metadata,
+    fixture_scope_boundaries,
     unsafe_broad_support_phrases,
 )
 
@@ -95,6 +96,33 @@ def test_compatibility_docs_describe_safe_public_report_evidence_classes() -> No
     assert "copied-restorable-report" in doc
     assert "unverified" in doc
     assert "not a compatibility guarantee" in doc
+
+
+def test_fixture_scope_boundaries_are_explicit_and_non_claiming() -> None:
+    boundaries = fixture_scope_boundaries()
+
+    assert set(boundaries) == {"synthetic", "disposable", "copied-restorable", "unknown"}
+    assert boundaries["synthetic"]["evidence_class"] == "tested-synthetic-fixture"
+    assert boundaries["disposable"]["evidence_class"] == "tested-disposable-report"
+    assert boundaries["copied-restorable"]["evidence_class"] == "copied-restorable-report"
+    assert boundaries["unknown"]["evidence_class"] == "unverified"
+    combined = " ".join(str(item) for value in boundaries.values() for item in value.values()).lower()
+    assert "not a compatibility guarantee" in combined
+    assert "private row data" in combined
+    for phrase in unsafe_broad_support_phrases():
+        assert phrase not in combined
+
+
+def test_compatibility_docs_define_fixture_scope_boundaries() -> None:
+    doc = COMPATIBILITY_DOC.read_text(encoding="utf-8")
+
+    assert "## Fixture scope boundary vocabulary" in doc
+    assert "`synthetic`" in doc
+    assert "`disposable`" in doc
+    assert "`copied-restorable`" in doc
+    assert "`unknown`" in doc
+    assert "private row data remains forbidden" in doc
+    assert "does not become a tested matrix row" in doc
 
 
 def test_compatibility_docs_and_changelog_do_not_claim_broad_support() -> None:

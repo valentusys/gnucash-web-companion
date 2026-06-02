@@ -120,6 +120,33 @@ def build_matrix_row_from_metadata(
     )
 
 
+def fixture_scope_boundaries() -> dict[str, dict[str, str]]:
+    """Describe public feedback fixture scopes without broadening support claims."""
+
+    return {
+        "synthetic": {
+            "evidence_class": "tested-synthetic-fixture",
+            "meaning": "Committed or generated synthetic SQLite fixture evidence.",
+            "boundary": "Synthetic fixture only; not a compatibility guarantee for real books or Desktop versions.",
+        },
+        "disposable": {
+            "evidence_class": "tested-disposable-report",
+            "meaning": "Operator-created disposable SQLite fixture evidence reviewed as a report.",
+            "boundary": "Useful for triage only; not a compatibility guarantee and not a reusable fixture row by itself.",
+        },
+        "copied-restorable": {
+            "evidence_class": "copied-restorable-report",
+            "meaning": "A copied/restorable SQLite book stayed outside git and was reported only as redacted metadata.",
+            "boundary": "Private row data remains forbidden; metadata alone does not become a tested matrix row.",
+        },
+        "unknown": {
+            "evidence_class": "unverified",
+            "meaning": "Unknown scope or non-SQLite/backend-mismatched report.",
+            "boundary": "No support claim; future work needs explicit safe fixtures and validation.",
+        },
+    }
+
+
 def unsafe_broad_support_phrases() -> tuple[str, ...]:
     """Phrases compatibility docs/UI must avoid unless a future release changes policy."""
 

@@ -7,6 +7,8 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versione
 
 ## [Unreleased]
 
+- Autonomous true 6h cycle 2 for #22 — added a code-backed fixture-scope boundary vocabulary for `synthetic`, `disposable`, `copied-restorable`, and `unknown` compatibility reports, with tests and docs guarding against report metadata becoming broad support claims or tested matrix rows by itself. No book, private evidence, write-mode change, or release publication was added.
+
 - Autonomous true 6h cycle 1 for #22 — hardened safe public compatibility report redaction and validation. The report helper now redacts account-like, memo-like, description-like, amount-like, and path-like operator-provided values, and the validator rejects unsafe account/memo/description-like JSON values while keeping evidence classes conservative. No book, app DB, backup, export, screenshot, private evidence, write-mode change, or release publication was added.
 
 - Autonomous long run for #13 — expanded `/books` admin metadata management for already-mounted local copied/test SQLite GnuCash books. Admins can register schema-validated local SQLite GnuCash targets, see registered books, set/change the default metadata book, and remove a book from the app registry without deleting the underlying file. Non-admin routes remain blocked, private paths stay redacted, and no upload, accounting edit, file deletion, write-mode default change, or release publication was added.

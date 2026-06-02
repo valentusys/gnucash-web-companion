@@ -144,6 +144,19 @@ The probe checks `gnucash` and `gnucash-cli` command availability and bounded `-
 - Add a compatibility CI job only after the fixture set is non-sensitive and reproducible.
 
 
+## Fixture scope boundary vocabulary
+
+The compatibility workflow uses narrow fixture-scope words so reports do not become broader support claims:
+
+| `fixture_scope` | Report `evidence_class` | Boundary |
+|---|---|---|
+| `synthetic` | `tested-synthetic-fixture` | Committed/generated synthetic SQLite fixture evidence only; not real-book or Desktop-version proof. |
+| `disposable` | `tested-disposable-report` | Operator-created disposable SQLite report metadata for triage; it does not become a tested matrix row by itself. |
+| `copied-restorable` | `copied-restorable-report` | Copied/restorable SQLite book stayed outside git; private row data remains forbidden, and redacted metadata alone is not publishable support evidence. |
+| `unknown` | `unverified` | Unknown scope, non-SQLite backend, or incomplete provenance; no support claim. |
+
+Keep these scope labels tied to the report and matrix rows above. They are not a compatibility guarantee and must not be used to imply all-version, all-backend, real-book, production, or security-audited support.
+
 ## Safe public compatibility feedback workflow
 
 For public read-only beta reports, share redacted metadata only: app tag/commit, OS/browser/Docker/GnuCash versions, backend type, fixture scope, and generic error class.
