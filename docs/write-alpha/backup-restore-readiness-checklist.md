@@ -16,6 +16,11 @@ A future package must fail closed unless its redacted evidence includes all of t
 | `private_raw_evidence_included` | `false` | Rejects raw/private paths, account names, memos, amounts, payloads, screenshots, exports, app DBs, books, or backups. |
 | `default_writes_disabled` | `true` | Confirms `GNUCASH_WRITES_ENABLED=false` remains the committed/default posture. |
 | `recovery_hard_stop_note` | Text containing stop/hard-stop plus recovery guidance | Makes the operator stop and recover from verified backup before any further write attempt after a failed gate. |
+| `abort_after_failed_restore_or_readback_or_audit` | `true` | Requires an explicit hard stop after failed restore, read-back, or audit evidence instead of continuing the write milestone. |
+| `backup_preservation_note` | Text containing preserve plus backup guidance | Requires preserving the pre-write backup and damaged candidate/evidence outside git for review. |
+| `no_retry_same_copy_without_recovery` | `true` | Blocks retrying writes on the same copied book until recovery/regeneration and read-only checks pass. |
+| `maintainer_review_or_owner_escalation` | `true` | Requires maintainer review or owner escalation before any further write attempt after recovery-path failure. |
+| `default_disabled_reset_probe` | `true` | Requires reset to `GNUCASH_WRITES_ENABLED=false` plus a disabled-write probe after recovery. |
 
 ## Code guard
 

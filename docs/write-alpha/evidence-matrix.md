@@ -17,6 +17,7 @@ public posture. It is documentation only and does not authorize any mutation.
 | DELETE copied-book dogfood | Routed delete of owned copied/restorable target in accepted evidence | Passed narrowly; not a real-book claim |
 | Final DELETE reset evidence | verify-reset `reset_required`, reset-disabled `disabled` | Passed |
 | Backup/restore readiness checklist guard | `validate_backup_restore_readiness_evidence`, checklist docs, synthetic tests | Non-mutating guard added; required before future write milestones |
+| Recovery/hard-stop readiness guard | Synthetic tests require abort-after-failed-restore/read-back/audit, backup preservation, no retry on same copy before recovery, maintainer/owner escalation, and default-disabled reset probe markers | Non-mutating guard added; required before future write milestones |
 | Disabled route probes | CREATE/PATCH/DELETE -> 403 after reset | Passed |
 | Real working/private/original book | No accepted evidence; not authorized | Blocked |
 | Public write beta | No accepted milestone decision | Blocked |

@@ -233,6 +233,19 @@ def _bool_check(evidence: Mapping[str, Any], key: str, ok_message: str, blocked_
     return _ok(ok_message, marker=key) if evidence.get(key) is True else _blocked(blocked_message, marker=key)
 
 
+def _text_marker_check(
+    evidence: Mapping[str, Any],
+    key: str,
+    required_terms: tuple[str, ...],
+    ok_message: str,
+    blocked_message: str,
+) -> ReadinessCheck:
+    note = str(evidence.get(key, "")).strip().lower()
+    if note and all(term in note for term in required_terms):
+        return _ok(ok_message, marker=key)
+    return _blocked(blocked_message, marker=key)
+
+
 def validate_backup_restore_readiness_evidence(evidence: Mapping[str, Any]) -> WriteAlphaReadiness:
     """Validate redacted backup/restore readiness evidence without mutating files.
 
@@ -295,6 +308,37 @@ def validate_backup_restore_readiness_evidence(evidence: Mapping[str, Any]) -> W
             _ok("Recovery/hard-stop note is present.", marker="recovery_hard_stop_note")
             if ("stop" in note or "hard-stop" in note) and "recover" in note
             else _blocked("Recovery/hard-stop note must tell the operator to stop and recover before further writes.", marker="recovery_hard_stop_note")
+        ),
+        "abort_after_failed_restore_or_readback_or_audit": _bool_check(
+            evidence,
+            "abort_after_failed_restore_or_readback_or_audit",
+            "Abort/hard-stop marker after failed restore, read-back, or audit is present.",
+            "Abort/hard-stop marker after failed restore, read-back, or audit is missing.",
+        ),
+        "backup_preservation_note": _text_marker_check(
+            evidence,
+            "backup_preservation_note",
+            ("preserve", "backup"),
+            "Backup preservation note is present.",
+            "Backup preservation note must tell the operator to preserve recovery backups/evidence.",
+        ),
+        "no_retry_same_copy_without_recovery": _bool_check(
+            evidence,
+            "no_retry_same_copy_without_recovery",
+            "No-retry-on-same-copy-without-recovery marker is present.",
+            "No-retry-on-same-copy-without-recovery marker is missing.",
+        ),
+        "maintainer_review_or_owner_escalation": _bool_check(
+            evidence,
+            "maintainer_review_or_owner_escalation",
+            "Maintainer review or owner escalation marker is present.",
+            "Maintainer review or owner escalation marker is missing.",
+        ),
+        "default_disabled_reset_probe": _bool_check(
+            evidence,
+            "default_disabled_reset_probe",
+            "Default write-disabled reset/probe marker is present.",
+            "Default write-disabled reset/probe marker is missing.",
         ),
         "no_mutation_performed": _ok("Checklist validation performed no mutation.", mutation="none"),
     }

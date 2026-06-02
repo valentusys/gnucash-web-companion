@@ -166,6 +166,11 @@ def _complete_backup_restore_evidence() -> dict[str, object]:
         "private_raw_evidence_included": False,
         "default_writes_disabled": True,
         "recovery_hard_stop_note": "stop and recover from the verified backup before any further write attempt",
+        "abort_after_failed_restore_or_readback_or_audit": True,
+        "backup_preservation_note": "preserve the pre-write backup and damaged candidate outside git for maintainer review",
+        "no_retry_same_copy_without_recovery": True,
+        "maintainer_review_or_owner_escalation": True,
+        "default_disabled_reset_probe": True,
     }
 
 
@@ -184,6 +189,11 @@ def test_backup_restore_readiness_evidence_requires_all_fail_closed_markers():
     assert payload["checks"]["private_raw_evidence_absent"]["status"] == "ok"
     assert payload["checks"]["default_writes_disabled"]["status"] == "ok"
     assert payload["checks"]["recovery_hard_stop_note"]["status"] == "ok"
+    assert payload["checks"]["abort_after_failed_restore_or_readback_or_audit"]["status"] == "ok"
+    assert payload["checks"]["backup_preservation_note"]["status"] == "ok"
+    assert payload["checks"]["no_retry_same_copy_without_recovery"]["status"] == "ok"
+    assert payload["checks"]["maintainer_review_or_owner_escalation"]["status"] == "ok"
+    assert payload["checks"]["default_disabled_reset_probe"]["status"] == "ok"
     assert payload["mutation_plan"]["authorized"] is False
     assert "authorized_mutations=create:0,patch:0,delete:0" in result.safe_summary()
 
@@ -199,6 +209,28 @@ def test_backup_restore_readiness_evidence_blocks_missing_restore_schema_marker(
     assert payload["status"] == "blocked"
     assert payload["checks"]["restore_schema_marker_verified"]["status"] == "blocked"
     assert "restore_schema_marker_verified=blocked" in result.safe_summary()
+
+
+def test_backup_restore_readiness_evidence_blocks_missing_recovery_hard_stop_markers():
+    required_markers = [
+        "abort_after_failed_restore_or_readback_or_audit",
+        "backup_preservation_note",
+        "no_retry_same_copy_without_recovery",
+        "maintainer_review_or_owner_escalation",
+        "default_disabled_reset_probe",
+    ]
+
+    for marker in required_markers:
+        evidence = _complete_backup_restore_evidence()
+        evidence.pop(marker)
+
+        result = validate_backup_restore_readiness_evidence(evidence)
+        payload = result.to_dict()
+
+        assert result.ready is False, marker
+        assert payload["status"] == "blocked"
+        assert payload["checks"][marker]["status"] == "blocked"
+        assert f"{marker}=blocked" in result.safe_summary()
 
 
 def test_backup_restore_readiness_evidence_blocks_private_or_raw_evidence():
