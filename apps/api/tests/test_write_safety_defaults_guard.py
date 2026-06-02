@@ -36,6 +36,17 @@ def test_write_safety_defaults_guard_passes_on_committed_config() -> None:
     assert proc.stderr == ""
 
 
+def test_owner_writebeta_operating_guide_preserves_future_copied_book_authorization_format() -> None:
+    guide = (ROOT / "docs/write-alpha/owner-writebeta-operating-guide.md").read_text(encoding="utf-8")
+
+    assert "## Future copied/restorable authorization format" in guide
+    assert "same execution context" in guide
+    assert "route family and operation counts" in guide
+    assert "backup/read-back/audit/lock/restore/reset" in guide
+    assert "No original/private/real-working/only-copy book" in guide
+    assert "If authorization is absent, run non-mutating guards/docs/tests only" in guide
+
+
 def test_write_safety_defaults_guard_rejects_unsafe_fixture(tmp_path: Path) -> None:
     env_example = tmp_path / ".env.example"
     compose = tmp_path / "docker-compose.yml"

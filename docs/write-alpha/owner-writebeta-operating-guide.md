@@ -31,6 +31,19 @@ A real working-book trial is blocked unless all items below are true in the same
 
 If any item is missing, mark the subtask blocked and continue with non-mutating readiness work.
 
+## Future copied/restorable authorization format
+
+A future copied/restorable dogfood package is allowed only when the owner and PM authorization is in
+same execution context as the operation. The authorization must state:
+
+1. copied/restorable target class and outside-git staging location class, without printing a private path;
+2. route family and operation counts;
+3. backup/read-back/audit/lock/restore/reset expectations;
+4. redaction and evidence-publication limits;
+5. No original/private/real-working/only-copy book is the target.
+
+If authorization is absent, run non-mutating guards/docs/tests only and keep #36 open.
+
 ## Phase 778 addendum
 
 Operating guide refreshed conservatively.
