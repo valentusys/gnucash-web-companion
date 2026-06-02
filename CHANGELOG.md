@@ -19,6 +19,15 @@ reading the full history linearly.
 - No public write beta, stable release, production claim, or security-audited claim is made here.
 - For the current open queue, see GitHub issues #22, #28, and #36 plus recent handoff docs.
 
+### Current queue map
+
+- #22 compatibility fixtures: keep open until isolated Desktop-generated synthetic SQLite fixture
+  evidence exists; generated/synthetic and copied/restorable rows are not broad version support.
+- #28 Markdown source readability: active cleanup queue for public/status docs before wider
+  announcement; use scoped reflow and guard updates rather than whole-history rewrites.
+- #36 controlled-write readiness: keep open for remaining non-mutating gates and any future
+  same-context owner + PM copied/restorable authorization packet; no public write beta.
+
 ## [Unreleased]
 
 ### Current autonomous/readability and compatibility work

@@ -50,6 +50,10 @@ def test_changelog_starts_with_readable_release_navigation() -> None:
     assert "`v0.5.1-public-readonly-beta` is not published" in text
     assert "Default write mode remains `GNUCASH_WRITES_ENABLED=false`" in text
     assert "No public write beta, stable release, production claim, or security-audited claim" in text
+    assert "### Current queue map" in text
+    assert "#22 compatibility fixtures" in text
+    assert "#28 Markdown source readability" in text
+    assert "#36 controlled-write readiness" in text
 
 
 def test_readme_ru_starts_with_compact_public_status_and_safety_navigation() -> None:
