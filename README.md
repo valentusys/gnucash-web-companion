@@ -47,20 +47,26 @@ This project is not a fit if you need:
 
 ## Current status
 
-- Phase 0–830 are complete. Phases 731–830 reconciled the missing `v0.5.1-public-readonly-beta` claim as no-release; `v0.5.0-public-readonly-beta` remains the current public read-only beta.
-- Issues #41 and #42 are closed after Phase 731–830 verification; #43 remains open for owner-writebeta routed/copied-book work. `v0.4.0-owner-writebeta` remains deferred.
-- Phases 731–830 performed no real or copied-book mutations: CREATE 0, PATCH 0, DELETE 0. No real/original/private/only-copy book was touched.
-- MVP/read-only access remains **read-only by default**.
-- Controlled-write code, if present in the repository, is experimental post-MVP work and disabled by
-  default.
-- First public pre-alpha release: `v0.0.1-prealpha`.
-- Current public read-only beta pre-release:
+Read this section as a conservative public summary; detailed phase history stays in
+[PROJECT_STATUS.md](PROJECT_STATUS.md) and [docs/handoff/](docs/handoff/). Phase 0–830 are complete;
+the current write-alpha publication baseline remains Phase 261.
+
+- **Current public read-only beta:**
   [`v0.5.0-public-readonly-beta`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.5.0-public-readonly-beta).
-- Latest published read-only beta notes:
+- **Not published:** `v0.5.1-public-readonly-beta` and `v0.4.0-owner-writebeta`.
+- **Default posture:** MVP/read-only access remains **read-only by default**;
+  controlled-write code is experimental post-MVP work and disabled by default.
+- **Write safety:** `GNUCASH_WRITES_ENABLED=false` remains the default, explicit write-alpha/writebeta
+  flows remain test-gated, and no real/private/original/only-copy book is a safe write target.
+- **Open follow-up queues:** #22 compatibility fixtures, #28 markdown readability, and #36
+  controlled-write readiness gates.
+- **Recently closed:** #13, #41, #42, and #43.
+- **Latest read-only beta notes:**
   [docs/release/v0.5.0-public-readonly-beta-notes.md](docs/release/v0.5.0-public-readonly-beta-notes.md)
   ([checklist](docs/release/v0.5.0-public-readonly-beta-checklist.md), [final
   gate](docs/release/v0.5.0-public-readonly-beta-final-gate.md), [publication
   evidence](docs/release/v0.5.0-public-readonly-beta-publication-evidence.md)).
+- **First public pre-alpha release:** `v0.0.1-prealpha`.
 - Previous public read-only release:
   [`v0.1.6-readonly`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.6-readonly)
   ([notes](docs/release/v0.1.6-readonly-notes.md),
