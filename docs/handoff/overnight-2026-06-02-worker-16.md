@@ -80,7 +80,8 @@ Issue comment posted: pending until push/CI step.
 
 ## Commit / CI
 
-- Implementation commit SHA: `8d1a7c5d9e2ecd2302ca9cccef2023b593f97769` before this SHA metadata update.
+- Implementation commit SHA: `10489b3efec35601f4a8a74f5be736cc992ecc12`.
+- Final handoff metadata commit SHA: pending.
 - Pushed HEAD: pending.
 - CI: pending.
 
