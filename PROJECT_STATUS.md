@@ -20,9 +20,9 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) markdown readability, and
   [#36](https://github.com/valentusys/gnucash-web-companion/issues/36) controlled-write readiness
   gates.
-- Latest handoffs: `docs/handoff/overnight-2026-06-02-worker-19.md`,
-  `docs/handoff/overnight-2026-06-02-worker-18.md`,
-  `docs/handoff/overnight-2026-06-02-worker-17.md`.
+- Latest handoffs: `docs/handoff/overnight-2026-06-02-worker-20.md`,
+  `docs/handoff/overnight-2026-06-02-worker-19.md`,
+  `docs/handoff/overnight-2026-06-02-worker-18.md`.
 
 ## Current status snapshot
 
@@ -36,6 +36,15 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
 - Recently closed queues: #13, #41, #42, #43.
 
 ## Repository
+
+- Overnight worker `overnight-2026-06-02-worker-20` completed a non-mutating #36 remaining-gates
+  audit packet. Added `docs/write-alpha/issue-36-remaining-gates.md` with the exact accepted evidence,
+  closure blockers, future copied/restorable mutation evidence requirements, real/private/original/
+  only-copy boundary, no-release/public posture, and closure-decision requirements. The committed
+  write-safety guard now fails closed if this packet loses keep-open, same-context owner + PM
+  authorization, `GNUCASH_WRITES_ENABLED=false`, `APP_ENV=test`, no-public-write, `NO_RELEASE`, or
+  CREATE 0 / PATCH 0 / DELETE 0 markers. Mutation counts stayed zero; no private/original/working book
+  was opened, copied, or mutated; #36 remains open.
 
 - Overnight worker `overnight-2026-06-02-worker-19` completed a non-mutating #36 conservative
   write-compatibility wording guard. `scripts/check_write_safety_defaults.py` now checks

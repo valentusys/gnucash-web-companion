@@ -189,3 +189,20 @@ def test_write_safety_defaults_guard_rejects_missing_write_compatibility_caveat(
 
     assert any("synthetic/disposable or copied/restorable evidence only" in failure for failure in failures)
     assert str(tmp_path) not in "; ".join(failures)
+
+
+def test_write_safety_defaults_guard_rejects_missing_issue_36_remaining_gate_marker(
+    tmp_path: Path,
+) -> None:
+    doc = tmp_path / "issue-36.md"
+    doc.write_text(
+        "keep #36 open. GNUCASH_WRITES_ENABLED=false. APP_ENV=test. NO_RELEASE. "
+        "CREATE 0 / PATCH 0 / DELETE 0. no public write beta.\n",
+        encoding="utf-8",
+    )
+
+    failures = write_safety_guard._check_issue_36_remaining_gates(doc)
+
+    assert any("future copied/restorable mutation evidence packet" in failure for failure in failures)
+    assert any("same-context owner + PM authorization" in failure for failure in failures)
+    assert str(tmp_path) not in "; ".join(failures)
