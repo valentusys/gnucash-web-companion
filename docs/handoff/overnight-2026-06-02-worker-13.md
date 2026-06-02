@@ -88,10 +88,12 @@ Remaining blockers for closing #28:
 
 ## CI
 
-CI status to fill after pushing the handoff commit:
+GitHub Actions CI for pushed handoff commit `2653832754598d537d1dd2ed81a27b9585a94998`:
 
-- GitHub Actions run: pending push.
-- Expected check source: main branch after worker-13 commits.
+- Run: https://github.com/valentusys/gnucash-web-companion/actions/runs/26804377323
+- Workflow: CI
+- Status: completed
+- Conclusion: success
 
 ## Next supervisor recommendation
 
