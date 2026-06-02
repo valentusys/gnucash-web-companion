@@ -52,15 +52,27 @@ Read this section as a conservative public summary; detailed phase history stays
 the current write-alpha publication baseline remains Phase 261.
 
 - **Current public read-only beta:**
-  [`v0.5.0-public-readonly-beta`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.5.0-public-readonly-beta).
-- **Not published:** `v0.5.1-public-readonly-beta` and `v0.4.0-owner-writebeta`.
+  [`v0.5.0-public-readonly-beta`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.5.0-public-readonly-beta);
+  `v0.5.0-public-readonly-beta` remains current.
+- **Not published:** `v0.5.1-public-readonly-beta` is not published, and
+  `v0.4.0-owner-writebeta` is not published.
 - **Default posture:** MVP/read-only access remains **read-only by default**;
   controlled-write code is experimental post-MVP work and disabled by default.
-- **Write safety:** `GNUCASH_WRITES_ENABLED=false` remains the default, explicit write-alpha/writebeta
+- **Write safety:** `GNUCASH_WRITES_ENABLED=false` remains default; explicit write-alpha/writebeta
   flows remain test-gated, and no real/private/original/only-copy book is a safe write target.
-- **Open follow-up queues:** #22 compatibility fixtures, #28 markdown readability, and #36
+- **Open follow-up queues:** #22 compatibility fixtures, #28 Markdown readability, and #36
   controlled-write readiness gates.
 - **Recently closed:** #13, #41, #42, and #43.
+
+## Current queue map
+
+- #22 compatibility fixtures: keep open until an isolated disposable GUI/manual-safe environment
+  produces a Desktop-generated synthetic SQLite fixture and read-only validation evidence.
+- #28 Markdown readability: keep public/status Markdown readable in a terminal without mass-rewriting
+  historical phase files or weakening safety/no-release wording.
+- #36 controlled-write readiness: keep open until remaining non-mutating gates, future copied/restorable
+  authorization requirements, compatibility gaps, and PM closure acceptance are satisfied.
+
 - **Latest read-only beta notes:**
   [docs/release/v0.5.0-public-readonly-beta-notes.md](docs/release/v0.5.0-public-readonly-beta-notes.md)
   ([checklist](docs/release/v0.5.0-public-readonly-beta-checklist.md), [final

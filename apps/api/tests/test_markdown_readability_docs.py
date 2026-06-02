@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parents[3]
 GUIDE = ROOT / "docs/development/markdown-readability.md"
 CHANGELOG = ROOT / "CHANGELOG.md"
 README_RU = ROOT / "README.ru.md"
+README_EN = ROOT / "README.md"
 PROJECT_STATUS = ROOT / "PROJECT_STATUS.md"
 CHECKER = ROOT / "scripts/check_markdown_readability.py"
 RELEASE_NOTES = ROOT / "docs/release/v0.5.0-public-readonly-beta-notes.md"
@@ -76,6 +77,21 @@ def test_readme_ru_starts_with_compact_public_status_and_safety_navigation() -> 
     assert "#22" in text and "Desktop-generated synthetic SQLite fixture" in text
     assert "#28" in text and "raw Markdown" in text
     assert "#36" in text and "controlled-write readiness" in text
+
+
+def test_readme_en_has_compact_public_status_and_queue_map() -> None:
+    text = README_EN.read_text(encoding="utf-8")
+
+    status = text.index("## Current status")
+    queue_map = text.index("## Current queue map")
+    assert status < queue_map
+    assert "`v0.5.0-public-readonly-beta` remains current" in text
+    assert "`v0.5.1-public-readonly-beta` is not published" in text
+    assert "`GNUCASH_WRITES_ENABLED=false` remains default" in text
+    assert "#22 compatibility fixtures" in text
+    assert "Desktop-generated synthetic SQLite fixture" in text
+    assert "#28 Markdown readability" in text
+    assert "#36 controlled-write readiness" in text
 
 
 def test_project_status_starts_with_current_status_navigation_links() -> None:
