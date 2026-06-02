@@ -152,3 +152,156 @@ class TestWriteLockService:
         assert "book-specific stale lock" in result.operator_message
         assert str(tmp_lock_dir) not in result.operator_message
         assert "book-1" not in result.operator_message
+
+
+class TestWriteLockServiceCrossInstance:
+    """Cross-instance lock contention and stale recovery lifecycle tests."""
+
+    def test_second_instance_non_blocking_acquire_fails_when_first_holds(
+        self, tmp_lock_dir: Path
+    ) -> None:
+        """Two service instances sharing the same lock dir must serialize."""
+        svc_a = WriteLockService(lock_dir=tmp_lock_dir)
+        svc_b = WriteLockService(lock_dir=tmp_lock_dir)
+        assert svc_a.acquire("book-x") is True
+        assert svc_b.acquire("book-x", blocking=False) is False
+
+    def test_second_instance_inspect_reports_active_while_first_holds(
+        self, tmp_lock_dir: Path
+    ) -> None:
+        """While instance A holds the lock, instance B must see it as active."""
+        svc_a = WriteLockService(lock_dir=tmp_lock_dir)
+        svc_b = WriteLockService(lock_dir=tmp_lock_dir)
+        assert svc_a.acquire("book-x") is True
+
+        result = svc_b.inspect("book-x")
+        assert result.status == "active"
+        assert result.is_active is True
+
+    def test_second_instance_acquires_after_first_releases(
+        self, tmp_lock_dir: Path
+    ) -> None:
+        """After instance A releases, instance B must successfully acquire."""
+        svc_a = WriteLockService(lock_dir=tmp_lock_dir)
+        svc_b = WriteLockService(lock_dir=tmp_lock_dir)
+        assert svc_a.acquire("book-x") is True
+        svc_a.release("book-x")
+
+        result = svc_b.inspect("book-x")
+        assert result.status == "stale_released"
+        assert result.is_active is False
+
+        assert svc_b.acquire("book-x") is True
+
+    def test_second_instance_sees_stale_after_first_releases(
+        self, tmp_lock_dir: Path
+    ) -> None:
+        """Stale lock file remains on disk but is detected as not active."""
+        svc_a = WriteLockService(lock_dir=tmp_lock_dir)
+        svc_b = WriteLockService(lock_dir=tmp_lock_dir)
+        assert svc_a.acquire("book-x") is True
+        svc_a.release("book-x")
+
+        assert (tmp_lock_dir / "book-x.lock").exists()
+        result = svc_b.inspect("book-x")
+        assert result.status == "stale_released"
+        assert result.is_active is False
+
+    def test_first_instance_non_blocking_reacquire_returns_false(
+        self, tmp_lock_dir: Path
+    ) -> None:
+        """Re-acquiring a lock already held in the same instance must fail closed."""
+        svc = WriteLockService(lock_dir=tmp_lock_dir)
+        assert svc.acquire("book-x") is True
+        assert svc.acquire("book-x", blocking=False) is False
+
+    def test_os_level_fd_cleanup_on_service_gc(
+        self, tmp_lock_dir: Path
+    ) -> None:
+        """When a service instance is garbage collected without release(), fds are closed."""
+        import gc
+        svc = WriteLockService(lock_dir=tmp_lock_dir)
+        assert svc.acquire("book-x") is True
+        # Simulate crash: service drops out of scope without release()
+        del svc
+        gc.collect()
+        # Now a fresh instance must be able to acquire
+        svc_new = WriteLockService(lock_dir=tmp_lock_dir)
+        assert svc_new.acquire("book-x") is True
+
+
+class TestWriteLockInspection:
+    """Tests for lock inspection details exposed on acquisition failures."""
+
+    def test_reacquire_returns_false_without_inspection(
+        self, tmp_lock_dir: Path
+    ) -> None:
+        """Same-instance non-blocking re-acquire returns False without inspection."""
+        svc = WriteLockService(lock_dir=tmp_lock_dir)
+        assert svc.acquire("book-x") is True
+        assert svc.acquire("book-x", blocking=False) is False
+
+    def test_context_manager_succeeds_after_gc_releases_stale_lock(
+        self, tmp_lock_dir: Path
+    ) -> None:
+        """A stale lock file can be inspected, then lock() reacquires safely.
+
+        Setup: instance A acquires, then is GC'd without explicit release,
+        leaving a stale lock file on disk. Instance B sees stale_released
+        inspection info and can safely acquire the now-unheld OS flock.
+        """
+        import gc
+        svc_a = WriteLockService(lock_dir=tmp_lock_dir)
+        assert svc_a.acquire("book-x") is True
+        # Simulate crash: svc_a is GC'd; __del__ releases the flock
+        del svc_a
+        gc.collect()
+
+        # Lock file exists on disk, but no one holds it
+        assert (tmp_lock_dir / "book-x.lock").exists()
+
+        svc_b = WriteLockService(lock_dir=tmp_lock_dir)
+        # svc_b.lock(...) will succeed because __del__ released the flock,
+        # but the lock file is stale. Let's verify that first with inspect:
+        result = svc_b.inspect("book-x")
+        assert result.status == "stale_released"
+        # Now test that lock() succeeds (no WriteLockError after cleanup):
+        with svc_b.lock("book-x"):
+            pass  # succeeds because __del__ cleaned up
+        svc_b.release("book-x")
+
+    def test_context_manager_lock_error_carry_active_inspection(
+        self, tmp_lock_dir: Path
+    ) -> None:
+        """When context manager fails while another holds lock, error carries active inspection."""
+        svc_a = WriteLockService(lock_dir=tmp_lock_dir)
+        svc_b = WriteLockService(lock_dir=tmp_lock_dir)
+        assert svc_a.acquire("book-x") is True
+
+        with pytest.raises(WriteLockError) as exc_info:
+            with svc_b.lock("book-x"):
+                pass  # pragma: no cover
+
+        err = exc_info.value
+        assert err.inspection is not None
+        assert err.inspection.status == "active"
+        assert err.inspection.is_active is True
+
+    def test_context_manager_lock_error_inspection_has_no_path_leak(
+        self, tmp_lock_dir: Path
+    ) -> None:
+        """WriteLockError.inspection.operator_message must not leak paths."""
+        svc_a = WriteLockService(lock_dir=tmp_lock_dir)
+        svc_b = WriteLockService(lock_dir=tmp_lock_dir)
+        assert svc_a.acquire("book-x") is True
+
+        with pytest.raises(WriteLockError) as exc_info:
+            with svc_b.lock("book-x"):
+                pass  # pragma: no cover
+
+        err = exc_info.value
+        assert err.inspection is not None
+        msg = err.inspection.operator_message
+        assert "book-x" not in msg
+        assert "/" not in msg
+        assert str(tmp_lock_dir) not in msg

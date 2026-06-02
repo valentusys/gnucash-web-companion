@@ -23,8 +23,9 @@ DEFAULT_LOCK_DIR = Path("/data/locks")
 class WriteLockError(Exception):
     """Raised when a write lock cannot be acquired."""
 
-    def __init__(self, book_id: str):
+    def __init__(self, book_id: str, inspection: WriteLockProbeResult | None = None):
         self.book_id = book_id
+        self.inspection = inspection
         super().__init__(f"Could not acquire write lock for book {book_id}")
 
 
@@ -68,6 +69,20 @@ class WriteLockService:
     def __init__(self, lock_dir: Path = DEFAULT_LOCK_DIR) -> None:
         self._lock_dir = lock_dir
         self._fds: dict[str, int] = {}
+
+    def __del__(self) -> None:
+        """Release all open lock fds on garbage collection (crash safety)."""
+        fds = dict(self._fds)
+        for book_id, fd in fds.items():
+            try:
+                fcntl.flock(fd, fcntl.LOCK_UN)
+            except OSError:
+                pass
+            try:
+                os.close(fd)
+            except OSError:
+                pass
+        self._fds.clear()
 
     def _lock_path(self, book_id: str) -> Path:
         """Return the lock file path for a given book_id.
@@ -198,9 +213,14 @@ class WriteLockService:
 
         Raises:
             WriteLockError: If the lock cannot be acquired.
+                The exception's ``inspection`` attribute carries a
+                ``WriteLockProbeResult`` describing whether the lock is
+                active or stale, for operator diagnostics.
         """
-        if not self.acquire(book_id):
-            raise WriteLockError(book_id)
+        acquired = self.acquire(book_id)
+        if not acquired:
+            probe = self.inspect(book_id)
+            raise WriteLockError(book_id, inspection=probe)
         try:
             yield
         finally:

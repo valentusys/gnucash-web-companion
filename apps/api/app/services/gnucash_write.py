@@ -174,45 +174,66 @@ class GnuCashWriteService(GnuCashBookService):
         book_key = str(self.uri_or_path or book_id)
         backup_path = None
 
-        # Step 2: Acquire lock
-        if not write_lock_service.acquire(book_key):
-            raise WriteLockError(book_key)
-
+        # Step 2: Acquire lock (uses context manager for safe release)
         try:
-            # Step 3: Backup
-            try:
-                backup_path = create_book_backup(self.book_config)
-            except BackupError as exc:
-                raise GnuCashWriteError(f"Backup failed: {exc}") from exc
+            with write_lock_service.lock(book_key):
+                # Step 3-7: Backup, open, write, save
+                backup_path, transaction_id = self._execute_write_transaction(
+                    request, book_key
+                )
+        except WriteLockError as exc:
+            # If the error carries inspection info (stale vs active), include it
+            if exc.inspection is not None and exc.inspection.status == "stale_released":
+                raise WriteLockError(
+                    book_key,
+                    inspection=exc.inspection,
+                ) from exc
+            raise
 
-            # Step 4-6: Open, write, save
-            uri_or_path = self._validate_configured_book()
-            book = None
-            try:
-                book = self._open_piecash_book_for_write(uri_or_path)
-                tx = self._do_create_transaction(book, request)
-                book.save()
-                transaction_id = _guid(tx)
-            except GnuCashWriteError as exc:
-                if exc.backup_path is None:
-                    exc.backup_path = backup_path
-                raise
-            except Exception as exc:
-                raise GnuCashWriteError(f"Write failed: {exc}", backup_path=backup_path) from exc
-            finally:
-                if book is not None:
-                    close = getattr(book, "close", None)
-                    if callable(close):
-                        close()
+        return TransactionWriteResultDTO(
+            transaction_id=transaction_id,
+            backup_path=backup_path or "",
+            audit_log_id=None,
+        )
 
-            return TransactionWriteResultDTO(
-                transaction_id=transaction_id,
-                backup_path=backup_path or "",
-                audit_log_id=None,
-            )
+    def _execute_write_transaction(
+        self,
+        request: TransactionCreateRequestDTO,
+        book_key: str,
+    ) -> tuple[str | None, str]:
+        """Execute backup + write inside the lock (extracted for reuse)."""
+        backup_path: str | None = None
+        transaction_id: str = ""
+
+        # Backup
+        try:
+            backup_path = create_book_backup(self.book_config)
+        except BackupError as exc:
+            raise GnuCashWriteError(f"Backup failed: {exc}") from exc
+
+        # Open, write, save
+        uri_or_path = self._validate_configured_book()
+        book = None
+        try:
+            book = self._open_piecash_book_for_write(uri_or_path)
+            tx = self._do_create_transaction(book, request)
+            book.save()
+            transaction_id = _guid(tx)
+        except GnuCashWriteError as exc:
+            if exc.backup_path is None:
+                exc.backup_path = backup_path
+            raise
+        except Exception as exc:
+            raise GnuCashWriteError(
+                f"Write failed: {exc}", backup_path=backup_path
+            ) from exc
         finally:
-            # Step 9: Release lock
-            write_lock_service.release(book_key)
+            if book is not None:
+                close = getattr(book, "close", None)
+                if callable(close):
+                    close()
+
+        return backup_path, transaction_id
 
     def _open_piecash_book_for_write(self, uri_or_path: str):
         """Open a piecash book in write mode for paths and SQL connection URIs."""
@@ -332,44 +353,62 @@ class GnuCashWriteService(GnuCashBookService):
         book_key = str(self.uri_or_path or book_id)
         backup_path = None
 
-        # Step 2: Acquire lock
-        if not write_lock_service.acquire(book_key):
-            raise WriteLockError(book_key)
-
+        # Step 2: Acquire lock (uses context manager for safe release)
         try:
-            # Step 3: Backup
-            try:
-                backup_path = create_book_backup(self.book_config)
-            except BackupError as exc:
-                raise GnuCashWriteError(f"Backup failed: {exc}") from exc
+            with write_lock_service.lock(book_key):
+                backup_path = self._execute_patch_transaction(
+                    transaction_id, request
+                )
+        except WriteLockError as exc:
+            if exc.inspection is not None and exc.inspection.status == "stale_released":
+                raise WriteLockError(
+                    book_key,
+                    inspection=exc.inspection,
+                ) from exc
+            raise
 
-            # Step 4-6: Open, patch, save
-            uri_or_path = self._validate_configured_book()
-            book = None
-            try:
-                book = self._open_piecash_book_for_write(uri_or_path)
-                self._do_patch_transaction(book, transaction_id, request)
-                book.save()
-            except GnuCashWriteError as exc:
-                if exc.backup_path is None:
-                    exc.backup_path = backup_path
-                raise
-            except Exception as exc:
-                raise GnuCashWriteError(f"Write failed: {exc}", backup_path=backup_path) from exc
-            finally:
-                if book is not None:
-                    close = getattr(book, "close", None)
-                    if callable(close):
-                        close()
+        return TransactionWriteResultDTO(
+            transaction_id=transaction_id,
+            backup_path=backup_path or "",
+            audit_log_id=None,
+        )
 
-            return TransactionWriteResultDTO(
-                transaction_id=transaction_id,
-                backup_path=backup_path or "",
-                audit_log_id=None,
-            )
+    def _execute_patch_transaction(
+        self,
+        transaction_id: str,
+        request: TransactionPatchRequestDTO,
+    ) -> str | None:
+        """Execute backup + patch inside the lock (extracted for reuse)."""
+        backup_path: str | None = None
+
+        # Backup
+        try:
+            backup_path = create_book_backup(self.book_config)
+        except BackupError as exc:
+            raise GnuCashWriteError(f"Backup failed: {exc}") from exc
+
+        # Open, patch, save
+        uri_or_path = self._validate_configured_book()
+        book = None
+        try:
+            book = self._open_piecash_book_for_write(uri_or_path)
+            self._do_patch_transaction(book, transaction_id, request)
+            book.save()
+        except GnuCashWriteError as exc:
+            if exc.backup_path is None:
+                exc.backup_path = backup_path
+            raise
+        except Exception as exc:
+            raise GnuCashWriteError(
+                f"Write failed: {exc}", backup_path=backup_path
+            ) from exc
         finally:
-            # Step 9: Release lock
-            write_lock_service.release(book_key)
+            if book is not None:
+                close = getattr(book, "close", None)
+                if callable(close):
+                    close()
+
+        return backup_path
 
     def _do_patch_transaction(
         self,
@@ -421,39 +460,61 @@ class GnuCashWriteService(GnuCashBookService):
         book_key = str(self.uri_or_path or book_id)
         backup_path = None
 
-        if not write_lock_service.acquire(book_key):
-            raise WriteLockError(book_key)
-
+        # Acquire lock (uses context manager for safe release)
         try:
-            try:
-                backup_path = create_book_backup(self.book_config)
-            except BackupError as exc:
-                raise GnuCashWriteError(f"Backup failed: {exc}") from exc
+            with write_lock_service.lock(book_key):
+                backup_path = self._execute_delete_transaction(
+                    transaction_id, uri_or_path
+                )
+        except WriteLockError as exc:
+            if exc.inspection is not None and exc.inspection.status == "stale_released":
+                raise WriteLockError(
+                    book_key,
+                    inspection=exc.inspection,
+                ) from exc
+            raise
 
-            book = None
-            try:
-                book = self._open_piecash_book_for_write(uri_or_path)
-                self._do_delete_transaction(book, transaction_id)
-                book.save()
-            except GnuCashWriteError as exc:
-                if exc.backup_path is None:
-                    exc.backup_path = backup_path
-                raise
-            except Exception as exc:
-                raise GnuCashWriteError(f"Write failed: {exc}", backup_path=backup_path) from exc
-            finally:
-                if book is not None:
-                    close = getattr(book, "close", None)
-                    if callable(close):
-                        close()
+        return TransactionWriteResultDTO(
+            transaction_id=transaction_id,
+            backup_path=backup_path or "",
+            audit_log_id=None,
+        )
 
-            return TransactionWriteResultDTO(
-                transaction_id=transaction_id,
-                backup_path=backup_path or "",
-                audit_log_id=None,
-            )
+    def _execute_delete_transaction(
+        self,
+        transaction_id: str,
+        uri_or_path: str,
+    ) -> str | None:
+        """Execute backup + delete inside the lock (extracted for reuse)."""
+        backup_path: str | None = None
+
+        # Backup
+        try:
+            backup_path = create_book_backup(self.book_config)
+        except BackupError as exc:
+            raise GnuCashWriteError(f"Backup failed: {exc}") from exc
+
+        # Open, delete, save
+        book = None
+        try:
+            book = self._open_piecash_book_for_write(uri_or_path)
+            self._do_delete_transaction(book, transaction_id)
+            book.save()
+        except GnuCashWriteError as exc:
+            if exc.backup_path is None:
+                exc.backup_path = backup_path
+            raise
+        except Exception as exc:
+            raise GnuCashWriteError(
+                f"Write failed: {exc}", backup_path=backup_path
+            ) from exc
         finally:
-            write_lock_service.release(book_key)
+            if book is not None:
+                close = getattr(book, "close", None)
+                if callable(close):
+                    close()
+
+        return backup_path
 
     def _do_delete_transaction(self, book: Any, transaction_id: str) -> None:
         """Delete one transaction from an already-open writeable book."""
