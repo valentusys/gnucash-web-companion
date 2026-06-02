@@ -38,6 +38,7 @@ AMOUNT_RE = re.compile(r"(?i)(amount\s*)\d+[.,]\d{2}")
 BROAD_SUPPORT_RE = re.compile(
     r"(?i)(fully compatible|supports all gnucash|compatible with all gnucash|guaranteed compatible|production-ready compatibility)"
 )
+PRIVATE_LABEL_RE = re.compile(r"(?i)\b(account|memo|description)\s+[^,;\n{}\[\]]+")
 
 
 class ValidationError(ValueError):
@@ -80,8 +81,15 @@ def validate_report(report: dict[str, Any]) -> dict[str, str | bool]:
     serialized = json.dumps(report, ensure_ascii=False)
     if BROAD_SUPPORT_RE.search(serialized):
         raise ValidationError("broad support phrase is not allowed")
-    if PATH_RE.search(serialized) or AMOUNT_RE.search(serialized):
-        raise ValidationError("unsafe path-like or amount-like value in report")
+
+    for key, value in report.items():
+        if key == "privacy_notice":
+            continue
+        value_text = json.dumps(value, ensure_ascii=False)
+        if PATH_RE.search(value_text) or AMOUNT_RE.search(value_text):
+            raise ValidationError("unsafe path-like or amount-like value in report")
+        if PRIVATE_LABEL_RE.search(value_text):
+            raise ValidationError("unsafe account-like, memo-like, or description-like value in report")
 
     expected = _expected_evidence_class(report.get("book_backend_type"), report.get("fixture_scope"))
     if report.get("evidence_class") != expected:

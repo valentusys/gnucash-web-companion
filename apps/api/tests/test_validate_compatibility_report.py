@@ -111,3 +111,22 @@ def test_validate_compatibility_report_rejects_forbidden_extra_keys(tmp_path: Pa
     assert proc.returncode == 2
     assert "unsafe key" in proc.stderr
     assert "Checking" not in proc.stderr
+
+
+def test_validate_compatibility_report_rejects_account_memo_description_like_values(tmp_path: Path) -> None:
+    payload = _valid_report()
+    payload["error_class"] = "ParserError account Checking memo Grocery description Card purchase"
+    report = _write_report(tmp_path, payload)
+    proc = subprocess.run(
+        [sys.executable, str(SCRIPT), str(report)],
+        check=False,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        cwd=ROOT,
+    )
+
+    assert proc.returncode == 2
+    assert "unsafe account-like, memo-like, or description-like value" in proc.stderr
+    assert "Checking" not in proc.stderr
+    assert "Grocery" not in proc.stderr

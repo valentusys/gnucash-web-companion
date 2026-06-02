@@ -18,6 +18,11 @@ from typing import Any
 FORBIDDEN_KEY_RE = re.compile(r"(path|file|dir|secret|token|password|key|account|memo|description|amount)", re.I)
 PATH_RE = re.compile(r"([A-Za-z]:\\[^\s]*|/[^\s]+|\\\\[^\s]+)")
 AMOUNT_RE = re.compile(r"(?i)(amount\s*)\d+[.,]\d{2}")
+PRIVATE_LABEL_RES = (
+    ("ACCOUNT", re.compile(r"(?i)\baccount\s+.+?(?=\s+memo\b|\s+description\b|\s+amount\b|$)")),
+    ("MEMO", re.compile(r"(?i)\bmemo\s+.+?(?=\s+account\b|\s+description\b|\s+amount\b|$)")),
+    ("DESCRIPTION", re.compile(r"(?i)\bdescription\s+.+?(?=\s+account\b|\s+memo\b|\s+amount\b|$)")),
+)
 
 
 def _evidence_class(backend_type: str, fixture_scope: str) -> str:
@@ -36,6 +41,8 @@ def _evidence_class(backend_type: str, fixture_scope: str) -> str:
 
 def _safe_text(value: str) -> str:
     value = PATH_RE.sub("[REDACTED_PATH]", value)
+    for label, pattern in PRIVATE_LABEL_RES:
+        value = pattern.sub(f"[REDACTED_{label}]", value)
     value = AMOUNT_RE.sub("[REDACTED_AMOUNT]", value)
     return value[:160]
 

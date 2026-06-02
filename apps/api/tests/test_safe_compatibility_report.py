@@ -82,3 +82,31 @@ def test_safe_compatibility_report_marks_non_sqlite_as_unverified():
     )
 
     assert '"evidence_class": "unverified"' in proc.stdout
+
+
+def test_safe_compatibility_report_redacts_account_memo_and_description_like_values():
+    proc = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT),
+            "--backend-type",
+            "sqlite",
+            "--fixture-scope",
+            "disposable",
+            "--error-class",
+            "ParserError account Checking memo Grocery store description Card purchase amount 123.45",
+        ],
+        check=True,
+        text=True,
+        stdout=subprocess.PIPE,
+    )
+
+    output = proc.stdout
+    assert "[REDACTED_ACCOUNT]" in output
+    assert "[REDACTED_MEMO]" in output
+    assert "[REDACTED_DESCRIPTION]" in output
+    assert "[REDACTED_AMOUNT]" in output
+    assert "Checking" not in output
+    assert "Grocery" not in output
+    assert "Card purchase" not in output
+    assert "123.45" not in output
