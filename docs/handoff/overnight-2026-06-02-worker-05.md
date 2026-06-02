@@ -18,7 +18,7 @@ The code fix was already present on `origin/main` before the handoff-doc commit:
 - Commit title: `test: align matrix cli preflight fixture`
 - Changed file: `apps/api/tests/test_compatibility_matrix_cli.py`
 
-Final handoff-doc commit: `PENDING_SHA_BEFORE_COMMIT`.
+Final handoff-doc commit: `5a2747eb85dc356f1e3e122249b6d85db612e7c4`.
 
 ## CI failure root cause
 
@@ -51,7 +51,7 @@ Code fix commit `2e86634e8004d1f5161e7beb9fd3eb188c9f68e4`:
 
 - `apps/api/tests/test_compatibility_matrix_cli.py`
 
-Handoff-doc commit `PENDING_SHA_BEFORE_COMMIT`:
+Handoff-doc commit `5a2747eb85dc356f1e3e122249b6d85db612e7c4`:
 
 - `docs/handoff/overnight-2026-06-02-worker-04.md`
 - `docs/handoff/overnight-2026-06-02-worker-05.md`
