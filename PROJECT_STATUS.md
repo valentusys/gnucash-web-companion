@@ -20,9 +20,9 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) markdown readability, and
   [#36](https://github.com/valentusys/gnucash-web-companion/issues/36) controlled-write readiness
   gates.
-- Latest handoffs: `docs/handoff/overnight-2026-06-02-worker-12.md`,
-  `docs/handoff/overnight-2026-06-02-worker-11.md`,
-  `docs/handoff/overnight-2026-06-02-worker-10.md`.
+- Latest handoffs: `docs/handoff/overnight-2026-06-02-worker-15.md`,
+  `docs/handoff/overnight-2026-06-02-worker-14.md`,
+  `docs/handoff/overnight-2026-06-02-worker-12.md`.
 
 ## Current status snapshot
 
@@ -36,6 +36,15 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
 - Recently closed queues: #13, #41, #42, #43.
 
 ## Repository
+
+- Overnight worker `overnight-2026-06-02-worker-15` completed a non-mutating #36 maintainer
+  readiness audit/checklist package. `docs/write-alpha-maintainer-checklist.md` now consolidates
+  accepted #36 evidence links, current keep-open recommendation, no-release/no-public-write posture,
+  `GNUCASH_WRITES_ENABLED=false` and `APP_ENV=test` boundaries, owner-input/real-book/copy-book
+  constraints, and exact next worker packages. `scripts/check_write_safety_defaults.py` now also
+  guards required #36 audit checklist wording, with synthetic test coverage. Mutation counts: CREATE 0
+  / PATCH 0 / DELETE 0; no real/private/original/working/only-copy book was opened, copied, or
+  mutated; no write gate/default was weakened; #36 remains open.
 
 - Overnight worker 12 added a compatibility matrix report renderer/checker to the existing #22
   matrix helper. The pure helper renders conservative operator summaries from already-redacted rows

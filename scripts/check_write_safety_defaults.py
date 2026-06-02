@@ -18,6 +18,15 @@ APP_ENV_GATE_TEXT = "APP_ENV=test"
 EXPLICIT_WRITE_ENABLE_TEXT = "explicit write enablement"
 RESET_TEXT = "reset"
 DISABLED_PROBE_TEXT = "disabled-probe"
+CHECKLIST_REQUIRED_TEXTS = (
+    "#36",
+    "keep #36 open",
+    "no-release/no-public-write posture",
+    "GNUCASH_WRITES_ENABLED=false",
+    "APP_ENV=test",
+    "owner-input/real-book/copy-book constraints",
+    "next worker packages",
+)
 
 
 def _normalized(text: str) -> str:
@@ -36,7 +45,7 @@ def _read(path: Path) -> str:
         raise GuardError("required safety file could not be read") from exc
 
 
-def _check(env_example: Path, compose: Path, gate_doc: Path) -> list[str]:
+def _check(env_example: Path, compose: Path, gate_doc: Path, checklist_doc: Path | None = None) -> list[str]:
     env_text = _read(env_example)
     compose_text = _read(compose)
     gate_text = _read(gate_doc)
@@ -57,6 +66,17 @@ def _check(env_example: Path, compose: Path, gate_doc: Path) -> list[str]:
         failures.append("write-readiness documentation must require explicit write enablement")
     if RESET_TEXT not in gate_text_normalized or DISABLED_PROBE_TEXT not in gate_text_normalized:
         failures.append("write-readiness documentation must preserve reset/default-disabled probe wording")
+
+    if checklist_doc is not None:
+        checklist_text = _read(checklist_doc)
+        checklist_text_normalized = _normalized(checklist_text)
+        missing = [
+            required
+            for required in CHECKLIST_REQUIRED_TEXTS
+            if _normalized(required) not in checklist_text_normalized
+        ]
+        if missing:
+            failures.append("#36 audit checklist must preserve: " + ", ".join(missing))
     return failures
 
 
@@ -68,10 +88,19 @@ def main(argv: list[str] | None = None) -> int:
         "--gate-doc",
         default=str(REPO_ROOT / "docs/write-alpha/owner-writebeta-operating-guide.md"),
     )
+    parser.add_argument(
+        "--checklist-doc",
+        default=str(REPO_ROOT / "docs/write-alpha-maintainer-checklist.md"),
+    )
     args = parser.parse_args(argv)
 
     try:
-        failures = _check(Path(args.env_example), Path(args.compose), Path(args.gate_doc))
+        failures = _check(
+            Path(args.env_example),
+            Path(args.compose),
+            Path(args.gate_doc),
+            Path(args.checklist_doc),
+        )
     except GuardError as exc:
         print(str(exc), file=sys.stderr)
         return 2

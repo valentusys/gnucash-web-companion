@@ -19,6 +19,7 @@ public posture. It is documentation only and does not authorize any mutation.
 | Backup/restore readiness checklist guard | `validate_backup_restore_readiness_evidence`, checklist docs, synthetic tests | Non-mutating guard added; required before future write milestones |
 | Recovery/hard-stop readiness guard | Synthetic tests require abort-after-failed-restore/read-back/audit, backup preservation, no retry on same copy before recovery, maintainer/owner escalation, and default-disabled reset/probe markers | Non-mutating guard added; required before future write milestones |
 | Concurrency/lock-contention readiness guard | Synthetic tests require serialized per-book lock acquisition evidence, active-lock contention blocked/rejected evidence, no overlapping write execution evidence, contention/rejection audit trail evidence, and default-disabled no-write probe | Non-mutating guard added; required before future write milestones |
+| Maintainer #36 audit checklist | `docs/write-alpha-maintainer-checklist.md` now links accepted #36 evidence, states remaining blockers, preserves no-release/no-public-write posture, and lists exact next worker packages; `scripts/check_write_safety_defaults.py` guards required checklist wording | Non-mutating audit package added; #36 should stay open |
 | Disabled route probes | CREATE/PATCH/DELETE -> 403 after reset | Passed |
 | Real working/private/original book | No accepted evidence; not authorized | Blocked |
 | Public write beta | No accepted milestone decision | Blocked |

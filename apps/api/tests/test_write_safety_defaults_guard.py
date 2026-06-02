@@ -99,3 +99,51 @@ def test_write_safety_defaults_guard_rejects_missing_reset_probe_wording(tmp_pat
     assert proc.stdout == ""
     assert "reset/default-disabled probe wording" in proc.stderr
     assert str(tmp_path) not in proc.stderr
+
+
+def test_write_safety_defaults_guard_rejects_missing_issue_36_audit_wording(tmp_path: Path) -> None:
+    env_example = tmp_path / ".env.example"
+    compose = tmp_path / "docker-compose.yml"
+    status_doc = tmp_path / "status.md"
+    checklist_doc = tmp_path / "checklist.md"
+    env_example.write_text("GNUCASH_WRITES_ENABLED=false\n", encoding="utf-8")
+    compose.write_text(
+        "services:\n  api:\n    environment:\n      - GNUCASH_WRITES_ENABLED=${GNUCASH_WRITES_ENABLED:-false}\n",
+        encoding="utf-8",
+    )
+    status_doc.write_text(
+        "Enabled write-alpha remains APP_ENV=test gated, requires explicit write enablement, "
+        "and reset/default-disabled disabled-probe evidence.\n",
+        encoding="utf-8",
+    )
+    checklist_doc.write_text(
+        "# Checklist\n"
+        "APP_ENV=test and GNUCASH_WRITES_ENABLED=false are required.\n"
+        "No release and no public write beta.\n",
+        encoding="utf-8",
+    )
+
+    proc = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT),
+            "--env-example",
+            str(env_example),
+            "--compose",
+            str(compose),
+            "--gate-doc",
+            str(status_doc),
+            "--checklist-doc",
+            str(checklist_doc),
+        ],
+        check=False,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        cwd=ROOT,
+    )
+
+    assert proc.returncode == 2
+    assert proc.stdout == ""
+    assert "#36 audit checklist" in proc.stderr
+    assert str(tmp_path) not in proc.stderr
