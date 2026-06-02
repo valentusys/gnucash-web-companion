@@ -6,30 +6,55 @@ body:
   - type: markdown
     attributes:
       value: |
+        This template is for redacted public read-only beta compatibility metadata only.
+
         Do not upload GnuCash books, app DBs, backups, CSV exports, screenshots, .env files, tokens, private paths, account names, transaction descriptions, memos, or amounts.
-        Use synthetic, disposable, or copied-restorable books first.
+
+        Prefer synthetic, disposable, or copied-restorable books first. A report is not a compatibility guarantee and does not prove Desktop-version, real-book, all-backend, production, or security-audited support.
+
+        Optional local helper workflow before opening the issue:
+        ```bash
+        python3 scripts/safe_compatibility_report.py > /tmp/gwc-compatibility-report.json
+        python3 scripts/validate_compatibility_report.py /tmp/gwc-compatibility-report.json
+        ```
   - type: input
     id: app-ref
     attributes:
       label: App tag or commit
-      placeholder: v0.5.x-public-readonly-beta or short commit
+      placeholder: v0.5.0-public-readonly-beta or short commit
     validations:
       required: true
-  - type: dropdown
-    id: fixture-scope
+  - type: input
+    id: operating-system
     attributes:
-      label: Book/test scope
-      options:
-        - synthetic
-        - disposable
-        - copied-restorable
-        - unknown
+      label: Operating system
+      description: Version family only; no hostnames, usernames, or paths.
+      placeholder: Debian 12, Ubuntu 24.04, Windows 11, macOS 15
     validations:
       required: true
+  - type: input
+    id: browser-family-version
+    attributes:
+      label: Browser family/version
+      description: Browser family/version only; no screenshots.
+      placeholder: Firefox 126, Chrome 125, Safari 17
+  - type: input
+    id: docker-runtime-version
+    attributes:
+      label: Docker/runtime version
+      description: Docker/Compose/runtime version only, if relevant.
+      placeholder: Docker 26, Docker Compose v2.27
+  - type: input
+    id: gnucash-version
+    attributes:
+      label: GnuCash version
+      description: Version string only. Do not include book paths or private filenames.
+      placeholder: GnuCash 5.14
   - type: dropdown
     id: backend
     attributes:
       label: GnuCash backend type
+      description: Backend family only; do not include connection strings.
       options:
         - sqlite
         - postgres
@@ -37,17 +62,30 @@ body:
         - unknown
     validations:
       required: true
-  - type: input
-    id: os-browser
+  - type: dropdown
+    id: fixture-scope
     attributes:
-      label: OS/browser/Docker/GnuCash versions only
-      placeholder: Debian 12, Firefox, Docker 26, GnuCash 5.x
+      label: Book/test scope
+      description: Use the narrowest honest scope. Copied-restorable books must stay outside git and should be reported only as redacted metadata.
+      options:
+        - synthetic
+        - disposable
+        - copied-restorable
+        - unknown
+    validations:
+      required: true
+  - type: input
+    id: generic-error-class
+    attributes:
+      label: Generic error class
+      description: Class/status label only. Do not paste paths, account names, transaction descriptions, memos, or amounts.
+      placeholder: BookNotConfiguredError, invalid_gnucash_schema, browser-login-failed
   - type: textarea
     id: safe-summary
     attributes:
-      label: Safe summary / redacted error class
-      description: Include status labels and generic error class only. No paths, financial data, or screenshots.
-      placeholder: API /health first_run.default_book=action_required; error class=BookNotConfiguredError
+      label: Safe summary
+      description: Include status labels and generic behavior only. No paths, financial data, screenshots, exports, or logs with private values.
+      placeholder: API /health first_run.default_book=action_required; dashboard failed after selecting a copied-restorable SQLite fixture; no book or private data attached.
     validations:
       required: true
   - type: checkboxes
@@ -55,5 +93,7 @@ body:
     attributes:
       label: Privacy confirmation
       options:
-        - label: I did not attach books, app DBs, backups, exports, screenshots, .env files, secrets, private paths, account names, descriptions, memos, or amounts.
+        - label: I did not attach books, app DBs, backups, exports, screenshots, .env files, secrets, tokens, private paths, account names, transaction descriptions, memos, or amounts.
+          required: true
+        - label: I understand this report is not a compatibility guarantee or support claim.
           required: true

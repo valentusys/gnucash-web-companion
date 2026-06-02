@@ -7,6 +7,8 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once versione
 
 ## [Unreleased]
 
+- Autonomous true 6h cycle 4 for #22 — hardened the safe compatibility-report issue template so public feedback asks only for OS/browser/Docker/GnuCash version/backend/fixture-scope/generic-error metadata and explicitly forbids books, app DBs, backups, exports, screenshots, `.env`, tokens, private paths, account names, transaction descriptions, memos, and amounts. No book, private evidence, write-mode change, or release publication was added.
+
 - Autonomous true 6h cycle 3 for #22 — hardened the safe Desktop tooling probe so unexpected private-looking `--version` output is redacted, and documented current local `gnucash-cli` 5.14 availability as command/version evidence only. Desktop-generated fixture evidence remains blocked on isolated disposable GUI/manual-safe fixture creation plus read-only validation. No book, private evidence, write-mode change, or release publication was added.
 
 - Autonomous true 6h cycle 2 for #22 — added a code-backed fixture-scope boundary vocabulary for `synthetic`, `disposable`, `copied-restorable`, and `unknown` compatibility reports, with tests and docs guarding against report metadata becoming broad support claims or tested matrix rows by itself. No book, private evidence, write-mode change, or release publication was added.
