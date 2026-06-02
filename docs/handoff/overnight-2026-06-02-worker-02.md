@@ -83,7 +83,7 @@ JWT_SECRET=dummy-validation-secret APP_ADMIN_PASSWORD=dummy docker compose confi
 
 ## CI
 
-- CI link: pending until commit is pushed.
+- CI link: https://github.com/valentusys/gnucash-web-companion/actions/runs/26796892588 (success for pushed head `9a0bbc4`).
 
 ## Safety summary
 
