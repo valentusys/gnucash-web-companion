@@ -5,6 +5,7 @@ Default-disabled write-safety reset probe guard for issue #36.
 
 ## Commit
 - Implementation commit SHA: 6f2bf7119026c1f7050ff0308db479c455768b43
+- Pushed handoff commit SHA before CI-status metadata update: f66d48cbd5083495357a3dbc12c170d0a8b189ad
 - Branch: main
 
 ## What changed
@@ -31,7 +32,8 @@ Default-disabled write-safety reset probe guard for issue #36.
 - `cd apps/api && pytest -q` -> 668 passed, 38 existing warnings.
 
 ## CI
-- Push/CI status: pending (to be filled after push)
+- CI for pushed handoff/code commit `f66d48cbd5083495357a3dbc12c170d0a8b189ad`: success.
+- CI run: https://github.com/valentusys/gnucash-web-companion/actions/runs/26805529948
 
 ## Safety summary
 - No GnuCash book, SQLite book, app DB, backup, export, screenshot, `.env`, token, key, certificate, private path, account name, transaction description, memo, amount, or raw private evidence was created, opened, copied, mutated, committed, or posted.
@@ -42,7 +44,7 @@ Default-disabled write-safety reset probe guard for issue #36.
 - No public write beta, production, stable, or security-audited readiness claim is made.
 
 ## Issue #36 update
-- Status: pending comment update.
+- Comment posted: https://github.com/valentusys/gnucash-web-companion/issues/36#issuecomment-4599886848
 - Recommendation: keep #36 open.
 
 ## Remaining blockers for #36
