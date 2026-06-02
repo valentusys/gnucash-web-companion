@@ -303,10 +303,32 @@ def test_owner_writebeta_reset_disabled_clears_stale_arm_and_disabled_probes_fai
     assert payload["summary"]["confirmation_token_ref"] is None
 
     disabled_probes = [
-        client.post(f"/books/{sample_book}/transactions/validate", json=_balanced_transaction_payload(), headers=auth_headers),
-        client.post(f"/books/{sample_book}/transactions", json=_balanced_transaction_payload(), headers=auth_headers),
-        client.patch(f"/books/{sample_book}/transactions/synthetic-tx-id", json={"description": "still disabled"}, headers=auth_headers),
-        client.delete(f"/books/{sample_book}/transactions/synthetic-tx-id", headers=auth_headers),
+        ("validate", client.post(f"/books/{sample_book}/transactions/validate", json=_balanced_transaction_payload(), headers=auth_headers)),
+        ("create", client.post(f"/books/{sample_book}/transactions", json=_balanced_transaction_payload(), headers=auth_headers)),
+        ("patch", client.patch(f"/books/{sample_book}/transactions/synthetic-tx-id", json={"description": "still disabled"}, headers=auth_headers)),
+        ("delete", client.delete(f"/books/{sample_book}/transactions/synthetic-tx-id", headers=auth_headers)),
     ]
-    assert [probe.status_code for probe in disabled_probes] == [403, 403, 403, 403]
-    assert all("read-only" in probe.json()["detail"] for probe in disabled_probes)
+    status_codes = [probe.status_code for _, probe in disabled_probes]
+    assert status_codes == [403, 403, 403, 403], f"Expected all 403 probes, got {status_codes}"
+    for name, probe in disabled_probes:
+        assert "read-only" in probe.json()["detail"], f"{name} probe missing read-only detail"
+
+    # Critical #36-W1-E assertion: active-arm session refs must be fully cleared.
+    # Audit evidence refs (operation_ref, backup_ref, audit_ref, restore_ref)
+    # are intentionally preserved for non-mutating record, as are lock_released
+    # and defaults_reset booleans. The arms that could re-activate without a
+    # new CONFIRMATION must be None.
+    assert payload["summary"]["preview_hash"] is None, "preview_hash must be cleared after reset"
+    assert payload["summary"]["confirmation_token_ref"] is None, "confirmation_token_ref must be cleared after reset"
+    assert payload["summary"]["restore_readiness_ref"] is None, "restore_readiness_ref must be cleared after reset"
+    # The /status endpoint must also show default-disabled posture
+    status_check = client.get(f"/books/{sample_book}/owner-writebeta/status", headers=auth_headers)
+    assert status_check.status_code == 200
+    status_payload = status_check.json()
+    assert status_payload["state"] == "disabled"
+    assert status_payload["writes_blocked"] is True
+    assert "writes_disabled_default" in status_payload["blocked_reasons"]
+    assert "state_disabled" not in status_payload["blocked_reasons"]  # state is normal disabled, not error
+    assert status_payload["summary"]["preview_hash"] is None
+    assert status_payload["summary"]["confirmation_token_ref"] is None
+    assert status_payload["summary"]["restore_readiness_ref"] is None

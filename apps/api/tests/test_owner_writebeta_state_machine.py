@@ -231,3 +231,76 @@ def test_owner_writebeta_happy_path_with_restore_readiness_gate():
     assert summary["state"] == "reset_required"
     # raw evidence must not leak
     assert "amount" not in str(summary).lower()
+
+
+def test_owner_writebeta_full_reset_enforcement_after_session_completion():
+    """Prove the complete writebeta lifecycle resets to default-disabled with arms cleared."""
+    from app.owner_writebeta_state_machine import arm_confirmed_preview, mark_post_mutation_checks, prepare_preview
+
+    session = OwnerWritebetaSession()
+    assert session.writes_blocked is True
+    assert session.state == OwnerWritebetaState.DISABLED
+
+    session.transition(OwnerWritebetaState.PREFLIGHT)
+    prepare_preview(session, "CREATE", {"splits": [{"amount": "opaque"}]}, count=1)
+    arm_confirmed_preview(
+        session,
+        preview_hash=session.preview_hash,
+        backup_ref="bkp-full-reset-ref",
+        restore_readiness_ref="rr-full-reset-ref",
+    )
+    assert session.preview_hash is not None
+    assert session.confirmation_token_ref is not None
+    assert session.restore_readiness_ref == "rr-full-reset-ref"
+
+    session.transition(OwnerWritebetaState.MUTATING)
+    assert session.writes_blocked is False
+
+    mark_post_mutation_checks(
+        session,
+        audit_ref="audit-full-reset-ref",
+        restore_ref="restore-full-reset-ref",
+        lock_released=True,
+        defaults_reset=True,
+    )
+    assert session.state == OwnerWritebetaState.RESET_REQUIRED
+    assert session.writes_blocked is True
+    assert session.lock_released is True
+    assert session.defaults_reset is True
+
+    session.transition(OwnerWritebetaState.COMPLETE)
+    session.transition(OwnerWritebetaState.DISABLED)
+    assert session.state == OwnerWritebetaState.DISABLED
+    assert session.preview_hash is None
+    assert session.confirmation_token_ref is None
+    assert session.restore_readiness_ref is None
+    assert session.writes_blocked is True
+
+    session.transition(OwnerWritebetaState.PREFLIGHT)
+    prepare_preview(session, "DELETE", {"id": "opaque"}, count=1)
+    arm_confirmed_preview(session, preview_hash=session.preview_hash, backup_ref="bkp-2", restore_readiness_ref="rr-2")
+    session.transition(OwnerWritebetaState.MUTATING)
+    mark_post_mutation_checks(
+        session,
+        audit_ref="audit-2",
+        restore_ref="restore-2",
+        lock_released=True,
+        defaults_reset=False,
+    )
+    assert session.state == OwnerWritebetaState.FAILED_HARD_STOP
+    assert session.writes_blocked is True
+
+
+def test_owner_writebeta_restart_post_hard_stop_requires_new_session():
+    """FAILED_HARD_STOP terminal state blocks all further transitions."""
+    session = OwnerWritebetaSession()
+    session.transition(OwnerWritebetaState.PREFLIGHT)
+    session.transition(OwnerWritebetaState.FAILED_HARD_STOP, reason="post-mutation verification incomplete")
+    assert session.state == OwnerWritebetaState.FAILED_HARD_STOP
+    assert session.writes_blocked is True
+
+    for target in OwnerWritebetaState:
+        if target == OwnerWritebetaState.FAILED_HARD_STOP:
+            continue
+        with pytest.raises(OwnerWritebetaTransitionError):
+            session.transition(target)
