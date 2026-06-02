@@ -1,7 +1,10 @@
 # Write evidence matrix
 
 This matrix summarizes current controlled-write readiness evidence without broadening the default
-public posture. It is documentation only and does not authorize any mutation.
+public posture. It is documentation only and does not authorize any mutation. For #36, write
+compatibility remains tied to synthetic/disposable or copied/restorable evidence only; supported-version
+write compatibility remains pending and must not be converted into broad GnuCash compatibility,
+public write beta, production, stable, or security-audited claims.
 
 | Area | Current evidence | Status |
 |---|---|---|

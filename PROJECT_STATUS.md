@@ -20,9 +20,9 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) markdown readability, and
   [#36](https://github.com/valentusys/gnucash-web-companion/issues/36) controlled-write readiness
   gates.
-- Latest handoffs: `docs/handoff/overnight-2026-06-02-worker-18.md`,
-  `docs/handoff/overnight-2026-06-02-worker-17.md`,
-  `docs/handoff/overnight-2026-06-02-worker-16.md`.
+- Latest handoffs: `docs/handoff/overnight-2026-06-02-worker-19.md`,
+  `docs/handoff/overnight-2026-06-02-worker-18.md`,
+  `docs/handoff/overnight-2026-06-02-worker-17.md`.
 
 ## Current status snapshot
 
@@ -36,6 +36,16 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
 - Recently closed queues: #13, #41, #42, #43.
 
 ## Repository
+
+- Overnight worker `overnight-2026-06-02-worker-19` completed a non-mutating #36 conservative
+  write-compatibility wording guard. `scripts/check_write_safety_defaults.py` now checks
+  `docs/write-alpha/evidence-matrix.md` and `docs/v0.2-controlled-writes.md` for required caveats:
+  supported-version write compatibility remains pending, claims stay tied to synthetic/disposable or
+  copied/restorable evidence only, current DELETE evidence is not a real-book claim, and public write
+  beta/production/security-audited wording remains blocked. Focused guard tests cover broad
+  compatibility-claim rejection and missing-caveat rejection. Mutation counts: CREATE 0 / PATCH 0 /
+  DELETE 0; no real/private/original/working/only-copy book was opened, copied, or mutated; no write
+  gate/default was weakened; #36 remains open.
 
 - Overnight worker `overnight-2026-06-02-worker-18` completed a #28 compatibility Markdown
   readability guard package. `docs/gnucash-compatibility.md` now has a wrapped top status/blocker

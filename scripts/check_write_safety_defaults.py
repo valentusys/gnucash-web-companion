@@ -27,6 +27,28 @@ CHECKLIST_REQUIRED_TEXTS = (
     "owner-input/real-book/copy-book constraints",
     "next worker packages",
 )
+WRITE_COMPATIBILITY_DOCS = (
+    Path("docs/write-alpha/evidence-matrix.md"),
+    Path("docs/v0.2-controlled-writes.md"),
+)
+WRITE_COMPATIBILITY_REQUIRED_TEXTS = (
+    "supported-version write compatibility remains pending",
+    "synthetic/disposable or copied/restorable evidence only",
+    "not a real-book claim",
+    "broad GnuCash compatibility",
+    "public write beta",
+    "production",
+    "security-audited",
+)
+WRITE_COMPATIBILITY_FORBIDDEN_PATTERNS = (
+    "broad GnuCash write compatibility is supported",
+    "all GnuCash versions are write-compatible",
+    "production-book write safety is proven",
+    "real/private-book write-safety is proven",
+    "public write beta is ready",
+    "write mode is production-ready",
+    "write mode is security-audited",
+)
 
 
 def _normalized(text: str) -> str:
@@ -43,6 +65,22 @@ def _read(path: Path) -> str:
         return path.read_text(encoding="utf-8")
     except OSError as exc:
         raise GuardError("required safety file could not be read") from exc
+
+
+def _check_write_compatibility_docs(paths: tuple[Path, ...]) -> list[str]:
+    failures: list[str] = []
+    combined_text = ""
+    for path in paths:
+        doc_text = _read(REPO_ROOT / path if not path.is_absolute() else path)
+        normalized = _normalized(doc_text)
+        combined_text += " " + normalized
+        for forbidden in WRITE_COMPATIBILITY_FORBIDDEN_PATTERNS:
+            if _normalized(forbidden) in normalized:
+                failures.append(f"write compatibility docs must not claim: {forbidden}")
+    missing = [required for required in WRITE_COMPATIBILITY_REQUIRED_TEXTS if _normalized(required) not in combined_text]
+    if missing:
+        failures.append("write compatibility docs must preserve: " + ", ".join(missing))
+    return failures
 
 
 def _check(env_example: Path, compose: Path, gate_doc: Path, checklist_doc: Path | None = None) -> list[str]:
@@ -77,6 +115,7 @@ def _check(env_example: Path, compose: Path, gate_doc: Path, checklist_doc: Path
         ]
         if missing:
             failures.append("#36 audit checklist must preserve: " + ", ".join(missing))
+    failures.extend(_check_write_compatibility_docs(WRITE_COMPATIBILITY_DOCS))
     return failures
 
 
