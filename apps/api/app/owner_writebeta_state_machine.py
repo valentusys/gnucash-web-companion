@@ -39,6 +39,7 @@ class OwnerWritebetaSession:
     backup_ref: str | None = None
     audit_ref: str | None = None
     restore_ref: str | None = None
+    restore_readiness_ref: str | None = None
     preview_hash: str | None = None
     confirmation_token_ref: str | None = None
     operation_count: int = 0
@@ -63,10 +64,19 @@ class OwnerWritebetaSession:
     def transition(self, target: OwnerWritebetaState, *, reason: str | None = None, **refs: str | None) -> "OwnerWritebetaSession":
         if target not in self.ALLOWED[self.state]:
             raise OwnerWritebetaTransitionError(f"unsafe owner-writebeta transition: {self.state} -> {target}")
+        # Apply incoming refs as tentative values so state-specific checks can
+        # validate them before the transition is committed.
+        tentative = {}
+        for key in ("operation_ref", "backup_ref", "audit_ref", "restore_ref", "restore_readiness_ref", "preview_hash", "confirmation_token_ref"):
+            value = refs.get(key)
+            if value:
+                tentative[key] = value[:80]
         if self.state == OwnerWritebetaState.CONFIRMATION and target == OwnerWritebetaState.MUTATING:
-            required = [self.operation_ref, self.backup_ref]
-            if not all(required):
-                raise OwnerWritebetaTransitionError("mutation requires opaque operation_ref and backup_ref")
+            effective_operation_ref = tentative.get("operation_ref", self.operation_ref)
+            effective_backup_ref = tentative.get("backup_ref", self.backup_ref)
+            effective_restore_readiness_ref = tentative.get("restore_readiness_ref", self.restore_readiness_ref)
+            if not all([effective_operation_ref, effective_backup_ref, effective_restore_readiness_ref]):
+                raise OwnerWritebetaTransitionError("mutation requires opaque operation_ref, backup_ref, and restore_readiness_ref")
             if self.expires_at is not None and datetime.now(timezone.utc) > self.expires_at:
                 raise OwnerWritebetaTransitionError("confirmed owner-writebeta preview expired")
         if self.state == OwnerWritebetaState.MUTATING and target == OwnerWritebetaState.VERIFICATION and not refs.get("audit_ref"):
@@ -75,16 +85,15 @@ class OwnerWritebetaSession:
             raise OwnerWritebetaTransitionError("reset_required requires opaque restore_ref")
         self.state = target
         self.failed_reason = reason if target == OwnerWritebetaState.FAILED_HARD_STOP else None
-        for key in ("operation_ref", "backup_ref", "audit_ref", "restore_ref", "preview_hash", "confirmation_token_ref"):
-            value = refs.get(key)
-            if value:
-                setattr(self, key, value[:80])
+        for key, value in tentative.items():
+            setattr(self, key, value)
         if target == OwnerWritebetaState.DISABLED:
             # Disabled is the fail-closed terminal posture. Preserve opaque audit
             # evidence refs, but drop stale active-arm material so a completed
             # reset cannot look like it still has a confirmed write preview.
             self.preview_hash = None
             self.confirmation_token_ref = None
+            self.restore_readiness_ref = None
             self.expires_at = None
         self.updated_at = datetime.now(timezone.utc)
         return self
@@ -109,6 +118,7 @@ class OwnerWritebetaSession:
             "backup_ref": self.backup_ref,
             "audit_ref": self.audit_ref,
             "restore_ref": self.restore_ref,
+            "restore_readiness_ref": self.restore_readiness_ref,
             "preview_hash": self.preview_hash,
             "confirmation_token_ref": self.confirmation_token_ref,
             "operation_count": str(self.operation_count),
@@ -161,6 +171,7 @@ def arm_confirmed_preview(
     *,
     preview_hash: str,
     backup_ref: str,
+    restore_readiness_ref: str | None = None,
     ttl_seconds: int = 600,
 ) -> tuple[OwnerWritebetaSession, str]:
     """Move PREVIEW -> CONFIRMATION and return the raw one-time token.
@@ -180,6 +191,7 @@ def arm_confirmed_preview(
         operation_ref=preview_hash,
         backup_ref=backup_ref,
         confirmation_token_ref=token_ref,
+        restore_readiness_ref=restore_readiness_ref,
     )
     return session, raw_token
 

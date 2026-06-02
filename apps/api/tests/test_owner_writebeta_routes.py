@@ -122,11 +122,73 @@ def test_owner_writebeta_preview_and_confirmation_use_opaque_refs(client, auth_h
     confirm = client.post(
         f"/books/{sample_book}/owner-writebeta/confirm",
         headers=auth_headers,
-        json={"preview_hash": preview_hash, "backup_ref": "bkp-authorized-ref"},
+        json={"preview_hash": preview_hash, "backup_ref": "bkp-authorized-ref", "restore_readiness_ref": "rr-routed-test-ref"},
     )
     assert confirm.status_code == 200
     assert confirm.json()["state"] == "confirmation"
     assert confirm.json()["confirmation_token_ref"].startswith("owb-conf-")
+
+
+def test_owner_writebeta_confirm_stores_restore_readiness_ref_when_provided(client, auth_headers, sample_book):
+    client.post(f"/books/{sample_book}/owner-writebeta/preflight", headers=auth_headers)
+    preview = client.post(
+        f"/books/{sample_book}/owner-writebeta/preview",
+        headers=auth_headers,
+        json={"operation": "CREATE", "payload_shape": {"splits": [{"amount": "opaque"}]}, "count": 1},
+    )
+    assert preview.status_code == 200
+    preview_hash = preview.json()["preview_hash"]
+
+    confirm = client.post(
+        f"/books/{sample_book}/owner-writebeta/confirm",
+        headers=auth_headers,
+        json={"preview_hash": preview_hash, "backup_ref": "bkp-ok", "restore_readiness_ref": "rr-router-provided"},
+    )
+    assert confirm.status_code == 200
+    assert confirm.json()["state"] == "confirmation"
+
+    status = client.get(f"/books/{sample_book}/owner-writebeta/status", headers=auth_headers)
+    assert status.status_code == 200
+    assert status.json()["summary"]["restore_readiness_ref"] == "rr-router-provided"
+
+
+def test_owner_writebeta_confirm_accepts_missing_restore_readiness_ref(client, auth_headers, sample_book):
+    """Confirm endpoint stores None for restore_readiness_ref when omitted; gate lives at mutation time."""
+    client.post(f"/books/{sample_book}/owner-writebeta/preflight", headers=auth_headers)
+    preview = client.post(
+        f"/books/{sample_book}/owner-writebeta/preview",
+        headers=auth_headers,
+        json={"operation": "CREATE", "payload_shape": {"tx": "opaque"}, "count": 1},
+    )
+    assert preview.status_code == 200
+    preview_hash = preview.json()["preview_hash"]
+
+    confirm = client.post(
+        f"/books/{sample_book}/owner-writebeta/confirm",
+        headers=auth_headers,
+        json={"preview_hash": preview_hash, "backup_ref": "bkp-no-rr"},
+    )
+    assert confirm.status_code == 200
+    assert confirm.json()["state"] == "confirmation"
+
+
+def test_owner_writebeta_confirm_rejects_invalid_restore_readiness_ref(client, auth_headers, sample_book):
+    client.post(f"/books/{sample_book}/owner-writebeta/preflight", headers=auth_headers)
+    preview = client.post(
+        f"/books/{sample_book}/owner-writebeta/preview",
+        headers=auth_headers,
+        json={"operation": "CREATE", "payload_shape": {}, "count": 1},
+    )
+    assert preview.status_code == 200
+    preview_hash = preview.json()["preview_hash"]
+
+    long_ref = "x" * 81
+    confirm = client.post(
+        f"/books/{sample_book}/owner-writebeta/confirm",
+        headers=auth_headers,
+        json={"preview_hash": preview_hash, "backup_ref": "bkp", "restore_readiness_ref": long_ref},
+    )
+    assert confirm.status_code == 422
 
 
 def test_owner_writebeta_status_remains_default_disabled_without_preflight(client, auth_headers, sample_book):
@@ -213,7 +275,7 @@ def test_owner_writebeta_reset_disabled_clears_stale_arm_and_disabled_probes_fai
     confirm = client.post(
         f"/books/{sample_book}/owner-writebeta/confirm",
         headers=auth_headers,
-        json={"preview_hash": preview.json()["preview_hash"], "backup_ref": "bkp-authorized-ref"},
+        json={"preview_hash": preview.json()["preview_hash"], "backup_ref": "bkp-authorized-ref", "restore_readiness_ref": "rr-reset-disabled-test"},
     )
     assert confirm.status_code == 200
     assert confirm.json()["confirmation_token_ref"].startswith("owb-conf-")

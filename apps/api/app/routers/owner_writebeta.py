@@ -62,6 +62,7 @@ class OwnerWritebetaPreviewResponseDTO(BaseModel):
 class OwnerWritebetaConfirmRequestDTO(BaseModel):
     preview_hash: str
     backup_ref: str = Field(min_length=1, max_length=80)
+    restore_readiness_ref: str | None = Field(None, min_length=1, max_length=80)
     ttl_seconds: int = Field(600, ge=1, le=3600)
 
 
@@ -119,6 +120,8 @@ def require_owner_writebeta_if_active(
         )
     try:
         require_matching_confirmation(session_state, preview_hash=preview_hash, raw_token=confirmation_token)
+        # The restore-readiness evidence must already be stored by /confirm.
+        # If it is absent, the state machine transition below fails closed.
         session_state.transition(OwnerWritebetaState.MUTATING)
     except OwnerWritebetaTransitionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
@@ -228,6 +231,7 @@ async def owner_writebeta_confirm(
             session_state,
             preview_hash=request.preview_hash,
             backup_ref=request.backup_ref,
+            restore_readiness_ref=request.restore_readiness_ref,
             ttl_seconds=request.ttl_seconds,
         )
     except OwnerWritebetaTransitionError as exc:
