@@ -20,6 +20,71 @@ GNUCASH_WRITES_ENABLED=false
 
 Do not use this procedure on the only copy of a GnuCash book. For real user data, first create an out-of-repository copy and verify independent backups with GnuCash Desktop.
 
+## Maintainer review packet before any future write milestone
+
+This packet is a human review gate, not an execution approval. It separates accepted non-mutating readiness evidence from future mutation evidence that still needs same-context owner and PM authorization.
+
+Before any maintainer considers a copied-book/write milestone, record all checkpoints below in the milestone handoff or issue comment:
+
+- Reviewer and decision owner: maintainer name plus PM/owner decision reference.
+- Exact commit SHA and route family under review.
+- Exact fixture scope: synthetic/disposable or copied/restorable only; never original/private/working/only-copy.
+- Desktop posture: GnuCash Desktop closed for the target copy before the web app can open it writable.
+- Default posture proof: `GNUCASH_WRITES_ENABLED=false` before and after the milestone plus an `APP_ENV=test` gate statement for any enabled write-alpha route.
+- Non-mutating evidence accepted so far: checklist, guard, handoff, or CI links only; no raw private data.
+- Future mutation evidence requested: route family, operation counts, preflight, backup, read-back, audit, lock, rollback/restore, reset/default-disabled probe, and redaction expectations.
+- Explicit keep-open posture for issue #36 unless maintainer/PM review accepts every remaining blocker and states the original issue scope is satisfied.
+- Explicit no-release posture: no public write beta, stable, production, security-audited, v0.2-ready, tag, package, image, or release claim.
+
+If any checkpoint is missing, stop at documentation review. Mark the exact item blocked and keep writes disabled.
+
+## Evidence required before future copied-book/write milestones
+
+Non-mutating evidence may satisfy only documentation, guard, and review readiness. It must not be treated as proof that writes are safe for a copied or real book.
+
+Accepted non-mutating evidence can include:
+
+- passing static guards such as `scripts/check_write_safety_defaults.py`, `scripts/check_public_status.py`, and `scripts/check_tracked_hygiene.py`;
+- synthetic/unit tests that do not open, copy, or mutate GnuCash books;
+- redacted handoffs and docs that preserve `GNUCASH_WRITES_ENABLED=false`, `APP_ENV=test`, no-release, and #36 keep-open posture.
+
+Future copied/restorable mutation evidence, only after exact same-context authorization, must include all of the following before the milestone can be reviewed:
+
+- copied/restorable fixture provenance outside git and outside original/private/working/only-copy data;
+- operator confirmation that GnuCash Desktop is closed for the copied target;
+- preflight showing the target is a disposable copy and write mode is still disabled before arming;
+- explicit arming/route family/count scope for CREATE, PATCH, or DELETE;
+- pre-write backup path recorded in audit without publishing private paths;
+- per-book lock acquisition and contention/rejection evidence;
+- post-write read-back through read-only app routes;
+- audit rows for success and for any routed failure after write-route entry, with non-sensitive metadata only;
+- rollback or restore verification evidence: selected backup, restore hash/checksum marker, bounded row-count marker, schema marker, and read-only reopen result;
+- reset/default-disabled probe proving CREATE/PATCH/DELETE are blocked again after reset;
+- redaction review proving no book, app DB, backup, CSV/export, screenshot, private path, account name, transaction description, memo, amount, `.env`, token, key, cert, or raw private evidence is committed or posted.
+
+Missing future mutation evidence is a blocker. Do not substitute existing non-mutating evidence for it.
+
+## Hard-stop and recovery decision tree
+
+Use this decision tree for failed or incomplete copied/synthetic write-alpha attempts:
+
+1. Did a restore, read-back, or audit expectation fail?
+   - Yes: hard stop. Preserve the pre-write backup and damaged disposable candidate outside git, keep writes disabled, do not retry on the same copy, and escalate to maintainer/owner review with redacted facts only.
+   - No: continue to the next decision.
+2. Is the backup missing, ambiguous, not tied to the route attempt, or not restorable?
+   - Yes: hard stop. Do not perform another write. Regenerate a disposable fixture or wait for maintainer/owner review.
+   - No: continue to restore/read-back checks below.
+3. Is a lock active or unreadable?
+   - Active: stop the app or wait for the active writer; do not remove lock files blindly.
+   - Unreadable: inspect from the container or fix runtime ownership; do not assume stale status.
+   - Stale released with app stopped: remove only the affected book-specific stale lock from ignored runtime storage if needed.
+4. Did the restored/regenerated book open through read-only app routes and, if available, a separate GnuCash Desktop copy check?
+   - No: hard stop and preserve evidence outside git.
+   - Yes: record rollback/read-back/audit evidence, reset to disabled, and proceed only to maintainer review.
+5. Did reset/default-disabled probes return to `GNUCASH_WRITES_ENABLED=false` with write routes blocked?
+   - No: hard stop; do not claim readiness.
+   - Yes: mark the copied/synthetic attempt recovered for review only. This still does not authorize public write beta or real-book writes.
+
 ## Inputs to collect without leaking private data
 
 For a failed write-alpha attempt, collect only non-sensitive operational facts:

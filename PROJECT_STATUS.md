@@ -20,8 +20,8 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) markdown readability, and
   [#36](https://github.com/valentusys/gnucash-web-companion/issues/36) controlled-write readiness
   gates.
-- Latest handoffs: `docs/handoff/overnight-2026-06-02-worker-15.md`,
-  `docs/handoff/overnight-2026-06-02-worker-14.md`,
+- Latest handoffs: `docs/handoff/overnight-2026-06-02-worker-16.md`,
+  `docs/handoff/overnight-2026-06-02-worker-15.md`,
   `docs/handoff/overnight-2026-06-02-worker-12.md`.
 
 ## Current status snapshot
@@ -36,6 +36,16 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
 - Recently closed queues: #13, #41, #42, #43.
 
 ## Repository
+
+- Overnight worker `overnight-2026-06-02-worker-16` completed a non-mutating #36 maintainer
+  review/recovery procedure audit packet. `docs/write-alpha-recovery-procedure.md` now contains
+  pre-milestone human review checkpoints, a hard-stop/recovery decision tree, exact evidence required
+  before any future copied-book/write milestone, rollback/read-back/audit expectations, explicit
+  separation between accepted non-mutating evidence and future mutation evidence, and #36
+  keep-open/no-release posture. `docs/write-alpha-maintainer-checklist.md` and the evidence matrix
+  now list this packet as review-only evidence. Mutation counts: CREATE 0 / PATCH 0 / DELETE 0; no
+  real/private/original/working/only-copy book was opened, copied, or mutated; no write gate/default
+  was weakened; #36 remains open.
 
 - Overnight worker `overnight-2026-06-02-worker-15` completed a non-mutating #36 maintainer
   readiness audit/checklist package. `docs/write-alpha-maintainer-checklist.md` now consolidates

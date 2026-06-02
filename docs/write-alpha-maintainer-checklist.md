@@ -23,6 +23,7 @@ Evidence links already accepted narrowly:
 - Recovery/hard-stop expectations: `docs/handoff/overnight-2026-06-02-worker-09.md`.
 - Concurrency/lock-contention readiness markers: `docs/handoff/overnight-2026-06-02-worker-10.md`.
 - Default-disabled wording guard: `docs/handoff/overnight-2026-06-02-worker-14.md` and `scripts/check_write_safety_defaults.py`.
+- Maintainer review/recovery packet: `docs/write-alpha-recovery-procedure.md` and `docs/handoff/overnight-2026-06-02-worker-16.md`.
 - Current evidence summary: `docs/write-alpha/evidence-matrix.md`.
 
 Machine-checked wording required by `scripts/check_write_safety_defaults.py`:
@@ -41,28 +42,31 @@ Completed non-mutating gates with evidence:
 - [ ] Backup/restore evidence checklist exists and rejects missing restore hash, row-count, schema marker, default-disabled posture, and private/raw evidence markers.
 - [ ] Recovery/hard-stop markers are explicit: abort after failed restore/read-back/audit, preserve backups, no retry on the same copy without recovery, maintainer review or owner escalation, and default-disabled reset/probe.
 - [ ] Concurrency/lock-contention markers are explicit: serialized per-book lock acquisition, active-lock contention blocked/rejected, no overlapping write execution, audit trail for contention/rejection, and default-disabled no-write probe.
+- [ ] Maintainer review/recovery packet is explicit: pre-milestone human checkpoints, hard-stop/recovery decision tree, evidence required before future copied-book/write milestones, rollback/read-back/audit expectations, non-mutating-vs-future-mutation evidence separation, and #36 keep-open/no-release posture.
 
 Remaining blockers and exact next worker packages:
 
-1. Maintainer review/recovery procedure packet:
-   - Update or audit `docs/write-alpha-recovery-procedure.md` against the worker 07/09 markers.
-   - Ensure it says failed restore/read-back/audit means hard stop, backup preservation, no retry on the same copy before recovery/regeneration, and owner/maintainer escalation.
-   - Keep it non-mutating unless explicitly authorized.
-
-2. Conservative compatibility wording packet:
+1. Conservative compatibility wording packet:
    - Audit `docs/write-alpha/evidence-matrix.md`, `docs/v0.2-controlled-writes.md`, and release/status docs for GnuCash version/write compatibility claims.
    - Ensure claims remain tied to synthetic/disposable or copied/restorable evidence only.
    - Do not claim broad compatibility, public write beta readiness, stable readiness, production readiness, or security-audited status.
 
-3. Future copied/restorable mutation evidence packet, only if explicitly authorized in the same execution context:
+2. Future copied/restorable mutation evidence packet, only if explicitly authorized in the same execution context:
    - Require owner + PM authorization, Desktop closed, outside-git copied/restorable working book, independent backup, read-back, audit, lock, compatibility, restore, reset/default-disabled probe, and redaction gates.
    - Never use original/private/working/only-copy books.
    - Exact counts and route family must be specified before execution.
 
-4. #36 closure decision packet:
+3. #36 closure decision packet:
    - Re-read #36, all linked handoffs, and latest CI.
    - Decide whether the original issue scope is truly satisfied.
    - Expected default is keep open until a maintainer/PM explicitly accepts the remaining blockers.
+
+Completed by worker 16 but still review-only:
+
+- Maintainer review/recovery procedure packet:
+  - `docs/write-alpha-recovery-procedure.md` now contains a maintainer-facing packet with human checkpoints before any copied-book/write milestone.
+  - The recovery procedure states failed restore/read-back/audit means hard stop, backup preservation, no retry on the same copy before recovery/regeneration, and owner/maintainer escalation.
+  - The packet remains non-mutating and does not authorize public write beta, real-book writes, v0.2 readiness, release readiness, production, stable, or security-audited claims.
 
 ## Non-negotiable gate
 
