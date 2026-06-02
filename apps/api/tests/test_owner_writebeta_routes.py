@@ -183,3 +183,68 @@ def test_owner_writebeta_verify_reset_requires_all_post_mutation_evidence(client
 
     assert response.status_code == 409
     assert "verify-reset requires a mutating session" in response.json()["detail"]
+
+
+def _balanced_transaction_payload():
+    return {
+        "date": "2026-05-16",
+        "description": "Synthetic disabled probe",
+        "splits": [
+            {"account_id": "bank-guid", "amount": "-100.00", "currency": "SEK", "memo": ""},
+            {"account_id": "food-guid", "amount": "100.00", "currency": "SEK", "memo": ""},
+        ],
+    }
+
+
+def test_owner_writebeta_reset_disabled_clears_stale_arm_and_disabled_probes_fail_closed(
+    client,
+    auth_headers,
+    sample_book,
+):
+    from app.owner_writebeta_state_machine import OwnerWritebetaState
+    from app.routers.owner_writebeta import _SESSIONS
+
+    client.post(f"/books/{sample_book}/owner-writebeta/preflight", headers=auth_headers)
+    preview = client.post(
+        f"/books/{sample_book}/owner-writebeta/preview",
+        headers=auth_headers,
+        json={"operation": "CREATE", "payload_shape": {"splits": [{"amount": "private"}]}},
+    )
+    confirm = client.post(
+        f"/books/{sample_book}/owner-writebeta/confirm",
+        headers=auth_headers,
+        json={"preview_hash": preview.json()["preview_hash"], "backup_ref": "bkp-authorized-ref"},
+    )
+    assert confirm.status_code == 200
+    assert confirm.json()["confirmation_token_ref"].startswith("owb-conf-")
+
+    # Simulate the route guard having admitted exactly one already-routed mutation;
+    # no GnuCash book or write service is opened in this reset/default-disabled test.
+    _SESSIONS[sample_book].transition(OwnerWritebetaState.MUTATING)
+    verify = client.post(
+        f"/books/{sample_book}/owner-writebeta/verify-reset",
+        headers=auth_headers,
+        json={"audit_ref": "audit-ok", "restore_ref": "restore-ok", "lock_released": True, "defaults_reset": True},
+    )
+    assert verify.status_code == 200
+    assert verify.json()["state"] == "reset_required"
+    assert verify.json()["writes_blocked"] is True
+
+    reset = client.post(f"/books/{sample_book}/owner-writebeta/reset-disabled", headers=auth_headers)
+
+    assert reset.status_code == 200
+    payload = reset.json()
+    assert payload["state"] == "disabled"
+    assert payload["writes_blocked"] is True
+    assert "writes_disabled_default" in payload["blocked_reasons"]
+    assert payload["summary"]["preview_hash"] is None
+    assert payload["summary"]["confirmation_token_ref"] is None
+
+    disabled_probes = [
+        client.post(f"/books/{sample_book}/transactions/validate", json=_balanced_transaction_payload(), headers=auth_headers),
+        client.post(f"/books/{sample_book}/transactions", json=_balanced_transaction_payload(), headers=auth_headers),
+        client.patch(f"/books/{sample_book}/transactions/synthetic-tx-id", json={"description": "still disabled"}, headers=auth_headers),
+        client.delete(f"/books/{sample_book}/transactions/synthetic-tx-id", headers=auth_headers),
+    ]
+    assert [probe.status_code for probe in disabled_probes] == [403, 403, 403, 403]
+    assert all("read-only" in probe.json()["detail"] for probe in disabled_probes)

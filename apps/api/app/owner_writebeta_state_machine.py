@@ -79,6 +79,13 @@ class OwnerWritebetaSession:
             value = refs.get(key)
             if value:
                 setattr(self, key, value[:80])
+        if target == OwnerWritebetaState.DISABLED:
+            # Disabled is the fail-closed terminal posture. Preserve opaque audit
+            # evidence refs, but drop stale active-arm material so a completed
+            # reset cannot look like it still has a confirmed write preview.
+            self.preview_hash = None
+            self.confirmation_token_ref = None
+            self.expires_at = None
         self.updated_at = datetime.now(timezone.utc)
         return self
 

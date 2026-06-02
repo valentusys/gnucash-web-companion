@@ -20,6 +20,13 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
 
 ## Repository
 
+- Overnight worker `overnight-2026-06-02-worker-02` completed a #36 default-disabled reset probe
+  package. Owner-writebeta route tests now prove a simulated post-mutation `verify-reset`/`reset-disabled`
+  path returns to `disabled`, clears stale active-arm preview/confirmation refs, preserves the default
+  `GNUCASH_WRITES_ENABLED=false` blocked reason, and leaves validate/CREATE/PATCH/DELETE probes
+  403/read-only after reset. Mutation counts: CREATE 0 / PATCH 0 / DELETE 0; no GnuCash book was opened
+  or mutated. Handoff: `docs/handoff/overnight-2026-06-02-worker-02.md`.
+
 - Overnight worker `overnight-2026-06-02-worker-01` completed a #28 changelog/release-doc
   readability slice. `CHANGELOG.md` now starts with quick navigation and grouped current-release
   posture before the long history; `docs/release/v0.5.0-public-readonly-beta-notes.md` and final-gate
