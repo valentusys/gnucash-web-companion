@@ -12,7 +12,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
 
 from app.config import Settings
-from app.write_alpha_readiness import inspect_write_alpha_readiness
+from app.write_alpha_readiness import (
+    validate_backup_restore_readiness_evidence,
+    inspect_write_alpha_readiness,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SCRIPT_PATH = REPO_ROOT / "scripts" / "write_alpha_readiness.py"
@@ -151,3 +154,66 @@ def test_cli_json_output_is_redacted_and_uses_nonzero_for_not_ready(tmp_path, mo
     assert str(tmp_path) not in result.stdout
     assert "missing.gnucash.sqlite" not in result.stdout
     assert result.stderr == ""
+
+
+def _complete_backup_restore_evidence() -> dict[str, object]:
+    return {
+        "fixture_classification": "copied-disposable",
+        "backup_location": "outside-git",
+        "restore_hash_verified": True,
+        "restore_row_count_verified": True,
+        "restore_schema_marker_verified": True,
+        "private_raw_evidence_included": False,
+        "default_writes_disabled": True,
+        "recovery_hard_stop_note": "stop and recover from the verified backup before any further write attempt",
+    }
+
+
+def test_backup_restore_readiness_evidence_requires_all_fail_closed_markers():
+    evidence = _complete_backup_restore_evidence()
+
+    result = validate_backup_restore_readiness_evidence(evidence)
+    payload = result.to_dict()
+
+    assert result.ready is True
+    assert payload["checks"]["fixture_classification"]["status"] == "ok"
+    assert payload["checks"]["backup_location"]["status"] == "ok"
+    assert payload["checks"]["restore_hash_verified"]["status"] == "ok"
+    assert payload["checks"]["restore_row_count_verified"]["status"] == "ok"
+    assert payload["checks"]["restore_schema_marker_verified"]["status"] == "ok"
+    assert payload["checks"]["private_raw_evidence_absent"]["status"] == "ok"
+    assert payload["checks"]["default_writes_disabled"]["status"] == "ok"
+    assert payload["checks"]["recovery_hard_stop_note"]["status"] == "ok"
+    assert payload["mutation_plan"]["authorized"] is False
+    assert "authorized_mutations=create:0,patch:0,delete:0" in result.safe_summary()
+
+
+def test_backup_restore_readiness_evidence_blocks_missing_restore_schema_marker():
+    evidence = _complete_backup_restore_evidence()
+    evidence.pop("restore_schema_marker_verified")
+
+    result = validate_backup_restore_readiness_evidence(evidence)
+    payload = result.to_dict()
+
+    assert result.ready is False
+    assert payload["status"] == "blocked"
+    assert payload["checks"]["restore_schema_marker_verified"]["status"] == "blocked"
+    assert "restore_schema_marker_verified=blocked" in result.safe_summary()
+
+
+def test_backup_restore_readiness_evidence_blocks_private_or_raw_evidence():
+    evidence = _complete_backup_restore_evidence()
+    evidence["private_raw_evidence_included"] = True
+    evidence["raw_path"] = str(Path.home() / "private" / "owner-book.gnucash.sqlite")
+    evidence["memo"] = "owner memo should never be accepted"
+    evidence["amount"] = "123.45"
+
+    result = validate_backup_restore_readiness_evidence(evidence)
+    payload_text = json.dumps(result.to_dict(), sort_keys=True)
+
+    assert result.ready is False
+    assert result.to_dict()["checks"]["private_raw_evidence_absent"]["status"] == "blocked"
+    assert str(Path.home()) not in payload_text
+    assert "owner-book" not in payload_text
+    assert "owner memo" not in payload_text
+    assert "123.45" not in payload_text

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 from sqlalchemy import text
 from sqlalchemy.engine import Engine, URL, make_url
@@ -198,6 +198,105 @@ def inspect_write_alpha_readiness(settings: Settings, engine: Engine) -> WriteAl
         "app_db_reachable": _check_app_db(engine, settings),
         "default_book_readable": _check_default_book(settings),
         "no_mutation_performed": _ok("Readiness inspection performed no mutation.", mutation="none"),
+    }
+    ready = all(check.ok for check in checks.values())
+    return WriteAlphaReadiness(status="ready" if ready else "blocked", ready=ready, checks=checks)
+
+
+_ALLOWED_FIXTURE_CLASSIFICATIONS = frozenset(
+    {
+        "copied-disposable",
+        "copied-restorable",
+        "synthetic-disposable",
+        "synthetic-or-copied-disposable-only",
+    }
+)
+_ALLOWED_BACKUP_LOCATIONS = frozenset({"outside-git", "approved-temp-area"})
+_SENSITIVE_EVIDENCE_KEYS = frozenset(
+    {
+        "raw_path",
+        "private_path",
+        "book_path",
+        "backup_path",
+        "account_name",
+        "transaction_description",
+        "memo",
+        "amount",
+        "balance",
+        "payload",
+        "splits",
+    }
+)
+
+
+def _bool_check(evidence: Mapping[str, Any], key: str, ok_message: str, blocked_message: str) -> ReadinessCheck:
+    return _ok(ok_message, marker=key) if evidence.get(key) is True else _blocked(blocked_message, marker=key)
+
+
+def validate_backup_restore_readiness_evidence(evidence: Mapping[str, Any]) -> WriteAlphaReadiness:
+    """Validate redacted backup/restore readiness evidence without mutating files.
+
+    This is a fail-closed checklist for future controlled-write packages. It
+    accepts only bounded markers and intentionally ignores/raw-redacts evidence
+    values so private paths, account names, memos, amounts, and payloads never
+    appear in the returned report.
+    """
+
+    classification = str(evidence.get("fixture_classification", "")).strip().lower()
+    backup_location = str(evidence.get("backup_location", "")).strip().lower()
+    note = str(evidence.get("recovery_hard_stop_note", "")).strip().lower()
+    sensitive_keys_present = sorted(key for key in _SENSITIVE_EVIDENCE_KEYS if key in evidence)
+    private_raw_included = evidence.get("private_raw_evidence_included") is True or bool(sensitive_keys_present)
+
+    checks = {
+        "fixture_classification": (
+            _ok("Evidence identifies only a copied/disposable or synthetic/disposable fixture.", allowed="copied_or_synthetic_disposable")
+            if classification in _ALLOWED_FIXTURE_CLASSIFICATIONS
+            else _blocked("Evidence must identify a copied/disposable or synthetic/disposable fixture.", allowed="copied_or_synthetic_disposable")
+        ),
+        "backup_location": (
+            _ok("Backup evidence is outside git or in an approved temp area.", allowed="outside_git_or_approved_temp")
+            if backup_location in _ALLOWED_BACKUP_LOCATIONS
+            else _blocked("Backup evidence must be outside git or in an approved temp area.", allowed="outside_git_or_approved_temp")
+        ),
+        "restore_hash_verified": _bool_check(
+            evidence,
+            "restore_hash_verified",
+            "Restore checksum/hash verification marker is present.",
+            "Restore checksum/hash verification marker is missing.",
+        ),
+        "restore_row_count_verified": _bool_check(
+            evidence,
+            "restore_row_count_verified",
+            "Restore bounded row-count verification marker is present.",
+            "Restore bounded row-count verification marker is missing.",
+        ),
+        "restore_schema_marker_verified": _bool_check(
+            evidence,
+            "restore_schema_marker_verified",
+            "Restore schema marker verification is present.",
+            "Restore schema marker verification is missing.",
+        ),
+        "private_raw_evidence_absent": (
+            _blocked(
+                "Evidence includes private/raw fields or explicitly reports private/raw evidence; redact before proceeding.",
+                sensitive_key_count=len(sensitive_keys_present),
+            )
+            if private_raw_included
+            else _ok("Evidence reports no private paths, raw account/memo/amount data, or payloads.", sensitive_key_count=0)
+        ),
+        "default_writes_disabled": _bool_check(
+            evidence,
+            "default_writes_disabled",
+            "Default write-disabled posture marker is present.",
+            "Default write-disabled posture marker is missing.",
+        ),
+        "recovery_hard_stop_note": (
+            _ok("Recovery/hard-stop note is present.", marker="recovery_hard_stop_note")
+            if ("stop" in note or "hard-stop" in note) and "recover" in note
+            else _blocked("Recovery/hard-stop note must tell the operator to stop and recover before further writes.", marker="recovery_hard_stop_note")
+        ),
+        "no_mutation_performed": _ok("Checklist validation performed no mutation.", mutation="none"),
     }
     ready = all(check.ok for check in checks.values())
     return WriteAlphaReadiness(status="ready" if ready else "blocked", ready=ready, checks=checks)

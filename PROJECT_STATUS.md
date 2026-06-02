@@ -20,6 +20,15 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
 
 ## Repository
 
+- Overnight worker `overnight-2026-06-02-worker-07` completed a #36 backup/restore readiness
+  evidence checklist guard. Added a pure non-mutating `validate_backup_restore_readiness_evidence`
+  helper plus synthetic tests and docs requiring copied/disposable fixture classification, outside-git
+  or approved-temp backup location, restore hash/row-count/schema-marker evidence, no private/raw
+  evidence, default write-disabled posture, and a recovery/hard-stop note before future write
+  milestones. Missing markers fail closed and reports do not echo raw paths/account/memo/amount data.
+  Mutation counts: CREATE 0 / PATCH 0 / DELETE 0; no GnuCash book was opened, copied, or mutated.
+  Handoff: `docs/handoff/overnight-2026-06-02-worker-07.md`.
+
 - Overnight worker `overnight-2026-06-02-worker-06` completed a #28 README.ru source-readability
   slice. `README.ru.md` now keeps the top public-status posture compact, links detailed phase/release
   history to `PROJECT_STATUS.md`, release docs, and handoffs, and preserves conservative wording:
