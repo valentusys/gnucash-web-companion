@@ -60,6 +60,9 @@ CONFIG_FILES = [
     Path(".env.example"),
     Path("docker-compose.yml"),
 ]
+COMPATIBILITY_STATUS_FILES = [
+    Path("docs/gnucash-compatibility.md"),
+]
 DEFAULT_WRITE_SAFETY_GUARD_FILES = (
     Path(".env.example"),
     Path("docker-compose.yml"),
@@ -360,6 +363,38 @@ UNSAFE_AFFIRMATIVE_PATTERNS = [
     re.compile(r"\bsafe\s+production\s+write\s+mode\b", re.I),
 ]
 
+COMPATIBILITY_REQUIRED_FRAGMENTS = [
+    "No real GnuCash Desktop version has been tested by this repository's automated compatibility suite yet",
+    "Compatibility evidence is based on synthetic/disposable fixtures only",
+    "PostgreSQL/MySQL/MariaDB GnuCash backends are unclaimed",
+    "#22 stays open until an actual isolated Desktop-generated synthetic fixture exists",
+]
+COMPATIBILITY_UNSAFE_CLAIM_PATTERNS = [
+    re.compile(r"\bGnuCash\s+Desktop\s+\d+(?:\.\d+){1,3}\s+(?:is\s+)?supported\b", re.I),
+    re.compile(r"\bsupports\s+GnuCash\s+Desktop\s+\d+(?:\.\d+){1,3}\b", re.I),
+    re.compile(r"\bDesktop-version\s+support\b", re.I),
+    re.compile(r"\bPostgreSQL/MySQL/MariaDB\s+supported\b", re.I),
+    re.compile(r"\ball\s+SQL\s+backends\s+(?:are\s+)?supported\b", re.I),
+]
+
+
+def check_compatibility_status_claims(path: Path, text: str) -> None:
+    """Guard #22 compatibility docs against broad Desktop/backend support drift."""
+
+    require_contains(path, text, COMPATIBILITY_REQUIRED_FRAGMENTS)
+    previous_line = ""
+    for line_number, line in enumerate(text.splitlines(), start=1):
+        lowered = line.lower()
+        if any(marker in lowered for marker in ("not ", "no ", "without", "does not", "do not", "unclaimed")):
+            previous_line = lowered
+            continue
+        for pattern in COMPATIBILITY_UNSAFE_CLAIM_PATTERNS:
+            if pattern.search(line):
+                raise AssertionError(
+                    f"{path}:{line_number}: forbidden compatibility claim matched {pattern.pattern!r}: {line}"
+                )
+        previous_line = line.lower()
+
 
 def read_public_text(path: Path) -> str:
     full_path = REPO_ROOT / path
@@ -414,7 +449,7 @@ def main() -> int:
     texts: dict[Path, str] = {}
 
     try:
-        for path in PUBLIC_STATUS_FILES + CONFIG_FILES:
+        for path in PUBLIC_STATUS_FILES + CONFIG_FILES + COMPATIBILITY_STATUS_FILES:
             texts[path] = read_public_text(path)
     except AssertionError as exc:
         errors.append(str(exc))
@@ -610,6 +645,13 @@ def main() -> int:
             try:
                 reject_patterns(path, texts[path], STALE_CURRENT_PATTERNS)
                 reject_patterns(path, texts[path], UNSAFE_AFFIRMATIVE_PATTERNS)
+            except AssertionError as exc:
+                errors.append(str(exc))
+
+    for path in COMPATIBILITY_STATUS_FILES:
+        if path in texts:
+            try:
+                check_compatibility_status_claims(path, texts[path])
             except AssertionError as exc:
                 errors.append(str(exc))
 

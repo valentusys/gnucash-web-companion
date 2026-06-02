@@ -20,9 +20,9 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) markdown readability, and
   [#36](https://github.com/valentusys/gnucash-web-companion/issues/36) controlled-write readiness
   gates.
-- Latest handoffs: `docs/handoff/overnight-2026-06-02-worker-16.md`,
-  `docs/handoff/overnight-2026-06-02-worker-15.md`,
-  `docs/handoff/overnight-2026-06-02-worker-12.md`.
+- Latest handoffs: `docs/handoff/overnight-2026-06-02-worker-17.md`,
+  `docs/handoff/overnight-2026-06-02-worker-16.md`,
+  `docs/handoff/overnight-2026-06-02-worker-15.md`.
 
 ## Current status snapshot
 
@@ -36,6 +36,15 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
 - Recently closed queues: #13, #41, #42, #43.
 
 ## Repository
+
+- Overnight worker `overnight-2026-06-02-worker-17` completed a #22 compatibility-status claim
+  guard package. `scripts/check_public_status.py` now reads `docs/gnucash-compatibility.md`, requires
+  explicit Desktop-generated fixture blocker language, requires synthetic/disposable-only evidence
+  wording, requires PostgreSQL/MySQL/MariaDB unclaimed-backend wording, and fails closed for affirmative
+  GnuCash Desktop version or broad SQL-backend support claims. Focused guard tests were added in
+  `apps/api/tests/test_public_status_guard.py`. No Desktop fixture was generated, no book/private
+  evidence was opened/copied/mutated, and #22 remains open until an isolated Desktop-generated
+  synthetic SQLite fixture exists and passes fail-closed preflight plus default-read-only validation.
 
 - Overnight worker `overnight-2026-06-02-worker-16` completed a non-mutating #36 maintainer
   review/recovery procedure audit packet. `docs/write-alpha-recovery-procedure.md` now contains

@@ -19,13 +19,42 @@ def test_public_status_guard_reuses_write_safety_defaults_guard() -> None:
 
 
 def test_public_status_guard_reads_only_declared_public_files():
-    checked = set(guard.PUBLIC_STATUS_FILES + guard.CONFIG_FILES)
+    checked = set(guard.PUBLIC_STATUS_FILES + guard.CONFIG_FILES + guard.COMPATIBILITY_STATUS_FILES)
 
     assert Path(".env") not in checked
     assert all(not str(path).startswith("data/") for path in checked)
     assert all("backups" not in path.parts for path in checked)
     assert all("books" not in path.parts for path in checked)
     assert all(path.name != "app.db" for path in checked)
+
+
+def test_compatibility_status_guard_requires_desktop_fixture_blocker_language() -> None:
+    safe = """
+    No real GnuCash Desktop version has been tested by this repository's automated compatibility suite yet.
+    #22 stays open until an actual isolated Desktop-generated synthetic fixture exists.
+    Compatibility evidence is based on synthetic/disposable fixtures only.
+    PostgreSQL/MySQL/MariaDB GnuCash backends are unclaimed.
+    No production, stable, security, public-write, all-version, or real-book claim.
+    """
+
+    guard.check_compatibility_status_claims(Path("docs/gnucash-compatibility.md"), safe)
+
+
+def test_compatibility_status_guard_rejects_desktop_or_backend_support_claims() -> None:
+    unsafe = """
+    No real GnuCash Desktop version has been tested by this repository's automated compatibility suite yet.
+    #22 stays open until an actual isolated Desktop-generated synthetic fixture exists.
+    Compatibility evidence is based on synthetic/disposable fixtures only.
+    PostgreSQL/MySQL/MariaDB GnuCash backends are unclaimed.
+    GnuCash Desktop 5.10 is supported and PostgreSQL/MySQL/MariaDB supported.
+    """
+
+    try:
+        guard.check_compatibility_status_claims(Path("docs/gnucash-compatibility.md"), unsafe)
+    except AssertionError as exc:
+        assert "forbidden compatibility claim" in str(exc)
+    else:
+        raise AssertionError("affirmative Desktop/backend compatibility claim should fail guard")
 
 
 def test_public_status_guard_rejects_stale_current_write_alpha_claim():
