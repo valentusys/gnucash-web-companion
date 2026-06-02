@@ -25,6 +25,7 @@ DEFAULT_DOCS = PUBLIC_STATUS_DOCS + (
     Path("docs/gnucash-compatibility.md"),
     Path("docs/release/v0.5.0-public-readonly-beta-notes.md"),
     Path("docs/release/v0.5.0-public-readonly-beta-final-gate.md"),
+    Path("docs/release/v0.5.0-public-readonly-beta-publication-evidence.md"),
     Path("docs/development/markdown-readability.md"),
     Path("docs/handoff/overnight-2026-06-02-worker-17.md"),
 )
