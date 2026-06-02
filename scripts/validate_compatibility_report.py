@@ -96,11 +96,11 @@ def validate_report(report: dict[str, Any]) -> dict[str, str | bool]:
         raise ValidationError("broad support phrase is not allowed")
 
     for key, value in report.items():
-        if key == "privacy_notice":
-            continue
         value_text = json.dumps(value, ensure_ascii=False)
         if PATH_RE.search(value_text) or AMOUNT_RE.search(value_text):
             raise ValidationError("unsafe path-like or amount-like value in report")
+        if key == "privacy_notice":
+            continue
         if PRIVATE_LABEL_RE.search(value_text):
             raise ValidationError("unsafe account-like, memo-like, or description-like value in report")
 

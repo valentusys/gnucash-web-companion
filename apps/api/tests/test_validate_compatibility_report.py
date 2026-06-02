@@ -157,3 +157,25 @@ def test_validate_compatibility_report_rejects_unknown_fields_types_and_enums(tm
         assert proc.returncode == 2
         assert expected_error in proc.stderr
         assert proc.stdout == ""
+
+
+def test_validate_compatibility_report_rejects_privacy_notice_with_raw_paths_or_amounts(
+    tmp_path: Path,
+) -> None:
+    payload = _valid_report()
+    payload["privacy_notice"] = "No books included, but operator checked /home/user/book.gnucash and amount 12.34"
+    report = _write_report(tmp_path, payload)
+
+    proc = subprocess.run(
+        [sys.executable, str(SCRIPT), str(report)],
+        check=False,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        cwd=ROOT,
+    )
+
+    assert proc.returncode == 2
+    assert "unsafe path-like or amount-like value" in proc.stderr
+    assert "/home/user" not in proc.stderr
+    assert "12.34" not in proc.stderr
