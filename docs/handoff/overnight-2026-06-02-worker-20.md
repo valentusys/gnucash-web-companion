@@ -69,18 +69,13 @@ JWT_SECRET=dummy-...cret APP_ADMIN_PASSWORD=dummy-...word docker compose config 
 
 ## Issue update
 
-Pending at handoff creation. Recommended issue comment summary:
-
-- Added #36 remaining-gates audit packet and guard.
-- Tests/guards passed as listed above.
-- #36 should stay open because supported-version write compatibility, future copied/restorable mutation
-  evidence, and explicit maintainer/PM acceptance remain blockers.
+Posted #36 update: https://github.com/valentusys/gnucash-web-companion/issues/36#issuecomment-4601634732
 
 ## Commit / CI
 
-- Implementation commit: fill after commit.
-- Issue comment: fill after issue update.
-- CI: fill after push if GitHub Actions run is available.
+- Implementation commit: `679c34842ec38bde5aa6753c502958127b3e7c3d`.
+- Issue comment: https://github.com/valentusys/gnucash-web-companion/issues/36#issuecomment-4601634732
+- CI: success for pushed implementation commit, https://github.com/valentusys/gnucash-web-companion/actions/runs/26814853010.
 
 ## Remaining blockers for #36
 
