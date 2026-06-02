@@ -107,7 +107,9 @@ Remaining gates to keep open:
 
 ## Commit / CI
 
-Commit SHA: `67d1d32`.
+Implementation commit SHA: `3b8aba0`.
+
+Handoff SHA update: recorded in the follow-up docs commit that contains this final note.
 
 CI: pending push.
 
