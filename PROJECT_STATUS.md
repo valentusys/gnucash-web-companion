@@ -20,6 +20,19 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
 
 ## Repository
 
+- Overnight worker `overnight-2026-06-02-worker-04` completed a #22 Desktop-generated
+  fixture candidate acceptance preflight package using only synthetic/tmp JSON metadata. Added
+  `scripts/preflight_desktop_fixture_candidate.py` plus matrix helper coverage so future
+  operator-supplied Desktop synthetic candidates fail closed unless they include explicit
+  Desktop-generated/synthetic markers, bounded `GnuCash X.Y` version evidence, SQLite backend,
+  synthetic/disposable scope, synthetic-disposable evidence marker, and a default-read-only validation
+  marker. Copied/private scope, unsupported backends, path/private-looking fields,
+  account/memo/description-like values, and amount-like values are rejected without echoing private
+  content. This is an acceptance gate only: no GUI was launched, no Desktop-generated fixture was
+  produced, no real/private/only-copy book was opened/copied/mutated, and #22 remains open for actual
+  isolated disposable GUI/manual-safe Desktop fixture creation plus redacted metadata and read-only
+  validation. Handoff: `docs/handoff/overnight-2026-06-02-worker-04.md`.
+
 - Overnight worker `overnight-2026-06-02-worker-03` completed a #22 Desktop tooling
   probe/checker hardening package using mocked command outputs only. The safe Desktop tooling probe
   now treats successful `--version` output as unsafe unless it is bounded, non-private-looking, and

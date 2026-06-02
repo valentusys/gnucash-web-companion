@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import json
+import re
 from typing import Any, Literal
 
 MatrixCategory = Literal[
@@ -24,6 +26,20 @@ TESTED_SYNTHETIC_MESSAGE = (
     "Covered only by synthetic/disposable fixture evidence; not a broad real-book, "
     "all-version, or production compatibility guarantee."
 )
+ACCEPTANCE_GATE_BLOCKED_MESSAGE = (
+    "Desktop fixture candidate acceptance gate only; keep #22 blocked until isolated "
+    "Desktop-generated synthetic evidence passes fail-closed preflight and default-read-only validation."
+)
+
+DESKTOP_VERSION_RE = re.compile(r"^GnuCash\s+\d+(?:\.\d+){1,3}$")
+PATH_RE = re.compile(r"([A-Za-z]:\\[^\s]*|/[^\s]+|\\\\[^\s]+)")
+AMOUNT_RE = re.compile(r"(?i)(amount\s*)\d+[.,]\d{2}")
+PRIVATE_KEY_RE = re.compile(r"(?i)(path|file|dir|account|memo|description|amount|secret|token|password|key)")
+PRIVATE_LABEL_RE = re.compile(r"(?i)\b(account|memo|description)\s+[^,;\n{}\[\]]+")
+
+
+class CandidatePreflightError(ValueError):
+    """Path-redacted Desktop fixture candidate acceptance failure."""
 
 
 @dataclass(frozen=True)
@@ -55,6 +71,60 @@ def _int_dict(value: Any) -> dict[str, int]:
         if isinstance(key, str) and isinstance(raw, int):
             result[key] = raw
     return result
+
+
+def _assert_no_private_candidate_evidence(metadata: dict[str, Any]) -> None:
+    for key, value in metadata.items():
+        if PRIVATE_KEY_RE.search(key) and key not in {"default_read_only_validation"}:
+            raise CandidatePreflightError("unsafe private-looking field in desktop fixture candidate")
+        text = json.dumps(value, ensure_ascii=False)
+        if PATH_RE.search(text) or AMOUNT_RE.search(text) or PRIVATE_LABEL_RE.search(text):
+            raise CandidatePreflightError("unsafe private-looking value in desktop fixture candidate")
+
+
+def validate_desktop_fixture_candidate_preflight(metadata: dict[str, Any]) -> dict[str, str | bool]:
+    """Fail-closed acceptance gate for operator-supplied Desktop fixture metadata.
+
+    This validates only redacted/synthetic/disposable evidence. It never opens a
+    GnuCash book and never accepts copied/private/path/account/memo/description/
+    amount-like evidence as a Desktop-generated fixture candidate.
+    """
+
+    if not isinstance(metadata, dict):
+        raise CandidatePreflightError("desktop fixture candidate must be a JSON object")
+    _assert_no_private_candidate_evidence(metadata)
+
+    if metadata.get("desktop_generated_synthetic_fixture") is not True:
+        raise CandidatePreflightError("missing desktop fixture marker")
+    if metadata.get("fixture_origin") != "desktop-generated-synthetic":
+        raise CandidatePreflightError("missing desktop fixture marker")
+    if not DESKTOP_VERSION_RE.fullmatch(_clean_string(metadata.get("gnucash_desktop_version"), "")):
+        raise CandidatePreflightError("missing desktop marker/version evidence")
+    if metadata.get("backend") != "SQLite":
+        raise CandidatePreflightError("unsupported backend for desktop fixture candidate")
+    if "fixture_scope" not in metadata:
+        raise CandidatePreflightError("missing desktop fixture marker")
+    if metadata.get("fixture_scope") not in {"synthetic", "disposable"}:
+        raise CandidatePreflightError("desktop fixture candidate must be synthetic/disposable only")
+    if metadata.get("synthetic_disposable_evidence") != "operator-created-disposable-empty-book":
+        raise CandidatePreflightError("missing desktop fixture marker")
+    if metadata.get("default_read_only_validation") != "passed":
+        raise CandidatePreflightError("missing default read-only validation marker")
+
+    return {
+        "accepted": True,
+        "backend": "SQLite",
+        "fixture_origin": "desktop-generated-synthetic",
+        "default_read_only_validation": "passed",
+    }
+
+
+def _desktop_candidate_preflight_passed(metadata: dict[str, Any]) -> bool:
+    try:
+        validate_desktop_fixture_candidate_preflight(metadata)
+    except CandidatePreflightError:
+        return False
+    return True
 
 
 def build_matrix_row_from_metadata(
@@ -101,6 +171,19 @@ def build_matrix_row_from_metadata(
             table_counts=table_counts,
             support_claim=MANUAL_FIXTURE_MESSAGE,
             safe_copy="Blocked/manual fixture work, not a tested Desktop-version support row.",
+        )
+
+    if desktop_generated and not _desktop_candidate_preflight_passed(metadata):
+        return CompatibilityMatrixRow(
+            category="manual_fixture_blocked",
+            status="candidate preflight failed; keep #22 blocked",
+            fixture_origin=fixture_origin,
+            backend=backend,
+            desktop_version_evidence=f"operator-supplied: {desktop_version}; failed acceptance preflight",
+            schema_markers=versions,
+            table_counts=table_counts,
+            support_claim=ACCEPTANCE_GATE_BLOCKED_MESSAGE,
+            safe_copy="Acceptance gate only; not a tested Desktop-version support row.",
         )
 
     return CompatibilityMatrixRow(

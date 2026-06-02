@@ -3,16 +3,23 @@
 from __future__ import annotations
 
 from pathlib import Path
+import subprocess
+import sys
 
 from app.compatibility_matrix import (
+    CandidatePreflightError,
     build_matrix_row_from_metadata,
     fixture_scope_boundaries,
     unsafe_broad_support_phrases,
+    validate_desktop_fixture_candidate_preflight,
 )
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[3]
 COMPATIBILITY_DOC = ROOT / "docs/gnucash-compatibility.md"
 CHANGELOG = ROOT / "CHANGELOG.md"
+PREFLIGHT_SCRIPT = ROOT / "scripts/preflight_desktop_fixture_candidate.py"
 
 
 def _desktop_metadata() -> dict[str, object]:
@@ -40,16 +47,113 @@ def test_desktop_fixture_metadata_ingests_as_blocked_until_read_only_validation(
     assert "requires disposable/manual creation" in row.support_claim
 
 
-def test_desktop_fixture_metadata_can_only_be_tested_after_explicit_read_only_validation() -> None:
-    row = build_matrix_row_from_metadata(
-        _desktop_metadata(),
-        read_only_validation_passed=True,
+def test_desktop_fixture_candidate_preflight_accepts_only_synthetic_disposable_metadata() -> None:
+    result = validate_desktop_fixture_candidate_preflight(
+        {
+            **_desktop_metadata(),
+            "fixture_scope": "synthetic",
+            "synthetic_disposable_evidence": "operator-created-disposable-empty-book",
+            "default_read_only_validation": "passed",
+        }
     )
+
+    assert result == {
+        "accepted": True,
+        "backend": "SQLite",
+        "fixture_origin": "desktop-generated-synthetic",
+        "default_read_only_validation": "passed",
+    }
+
+
+def test_desktop_fixture_candidate_preflight_fails_closed_for_missing_markers() -> None:
+    unsafe = _desktop_metadata()
+
+    with pytest.raises(CandidatePreflightError, match="missing desktop fixture marker"):
+        validate_desktop_fixture_candidate_preflight(unsafe)
+
+    with pytest.raises(CandidatePreflightError, match="default read-only validation"):
+        validate_desktop_fixture_candidate_preflight(
+            {
+                **unsafe,
+                "fixture_scope": "synthetic",
+                "synthetic_disposable_evidence": "operator-created-disposable-empty-book",
+            }
+        )
+
+
+def test_desktop_fixture_candidate_preflight_rejects_private_or_copied_evidence() -> None:
+    base = {
+        **_desktop_metadata(),
+        "fixture_scope": "synthetic",
+        "synthetic_disposable_evidence": "operator-created-disposable-empty-book",
+        "default_read_only_validation": "passed",
+    }
+    cases = [
+        {"fixture_scope": "copied-restorable"},
+        {"backend": "PostgreSQL"},
+        {"private_path_hint": "/home/person/book.gnucash"},
+        {"diagnostic_note": "account Personal memo Lunch"},
+        {"diagnostic_note": "description Sample amount 10.00"},
+    ]
+
+    for update in cases:
+        with pytest.raises(CandidatePreflightError):
+            validate_desktop_fixture_candidate_preflight({**base, **update})
+
+
+def test_desktop_fixture_candidate_preflight_cli_redacts_rejections(tmp_path: Path) -> None:
+    candidate = tmp_path / "candidate.json"
+    candidate.write_text(
+        """{
+          "backend": "SQLite",
+          "fixture_origin": "desktop-generated-synthetic",
+          "desktop_generated_synthetic_fixture": true,
+          "gnucash_desktop_version": "GnuCash 5.14",
+          "fixture_scope": "synthetic",
+          "synthetic_disposable_evidence": "operator-created-disposable-empty-book",
+          "default_read_only_validation": "passed",
+          "diagnostic_note": "account Personal memo Lunch"
+        }""",
+        encoding="utf-8",
+    )
+
+    proc = subprocess.run(
+        [sys.executable, str(PREFLIGHT_SCRIPT), str(candidate)],
+        check=False,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        cwd=ROOT,
+    )
+
+    assert proc.returncode == 2
+    assert proc.stdout == ""
+    assert "unsafe private-looking value" in proc.stderr
+    assert "Personal" not in proc.stderr
+    assert "Lunch" not in proc.stderr
+
+
+def test_desktop_fixture_metadata_can_only_be_tested_after_explicit_read_only_validation() -> None:
+    metadata = {
+        **_desktop_metadata(),
+        "fixture_scope": "synthetic",
+        "synthetic_disposable_evidence": "operator-created-disposable-empty-book",
+        "default_read_only_validation": "passed",
+    }
+    row = build_matrix_row_from_metadata(metadata, read_only_validation_passed=True)
 
     assert row.category == "tested_synthetic_fixture"
     assert row.status == "tested synthetic/disposable fixture evidence"
     assert row.desktop_version_evidence == "Desktop-generated synthetic fixture validated read-only"
     assert "no broad backend/version/real-book guarantee" in row.safe_copy
+
+
+def test_desktop_fixture_metadata_stays_blocked_when_preflight_marker_missing() -> None:
+    row = build_matrix_row_from_metadata(_desktop_metadata(), read_only_validation_passed=True)
+
+    assert row.category == "manual_fixture_blocked"
+    assert row.status == "candidate preflight failed; keep #22 blocked"
+    assert "acceptance gate only" in row.support_claim
 
 
 def test_non_sqlite_metadata_stays_unclaimed_backend() -> None:
