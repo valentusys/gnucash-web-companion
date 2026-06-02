@@ -20,6 +20,15 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
 
 ## Repository
 
+- Overnight worker `overnight-2026-06-02-worker-06` completed a #28 README.ru source-readability
+  slice. `README.ru.md` now keeps the top public-status posture compact, links detailed phase/release
+  history to `PROJECT_STATUS.md`, release docs, and handoffs, and preserves conservative wording:
+  `v0.5.0-public-readonly-beta` remains current, `v0.5.1-public-readonly-beta` is not published,
+  `v0.4.0-owner-writebeta` remains deferred, `GNUCASH_WRITES_ENABLED=false` remains default, enabled
+  writes remain experimental/`APP_ENV=test` gated, and real/private/original/only-copy books remain
+  unsafe write targets. A focused README.ru readability regression test was added. Handoff:
+  `docs/handoff/overnight-2026-06-02-worker-06.md`.
+
 - Overnight worker `overnight-2026-06-02-worker-04` completed a #22 Desktop-generated
   fixture candidate acceptance preflight package using only synthetic/tmp JSON metadata. Added
   `scripts/preflight_desktop_fixture_candidate.py` plus matrix helper coverage so future

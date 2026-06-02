@@ -25,99 +25,43 @@ Desktop остаётся главным редактором.
 
 ## Текущий публичный статус
 
-- Фазы 0–830 завершены. Фазы 731–830 сверили live release/status и зафиксировали отсутствие `v0.5.1-public-readonly-beta`; текущий public read-only beta остаётся `v0.5.0-public-readonly-beta`.
-- Issues #41 и #42 закрыты после проверки Phases 731–830; #43 остаётся открытым для owner-writebeta routed/copied-book работы. `v0.4.0-owner-writebeta` отложен.
-- В фазах 731–830 реальных или copied-book мутаций не было: CREATE 0, PATCH 0, DELETE 0. Real/original/private/only-copy book не трогались.
-- Последнее copied-book write-alpha evidence остаётся узким и экспериментальным: Phase 354 принял ровно один CREATE и затем ровно один DELETE той же write-alpha-owned disposable transaction, а Phase 363 принял ровно два CREATE и ровно один metadata/memo-only PATCH, всё только на copied/restorable books outside git.
-- MVP/read-only доступ остаётся **read-only by default**.
-- `GNUCASH_WRITES_ENABLED=false` — безопасный дефолт.
-- Controlled-write код, если присутствует, является experimental post-MVP/write-alpha, отключён по
-  умолчанию и дополнительно ограничен backend `APP_ENV=test` gate при явном включении.
-- Текущий публичный read-only beta pre-release:
+Короткая версия для review в терминале: README.ru держит только текущую публичную
+позицию и ссылки. Длинная фазовая история остаётся в `PROJECT_STATUS.md`,
+release docs и handoff-файлах, чтобы этот файл не становился статус-логом.
+
+- Фазы 0–830 завершены; детали и evidence см. в
+  [PROJECT_STATUS.md](PROJECT_STATUS.md).
+- Текущий public read-only beta остаётся
   [`v0.5.0-public-readonly-beta`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.5.0-public-readonly-beta).
-- Предыдущий публичный read-only pre-alpha release:
-  [`v0.1.6-readonly`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.1.6-readonly).
-- Предыдущие write-alpha pre-release:
-  [`v0.2.7-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.7-writealpha),
-  [`v0.2.6-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.6-writealpha),
-  [`v0.2.5-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.5-writealpha),
-  [`v0.2.4-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.4-writealpha),
-  [`v0.2.3-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.3-writealpha),
-  [`v0.2.2-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.2-writealpha),
-  [`v0.2.1-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.1-writealpha)
-  и
-  [`v0.2.0-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.0-writealpha);
-  они pre-alpha/experimental, disabled by default, не production-ready, не security-audited и не
-  заявляют безопасность записей в real/private books.
-- Текущий опубликованный write-alpha pre-release:
+- `v0.5.1-public-readonly-beta` не опубликован.
+- `v0.4.0-owner-writebeta` отложен; публичной write beta нет.
+- Текущий опубликованный write-alpha pre-release остаётся
   [`v0.2.8-writealpha`](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.2.8-writealpha),
-  опубликован в Phase 261 после cycle-3 release gate, PM authorization и green exact-commit CI:
-  [notes](docs/release/v0.2.8-writealpha-notes.md),
-  [checklist](docs/release/v0.2.8-writealpha-checklist.md), [final
-  gate](docs/release/v0.2.8-writealpha-final-gate.md), [publication
-  evidence](docs/release/v0.2.8-writealpha-publication-evidence.md). Write-alpha нельзя использовать
-  на real/private books или единственной копии книги; только synthetic/disposable или copied test
-  books, которые можно восстановить или удалить.
-- Текущая copied-book write-alpha posture зафиксирована в
-  [docs/write-alpha/copied-book-write-alpha-posture.md](docs/write-alpha/copied-book-write-alpha-posture.md):
-  accepted evidence включает dry-run, single CREATE, CREATE-to-PATCH, один CREATE-to-DELETE disposable chain и small batch 2 CREATE + 1 metadata/memo-only PATCH. DELETE допускается только для write-alpha-owned disposable transactions within authorized copied-book dogfood; original/private/only-copy books запрещены. Новый write-alpha release не опубликован.
-- Phase 221 проверил `v0.2.5-writealpha` и зафиксировал explicit no-release verdict: Phase 220 нашёл
-  DELETE backup-count anomaly в bounded write-alpha evidence. Phases 222–228 закрыли и
-  smoke-verified blocker только как synthetic/disposable backup-audit evidence и default-disabled
-  fresh-clone/upgrade evidence; Phase 229 обновил public status/release-doc drift guard после
-  remediation; Phase 230 собрал green final release-candidate dogfood pack; Phase 231 опубликовал
-  `v0.2.5-writealpha` только после final local gates и green exact release/status commit CI; Phase
-  232 сверил public status/changelog wording после публикации; Phase 233 улучшил raw markdown
-  readability README/README.ru/CHANGELOG/PROJECT_STATUS без изменения safety wording; Phase 234
-  добавил conservative [copied-book write-alpha dogfood runbook](docs/write-alpha/copied-book-dogfood-runbook.md);
-  Phase 235 добавил local-only redacted `scripts/write_alpha_preflight.py` target preflight CLI для
-  будущего copied/disposable тестирования; Phase 236 добавил redacted dogfood evidence schema и
-  `scripts/redact_dogfood_evidence.py`, чтобы будущие отчёты reject/redact path-like, amount-like,
-  memo/account-name и payload-like data до commit; Phase 237 добавил явно unsafe-for-real-books
-  `.env.writealpha.example` reference и [write-alpha environment guidance](docs/write-alpha/environment.md)
-  для local-only operator testing без изменения default read-only config; Phase 238 добавил
-  redacted non-mutating `scripts/write_alpha_readiness.py` readiness command для проверки
-  write-alpha prerequisites; Phase 239 записал synthetic copied-book dry-run через Docker/Caddy по
-  Phase 236 evidence schema; Phase 240 подготовил release-candidate docs для
-  `v0.2.6-writealpha`; Phase 241 вызвал PM, повторил release gate, дождался green exact
-  release/status commit CI и опубликовал `v0.2.6-writealpha` как conservative GitHub pre-release.
-  Cycle 2 затем добавил ownership boundary: CREATE создаёт write-alpha-owned транзакции, PATCH/DELETE
-  ограничены write-alpha-owned транзакциями, а historical/manual GnuCash transactions остаются
-  read-only в этом app. Phase 249 зафиксировал эти operator warnings в write-alpha docs, а Phase
-  250 подготовил `v0.2.7-writealpha` release-candidate notes/checklist/final-gate, а Phase 251
-  вызвал PM, повторил release gate, дождался green exact release/status commit CI и опубликовал
-  `v0.2.7-writealpha` как conservative GitHub pre-release. Phase 252 пропустил Cycle 3 gate, а
-  Phase 253 добавил maintainer copied-book dogfood packet: dry-run first, original/only-copy books
-  forbidden, только copied/restorable outside-git target с independent backup, optional mutation не
-  дальше one CREATE first, PATCH только после отдельного review, DELETE запрещён без отдельной
-  authorization для write-alpha-created test transaction. Phase 254 добавил local-only wrapper
-  `scripts/write_alpha_copied_book_dogfood.py` с отдельными `--dry-run` и `--create-one` modes,
-  обязательными confirmations, preflight, pre-step backup, redacted evidence, unsafe-path rejection и
-  proof/reset проверкой default `GNUCASH_WRITES_ENABLED=false`. Phase 255 усилил UI warnings для
-  create-only copied-book dogfood, Phase 256 добавил redacted best-effort
-  `scripts/write_alpha_compatibility_check.py`: harness открывает copied/disposable target read-only
-  через piecash, optional запускает уже доступный `gnucash-cli` report probe, пишет `pass`/`blocked`/
-  `fail` evidence, считает отсутствие Desktop/CLI tooling blocker, а не compatibility evidence, и не
-  заявляет broad Desktop/version compatibility, а Phase 257 добавил redacted
-  `scripts/write_alpha_restore_verify.py`: harness восстанавливает outside-git copied working book из
-  outside-git pre-mutation backup, проверяет checksum/read-back state, поддерживает optional
-  read-only web/API probe и не заявляет production disaster recovery. Phase 258 провёл full
-  maintainer copied-book package rehearsal на synthetic/disposable fixture copies, Phase 259 решил,
-  что следующий разумный owner ask — только copied-book dry-run, Phase 260 подготовил
-  `v0.2.8-writealpha` release-candidate notes/checklist/final-gate, а Phase 261 вызвал PM, повторил
-  release gate, дождался green exact release/status commit CI и опубликовал `v0.2.8-writealpha` как
-  conservative GitHub pre-release. Owner copied-book dry-run evidence теперь принято
-  только как dry-run evidence, Phase 272 подготовила no-mutation CREATE-one readiness plan, Phase 273
-  прошла synthetic/disposable CREATE-one rehearsal, Phase 275 подготовила owner CREATE-one request packet
-  после synthetic/disposable `gnucash-cli` compatibility pass, Phase 276 приняла ровно один owner
-  copied-book CREATE-one evidence run, Phase 277 не нашла concrete CREATE-one bug для исправления,
-  а Phase 278 обновила copied-book posture. Phase 279 зафиксировала PM no-release verdict, а Phase 280 закрыла Cycle 2 с рекомендацией начать только Phase 281 analyst PATCH-readiness review; PATCH/DELETE остаются не запущены и не авторизованы.
-  Write-alpha остаётся
-  pre-alpha/experimental, disabled by default, `APP_ENV=test` gated при явном включении и не безопасен
-  для real/private или only-copy books.
-- Compatibility matrix: [docs/gnucash-compatibility.md](docs/gnucash-compatibility.md). Текущие
-  evidence boundaries — synthetic/disposable fixtures only; broad real GnuCash Desktop version
-  support не заявлен.
+  опубликованный после Phase 261 cycle-3 release gate.
+- MVP/read-only доступ остаётся **read-only by default**.
+- `GNUCASH_WRITES_ENABLED=false` остаётся безопасным дефолтом.
+- Controlled-write код, если присутствует, является experimental post-MVP/write-alpha,
+  отключён по умолчанию и дополнительно ограничен backend `APP_ENV=test` gate при явном включении.
+- real/private/original/only-copy books не являются безопасной write-целью.
+- Open queues: #22 compatibility fixtures, #28 markdown readability, #36 controlled-write
+  readiness gates. #28 продолжается как постепенная cleanup-задача без whole-repo reflow.
+- Недавно закрытые очереди: #13, #41, #42, #43.
+
+## Где смотреть подробности
+
+- Подробный статус и длинная история: [PROJECT_STATUS.md](PROJECT_STATUS.md).
+- Handoff/evidence docs: [docs/handoff/](docs/handoff/).
+- Current public beta notes:
+  [docs/release/v0.5.0-public-readonly-beta-notes.md](docs/release/v0.5.0-public-readonly-beta-notes.md)
+  ([checklist](docs/release/v0.5.0-public-readonly-beta-checklist.md),
+  [final gate](docs/release/v0.5.0-public-readonly-beta-final-gate.md),
+  [publication evidence](docs/release/v0.5.0-public-readonly-beta-publication-evidence.md)).
+- Current copied-book write-alpha posture:
+  [docs/write-alpha/copied-book-write-alpha-posture.md](docs/write-alpha/copied-book-write-alpha-posture.md).
+- Compatibility matrix and evidence boundaries:
+  [docs/gnucash-compatibility.md](docs/gnucash-compatibility.md).
+- Older read-only/write-alpha releases are historical pre-alpha references, not production or
+  security-audited guarantees.
 
 ## Последние post-release фазы
 

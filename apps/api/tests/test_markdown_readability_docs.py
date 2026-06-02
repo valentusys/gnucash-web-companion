@@ -6,6 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 GUIDE = ROOT / "docs/development/markdown-readability.md"
 CHANGELOG = ROOT / "CHANGELOG.md"
+README_RU = ROOT / "README.ru.md"
 
 
 def test_markdown_readability_guide_preserves_safety_and_triage_workflow() -> None:
@@ -34,3 +35,19 @@ def test_changelog_starts_with_readable_release_navigation() -> None:
     assert "`v0.5.1-public-readonly-beta` is not published" in text
     assert "Default write mode remains `GNUCASH_WRITES_ENABLED=false`" in text
     assert "No public write beta, stable release, production claim, or security-audited claim" in text
+
+
+def test_readme_ru_starts_with_compact_public_status_and_safety_navigation() -> None:
+    text = README_RU.read_text(encoding="utf-8")
+
+    status = text.index("## Текущий публичный статус")
+    details = text.index("## Где смотреть подробности")
+    post_release = text.index("## Последние post-release фазы")
+
+    assert status < details < post_release
+    assert "Короткая версия для review в терминале" in text
+    assert "`v0.5.1-public-readonly-beta` не опубликован" in text
+    assert "`v0.4.0-owner-writebeta` отложен" in text
+    assert "`GNUCASH_WRITES_ENABLED=false` остаётся безопасным дефолтом" in text
+    assert "real/private/original/only-copy books не являются безопасной write-целью" in text
+    assert "без whole-repo reflow" in text
