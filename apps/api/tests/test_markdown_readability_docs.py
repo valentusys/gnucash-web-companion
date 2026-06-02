@@ -16,6 +16,7 @@ RELEASE_FINAL_GATE = ROOT / "docs/release/v0.5.0-public-readonly-beta-final-gate
 RELEASE_PUBLICATION_EVIDENCE = ROOT / "docs/release/v0.5.0-public-readonly-beta-publication-evidence.md"
 COMPATIBILITY_DOC = ROOT / "docs/gnucash-compatibility.md"
 ISSUE_28_CLOSURE_AUDIT = ROOT / "docs/development/issue-28-closure-audit.md"
+PUBLIC_FEEDBACK_PACKET = ROOT / "docs/community/public-readonly-beta-feedback-packet.md"
 
 
 def _load_checker():
@@ -224,3 +225,17 @@ def test_issue_28_closure_audit_keeps_remaining_public_docs_and_safety_visible()
     assert "git diff --check" in text
     assert "v0.5.1-public-readonly-beta` not-published" in text
     assert "no public write beta" in text
+
+
+def test_public_readonly_feedback_packet_keeps_safe_top_status() -> None:
+    text = PUBLIC_FEEDBACK_PACKET.read_text(encoding="utf-8")
+
+    assert "## Current public beta boundary" in text
+    assert "v0.5.0-public-readonly-beta" in text
+    assert "v0.5.1-public-readonly-beta` is not published" in text
+    assert "Read-only feedback only" in text
+    assert "No public write beta" in text
+    assert "Do not upload" in text
+    assert "GnuCash books" in text
+    assert "account names" in text
+    assert "amounts" in text
