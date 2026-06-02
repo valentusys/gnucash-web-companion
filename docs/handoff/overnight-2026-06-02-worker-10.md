@@ -112,7 +112,9 @@ Remaining gates to keep open:
 
 Implementation commit SHA: `f8fb0d1`.
 
-CI: pending push.
+Handoff SHA update: `7b98e98`.
+
+CI: success for pushed `7b98e98` on main: https://github.com/valentusys/gnucash-web-companion/actions/runs/26801932018.
 
 ## Next supervisor recommendation
 
