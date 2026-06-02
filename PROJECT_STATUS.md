@@ -7,18 +7,45 @@ Last updated: 2026-06-02
 Use this file as the high-level ledger of project decisions. For detailed evidence, prefer the linked
 handoff, release, dogfood, and audit docs rather than duplicating long blocks here.
 
-- Current public posture: `v0.5.0-public-readonly-beta` remains the public read-only beta;
-  `v0.5.1-public-readonly-beta` is not published.
-- Current write posture: `GNUCASH_WRITES_ENABLED=false` remains default; enabled write-alpha/writebeta
+- Public overview: [README.md](README.md), [README.ru.md](README.ru.md), and
+  [CHANGELOG.md](CHANGELOG.md).
+- Current public release status:
+  [v0.5.0-public-readonly-beta](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.5.0-public-readonly-beta)
+  remains the public read-only beta; `v0.5.1-public-readonly-beta` is not published.
+- Current safety posture: writes are disabled by default; see
+  [docs/write-alpha/copied-book-write-alpha-posture.md](docs/write-alpha/copied-book-write-alpha-posture.md)
+  for controlled-write boundaries.
+- Active issue queues:
+  [#22](https://github.com/valentusys/gnucash-web-companion/issues/22) compatibility fixtures,
+  [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) markdown readability, and
+  [#36](https://github.com/valentusys/gnucash-web-companion/issues/36) controlled-write readiness
+  gates.
+- Latest handoffs: `docs/handoff/overnight-2026-06-02-worker-07.md`,
+  `docs/handoff/overnight-2026-06-02-worker-06.md`,
+  `docs/handoff/autonomous-multiqueue-final-report.md`.
+
+## Current status snapshot
+
+- Public read-only beta: `v0.5.0-public-readonly-beta` remains current.
+- Not published: `v0.5.1-public-readonly-beta`; no public write beta; no stable, production-ready, or
+  security-audited release claim.
+- Write-mode default: `GNUCASH_WRITES_ENABLED=false` remains default; enabled write-alpha/writebeta
   work remains experimental and `APP_ENV=test` gated.
 - Current open queues: #22 compatibility fixtures, #28 markdown readability, #36 controlled-write
   readiness gates.
 - Recently closed queues: #13, #41, #42, #43.
-- Latest multiqueue handoffs: `docs/handoff/autonomous-multiqueue-cycle-1.md` through
-  `docs/handoff/autonomous-multiqueue-cycle-6.md`, plus
-  `docs/handoff/autonomous-multiqueue-final-report.md`.
 
 ## Repository
+
+- Overnight worker `overnight-2026-06-02-worker-08` completed a #28 `PROJECT_STATUS.md`
+  navigation/current-status cleanup. The file now starts with public overview links, direct active-issue
+  links (#22/#28/#36), current public release status, conservative write-mode safety posture, and latest
+  handoff pointers before the long historical ledger. A focused markdown readability regression test now
+  guards these navigation links and safety/status claims. Public status remains unchanged:
+  `v0.5.0-public-readonly-beta` remains current, `v0.5.1-public-readonly-beta` is not published,
+  `GNUCASH_WRITES_ENABLED=false` remains default, enabled writes remain experimental/`APP_ENV=test`
+  gated, and no public write beta/stable/production/security-audited claim was added. Handoff:
+  `docs/handoff/overnight-2026-06-02-worker-08.md`.
 
 - Overnight worker `overnight-2026-06-02-worker-07` completed a #36 backup/restore readiness
   evidence checklist guard. Added a pure non-mutating `validate_backup_restore_readiness_evidence`

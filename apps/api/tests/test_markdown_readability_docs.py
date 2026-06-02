@@ -7,6 +7,7 @@ ROOT = Path(__file__).resolve().parents[3]
 GUIDE = ROOT / "docs/development/markdown-readability.md"
 CHANGELOG = ROOT / "CHANGELOG.md"
 README_RU = ROOT / "README.ru.md"
+PROJECT_STATUS = ROOT / "PROJECT_STATUS.md"
 
 
 def test_markdown_readability_guide_preserves_safety_and_triage_workflow() -> None:
@@ -51,3 +52,23 @@ def test_readme_ru_starts_with_compact_public_status_and_safety_navigation() -> 
     assert "`GNUCASH_WRITES_ENABLED=false` остаётся безопасным дефолтом" in text
     assert "real/private/original/only-copy books не являются безопасной write-целью" in text
     assert "без whole-repo reflow" in text
+
+
+def test_project_status_starts_with_current_status_navigation_links() -> None:
+    text = PROJECT_STATUS.read_text(encoding="utf-8")
+
+    quick_navigation = text.index("## Quick navigation")
+    current_snapshot = text.index("## Current status snapshot")
+    repository = text.index("## Repository")
+
+    assert quick_navigation < current_snapshot < repository
+    assert "[README.md](README.md)" in text
+    assert "[README.ru.md](README.ru.md)" in text
+    assert "[#22](https://github.com/valentusys/gnucash-web-companion/issues/22)" in text
+    assert "[#28](https://github.com/valentusys/gnucash-web-companion/issues/28)" in text
+    assert "[#36](https://github.com/valentusys/gnucash-web-companion/issues/36)" in text
+    assert "[v0.5.0-public-readonly-beta]" in text
+    assert "`v0.5.1-public-readonly-beta` is not published" in text
+    assert "`GNUCASH_WRITES_ENABLED=false` remains default" in text
+    assert "no public write beta" in text
+    assert "docs/handoff/overnight-2026-06-02-worker-07.md" in text
