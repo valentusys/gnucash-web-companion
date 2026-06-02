@@ -16,3 +16,7 @@ def test_markdown_readability_guide_preserves_safety_and_triage_workflow() -> No
     assert "Status/readability triage" in text
     assert "Split long status docs before rewriting them" in text
     assert "Do not hide release/no-release decisions" in text
+    assert "Public announcement docs checklist" in text
+    assert "README top status is concise" in text
+    assert "PROJECT_STATUS starts with a quick navigation block" in text
+    assert "Recent handoff and release docs keep safety verdicts visible" in text

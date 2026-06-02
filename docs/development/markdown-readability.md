@@ -41,6 +41,20 @@ When cleaning release/status language:
    into bullets rather than changing the meaning.
 5. Avoid whole-file reflow unless the task is explicitly a readability phase.
 
+## Public announcement docs checklist
+
+Before wider announcement or public-facing issue cleanup, check the source Markdown, not only the
+rendered page:
+
+1. README top status is concise and points to deeper status docs instead of repeating long history.
+2. PROJECT_STATUS starts with a quick navigation block before detailed phase history.
+3. Recent handoff and release docs keep safety verdicts visible: release/no-release, mutation counts,
+   current tag, blocked issue state, and remaining owner-only gates.
+4. Links to release notes, final gates, publication evidence, handoffs, and safety docs still resolve
+   from the repository root.
+5. Safety warnings remain explicit: no production guarantee, no public write beta, no real/private or
+   only-copy write target, and default-disabled writes.
+
 ## Code fences
 
 Use language tags when the language is known:
