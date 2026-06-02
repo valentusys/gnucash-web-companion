@@ -10,6 +10,8 @@ CHANGELOG = ROOT / "CHANGELOG.md"
 README_RU = ROOT / "README.ru.md"
 PROJECT_STATUS = ROOT / "PROJECT_STATUS.md"
 CHECKER = ROOT / "scripts/check_markdown_readability.py"
+RELEASE_NOTES = ROOT / "docs/release/v0.5.0-public-readonly-beta-notes.md"
+RELEASE_FINAL_GATE = ROOT / "docs/release/v0.5.0-public-readonly-beta-final-gate.md"
 
 
 def _load_checker():
@@ -83,6 +85,23 @@ def test_project_status_starts_with_current_status_navigation_links() -> None:
     assert "`GNUCASH_WRITES_ENABLED=false` remains default" in text
     assert "no public write beta" in text
     assert "docs/handoff/overnight-2026-06-02-worker-07.md" in text
+
+
+def test_release_docs_have_conservative_readable_status_boundaries() -> None:
+    notes = RELEASE_NOTES.read_text(encoding="utf-8")
+    final_gate = RELEASE_FINAL_GATE.read_text(encoding="utf-8")
+    checker = _load_checker()
+    default_doc_names = {path.as_posix() for path in checker.DEFAULT_DOCS}
+
+    assert "docs/release/v0.5.0-public-readonly-beta-notes.md" in default_doc_names
+    assert "docs/release/v0.5.0-public-readonly-beta-final-gate.md" in default_doc_names
+    assert "## Current public status" in notes
+    assert "`v0.5.0-public-readonly-beta` is the current public read-only beta" in notes
+    assert "`v0.5.1-public-readonly-beta` is not published" in notes
+    assert "No public write beta" in notes
+    assert "## Conservative boundaries" in final_gate
+    assert "No public write beta" in final_gate
+    assert "No production-ready, stable, or security-audited claim" in final_gate
 
 
 def test_markdown_readability_checker_fails_closed_for_missing_status_safety_and_links() -> None:

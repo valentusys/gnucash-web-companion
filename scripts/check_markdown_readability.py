@@ -22,8 +22,10 @@ PUBLIC_STATUS_DOCS = (
     Path("CHANGELOG.md"),
 )
 DEFAULT_DOCS = PUBLIC_STATUS_DOCS + (
+    Path("docs/release/v0.5.0-public-readonly-beta-notes.md"),
+    Path("docs/release/v0.5.0-public-readonly-beta-final-gate.md"),
     Path("docs/development/markdown-readability.md"),
-    Path("docs/handoff/overnight-2026-06-02-worker-11.md"),
+    Path("docs/handoff/overnight-2026-06-02-worker-13.md"),
 )
 
 # Avoid noisy historical whole-file reflow: public/status archives are long by

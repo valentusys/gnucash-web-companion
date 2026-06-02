@@ -103,7 +103,16 @@ reading the full history linearly.
   - kept `GNUCASH_WRITES_ENABLED=false` as the default;
   - deferred `v0.4.0-owner-writebeta`;
   - mutation counts: CREATE 0, PATCH 0, DELETE 0.
-- Phase 480 / Phases 431–480 — completed the owner-writebeta/public-readonly-beta 50-phase run with final `NO_RELEASE`. PR #40 was verified as merged, v0.4/v0.5 targets and exit criteria were documented, a non-mutating owner write-session preflight/manifest prototype plus UI warning copy were added, public read-only beta install/security/feedback docs were drafted, and PM kept copied-book mutation, real working-book mutation, v0.4 release, and v0.5 release blocked. Mutation counts in this run: CREATE 0, PATCH 0, DELETE 0. No tag, GitHub release, package, image, stable-release publication, production deployment, original/private/only-copy mutation, default write enablement, `APP_ENV=test` weakening, private evidence, or broad safety claim was added.
+- Phase 480 / Phases 431–480:
+  - completed the owner-writebeta/public-readonly-beta 50-phase run with final `NO_RELEASE`;
+  - verified PR #40, documented v0.4/v0.5 targets and exit criteria, and drafted public
+    read-only beta install/security/feedback docs;
+  - added a non-mutating owner write-session preflight/manifest prototype plus UI warning copy;
+  - mutation counts: CREATE 0, PATCH 0, DELETE 0;
+  - PM kept copied-book mutation, real working-book mutation, v0.4 release, and v0.5 release blocked;
+  - added no tag, GitHub release, package, image, stable-release publication, production deployment,
+    original/private/only-copy mutation, default write enablement, `APP_ENV=test` weakening,
+    private evidence, or broad safety claim.
 
 - Phase 430 / Phases 381–430 — completed the post-PR #40 50-phase run. PR #40 was merged, public docs were reconciled, Cycle 1/2/3/4/final PM decisions were `NO_RELEASE`, and one bounded copied-book session was accepted narrowly: exactly 2 CREATE, exactly 1 metadata/memo-only PATCH, 0 DELETE on a copied/restorable SQL working book outside git. No tag, GitHub release, package, image, stable-release publication, production deployment, original/private/only-copy mutation, default write enablement, `APP_ENV=test` weakening, or broad safety claim was added.
 
