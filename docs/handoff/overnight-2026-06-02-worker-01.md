@@ -47,8 +47,9 @@
 
 ## CI link if available
 
-- Not available at handoff creation time because this worker had not pushed the handoff commit yet.
-  Supervisor should verify the post-push GitHub Actions run for the final pushed head.
+- CI for pushed head `5b9c350`: https://github.com/valentusys/gnucash-web-companion/actions/runs/26796200144
+- Status at handoff update time: in progress. Supervisor should verify completion/conclusion after the
+  final pushed handoff-update commit.
 
 ## Safety summary
 
@@ -70,7 +71,8 @@
 ## Commit SHA
 
 - Implementation commit: `924c085` (`docs: improve changelog release readability`).
-- Handoff commit: this file is expected to be committed immediately after creation.
+- Handoff commit: `5b9c350` (`docs: add overnight readability handoff`).
+- Handoff CI-link update commit: this follow-up file update.
 
 ## Remaining blockers
 
