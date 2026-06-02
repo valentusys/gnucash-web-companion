@@ -252,6 +252,11 @@ async def owner_writebeta_verify_reset(
 ) -> OwnerWritebetaStatusDTO:
     _resolve_editable_book(book_id, user, db)
     session_state = _session_for(book_id)
+    if session_state.state != OwnerWritebetaState.MUTATING:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Owner-writebeta verify-reset requires a mutating session with routed mutation evidence.",
+        )
     try:
         mark_post_mutation_checks(
             session_state,

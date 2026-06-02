@@ -127,3 +127,59 @@ def test_owner_writebeta_preview_and_confirmation_use_opaque_refs(client, auth_h
     assert confirm.status_code == 200
     assert confirm.json()["state"] == "confirmation"
     assert confirm.json()["confirmation_token_ref"].startswith("owb-conf-")
+
+
+def test_owner_writebeta_status_remains_default_disabled_without_preflight(client, auth_headers, sample_book):
+    response = client.get(f"/books/{sample_book}/owner-writebeta/status", headers=auth_headers)
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["state"] == "disabled"
+    assert payload["writes_blocked"] is True
+    assert "writes_disabled_default" in payload["blocked_reasons"]
+    assert "app_env_test_gate" in payload["pass_reasons"]
+    assert "test.gnucash.sqlite" not in str(payload)
+
+
+def test_owner_writebeta_reset_disabled_fails_closed_before_verify_reset(client, auth_headers, sample_book):
+    client.post(f"/books/{sample_book}/owner-writebeta/preflight", headers=auth_headers)
+    preview = client.post(
+        f"/books/{sample_book}/owner-writebeta/preview",
+        headers=auth_headers,
+        json={"operation": "CREATE", "payload_shape": {"splits": [{"amount": "private"}]}},
+    )
+    confirm = client.post(
+        f"/books/{sample_book}/owner-writebeta/confirm",
+        headers=auth_headers,
+        json={"preview_hash": preview.json()["preview_hash"], "backup_ref": "bkp-authorized-ref"},
+    )
+    assert confirm.status_code == 200
+
+    response = client.post(f"/books/{sample_book}/owner-writebeta/reset-disabled", headers=auth_headers)
+
+    assert response.status_code == 409
+    assert "Reset-disabled requires reset_required state" in response.json()["detail"]
+
+
+def test_owner_writebeta_verify_reset_requires_all_post_mutation_evidence(client, auth_headers, sample_book):
+    client.post(f"/books/{sample_book}/owner-writebeta/preflight", headers=auth_headers)
+    preview = client.post(
+        f"/books/{sample_book}/owner-writebeta/preview",
+        headers=auth_headers,
+        json={"operation": "CREATE", "payload_shape": {"splits": [{"amount": "private"}]}},
+    )
+    confirm = client.post(
+        f"/books/{sample_book}/owner-writebeta/confirm",
+        headers=auth_headers,
+        json={"preview_hash": preview.json()["preview_hash"], "backup_ref": "bkp-authorized-ref"},
+    )
+    assert confirm.status_code == 200
+
+    response = client.post(
+        f"/books/{sample_book}/owner-writebeta/verify-reset",
+        headers=auth_headers,
+        json={"audit_ref": "audit-ok", "restore_ref": "restore-ok", "lock_released": True, "defaults_reset": False},
+    )
+
+    assert response.status_code == 409
+    assert "verify-reset requires a mutating session" in response.json()["detail"]
