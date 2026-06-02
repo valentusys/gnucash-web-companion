@@ -15,9 +15,9 @@ Tracked direct-execution session completed the worker queue through worker 12, t
 - Repository: `valentusys/gnucash-web-companion`
 - Branch: `main`
 - Starting baseline supplied by owner: `540947b0af90d492d818b542c3bb7157405121de`
-- Final pushed HEAD: `ce0ae0b97337bf2dfeb189713845ee621ca1b476`
-- Remote `origin/main`: `ce0ae0b97337bf2dfeb189713845ee621ca1b476`
-- Working tree after final gate: clean
+- Last worker pushed HEAD before final report: `ce0ae0b97337bf2dfeb189713845ee621ca1b476`
+- Remote `origin/main` before final report commit: `ce0ae0b97337bf2dfeb189713845ee621ca1b476`
+- Working tree after final gate, before final report artifact: clean
 
 ## Worker packages completed
 
@@ -67,9 +67,10 @@ No issues were closed.
 
 ## CI / GitHub status
 
-- GitHub PR list final attempt failed with GraphQL EOF.
-- GitHub Actions run list final attempt failed with TLS handshake timeout.
-- Because of transient GitHub API/network failures, no final remote CI conclusion was available from this process.
+- GitHub PR list retry returned no open PRs.
+- GitHub Actions had intermittent EOF/TLS/reset failures while polling.
+- Latest final-report push CI run observed: `26827845186`, `completed`, `success`, duration about 4 minutes.
+- Previous worker pushes visible in `gh run list` were also successful.
 - Local final gate passed; see commands below.
 
 ## Final verification commands and results
