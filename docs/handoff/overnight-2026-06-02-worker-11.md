@@ -128,7 +128,8 @@ Implementation commit SHA: `768fba553aecdf4f894a2bef92b63cf6bbd97633`.
 
 Handoff SHA update: `f81c3eacd62537786299f712c5e75e66c65d695a`.
 
-CI: pending push.
+CI: success for pushed `a98629ce54d7aee5631ea2df7aba96fe1b47aee0` on main:
+https://github.com/valentusys/gnucash-web-companion/actions/runs/26802760504.
 
 ## Next supervisor recommendation
 
