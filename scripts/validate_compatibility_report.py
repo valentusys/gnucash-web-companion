@@ -15,6 +15,9 @@ from pathlib import Path
 from typing import Any
 
 SCHEMA = "gnucash-web-companion-safe-compatibility-v1"
+ALLOWED_BACKEND_TYPES = {"sqlite", "postgres", "mysql", "unknown"}
+ALLOWED_FIXTURE_SCOPES = {"synthetic", "disposable", "copied-restorable", "unknown"}
+MAX_TEXT_FIELD_LENGTH = 160
 ALLOWED_KEYS = {
     "report_schema",
     "app_tag_or_commit",
@@ -77,6 +80,16 @@ def validate_report(report: dict[str, Any]) -> dict[str, str | bool]:
         raise ValidationError("missing required compatibility report field")
     if report.get("report_schema") != SCHEMA:
         raise ValidationError("unsupported compatibility report schema")
+
+    for key in ALLOWED_KEYS:
+        if not isinstance(report.get(key), str):
+            raise ValidationError("invalid compatibility report field type")
+        if len(str(report[key])) > MAX_TEXT_FIELD_LENGTH and key != "privacy_notice":
+            raise ValidationError("compatibility report field is too long")
+    if report.get("book_backend_type") not in ALLOWED_BACKEND_TYPES:
+        raise ValidationError("invalid compatibility report enum")
+    if report.get("fixture_scope") not in ALLOWED_FIXTURE_SCOPES:
+        raise ValidationError("invalid compatibility report enum")
 
     serialized = json.dumps(report, ensure_ascii=False)
     if BROAD_SUPPORT_RE.search(serialized):

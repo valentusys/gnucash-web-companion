@@ -11,6 +11,7 @@ SCRIPT = ROOT / "scripts" / "validate_compatibility_report.py"
 
 
 def _write_report(tmp_path: Path, payload: dict[str, object]) -> Path:
+    tmp_path.mkdir(parents=True, exist_ok=True)
     path = tmp_path / "report.json"
     path.write_text(json.dumps(payload), encoding="utf-8")
     return path
@@ -130,3 +131,29 @@ def test_validate_compatibility_report_rejects_account_memo_description_like_val
     assert "unsafe account-like, memo-like, or description-like value" in proc.stderr
     assert "Checking" not in proc.stderr
     assert "Grocery" not in proc.stderr
+
+
+def test_validate_compatibility_report_rejects_unknown_fields_types_and_enums(tmp_path: Path) -> None:
+    cases = [
+        ("bad_backend", {"book_backend_type": "xml"}, "invalid compatibility report enum"),
+        ("bad_scope", {"fixture_scope": "real-private"}, "invalid compatibility report enum"),
+        ("bad_python_type", {"python_version": 3.11}, "invalid compatibility report field type"),
+        ("too_long", {"error_class": "x" * 161}, "compatibility report field is too long"),
+    ]
+
+    for name, updates, expected_error in cases:
+        payload = _valid_report()
+        payload.update(updates)
+        report = _write_report(tmp_path / name, payload)
+        proc = subprocess.run(
+            [sys.executable, str(SCRIPT), str(report)],
+            check=False,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            cwd=ROOT,
+        )
+
+        assert proc.returncode == 2
+        assert expected_error in proc.stderr
+        assert proc.stdout == ""
