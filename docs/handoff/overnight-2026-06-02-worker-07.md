@@ -87,7 +87,7 @@ JWT_SECRET=dummy-...cret APP_ADMIN_PASSWORD=*** docker compose config --quiet
 
 ## CI
 
-- CI link/status: pending until pushed final HEAD is observed.
+- CI link/status: success for pushed HEAD `094dbdd`: https://github.com/valentusys/gnucash-web-companion/actions/runs/26800058944.
 
 ## Safety summary
 
