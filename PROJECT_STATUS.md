@@ -1,6 +1,21 @@
 # PROJECT_STATUS
 
-Last updated: 2026-06-01
+Last updated: 2026-06-02
+
+## Quick navigation
+
+Use this file as the high-level ledger of project decisions. For detailed evidence, prefer the linked
+handoff, release, dogfood, and audit docs rather than duplicating long blocks here.
+
+- Current public posture: `v0.5.0-public-readonly-beta` remains the public read-only beta;
+  `v0.5.1-public-readonly-beta` is not published.
+- Current write posture: `GNUCASH_WRITES_ENABLED=false` remains default; enabled write-alpha/writebeta
+  work remains experimental and `APP_ENV=test` gated.
+- Current open queues: #22 compatibility fixtures, #28 markdown readability, #36 controlled-write
+  readiness gates.
+- Recently closed queues: #13, #41, #42, #43.
+- Latest multiqueue handoffs: `docs/handoff/autonomous-multiqueue-cycle-1.md` and
+  `docs/handoff/autonomous-multiqueue-cycle-2.md`.
 
 ## Repository
 
