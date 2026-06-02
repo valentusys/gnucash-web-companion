@@ -4,6 +4,8 @@ Last updated: 2026-06-01
 
 ## Repository
 
+- Autonomous true 6h cycle 3 for #22 hardened the safe Desktop tooling probe. `apps/api/scripts/probe_gnucash_desktop_tooling.py` now redacts private-looking path/account/memo/description/amount output even if a `--version` command unexpectedly prints it; regression tests passed (`8 passed`). The local non-mutating probe found `gnucash-cli` 5.14 available and `gnucash` present but headless GUI initialization blocked; this is command/version evidence only, not Desktop-generated fixture evidence. No book was opened or searched; writes remain disabled by default; no release was published.
+
 - Autonomous true 6h cycle 2 for #22 added code-backed fixture-scope boundary vocabulary. `apps/api/app/compatibility_matrix.py` now exposes conservative meanings for `synthetic`, `disposable`, `copied-restorable`, and `unknown`, with tests proving the mapped evidence classes remain non-claiming and docs defining that private row data remains forbidden and report metadata alone does not become a tested matrix row. Focused matrix tests passed (`8 passed`). No book/private evidence was touched; writes remain disabled by default; no release was published.
 
 - Autonomous true 6h cycle 1 for #22 hardened public compatibility report redaction/validation. `scripts/safe_compatibility_report.py` now redacts account-like, memo-like, description-like, amount-like, and path-like operator-provided values; `scripts/validate_compatibility_report.py` rejects unsafe account/memo/description-like report values while preserving conservative evidence-class checks. Focused tests passed (`9 passed`). No book/app DB/backup/export/screenshot/private evidence was touched; writes remain disabled by default; no release was published.

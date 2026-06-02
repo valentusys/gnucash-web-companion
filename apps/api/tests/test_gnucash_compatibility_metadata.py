@@ -221,6 +221,32 @@ def test_desktop_tooling_probe_handles_unavailable_tools_without_private_paths(m
     assert "/home" not in serialized
 
 
+def test_desktop_tooling_probe_redacts_unexpected_version_output(monkeypatch) -> None:
+    probe = _load_probe()
+
+    monkeypatch.setattr(probe.shutil, "which", lambda command: f"/private/bin/{command}")
+
+    class Completed:
+        returncode = 1
+        stdout = "GnuCash 5.14 opened /home/user/private-book.gnucash.sqlite\n"
+        stderr = "account Checking memo Grocery amount 123.45\n"
+
+    monkeypatch.setattr(probe.subprocess, "run", lambda *args, **kwargs: Completed())
+
+    metadata = probe.probe_tooling()
+    serialized = json.dumps(metadata, sort_keys=True)
+
+    assert metadata["commands"]["gnucash"]["version_command_succeeded"] is False
+    assert "[REDACTED_PATH]" in serialized
+    assert "[REDACTED_ACCOUNT]" in serialized
+    assert "[REDACTED_MEMO]" in serialized
+    assert "[REDACTED_AMOUNT]" in serialized
+    assert "/home/user" not in serialized
+    assert "Checking" not in serialized
+    assert "Grocery" not in serialized
+    assert "123.45" not in serialized
+
+
 def test_desktop_tooling_probe_can_add_non_mutating_install_hints(monkeypatch) -> None:
     probe = _load_probe()
     monkeypatch.setattr(

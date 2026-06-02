@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import shutil
 import subprocess
 from datetime import datetime, timezone
@@ -20,6 +21,21 @@ COMMANDS = ("gnucash", "gnucash-cli")
 APT_PACKAGES = ("gnucash", "gnucash-common")
 MAX_VERSION_OUTPUT_CHARS = 500
 MAX_PACKAGE_POLICY_CHARS = 1200
+PATH_RE = re.compile(r"([A-Za-z]:\\[^\s]*|/[^\s]+|\\\\[^\s]+)")
+AMOUNT_RE = re.compile(r"(?i)(amount\s*)\d+[.,]\d{2}")
+PRIVATE_LABEL_RES = (
+    ("ACCOUNT", re.compile(r"(?i)\baccount\s+.+?(?=\s+memo\b|\s+description\b|\s+amount\b|$)")),
+    ("MEMO", re.compile(r"(?i)\bmemo\s+.+?(?=\s+account\b|\s+description\b|\s+amount\b|$)")),
+    ("DESCRIPTION", re.compile(r"(?i)\bdescription\s+.+?(?=\s+account\b|\s+memo\b|\s+amount\b|$)")),
+)
+
+
+def _redact_probe_text(value: str) -> str:
+    value = PATH_RE.sub("[REDACTED_PATH]", value)
+    for label, pattern in PRIVATE_LABEL_RES:
+        value = pattern.sub(f"[REDACTED_{label}]", value)
+    value = AMOUNT_RE.sub("[REDACTED_AMOUNT]", value)
+    return value
 
 
 def _safe_version_output(command: str) -> tuple[bool, str]:
@@ -37,7 +53,7 @@ def _safe_version_output(command: str) -> tuple[bool, str]:
         return False, f"unavailable: {exc.__class__.__name__}"
 
     output = "\n".join(part for part in (completed.stdout.strip(), completed.stderr.strip()) if part)
-    output = output[:MAX_VERSION_OUTPUT_CHARS]
+    output = _redact_probe_text(output)[:MAX_VERSION_OUTPUT_CHARS]
     if completed.returncode == 0:
         return True, output or "available; --version returned no output"
     return False, output or f"--version exited {completed.returncode}"
