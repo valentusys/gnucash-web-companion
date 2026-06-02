@@ -340,6 +340,36 @@ def validate_backup_restore_readiness_evidence(evidence: Mapping[str, Any]) -> W
             "Default write-disabled reset/probe marker is present.",
             "Default write-disabled reset/probe marker is missing.",
         ),
+        "serialized_per_book_lock_acquisition_evidence": _bool_check(
+            evidence,
+            "serialized_per_book_lock_acquisition_evidence",
+            "Serialized per-book lock acquisition evidence marker is present.",
+            "Serialized per-book lock acquisition evidence marker is missing.",
+        ),
+        "active_lock_contention_blocked_or_rejected_evidence": _bool_check(
+            evidence,
+            "active_lock_contention_blocked_or_rejected_evidence",
+            "Active-lock contention blocked/rejected evidence marker is present.",
+            "Active-lock contention blocked/rejected evidence marker is missing.",
+        ),
+        "no_overlapping_write_execution_evidence": _bool_check(
+            evidence,
+            "no_overlapping_write_execution_evidence",
+            "No-overlapping-write-execution evidence marker is present.",
+            "No-overlapping-write-execution evidence marker is missing.",
+        ),
+        "audit_trail_includes_contention_rejection": _bool_check(
+            evidence,
+            "audit_trail_includes_contention_rejection",
+            "Audit trail includes contention/rejection marker is present.",
+            "Audit trail includes contention/rejection marker is missing.",
+        ),
+        "default_disabled_no_write_probe": _bool_check(
+            evidence,
+            "default_disabled_no_write_probe",
+            "Default-disabled no-write probe marker is present.",
+            "Default-disabled no-write probe marker is missing.",
+        ),
         "no_mutation_performed": _ok("Checklist validation performed no mutation.", mutation="none"),
     }
     ready = all(check.ok for check in checks.values())

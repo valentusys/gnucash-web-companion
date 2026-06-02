@@ -20,9 +20,9 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) markdown readability, and
   [#36](https://github.com/valentusys/gnucash-web-companion/issues/36) controlled-write readiness
   gates.
-- Latest handoffs: `docs/handoff/overnight-2026-06-02-worker-09.md`,
-  `docs/handoff/overnight-2026-06-02-worker-08.md`,
-  `docs/handoff/overnight-2026-06-02-worker-07.md`.
+- Latest handoffs: `docs/handoff/overnight-2026-06-02-worker-10.md`,
+  `docs/handoff/overnight-2026-06-02-worker-09.md`,
+  `docs/handoff/overnight-2026-06-02-worker-08.md`.
 
 ## Current status snapshot
 
@@ -36,6 +36,16 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
 - Recently closed queues: #13, #41, #42, #43.
 
 ## Repository
+
+- Overnight worker `overnight-2026-06-02-worker-10` completed a #36 concurrency/lock-contention
+  readiness guard. The existing pure/non-mutating backup/restore evidence validator now fails closed
+  unless synthetic evidence includes serialized per-book lock acquisition, active-lock contention
+  blocked/rejected, no overlapping write execution, contention/rejection audit-trail, and
+  default-disabled no-write probe markers. Docs and the evidence matrix list these markers as future
+  write-milestone prerequisites. Mutation counts: CREATE 0 / PATCH 0 / DELETE 0; no
+  real/private/original/only-copy book was opened, copied, or mutated; no write gate/default was
+  weakened; #36 remains open for future copied/restorable mutation evidence gates requiring explicit
+  same-context authorization. Handoff: `docs/handoff/overnight-2026-06-02-worker-10.md`.
 
 - Overnight worker `overnight-2026-06-02-worker-09` completed a #36 recovery/hard-stop
   readiness expectations guard. The existing pure/non-mutating backup/restore evidence validator now

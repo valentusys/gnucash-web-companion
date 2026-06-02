@@ -171,6 +171,11 @@ def _complete_backup_restore_evidence() -> dict[str, object]:
         "no_retry_same_copy_without_recovery": True,
         "maintainer_review_or_owner_escalation": True,
         "default_disabled_reset_probe": True,
+        "serialized_per_book_lock_acquisition_evidence": True,
+        "active_lock_contention_blocked_or_rejected_evidence": True,
+        "no_overlapping_write_execution_evidence": True,
+        "audit_trail_includes_contention_rejection": True,
+        "default_disabled_no_write_probe": True,
     }
 
 
@@ -194,6 +199,11 @@ def test_backup_restore_readiness_evidence_requires_all_fail_closed_markers():
     assert payload["checks"]["no_retry_same_copy_without_recovery"]["status"] == "ok"
     assert payload["checks"]["maintainer_review_or_owner_escalation"]["status"] == "ok"
     assert payload["checks"]["default_disabled_reset_probe"]["status"] == "ok"
+    assert payload["checks"]["serialized_per_book_lock_acquisition_evidence"]["status"] == "ok"
+    assert payload["checks"]["active_lock_contention_blocked_or_rejected_evidence"]["status"] == "ok"
+    assert payload["checks"]["no_overlapping_write_execution_evidence"]["status"] == "ok"
+    assert payload["checks"]["audit_trail_includes_contention_rejection"]["status"] == "ok"
+    assert payload["checks"]["default_disabled_no_write_probe"]["status"] == "ok"
     assert payload["mutation_plan"]["authorized"] is False
     assert "authorized_mutations=create:0,patch:0,delete:0" in result.safe_summary()
 
@@ -218,6 +228,28 @@ def test_backup_restore_readiness_evidence_blocks_missing_recovery_hard_stop_mar
         "no_retry_same_copy_without_recovery",
         "maintainer_review_or_owner_escalation",
         "default_disabled_reset_probe",
+    ]
+
+    for marker in required_markers:
+        evidence = _complete_backup_restore_evidence()
+        evidence.pop(marker)
+
+        result = validate_backup_restore_readiness_evidence(evidence)
+        payload = result.to_dict()
+
+        assert result.ready is False, marker
+        assert payload["status"] == "blocked"
+        assert payload["checks"][marker]["status"] == "blocked"
+        assert f"{marker}=blocked" in result.safe_summary()
+
+
+def test_backup_restore_readiness_evidence_blocks_missing_concurrency_lock_contention_markers():
+    required_markers = [
+        "serialized_per_book_lock_acquisition_evidence",
+        "active_lock_contention_blocked_or_rejected_evidence",
+        "no_overlapping_write_execution_evidence",
+        "audit_trail_includes_contention_rejection",
+        "default_disabled_no_write_probe",
     ]
 
     for marker in required_markers:

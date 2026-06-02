@@ -21,6 +21,11 @@ A future package must fail closed unless its redacted evidence includes all of t
 | `no_retry_same_copy_without_recovery` | `true` | Blocks retrying writes on the same copied book until recovery/regeneration and read-only checks pass. |
 | `maintainer_review_or_owner_escalation` | `true` | Requires maintainer review or owner escalation before any further write attempt after recovery-path failure. |
 | `default_disabled_reset_probe` | `true` | Requires reset to `GNUCASH_WRITES_ENABLED=false` plus a disabled-write probe after recovery. |
+| `serialized_per_book_lock_acquisition_evidence` | `true` | Proves future write evidence observed serialized per-book lock acquisition rather than parallel mutation. |
+| `active_lock_contention_blocked_or_rejected_evidence` | `true` | Proves an active-lock/contention attempt was blocked or rejected before overlapping write execution. |
+| `no_overlapping_write_execution_evidence` | `true` | Proves collected evidence found no overlapping write execution for the same book. |
+| `audit_trail_includes_contention_rejection` | `true` | Proves the audit trail records lock contention/rejection as a failed/rejected write attempt. |
+| `default_disabled_no_write_probe` | `true` | Confirms the default-disabled posture still rejects write probes after the lock-contention evidence package. |
 
 ## Code guard
 
