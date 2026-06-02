@@ -101,7 +101,7 @@ JWT_SECRET=dummy-validation-secret APP_ADMIN_PASSWORD=dummy docker compose confi
 
 ## Commit
 
-- Commit SHA: `414c22c` (`fix: clear owner-writebeta reset arm state`).
+- Commit SHA: `b2f67e6` (`fix: clear owner-writebeta reset arm state`).
 
 ## Remaining blockers
 
