@@ -14,6 +14,7 @@ RELEASE_NOTES = ROOT / "docs/release/v0.5.0-public-readonly-beta-notes.md"
 RELEASE_FINAL_GATE = ROOT / "docs/release/v0.5.0-public-readonly-beta-final-gate.md"
 RELEASE_PUBLICATION_EVIDENCE = ROOT / "docs/release/v0.5.0-public-readonly-beta-publication-evidence.md"
 COMPATIBILITY_DOC = ROOT / "docs/gnucash-compatibility.md"
+ISSUE_28_CLOSURE_AUDIT = ROOT / "docs/development/issue-28-closure-audit.md"
 
 
 def _load_checker():
@@ -193,3 +194,17 @@ def test_markdown_readability_checker_requires_safety_preservation_guidance() ->
     problems = checker.check_documents(docs)
 
     assert any("missing guidance that safety warnings must be preserved" in problem for problem in problems)
+
+
+def test_issue_28_closure_audit_keeps_remaining_public_docs_and_safety_visible() -> None:
+    text = ISSUE_28_CLOSURE_AUDIT.read_text(encoding="utf-8")
+
+    assert "Status: keep #28 open" in text
+    assert "README.md" in text
+    assert "docs/community/public-readonly-beta-feedback-packet.md" in text
+    assert "docs/community/announcement-draft.md" in text
+    assert "scripts/check_markdown_readability.py" in text
+    assert "scripts/check_public_status.py" in text
+    assert "git diff --check" in text
+    assert "v0.5.1-public-readonly-beta` not-published" in text
+    assert "no public write beta" in text
