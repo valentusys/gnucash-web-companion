@@ -1,6 +1,7 @@
 # Markdown source readability guide
 
-This guide keeps raw Markdown reviewable in terminals, plain-text diffs, and small editor panes without doing noisy whole-repository formatting sweeps.
+This guide keeps raw Markdown reviewable in terminals, plain-text diffs, and small editor panes
+without doing noisy whole-repository formatting sweeps.
 
 ## Default rule for new prose
 
@@ -12,7 +13,9 @@ Wrap new prose at a review-friendly width when practical, especially in:
 - release notes, checklists, final gates, and publication evidence;
 - public deployment, safety, privacy, compatibility, and localization docs.
 
-A target around 100 characters is usually comfortable. Use judgement: keep tables, URLs, badges, generated snippets, shell commands, and intentionally long identifiers readable rather than forcing awkward wraps.
+A target around 100 characters is usually comfortable. Use judgement: keep tables, URLs, badges,
+generated snippets, shell commands, and intentionally long identifiers readable rather than forcing
+awkward wraps.
 
 ## When touching existing docs
 
@@ -69,6 +72,17 @@ v0.5.0-public-readonly-beta remains the current public read-only beta.
 
 Use `text` for plain output, release status snippets, prompts, and deliberately non-executable examples.
 
+## Automated guard
+
+`scripts/check_markdown_readability.py` enforces a small fail-closed source-readability guard for
+selected public/status docs and the current worker handoff. It intentionally avoids noisy historical
+whole-file reflow by checking current top navigation/readability in long archives plus focused
+handoff/status files.
+
+The guard fails closed when selected docs are missing top status/safety signals, PROJECT_STATUS or
+handoff issue navigation, guidance that safety warnings must be preserved, or unstructured long prose
+outside allowlisted code fences, URLs, tables, and command-like lines.
+
 ## Safety wording
 
 Formatting changes must not weaken safety claims. Keep these meanings intact:
@@ -85,6 +99,7 @@ For formatting-only or docs-heavy changes, run at least:
 
 ```bash
 git diff --check
+python3 scripts/check_markdown_readability.py
 python3 scripts/check_public_status.py
 python3 scripts/check_tracked_hygiene.py
 ```

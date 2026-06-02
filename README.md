@@ -152,7 +152,8 @@ the current write-alpha publication baseline remains Phase 261.
   passed synthetic/disposable CREATE-one rehearsal, Phase 275 prepared the owner CREATE-one request packet
   after a synthetic/disposable `gnucash-cli` compatibility pass, Phase 276 accepted exactly one owner
   copied-book CREATE-one evidence run, Phase 277 found no concrete CREATE-one bug to fix, and Phase
-  278 refreshed the copied-book posture, and Phase 279 recorded a PM no-release verdict, and Phase 280 closed Cycle 2 with a recommendation to
+  278 refreshed the copied-book posture, Phase 279 recorded a PM no-release verdict, and Phase 280
+  closed Cycle 2 with a recommendation to
   start Phase 281 analyst PATCH-readiness review only. PATCH/DELETE remain not run and not authorized.
   CREATE creates write-alpha-owned transactions; PATCH/DELETE are limited to write-alpha-owned
   transactions for the same app metadata book; historical/manual GnuCash transactions remain

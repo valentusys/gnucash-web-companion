@@ -1,6 +1,7 @@
 """Regression tests for markdown readability guidance."""
 from __future__ import annotations
 
+import importlib.util
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -8,6 +9,16 @@ GUIDE = ROOT / "docs/development/markdown-readability.md"
 CHANGELOG = ROOT / "CHANGELOG.md"
 README_RU = ROOT / "README.ru.md"
 PROJECT_STATUS = ROOT / "PROJECT_STATUS.md"
+CHECKER = ROOT / "scripts/check_markdown_readability.py"
+
+
+def _load_checker():
+    spec = importlib.util.spec_from_file_location("check_markdown_readability", CHECKER)
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def test_markdown_readability_guide_preserves_safety_and_triage_workflow() -> None:
@@ -72,3 +83,56 @@ def test_project_status_starts_with_current_status_navigation_links() -> None:
     assert "`GNUCASH_WRITES_ENABLED=false` remains default" in text
     assert "no public write beta" in text
     assert "docs/handoff/overnight-2026-06-02-worker-07.md" in text
+
+
+def test_markdown_readability_checker_fails_closed_for_missing_status_safety_and_links() -> None:
+    checker = _load_checker()
+    docs = {
+        "README.md": "# README\n\nPublic overview without required status or safety signal.\n",
+        "PROJECT_STATUS.md": "# Project status\n\nNo issue navigation here.\n",
+        "docs/handoff/overnight-2026-06-02-worker-11.md": "# Handoff\n\nNo issue or status navigation.\n",
+    }
+
+    problems = checker.check_documents(docs)
+
+    assert any("README.md: missing top status/safety signal" in problem for problem in problems)
+    assert any("PROJECT_STATUS.md: missing issue navigation" in problem for problem in problems)
+    assert any("overnight-2026-06-02-worker-11.md: missing issue or handoff navigation" in problem for problem in problems)
+
+
+def test_markdown_readability_checker_flags_unstructured_long_prose_but_allows_urls_tables_and_code() -> None:
+    checker = _load_checker()
+    long_prose = "This is one excessively long prose line meant to be wrapped before public review because it is not a URL table row code block or generated command output and it hides readability problems in raw Markdown diffs."
+    docs = {
+        "README.md": "\n".join(
+            [
+                "# README",
+                "",
+                "Status: public read-only beta; writes disabled by default.",
+                long_prose,
+                "https://github.com/valentusys/gnucash-web-companion/issues/28/this/url/is/intentionally/long/and/allowed",
+                "| Column | This deliberately long table cell is allowed because wrapping tables can make raw markdown harder to review mechanically |",
+                "```text",
+                long_prose,
+                "```",
+            ]
+        )
+    }
+
+    problems = checker.check_documents(docs)
+
+    assert any("README.md:4: long unstructured line" in problem for problem in problems)
+    assert not any("README.md:5" in problem for problem in problems)
+    assert not any("README.md:6" in problem for problem in problems)
+    assert not any("README.md:8" in problem for problem in problems)
+
+
+def test_markdown_readability_checker_requires_safety_preservation_guidance() -> None:
+    checker = _load_checker()
+    docs = {
+        "docs/development/markdown-readability.md": "# Markdown guide\n\nWrap prose only.\n",
+    }
+
+    problems = checker.check_documents(docs)
+
+    assert any("missing guidance that safety warnings must be preserved" in problem for problem in problems)

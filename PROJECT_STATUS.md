@@ -20,9 +20,9 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) markdown readability, and
   [#36](https://github.com/valentusys/gnucash-web-companion/issues/36) controlled-write readiness
   gates.
-- Latest handoffs: `docs/handoff/overnight-2026-06-02-worker-10.md`,
-  `docs/handoff/overnight-2026-06-02-worker-09.md`,
-  `docs/handoff/overnight-2026-06-02-worker-08.md`.
+- Latest handoffs: `docs/handoff/overnight-2026-06-02-worker-11.md`,
+  `docs/handoff/overnight-2026-06-02-worker-10.md`,
+  `docs/handoff/overnight-2026-06-02-worker-09.md`.
 
 ## Current status snapshot
 
@@ -36,6 +36,17 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
 - Recently closed queues: #13, #41, #42, #43.
 
 ## Repository
+
+- Overnight worker `overnight-2026-06-02-worker-11` completed a #28 markdown readability guard
+  package. Added `scripts/check_markdown_readability.py` plus focused regression tests so selected
+  public/status docs and the current handoff fail closed for missing top status/safety signal,
+  missing PROJECT_STATUS or handoff issue navigation, missing safety-warning preservation guidance,
+  and unstructured long prose outside allowlisted code fences, URLs, tables, and command-like lines.
+  Public status remains conservative: `v0.5.0-public-readonly-beta` remains current,
+  `v0.5.1-public-readonly-beta` is not published, `GNUCASH_WRITES_ENABLED=false` remains default,
+  enabled writes remain experimental/`APP_ENV=test` gated, and no public write beta/stable/
+  production/security-audited claim was added. Handoff:
+  `docs/handoff/overnight-2026-06-02-worker-11.md`.
 
 - Overnight worker `overnight-2026-06-02-worker-10` completed a #36 concurrency/lock-contention
   readiness guard. The existing pure/non-mutating backup/restore evidence validator now fails closed
