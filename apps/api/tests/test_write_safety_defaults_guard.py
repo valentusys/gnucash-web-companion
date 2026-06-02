@@ -224,3 +224,19 @@ def test_write_safety_defaults_guard_rejects_missing_issue_36_dashboard_marker(
     assert any("compatibility gaps" in failure for failure in failures)
     assert any("same-context owner + PM authorization" in failure for failure in failures)
     assert str(tmp_path) not in "; ".join(failures)
+
+
+def test_write_safety_defaults_guard_rejects_missing_restore_boundary_marker(
+    tmp_path: Path,
+) -> None:
+    doc = tmp_path / "restore.md"
+    doc.write_text(
+        "restore-to-copy. not destructive restore. independent backup. redacted evidence only. "
+        "GNUCASH_WRITES_ENABLED=false. APP_ENV=test. CREATE 0 / PATCH 0 / DELETE 0.\n",
+        encoding="utf-8",
+    )
+
+    failures = write_safety_guard._check_restore_boundary(doc)
+
+    assert any("not real-book safety evidence" in failure for failure in failures)
+    assert str(tmp_path) not in "; ".join(failures)
