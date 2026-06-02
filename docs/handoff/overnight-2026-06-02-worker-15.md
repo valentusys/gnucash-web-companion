@@ -125,9 +125,9 @@ Issue comment to post after push/CI should include:
 
 ## Commit / CI
 
-- Implementation commit SHA: `ddd1ec6fa66b20f2967e7d79040e4f1d9a77251a`.
-- Final pushed HEAD: pending until push.
-- CI: pending until push.
+- Implementation commit SHA: `11c847e5d96a38f1f49fd5c7174a98a8987648b5`.
+- Final pushed HEAD before CI metadata update: `11c847e5d96a38f1f49fd5c7174a98a8987648b5`.
+- CI: success for pushed implementation commit, https://github.com/valentusys/gnucash-web-companion/actions/runs/26806671565.
 
 ## Remaining blockers for #36
 
