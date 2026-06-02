@@ -76,14 +76,14 @@ Independent reviewer note: project `AGENTS.md` forbids `delegate_task` unless ex
 
 Recommendation: keep #36 open.
 
-Issue comment posted: pending until push/CI step.
+Issue comment posted: https://github.com/valentusys/gnucash-web-companion/issues/36#issuecomment-4600194856
 
 ## Commit / CI
 
 - Implementation commit SHA: `10489b3efec35601f4a8a74f5be736cc992ecc12`.
-- Final handoff metadata commit SHA: pending.
-- Pushed HEAD: pending.
-- CI: pending.
+- Final handoff metadata commit SHA: `225545e82dc21c6eed4b43de7f8b09361436d71f` before this CI/issue metadata update.
+- Pushed HEAD with implementation and first handoff metadata: `225545e82dc21c6eed4b43de7f8b09361436d71f`.
+- CI: success for pushed HEAD `225545e82dc21c6eed4b43de7f8b09361436d71f`, https://github.com/valentusys/gnucash-web-companion/actions/runs/26807498072.
 
 ## Remaining blockers for #36
 
