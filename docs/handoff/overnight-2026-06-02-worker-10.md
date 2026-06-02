@@ -110,7 +110,7 @@ Remaining gates to keep open:
 
 ## Commit / CI
 
-Implementation commit SHA: pending.
+Implementation commit SHA: `f8fb0d1`.
 
 CI: pending push.
 
