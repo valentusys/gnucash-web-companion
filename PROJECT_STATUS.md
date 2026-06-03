@@ -1,6 +1,6 @@
 # PROJECT_STATUS
 
-Last updated: 2026-06-02
+Last updated: 2026-06-03
 
 ## Quick navigation
 
@@ -20,9 +20,10 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) markdown readability, and
   [#36](https://github.com/valentusys/gnucash-web-companion/issues/36) controlled-write readiness
   gates.
-- Latest handoffs: `docs/handoff/overnight-2026-06-02-worker-20.md`,
-  `docs/handoff/overnight-2026-06-02-worker-19.md`,
-  `docs/handoff/overnight-2026-06-02-worker-18.md`.
+- Latest handoffs: `docs/handoff/daytime-write-continuation-worker-4.md`,
+  `docs/handoff/daytime-write-continuation-worker-3.md`,
+  `docs/handoff/daytime-write-continuation-worker-2.md`, and
+  `docs/handoff/daytime-write-continuation-worker-1.md`.
 
 ## Current status snapshot
 
@@ -32,7 +33,9 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
 - Write-mode default: `GNUCASH_WRITES_ENABLED=false` remains default; enabled write-alpha/writebeta
   work remains experimental and `APP_ENV=test` gated.
 - Current open queues: #22 compatibility fixtures, #28 markdown readability, #36 controlled-write
-  readiness gates.
+  readiness gates. For #36, the latest daytime continuation completed the requested W2 synthetic
+  route-family, backup/restore, and lock-contention drills; #36 remains open for W3 copied-book
+  dogfood unless owner-staged outside-git copy requirements are met.
 - Recently closed queues: #13, #41, #42, #43.
 
 ## Repository
