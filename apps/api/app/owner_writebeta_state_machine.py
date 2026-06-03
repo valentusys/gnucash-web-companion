@@ -70,7 +70,7 @@ class OwnerWritebetaSession:
         for key in ("operation_ref", "backup_ref", "audit_ref", "restore_ref", "restore_readiness_ref", "preview_hash", "confirmation_token_ref"):
             value = refs.get(key)
             if value:
-                tentative[key] = value[:80]
+                tentative[key] = _bounded_opaque_ref(key, value)
         if self.state == OwnerWritebetaState.CONFIRMATION and target == OwnerWritebetaState.MUTATING:
             effective_operation_ref = tentative.get("operation_ref", self.operation_ref)
             effective_backup_ref = tentative.get("backup_ref", self.backup_ref)
@@ -124,14 +124,49 @@ class OwnerWritebetaSession:
             "operation_count": str(self.operation_count),
             "lock_released": self.lock_released,
             "defaults_reset": self.defaults_reset,
-            "failed_reason": self.failed_reason,
+            "failed_reason": self._sanitized_failed_reason(),
         }
 
+    _SAFE_FAILED_REASONS: ClassVar[set[str]] = {
+        "post-mutation verification incomplete",
+        "restore readiness failed",
+    }
 
-def _safe_shape(value: Any) -> Any:
-    """Return a structure shape without serializing private field values."""
+    def _sanitized_failed_reason(self) -> str | None:
+        if self.failed_reason is None:
+            return None
+        if self.failed_reason in self._SAFE_FAILED_REASONS:
+            return self.failed_reason
+        return "owner-writebeta session failed; see opaque audit refs only."
+
+
+def _bounded_opaque_ref(key: str, value: str) -> str:
+    """Validate and return a bounded opaque reference.
+
+    Opaque refs may be identifiers from backup/audit/restore subsystems, but
+    must not be raw paths, URLs, whitespace-bearing text, or evidence strings.
+    """
+    candidate = value[:80]
+    if not candidate or any(ch in candidate for ch in "/\\:\t\r\n "):
+        raise OwnerWritebetaTransitionError(f"{key} must be an opaque reference")
+    return candidate
+
+
+def _safe_shape(value: Any, _key_index: list[int] | None = None) -> Any:
+    """Return a structure shape without serializing private field values or keys.
+
+    Dict keys are replaced with opaque field_N placeholders to prevent
+    user-provided key names from leaking into hashes or logs.
+    """
+    if _key_index is None:
+        _key_index = [0]
     if isinstance(value, Mapping):
-        return {str(key): _safe_shape(child) for key, child in sorted(value.items(), key=lambda item: str(item[0]))}
+        result = {}
+        for _, child in sorted(value.items(), key=lambda item: str(item[0])):
+            field_name = f"field_{_key_index[0]}"
+            _key_index[0] += 1
+            result[field_name] = _safe_shape(child, _key_index)
+        return result
     if isinstance(value, (list, tuple)):
         return ["item" for _ in value]
     return type(value).__name__
