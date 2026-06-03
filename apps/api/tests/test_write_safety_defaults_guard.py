@@ -271,3 +271,25 @@ def test_write_safety_defaults_guard_rejects_missing_copied_dogfood_packet_marke
     assert any("backup/read-back/audit/lock/restore/reset" in failure for failure in failures)
     assert any("no original/private/real-working/only-copy" in failure for failure in failures)
     assert str(tmp_path) not in "; ".join(failures)
+
+
+def test_write_safety_defaults_guard_rejects_missing_after_w3_boundary_marker(
+    tmp_path: Path,
+) -> None:
+    doc = tmp_path / "after-w3-boundary.md"
+    doc.write_text(
+        "#36 remains open. NO_RELEASE. no public write beta. GNUCASH_WRITES_ENABLED=false. "
+        "APP_ENV=test. restore-to-copy. same-context owner + PM authorization. "
+        "CREATE 0 / PATCH 0 / DELETE 0.\n",
+        encoding="utf-8",
+    )
+
+    failures = write_safety_guard._check_after_w3_readiness_boundary(doc)
+
+    assert any("reset/default-disabled probes" in failure for failure in failures)
+    assert any("hard stop" in failure for failure in failures)
+    assert any("supported-version write compatibility remains pending" in failure for failure in failures)
+    assert any("not a broad GnuCash compatibility claim" in failure for failure in failures)
+    assert any("not a real-book claim" in failure for failure in failures)
+    assert any("#22 stays open" in failure for failure in failures)
+    assert str(tmp_path) not in "; ".join(failures)

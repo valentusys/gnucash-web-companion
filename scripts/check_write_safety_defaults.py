@@ -35,6 +35,7 @@ ISSUE_36_REMAINING_GATES_DOC = Path("docs/write-alpha/issue-36-remaining-gates.m
 ISSUE_36_DASHBOARD_DOC = Path("docs/write-alpha/controlled-write-readiness-dashboard.md")
 RESTORE_BOUNDARY_DOC = Path("docs/write-alpha/restore-safety-boundary.md")
 COPIED_DOGFOOD_PACKET_DOC = Path("docs/write-alpha/copied-book-dogfood-readiness-packet.md")
+AFTER_W3_READINESS_BOUNDARY_DOC = Path("docs/write-alpha/after-w3-readiness-boundary.md")
 WRITE_COMPATIBILITY_REQUIRED_TEXTS = (
     "supported-version write compatibility remains pending",
     "synthetic/disposable or copied/restorable evidence only",
@@ -163,6 +164,30 @@ def _check_copied_dogfood_packet(path: Path) -> list[str]:
     return ["copied-book dogfood packet must preserve: " + ", ".join(missing)] if missing else []
 
 
+def _check_after_w3_readiness_boundary(path: Path) -> list[str]:
+    text = _read(REPO_ROOT / path if not path.is_absolute() else path)
+    normalized = _normalized(text)
+    required = (
+        "#36 remains open",
+        "NO_RELEASE",
+        "no public write beta",
+        "GNUCASH_WRITES_ENABLED=false",
+        "APP_ENV=test",
+        "reset/default-disabled probes",
+        "hard stop",
+        "restore-to-copy",
+        "supported-version write compatibility remains pending",
+        "not a broad GnuCash compatibility claim",
+        "not a real-book claim",
+        "#22 stays open",
+        "PostgreSQL/MySQL/MariaDB GnuCash backends remain unclaimed",
+        "same-context owner + PM authorization",
+        "CREATE 0 / PATCH 0 / DELETE 0",
+    )
+    missing = [needle for needle in required if _normalized(needle) not in normalized]
+    return ["after-W3 readiness boundary must preserve: " + ", ".join(missing)] if missing else []
+
+
 def _check(env_example: Path, compose: Path, gate_doc: Path, checklist_doc: Path | None = None) -> list[str]:
     env_text = _read(env_example)
     compose_text = _read(compose)
@@ -200,6 +225,7 @@ def _check(env_example: Path, compose: Path, gate_doc: Path, checklist_doc: Path
     failures.extend(_check_issue_36_dashboard(ISSUE_36_DASHBOARD_DOC))
     failures.extend(_check_restore_boundary(RESTORE_BOUNDARY_DOC))
     failures.extend(_check_copied_dogfood_packet(COPIED_DOGFOOD_PACKET_DOC))
+    failures.extend(_check_after_w3_readiness_boundary(AFTER_W3_READINESS_BOUNDARY_DOC))
     return failures
 
 
