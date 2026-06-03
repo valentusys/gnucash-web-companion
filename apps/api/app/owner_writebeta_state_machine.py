@@ -264,6 +264,10 @@ def mark_post_mutation_checks(
     Any missing read-back/audit/restore/lock/default-reset evidence hard-stops
     the session rather than allowing another mutation.
     """
+    if audit_ref:
+        _bounded_opaque_ref("audit_ref", audit_ref)
+    if restore_ref:
+        _bounded_opaque_ref("restore_ref", restore_ref)
     if not audit_ref or not restore_ref or not lock_released or not defaults_reset:
         return session.transition(OwnerWritebetaState.FAILED_HARD_STOP, reason="post-mutation verification incomplete")
     session.transition(OwnerWritebetaState.VERIFICATION, audit_ref=audit_ref)
