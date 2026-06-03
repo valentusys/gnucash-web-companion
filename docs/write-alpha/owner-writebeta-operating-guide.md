@@ -50,3 +50,24 @@ Operating guide refreshed conservatively.
 
 Defaults remain disabled; APP_ENV=test write gate remains; no private/raw evidence or real-book
 mutation is authorized.
+
+## Daytime continuation 2026-06-03 addendum
+
+Newly covered safe evidence since the previous daytime checkpoint:
+
+- Synthetic CREATE -> metadata/memo-only PATCH -> DELETE route-family drill:
+  routed write-alpha mutations now have regression coverage proving fresh
+  owner-writebeta confirmation, write-alpha-owned PATCH/DELETE targets,
+  metadata-only PATCH shape, default-disabled reset, and non-owned target
+  rejection.
+- Synthetic backup/restore drill: post-mutation checks now validate provided
+  audit/restore refs as opaque before hard-stop handling, so path-like restore
+  evidence cannot enter summaries even on failure.
+- Synthetic lock-contention drill: active sessions, expired confirmations,
+  reused confirmations, failed-hard-stop stale sessions, and fresh-session-only
+  recovery after default-disabled reset are covered by tests.
+
+This does not authorize copied-book W3 or real working-book W4. W3 remains the
+next practical blocker only if the owner stages an outside-git copied/restorable
+book and the PM authorizes exact synthetic/copy operation counts in the same
+execution context. W4 remains forbidden for autonomous runs.
