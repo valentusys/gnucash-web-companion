@@ -9,7 +9,8 @@ Stop reason: TOOL_CHECKPOINT_RECOVERED
 This continuation started from the W3 copied-book dogfood checkpoint after HEAD
 `2f542c929b1d493753910feb529612e21baaa5f6`. The autonomous background Hermes run hit provider
 rate limits after it had already created the PM gate/release-readiness packet artifacts and left a dirty
-working tree. The dirty tree was recovered manually, completed, verified, and prepared for commit.
+working tree. The dirty tree was recovered manually, completed, verified, committed, pushed, and CI
+checked.
 
 ## Packages completed
 
@@ -100,4 +101,10 @@ Completed local gates:
 
 ## CI status
 
-CI must be checked after the recovery commit is pushed.
+Commit `94e48083344a35252f74078cd3b13d45b591a766` was pushed to `origin/main`.
+GitHub check-runs completed successfully:
+
+- Foundation checks — success.
+- Docker Compose validation — success.
+- Frontend checks — success.
+- Backend tests — success.
