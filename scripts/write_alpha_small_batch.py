@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Run a safe write-alpha small batch on a copied GnuCash book.
+"""Run a safe W3 write-alpha small batch on a copied GnuCash book.
 
-Performs exactly two CREATE operations and exactly one metadata/memo-only PATCH
-on the first created transaction, using a temporary app metadata DB outside git.
-Evidence is redacted and must be stored outside the repository.
+Performs exactly two CREATE operations, exactly one metadata/memo-only PATCH on
+one created transaction, and exactly one DELETE of the other created disposable
+transaction, using a temporary app metadata DB outside git. Evidence is redacted
+and must be stored outside the repository.
 """
 
 from __future__ import annotations
@@ -76,6 +77,8 @@ def run(book_path: Path, work_dir: Path, evidence_dir: Path) -> dict[str, Any]:
     created_ids: list[str] = []
     backup_paths: list[Path] = []
     patch_backup: Path | None = None
+    delete_backup: Path | None = None
+    deleted_transaction_absent = False
     try:
         book_id = bootstrap_metadata(session_factory, book_path)
         client = TestClient(app)
@@ -113,6 +116,16 @@ def run(book_path: Path, work_dir: Path, evidence_dir: Path) -> dict[str, Any]:
         patch_json = patch_response.json()
         patch_backup = Path(patch_json["backup_path"])
         backup_paths.append(patch_backup)
+
+        delete_response = client.delete(f"/books/{book_id}/transactions/{created_ids[1]}", headers=headers)
+        if delete_response.status_code != 200:
+            raise RuntimeError(f"delete failed: {delete_response.status_code} {delete_response.text[:200]}")
+        delete_json = delete_response.json()
+        delete_backup = Path(delete_json["backup_path"])
+        backup_paths.append(delete_backup)
+        deleted_transaction_absent = not transaction_exists(book_path, created_ids[1])
+        if not deleted_transaction_absent:
+            raise RuntimeError("deleted disposable transaction still present on read-back")
 
         with session_factory() as session:
             ownership_rows = session.query(WriteAlphaTransactionOwnership).filter(
@@ -157,6 +170,10 @@ def run(book_path: Path, work_dir: Path, evidence_dir: Path) -> dict[str, Any]:
             json={"description": "disabled patch probe"},
             headers=headers,
         ).status_code
+        disabled_delete = client.delete(
+            f"/books/{book_id}/transactions/{created_ids[1]}",
+            headers=headers,
+        ).status_code
     finally:
         app.dependency_overrides.clear()
         get_settings.cache_clear()
@@ -167,7 +184,14 @@ def run(book_path: Path, work_dir: Path, evidence_dir: Path) -> dict[str, Any]:
         "scenario_type": "copied-book-write-alpha-small-batch",
         "timestamp_utc": datetime.now(timezone.utc).isoformat(),
         "book_outside_git": True,
-        "operation_counts": {"create_attempts": 2, "create_successes": 2, "patch_attempts": 1, "patch_successes": 1, "delete_attempts": 0},
+        "operation_counts": {
+            "create_attempts": 2,
+            "create_successes": 2,
+            "patch_attempts": 1,
+            "patch_successes": 1,
+            "delete_attempts": 1,
+            "delete_successes": 1,
+        },
         "book_sha_before_prefix": before[:12],
         "book_sha_after_prefix": after[:12],
         "before_counts": before_counts,
@@ -177,7 +201,14 @@ def run(book_path: Path, work_dir: Path, evidence_dir: Path) -> dict[str, Any]:
         "route_backup_count": sum(1 for path in backup_paths if path.exists()),
         "pre_batch_backup_created": batch_backup.exists(),
         "patch_backup_created": bool(patch_backup and patch_backup.exists()),
-        "read_back": {"created_transactions_present": [transaction_exists(book_path, tx) for tx in created_ids]},
+        "delete": {
+            "backup_created": bool(delete_backup and delete_backup.exists()),
+            "deleted_created_transaction_absent": deleted_transaction_absent,
+        },
+        "read_back": {
+            "created_transactions_present": [transaction_exists(book_path, created_ids[0])],
+            "deleted_transaction_absent": deleted_transaction_absent,
+        },
         "restore": {"restored_from_pre_batch_backup": True, "restored_sha_matches_backup": restored_sha_matches, "restored_counts": restored_counts},
         "compatibility": {"piecash_readonly_open": "pass", "mutated_counts_read": after_counts},
         "audit_summary": {
@@ -186,10 +217,21 @@ def run(book_path: Path, work_dir: Path, evidence_dir: Path) -> dict[str, Any]:
             "counts_by_result": audit_json.get("counts_by_result"),
             "ownership_summary": audit_json.get("ownership_summary"),
         },
-        "default_disabled_probe": {"create_after_reset_status": disabled_create, "patch_after_reset_status": disabled_patch, "writes_disabled_forbidden": disabled_create == 403 and disabled_patch == 403},
+        "default_disabled_probe": {
+            "create_after_reset_status": disabled_create,
+            "patch_after_reset_status": disabled_patch,
+            "delete_after_reset_status": disabled_delete,
+            "writes_disabled_forbidden": disabled_create == 403 and disabled_patch == 403 and disabled_delete == 403,
+        },
         "redaction": "No private paths/account names/descriptions/memos/amounts are stored in committed docs.",
     }
-    if not (ownership_rows == 2 and all(evidence["read_back"]["created_transactions_present"]) and restored_sha_matches and evidence["default_disabled_probe"]["writes_disabled_forbidden"]):
+    if not (
+        ownership_rows == 2
+        and all(evidence["read_back"]["created_transactions_present"])
+        and evidence["read_back"]["deleted_transaction_absent"]
+        and restored_sha_matches
+        and evidence["default_disabled_probe"]["writes_disabled_forbidden"]
+    ):
         evidence["result"] = "fail"
     evidence_file = evidence_dir / "write-alpha-small-batch-evidence.json"
     evidence_file.write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -211,6 +253,7 @@ def main() -> int:
     print(f"  result={evidence['result']}")
     print(f"  operations={evidence['operation_counts']}")
     print(f"  ownership_rows={evidence['ownership_rows_for_created_transactions']}")
+    print(f"  delete_absent={evidence['delete']['deleted_created_transaction_absent']}")
     print(f"  disabled_forbidden={evidence['default_disabled_probe']['writes_disabled_forbidden']}")
     print("  paths redacted")
     return 0 if evidence["result"] == "pass" else 2

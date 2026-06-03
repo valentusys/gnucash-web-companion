@@ -20,10 +20,9 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) markdown readability, and
   [#36](https://github.com/valentusys/gnucash-web-companion/issues/36) controlled-write readiness
   gates.
-- Latest handoffs: `docs/handoff/daytime-write-continuation-worker-4.md`,
-  `docs/handoff/daytime-write-continuation-worker-3.md`,
-  `docs/handoff/daytime-write-continuation-worker-2.md`, and
-  `docs/handoff/daytime-write-continuation-worker-1.md`.
+- Latest handoffs: `docs/handoff/daytime-w3-dogfood-worker.md`,
+  `docs/handoff/daytime-w3-authorization.md`, `docs/handoff/daytime-w3-gate.md`, and
+  `docs/handoff/daytime-write-continuation-final-report.md`.
 
 ## Current status snapshot
 
@@ -33,12 +32,24 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
 - Write-mode default: `GNUCASH_WRITES_ENABLED=false` remains default; enabled write-alpha/writebeta
   work remains experimental and `APP_ENV=test` gated.
 - Current open queues: #22 compatibility fixtures, #28 markdown readability, #36 controlled-write
-  readiness gates. For #36, the latest daytime continuation completed the requested W2 synthetic
-  route-family, backup/restore, and lock-contention drills; #36 remains open for W3 copied-book
-  dogfood unless owner-staged outside-git copy requirements are met.
+  readiness gates. For #36, the latest daytime W3 package verified an outside-git staged copied
+  target and completed copied-book dogfood with exact PM-authorized counts: 2 CREATE, 1
+  metadata/memo-only PATCH on a write-alpha-created transaction, and 1 DELETE of a write-alpha-created
+  disposable transaction. #36 remains open for PM review of remaining owner-writebeta gates; no release
+  was published.
 - Recently closed queues: #13, #41, #42, #43.
 
 ## Repository
+
+- Daytime W3 copied-book dogfood completed for #36 on a staged outside-git copied/restorable target.
+  The PM authorized exact counts in the same execution context: CREATE 2, metadata/memo-only PATCH 1,
+  and DELETE 1. The W3 helper reported 4 successful routed audit entries, route backups present,
+  read-back for retained/deleted write-alpha-created transactions, restore from pre-batch backup,
+  read-only compatibility open, and default-disabled CREATE/PATCH/DELETE probes returning 403. Raw
+  evidence remains outside git; committed docs are redacted. No original/private/working/only-copy book
+  was mutated; no public write beta, owner-writebeta release, stable release, production claim, or
+  security-audited claim was made. Handoffs: `docs/handoff/daytime-w3-gate.md`,
+  `docs/handoff/daytime-w3-authorization.md`, and `docs/handoff/daytime-w3-dogfood-worker.md`.
 
 - Overnight worker `overnight-2026-06-02-worker-20` completed a non-mutating #36 remaining-gates
   audit packet. Added `docs/write-alpha/issue-36-remaining-gates.md` with the exact accepted evidence,
