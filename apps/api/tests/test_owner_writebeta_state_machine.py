@@ -227,7 +227,7 @@ def test_owner_writebeta_happy_path_with_restore_readiness_gate():
     assert session.writes_blocked is True
 
     summary = session.redacted_summary()
-    assert summary["restore_readiness_ref"] == "rr-happy-ref"
+    assert summary["restore_readiness_ref"] is None
     assert summary["state"] == "reset_required"
     # raw evidence must not leak
     assert "amount" not in str(summary).lower()

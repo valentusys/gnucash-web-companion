@@ -7,6 +7,7 @@ backup paths.
 """
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -138,10 +139,20 @@ def _status(book_id: int, session_state: OwnerWritebetaSession, settings: Settin
         blocked.append("app_env_not_test")
     else:
         passed.append("app_env_test_gate")
-    if session_state.state in {OwnerWritebetaState.FAILED_HARD_STOP, OwnerWritebetaState.RESET_REQUIRED}:
+    # State-machine blocked reasons: explicit operator visibility for each
+    # blocked state. These are additive with env/defaults blocking above.
+    if session_state.state == OwnerWritebetaState.FAILED_HARD_STOP:
+        blocked.append(f"state_{session_state.state.value}")
+    if session_state.state == OwnerWritebetaState.RESET_REQUIRED:
         blocked.append(f"state_{session_state.state.value}")
     if session_state.state == OwnerWritebetaState.CONFIRMATION:
-        passed.append("preview_confirmed_armed")
+        now = datetime.now(timezone.utc)
+        if session_state.expires_at is not None and now > session_state.expires_at:
+            blocked.append("confirmation_expired")
+        else:
+            passed.append("preview_confirmed_armed")
+        if not session_state.restore_readiness_ref:
+            blocked.append("restore_not_ready")
     return OwnerWritebetaStatusDTO(
         book_id=book_id,
         state=session_state.state.value,

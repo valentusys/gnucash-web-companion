@@ -95,6 +95,14 @@ class OwnerWritebetaSession:
             self.confirmation_token_ref = None
             self.restore_readiness_ref = None
             self.expires_at = None
+        if target in {OwnerWritebetaState.RESET_REQUIRED, OwnerWritebetaState.FAILED_HARD_STOP}:
+            # Reset-required and failed-hard-stop are post-mutation states.
+            # Clear active-arm material so the operator cannot reuse a stale
+            # confirmation without starting a fresh preflight→confirm flow.
+            self.preview_hash = None
+            self.confirmation_token_ref = None
+            self.restore_readiness_ref = None
+            self.expires_at = None
         self.updated_at = datetime.now(timezone.utc)
         return self
 

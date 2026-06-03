@@ -332,3 +332,182 @@ def test_owner_writebeta_reset_disabled_clears_stale_arm_and_disabled_probes_fai
     assert status_payload["summary"]["preview_hash"] is None
     assert status_payload["summary"]["confirmation_token_ref"] is None
     assert status_payload["summary"]["restore_readiness_ref"] is None
+
+
+def test_owner_writebeta_confirmation_expired_is_explicitly_blocked(client, auth_headers, sample_book):
+    """Confirmation state with past expires_at must report confirmation_expired blocked reason."""
+    from datetime import timedelta
+
+    from app.owner_writebeta_state_machine import OwnerWritebetaState
+    from app.routers.owner_writebeta import _SESSIONS
+
+    client.post(f"/books/{sample_book}/owner-writebeta/preflight", headers=auth_headers)
+    preview = client.post(
+        f"/books/{sample_book}/owner-writebeta/preview",
+        headers=auth_headers,
+        json={"operation": "CREATE", "payload_shape": {"splits": [{"amount": "opaque"}]}},
+    )
+    confirm = client.post(
+        f"/books/{sample_book}/owner-writebeta/confirm",
+        headers=auth_headers,
+        json={
+            "preview_hash": preview.json()["preview_hash"],
+            "backup_ref": "bkp-expired-test",
+            "restore_readiness_ref": "rr-expired-test",
+            "ttl_seconds": 1,
+        },
+    )
+    assert confirm.status_code == 200
+    assert confirm.json()["state"] == "confirmation"
+
+    # Force the expiry into the past without sleeping
+    session = _SESSIONS[sample_book]
+    if session.expires_at is not None:
+        session.expires_at = session.expires_at - timedelta(seconds=5)
+    else:
+        from datetime import datetime, timezone
+
+        session.expires_at = datetime.now(timezone.utc) - timedelta(seconds=5)
+
+    status = client.get(f"/books/{sample_book}/owner-writebeta/status", headers=auth_headers)
+    assert status.status_code == 200
+    payload = status.json()
+    assert payload["state"] == "confirmation"
+    assert "confirmation_expired" in payload["blocked_reasons"], (
+        f"Expected confirmation_expired in blocked_reasons, got {payload['blocked_reasons']}"
+    )
+    assert payload["writes_blocked"] is True
+
+
+def test_owner_writebeta_reset_required_is_explicitly_blocked(client, auth_headers, sample_book):
+    """Reset_required state must report state_reset_required and clear active arms."""
+    from app.owner_writebeta_state_machine import OwnerWritebetaState
+    from app.routers.owner_writebeta import _SESSIONS
+
+    client.post(f"/books/{sample_book}/owner-writebeta/preflight", headers=auth_headers)
+    preview = client.post(
+        f"/books/{sample_book}/owner-writebeta/preview",
+        headers=auth_headers,
+        json={"operation": "CREATE", "payload_shape": {"splits": [{"amount": "opaque"}]}},
+    )
+    confirm = client.post(
+        f"/books/{sample_book}/owner-writebeta/confirm",
+        headers=auth_headers,
+        json={
+            "preview_hash": preview.json()["preview_hash"],
+            "backup_ref": "bkp-reset-req",
+            "restore_readiness_ref": "rr-reset-req",
+        },
+    )
+    assert confirm.status_code == 200
+
+    _SESSIONS[sample_book].transition(OwnerWritebetaState.MUTATING)
+    verify = client.post(
+        f"/books/{sample_book}/owner-writebeta/verify-reset",
+        headers=auth_headers,
+        json={"audit_ref": "audit-ok", "restore_ref": "restore-ok", "lock_released": True, "defaults_reset": True},
+    )
+    assert verify.status_code == 200
+    payload = verify.json()
+    assert payload["state"] == "reset_required"
+    assert payload["writes_blocked"] is True
+    assert "state_reset_required" in payload["blocked_reasons"], (
+        f"Expected state_reset_required in blocked_reasons, got {payload['blocked_reasons']}"
+    )
+    # Active arms must be cleared in summary
+    assert payload["summary"]["preview_hash"] is None
+    assert payload["summary"]["confirmation_token_ref"] is None
+    assert payload["summary"]["restore_readiness_ref"] is None
+
+
+def test_owner_writebeta_failed_hard_stop_is_explicitly_blocked(client, auth_headers, sample_book):
+    """Failed hard stop must block writes and sanitize failed_reason in summary."""
+    from app.owner_writebeta_state_machine import OwnerWritebetaState
+    from app.routers.owner_writebeta import _SESSIONS
+
+    client.post(f"/books/{sample_book}/owner-writebeta/preflight", headers=auth_headers)
+    preview = client.post(
+        f"/books/{sample_book}/owner-writebeta/preview",
+        headers=auth_headers,
+        json={"operation": "CREATE", "payload_shape": {"tx": "opaque"}},
+    )
+    assert preview.status_code == 200
+    confirm = client.post(
+        f"/books/{sample_book}/owner-writebeta/confirm",
+        headers=auth_headers,
+        json={
+            "preview_hash": preview.json()["preview_hash"],
+            "backup_ref": "bkp-hard-stop",
+            "restore_readiness_ref": "rr-hard-stop",
+        },
+    )
+    assert confirm.status_code == 200
+
+    _SESSIONS[sample_book].transition(OwnerWritebetaState.MUTATING)
+    verify = client.post(
+        f"/books/{sample_book}/owner-writebeta/verify-reset",
+        headers=auth_headers,
+        json={
+            "audit_ref": "audit-hs",
+            "restore_ref": "restore-hs",
+            "lock_released": True,
+            "defaults_reset": False,
+        },
+    )
+    assert verify.status_code == 200
+    payload = verify.json()
+    assert payload["state"] == "failed_hard_stop"
+    assert payload["writes_blocked"] is True
+    assert "state_failed_hard_stop" in payload["blocked_reasons"], (
+        f"Expected state_failed_hard_stop in blocked_reasons, got {payload['blocked_reasons']}"
+    )
+    # Reason must be sanitized
+    summary = payload["summary"]
+    assert summary["failed_reason"] in {
+        "post-mutation verification incomplete",
+        "restore readiness failed",
+        "owner-writebeta session failed; see opaque audit refs only.",
+    }
+
+
+def test_owner_writebeta_preflight_blocked_reasons_exclude_state_prefix(client, auth_headers, sample_book):
+    """Preflight must not report state-based blocked reasons."""
+    response = client.post(f"/books/{sample_book}/owner-writebeta/preflight", headers=auth_headers)
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["state"] == "preflight"
+    assert payload["writes_blocked"] is True
+    assert "writes_disabled_default" in payload["blocked_reasons"]
+    assert "app_env_test_gate" in payload["pass_reasons"]
+    for reason in payload["blocked_reasons"]:
+        assert not reason.startswith("state_"), (
+            f"Preflight should not have state_* blocked reason, got: {reason}"
+        )
+
+
+def test_owner_writebeta_confirmation_without_restore_readiness_is_blocked(client, auth_headers, sample_book):
+    """Confirmation without restore_readiness_ref should report restore_not_ready."""
+    client.post(f"/books/{sample_book}/owner-writebeta/preflight", headers=auth_headers)
+    preview = client.post(
+        f"/books/{sample_book}/owner-writebeta/preview",
+        headers=auth_headers,
+        json={"operation": "CREATE", "payload_shape": {"splits": [{"amount": "opaque"}]}},
+    )
+    # Confirm WITHOUT restore_readiness_ref
+    confirm = client.post(
+        f"/books/{sample_book}/owner-writebeta/confirm",
+        headers=auth_headers,
+        json={
+            "preview_hash": preview.json()["preview_hash"],
+            "backup_ref": "bkp-no-rr",
+        },
+    )
+    assert confirm.status_code == 200
+    assert confirm.json()["state"] == "confirmation"
+
+    status = client.get(f"/books/{sample_book}/owner-writebeta/status", headers=auth_headers)
+    assert status.status_code == 200
+    payload = status.json()
+    assert "restore_not_ready" in payload["blocked_reasons"], (
+        f"Expected restore_not_ready in blocked_reasons, got {payload['blocked_reasons']}"
+    )
