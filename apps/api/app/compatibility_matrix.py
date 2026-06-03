@@ -234,6 +234,31 @@ def fixture_scope_boundaries() -> dict[str, dict[str, str]]:
     }
 
 
+def summarize_compatibility_next_action(rows: list[CompatibilityMatrixRow]) -> dict[str, str]:
+    """Return a redacted #22 next-action summary for handoffs/issues.
+
+    The summary is derived only from already-classified matrix rows. It does not
+    read or open fixture files, and it never turns metadata into a Desktop/backend
+    support claim.
+    """
+
+    has_blocked_manual = any(row.category == "manual_fixture_blocked" for row in rows)
+    has_unclaimed_backend = any(row.category == "unclaimed_backend" for row in rows)
+    state = "blocked" if has_blocked_manual or has_unclaimed_backend else "synthetic-only"
+    return {
+        "issue": "#22",
+        "state": state,
+        "next_action": (
+            "Create or supply an isolated Desktop-generated synthetic SQLite fixture, then run "
+            "fail-closed preflight and default-read-only validation before any tested row is added."
+        ),
+        "boundary": (
+            "PostgreSQL/MySQL/MariaDB remain unclaimed; no broad Desktop/backend support claim; "
+            "synthetic or disposable evidence only until the fixture gate passes."
+        ),
+    }
+
+
 REPORT_ONLY_UNSAFE_PHRASES = (
     "production-ready",
     "security-audited",

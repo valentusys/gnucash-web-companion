@@ -13,6 +13,7 @@ from app.compatibility_matrix import (
     check_compatibility_matrix_report,
     fixture_scope_boundaries,
     render_compatibility_matrix_report,
+    summarize_compatibility_next_action,
     unsafe_broad_support_phrases,
     validate_desktop_fixture_candidate_preflight,
 )
@@ -186,6 +187,7 @@ def test_compatibility_docs_separate_tested_blocked_and_unclaimed_sections() -> 
     assert "## Blocked/manual fixture work" in doc
     assert "## Unclaimed backends and formats" in doc
     assert "Phase 204 regression guard" in doc
+    assert "redacted #22 next-action summary" in " ".join(doc.split())
     assert "metadata captured; read-only validation still required" in doc
     assert "PostgreSQL/MySQL/MariaDB GnuCash backends are unclaimed" in doc
     assert "XML books remain outside the SQL-book MVP" in doc
@@ -231,6 +233,33 @@ def test_compatibility_matrix_report_renders_conservative_operator_summary() -> 
     assert "/" not in report
     assert "Personal" not in report
     assert "Lunch" not in report
+
+
+def test_compatibility_next_action_summary_keeps_issue_22_blocker_explicit() -> None:
+    tested = build_matrix_row_from_metadata(
+        {
+            "backend": "SQLite",
+            "fixture_origin": "generated-synthetic",
+            "versions": {"Gnucash": 3_000_000},
+            "table_counts": {"accounts": 2},
+        }
+    )
+    blocked = build_matrix_row_from_metadata(_desktop_metadata())
+    unclaimed = build_matrix_row_from_metadata({"backend": "PostgreSQL"})
+
+    summary = summarize_compatibility_next_action([tested, blocked, unclaimed])
+
+    assert summary["issue"] == "#22"
+    assert summary["state"] == "blocked"
+    assert "isolated Desktop-generated synthetic SQLite fixture" in summary["next_action"]
+    assert "default-read-only validation" in summary["next_action"]
+    assert "PostgreSQL/MySQL/MariaDB remain unclaimed" in summary["boundary"]
+    assert "no broad Desktop/backend support claim" in summary["boundary"]
+    serialized = " ".join(str(value) for value in summary.values())
+    assert "/home" not in serialized
+    assert "C:\\" not in serialized
+    assert "Personal" not in serialized
+    assert "Lunch" not in serialized
 
 
 def test_compatibility_matrix_report_checker_fails_closed_for_unsafe_claims_and_private_values() -> None:

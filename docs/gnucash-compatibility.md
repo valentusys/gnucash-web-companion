@@ -17,13 +17,13 @@ This matrix is intentionally narrow. It separates automated synthetic fixture ev
 blocked/manual fixture work and from unclaimed backends. Rows below do not prove compatibility with
 every GnuCash Desktop release, SQL backend, operating system, or real user book.
 
-Phase 204 regression guard plus overnight worker 12 report guard:
+Phase 204 regression guard plus later report/next-action guard packages:
 `apps/api/app/compatibility_matrix.py` and `apps/api/tests/test_compatibility_matrix.py` ingest
 redacted collector metadata, classify it as tested synthetic evidence, blocked/manual fixture work,
-or unclaimed backend, and render/check a conservative operator summary. Tests fail if the rendered
-report implies broad compatibility claims such as all-version, public-write, stable-support,
-Desktop-real-book support, or if it contains private-looking path/account/memo/description/amount
-evidence.
+or unclaimed backend, render/check a conservative operator summary, and produce a redacted #22 next-action
+summary. Tests fail if rendered reports or next-action summaries imply broad compatibility
+claims such as all-version, public-write, stable-support, Desktop-real-book support, or if they
+contain private-looking path/account/memo/description/amount evidence.
 
 ## Tested synthetic/disposable fixture evidence
 
