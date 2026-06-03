@@ -77,15 +77,17 @@ Observed open issues:
 
 Observed open PRs: none.
 
-Issue updates: pending at checkpoint; post the redacted #36 W3 evidence comment after commit/push if network remains available.
+Issue updates:
+
+- #36 updated with redacted W3 evidence: https://github.com/valentusys/gnucash-web-companion/issues/36#issuecomment-4608688959.
 
 ## Commits pushed
 
-Pending at checkpoint; commit and push after this report is written and final staged hygiene passes.
+- `be55997` — `test: add W3 copied-book dogfood batch`.
 
 ## CI status
 
-Pending until commit is pushed.
+CI for `be55997` completed successfully: https://github.com/valentusys/gnucash-web-companion/actions/runs/26860857528.
 
 ## Safety summary
 
