@@ -101,8 +101,12 @@ Completed local gates:
 
 ## CI status
 
-Commit `94e48083344a35252f74078cd3b13d45b591a766` was pushed to `origin/main`.
-GitHub check-runs completed successfully:
+Commits pushed to `origin/main`:
+
+- `94e48083344a35252f74078cd3b13d45b591a766` — PM gate/no-release packet.
+- `5cf4d48ee541eb25316cb7bf64ff40e2e98c2ec6` — final report CI-status update.
+
+GitHub check-runs for latest HEAD completed successfully:
 
 - Foundation checks — success.
 - Docker Compose validation — success.
