@@ -1077,18 +1077,18 @@ async def patch_book_transaction(
     book = _resolve_viewable_book(book_id, user, session)
     _require_book_edit_access(book, user, session)
     _ensure_write_alpha_test_scope(settings)
+    ownership = _require_write_alpha_transaction_ownership(
+        session,
+        book_id=book.id,
+        transaction_id=transaction_id,
+        mutation="PATCH",
+    )
     from app.routers.owner_writebeta import require_owner_writebeta_if_active
 
     require_owner_writebeta_if_active(
         book_id=book.id,
         preview_hash=x_owner_writebeta_preview_hash,
         confirmation_token=x_owner_writebeta_confirmation_token,
-    )
-    ownership = _require_write_alpha_transaction_ownership(
-        session,
-        book_id=book.id,
-        transaction_id=transaction_id,
-        mutation="PATCH",
     )
 
     service = _write_service_for(book)
@@ -1180,18 +1180,18 @@ async def delete_book_transaction(
     book = _resolve_viewable_book(book_id, user, session)
     _require_book_edit_access(book, user, session)
     _ensure_write_alpha_test_scope(settings)
+    ownership = _require_write_alpha_transaction_ownership(
+        session,
+        book_id=book.id,
+        transaction_id=transaction_id,
+        mutation="DELETE",
+    )
     from app.routers.owner_writebeta import require_owner_writebeta_if_active
 
     require_owner_writebeta_if_active(
         book_id=book.id,
         preview_hash=x_owner_writebeta_preview_hash,
         confirmation_token=x_owner_writebeta_confirmation_token,
-    )
-    ownership = _require_write_alpha_transaction_ownership(
-        session,
-        book_id=book.id,
-        transaction_id=transaction_id,
-        mutation="DELETE",
     )
 
     service = _write_service_for(book)
