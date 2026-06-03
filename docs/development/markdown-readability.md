@@ -58,6 +58,43 @@ rendered page:
 5. Safety warnings remain explicit: no production guarantee, no public write beta, no real/private or
    only-copy write target, and default-disabled writes.
 
+## Current status block template
+
+Use this shape when touching README, CHANGELOG, PROJECT_STATUS, release notes, or handoff summaries.
+It keeps raw Markdown scannable without turning every public file into a full phase ledger.
+
+```text
+Status: <pre-alpha / read-only beta / no-release / keep-open issue state>
+
+- Current public read-only beta: <tag or none>.
+- Not published / deferred: <missing tag or blocked release>.
+- Write posture: GNUCASH_WRITES_ENABLED=false by default; enabled writes remain APP_ENV=test gated.
+- Safety boundary: no public write beta; no production-ready, stable, or security-audited claim.
+- Book boundary: no real/private/original/only-copy book is a safe write target.
+- Open queues: #22 compatibility, #28 Markdown readability, #36 controlled-write readiness.
+- Details: link to one focused handoff/audit/release doc instead of duplicating raw evidence.
+```
+
+Rules for using the template:
+
+1. Keep the status block near the top of current public/status docs.
+2. Prefer bullets over one long paragraph when a sentence mixes tags, issue state, and safety posture.
+3. Do not paste raw evidence, private paths, account names, transaction descriptions, memos, or amounts.
+4. For historical sections, add a short pointer to detailed artifacts instead of reflowing long archives.
+5. If the status changes, update the guard or tests in the same package so the wording cannot drift.
+
+## Handoff readability checklist
+
+Every new active handoff should answer these in the first half of the file:
+
+1. What package was completed or blocked?
+2. Which issues were touched (#22, #28, #36, or another exact issue)?
+3. Was a release prepared or published? If not, say `NO_RELEASE` or `no publication` explicitly.
+4. Were mutation counts CREATE/PATCH/DELETE zero or non-zero, and what fixture class was involved?
+5. Which safety defaults and gates remained unchanged?
+6. Which verification commands actually ran, with pass/fail status?
+7. What is the exact next safe package?
+
 ## Code fences
 
 Use language tags when the language is known:

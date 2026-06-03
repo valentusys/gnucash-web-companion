@@ -153,6 +153,17 @@ def check_documents(docs: dict[str, str]) -> list[str]:
         if path == Path("docs/development/markdown-readability.md"):
             if not all(marker.lower() in lowered for marker in SAFETY_GUIDANCE_MARKERS):
                 problems.append(f"{rel}: missing guidance that safety warnings must be preserved")
+            status_template_markers = (
+                "Current status block template",
+                "Handoff readability checklist",
+                "GNUCASH_WRITES_ENABLED=false by default",
+                "APP_ENV=test gated",
+                "no public write beta",
+                "no real/private/original/only-copy book",
+                "exact next safe package",
+            )
+            if not all(marker.lower() in lowered for marker in status_template_markers):
+                problems.append(f"{rel}: missing current-status/handoff readability template")
 
         problems.extend(_long_line_problems(rel, text))
     return problems

@@ -41,6 +41,12 @@ def test_markdown_readability_guide_preserves_safety_and_triage_workflow() -> No
     assert "README top status is concise" in text
     assert "PROJECT_STATUS starts with a quick navigation block" in text
     assert "Recent handoff and release docs keep safety verdicts visible" in text
+    assert "Current status block template" in text
+    assert "Handoff readability checklist" in text
+    assert "GNUCASH_WRITES_ENABLED=false by default" in text
+    assert "APP_ENV=test gated" in text
+    assert "no real/private/original/only-copy book is a safe write target" in text
+    assert "exact next safe package" in text
 
 
 def test_changelog_starts_with_readable_release_navigation() -> None:
