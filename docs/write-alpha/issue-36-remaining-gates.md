@@ -1,7 +1,15 @@
 # Issue #36 remaining controlled-write gates
 
-Status: keep #36 open. This is a non-mutating audit packet, not execution approval and not a
-release decision.
+Status: keep #36 open. This is a non-mutating PM gate packet, not execution approval and
+not a release decision.
+
+## PM decision after W3
+
+PM decision: `COPIED_BOOK_GATE_ACCEPTED_KEEP_36_OPEN_FOR_RELEASE_OR_REAL_BOOK_DECISION`.
+
+The copied-book dogfood gate is accepted narrowly for the committed W3 evidence. #36 stays
+open for release/no-release review, supported-version compatibility limits, and any later
+real-book/owner-only decision.
 
 ## Current accepted evidence
 
@@ -13,8 +21,15 @@ Accepted evidence is narrow and review-only unless noted otherwise:
 - Backup/restore, recovery/hard-stop, and concurrency/lock-contention guards: accepted as
   synthetic/non-mutating readiness checks and future evidence requirements.
 - Maintainer review/recovery procedure and checklist: accepted as documentation gates only.
-- Copied/restorable CREATE/PATCH/DELETE evidence: accepted narrowly for the exact copied/restorable
-  evidence already recorded; it is not a real-book claim and not broad GnuCash compatibility.
+- Copied-book dogfood gate accepted for W3 only: W3 CREATE 2 / PATCH 1 / DELETE 1 on one staged
+  outside-git copied/restorable target.
+- W3 PATCH acceptance is metadata/memo-only on a write-alpha-created transaction.
+- W3 DELETE acceptance is limited to a write-alpha-created disposable transaction.
+- W3 backup, route-backup, audit, read-back, restore, compatibility-open, and default-disabled
+  CREATE/PATCH/DELETE probe evidence is accepted as redacted copied/restorable evidence.
+- Copied/restorable CREATE/PATCH/DELETE evidence remains accepted narrowly for the exact
+  copied/restorable evidence already recorded; it is not a real-book claim and not broad GnuCash
+  compatibility.
 - Compatibility wording guard: supported-version write compatibility remains pending and claims must stay
   tied to synthetic/disposable or copied/restorable evidence only.
 
@@ -33,7 +48,7 @@ original issue scope is satisfied.
    - Pending: future mutation evidence is not authorized by this audit.
    - Required before closure if pursued: same-context owner + PM authorization, Desktop closed for the
      target copy, outside-git copied/restorable fixture provenance, independent backup, preflight,
-     route family/count scope, backup, read-back, audit, lock/ contention, restore/rollback,
+     route family/count scope, backup, read-back, audit, lock/contention, restore/rollback,
      reset/default-disabled probe, and redaction review.
 
 3. Real/private/original/only-copy boundary
@@ -52,6 +67,32 @@ original issue scope is satisfied.
    - Required before closure: re-read #36, linked handoffs, latest CI, this blocker list, and current
      guard results; then record either a keep-open decision or an explicit closure decision.
 
+## Owner-only writebeta release prerequisites
+
+A later v0.4 owner-writebeta release candidate can be prepared only after a PM release gate records
+one of the allowed release decisions. That gate must preserve all of these constraints:
+
+- owner-only scope, not public write beta;
+- default `GNUCASH_WRITES_ENABLED=false` and enabled write-alpha/writebeta `APP_ENV=test` gate;
+- no stable, production-ready, security-audited, hosted-SaaS, or public-internet safety claim;
+- no real/private/original/working/only-copy first-use mutation claim;
+- W3 evidence described only as staged copied/restorable evidence;
+- exact blockers for supported-version compatibility and real working-book owner decision.
+
+## Real working-book trial prerequisites
+
+No real working-book trial is approved by this packet. A later trial would require owner input and a
+separate safety model before any mutation, including at minimum:
+
+- explicit owner-selected target and PM authorization in the same execution context;
+- independent backup and restore path verified before mutation;
+- Desktop closed / no concurrent writer proof;
+- exact route family and count authorization;
+- read-back, audit, backup, restore, default-disabled reset, and compatibility evidence;
+- redacted reporting only;
+- a hard prohibition on original/private/working/only-copy first-use mutation unless that exact later
+  owner decision overrides this boundary with a safer staged plan.
+
 ## Required verification before any future #36 closure attempt
 
 Run these from a clean working tree:
@@ -68,7 +109,7 @@ JWT_SECRET=dummy-validation-secret APP_ADMIN_PASSWORD=dummy docker compose confi
 
 ## Safety result for this audit
 
-- Mutation counts: CREATE 0 / PATCH 0 / DELETE 0.
+- Mutation counts for this PM gate and packet refresh: CREATE 0 / PATCH 0 / DELETE 0.
 - No GnuCash book, app DB, backup, export, screenshot, `.env`, token, key, cert, private path, account
   name, transaction description, memo, amount, or raw private evidence was opened, copied, mutated,
   committed, or posted.

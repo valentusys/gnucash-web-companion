@@ -92,6 +92,8 @@ def _check_issue_36_remaining_gates(path: Path) -> list[str]:
     normalized = _normalized(text)
     required = (
         "keep #36 open",
+        "copied-book dogfood gate accepted",
+        "W3 CREATE 2 / PATCH 1 / DELETE 1",
         "supported-version write compatibility evidence",
         "future copied/restorable mutation evidence packet",
         "same-context owner + PM authorization",

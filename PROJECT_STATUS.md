@@ -20,9 +20,10 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) markdown readability, and
   [#36](https://github.com/valentusys/gnucash-web-companion/issues/36) controlled-write readiness
   gates.
-- Latest handoffs: `docs/handoff/daytime-w3-dogfood-worker.md`,
-  `docs/handoff/daytime-w3-authorization.md`, `docs/handoff/daytime-w3-gate.md`, and
-  `docs/handoff/daytime-write-continuation-final-report.md`.
+- Latest handoffs: `docs/handoff/daytime-after-w3-continuation-final-report.md`,
+  `docs/handoff/daytime-w3-release-or-no-release.md`,
+  `docs/handoff/daytime-w3-v0.4-readiness.md`, and
+  `docs/handoff/daytime-w3-pm-gate-review.md`.
 
 ## Current status snapshot
 
@@ -32,11 +33,11 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
 - Write-mode default: `GNUCASH_WRITES_ENABLED=false` remains default; enabled write-alpha/writebeta
   work remains experimental and `APP_ENV=test` gated.
 - Current open queues: #22 compatibility fixtures, #28 markdown readability, #36 controlled-write
-  readiness gates. For #36, the latest daytime W3 package verified an outside-git staged copied
-  target and completed copied-book dogfood with exact PM-authorized counts: 2 CREATE, 1
-  metadata/memo-only PATCH on a write-alpha-created transaction, and 1 DELETE of a write-alpha-created
-  disposable transaction. #36 remains open for PM review of remaining owner-writebeta gates; no release
-  was published.
+  readiness gates. For #36, the W3 copied-book dogfood gate is now accepted narrowly for the staged
+  outside-git copied/restorable target and exact PM-authorized counts: 2 CREATE, 1 metadata/memo-only
+  PATCH on a write-alpha-created transaction, and 1 DELETE of a write-alpha-created disposable
+  transaction. #36 remains open for supported-version compatibility, real-book/owner-only decisions,
+  and release/no-release gates. No release was published; `NO_RELEASE` remains current.
 - Recently closed queues: #13, #41, #42, #43.
 
 ## Repository

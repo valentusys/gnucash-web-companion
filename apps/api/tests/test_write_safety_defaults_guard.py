@@ -214,6 +214,8 @@ def test_write_safety_defaults_guard_rejects_missing_issue_36_remaining_gate_mar
 
     failures = write_safety_guard._check_issue_36_remaining_gates(doc)
 
+    assert any("copied-book dogfood gate accepted" in failure for failure in failures)
+    assert any("W3 CREATE 2 / PATCH 1 / DELETE 1" in failure for failure in failures)
     assert any("future copied/restorable mutation evidence packet" in failure for failure in failures)
     assert any("same-context owner + PM authorization" in failure for failure in failures)
     assert str(tmp_path) not in "; ".join(failures)
