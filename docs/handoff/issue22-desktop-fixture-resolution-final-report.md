@@ -82,11 +82,11 @@ Package 6 local gate:
 
 ## Commits
 
-Commit to be created after this report is staged:
+Pushed commit:
 
-- `docs: record issue 22 desktop fixture blocker`
+- `d9edc5e31015bf74defc366131326879b4eaf666` — `docs: record issue 22 desktop fixture blocker`
 
-The final pushed SHA is recorded in the CLI final response and in git history.
+This final report records the pushed commit and local/CI evidence available at the time of finalization.
 
 ## CI status
 
@@ -100,7 +100,12 @@ GitHub state checked before commit:
 - No `v0.5.1-public-readonly-beta` release observed
 - No `v0.4.0-owner-writebeta` release observed
 
-CI status after push must be checked against the pushed commit.
+CI for pushed commit `d9edc5e31015bf74defc366131326879b4eaf666`:
+
+- Foundation checks: completed/success
+- Docker Compose validation: completed/success
+- Frontend checks: completed/success
+- Backend tests: completed/success
 
 ## Remaining blockers
 
