@@ -77,9 +77,8 @@ Not published:
 
 ## Commits made
 
-Commit is created after this report is written and pushed as the Package 6 safe docs/guard update. The expected commit subject is:
-
-- `docs: reconcile issue 22 and defer owner writebeta`
+- `1bfa46595544d7254c3e0bf26dc75d6ddb0ace8a` — `docs: reconcile issue 22 and defer owner writebeta`.
+- A follow-up docs-only commit updates this final report with exact CI status after `1bfa465` was pushed.
 
 ## Issues updated/closed
 
@@ -105,7 +104,15 @@ Final gate passed:
 
 ## CI status / follow-up
 
-CI is checked after the commit is pushed. GitHub API/GraphQL has intermittent TLS/EOF/reset failures in this environment; those are retried and exact final CI state is recorded in the run log and #36 comment.
+CI for commit `1bfa46595544d7254c3e0bf26dc75d6ddb0ace8a` completed successfully.
+
+- Workflow: `CI`.
+- Run ID: `26932713248`.
+- URL: https://github.com/valentusys/gnucash-web-companion/actions/runs/26932713248
+- Status: completed.
+- Conclusion: success.
+
+GitHub API/GraphQL had intermittent TLS/EOF/reset failures during polling, but retries succeeded and the final run state was success.
 
 ## Safety/privacy summary
 
