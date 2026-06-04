@@ -54,6 +54,9 @@ docker-compose.override.yml
 *.log
 logs/
 
+# Local autonomous supervisor runtime artifacts
+.hermes/autonomy/
+
 # Coverage / test artifacts
 .coverage
 htmlcov/
