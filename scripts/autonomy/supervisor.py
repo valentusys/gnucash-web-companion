@@ -336,7 +336,9 @@ Worker requirements:
 - Work only on this task's allowed scope.
 - Do not spawn nested Hermes/Codex/tmux/cron workers.
 - Run the relevant verification commands you can safely run.
-- Leave the working tree clean or clearly explain the exact dirty files and blocker.
+- If you make safe tracked changes, commit only those safe tracked changes after verification so the supervisor can continue from a clean tree.
+- Do not commit ignored `.hermes` runtime files, private data, generated backups, exports, screenshots, secrets, or other runtime artifacts.
+- If you cannot safely commit, leave an honest checkpoint with the exact dirty files and blocker.
 - Report concise status, changed files, test output, and safety notes.
 """
 

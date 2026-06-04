@@ -402,6 +402,8 @@ def test_rendered_prompt_contains_required_safety_patterns(tmp_path):
         "GNUCASH_WRITES_ENABLED=false",
         "APP_ENV=test",
         "No public write beta",
+        "commit only those safe tracked changes after verification",
+        "Do not commit ignored `.hermes` runtime files",
     ]
     for pattern in required:
         assert pattern in prompt
