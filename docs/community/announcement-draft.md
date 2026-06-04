@@ -1,10 +1,24 @@
 # Announcement Draft — gnucash-web-companion
 
-> Draft only. Do not post without maintainer review. Keep the wording conservative and update status links before posting.
+> Draft only. Do not post without maintainer review. Current public release status must be checked
+> immediately before posting.
+
+## Current status boundary
+
+- Current public read-only beta: `v0.5.0-public-readonly-beta`.
+- Not published: `v0.5.1-public-readonly-beta` and `v0.4.0-owner-writebeta`.
+- No public write beta, stable release, production-ready claim, or security-audited claim.
+- Controlled-write code is experimental post-MVP work, disabled by default with
+  `GNUCASH_WRITES_ENABLED=false`, and not safe for original/private/working/only-copy books.
+- Compatibility evidence remains synthetic/disposable or narrowly copied/restorable only; #22 remains
+  open for an isolated Desktop-generated synthetic SQLite fixture.
 
 ## Short pitch
 
-`gnucash-web-companion` is a modern self-hosted, read-only-first web companion for existing GnuCash SQL books. It lets you browse accounts, transactions, dashboards, basic reports, filtered transaction lists, and CSV exports from a browser while keeping GnuCash Desktop as the authoritative editor.
+`gnucash-web-companion` is a modern self-hosted, read-only-first web companion for existing GnuCash
+SQL books. It lets you browse accounts, transactions, dashboards, basic reports, filtered
+transaction lists, and CSV exports from a browser while keeping GnuCash Desktop as the authoritative
+editor.
 
 ## What works today
 
@@ -12,16 +26,19 @@
 - Login with auth tokens stored in httpOnly cookies.
 - Dashboard summaries, account tree/detail, transaction list/detail, filters, and CSV export.
 - Read-only book switcher foundation for already-accessible independent books.
-- Docker Compose scaffolding, local/LAN/VPN deployment guidance, backup/recovery runbook, smoke-test documentation, and synthetic/disposable fixture validation.
+- Docker Compose scaffolding, local/LAN/VPN deployment guidance, backup/recovery runbook,
+  smoke-test documentation, and synthetic/disposable fixture validation.
 - English UI by default with an initial opt-in Russian localization foundation.
-- Public pre-alpha release: `v0.0.2-prealpha`.
+- Public read-only beta: `v0.5.0-public-readonly-beta`.
 
 ## What is not ready
 
 - Not production-ready and not security-audited.
-- Not a GnuCash replacement, hosted finance SaaS, family-wallet app, or collaborative accounting system.
-- No safe general-purpose write mode for real books; controlled-write code is experimental post-MVP only and disabled by default with `GNUCASH_WRITES_ENABLED=false`.
-- Compatibility is still limited to the documented synthetic/disposable fixture paths and tested SQLite scenarios.
+- Not a GnuCash replacement, hosted finance SaaS, family-wallet app, or collaborative accounting
+  system.
+- No safe general-purpose write mode for real books.
+- Compatibility is still limited to the documented synthetic/disposable fixture paths and narrowly
+  accepted copied/restorable evidence.
 - Public-internet exposure is not recommended for early builds.
 
 ## Who should test
@@ -46,7 +63,8 @@ This is not for people who need:
 - Use a disposable/test copy first.
 - Keep regular tested backups.
 - Do not expose early builds directly to the public internet.
-- Keep `GNUCASH_WRITES_ENABLED=false` unless you are deliberately testing experimental post-MVP write code on disposable data.
+- Keep `GNUCASH_WRITES_ENABLED=false` unless you are deliberately testing experimental post-MVP
+  write code on disposable/copied-restorable data.
 - Do not enable write mode against your only GnuCash book.
 - This is pre-alpha software, not production-ready, and not security-audited.
 
@@ -77,7 +95,7 @@ The goal is intentionally narrow: read-only browser/mobile access to accounts, t
 This is not a GnuCash replacement, not production-ready, and not security-audited. Please test only with a disposable copy first. Controlled-write code exists only as experimental post-MVP work and is disabled by default with GNUCASH_WRITES_ENABLED=false.
 
 Repository: https://github.com/valentusys/gnucash-web-companion
-Current pre-alpha release: v0.0.2-prealpha
+Current public read-only beta: v0.5.0-public-readonly-beta
 
 Feedback wanted: GnuCash compatibility, read-only UX, deployment docs, fixture/testing ideas, and safety review.
 ```
@@ -139,11 +157,3 @@ Caveats: not production-ready, not security-audited, test only with a disposable
 
 https://github.com/valentusys/gnucash-web-companion
 ```
-
-## Maintainer pre-post checklist
-
-- [ ] Confirm the current release/tag/status links are still accurate.
-- [ ] Confirm no wording claims production readiness or audited security.
-- [ ] Confirm write mode is described only as experimental, post-MVP, and disabled by default.
-- [ ] Confirm feedback request is narrow and actionable.
-- [ ] Confirm screenshots/exports, if shared, use only synthetic/disposable data.

@@ -32,6 +32,14 @@ reading the full history linearly.
 
 ### Current autonomous/readability and compatibility work
 
+- v0.4 owner-writebeta RC readiness packet:
+  - audited accepted W3 copied-book CREATE 2 / PATCH 1 / DELETE 1 evidence for #36;
+  - classified the #22 Desktop-generated synthetic SQLite fixture gap as a blocker for broad
+    compatibility/real-book claims and a PM risk for any owner-only RC;
+  - refreshed public/readability docs and recorded a conservative `NO_RELEASE` decision;
+  - published no tag, release, package, image, public write beta, stable, production-ready, or
+    security-audited claim.
+
 - Autonomous true 6h final for #22:
   - completed five safe compatibility workflow cycles;
   - updated #22 with the exact remaining Desktop-generated synthetic fixture blocker;

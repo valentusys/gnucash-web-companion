@@ -62,6 +62,9 @@ the current write-alpha publication baseline remains Phase 261.
   flows remain test-gated, and no real/private/original/only-copy book is a safe write target.
 - **Open follow-up queues:** #22 compatibility fixtures, #28 Markdown readability, and #36
   controlled-write readiness gates.
+- **After W3 copied-book dogfood:** CREATE 2 / PATCH 1 / DELETE 1 evidence is accepted narrowly
+  for one staged outside-git copied/restorable target only. It is not a real-book, public-write,
+  production, stable, security-audited, or broad GnuCash compatibility claim.
 - **Recently closed:** #13, #41, #42, and #43.
 
 ## Current queue map
@@ -70,8 +73,8 @@ the current write-alpha publication baseline remains Phase 261.
   produces a Desktop-generated synthetic SQLite fixture and read-only validation evidence.
 - #28 Markdown readability: keep public/status Markdown readable in a terminal without mass-rewriting
   historical phase files or weakening safety/no-release wording.
-- #36 controlled-write readiness: keep open until remaining non-mutating gates, future copied/restorable
-  authorization requirements, compatibility gaps, and PM closure acceptance are satisfied.
+- #36 controlled-write readiness: keep open after accepted W3 copied-book evidence until PM accepts
+  the remaining owner-writebeta gates, compatibility limits, real-book boundary, and closure criteria.
 
 - **Latest read-only beta notes:**
   [docs/release/v0.5.0-public-readonly-beta-notes.md](docs/release/v0.5.0-public-readonly-beta-notes.md)
