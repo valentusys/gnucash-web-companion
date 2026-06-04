@@ -13,6 +13,8 @@ remains blocked until a future exact same-context owner confirmation and PM auth
 - `GNUCASH_WRITES_ENABLED=false` remains the committed/default posture.
 - Enabled write-alpha/writebeta paths remain `APP_ENV=test` gated.
 - Real/private/original/only-copy books remain blocked as write targets.
+- `docs/write-alpha/real-working-book-trial-runbook.md` records the future trial blockers,
+  rollback expectations, and owner/PM gates; it does not authorize the trial.
 
 ## Owner and PM confirmation checklist before any real working-book trial
 
