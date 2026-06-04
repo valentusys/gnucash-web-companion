@@ -375,6 +375,8 @@ COMPATIBILITY_UNSAFE_CLAIM_PATTERNS = [
     re.compile(r"\bDesktop-version\s+support\b", re.I),
     re.compile(r"\bPostgreSQL/MySQL/MariaDB\s+supported\b", re.I),
     re.compile(r"\ball\s+SQL\s+backends\s+(?:are\s+)?supported\b", re.I),
+    re.compile(r"\b(?:issue\s+)?#22\s+(?:is\s+)?closed\b", re.I),
+    re.compile(r"\bDesktop-generated\s+synthetic\s+fixture\s+evidence\s+exists\b", re.I),
 ]
 
 

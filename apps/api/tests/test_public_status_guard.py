@@ -57,6 +57,23 @@ def test_compatibility_status_guard_rejects_desktop_or_backend_support_claims() 
         raise AssertionError("affirmative Desktop/backend compatibility claim should fail guard")
 
 
+def test_compatibility_status_guard_rejects_issue_22_closure_without_evidence() -> None:
+    unsafe = """
+    No real GnuCash Desktop version has been tested by this repository's automated compatibility suite yet.
+    #22 stays open until an actual isolated Desktop-generated synthetic fixture exists.
+    Compatibility evidence is based on synthetic/disposable fixtures only.
+    PostgreSQL/MySQL/MariaDB GnuCash backends are unclaimed.
+    Issue #22 is closed because Desktop-generated synthetic fixture evidence exists.
+    """
+
+    try:
+        guard.check_compatibility_status_claims(Path("docs/gnucash-compatibility.md"), unsafe)
+    except AssertionError as exc:
+        assert "forbidden compatibility claim" in str(exc)
+    else:
+        raise AssertionError("#22 closure/evidence claim should fail until the evidence gate changes")
+
+
 def test_public_status_guard_rejects_stale_current_write_alpha_claim():
     stale = "- Current published write-alpha pre-release: `v0.2.0-writealpha`"
 
