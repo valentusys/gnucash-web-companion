@@ -409,3 +409,26 @@ def test_rendered_prompt_contains_required_safety_patterns(tmp_path):
     ]
     for pattern in required:
         assert pattern in prompt
+
+
+def test_owner_writebeta_backup_restore_policy_prompt_is_non_mutating():
+    policy = REPO_ROOT / "docs/autonomy/backlog-policies/issue36-owner-writebeta.md"
+
+    tasks = supervisor.load_safe_policy_tasks(policy)
+    task = next(task for task in tasks if task.task_id == "backup-restore-readiness-docs-tests")
+    prompt = supervisor.render_prompt(task)
+
+    required = [
+        "Improve non-mutating backup/restore readiness docs or tests",
+        "apps/api tests for non-mutating backup/restore documentation or guard behavior",
+        "creating backups from private books",
+        "restore into real books",
+        "dogfood",
+        "public write beta claims",
+        "GNUCASH_WRITES_ENABLED=false",
+        "APP_ENV=test",
+        "python3 scripts/check_write_safety_defaults.py",
+        "python3 scripts/check_tracked_hygiene.py",
+    ]
+    for pattern in required:
+        assert pattern in prompt

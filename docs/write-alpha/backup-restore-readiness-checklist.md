@@ -40,6 +40,9 @@ The function is pure/non-mutating and returns a redacted `WriteAlphaReadiness` r
 ## Safety boundary
 
 - This checklist is evidence readiness only; it is not a write milestone approval.
+- Checklist maintenance is non-mutating: safe changes may update docs or guards that verify wording, but must not create backups, must not restore into books, must not open private data, and must not run product dogfood.
+- Public readiness evidence remains restore-to-copy only and must use copied/restorable or synthetic/disposable targets; it must never overwrite a real/original/private/working/only-copy book.
+- Any later enabled write-alpha/writebeta restore drill remains `APP_ENV=test` gated and must reset to `GNUCASH_WRITES_ENABLED=false` afterward.
 - It does not claim v0.2 readiness, public write beta readiness, production safety, stable release readiness, or security-audited status.
 - It does not make real/private/original/only-copy books safe targets.
 - Any future mutation still requires exact same-context owner and PM authorization plus the existing write-alpha/writebeta gates, backup, audit, read-back, restore verification, compatibility, reset, and redaction checks.

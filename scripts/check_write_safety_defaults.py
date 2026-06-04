@@ -36,6 +36,7 @@ ISSUE_36_DASHBOARD_DOC = Path("docs/write-alpha/controlled-write-readiness-dashb
 RESTORE_BOUNDARY_DOC = Path("docs/write-alpha/restore-safety-boundary.md")
 COPIED_DOGFOOD_PACKET_DOC = Path("docs/write-alpha/copied-book-dogfood-readiness-packet.md")
 AFTER_W3_READINESS_BOUNDARY_DOC = Path("docs/write-alpha/after-w3-readiness-boundary.md")
+BACKUP_RESTORE_READINESS_DOC = Path("docs/write-alpha/backup-restore-readiness-checklist.md")
 WRITE_COMPATIBILITY_REQUIRED_TEXTS = (
     "supported-version write compatibility remains pending",
     "synthetic/disposable or copied/restorable evidence only",
@@ -188,6 +189,27 @@ def _check_after_w3_readiness_boundary(path: Path) -> list[str]:
     return ["after-W3 readiness boundary must preserve: " + ", ".join(missing)] if missing else []
 
 
+def _check_backup_restore_readiness(path: Path) -> list[str]:
+    text = _read(REPO_ROOT / path if not path.is_absolute() else path)
+    normalized = _normalized(text)
+    required = (
+        "non-mutating",
+        "restore-to-copy",
+        "copied/restorable or synthetic/disposable",
+        "must not create backups",
+        "must not restore into books",
+        "must not run product dogfood",
+        "real/original/private/working/only-copy book",
+        "GNUCASH_WRITES_ENABLED=false",
+        "APP_ENV=test",
+        "public write beta readiness",
+        "production safety",
+        "security-audited status",
+    )
+    missing = [needle for needle in required if _normalized(needle) not in normalized]
+    return ["backup/restore readiness checklist must preserve: " + ", ".join(missing)] if missing else []
+
+
 def _check(env_example: Path, compose: Path, gate_doc: Path, checklist_doc: Path | None = None) -> list[str]:
     env_text = _read(env_example)
     compose_text = _read(compose)
@@ -226,6 +248,7 @@ def _check(env_example: Path, compose: Path, gate_doc: Path, checklist_doc: Path
     failures.extend(_check_restore_boundary(RESTORE_BOUNDARY_DOC))
     failures.extend(_check_copied_dogfood_packet(COPIED_DOGFOOD_PACKET_DOC))
     failures.extend(_check_after_w3_readiness_boundary(AFTER_W3_READINESS_BOUNDARY_DOC))
+    failures.extend(_check_backup_restore_readiness(BACKUP_RESTORE_READINESS_DOC))
     return failures
 
 
