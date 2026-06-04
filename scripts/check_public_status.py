@@ -364,10 +364,10 @@ UNSAFE_AFFIRMATIVE_PATTERNS = [
 ]
 
 COMPATIBILITY_REQUIRED_FRAGMENTS = [
-    "No real GnuCash Desktop version has been tested by this repository's automated compatibility suite yet",
+    "Issue #22 is closed for narrow Desktop-generated synthetic SQLite fixture evidence only",
     "Compatibility evidence is based on synthetic/disposable fixtures only",
     "PostgreSQL/MySQL/MariaDB GnuCash backends are unclaimed",
-    "#22 stays open until an actual isolated Desktop-generated synthetic fixture exists",
+    "No broad GnuCash Desktop version support is claimed",
 ]
 COMPATIBILITY_UNSAFE_CLAIM_PATTERNS = [
     re.compile(r"\bGnuCash\s+Desktop\s+\d+(?:\.\d+){1,3}\s+(?:is\s+)?supported\b", re.I),
@@ -375,8 +375,6 @@ COMPATIBILITY_UNSAFE_CLAIM_PATTERNS = [
     re.compile(r"\bDesktop-version\s+support\b", re.I),
     re.compile(r"\bPostgreSQL/MySQL/MariaDB\s+supported\b", re.I),
     re.compile(r"\ball\s+SQL\s+backends\s+(?:are\s+)?supported\b", re.I),
-    re.compile(r"\b(?:issue\s+)?#22\s+(?:is\s+)?closed\b", re.I),
-    re.compile(r"\bDesktop-generated\s+synthetic\s+fixture\s+evidence\s+exists\b", re.I),
 ]
 
 

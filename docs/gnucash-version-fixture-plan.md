@@ -61,8 +61,9 @@ The latest autonomous multiqueue probe keeps the issue in a blocked-but-actionab
    creates a synthetic SQLite fixture from the data model below, then runs the redacted metadata
    collector and read-only validation.
 
-Do not close #22 until that Desktop-generated synthetic fixture evidence exists. Do not turn
-package/tooling availability, operator-supplied version strings, or metadata-only rows into broad
+#22 was closed only after narrow Desktop-generated synthetic SQLite fixture evidence passed
+fail-closed preflight plus default-read-only validation. Do not turn package/tooling availability,
+operator-supplied version strings, metadata-only rows, or the single synthetic fixture into broad
 compatibility claims.
 
 ## OS and source of fixtures

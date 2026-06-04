@@ -15,10 +15,10 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
 - Current safety posture: writes are disabled by default; see
   [docs/write-alpha/copied-book-write-alpha-posture.md](docs/write-alpha/copied-book-write-alpha-posture.md)
   for controlled-write boundaries.
-- Active issue queues:
-  [#22](https://github.com/valentusys/gnucash-web-companion/issues/22) compatibility fixtures and
+- Active issue queue:
   [#36](https://github.com/valentusys/gnucash-web-companion/issues/36) controlled-write readiness
-  gates. [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) is closed.
+  gates. [#22](https://github.com/valentusys/gnucash-web-companion/issues/22) and
+  [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) are closed.
 - Latest handoffs: `docs/handoff/daytime-after-w3-continuation-final-report.md`,
   `docs/handoff/daytime-w3-release-or-no-release.md`,
   `docs/handoff/daytime-w3-v0.4-readiness.md`, and
@@ -31,7 +31,7 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   security-audited release claim.
 - Write-mode default: `GNUCASH_WRITES_ENABLED=false` remains default; enabled write-alpha/writebeta
   work remains experimental and `APP_ENV=test` gated.
-- Current open queues: #22 compatibility fixtures and #36 controlled-write readiness gates. #28 is
+- Current open queue: #36 controlled-write readiness gates. #22 compatibility fixtures and #28 are
   closed. For #36, the W3 copied-book dogfood gate is now accepted narrowly for the staged
   outside-git copied/restorable target and exact PM-authorized counts: 2 CREATE, 1 metadata/memo-only
   PATCH on a write-alpha-created transaction, and 1 DELETE of a write-alpha-created disposable
@@ -41,15 +41,16 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
 
 ## Repository
 
-- Issue #22 Desktop-generated synthetic SQLite fixture resolution attempt completed with decision
-  `KEEP_22_OPEN_WITH_EXACT_EXTERNAL_BLOCKER_AND_NEXT_MANUAL_STEPS`. The host has GnuCash
-  CLI/Desktop tooling (`gnucash-cli` reports GnuCash 5.14), but no `DISPLAY`, `xvfb-run`, `Xvfb`, or
-  `xdotool`, and no safe noninteractive create/save SQLite fixture command was found. No fixture was
-  generated, no private/owner/source-only book was opened/copied/mutated, and no raw DB/evidence was
-  committed. Added `docs/compatibility/desktop-synthetic-fixture-runbook.md`, package handoffs, and a
-  public-status guard test preventing #22 closure/Desktop-evidence claims while the blocker wording is
-  still present. #22 remains open; #36/v0.4 owner-writebeta remains blocked from release-confidence
-  use of broad compatibility.
+- Issue #22 Desktop-generated synthetic SQLite fixture gate completed with decision
+  `CLOSE_22_NARROW_DESKTOP_SYNTHETIC_SQLITE_EVIDENCE_ONLY`. With explicit operator approval, GUI
+  automation tooling was installed and GnuCash 5.14 Desktop created a disposable synthetic SQLite book
+  in isolated Xvfb with isolated home/config/cache paths. The raw DB stayed outside git. Redacted
+  metadata recorded SQLite `versions` markers (`Gnucash = 3000000`, `Gnucash-Resave = 19920`) and safe
+  table counts only; fail-closed preflight accepted the candidate; default-read-only service validation
+  opened accounts/summary/report paths with `GNUCASH_WRITES_ENABLED=false` and checksum unchanged. No
+  private/owner/source-only book was opened/copied/mutated, and no raw DB/evidence was committed. #22 is
+  closed narrowly; #36/v0.4 owner-writebeta remains blocked from release-confidence use of broad
+  compatibility or write compatibility.
 
 - Daytime W3 copied-book dogfood completed for #36 on a staged outside-git copied/restorable target.
   The PM authorized exact counts in the same execution context: CREATE 2, metadata/memo-only PATCH 1,

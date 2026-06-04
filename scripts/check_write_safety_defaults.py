@@ -179,7 +179,7 @@ def _check_after_w3_readiness_boundary(path: Path) -> list[str]:
         "supported-version write compatibility remains pending",
         "not a broad GnuCash compatibility claim",
         "not a real-book claim",
-        "#22 stays open",
+        "#22 closed only for narrow Desktop-generated synthetic SQLite fixture evidence",
         "PostgreSQL/MySQL/MariaDB GnuCash backends remain unclaimed",
         "same-context owner + PM authorization",
         "CREATE 0 / PATCH 0 / DELETE 0",

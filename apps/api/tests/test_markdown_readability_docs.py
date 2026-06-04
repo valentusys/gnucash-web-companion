@@ -151,8 +151,8 @@ def test_compatibility_doc_has_readable_top_status_and_is_guarded() -> None:
 
     assert "docs/gnucash-compatibility.md" in default_doc_names
     assert "Status: pre-alpha compatibility notes" in text.splitlines()[2]
-    assert "#22 stays open until" in "\n".join(text.splitlines()[:30])
-    assert "No real GnuCash Desktop version has been tested" in text
+    assert "Issue #22 is closed for narrow" in "\n".join(text.splitlines()[:30])
+    assert "No broad GnuCash Desktop version support is claimed" in text
     assert "PostgreSQL/MySQL/MariaDB GnuCash backends are unclaimed" in text
     assert not checker.check_documents({"docs/gnucash-compatibility.md": text})
 
@@ -163,7 +163,7 @@ def test_compatibility_readability_guard_requires_top_blocker_navigation() -> No
 
     problems = checker.check_documents(docs)
 
-    assert any("missing #22 Desktop fixture blocker navigation" in problem for problem in problems)
+    assert any("missing #22 Desktop fixture closure navigation" in problem for problem in problems)
 
 
 def test_markdown_readability_checker_fails_closed_for_missing_status_safety_and_links() -> None:

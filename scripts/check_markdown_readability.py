@@ -141,14 +141,14 @@ def check_documents(docs: dict[str, str]) -> list[str]:
 
         if path == Path("docs/gnucash-compatibility.md"):
             top_required = (
-                "#22 stays open until",
-                "Desktop-generated synthetic fixture",
+                "Issue #22 is closed for narrow Desktop-generated synthetic SQLite fixture evidence only",
+                "Desktop-generated synthetic SQLite fixture",
                 "synthetic/disposable fixtures only",
                 "PostgreSQL/MySQL/MariaDB GnuCash backends are unclaimed",
             )
-            normalized_top = " ".join(top.split())
+            normalized_top = " ".join(top.split()).lower()
             if not all(marker.lower() in normalized_top for marker in top_required):
-                problems.append(f"{rel}: missing #22 Desktop fixture blocker navigation")
+                problems.append(f"{rel}: missing #22 Desktop fixture closure navigation")
 
         if path == Path("docs/development/markdown-readability.md"):
             if not all(marker.lower() in lowered for marker in SAFETY_GUIDANCE_MARKERS):

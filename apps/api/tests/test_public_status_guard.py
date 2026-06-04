@@ -28,12 +28,12 @@ def test_public_status_guard_reads_only_declared_public_files():
     assert all(path.name != "app.db" for path in checked)
 
 
-def test_compatibility_status_guard_requires_desktop_fixture_blocker_language() -> None:
+def test_compatibility_status_guard_requires_narrow_desktop_fixture_closure_language() -> None:
     safe = """
-    No real GnuCash Desktop version has been tested by this repository's automated compatibility suite yet.
-    #22 stays open until an actual isolated Desktop-generated synthetic fixture exists.
+    Issue #22 is closed for narrow Desktop-generated synthetic SQLite fixture evidence only.
     Compatibility evidence is based on synthetic/disposable fixtures only.
     PostgreSQL/MySQL/MariaDB GnuCash backends are unclaimed.
+    No broad GnuCash Desktop version support is claimed.
     No production, stable, security, public-write, all-version, or real-book claim.
     """
 
@@ -42,10 +42,10 @@ def test_compatibility_status_guard_requires_desktop_fixture_blocker_language() 
 
 def test_compatibility_status_guard_rejects_desktop_or_backend_support_claims() -> None:
     unsafe = """
-    No real GnuCash Desktop version has been tested by this repository's automated compatibility suite yet.
-    #22 stays open until an actual isolated Desktop-generated synthetic fixture exists.
+    Issue #22 is closed for narrow Desktop-generated synthetic SQLite fixture evidence only.
     Compatibility evidence is based on synthetic/disposable fixtures only.
     PostgreSQL/MySQL/MariaDB GnuCash backends are unclaimed.
+    No broad GnuCash Desktop version support is claimed.
     GnuCash Desktop 5.10 is supported and PostgreSQL/MySQL/MariaDB supported.
     """
 
@@ -57,13 +57,13 @@ def test_compatibility_status_guard_rejects_desktop_or_backend_support_claims() 
         raise AssertionError("affirmative Desktop/backend compatibility claim should fail guard")
 
 
-def test_compatibility_status_guard_rejects_issue_22_closure_without_evidence() -> None:
+def test_compatibility_status_guard_rejects_broad_desktop_support_after_issue_22_closure() -> None:
     unsafe = """
-    No real GnuCash Desktop version has been tested by this repository's automated compatibility suite yet.
-    #22 stays open until an actual isolated Desktop-generated synthetic fixture exists.
+    Issue #22 is closed for narrow Desktop-generated synthetic SQLite fixture evidence only.
     Compatibility evidence is based on synthetic/disposable fixtures only.
     PostgreSQL/MySQL/MariaDB GnuCash backends are unclaimed.
-    Issue #22 is closed because Desktop-generated synthetic fixture evidence exists.
+    No broad GnuCash Desktop version support is claimed.
+    Closing #22 means Desktop-version support for GnuCash Desktop 5.14 is supported.
     """
 
     try:
@@ -71,7 +71,7 @@ def test_compatibility_status_guard_rejects_issue_22_closure_without_evidence() 
     except AssertionError as exc:
         assert "forbidden compatibility claim" in str(exc)
     else:
-        raise AssertionError("#22 closure/evidence claim should fail until the evidence gate changes")
+        raise AssertionError("broad Desktop support claim should fail after narrow #22 closure")
 
 
 def test_public_status_guard_rejects_stale_current_write_alpha_claim():

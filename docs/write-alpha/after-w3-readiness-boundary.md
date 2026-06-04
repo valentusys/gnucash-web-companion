@@ -31,8 +31,8 @@ copied-book mutation approval, and not real/private/original/working/only-copy s
 - Supported-version write compatibility remains pending and blocks #36 closure.
 - Compatibility claims must stay tied to synthetic/disposable or copied/restorable evidence only.
 - The W3 copied-book evidence is not a broad GnuCash compatibility claim and not a real-book claim.
-- #22 stays open until an isolated Desktop-generated synthetic SQLite fixture exists and passes
-  fail-closed preflight plus default-read-only validation.
+- #22 closed only for narrow Desktop-generated synthetic SQLite fixture evidence; this is still
+  not supported-version write compatibility evidence for #36.
 - PostgreSQL/MySQL/MariaDB GnuCash backends remain unclaimed for this release/readiness posture.
 
 ## Future owner-only decision inputs

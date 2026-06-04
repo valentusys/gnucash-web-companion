@@ -291,5 +291,5 @@ def test_write_safety_defaults_guard_rejects_missing_after_w3_boundary_marker(
     assert any("supported-version write compatibility remains pending" in failure for failure in failures)
     assert any("not a broad GnuCash compatibility claim" in failure for failure in failures)
     assert any("not a real-book claim" in failure for failure in failures)
-    assert any("#22 stays open" in failure for failure in failures)
+    assert any("#22 closed only for narrow Desktop-generated synthetic SQLite fixture evidence" in failure for failure in failures)
     assert str(tmp_path) not in "; ".join(failures)
