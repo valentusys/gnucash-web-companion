@@ -28,6 +28,34 @@ Dry-run behavior:
 - writes an ignored local final report under the run directory;
 - continues to later queue tasks when an earlier task is simulated as complete.
 
+## Sustained v2 runs
+
+By default the supervisor remains a finite queue runner: when the queue is exhausted it exits with `COMPLETED_NO_SAFE_TASKS`. To request a sustained run, add explicit minimums and an empty-queue strategy:
+
+```bash
+python3 scripts/autonomy/supervisor.py \
+  --budget-hours 5 \
+  --min-runtime-hours 4.75 \
+  --min-tasks 8 \
+  --queue docs/autonomy/queues/issue36-long-run.md \
+  --on-empty generate-from-policy \
+  --backlog-policy docs/autonomy/backlog-policies/issue36-owner-writebeta.md \
+  --mode dry-run
+```
+
+New v2 controls:
+
+- `--min-runtime-hours FLOAT`: keep going until this runtime is reached when safe tasks remain. `--budget-hours` is still the hard upper bound.
+- `--min-tasks INT`: keep going until this many tasks have run when safe tasks remain.
+- `--on-empty stop`: backward-compatible default; stop when the finite queue is exhausted.
+- `--on-empty repeat-safe-final`: repeat the final queue task only if it is marked with safe privacy/release flags.
+- `--on-empty generate-from-policy`: load a Markdown backlog policy and generate additional safe worker prompts.
+- `--backlog-policy PATH`: required for `generate-from-policy`.
+
+`generate-from-policy` is fail-closed. It only uses policy tasks marked `generated-safe`, `no-private-data`, and `no-release`, and rejects tasks with unsafe flags such as `release`, `touches-private-data`, `dogfood`, or `gnucash-mutation`. If no safe policy task exists before the configured minimums are met, the supervisor stops with `HARD_NO_SAFE_TASKS` and records the reason.
+
+Dry-run previews render one pass through safe generated policy tasks and never invoke a real agent. Live mode may cycle safe policy templates until minimums are met or the hard budget expires.
+
 ## Live execution
 
 Only after reviewing the rendered prompts and choosing a command interface:

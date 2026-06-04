@@ -17,7 +17,7 @@ import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Callable, Iterable, Sequence
+from typing import Callable, Sequence
 
 
 TRANSIENT_MARKERS = (
@@ -31,6 +31,19 @@ TRANSIENT_MARKERS = (
     "network reset",
     "connection reset",
     "temporarily unavailable",
+)
+
+ON_EMPTY_CHOICES = ("stop", "repeat-safe-final", "generate-from-policy")
+FORBIDDEN_POLICY_MARKERS = (
+    "publish release",
+    "private book",
+    "original book",
+    "working book",
+    "only-copy",
+    "gnucash mutation",
+    "production-ready",
+    "stable release",
+    "security-audited",
 )
 
 SAFETY_RULES = """Repository safety rules:
@@ -88,6 +101,7 @@ class Task:
     verification_commands: list[str]
     safety_flags: list[str]
     stop_continue: str
+    generated_from_policy: str | None = None
 
 
 @dataclasses.dataclass(frozen=True)
@@ -120,6 +134,11 @@ class SupervisorReport:
     tasks: list[TaskReport]
     github_state_path: str | None = None
     final_report_path: str | None = None
+    stop_reason: str = ""
+    min_runtime_seconds: float = 0.0
+    min_tasks: int = 0
+    on_empty: str = "stop"
+    backlog_policy_path: str | None = None
 
 
 class GitGuard:
@@ -128,14 +147,9 @@ class GitGuard:
 
     def status(self, repo: Path) -> str:
         status = run_text(["git", "status", "--porcelain"], repo)
-        allowed = []
         for line in status.splitlines():
-            # Runtime autonomy artifacts are intentionally ignored, but tolerate
-            # a locally untracked .hermes/autonomy path if a developer runs with
-            # nonstandard ignore settings.
             path = line[3:] if len(line) > 3 else line
             if path.startswith(".hermes/autonomy/"):
-                allowed.append(line)
                 continue
             return status
         return ""
@@ -269,13 +283,39 @@ def parse_queue(path: Path) -> list[Task]:
     return tasks
 
 
+def task_is_safe_for_policy(task: Task) -> bool:
+    flags = {flag.strip().lower() for flag in task.safety_flags}
+    if "generated-safe" not in flags:
+        return False
+    if "no-release" not in flags or "no-private-data" not in flags:
+        return False
+    forbidden_flags = {"release", "touches-private-data", "dogfood", "gnucash-mutation"}
+    if flags & forbidden_flags:
+        return False
+    text = f"{task.goal}\n{task.allowed_scope}\n{task.stop_continue}".lower()
+    return not any(marker in text for marker in FORBIDDEN_POLICY_MARKERS)
+
+
+def load_safe_policy_tasks(path: Path) -> list[Task]:
+    tasks = parse_queue(path)
+    safe: list[Task] = []
+    for task in tasks:
+        if task_is_safe_for_policy(task):
+            safe.append(dataclasses.replace(task, generated_from_policy=str(path)))
+    return safe
+
+
 def render_prompt(task: Task) -> str:
     verification = "\n".join(f"- {cmd}" for cmd in task.verification_commands)
     safety_flags = ", ".join(task.safety_flags)
+    generated = (
+        f"Generated from backlog policy: {task.generated_from_policy}\n"
+        if task.generated_from_policy
+        else ""
+    )
     return f"""You are a bounded local coding worker inside this repository.
 
-{SAFETY_RULES}
-Task id: {task.task_id}
+{SAFETY_RULES}{generated}Task id: {task.task_id}
 Target issue/area: {task.target}
 Goal:
 {task.goal}
@@ -348,9 +388,15 @@ def write_report(report: SupervisorReport, path: Path) -> None:
         f"Mode: {report.mode}",
         f"Queue: {report.queue_path}",
         f"Run root: {report.run_root}",
-        "",
-        "## Tasks",
+        f"Min runtime seconds: {report.min_runtime_seconds:g}",
+        f"Min tasks: {report.min_tasks}",
+        f"On empty: {report.on_empty}",
     ]
+    if report.backlog_policy_path:
+        lines.append(f"Backlog policy: {report.backlog_policy_path}")
+    if report.stop_reason:
+        lines.extend(["", f"Stop reason: {report.stop_reason}"])
+    lines.extend(["", "## Tasks"])
     for item in report.tasks:
         lines.extend(
             [
@@ -368,6 +414,53 @@ def write_report(report: SupervisorReport, path: Path) -> None:
     report.final_report_path = str(path)
 
 
+def minimums_met(task_count: int, elapsed: float, min_tasks: int, min_runtime_seconds: float) -> bool:
+    return task_count >= min_tasks and elapsed >= min_runtime_seconds
+
+
+def make_generated_task(template: Task, generation: int, cycle: int) -> Task:
+    if cycle <= 1:
+        return template
+    return dataclasses.replace(template, task_id=f"{template.task_id}-r{cycle}")
+
+
+def choose_next_task(
+    *,
+    base_tasks: list[Task],
+    queue_index: int,
+    on_empty: str,
+    backlog_policy_path: Path | None,
+    safe_policy_tasks: list[Task] | None,
+    generated_count: int,
+    mode: str,
+) -> tuple[Task | None, int, list[Task] | None, str | None]:
+    if queue_index < len(base_tasks):
+        return base_tasks[queue_index], queue_index + 1, safe_policy_tasks, None
+    if on_empty == "stop":
+        return None, queue_index, safe_policy_tasks, None
+    if on_empty == "repeat-safe-final":
+        if not base_tasks:
+            return None, queue_index, safe_policy_tasks, "No queue task exists to repeat safely"
+        final_task = base_tasks[-1]
+        flags = {flag.lower() for flag in final_task.safety_flags}
+        if "no-release" not in flags or "no-private-data" not in flags:
+            return None, queue_index, safe_policy_tasks, "Final queue task is not marked safe to repeat"
+        return make_generated_task(final_task, generated_count + 1, 1), queue_index, safe_policy_tasks, None
+    if on_empty != "generate-from-policy":
+        return None, queue_index, safe_policy_tasks, f"unsupported on-empty mode: {on_empty}"
+    if backlog_policy_path is None:
+        return None, queue_index, safe_policy_tasks, "--backlog-policy is required for generate-from-policy"
+    if safe_policy_tasks is None:
+        safe_policy_tasks = load_safe_policy_tasks(backlog_policy_path)
+    if not safe_policy_tasks:
+        return None, queue_index, safe_policy_tasks, f"No safe backlog policy task found in {backlog_policy_path}"
+    if mode == "dry-run" and generated_count >= len(safe_policy_tasks):
+        return None, queue_index, safe_policy_tasks, "No further safe dry-run policy templates remain after one preview pass"
+    index = generated_count % len(safe_policy_tasks)
+    cycle = generated_count // len(safe_policy_tasks) + 1
+    return make_generated_task(safe_policy_tasks[index], generated_count + 1, cycle), queue_index, safe_policy_tasks, None
+
+
 def run_supervisor(
     *,
     repo: Path,
@@ -383,34 +476,74 @@ def run_supervisor(
     backoff_seconds: float = 30.0,
     final_report_path: Path | None = None,
     collect_github: bool = False,
+    min_runtime_seconds: float = 0.0,
+    min_tasks: int = 0,
+    on_empty: str = "stop",
+    backlog_policy_path: Path | None = None,
 ) -> SupervisorReport:
     if mode not in {"dry-run", "live"}:
         raise SupervisorError("mode must be dry-run or live")
+    if on_empty not in ON_EMPTY_CHOICES:
+        raise SupervisorError(f"on-empty must be one of: {', '.join(ON_EMPTY_CHOICES)}")
+    if min_runtime_seconds < 0 or min_tasks < 0:
+        raise SupervisorError("minimum runtime/tasks must be non-negative")
     repo = repo.resolve()
     queue_path = queue_path.resolve()
+    backlog_policy_path = backlog_policy_path.resolve() if backlog_policy_path else None
     run_root.mkdir(parents=True, exist_ok=True)
     prompt_dir = run_root / "prompts"
     prompt_dir.mkdir(parents=True, exist_ok=True)
     git = git or GitGuard()
     agent = agent or SubprocessAgent.from_environment(mode)
-    tasks = parse_queue(queue_path)
+    base_tasks = parse_queue(queue_path)
+    safe_policy_tasks: list[Task] | None = None
     started = clock()
     task_reports: list[TaskReport] = []
     status = "COMPLETED_NO_SAFE_TASKS"
+    stop_reason = "finite queue exhausted"
+    queue_index = 0
+    generated_count = 0
 
-    for task in tasks:
-        if clock() - started >= budget_seconds:
+    while True:
+        now = clock()
+        elapsed = now - started
+        if elapsed >= budget_seconds:
             status = "BUDGET_EXPIRED"
+            stop_reason = "wall-clock budget expired"
             break
+
+        task, queue_index, safe_policy_tasks, empty_reason = choose_next_task(
+            base_tasks=base_tasks,
+            queue_index=queue_index,
+            on_empty=on_empty,
+            backlog_policy_path=backlog_policy_path,
+            safe_policy_tasks=safe_policy_tasks,
+            generated_count=generated_count,
+            mode=mode,
+        )
+        if task is None:
+            if minimums_met(len(task_reports), elapsed, min_tasks, min_runtime_seconds):
+                status = "COMPLETED_MINIMUMS_MET" if (min_tasks or min_runtime_seconds) else "COMPLETED_NO_SAFE_TASKS"
+                stop_reason = empty_reason or "queue exhausted and configured minimums are met"
+            elif on_empty == "stop" and not (min_tasks or min_runtime_seconds):
+                status = "COMPLETED_NO_SAFE_TASKS"
+                stop_reason = "finite queue exhausted"
+            else:
+                status = "HARD_NO_SAFE_TASKS"
+                stop_reason = empty_reason or "queue exhausted before configured minimums and no safe task source is available"
+            break
+        if task.generated_from_policy or (on_empty == "repeat-safe-final" and queue_index >= len(base_tasks)):
+            generated_count += 1
+
         dirty_before = git.status(repo)
         if dirty_before:
             status = "CHECKPOINT_DIRTY_TREE"
+            stop_reason = "dirty tree before task"
             break
         head_before = git.head(repo)
         prompt_path = prompt_dir / f"{len(task_reports)+1:03d}-{task.task_id}.md"
         prompt_path.write_text(render_prompt(task), encoding="utf-8")
         attempts = 0
-        last_result = AgentResult(0, "", "")
         while True:
             attempts += 1
             last_result = agent.run(prompt_path, mode)
@@ -423,16 +556,17 @@ def run_supervisor(
                 message = (last_result.stdout or "worker completed successfully").strip()[:1000]
                 break
             transient = detect_transient_failure(last_result)
-            if transient and attempts <= max_retries + 1:
-                if attempts <= max_retries:
-                    sleep(backoff_seconds * attempts)
-                    continue
+            if transient and attempts <= max_retries:
+                sleep(backoff_seconds * attempts)
+                continue
             if transient:
                 status = "CHECKPOINT_RETRYABLE_FAILURE"
                 task_status = "RETRYABLE_FAILURE"
+                stop_reason = "retryable worker failure exhausted retries"
             else:
                 status = "CHECKPOINT_WORKER_FAILURE"
                 task_status = "WORKER_FAILURE"
+                stop_reason = "worker failed with non-transient error"
             message = last_result.combined_output.strip()[:1000]
             break
         task_reports.append(
@@ -450,6 +584,7 @@ def run_supervisor(
         dirty_after = git.status(repo)
         if dirty_after:
             status = "CHECKPOINT_DIRTY_TREE"
+            stop_reason = "dirty tree after task"
             break
 
     github_state_path = write_github_state(repo, run_root) if collect_github else None
@@ -460,6 +595,11 @@ def run_supervisor(
         run_root=str(run_root),
         tasks=task_reports,
         github_state_path=github_state_path,
+        stop_reason=stop_reason,
+        min_runtime_seconds=min_runtime_seconds,
+        min_tasks=min_tasks,
+        on_empty=on_empty,
+        backlog_policy_path=str(backlog_policy_path) if backlog_policy_path else None,
     )
     if final_report_path is None:
         final_report_path = run_root / "final-report.md"
@@ -471,12 +611,16 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", default=".", help="repository root, default current directory")
     parser.add_argument("--queue", required=True, help="queue file under docs/autonomy/queues/")
-    parser.add_argument("--budget-hours", type=float, required=True, help="wall-clock budget")
+    parser.add_argument("--budget-hours", type=float, required=True, help="wall-clock budget upper bound")
     parser.add_argument("--mode", choices=["dry-run", "live"], default="dry-run")
     parser.add_argument("--max-retries", type=int, default=2)
     parser.add_argument("--backoff-seconds", type=float, default=30.0)
     parser.add_argument("--final-report", help="report path; defaults to ignored run directory")
     parser.add_argument("--collect-github", action="store_true", help="best-effort gh state snapshot")
+    parser.add_argument("--min-runtime-hours", type=float, default=0.0, help="minimum desired runtime before stopping when safe tasks remain")
+    parser.add_argument("--min-tasks", type=int, default=0, help="minimum desired number of tasks before stopping when safe tasks remain")
+    parser.add_argument("--on-empty", choices=ON_EMPTY_CHOICES, default="stop", help="behavior when the queue is exhausted before minimums")
+    parser.add_argument("--backlog-policy", help="Markdown backlog policy used by --on-empty generate-from-policy")
     return parser.parse_args(argv)
 
 
@@ -496,6 +640,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             backoff_seconds=args.backoff_seconds,
             final_report_path=Path(args.final_report) if args.final_report else None,
             collect_github=args.collect_github,
+            min_runtime_seconds=args.min_runtime_hours * 3600,
+            min_tasks=args.min_tasks,
+            on_empty=args.on_empty,
+            backlog_policy_path=Path(args.backlog_policy) if args.backlog_policy else None,
         )
     except SupervisorError as exc:
         print(f"supervisor: {exc}", file=sys.stderr)
@@ -503,7 +651,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     print(f"status={report.status}")
     print(f"run_root={report.run_root}")
     print(f"final_report={report.final_report_path}")
-    return 0 if report.status in {"COMPLETED_NO_SAFE_TASKS", "BUDGET_EXPIRED"} else 1
+    if report.stop_reason:
+        print(f"stop_reason={report.stop_reason}")
+    ok_statuses = {"COMPLETED_NO_SAFE_TASKS", "BUDGET_EXPIRED", "COMPLETED_MINIMUMS_MET"}
+    return 0 if report.status in ok_statuses else 1
 
 
 if __name__ == "__main__":

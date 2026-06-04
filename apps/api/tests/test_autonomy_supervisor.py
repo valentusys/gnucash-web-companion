@@ -32,6 +32,46 @@ SAMPLE_QUEUE = """
 - stop/continue recommendation: stop if dirty
 """
 
+SAMPLE_POLICY = """
+# Sample backlog policy
+
+## Task: generated-audit
+- target: issue #36 / generated audit
+- goal: Audit owner-writebeta remaining gates without touching private data.
+- allowed scope: docs and tests only
+- non-goals: GnuCash mutations; private books; releases; public write beta claims
+- verification commands:
+  - python3 scripts/check_public_status.py
+  - git diff --check
+- safety flags: generated-safe, no-private-data, no-release, preserve-write-defaults, app-env-test-gated-writes
+- stop/continue recommendation: continue if clean
+
+## Task: generated-final-gate
+- target: issue #36 / generated final gate
+- goal: Prepare a final gate report without dogfood or release publication.
+- allowed scope: docs/handoff only
+- non-goals: GnuCash mutations; private books; releases; public write beta claims
+- verification commands:
+  - cd apps/api && pytest -q
+  - git diff --check
+- safety flags: generated-safe, no-private-data, no-release, final-gates
+- stop/continue recommendation: stop when full gate is recorded
+"""
+
+UNSAFE_POLICY = """
+# Unsafe backlog policy
+
+## Task: unsafe-release
+- target: release
+- goal: Publish a write beta release.
+- allowed scope: release tooling
+- non-goals: none
+- verification commands:
+  - git diff --check
+- safety flags: release, touches-private-data
+- stop/continue recommendation: continue
+"""
+
 
 class FakeClock:
     def __init__(self, values):
@@ -69,10 +109,26 @@ class FakeAgent:
         return self.results.pop(0)
 
 
+class RepeatingFakeAgent:
+    def __init__(self, result=None):
+        self.result = result or supervisor.AgentResult(0, "ok", "")
+        self.prompts = []
+
+    def run(self, prompt_path, mode):
+        self.prompts.append(Path(prompt_path).read_text(encoding="utf-8"))
+        return self.result
+
+
 def write_queue(tmp_path, text=SAMPLE_QUEUE):
     queue = tmp_path / "queue.md"
     queue.write_text(text, encoding="utf-8")
     return queue
+
+
+def write_policy(tmp_path, text=SAMPLE_POLICY):
+    policy = tmp_path / "policy.md"
+    policy.write_text(text, encoding="utf-8")
+    return policy
 
 
 def test_parse_queue_requires_all_task_fields(tmp_path):
@@ -86,6 +142,26 @@ def test_parse_queue_requires_all_task_fields(tmp_path):
         "git diff --check",
     ]
     assert "no-private-data" in tasks[0].safety_flags
+
+
+def test_finite_queue_still_exits_as_before_by_default(tmp_path):
+    queue = write_queue(tmp_path)
+    agent = RepeatingFakeAgent()
+
+    report = supervisor.run_supervisor(
+        repo=tmp_path,
+        queue_path=queue,
+        budget_seconds=3600,
+        mode="dry-run",
+        run_root=tmp_path / "run",
+        git=FakeGit([""]),
+        agent=agent,
+        clock=FakeClock([0, 1, 2, 3, 4]),
+    )
+
+    assert report.status == "COMPLETED_NO_SAFE_TASKS"
+    assert [item.task_id for item in report.tasks] == ["docs-one", "docs-two"]
+    assert len(agent.prompts) == 2
 
 
 def test_dry_run_renders_prompts_and_continues_after_early_success(tmp_path):
@@ -114,6 +190,85 @@ def test_dry_run_renders_prompts_and_continues_after_early_success(tmp_path):
     assert "Never touch original/private/working/only-copy GnuCash books." in agent.prompts[0]
     assert "GNUCASH_WRITES_ENABLED=false" in agent.prompts[0]
     assert "APP_ENV=test" in agent.prompts[0]
+
+
+def test_min_tasks_with_generated_policy_continues_after_queue_exhaustion(tmp_path):
+    queue = write_queue(tmp_path, SAMPLE_QUEUE.replace("## Task: docs-two", "## Not a task: docs-two"))
+    policy = write_policy(tmp_path)
+    agent = RepeatingFakeAgent()
+
+    report = supervisor.run_supervisor(
+        repo=tmp_path,
+        queue_path=queue,
+        budget_seconds=3600,
+        mode="dry-run",
+        run_root=tmp_path / "run",
+        git=FakeGit([""]),
+        agent=agent,
+        clock=FakeClock([0, 1, 2, 3, 4, 5]),
+        min_tasks=3,
+        on_empty="generate-from-policy",
+        backlog_policy_path=policy,
+    )
+
+    assert report.status == "COMPLETED_MINIMUMS_MET"
+    assert [item.task_id for item in report.tasks] == [
+        "docs-one",
+        "generated-audit",
+        "generated-final-gate",
+    ]
+    assert len(agent.prompts) == 3
+    assert "Generated from backlog policy" in agent.prompts[-1]
+
+
+def test_min_runtime_hours_does_not_report_early_if_safe_generated_tasks_remain(tmp_path):
+    queue = write_queue(tmp_path, SAMPLE_QUEUE.replace("## Task: docs-two", "## Not a task: docs-two"))
+    policy = write_policy(tmp_path)
+    agent = RepeatingFakeAgent()
+
+    report = supervisor.run_supervisor(
+        repo=tmp_path,
+        queue_path=queue,
+        budget_seconds=3600,
+        mode="dry-run",
+        run_root=tmp_path / "run",
+        git=FakeGit([""]),
+        agent=agent,
+        clock=FakeClock([0, 1, 2, 1801, 1802]),
+        min_runtime_seconds=1800,
+        on_empty="generate-from-policy",
+        backlog_policy_path=policy,
+    )
+
+    assert report.status == "COMPLETED_MINIMUMS_MET"
+    assert [item.task_id for item in report.tasks] == [
+        "docs-one",
+        "generated-audit",
+        "generated-final-gate",
+    ]
+
+
+def test_generate_from_policy_stops_fail_closed_if_policy_has_no_safe_tasks(tmp_path):
+    queue = write_queue(tmp_path, SAMPLE_QUEUE.replace("## Task: docs-two", "## Not a task: docs-two"))
+    policy = write_policy(tmp_path, UNSAFE_POLICY)
+
+    report = supervisor.run_supervisor(
+        repo=tmp_path,
+        queue_path=queue,
+        budget_seconds=3600,
+        mode="dry-run",
+        run_root=tmp_path / "run",
+        git=FakeGit([""]),
+        agent=RepeatingFakeAgent(),
+        clock=FakeClock([0, 1, 2, 3]),
+        min_tasks=2,
+        on_empty="generate-from-policy",
+        backlog_policy_path=policy,
+    )
+
+    assert report.status == "HARD_NO_SAFE_TASKS"
+    assert len(report.tasks) == 1
+    assert "No safe backlog policy task" in report.stop_reason
 
 
 def test_budget_expiry_stops_before_next_task(tmp_path):
@@ -157,7 +312,7 @@ def test_rate_limit_triggers_bounded_retry_then_checkpoint(tmp_path):
     assert "rate limit" in report.tasks[0].message.lower() or "timeout" in report.tasks[0].message.lower()
 
 
-def test_dirty_tree_blocks_continuation(tmp_path):
+def test_dirty_tree_still_checkpoints(tmp_path):
     queue = write_queue(tmp_path)
     report = supervisor.run_supervisor(
         repo=tmp_path,
@@ -174,7 +329,7 @@ def test_dirty_tree_blocks_continuation(tmp_path):
     assert report.tasks == []
 
 
-def test_missing_live_command_fails_closed(monkeypatch, tmp_path):
+def test_live_mode_still_requires_agent_command(monkeypatch, tmp_path):
     monkeypatch.delenv("AUTONOMY_AGENT_COMMAND", raising=False)
 
     try:
@@ -183,6 +338,47 @@ def test_missing_live_command_fails_closed(monkeypatch, tmp_path):
         assert "AUTONOMY_AGENT_COMMAND" in str(exc)
     else:
         raise AssertionError("live mode without command must fail closed")
+
+
+def test_dry_run_never_invokes_real_agent(monkeypatch, tmp_path):
+    monkeypatch.setenv("AUTONOMY_AGENT_COMMAND", "false")
+    queue = write_queue(tmp_path)
+
+    report = supervisor.run_supervisor(
+        repo=tmp_path,
+        queue_path=queue,
+        budget_seconds=3600,
+        mode="dry-run",
+        run_root=tmp_path / "run",
+        git=FakeGit([""]),
+        clock=FakeClock([0, 1, 2, 3]),
+    )
+
+    assert report.status == "COMPLETED_NO_SAFE_TASKS"
+    report_text = Path(report.final_report_path).read_text(encoding="utf-8")
+    assert "dry-run rendered prompt; agent not invoked" in report_text
+
+
+def test_parse_args_accepts_v2_options():
+    args = supervisor.parse_args([
+        "--budget-hours",
+        "5",
+        "--queue",
+        "q.md",
+        "--min-runtime-hours",
+        "4.5",
+        "--min-tasks",
+        "8",
+        "--on-empty",
+        "generate-from-policy",
+        "--backlog-policy",
+        "policy.md",
+    ])
+
+    assert args.min_runtime_hours == 4.5
+    assert args.min_tasks == 8
+    assert args.on_empty == "generate-from-policy"
+    assert args.backlog_policy == "policy.md"
 
 
 def test_rendered_prompt_contains_required_safety_patterns(tmp_path):
