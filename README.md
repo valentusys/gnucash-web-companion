@@ -60,21 +60,22 @@ the current write-alpha publication baseline remains Phase 261.
   controlled-write code is experimental post-MVP work and disabled by default.
 - **Write safety:** `GNUCASH_WRITES_ENABLED=false` remains default; explicit write-alpha/writebeta
   flows remain test-gated, and no real/private/original/only-copy book is a safe write target.
-- **Open follow-up queues:** #22 compatibility fixtures, #28 Markdown readability, and #36
-  controlled-write readiness gates.
+- **Open follow-up queues:** #36 controlled-write readiness gates.
+- **Recently closed:** #22 compatibility fixtures, #28 Markdown readability, #13, #41, #42, and #43.
+- **Issue #22 closure:** accepted narrowly for one isolated GnuCash 5.14
+  Desktop-generated synthetic SQLite fixture only. It is not a broad Desktop-version, SQL-backend,
+  real-book, or write-compatibility claim.
 - **After W3 copied-book dogfood:** CREATE 2 / PATCH 1 / DELETE 1 evidence is accepted narrowly
   for one staged outside-git copied/restorable target only. It is not a real-book, public-write,
   production, stable, security-audited, or broad GnuCash compatibility claim.
-- **Recently closed:** #13, #41, #42, and #43.
 
 ## Current queue map
 
-- #22 compatibility fixtures: keep open until an isolated disposable GUI/manual-safe environment
-  produces a Desktop-generated synthetic SQLite fixture and read-only validation evidence.
-- #28 Markdown readability: keep public/status Markdown readable in a terminal without mass-rewriting
-  historical phase files or weakening safety/no-release wording.
 - #36 controlled-write readiness: keep open after accepted W3 copied-book evidence until PM accepts
   the remaining owner-writebeta gates, compatibility limits, real-book boundary, and closure criteria.
+- #22 compatibility fixtures: closed narrowly for isolated Desktop-generated synthetic SQLite
+  read-only evidence only; future Desktop/backend/version fixture expansion remains separate work.
+- #28 Markdown readability: closed after terminal-readability/status guard cleanup.
 
 - **Latest read-only beta notes:**
   [docs/release/v0.5.0-public-readonly-beta-notes.md](docs/release/v0.5.0-public-readonly-beta-notes.md)

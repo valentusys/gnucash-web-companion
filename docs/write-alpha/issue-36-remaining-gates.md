@@ -32,6 +32,9 @@ Accepted evidence is narrow and review-only unless noted otherwise:
   compatibility.
 - Compatibility wording guard: supported-version write compatibility remains pending and claims must stay
   tied to synthetic/disposable or copied/restorable evidence only.
+- Issue #22 is now closed narrowly for one isolated GnuCash 5.14 Desktop-generated synthetic SQLite
+  read-only fixture only. That closure removes the docs-vs-GitHub drift but does not prove write
+  compatibility, broad Desktop-version support, real-book safety, or non-SQLite backend support.
 
 ## Gates still blocking #36 closure
 
@@ -39,8 +42,10 @@ Accepted evidence is narrow and review-only unless noted otherwise:
 original issue scope is satisfied.
 
 1. Supported-version write compatibility evidence
-   - Pending: Desktop/version-specific write compatibility has not been accepted across supported
-     GnuCash versions.
+   - Updated after #22: one GnuCash 5.14 Desktop-generated synthetic SQLite fixture has passed
+     read-only validation, so the #22 docs-vs-GitHub drift is resolved.
+   - Still pending for #36 closure/release: Desktop/version-specific write compatibility has not been
+     accepted across supported GnuCash versions.
    - Required before closure: redacted evidence tied to synthetic/disposable or copied/restorable
      fixtures only, with no broad backend/Desktop/version support claim.
 

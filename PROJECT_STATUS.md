@@ -19,10 +19,10 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   [#36](https://github.com/valentusys/gnucash-web-companion/issues/36) controlled-write readiness
   gates. [#22](https://github.com/valentusys/gnucash-web-companion/issues/22) and
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) are closed.
-- Latest handoffs: `docs/handoff/daytime-after-w3-continuation-final-report.md`,
-  `docs/handoff/daytime-w3-release-or-no-release.md`,
-  `docs/handoff/daytime-w3-v0.4-readiness.md`, and
-  `docs/handoff/daytime-w3-pm-gate-review.md`.
+- Latest handoffs: `docs/handoff/issue22-reconcile-and-issue36-owner-writebeta-final-report.md`,
+  `docs/handoff/issue36-package-4-owner-writebeta-pm-decision.md`,
+  `docs/handoff/issue36-package-3-remaining-gates-decision.md`, and
+  `docs/handoff/issue36-package-2-post-22-readiness-audit.md`.
 
 ## Current status snapshot
 
