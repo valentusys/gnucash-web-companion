@@ -3,6 +3,11 @@
 Status: keep #36 open. This is a non-mutating PM gate packet, not execution approval and
 not a release decision.
 
+Current reconciliation: tracked docs, GitHub #36, and the guarded repository posture agree that
+owner-writebeta remains maintenance-only. The W3 copied/restorable evidence is accepted narrowly,
+but it does not authorize a public write beta, release publication, real/private/working/only-copy
+mutation, broad compatibility claim, stable claim, production-ready claim, or security-audited claim.
+
 ## PM decision after W3
 
 PM decision: `COPIED_BOOK_GATE_ACCEPTED_KEEP_36_OPEN_FOR_RELEASE_OR_REAL_BOOK_DECISION`.
@@ -35,6 +40,9 @@ Accepted evidence is narrow and review-only unless noted otherwise:
 - Issue #22 is now closed narrowly for one isolated GnuCash 5.14 Desktop-generated synthetic SQLite
   read-only fixture only. That closure removes the docs-vs-GitHub drift but does not prove write
   compatibility, broad Desktop-version support, real-book safety, or non-SQLite backend support.
+- Current guard state: write-safety, public-status, markdown-readability, and tracked-hygiene guards
+  remain the required non-mutating checks before any future #36 closure or release decision. Passing
+  those guards is not itself release authorization.
 
 ## Gates still blocking #36 closure
 
@@ -71,6 +79,14 @@ original issue scope is satisfied.
    - Pending: no maintainer/PM acceptance says the original #36 scope is satisfied.
    - Required before closure: re-read #36, linked handoffs, latest CI, this blocker list, and current
      guard results; then record either a keep-open decision or an explicit closure decision.
+
+6. Guarded documentation state
+   - Pending: any future owner-writebeta wording must continue to pass the repository guard scripts and
+     keep all owner-writebeta claims bounded to maintenance, copied/restorable evidence, and explicit
+     same-context authorization.
+   - Required before closure or release: public docs and handoffs must still say `NO_RELEASE`, no public
+     write beta, no real/private/original/working/only-copy safety claim, default
+     `GNUCASH_WRITES_ENABLED=false`, and enabled write-alpha/writebeta `APP_ENV=test` gating.
 
 ## Owner-only writebeta release prerequisites
 

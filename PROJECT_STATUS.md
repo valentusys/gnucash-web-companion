@@ -20,6 +20,7 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   gates. [#22](https://github.com/valentusys/gnucash-web-companion/issues/22) and
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) are closed.
 - Latest handoffs: `docs/handoff/issue22-reconcile-and-issue36-owner-writebeta-final-report.md`,
+  `docs/handoff/issue36-current-state-reconcile.md`,
   `docs/handoff/issue36-package-4-owner-writebeta-pm-decision.md`,
   `docs/handoff/issue36-package-3-remaining-gates-decision.md`, and
   `docs/handoff/issue36-package-2-post-22-readiness-audit.md`.
@@ -37,6 +38,10 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   PATCH on a write-alpha-created transaction, and 1 DELETE of a write-alpha-created disposable
   transaction. #36 remains open for supported-version compatibility, real-book/owner-only decisions,
   and release/no-release gates. No release was published; `NO_RELEASE` remains current.
+- Current #36 docs reconciliation: owner-writebeta remains maintenance-only; the guard state still
+  requires default `GNUCASH_WRITES_ENABLED=false`, enabled write-alpha/writebeta `APP_ENV=test` gating,
+  no public write beta, no real/private/original/working/only-copy safety claim, and no stable,
+  production-ready, or security-audited wording.
 - Recently closed queues: #13, #41, #42, #43.
 
 ## Repository
