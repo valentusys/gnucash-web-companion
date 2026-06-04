@@ -334,6 +334,8 @@ Verification commands for this task:
 
 Worker requirements:
 - Work only on this task's allowed scope.
+- Treat the allowed scope as a ceiling; do not broaden scope to create work.
+- If a generated or repeated task has no remaining safe scoped change, report that honestly instead of inventing edits.
 - Do not spawn nested Hermes/Codex/tmux/cron workers.
 - Run the relevant verification commands you can safely run.
 - If you make safe tracked changes, commit only those safe tracked changes after verification so the supervisor can continue from a clean tree.

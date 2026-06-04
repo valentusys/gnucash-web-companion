@@ -403,6 +403,8 @@ def test_rendered_prompt_contains_required_safety_patterns(tmp_path):
         "APP_ENV=test",
         "No public write beta",
         "commit only those safe tracked changes after verification",
+        "Treat the allowed scope as a ceiling",
+        "no remaining safe scoped change",
         "Do not commit ignored `.hermes` runtime files",
     ]
     for pattern in required:

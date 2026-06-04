@@ -14,6 +14,8 @@ Policy invariants:
 - No public write beta.
 - No stable, production-ready, security-audited, broad compatibility, or only-copy safety claim.
 - Runtime prompts/reports stay under ignored `.hermes/autonomy/` unless a tracked handoff is explicitly requested.
+- Generated workers must treat each task's allowed scope as a ceiling, not a suggestion to search for unrelated work.
+- Repeated generated tasks may be no-ops when no safe, scoped improvement remains; workers should report that honestly instead of broadening scope.
 
 ## Task: owner-writebeta-remaining-gates-audit
 - target: issue #36 / owner-writebeta remaining gates audit

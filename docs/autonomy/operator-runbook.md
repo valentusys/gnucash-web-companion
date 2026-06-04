@@ -54,7 +54,9 @@ New v2 controls:
 
 `generate-from-policy` is fail-closed. It only uses policy tasks marked `generated-safe`, `no-private-data`, and `no-release`, and rejects tasks with unsafe flags such as `release`, `touches-private-data`, `dogfood`, or `gnucash-mutation`. If no safe policy task exists before the configured minimums are met, the supervisor stops with `HARD_NO_SAFE_TASKS` and records the reason.
 
-Dry-run previews render one pass through safe generated policy tasks and never invoke a real agent. Live mode may cycle safe policy templates until minimums are met or the hard budget expires.
+Dry-run previews render one pass through safe generated policy tasks and never invoke a real agent. Operators must review the rendered prompt files before live use, especially each generated task's allowed scope, non-goals, verification commands, and stop/continue recommendation.
+
+Live mode may cycle safe policy templates until minimums are met or the hard budget expires. A repeated generated task is not a request to invent new work: if no safe, scoped improvement remains, the worker should run the relevant gates it can safely run, report a no-op checkpoint or clean completion, and avoid broadening scope.
 
 ## Live execution
 
