@@ -564,6 +564,23 @@ def test_public_status_guard_rejects_affirmative_broad_compatibility_confirmed_c
         raise AssertionError("affirmative broad compatibility confirmed claim should fail guard")
 
 
+def test_public_status_guard_rejects_compatibility_guarantee_wording():
+    unsafe_claims = [
+        "Fully compatible with GnuCash Desktop releases.",
+        "Guaranteed compatible with GnuCash SQL books.",
+        "Production-ready compatibility for write beta.",
+        "All SQL backends are supported.",
+    ]
+
+    for unsafe in unsafe_claims:
+        try:
+            guard.reject_patterns(Path("README.md"), unsafe, guard.UNSAFE_AFFIRMATIVE_PATTERNS)
+        except AssertionError as exc:
+            assert "compat" in str(exc).lower() or "backend" in str(exc).lower()
+        else:
+            raise AssertionError(f"unsafe compatibility guarantee should fail guard: {unsafe}")
+
+
 def test_public_status_guard_rejects_affirmative_only_copy_write_safety_claims():
     unsafe = "Only-copy books are safe for writes."
 

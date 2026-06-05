@@ -227,6 +227,27 @@ def test_content_violations_reject_unsafe_affirmative_wording(tmp_path, monkeypa
     ]
 
 
+def test_content_violations_reject_compatibility_guarantee_wording(tmp_path, monkeypatch):
+    sample = tmp_path / "compatibility.md"
+    sample.write_text(
+        "Fully compatible with GnuCash Desktop releases.\n"
+        "Guaranteed compatible with GnuCash SQL books.\n"
+        "Production-ready compatibility for write beta.\n"
+        "All SQL backends are supported.\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
+
+    problems = guard.content_violations([sample])
+
+    assert problems == [
+        "tracked unsafe affirmative wording in compatibility.md:1: Fully compatible with GnuCash Desktop releases.",
+        "tracked unsafe affirmative wording in compatibility.md:2: Guaranteed compatible with GnuCash SQL books.",
+        "tracked unsafe affirmative wording in compatibility.md:3: Production-ready compatibility for write beta.",
+        "tracked unsafe affirmative wording in compatibility.md:4: All SQL backends are supported.",
+    ]
+
+
 def test_content_violations_reject_write_beta_ready_without_public_prefix(tmp_path, monkeypatch):
     sample = tmp_path / "release.md"
     sample.write_text(
