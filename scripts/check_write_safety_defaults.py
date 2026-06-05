@@ -47,6 +47,12 @@ WRITE_ROUTE_FUNCTIONS = (
     "patch_book_transaction",
     "delete_book_transaction",
 )
+WRITE_ROUTE_GATED_CALLS = (
+    "_write_service_for",
+    "_audit_log",
+    "_require_write_alpha_transaction_ownership",
+    "require_owner_writebeta_if_active",
+)
 WRITE_COMPATIBILITY_REQUIRED_TEXTS = (
     "supported-version write compatibility remains pending",
     "synthetic/disposable or copied/restorable evidence only",
@@ -90,16 +96,25 @@ def _parse_python(path: Path) -> ast.Module:
         raise GuardError("required safety Python file could not be parsed") from exc
 
 
-def _call_names(node: ast.AST) -> set[str]:
-    names: set[str] = set()
+def _call_lines(node: ast.AST) -> dict[str, list[int]]:
+    lines: dict[str, list[int]] = {}
     for child in ast.walk(node):
-        if isinstance(child, ast.Call):
-            func = child.func
-            if isinstance(func, ast.Name):
-                names.add(func.id)
-            elif isinstance(func, ast.Attribute):
-                names.add(func.attr)
-    return names
+        if not isinstance(child, ast.Call):
+            continue
+        func = child.func
+        if isinstance(func, ast.Name):
+            name = func.id
+        elif isinstance(func, ast.Attribute):
+            name = func.attr
+        else:
+            continue
+        lines.setdefault(name, []).append(child.lineno)
+    return lines
+
+
+def _first_call_line(call_lines: dict[str, list[int]], name: str) -> int | None:
+    lines = call_lines.get(name)
+    return min(lines) if lines else None
 
 
 def _check_api_write_defaults(config_path: Path = REPO_ROOT / API_CONFIG_FILE) -> list[str]:
@@ -139,11 +154,24 @@ def _check_write_route_test_gates(routes_path: Path = REPO_ROOT / WRITE_ROUTES_F
         if node is None:
             failures.append(f"write route {function_name} must exist")
             continue
-        calls = _call_names(node)
-        if "_ensure_writes_enabled" not in calls:
+        call_lines = _call_lines(node)
+        writes_enabled_line = _first_call_line(call_lines, "_ensure_writes_enabled")
+        test_scope_line = _first_call_line(call_lines, "_ensure_write_alpha_test_scope")
+        if writes_enabled_line is None:
             failures.append(f"write route {function_name} must call _ensure_writes_enabled")
-        if "_ensure_write_alpha_test_scope" not in calls:
+        if test_scope_line is None:
             failures.append(f"write route {function_name} must call _ensure_write_alpha_test_scope")
+        if writes_enabled_line is not None and test_scope_line is not None:
+            if writes_enabled_line > test_scope_line:
+                failures.append(
+                    f"write route {function_name} must check _ensure_writes_enabled before APP_ENV=test scope"
+                )
+            for gated_call in WRITE_ROUTE_GATED_CALLS:
+                gated_call_line = _first_call_line(call_lines, gated_call)
+                if gated_call_line is not None and gated_call_line < test_scope_line:
+                    failures.append(
+                        f"write route {function_name} must call {gated_call} only after APP_ENV=test scope"
+                    )
     return failures
 
 

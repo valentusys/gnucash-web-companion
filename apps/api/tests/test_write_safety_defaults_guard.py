@@ -310,6 +310,55 @@ def test_write_safety_defaults_guard_rejects_write_route_missing_app_env_gate(tm
     assert str(tmp_path) not in "; ".join(failures)
 
 
+def test_write_safety_defaults_guard_rejects_route_that_checks_app_env_before_write_default(
+    tmp_path: Path,
+) -> None:
+    routes = tmp_path / "transactions.py"
+    route_defs = "\n".join(
+        f"async def {name}():\n"
+        "    _ensure_write_alpha_test_scope(settings)\n"
+        "    _ensure_writes_enabled(settings)\n"
+        for name in write_safety_guard.WRITE_ROUTE_FUNCTIONS
+    )
+    routes.write_text(
+        "def _ensure_write_alpha_test_scope(settings):\n"
+        "    if settings.app_env.lower() != \"test\":\n"
+        "        raise RuntimeError(\"controlled write-alpha routes are limited to explicit test-environment\")\n\n"
+        f"{route_defs}\n",
+        encoding="utf-8",
+    )
+
+    failures = write_safety_guard._check_write_route_test_gates(routes)
+
+    assert any("_ensure_writes_enabled before APP_ENV=test scope" in failure for failure in failures)
+    assert str(tmp_path) not in "; ".join(failures)
+
+
+def test_write_safety_defaults_guard_rejects_route_side_effects_before_app_env_gate(
+    tmp_path: Path,
+) -> None:
+    routes = tmp_path / "transactions.py"
+    route_defs = "\n".join(
+        f"async def {name}():\n"
+        "    _ensure_writes_enabled(settings)\n"
+        "    _write_service_for(book)\n"
+        "    _ensure_write_alpha_test_scope(settings)\n"
+        for name in write_safety_guard.WRITE_ROUTE_FUNCTIONS
+    )
+    routes.write_text(
+        "def _ensure_write_alpha_test_scope(settings):\n"
+        "    if settings.app_env.lower() != \"test\":\n"
+        "        raise RuntimeError(\"controlled write-alpha routes are limited to explicit test-environment\")\n\n"
+        f"{route_defs}\n",
+        encoding="utf-8",
+    )
+
+    failures = write_safety_guard._check_write_route_test_gates(routes)
+
+    assert any("_write_service_for only after APP_ENV=test scope" in failure for failure in failures)
+    assert str(tmp_path) not in "; ".join(failures)
+
+
 def test_write_safety_defaults_guard_rejects_missing_after_w3_boundary_marker(
     tmp_path: Path,
 ) -> None:
