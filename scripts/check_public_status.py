@@ -401,6 +401,8 @@ UNSAFE_AFFIRMATIVE_PATTERNS = [
     re.compile(r"\bpublic\s+write\s+beta\s+(?:launch|release|rollout)\s+(?:is\s+)?(?:ready|approved|authorized)\b", re.I),
     re.compile(r"\bwrite\s+beta\s+(?:is\s+)?(?:ready|available|open|enabled|supported)\b", re.I),
     re.compile(r"\bwrite\s+beta\s+(?:is\s+)?(?:approved|authorized|published|released)\b", re.I),
+    re.compile(r"\bwrite\s+beta\s+(?:is\s+)?(?:stable|production[- ]ready|security[- ]audited)\b", re.I),
+    re.compile(r"\bwrite\s+beta\s+(?:release|build|deployment)\s+(?:is\s+)?(?:stable|production[- ]ready|security[- ]audited)\b", re.I),
     re.compile(r"\b(owner[- ]?)?writebeta\s+(?:is\s+)?(?:public|stable|production[- ]ready|security[- ]audited)\b", re.I),
     re.compile(r"\b(owner[- ]?)?writebeta\s+(?:is\s+)?(?:approved|authorized|published|released)\b", re.I),
     re.compile(r"\bis production[- ]ready\b", re.I),

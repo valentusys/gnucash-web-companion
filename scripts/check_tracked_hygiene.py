@@ -114,6 +114,8 @@ FORBIDDEN_PRIVATE_EVIDENCE_MARKERS = (
 # evidence guard. Keep these label patterns narrow to avoid blocking negative
 # prose that merely discusses privacy rules.
 FORBIDDEN_PRIVATE_EVIDENCE_LABEL_PATTERNS = (
+    re.compile(r"^\s*(?:[-*+]\s+|>\s*)?(?:raw[ _-])?private[ _-]evidence\s*[:=]", re.I),
+    re.compile(r"^\s*(?:[-*+]\s+|>\s*)?(?:unredacted[ _-])?gnucash[ _-]evidence\s*[:=]", re.I),
     re.compile(r"^\s*(?:[-*+]\s+|>\s*)?(?:raw[ _-])?private[ _-]path\s*[:=]", re.I),
     re.compile(r"^\s*(?:[-*+]\s+|>\s*)?(?:original|only-copy|private|real)[ _-]gnucash[ _-]path\s*[:=]", re.I),
     re.compile(r"^\s*(?:[-*+]\s+|>\s*)?gnucash[ _-]path\s*[:=]", re.I),
@@ -134,6 +136,8 @@ FORBIDDEN_UNSAFE_AFFIRMATIVE_PATTERNS = (
     re.compile(r"\bpublic\s+write\s+beta\s+(?:launch|release|rollout)\s+(?:is\s+)?(?:ready|approved|authorized)\b", re.I),
     re.compile(r"\bwrite\s+beta\s+(?:is\s+)?(?:ready|available|open|enabled|supported)\b", re.I),
     re.compile(r"\bwrite\s+beta\s+(?:is\s+)?(?:approved|authorized|published|released)\b", re.I),
+    re.compile(r"\bwrite\s+beta\s+(?:is\s+)?(?:stable|production[- ]ready|security[- ]audited)\b", re.I),
+    re.compile(r"\bwrite\s+beta\s+(?:release|build|deployment)\s+(?:is\s+)?(?:stable|production[- ]ready|security[- ]audited)\b", re.I),
     re.compile(r"\bbroad\s+GnuCash\s+(?:Desktop\s+)?compatibility\s+(?:is\s+)?(?:ready|available|supported|claimed|proven)\b", re.I),
     re.compile(r"\bbroad\s+GnuCash\s+(?:Desktop\s+)?compatibility\s+(?:is\s+)?(?:validated|confirmed)\b", re.I),
     re.compile(r"\bonly-copy\s+(?:books?\s+)?(?:are\s+)?safe\s+(?:for\s+)?(?:writes?|mutation|write mode)\b", re.I),

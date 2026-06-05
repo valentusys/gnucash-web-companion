@@ -114,6 +114,10 @@ def test_content_violations_reject_human_written_private_evidence_labels(tmp_pat
     sample = tmp_path / "public-report.md"
     sample.write_text(
         "Private path: /redacted\n"
+        "Private evidence: redacted summary should not use this label\n"
+        "Raw private evidence = pasted raw packet\n"
+        "Unredacted GnuCash evidence: raw row dump\n"
+        "GnuCash evidence = raw row dump\n"
         "Original GnuCash path = /redacted\n"
         "GnuCash path: /redacted\n"
         "Book path = /redacted\n"
@@ -130,14 +134,18 @@ def test_content_violations_reject_human_written_private_evidence_labels(tmp_pat
 
     assert problems == [
         "tracked raw private-evidence label in public-report.md:1: Private path: /redacted",
-        "tracked raw private-evidence label in public-report.md:2: Original GnuCash path = /redacted",
-        "tracked raw private-evidence label in public-report.md:3: GnuCash path: /redacted",
-        "tracked raw private-evidence label in public-report.md:4: Book path = /redacted",
-        "tracked raw private-evidence label in public-report.md:5: Real account name: Redacted Account",
-        "tracked raw private-evidence label in public-report.md:6: Account name: Redacted Account",
-        "tracked raw private-evidence label in public-report.md:7: Memo: Redacted memo",
-        "tracked raw private-evidence label in public-report.md:8: Amount: 0.00",
-        "tracked raw private-evidence label in public-report.md:9: Transaction amount: 0.00",
+        "tracked raw private-evidence label in public-report.md:2: Private evidence: redacted summary should not use this label",
+        "tracked raw private-evidence label in public-report.md:3: Raw private evidence = pasted raw packet",
+        "tracked raw private-evidence label in public-report.md:4: Unredacted GnuCash evidence: raw row dump",
+        "tracked raw private-evidence label in public-report.md:5: GnuCash evidence = raw row dump",
+        "tracked raw private-evidence label in public-report.md:6: Original GnuCash path = /redacted",
+        "tracked raw private-evidence label in public-report.md:7: GnuCash path: /redacted",
+        "tracked raw private-evidence label in public-report.md:8: Book path = /redacted",
+        "tracked raw private-evidence label in public-report.md:9: Real account name: Redacted Account",
+        "tracked raw private-evidence label in public-report.md:10: Account name: Redacted Account",
+        "tracked raw private-evidence label in public-report.md:11: Memo: Redacted memo",
+        "tracked raw private-evidence label in public-report.md:12: Amount: 0.00",
+        "tracked raw private-evidence label in public-report.md:13: Transaction amount: 0.00",
     ]
 
 
@@ -197,7 +205,10 @@ def test_content_violations_reject_write_beta_ready_without_public_prefix(tmp_pa
         "Write beta is ready.\n"
         "Write beta available for public use.\n"
         "Write beta is authorized.\n"
-        "Public write beta is published.\n",
+        "Public write beta is published.\n"
+        "Write beta is stable.\n"
+        "Write beta is security-audited.\n"
+        "Write beta release is production-ready.\n",
         encoding="utf-8",
     )
     monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
@@ -209,6 +220,9 @@ def test_content_violations_reject_write_beta_ready_without_public_prefix(tmp_pa
         "tracked unsafe affirmative wording in release.md:2: Write beta available for public use.",
         "tracked unsafe affirmative wording in release.md:3: Write beta is authorized.",
         "tracked unsafe affirmative wording in release.md:4: Public write beta is published.",
+        "tracked unsafe affirmative wording in release.md:5: Write beta is stable.",
+        "tracked unsafe affirmative wording in release.md:6: Write beta is security-audited.",
+        "tracked unsafe affirmative wording in release.md:7: Write beta release is production-ready.",
     ]
 
 

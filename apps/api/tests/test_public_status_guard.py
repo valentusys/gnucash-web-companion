@@ -444,6 +444,22 @@ def test_public_status_guard_rejects_affirmative_writebeta_authorization_claims(
         raise AssertionError("affirmative writebeta authorization claim should fail guard")
 
 
+def test_public_status_guard_rejects_write_beta_stable_security_claims():
+    unsafe_claims = [
+        "Write beta is stable.",
+        "Write beta is security-audited.",
+        "Write beta release is production-ready.",
+    ]
+
+    for unsafe in unsafe_claims:
+        try:
+            guard.reject_patterns(Path("README.md"), unsafe, guard.UNSAFE_AFFIRMATIVE_PATTERNS)
+        except AssertionError as exc:
+            assert "write" in str(exc).lower()
+        else:
+            raise AssertionError(f"unsafe write beta claim should fail guard: {unsafe}")
+
+
 def test_public_status_guard_accepts_negative_production_security_limitations():
     safe = "- Not production-ready and not security-audited."
 
