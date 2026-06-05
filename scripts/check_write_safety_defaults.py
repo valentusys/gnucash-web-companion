@@ -499,7 +499,7 @@ def _check_owner_writebeta_release_boundaries(paths: tuple[Path, ...]) -> list[s
 
 
 def _compose_service_environment_lines(compose_text: str, service_name: str) -> list[str]:
-    """Extract list-form environment lines for one Compose service.
+    """Extract normalized environment entries for one Compose service.
 
     The guard intentionally avoids loading arbitrary Compose interpolation or
     requiring PyYAML; it only needs to prove the committed service defaults stay
@@ -542,6 +542,29 @@ def _compose_service_environment_lines(compose_text: str, service_name: str) -> 
     return environment_lines
 
 
+def _compose_service_environment_values(environment_lines: list[str], key: str) -> list[str]:
+    prefix = f"{key}="
+    return [line[len(prefix) :] for line in environment_lines if line.startswith(prefix)]
+
+
+def _check_compose_service_env_exact(
+    environment_lines: list[str],
+    *,
+    service_name: str,
+    key: str,
+    expected_value: str,
+    expected_entry: str,
+) -> list[str]:
+    values = _compose_service_environment_values(environment_lines, key)
+    failures: list[str] = []
+    if expected_entry not in environment_lines:
+        failures.append(f"Docker Compose {service_name} service must render {key} default {expected_value}")
+    unsafe_values = [value for value in values if value != expected_value]
+    if unsafe_values:
+        failures.append(f"Docker Compose {service_name} service must not include alternate {key} defaults")
+    return failures
+
+
 def _check(env_example: Path, compose: Path, gate_doc: Path, checklist_doc: Path | None = None) -> list[str]:
     env_text = _read(env_example)
     compose_text = _read(compose)
@@ -560,14 +583,28 @@ def _check(env_example: Path, compose: Path, gate_doc: Path, checklist_doc: Path
         failures.append(".env.example must not default APP_ENV=test")
     if COMPOSE_WRITE_DEFAULT_TEXT not in compose_text:
         failures.append("Docker Compose must render GNUCASH_WRITES_ENABLED default false")
-    if COMPOSE_WRITE_DEFAULT_TEXT not in api_compose_environment:
-        failures.append("Docker Compose api service must render GNUCASH_WRITES_ENABLED default false")
+    failures.extend(
+        _check_compose_service_env_exact(
+            api_compose_environment,
+            service_name="api",
+            key="GNUCASH_WRITES_ENABLED",
+            expected_value="${GNUCASH_WRITES_ENABLED:-false}",
+            expected_entry=COMPOSE_WRITE_DEFAULT_TEXT,
+        )
+    )
     if "GNUCASH_WRITES_ENABLED=${GNUCASH_WRITES_ENABLED:-true}" in compose_text:
         failures.append("Docker Compose must not default GNUCASH_WRITES_ENABLED true")
     if COMPOSE_APP_ENV_DEFAULT_TEXT not in compose_text:
         failures.append("Docker Compose must render APP_ENV default development, not test")
-    if COMPOSE_APP_ENV_DEFAULT_TEXT not in api_compose_environment:
-        failures.append("Docker Compose api service must render APP_ENV default development, not test")
+    failures.extend(
+        _check_compose_service_env_exact(
+            api_compose_environment,
+            service_name="api",
+            key="APP_ENV",
+            expected_value="${APP_ENV:-development}",
+            expected_entry=COMPOSE_APP_ENV_DEFAULT_TEXT,
+        )
+    )
     if "APP_ENV=${APP_ENV:-test}" in compose_text:
         failures.append("Docker Compose must not default APP_ENV=test")
     if APP_ENV_GATE_TEXT not in gate_text:
