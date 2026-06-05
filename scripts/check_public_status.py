@@ -401,6 +401,7 @@ UNSAFE_AFFIRMATIVE_PATTERNS = [
     re.compile(r"\bpublic\s+write[-\s]+beta\s+(?:launch|release|rollout)\s+(?:is\s+)?(?:ready|approved|authorized)\b", re.I),
     re.compile(r"\bwrite[-\s]+beta\s+(?:is\s+)?(?:ready|available|open|enabled|supported)\b", re.I),
     re.compile(r"\bwrite[-\s]+beta\s+(?:is\s+)?(?:approved|authorized|published|released)\b", re.I),
+    re.compile(r"\bwrite[-\s]+beta\s+(?:launch|release|rollout)\s+(?:is\s+)?(?:ready|approved|authorized|published|released)\b", re.I),
     re.compile(r"\bwrite[-\s]+beta\s+(?:is\s+)?(?:stable|production[- ]ready|security[- ]audited)\b", re.I),
     re.compile(r"\bwrite[-\s]+beta\s+(?:release|build|deployment)\s+(?:is\s+)?(?:stable|production[- ]ready|security[- ]audited)\b", re.I),
     re.compile(r"\b(owner[- ]?)?writebeta\s+(?:is\s+)?(?:public|stable|production[- ]ready|security[- ]audited)\b", re.I),
@@ -414,6 +415,8 @@ UNSAFE_AFFIRMATIVE_PATTERNS = [
     re.compile(r"\bbroad\s+GnuCash\s+(?:Desktop\s+)?compatibility\s+(?:is\s+)?(?:ready|available|supported|claimed|proven|validated|confirmed)\b", re.I),
     re.compile(r"\ball\s+GnuCash\s+(?:versions|backends)\s+(?:are\s+)?(?:supported|compatible|write[- ]compatible)\b", re.I),
     re.compile(r"\b(?:real/private|private|real|only-copy)\s+(?:book\s+)?write[- ]safety\s+(?:is\s+)?(?:proven|verified|ready|safe)\b", re.I),
+    re.compile(r"\b(?:real/private|private|real|original|only-copy)\s+books?\s+(?:are\s+)?safe\s+(?:for\s+)?(?:writes?|mutation|write mode)\b", re.I),
+    re.compile(r"\b(?:real/private|private|real|original|only-copy)\s+(?:book\s+)?writes?\s+(?:are\s+)?safe\b", re.I),
     re.compile(r"\bonly-copy\s+(?:books?\s+)?(?:are\s+)?safe\s+(?:for\s+)?(?:writes?|mutation|write mode)\b", re.I),
 ]
 
@@ -472,25 +475,38 @@ NEGATION_MARKERS = (
     "without",
     "does not",
     "do not",
+    "must not",
+    "would not mean",
     "avoiding",
     "avoid ",
     "deny ",
     "denies ",
     "denied ",
+    "blocker",
 )
 
 
 def reject_patterns(path: Path, text: str, patterns: list[re.Pattern[str]]) -> None:
     previous_line = ""
+    negative_context_lines = 0
     for line_number, line in enumerate(text.splitlines(), start=1):
         if patterns is UNSAFE_AFFIRMATIVE_PATTERNS:
             lowered = line.lower()
             current_line_is_negative = any(marker in lowered for marker in NEGATION_MARKERS)
             wrapped_negative_context = (
                 line[:1].isspace()
+                or line[:1].islower()
                 or previous_line.rstrip().endswith((",", " or", " and", " no"))
             ) and any(marker in previous_line for marker in NEGATION_MARKERS)
+            if negative_context_lines > 0:
+                if re.match(r"^\s*(?:[-*+]\s+|>\s*)", line) or not line.strip():
+                    negative_context_lines -= 1
+                    previous_line = lowered
+                    continue
+                negative_context_lines = 0
             if current_line_is_negative or wrapped_negative_context:
+                if lowered.rstrip().endswith(":"):
+                    negative_context_lines = 8
                 previous_line = lowered
                 continue
         for pattern in patterns:

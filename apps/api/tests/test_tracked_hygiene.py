@@ -180,7 +180,10 @@ def test_content_violations_reject_unsafe_affirmative_wording(tmp_path, monkeypa
         "Broad GnuCash Desktop compatibility is confirmed.\n"
         "Production-ready release published.\n"
         "Stable release is ready.\n"
-        "Write beta is production-ready.\n",
+        "Write beta is production-ready.\n"
+        "Real books are safe for writes.\n"
+        "Private book writes are safe.\n"
+        "Original books are safe for mutation.\n",
         encoding="utf-8",
     )
     monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
@@ -196,6 +199,9 @@ def test_content_violations_reject_unsafe_affirmative_wording(tmp_path, monkeypa
         "tracked unsafe affirmative wording in release.md:6: Production-ready release published.",
         "tracked unsafe affirmative wording in release.md:7: Stable release is ready.",
         "tracked unsafe affirmative wording in release.md:8: Write beta is production-ready.",
+        "tracked unsafe affirmative wording in release.md:9: Real books are safe for writes.",
+        "tracked unsafe affirmative wording in release.md:10: Private book writes are safe.",
+        "tracked unsafe affirmative wording in release.md:11: Original books are safe for mutation.",
     ]
 
 
@@ -211,7 +217,9 @@ def test_content_violations_reject_write_beta_ready_without_public_prefix(tmp_pa
         "Write beta is security-audited.\n"
         "Write-beta is security-audited.\n"
         "Write beta release is production-ready.\n"
-        "Write-beta release is production-ready.\n",
+        "Write-beta release is production-ready.\n"
+        "Write beta launch is authorized.\n"
+        "Write-beta rollout is released.\n",
         encoding="utf-8",
     )
     monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
@@ -229,6 +237,8 @@ def test_content_violations_reject_write_beta_ready_without_public_prefix(tmp_pa
         "tracked unsafe affirmative wording in release.md:8: Write-beta is security-audited.",
         "tracked unsafe affirmative wording in release.md:9: Write beta release is production-ready.",
         "tracked unsafe affirmative wording in release.md:10: Write-beta release is production-ready.",
+        "tracked unsafe affirmative wording in release.md:11: Write beta launch is authorized.",
+        "tracked unsafe affirmative wording in release.md:12: Write-beta rollout is released.",
     ]
 
 
@@ -237,12 +247,28 @@ def test_content_violations_allow_negative_safety_wording(tmp_path, monkeypatch)
     sample.write_text(
         "No public write beta is ready.\n"
         "Do not claim broad GnuCash compatibility is supported.\n"
-        "Only-copy books are not safe for writes.\n",
+        "Only-copy books are not safe for writes.\n"
+        "Even future closure must not mean:\n"
+        "- real working-book writes are safe;\n",
         encoding="utf-8",
     )
     monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
 
     assert guard.content_violations([sample]) == []
+
+
+def test_content_violations_reject_unbulleted_claim_after_negative_colon(tmp_path, monkeypatch):
+    sample = tmp_path / "limits.md"
+    sample.write_text(
+        "Even future closure must not mean:\n"
+        "The public write beta is ready for users.\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
+
+    assert guard.content_violations([sample]) == [
+        "tracked unsafe affirmative wording in limits.md:2: The public write beta is ready for users."
+    ]
 
 
 def test_content_violations_allow_redacted_or_synthetic_non_private_placeholders(tmp_path, monkeypatch):

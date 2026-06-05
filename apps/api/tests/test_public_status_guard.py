@@ -499,6 +499,18 @@ def test_public_status_guard_rejects_unrelated_claim_after_negative_context():
         raise AssertionError("new affirmative claim after negative line should fail guard")
 
 
+def test_public_status_guard_rejects_unbulleted_claim_after_negative_colon():
+    unsafe = "Even future closure must not mean:\nThe public write beta is ready for users."
+
+    try:
+        guard.reject_patterns(Path("README.md"), unsafe, guard.UNSAFE_AFFIRMATIVE_PATTERNS)
+    except AssertionError as exc:
+        assert "public" in str(exc).lower()
+        assert "write" in str(exc).lower()
+    else:
+        raise AssertionError("unbulleted affirmative claim after negative heading should fail guard")
+
+
 def test_public_status_guard_rejects_affirmative_broad_compatibility_claims():
     unsafe = "Broad GnuCash compatibility is supported."
 
@@ -526,6 +538,21 @@ def test_public_status_guard_rejects_hyphenated_public_write_beta_claims():
             raise AssertionError(f"hyphenated unsafe write-beta claim should fail guard: {unsafe}")
 
 
+def test_public_status_guard_rejects_write_beta_launch_without_public_prefix():
+    unsafe_claims = [
+        "Write beta launch is authorized.",
+        "Write-beta rollout is released.",
+    ]
+
+    for unsafe in unsafe_claims:
+        try:
+            guard.reject_patterns(Path("README.md"), unsafe, guard.UNSAFE_AFFIRMATIVE_PATTERNS)
+        except AssertionError as exc:
+            assert "write" in str(exc).lower()
+        else:
+            raise AssertionError(f"unsafe write beta launch claim should fail guard: {unsafe}")
+
+
 def test_public_status_guard_rejects_affirmative_broad_compatibility_confirmed_claims():
     unsafe = "Broad GnuCash Desktop compatibility is confirmed."
 
@@ -548,7 +575,29 @@ def test_public_status_guard_rejects_affirmative_only_copy_write_safety_claims()
         raise AssertionError("affirmative only-copy write-safety claim should fail guard")
 
 
+def test_public_status_guard_rejects_affirmative_real_private_write_safety_claims():
+    unsafe_claims = [
+        "Real books are safe for writes.",
+        "Private book writes are safe.",
+        "Original books are safe for mutation.",
+    ]
+
+    for unsafe in unsafe_claims:
+        try:
+            guard.reject_patterns(Path("README.md"), unsafe, guard.UNSAFE_AFFIRMATIVE_PATTERNS)
+        except AssertionError as exc:
+            assert "safe" in str(exc).lower()
+        else:
+            raise AssertionError(f"unsafe real/private write-safety claim should fail guard: {unsafe}")
+
+
 def test_public_status_guard_accepts_negative_broad_compatibility_limitations():
     safe = "- Not broad GnuCash compatibility and not real/private book write-safety."
+
+    guard.reject_patterns(Path("CHANGELOG.md"), safe, guard.UNSAFE_AFFIRMATIVE_PATTERNS)
+
+
+def test_public_status_guard_accepts_must_not_mean_safety_limitations():
+    safe = "Even future closure must not mean:\n- real working-book writes are safe;"
 
     guard.reject_patterns(Path("CHANGELOG.md"), safe, guard.UNSAFE_AFFIRMATIVE_PATTERNS)

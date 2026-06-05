@@ -136,10 +136,13 @@ FORBIDDEN_UNSAFE_AFFIRMATIVE_PATTERNS = (
     re.compile(r"\bpublic\s+write[-\s]+beta\s+(?:launch|release|rollout)\s+(?:is\s+)?(?:ready|approved|authorized)\b", re.I),
     re.compile(r"\bwrite[-\s]+beta\s+(?:is\s+)?(?:ready|available|open|enabled|supported)\b", re.I),
     re.compile(r"\bwrite[-\s]+beta\s+(?:is\s+)?(?:approved|authorized|published|released)\b", re.I),
+    re.compile(r"\bwrite[-\s]+beta\s+(?:launch|release|rollout)\s+(?:is\s+)?(?:ready|approved|authorized|published|released)\b", re.I),
     re.compile(r"\bwrite[-\s]+beta\s+(?:is\s+)?(?:stable|production[- ]ready|security[- ]audited)\b", re.I),
     re.compile(r"\bwrite[-\s]+beta\s+(?:release|build|deployment)\s+(?:is\s+)?(?:stable|production[- ]ready|security[- ]audited)\b", re.I),
     re.compile(r"\bbroad\s+GnuCash\s+(?:Desktop\s+)?compatibility\s+(?:is\s+)?(?:ready|available|supported|claimed|proven)\b", re.I),
     re.compile(r"\bbroad\s+GnuCash\s+(?:Desktop\s+)?compatibility\s+(?:is\s+)?(?:validated|confirmed)\b", re.I),
+    re.compile(r"\b(?:real/private|private|real|original|only-copy)\s+books?\s+(?:are\s+)?safe\s+(?:for\s+)?(?:writes?|mutation|write mode)\b", re.I),
+    re.compile(r"\b(?:real/private|private|real|original|only-copy)\s+(?:book\s+)?writes?\s+(?:are\s+)?safe\b", re.I),
     re.compile(r"\bonly-copy\s+(?:books?\s+)?(?:are\s+)?safe\s+(?:for\s+)?(?:writes?|mutation|write mode)\b", re.I),
     re.compile(r"\bis\s+production[- ]ready\b", re.I),
     re.compile(r"\bproduction[- ]ready\s+(release|software|deployment|build)\s+(?:is\s+)?(?:ready|published|available|supported|released)\b", re.I),
@@ -153,8 +156,11 @@ NEGATING_WORDING_MARKERS = (
     "without ",
     "does not ",
     "do not ",
+    "must not",
+    "would not mean",
     "never ",
     "unclaimed",
+    "blocker",
     "not published",
     "avoid ",
     "avoiding ",
@@ -253,10 +259,24 @@ def content_violations(paths: list[Path]) -> list[str]:
                     )
                     break
         previous_line = ""
+        negative_context_lines = 0
         for line_number, line in enumerate(text.splitlines(), start=1):
             lowered = line.lower()
-            context = f"{previous_line} {lowered}"
-            if any(marker in context for marker in NEGATING_WORDING_MARKERS):
+            current_line_is_negative = any(marker in lowered for marker in NEGATING_WORDING_MARKERS)
+            wrapped_negative_context = (
+                bool(re.match(r"^\s*(?:[-*+]\s+|>\s*)", line))
+                or line[:1].isspace()
+                or line[:1].islower()
+            ) and any(marker in previous_line for marker in NEGATING_WORDING_MARKERS)
+            if negative_context_lines > 0:
+                if re.match(r"^\s*(?:[-*+]\s+|>\s*)", line) or not line.strip():
+                    negative_context_lines -= 1
+                    previous_line = lowered
+                    continue
+                negative_context_lines = 0
+            if current_line_is_negative or wrapped_negative_context:
+                if lowered.rstrip().endswith(":"):
+                    negative_context_lines = 8
                 previous_line = lowered
                 continue
             for pattern in FORBIDDEN_UNSAFE_AFFIRMATIVE_PATTERNS:
