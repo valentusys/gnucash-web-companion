@@ -23,6 +23,11 @@ PUBLIC_STATUS_DOCS = (
 )
 DEFAULT_DOCS = PUBLIC_STATUS_DOCS + (
     Path("docs/gnucash-compatibility.md"),
+    Path("docs/write-alpha/issue-36-remaining-gates.md"),
+    Path("docs/write-alpha/controlled-write-readiness-dashboard.md"),
+    Path("docs/write-alpha/evidence-matrix.md"),
+    Path("docs/release/owner-writebeta-owner-approval-boundary.md"),
+    Path("docs/release/v0.4-owner-writebeta-readiness-unreleased.md"),
     Path("docs/release/v0.5.0-public-readonly-beta-notes.md"),
     Path("docs/release/v0.5.0-public-readonly-beta-final-gate.md"),
     Path("docs/release/v0.5.0-public-readonly-beta-publication-evidence.md"),

@@ -1,11 +1,13 @@
 # Controlled-write readiness dashboard for #36
 
-Status: keep #36 open. This dashboard is a non-mutating index of evidence and gaps, not release approval and not authorization to mutate any book.
+Status: keep #36 open. This dashboard is a non-mutating index of evidence and gaps.
+It is not release approval and not authorization to mutate any book.
 
 ## Snapshot
 
 - Release decision: NO_RELEASE.
-- Public posture: no public write beta; no stable, production-ready, or security-audited claim; no broad compatibility claim; no only-copy safety claim.
+- Public posture: no public write beta; no stable, production-ready, or security-audited
+  claim; no broad compatibility claim; no only-copy safety claim.
 - Defaults: `GNUCASH_WRITES_ENABLED=false` remains default and enabled write-alpha/writebeta routes remain `APP_ENV=test` gated.
 - Mutation counts for this dashboard package: CREATE 0 / PATCH 0 / DELETE 0.
 - Book boundary: no original, private, real working, or only-copy GnuCash book is a safe write target.
@@ -34,8 +36,12 @@ Absent that authorization, only non-mutating guards, docs, and tests are allowed
 
 ## Closure decision rule
 
-Keep #36 open until a maintainer/PM review accepts every remaining gate in `docs/write-alpha/issue-36-remaining-gates.md`, current CI/guards are green, and the release decision is explicitly recorded. Default is NO_RELEASE.
+Keep #36 open until a maintainer/PM review accepts every remaining gate in
+`docs/write-alpha/issue-36-remaining-gates.md`, current CI/guards are green, and the
+release decision is explicitly recorded. Default is NO_RELEASE.
 
 ## Safety result
 
-No GnuCash book, app DB, backup, export, screenshot, `.env`, token, key, cert, private path, account name, transaction description, memo, amount, or raw private evidence was opened, copied, mutated, committed, or posted.
+No GnuCash book, app DB, backup, export, screenshot, `.env`, token, key, cert, private
+path, account name, transaction description, memo, amount, or raw private evidence was
+opened, copied, mutated, committed, or posted.

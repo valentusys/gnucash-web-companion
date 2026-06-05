@@ -15,6 +15,11 @@ RELEASE_NOTES = ROOT / "docs/release/v0.5.0-public-readonly-beta-notes.md"
 RELEASE_FINAL_GATE = ROOT / "docs/release/v0.5.0-public-readonly-beta-final-gate.md"
 RELEASE_PUBLICATION_EVIDENCE = ROOT / "docs/release/v0.5.0-public-readonly-beta-publication-evidence.md"
 COMPATIBILITY_DOC = ROOT / "docs/gnucash-compatibility.md"
+ISSUE_36_REMAINING_GATES = ROOT / "docs/write-alpha/issue-36-remaining-gates.md"
+ISSUE_36_DASHBOARD = ROOT / "docs/write-alpha/controlled-write-readiness-dashboard.md"
+WRITE_EVIDENCE_MATRIX = ROOT / "docs/write-alpha/evidence-matrix.md"
+OWNER_WRITEBETA_APPROVAL_BOUNDARY = ROOT / "docs/release/owner-writebeta-owner-approval-boundary.md"
+OWNER_WRITEBETA_UNRELEASED = ROOT / "docs/release/v0.4-owner-writebeta-readiness-unreleased.md"
 ISSUE_28_CLOSURE_AUDIT = ROOT / "docs/development/issue-28-closure-audit.md"
 PUBLIC_FEEDBACK_PACKET = ROOT / "docs/community/public-readonly-beta-feedback-packet.md"
 
@@ -164,6 +169,25 @@ def test_compatibility_readability_guard_requires_top_blocker_navigation() -> No
     problems = checker.check_documents(docs)
 
     assert any("missing #22 Desktop fixture closure navigation" in problem for problem in problems)
+
+
+def test_issue_36_owner_writebeta_docs_are_in_default_readability_guard() -> None:
+    checker = _load_checker()
+    default_doc_names = {path.as_posix() for path in checker.DEFAULT_DOCS}
+    guarded_docs = {
+        "docs/write-alpha/issue-36-remaining-gates.md": ISSUE_36_REMAINING_GATES,
+        "docs/write-alpha/controlled-write-readiness-dashboard.md": ISSUE_36_DASHBOARD,
+        "docs/write-alpha/evidence-matrix.md": WRITE_EVIDENCE_MATRIX,
+        "docs/release/owner-writebeta-owner-approval-boundary.md": OWNER_WRITEBETA_APPROVAL_BOUNDARY,
+        "docs/release/v0.4-owner-writebeta-readiness-unreleased.md": OWNER_WRITEBETA_UNRELEASED,
+    }
+
+    for rel in guarded_docs:
+        assert rel in default_doc_names
+
+    docs = {rel: path.read_text(encoding="utf-8") for rel, path in guarded_docs.items()}
+
+    assert not checker.check_documents(docs)
 
 
 def test_markdown_readability_checker_fails_closed_for_missing_status_safety_and_links() -> None:
