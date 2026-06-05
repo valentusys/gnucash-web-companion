@@ -97,6 +97,10 @@ For local pre-alpha use, prefer stopping containers before copying SQLite files.
 
 Run restore dry-runs into a separate disposable directory first. Do not overwrite your only working copy until the dry-run has been verified.
 
+Docs/tests-only restore-readiness wording checks are not restore drills. They may reference only tracked docs, guard output, and pytest assertions; they must not create backup artifacts, restore artifacts, app DB records, filesystem evidence, screenshots, CSV exports, private paths, account names, memos, amounts, books, or backups. Treat any disabled-write probe in this context as a documented no-op expectation under `GNUCASH_WRITES_ENABLED=false`, not an executed product mutation or recovery proof.
+
+Readiness evidence for a real restore drill must still be produced only in a separately authorized copied/restorable or synthetic/disposable fixture under the applicable `APP_ENV=test` gate. Public wording must keep backup and restore helper availability as prerequisites only; it must not claim public write beta readiness, stable or production safety, security-audited status, broad compatibility, or only-copy safety.
+
 Example dry-run workspace:
 
 ```bash

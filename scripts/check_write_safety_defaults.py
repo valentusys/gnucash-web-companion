@@ -41,6 +41,7 @@ COPIED_DOGFOOD_PACKET_DOC = Path("docs/write-alpha/copied-book-dogfood-readiness
 AFTER_W3_READINESS_BOUNDARY_DOC = Path("docs/write-alpha/after-w3-readiness-boundary.md")
 BACKUP_RESTORE_READINESS_DOC = Path("docs/write-alpha/backup-restore-readiness-checklist.md")
 BACKUP_RESTORE_UX_DOC = Path("docs/write-alpha/backup-restore-ux-design.md")
+BACKUP_RECOVERY_RUNBOOK_DOC = Path("docs/operations/backup-and-recovery.md")
 OWNER_WRITEBETA_OPERATING_GUIDE_DOC = Path("docs/write-alpha/owner-writebeta-operating-guide.md")
 OWNER_WRITEBETA_APPROVAL_BOUNDARY_DOC = Path("docs/release/owner-writebeta-owner-approval-boundary.md")
 OWNER_WRITEBETA_UNRELEASED_DOC = Path("docs/release/v0.4-owner-writebeta-readiness-unreleased.md")
@@ -394,6 +395,31 @@ def _check_backup_restore_ux_design(path: Path) -> list[str]:
     return ["backup/restore UX design must preserve docs/tests-only safety wording: " + ", ".join(missing)] if missing else []
 
 
+def _check_backup_recovery_runbook(path: Path) -> list[str]:
+    text = _read(REPO_ROOT / path if not path.is_absolute() else path)
+    normalized = _normalized(text)
+    required = (
+        "docs/tests-only restore-readiness wording checks are not restore drills",
+        "must not create backup artifacts",
+        "restore artifacts",
+        "app DB records",
+        "filesystem evidence",
+        "private paths, account names, memos, amounts, books, or backups",
+        "documented no-op expectation under `GNUCASH_WRITES_ENABLED=false`",
+        "not an executed product mutation or recovery proof",
+        "copied/restorable or synthetic/disposable fixture",
+        "APP_ENV=test",
+        "prerequisites only",
+        "public write beta readiness",
+        "production safety",
+        "security-audited status",
+        "broad compatibility",
+        "only-copy safety",
+    )
+    missing = [needle for needle in required if _normalized(needle) not in normalized]
+    return ["backup/recovery runbook must preserve docs/tests-only restore-readiness boundary: " + ", ".join(missing)] if missing else []
+
+
 def _check_owner_writebeta_operating_guide(path: Path) -> list[str]:
     text = _read(REPO_ROOT / path if not path.is_absolute() else path)
     normalized = _normalized(text)
@@ -535,6 +561,7 @@ def _check(env_example: Path, compose: Path, gate_doc: Path, checklist_doc: Path
     failures.extend(_check_after_w3_readiness_boundary(AFTER_W3_READINESS_BOUNDARY_DOC))
     failures.extend(_check_backup_restore_readiness(BACKUP_RESTORE_READINESS_DOC))
     failures.extend(_check_backup_restore_ux_design(BACKUP_RESTORE_UX_DOC))
+    failures.extend(_check_backup_recovery_runbook(BACKUP_RECOVERY_RUNBOOK_DOC))
     failures.extend(_check_owner_writebeta_operating_guide(OWNER_WRITEBETA_OPERATING_GUIDE_DOC))
     failures.extend(
         _check_owner_writebeta_release_boundaries(

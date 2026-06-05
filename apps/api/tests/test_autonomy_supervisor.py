@@ -533,6 +533,30 @@ def test_backup_restore_readiness_checklist_keeps_restore_validation_non_mutatin
         assert pattern in text
 
 
+def test_backup_recovery_runbook_keeps_docs_tests_only_readiness_non_mutating():
+    doc = REPO_ROOT / "docs/operations/backup-and-recovery.md"
+
+    text = doc.read_text(encoding="utf-8")
+
+    required = [
+        "Docs/tests-only restore-readiness wording checks are not restore drills",
+        "must not create backup artifacts, restore artifacts, app DB records, filesystem evidence",
+        "private paths, account names, memos, amounts, books, or backups",
+        "documented no-op expectation under `GNUCASH_WRITES_ENABLED=false`",
+        "not an executed product mutation or recovery proof",
+        "copied/restorable or synthetic/disposable fixture",
+        "APP_ENV=test",
+        "prerequisites only",
+        "must not claim public write beta readiness",
+        "production safety",
+        "security-audited status",
+        "broad compatibility",
+        "only-copy safety",
+    ]
+    for pattern in required:
+        assert pattern in text
+
+
 def test_render_prompt_for_backup_restore_readiness_docs_task_keeps_non_mutating_bounds():
     task = supervisor.Task(
         task_id="backup-restore-readiness-docs-tests-r7",
