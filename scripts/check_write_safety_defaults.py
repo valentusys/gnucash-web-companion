@@ -15,6 +15,8 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 WRITE_DEFAULT_TEXT = "GNUCASH_WRITES_ENABLED=false"
 COMPOSE_WRITE_DEFAULT_TEXT = "GNUCASH_WRITES_ENABLED=${GNUCASH_WRITES_ENABLED:-false}"
+APP_ENV_DEFAULT_TEXT = "APP_ENV=development"
+COMPOSE_APP_ENV_DEFAULT_TEXT = "APP_ENV=${APP_ENV:-development}"
 APP_ENV_GATE_TEXT = "APP_ENV=test"
 EXPLICIT_WRITE_ENABLE_TEXT = "explicit write enablement"
 RESET_TEXT = "reset"
@@ -342,10 +344,18 @@ def _check(env_example: Path, compose: Path, gate_doc: Path, checklist_doc: Path
         failures.append(".env.example must set GNUCASH_WRITES_ENABLED=false")
     if "GNUCASH_WRITES_ENABLED=true" in env_text:
         failures.append(".env.example must not default or suggest GNUCASH_WRITES_ENABLED=true")
+    if APP_ENV_DEFAULT_TEXT not in env_text:
+        failures.append(".env.example must default APP_ENV to development, not test")
+    if "APP_ENV=test" in env_text:
+        failures.append(".env.example must not default APP_ENV=test")
     if COMPOSE_WRITE_DEFAULT_TEXT not in compose_text:
         failures.append("Docker Compose must render GNUCASH_WRITES_ENABLED default false")
     if "GNUCASH_WRITES_ENABLED=${GNUCASH_WRITES_ENABLED:-true}" in compose_text:
         failures.append("Docker Compose must not default GNUCASH_WRITES_ENABLED true")
+    if COMPOSE_APP_ENV_DEFAULT_TEXT not in compose_text:
+        failures.append("Docker Compose must render APP_ENV default development, not test")
+    if "APP_ENV=${APP_ENV:-test}" in compose_text:
+        failures.append("Docker Compose must not default APP_ENV=test")
     if APP_ENV_GATE_TEXT not in gate_text:
         failures.append("write-readiness documentation must preserve APP_ENV=test gate text")
     if EXPLICIT_WRITE_ENABLE_TEXT not in gate_text_normalized:
@@ -405,6 +415,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     print(
         "write-safety defaults ok: GNUCASH_WRITES_ENABLED=false; "
+        "APP_ENV=development default present; "
         "APP_ENV=test gate text present; explicit write enablement present; "
         "reset/default-disabled probe wording present"
     )
