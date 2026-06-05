@@ -618,6 +618,32 @@ def test_backup_recovery_runbook_keeps_docs_tests_only_readiness_non_mutating():
         assert pattern in text
 
 
+def test_restore_safety_boundary_keeps_docs_tests_only_review_non_operational():
+    doc = REPO_ROOT / "docs/write-alpha/restore-safety-boundary.md"
+
+    text = doc.read_text(encoding="utf-8")
+
+    required = [
+        "Status: non-mutating guard document",
+        "Restore-to-copy means a copied/restorable fixture or synthetic/disposable target",
+        "must not overwrite a real working book",
+        "GNUCASH_WRITES_ENABLED=false",
+        "APP_ENV=test",
+        "Mutation counts for this boundary package: CREATE 0 / PATCH 0 / DELETE 0",
+        "Generated docs/tests-only readiness tasks may inspect tracked wording and guard assertions only",
+        "NOT_RESTORE_DRILL",
+        "NO_BACKUP_ARTIFACT_CREATED",
+        "DO_NOT_ENABLE_WRITES",
+        "NO_PRIVATE_DATA_REVIEWED",
+        "must not run restore commands, create backup artifacts, open books, mutate GnuCash data",
+        "inspect runtime logs, or collect private path evidence",
+        "checkpoint rather than broadening into dogfood, backup creation, restore execution, or private-data inspection",
+        "By itself this boundary keeps #36 open",
+    ]
+    for pattern in required:
+        assert pattern in text
+
+
 def test_render_prompt_for_backup_restore_readiness_docs_task_keeps_non_mutating_bounds():
     task = supervisor.Task(
         task_id="backup-restore-readiness-docs-tests-r7",

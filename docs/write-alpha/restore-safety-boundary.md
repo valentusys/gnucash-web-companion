@@ -21,6 +21,12 @@ Status: non-mutating guard document. This is not execution approval, not destruc
 
 Allowed public evidence is limited to command names, pass/fail status, redacted fixture class, route family/count, and redacted safety outcome. Public docs must not include GnuCash books, SQLite books, app DBs, backups, CSV exports, screenshots, `.env`, tokens, keys, certs, private paths, account names, transaction descriptions, memos, amounts, or raw private evidence.
 
+## Docs/tests-only readiness wording
+
+Generated docs/tests-only readiness tasks may inspect tracked wording and guard assertions only. They must report review-only evidence with these negative labels: `NOT_RESTORE_DRILL`, `NO_BACKUP_ARTIFACT_CREATED`, `DO_NOT_ENABLE_WRITES`, and `NO_PRIVATE_DATA_REVIEWED`.
+
+This wording check must not run restore commands, create backup artifacts, open books, mutate GnuCash data, inspect runtime logs, or collect private path evidence. If tracked docs and tests cannot prove the boundary, the safe outcome is a checkpoint rather than broadening into dogfood, backup creation, restore execution, or private-data inspection.
+
 ## Closure implication
 
 Restore readiness helps #36 only when paired with current state-machine, default-disabled, compatibility, copied/restorable authorization, and PM closure evidence. By itself this boundary keeps #36 open.
