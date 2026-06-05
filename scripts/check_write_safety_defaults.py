@@ -41,6 +41,8 @@ COPIED_DOGFOOD_PACKET_DOC = Path("docs/write-alpha/copied-book-dogfood-readiness
 AFTER_W3_READINESS_BOUNDARY_DOC = Path("docs/write-alpha/after-w3-readiness-boundary.md")
 BACKUP_RESTORE_READINESS_DOC = Path("docs/write-alpha/backup-restore-readiness-checklist.md")
 OWNER_WRITEBETA_OPERATING_GUIDE_DOC = Path("docs/write-alpha/owner-writebeta-operating-guide.md")
+OWNER_WRITEBETA_APPROVAL_BOUNDARY_DOC = Path("docs/release/owner-writebeta-owner-approval-boundary.md")
+OWNER_WRITEBETA_UNRELEASED_DOC = Path("docs/release/v0.4-owner-writebeta-readiness-unreleased.md")
 API_CONFIG_FILE = Path("apps/api/app/config.py")
 WRITE_ROUTES_FILE = Path("apps/api/app/routers/transactions.py")
 WRITE_ROUTE_FUNCTIONS = (
@@ -335,6 +337,28 @@ def _check_owner_writebeta_operating_guide(path: Path) -> list[str]:
     return ["owner-writebeta operating guide must preserve: " + ", ".join(missing)] if missing else []
 
 
+def _check_owner_writebeta_release_boundaries(paths: tuple[Path, ...]) -> list[str]:
+    combined = ""
+    for path in paths:
+        combined += " " + _normalized(_read(REPO_ROOT / path if not path.is_absolute() else path))
+    required = (
+        "NO_RELEASE_KEEP_MAINTENANCE",
+        "UNRELEASED_UNTIL_OWNER_APPROVAL",
+        "not release notes",
+        "not release authorization",
+        "owner/PM release-candidate approval",
+        "no public write beta",
+        "no stable, production-ready, or security-audited claim",
+        "no broad GnuCash version compatibility claim",
+        "no real/private/original/working/only-copy book safety claim",
+        "GNUCASH_WRITES_ENABLED=false",
+        "APP_ENV=test",
+        "No tag, GitHub release, package, image, or release notes are authorized",
+    )
+    missing = [needle for needle in required if _normalized(needle) not in combined]
+    return ["owner-writebeta release boundary docs must preserve: " + ", ".join(missing)] if missing else []
+
+
 def _compose_service_environment_lines(compose_text: str, service_name: str) -> list[str]:
     """Extract list-form environment lines for one Compose service.
 
@@ -429,6 +453,11 @@ def _check(env_example: Path, compose: Path, gate_doc: Path, checklist_doc: Path
     failures.extend(_check_after_w3_readiness_boundary(AFTER_W3_READINESS_BOUNDARY_DOC))
     failures.extend(_check_backup_restore_readiness(BACKUP_RESTORE_READINESS_DOC))
     failures.extend(_check_owner_writebeta_operating_guide(OWNER_WRITEBETA_OPERATING_GUIDE_DOC))
+    failures.extend(
+        _check_owner_writebeta_release_boundaries(
+            (OWNER_WRITEBETA_APPROVAL_BOUNDARY_DOC, OWNER_WRITEBETA_UNRELEASED_DOC)
+        )
+    )
     return failures
 
 

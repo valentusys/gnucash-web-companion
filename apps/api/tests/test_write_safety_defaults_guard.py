@@ -483,3 +483,27 @@ def test_write_safety_defaults_guard_rejects_missing_after_w3_boundary_marker(
     assert any("not a real-book claim" in failure for failure in failures)
     assert any("#22 closed only for narrow Desktop-generated synthetic SQLite fixture evidence" in failure for failure in failures)
     assert str(tmp_path) not in "; ".join(failures)
+
+
+def test_write_safety_defaults_guard_rejects_missing_owner_writebeta_release_boundary_marker(
+    tmp_path: Path,
+) -> None:
+    approval = tmp_path / "approval.md"
+    unreleased = tmp_path / "unreleased.md"
+    approval.write_text(
+        "NO_RELEASE_KEEP_MAINTENANCE. not release notes. owner/PM release-candidate approval. "
+        "no public write beta. GNUCASH_WRITES_ENABLED=false. APP_ENV=test.\n",
+        encoding="utf-8",
+    )
+    unreleased.write_text(
+        "UNRELEASED_UNTIL_OWNER_APPROVAL. not release authorization. "
+        "No tag, GitHub release, package, image, or release notes are authorized.\n",
+        encoding="utf-8",
+    )
+
+    failures = write_safety_guard._check_owner_writebeta_release_boundaries((approval, unreleased))
+
+    assert any("no stable, production-ready, or security-audited claim" in failure for failure in failures)
+    assert any("no broad GnuCash version compatibility claim" in failure for failure in failures)
+    assert any("no real/private/original/working/only-copy book safety claim" in failure for failure in failures)
+    assert str(tmp_path) not in "; ".join(failures)
