@@ -390,6 +390,75 @@ For the current issue #36 task, these are documentation-only expectations. They
 are not permission to open, copy, inspect, or mutate a real/private/original/
 working/only-copy book.
 
+## R7 prerequisite custody checklist
+
+Before a future real working-book trial can request approval, the operator must
+separate custody of each prerequisite from the tracked repository. The approval
+packet may record only redacted pass/fail summaries for these prerequisites:
+
+1. Target custody: the target class is owner-controlled, restorable, not original,
+   not only-copy, and not inside the repository or an ignored runtime artifact that
+   could be accidentally committed.
+2. Backup custody: an independent backup exists before arming writes, and restore
+   is proven only against a copy that is safe to discard.
+3. Runtime custody: the temporary write-enabled runtime is isolated to
+   `APP_ENV=test`, has an explicit reset step, and cannot change committed
+   defaults or rendered Compose to write-enabled.
+4. Evidence custody: raw logs, screenshots, books, backups, app DBs, exports,
+   `.env` files, tokens, keys, certs, private paths, account names, transaction
+   descriptions, memos, and amounts remain outside git and outside public status
+   reports.
+5. Decision custody: owner and PM approvals are recorded as same-context,
+   same-packet decisions without private details.
+
+If custody for any prerequisite is unclear, the future packet remains blocked.
+Do not inspect private books or local runtime data to repair the packet for this
+issue #36 documentation task.
+
+## R7 no-trial dry review checklist
+
+A safe dry review of a future packet may only answer these questions from the
+packet text and conservative guard output:
+
+- Does the packet name one route family, one operation shape, and an exact
+  mutation count?
+- Does it keep `GNUCASH_WRITES_ENABLED=false` as the default and preserve
+  `APP_ENV=test` as the only enabled-write gate?
+- Does it define backup, restore-to-copy, reset, and disabled-probe checkpoints
+  before any mutation could run?
+- Does it state that missing, stale, mismatched, or broader approvals leave the
+  trial blocked?
+- Does it forbid release publication, public write beta wording, stable status,
+  production-ready status, security-audited status, broad compatibility claims,
+  and only-copy safety claims?
+- Can the final report be written with command names, exit statuses, approved
+  operation count, redacted IDs, and pass/fail results only?
+
+A dry review that answers no or unknown to any item must stop as blocked. The
+review must not open, copy, inspect, or mutate a real/private/original/working/
+only-copy book, and it must not run product dogfood.
+
+## R7 rollback communication requirements
+
+A future approved packet must define how rollback status is communicated before
+runtime arming. The minimum communication contract is:
+
+1. Report `blocked before mutation` when approval, target custody, writer closure,
+   backup, lock, preview, or confirmation fails.
+2. Report `rollback review` when route response, audit trail, read-back,
+   compatibility check, or restore-to-copy proof is missing or inconsistent after
+   a mutation.
+3. Report `blocked after reset attempt` when the reset command or disabled probe
+   cannot prove writes are disabled again.
+4. Never report success, readiness, release status, public write beta status, or
+   only-copy safety when any rollback checkpoint is missing, private-only, or
+   inconsistent.
+5. Keep all rollback communication redacted enough to pass tracked-hygiene and
+   public-status guards.
+
+Rollback communication is status reporting only. It does not authorize another
+mutation, a compensating write, or restoration over an original or only-copy book.
+
 ## Stop result for the current task
 
 For issue #36, this runbook records that a real working-book trial remains
