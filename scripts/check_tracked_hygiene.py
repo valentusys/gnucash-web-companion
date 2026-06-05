@@ -114,11 +114,11 @@ FORBIDDEN_PRIVATE_EVIDENCE_MARKERS = (
 # evidence guard. Keep these label patterns narrow to avoid blocking negative
 # prose that merely discusses privacy rules.
 FORBIDDEN_PRIVATE_EVIDENCE_LABEL_PATTERNS = (
-    re.compile(r"^\s*(?:raw[ _-])?private[ _-]path\s*[:=]", re.I),
-    re.compile(r"^\s*(?:original|only-copy|private|real)[ _-]gnucash[ _-]path\s*[:=]", re.I),
-    re.compile(r"^\s*private[ _-]book[ _-]path\s*[:=]", re.I),
-    re.compile(r"^\s*real[ _-]account[ _-]name\s*[:=]", re.I),
-    re.compile(r"^\s*transaction[ _-](?:description|memo|amount)\s*[:=]", re.I),
+    re.compile(r"^\s*(?:[-*+]\s+|>\s*)?(?:raw[ _-])?private[ _-]path\s*[:=]", re.I),
+    re.compile(r"^\s*(?:[-*+]\s+|>\s*)?(?:original|only-copy|private|real)[ _-]gnucash[ _-]path\s*[:=]", re.I),
+    re.compile(r"^\s*(?:[-*+]\s+|>\s*)?private[ _-]book[ _-]path\s*[:=]", re.I),
+    re.compile(r"^\s*(?:[-*+]\s+|>\s*)?real[ _-]account[ _-]name\s*[:=]", re.I),
+    re.compile(r"^\s*(?:[-*+]\s+|>\s*)?transaction[ _-](?:description|memo|amount)\s*[:=]", re.I),
 )
 
 # Tracked hygiene runs over every tracked file, so these patterns are narrower
@@ -127,6 +127,7 @@ FORBIDDEN_PRIVATE_EVIDENCE_LABEL_PATTERNS = (
 FORBIDDEN_UNSAFE_AFFIRMATIVE_PATTERNS = (
     re.compile(r"\bpublic\s+write\s+beta\s+(?:is\s+)?(?:ready|available|open|enabled|supported)\b", re.I),
     re.compile(r"\bpublic\s+write\s+beta\s+(?:launch|release|rollout)\s+(?:is\s+)?(?:ready|approved|authorized)\b", re.I),
+    re.compile(r"\bwrite\s+beta\s+(?:is\s+)?(?:ready|available|open|enabled|supported)\b", re.I),
     re.compile(r"\bbroad\s+GnuCash\s+(?:Desktop\s+)?compatibility\s+(?:is\s+)?(?:ready|available|supported|claimed|proven)\b", re.I),
     re.compile(r"\bbroad\s+GnuCash\s+(?:Desktop\s+)?compatibility\s+(?:is\s+)?(?:validated|confirmed)\b", re.I),
     re.compile(r"\bonly-copy\s+(?:books?\s+)?(?:are\s+)?safe\s+(?:for\s+)?(?:writes?|mutation|write mode)\b", re.I),

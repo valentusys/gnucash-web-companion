@@ -131,6 +131,27 @@ def test_content_violations_reject_human_written_private_evidence_labels(tmp_pat
     ]
 
 
+def test_content_violations_reject_markdown_private_evidence_labels(tmp_path, monkeypatch):
+    sample = tmp_path / "public-report.md"
+    sample.write_text(
+        "- Private path: /redacted\n"
+        "* Original GnuCash path = /redacted\n"
+        "+ Real account name: Redacted Account\n"
+        "> Transaction memo: Redacted memo\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
+
+    problems = guard.content_violations([sample])
+
+    assert problems == [
+        "tracked raw private-evidence label in public-report.md:1: - Private path: /redacted",
+        "tracked raw private-evidence label in public-report.md:2: * Original GnuCash path = /redacted",
+        "tracked raw private-evidence label in public-report.md:3: + Real account name: Redacted Account",
+        "tracked raw private-evidence label in public-report.md:4: > Transaction memo: Redacted memo",
+    ]
+
+
 def test_content_violations_reject_unsafe_affirmative_wording(tmp_path, monkeypatch):
     sample = tmp_path / "release.md"
     sample.write_text(
@@ -157,6 +178,22 @@ def test_content_violations_reject_unsafe_affirmative_wording(tmp_path, monkeypa
         "tracked unsafe affirmative wording in release.md:6: Production-ready release published.",
         "tracked unsafe affirmative wording in release.md:7: Stable release is ready.",
         "tracked unsafe affirmative wording in release.md:8: Write beta is production-ready.",
+    ]
+
+
+def test_content_violations_reject_write_beta_ready_without_public_prefix(tmp_path, monkeypatch):
+    sample = tmp_path / "release.md"
+    sample.write_text(
+        "Write beta is ready.\nWrite beta available for public use.\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
+
+    problems = guard.content_violations([sample])
+
+    assert problems == [
+        "tracked unsafe affirmative wording in release.md:1: Write beta is ready.",
+        "tracked unsafe affirmative wording in release.md:2: Write beta available for public use.",
     ]
 
 
