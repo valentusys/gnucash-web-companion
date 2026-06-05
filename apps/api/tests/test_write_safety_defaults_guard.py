@@ -511,7 +511,30 @@ def test_write_safety_defaults_guard_rejects_write_route_missing_app_env_gate(tm
 
     assert any("block non-test APP_ENV" in failure for failure in failures)
     assert any("test-environment scope wording" in failure for failure in failures)
+    assert any("executable settings.app_env.lower() == test logic" in failure for failure in failures)
     assert any("_ensure_write_alpha_test_scope" in failure for failure in failures)
+    assert str(tmp_path) not in "; ".join(failures)
+
+
+def test_write_safety_defaults_guard_rejects_docstring_only_app_env_gate(tmp_path: Path) -> None:
+    routes = tmp_path / "transactions.py"
+    route_defs = "\n".join(
+        f"async def {name}():\n"
+        "    _ensure_writes_enabled(settings)\n"
+        "    _ensure_write_alpha_test_scope(settings)\n"
+        for name in write_safety_guard.WRITE_ROUTE_FUNCTIONS
+    )
+    routes.write_text(
+        "def _ensure_write_alpha_test_scope(settings):\n"
+        "    '''settings.app_env.lower() != \"test\" controlled write-alpha routes are limited to explicit test-environment'''\n"
+        "    return None\n\n"
+        f"{route_defs}\n",
+        encoding="utf-8",
+    )
+
+    failures = write_safety_guard._check_write_route_test_gates(routes)
+
+    assert any("executable settings.app_env.lower() == test logic" in failure for failure in failures)
     assert str(tmp_path) not in "; ".join(failures)
 
 
