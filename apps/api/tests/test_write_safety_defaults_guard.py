@@ -273,6 +273,43 @@ def test_write_safety_defaults_guard_rejects_missing_copied_dogfood_packet_marke
     assert str(tmp_path) not in "; ".join(failures)
 
 
+def test_write_safety_defaults_guard_rejects_api_write_default_true(tmp_path: Path) -> None:
+    config = tmp_path / "config.py"
+    config.write_text(
+        "class Settings:\n"
+        "    app_env: str = 'development'\n"
+        "    gnucash_writes_enabled: bool = True\n",
+        encoding="utf-8",
+    )
+
+    failures = write_safety_guard._check_api_write_defaults(config)
+
+    assert any("gnucash_writes_enabled to False" in failure for failure in failures)
+    assert any("non-False value" in failure for failure in failures)
+    assert str(tmp_path) not in "; ".join(failures)
+
+
+def test_write_safety_defaults_guard_rejects_write_route_missing_app_env_gate(tmp_path: Path) -> None:
+    routes = tmp_path / "transactions.py"
+    route_defs = "\n".join(
+        f"async def {name}():\n    _ensure_writes_enabled(settings)\n"
+        for name in write_safety_guard.WRITE_ROUTE_FUNCTIONS
+    )
+    routes.write_text(
+        "def _ensure_write_alpha_test_scope(settings):\n"
+        "    return None\n\n"
+        f"{route_defs}\n",
+        encoding="utf-8",
+    )
+
+    failures = write_safety_guard._check_write_route_test_gates(routes)
+
+    assert any("block non-test APP_ENV" in failure for failure in failures)
+    assert any("test-environment scope wording" in failure for failure in failures)
+    assert any("_ensure_write_alpha_test_scope" in failure for failure in failures)
+    assert str(tmp_path) not in "; ".join(failures)
+
+
 def test_write_safety_defaults_guard_rejects_missing_after_w3_boundary_marker(
     tmp_path: Path,
 ) -> None:

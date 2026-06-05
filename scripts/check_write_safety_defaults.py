@@ -8,6 +8,7 @@ and that public/default write-readiness docs still mention the APP_ENV=test gate
 from __future__ import annotations
 
 import argparse
+import ast
 import sys
 from pathlib import Path
 
@@ -37,6 +38,14 @@ RESTORE_BOUNDARY_DOC = Path("docs/write-alpha/restore-safety-boundary.md")
 COPIED_DOGFOOD_PACKET_DOC = Path("docs/write-alpha/copied-book-dogfood-readiness-packet.md")
 AFTER_W3_READINESS_BOUNDARY_DOC = Path("docs/write-alpha/after-w3-readiness-boundary.md")
 BACKUP_RESTORE_READINESS_DOC = Path("docs/write-alpha/backup-restore-readiness-checklist.md")
+API_CONFIG_FILE = Path("apps/api/app/config.py")
+WRITE_ROUTES_FILE = Path("apps/api/app/routers/transactions.py")
+WRITE_ROUTE_FUNCTIONS = (
+    "validate_book_transaction",
+    "create_book_transaction",
+    "patch_book_transaction",
+    "delete_book_transaction",
+)
 WRITE_COMPATIBILITY_REQUIRED_TEXTS = (
     "supported-version write compatibility remains pending",
     "synthetic/disposable or copied/restorable evidence only",
@@ -71,6 +80,70 @@ def _read(path: Path) -> str:
         return path.read_text(encoding="utf-8")
     except OSError as exc:
         raise GuardError("required safety file could not be read") from exc
+
+
+def _parse_python(path: Path) -> ast.Module:
+    try:
+        return ast.parse(_read(path), filename=str(path.name))
+    except SyntaxError as exc:
+        raise GuardError("required safety Python file could not be parsed") from exc
+
+
+def _call_names(node: ast.AST) -> set[str]:
+    names: set[str] = set()
+    for child in ast.walk(node):
+        if isinstance(child, ast.Call):
+            func = child.func
+            if isinstance(func, ast.Name):
+                names.add(func.id)
+            elif isinstance(func, ast.Attribute):
+                names.add(func.attr)
+    return names
+
+
+def _check_api_write_defaults(config_path: Path = REPO_ROOT / API_CONFIG_FILE) -> list[str]:
+    failures: list[str] = []
+    tree = _parse_python(config_path)
+    default_found = False
+    unsafe_default_found = False
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.AnnAssign):
+            continue
+        if not isinstance(node.target, ast.Name) or node.target.id != "gnucash_writes_enabled":
+            continue
+        if isinstance(node.value, ast.Constant) and node.value.value is False:
+            default_found = True
+        else:
+            unsafe_default_found = True
+    if not default_found:
+        failures.append("API Settings must default gnucash_writes_enabled to False")
+    if unsafe_default_found:
+        failures.append("API Settings must not default gnucash_writes_enabled to a non-False value")
+    return failures
+
+
+def _check_write_route_test_gates(routes_path: Path = REPO_ROOT / WRITE_ROUTES_FILE) -> list[str]:
+    failures: list[str] = []
+    text = _read(routes_path)
+    normalized = _normalized(text)
+    if 'settings.app_env.lower() != "test"' not in text:
+        failures.append("write-alpha test-scope helper must explicitly block non-test APP_ENV")
+    if "controlled write-alpha routes are limited to explicit test-environment" not in normalized:
+        failures.append("write-alpha non-test failure detail must preserve test-environment scope wording")
+
+    tree = _parse_python(routes_path)
+    functions = {node.name: node for node in ast.walk(tree) if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
+    for function_name in WRITE_ROUTE_FUNCTIONS:
+        node = functions.get(function_name)
+        if node is None:
+            failures.append(f"write route {function_name} must exist")
+            continue
+        calls = _call_names(node)
+        if "_ensure_writes_enabled" not in calls:
+            failures.append(f"write route {function_name} must call _ensure_writes_enabled")
+        if "_ensure_write_alpha_test_scope" not in calls:
+            failures.append(f"write route {function_name} must call _ensure_write_alpha_test_scope")
+    return failures
 
 
 def _check_write_compatibility_docs(paths: tuple[Path, ...]) -> list[str]:
@@ -242,6 +315,8 @@ def _check(env_example: Path, compose: Path, gate_doc: Path, checklist_doc: Path
         ]
         if missing:
             failures.append("#36 audit checklist must preserve: " + ", ".join(missing))
+    failures.extend(_check_api_write_defaults())
+    failures.extend(_check_write_route_test_gates())
     failures.extend(_check_write_compatibility_docs(WRITE_COMPATIBILITY_DOCS))
     failures.extend(_check_issue_36_remaining_gates(ISSUE_36_REMAINING_GATES_DOC))
     failures.extend(_check_issue_36_dashboard(ISSUE_36_DASHBOARD_DOC))
