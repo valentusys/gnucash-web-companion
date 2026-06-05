@@ -117,6 +117,21 @@ Do not turn this page into a release checklist. A checklist would imply that a
 worker may finish the remaining items and publish. The current task state does
 not authorize that path.
 
+
+## Release-artifact stop line
+
+Stop before creating or editing any artifact whose normal purpose is publication:
+
+- release notes for owner-writebeta;
+- final release gates or publication evidence;
+- tag, package, image, or announcement instructions;
+- copy that describes owner-writebeta as available to public users;
+- compatibility or real-book safety wording beyond the accepted narrow evidence.
+
+A docs-only worker may update explanatory no-release text, status navigation, and
+handoff notes. That work remains safe only while it keeps `NO_RELEASE_KEEP_MAINTENANCE`
+as the current state and avoids publication artifacts.
+
 ## Reconsideration trigger
 
 A later worker may revisit release-candidate preparation only when the task prompt
