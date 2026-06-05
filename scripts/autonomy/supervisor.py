@@ -56,6 +56,10 @@ FORBIDDEN_POLICY_MARKERS = (
     "production-ready",
     "stable release",
     "security-audited",
+    "broad compatibility is",
+    "broad compatibility proven",
+    "broad compatibility claim authorized",
+    "broad compatibility ready",
 )
 FORBIDDEN_VERIFICATION_COMMAND_MARKERS = (
     "gh release",

@@ -306,6 +306,20 @@ def test_generated_policy_rejects_public_write_beta_release_claims(tmp_path):
     assert supervisor.load_safe_policy_tasks(policy) == []
 
 
+def test_generated_policy_rejects_broad_compatibility_claims(tmp_path):
+    policy = write_policy(
+        tmp_path,
+        SAMPLE_POLICY.replace(
+            "Audit owner-writebeta remaining gates without touching private data.",
+            "Declare broad compatibility is proven for owner-writebeta.",
+        ),
+    )
+
+    safe_tasks = supervisor.load_safe_policy_tasks(policy)
+
+    assert [task.task_id for task in safe_tasks] == ["generated-final-gate"]
+
+
 def test_generated_policy_rejects_release_verification_commands(tmp_path):
     policy = write_policy(tmp_path, UNSAFE_GENERATED_VERIFICATION_POLICY)
 
