@@ -116,8 +116,12 @@ FORBIDDEN_PRIVATE_EVIDENCE_MARKERS = (
 FORBIDDEN_PRIVATE_EVIDENCE_LABEL_PATTERNS = (
     re.compile(r"^\s*(?:[-*+]\s+|>\s*)?(?:raw[ _-])?private[ _-]path\s*[:=]", re.I),
     re.compile(r"^\s*(?:[-*+]\s+|>\s*)?(?:original|only-copy|private|real)[ _-]gnucash[ _-]path\s*[:=]", re.I),
+    re.compile(r"^\s*(?:[-*+]\s+|>\s*)?gnucash[ _-]path\s*[:=]", re.I),
+    re.compile(r"^\s*(?:[-*+]\s+|>\s*)?book[ _-]path\s*[:=]", re.I),
     re.compile(r"^\s*(?:[-*+]\s+|>\s*)?private[ _-]book[ _-]path\s*[:=]", re.I),
     re.compile(r"^\s*(?:[-*+]\s+|>\s*)?real[ _-]account[ _-]name\s*[:=]", re.I),
+    re.compile(r"^\s*(?:[-*+]\s+|>\s*)?account[ _-]name\s*[:=]", re.I),
+    re.compile(r"^\s*(?:[-*+]\s+|>\s*)?(?:transaction[ _-])?(?:memo|amount)\s*[:=]", re.I),
     re.compile(r"^\s*(?:[-*+]\s+|>\s*)?transaction[ _-](?:description|memo|amount)\s*[:=]", re.I),
 )
 
@@ -126,8 +130,10 @@ FORBIDDEN_PRIVATE_EVIDENCE_LABEL_PATTERNS = (
 # posture claims that should never enter committed docs, tests, or handoffs.
 FORBIDDEN_UNSAFE_AFFIRMATIVE_PATTERNS = (
     re.compile(r"\bpublic\s+write\s+beta\s+(?:is\s+)?(?:ready|available|open|enabled|supported)\b", re.I),
+    re.compile(r"\bpublic\s+write\s+beta\s+(?:is\s+)?(?:approved|authorized|published|released)\b", re.I),
     re.compile(r"\bpublic\s+write\s+beta\s+(?:launch|release|rollout)\s+(?:is\s+)?(?:ready|approved|authorized)\b", re.I),
     re.compile(r"\bwrite\s+beta\s+(?:is\s+)?(?:ready|available|open|enabled|supported)\b", re.I),
+    re.compile(r"\bwrite\s+beta\s+(?:is\s+)?(?:approved|authorized|published|released)\b", re.I),
     re.compile(r"\bbroad\s+GnuCash\s+(?:Desktop\s+)?compatibility\s+(?:is\s+)?(?:ready|available|supported|claimed|proven)\b", re.I),
     re.compile(r"\bbroad\s+GnuCash\s+(?:Desktop\s+)?compatibility\s+(?:is\s+)?(?:validated|confirmed)\b", re.I),
     re.compile(r"\bonly-copy\s+(?:books?\s+)?(?:are\s+)?safe\s+(?:for\s+)?(?:writes?|mutation|write mode)\b", re.I),
@@ -227,6 +233,15 @@ def content_violations(paths: list[Path]) -> list[str]:
         if path.suffix.lower() not in UNSAFE_WORDING_SCANNED_SUFFIXES:
             continue
         for line_number, line in enumerate(text.splitlines(), start=1):
+            lowered_line = line.lower()
+            if "never a real" in lowered_line or "not a real" in lowered_line:
+                continue
+            if re.match(
+                r"^\s*(?:[-*+]\s+|>\s*)?(?:book|gnucash)[ _-]path\s*[:=]\s*<redacted>\s*$",
+                line,
+                re.I,
+            ):
+                continue
             for pattern in FORBIDDEN_PRIVATE_EVIDENCE_LABEL_PATTERNS:
                 if pattern.search(line):
                     problems.append(

@@ -398,6 +398,18 @@ def test_public_status_guard_rejects_affirmative_public_write_beta_claims():
         raise AssertionError("affirmative public write beta claim should fail guard")
 
 
+def test_public_status_guard_rejects_affirmative_public_write_beta_publication_claims():
+    unsafe = "Public write beta is published."
+
+    try:
+        guard.reject_patterns(Path("README.md"), unsafe, guard.UNSAFE_AFFIRMATIVE_PATTERNS)
+    except AssertionError as exc:
+        assert "public" in str(exc).lower()
+        assert "write" in str(exc).lower()
+    else:
+        raise AssertionError("affirmative public write beta publication claim should fail guard")
+
+
 def test_public_status_guard_rejects_affirmative_public_write_beta_launch_claims():
     unsafe = "Public write beta launch is authorized."
 
@@ -419,6 +431,17 @@ def test_public_status_guard_rejects_affirmative_writebeta_status_claims():
         assert "writebeta" in str(exc).lower()
     else:
         raise AssertionError("affirmative writebeta status claim should fail guard")
+
+
+def test_public_status_guard_rejects_affirmative_writebeta_authorization_claims():
+    unsafe = "Owner-writebeta is authorized."
+
+    try:
+        guard.reject_patterns(Path("README.md"), unsafe, guard.UNSAFE_AFFIRMATIVE_PATTERNS)
+    except AssertionError as exc:
+        assert "writebeta" in str(exc).lower()
+    else:
+        raise AssertionError("affirmative writebeta authorization claim should fail guard")
 
 
 def test_public_status_guard_accepts_negative_production_security_limitations():

@@ -115,7 +115,12 @@ def test_content_violations_reject_human_written_private_evidence_labels(tmp_pat
     sample.write_text(
         "Private path: /redacted\n"
         "Original GnuCash path = /redacted\n"
+        "GnuCash path: /redacted\n"
+        "Book path = /redacted\n"
         "Real account name: Redacted Account\n"
+        "Account name: Redacted Account\n"
+        "Memo: Redacted memo\n"
+        "Amount: 0.00\n"
         "Transaction amount: 0.00\n",
         encoding="utf-8",
     )
@@ -126,8 +131,13 @@ def test_content_violations_reject_human_written_private_evidence_labels(tmp_pat
     assert problems == [
         "tracked raw private-evidence label in public-report.md:1: Private path: /redacted",
         "tracked raw private-evidence label in public-report.md:2: Original GnuCash path = /redacted",
-        "tracked raw private-evidence label in public-report.md:3: Real account name: Redacted Account",
-        "tracked raw private-evidence label in public-report.md:4: Transaction amount: 0.00",
+        "tracked raw private-evidence label in public-report.md:3: GnuCash path: /redacted",
+        "tracked raw private-evidence label in public-report.md:4: Book path = /redacted",
+        "tracked raw private-evidence label in public-report.md:5: Real account name: Redacted Account",
+        "tracked raw private-evidence label in public-report.md:6: Account name: Redacted Account",
+        "tracked raw private-evidence label in public-report.md:7: Memo: Redacted memo",
+        "tracked raw private-evidence label in public-report.md:8: Amount: 0.00",
+        "tracked raw private-evidence label in public-report.md:9: Transaction amount: 0.00",
     ]
 
 
@@ -184,7 +194,10 @@ def test_content_violations_reject_unsafe_affirmative_wording(tmp_path, monkeypa
 def test_content_violations_reject_write_beta_ready_without_public_prefix(tmp_path, monkeypatch):
     sample = tmp_path / "release.md"
     sample.write_text(
-        "Write beta is ready.\nWrite beta available for public use.\n",
+        "Write beta is ready.\n"
+        "Write beta available for public use.\n"
+        "Write beta is authorized.\n"
+        "Public write beta is published.\n",
         encoding="utf-8",
     )
     monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
@@ -194,6 +207,8 @@ def test_content_violations_reject_write_beta_ready_without_public_prefix(tmp_pa
     assert problems == [
         "tracked unsafe affirmative wording in release.md:1: Write beta is ready.",
         "tracked unsafe affirmative wording in release.md:2: Write beta available for public use.",
+        "tracked unsafe affirmative wording in release.md:3: Write beta is authorized.",
+        "tracked unsafe affirmative wording in release.md:4: Public write beta is published.",
     ]
 
 
@@ -203,6 +218,19 @@ def test_content_violations_allow_negative_safety_wording(tmp_path, monkeypatch)
         "No public write beta is ready.\n"
         "Do not claim broad GnuCash compatibility is supported.\n"
         "Only-copy books are not safe for writes.\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
+
+    assert guard.content_violations([sample]) == []
+
+
+def test_content_violations_allow_redacted_or_synthetic_non_private_placeholders(tmp_path, monkeypatch):
+    sample = tmp_path / "safe-placeholders.md"
+    sample.write_text(
+        "book_path=<redacted>\n"
+        "GnuCash path: <redacted>\n"
+        "- amount: a trivial synthetic value only, never a real amount.\n",
         encoding="utf-8",
     )
     monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
