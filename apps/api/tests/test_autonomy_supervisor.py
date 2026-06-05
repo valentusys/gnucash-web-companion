@@ -520,6 +520,8 @@ def test_backup_restore_readiness_checklist_keeps_restore_validation_non_mutatin
         "docs/tests-only wording validation is not recovery proof",
         "filesystem backup copies, restore artifacts, app DB records",
         "private path snippets, account names, transaction descriptions, memos, amounts",
+        "backup manifest and checksum wording must use opaque refs plus redacted status summaries only",
+        "never raw paths, filenames, account names, memos, amounts, app DB rows, books, or backup artifacts",
         "write routes are still expected to reject mutation attempts",
         "expected-failure/no-write statement",
         "not approval to run dogfood or touch private data",

@@ -332,6 +332,8 @@ def _check_backup_restore_readiness(path: Path) -> list[str]:
         "documented no-op expectation",
         "app DB records",
         "private path snippets",
+        "backup manifest and checksum wording",
+        "opaque refs plus redacted status summaries only",
         "GNUCASH_WRITES_ENABLED=false",
         "APP_ENV=test",
         "public write beta readiness",
