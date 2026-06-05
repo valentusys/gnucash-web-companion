@@ -27,6 +27,16 @@ A future package must fail closed unless its redacted evidence includes all of t
 | `audit_trail_includes_contention_rejection` | `true` | Proves the audit trail records lock contention/rejection as a failed/rejected write attempt. |
 | `default_disabled_no_write_probe` | `true` | Confirms the default-disabled posture still rejects write probes after the lock-contention evidence package. |
 
+## Docs/tests-only reviewer packet
+
+For non-mutating readiness maintenance, the reviewer packet is limited to wording and guard evidence:
+
+- accepted inputs: tracked docs, pure Python guard output, and pytest assertions that read tracked text only;
+- forbidden inputs: filesystem backup copies, restore artifacts, app DB records, private path snippets, account names, transaction descriptions, memos, amounts, screenshots, or CSV/export rows;
+- proof language must say `docs/tests-only restore-readiness wording check`, not disaster-recovery validation or public write beta readiness;
+- any disabled-write probe described by this packet must remain a documented no-op expectation under `GNUCASH_WRITES_ENABLED=false`, not an executed product mutation;
+- docs/tests-only wording validation is not recovery proof and cannot replace an authorized restore-to-copy drill against a copied/restorable or synthetic/disposable fixture.
+
 ## Code guard
 
 `apps/api/app/write_alpha_readiness.py` exposes:

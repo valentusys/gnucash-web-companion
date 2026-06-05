@@ -471,6 +471,11 @@ def test_backup_restore_readiness_checklist_keeps_restore_validation_non_mutatin
         "opaque restore refs and redacted marker summaries only",
         "do not publish filenames, private paths, account names, descriptions, memos, amounts",
         "does not prove broad compatibility or only-copy safety",
+        "docs/tests-only restore-readiness wording check",
+        "documented no-op expectation under `GNUCASH_WRITES_ENABLED=false`",
+        "docs/tests-only wording validation is not recovery proof",
+        "filesystem backup copies, restore artifacts, app DB records",
+        "private path snippets, account names, transaction descriptions, memos, amounts",
         "GNUCASH_WRITES_ENABLED=false",
         "APP_ENV=test",
     ]
