@@ -124,6 +124,29 @@ def _first_call_line(call_lines: dict[str, list[int]], name: str) -> int | None:
     return min(lines) if lines else None
 
 
+def _decorated_transaction_write_route_functions(tree: ast.Module) -> set[str]:
+    """Return transaction write route function names declared in the router source."""
+    route_functions: set[str] = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        for decorator in node.decorator_list:
+            if not isinstance(decorator, ast.Call):
+                continue
+            func = decorator.func
+            if not isinstance(func, ast.Attribute):
+                continue
+            if func.attr not in {"post", "patch", "delete"}:
+                continue
+            if not decorator.args:
+                continue
+            path_arg = decorator.args[0]
+            if isinstance(path_arg, ast.Constant) and isinstance(path_arg.value, str):
+                if "/transactions" in path_arg.value:
+                    route_functions.add(node.name)
+    return route_functions
+
+
 def _settings_literal_defaults(config_path: Path) -> dict[str, object]:
     tree = _parse_python(config_path)
     defaults: dict[str, object] = {}
@@ -172,6 +195,12 @@ def _check_write_route_test_gates(routes_path: Path = REPO_ROOT / WRITE_ROUTES_F
 
     tree = _parse_python(routes_path)
     functions = {node.name: node for node in ast.walk(tree) if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
+    guarded_routes = set(WRITE_ROUTE_FUNCTIONS)
+    decorated_write_routes = _decorated_transaction_write_route_functions(tree)
+    for function_name in sorted(decorated_write_routes - guarded_routes):
+        failures.append(f"write route {function_name} must be registered in WRITE_ROUTE_FUNCTIONS")
+    for function_name in sorted(guarded_routes - decorated_write_routes):
+        failures.append(f"write route {function_name} must be declared as a transaction write router endpoint")
     for function_name in WRITE_ROUTE_FUNCTIONS:
         node = functions.get(function_name)
         if node is None:
