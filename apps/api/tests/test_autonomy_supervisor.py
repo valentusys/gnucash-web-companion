@@ -454,3 +454,22 @@ def test_backup_restore_ux_doc_preserves_default_disabled_non_mutating_boundary(
     ]
     for pattern in required:
         assert pattern in text
+
+
+def test_backup_restore_readiness_checklist_keeps_restore_validation_non_mutating():
+    doc = REPO_ROOT / "docs/write-alpha/backup-restore-readiness-checklist.md"
+
+    text = doc.read_text(encoding="utf-8")
+
+    required = [
+        "non-mutating guard",
+        "does not authorize any CREATE, PATCH, or DELETE operation",
+        "must not create backups",
+        "must not restore into books",
+        "restore-to-copy validation remains non-mutating",
+        "does not create backup artifacts, restore artifacts, or app DB records",
+        "GNUCASH_WRITES_ENABLED=false",
+        "APP_ENV=test",
+    ]
+    for pattern in required:
+        assert pattern in text
