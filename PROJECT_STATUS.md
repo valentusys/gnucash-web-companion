@@ -21,6 +21,7 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) are closed.
 - Latest handoffs/docs: `docs/handoff/issue22-reconcile-and-issue36-owner-writebeta-final-report.md`,
   `docs/release/v0.4-owner-writebeta-readiness-unreleased.md`,
+  `docs/release/owner-writebeta-owner-approval-boundary.md`,
   `docs/handoff/issue36-current-state-reconcile.md`,
   `docs/handoff/issue36-package-4-owner-writebeta-pm-decision.md`, and
   `docs/handoff/issue36-package-5-release-artifacts-or-skip.md`.
@@ -41,7 +42,9 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
 - Current #36 docs reconciliation: owner-writebeta remains maintenance-only and unreleased until
   explicit owner approval. The guard state still requires default `GNUCASH_WRITES_ENABLED=false`,
   enabled write-alpha/writebeta `APP_ENV=test` gating, no public write beta, no real/private/original/
-  working/only-copy safety claim, and no stable, production-ready, or security-audited wording.
+  working/only-copy safety claim, and no stable, production-ready, or security-audited wording. The
+  owner-approval boundary doc now states that clean checks are repository hygiene only, not release
+  authorization.
 - Recently closed queues: #13, #41, #42, #43.
 
 ## Repository
