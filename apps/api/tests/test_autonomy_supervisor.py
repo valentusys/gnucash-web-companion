@@ -471,6 +471,9 @@ def test_backup_restore_ux_doc_preserves_default_disabled_non_mutating_boundary(
         "Failed restore, read-back, or audit evidence is a hard stop",
         "must not claim public write beta readiness",
         "only-copy safety",
+        "prerequisites only",
+        "must not change the default disabled state",
+        "checkpoint and escalate instead of creating backup or restore evidence",
     ]
     for pattern in required:
         assert pattern in text
@@ -496,6 +499,10 @@ def test_backup_restore_readiness_checklist_keeps_restore_validation_non_mutatin
         "docs/tests-only wording validation is not recovery proof",
         "filesystem backup copies, restore artifacts, app DB records",
         "private path snippets, account names, transaction descriptions, memos, amounts",
+        "write routes are still expected to reject mutation attempts",
+        "expected-failure/no-write statement",
+        "not approval to run dogfood or touch private data",
+        "not a fallback to creating filesystem backup or restore evidence",
         "GNUCASH_WRITES_ENABLED=false",
         "APP_ENV=test",
     ]
@@ -505,7 +512,7 @@ def test_backup_restore_readiness_checklist_keeps_restore_validation_non_mutatin
 
 def test_render_prompt_for_backup_restore_readiness_docs_task_keeps_non_mutating_bounds():
     task = supervisor.Task(
-        task_id="backup-restore-readiness-docs-tests-r6",
+        task_id="backup-restore-readiness-docs-tests-r7",
         target="issue #36 / backup and restore readiness",
         goal="Improve non-mutating backup/restore readiness docs or tests that validate wording and default-disabled safety without touching private data.",
         allowed_scope="docs/**, scripts/check_* guards, apps/api tests for non-mutating backup/restore documentation or guard behavior",

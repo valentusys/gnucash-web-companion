@@ -21,3 +21,5 @@ Docs/tests-only readiness copy:
 - Wording checks may read tracked docs, pure guard code, and pytest assertions only; they must not create backup artifacts, restore artifacts, app DB records, or filesystem evidence.
 - Any disabled-write probe mentioned here is a documented no-op expectation under `GNUCASH_WRITES_ENABLED=false`, not an executed product mutation.
 - Restore-to-copy validation remains a future separately authorized copied/restorable or synthetic/disposable fixture drill under `APP_ENV=test`; docs/tests-only checks do not satisfy that drill.
+- Backup availability and restore-helper readiness are displayed as prerequisites only; they must not change the default disabled state or invite retrying on the same copy after failed restore/read-back/audit evidence.
+- If the operator cannot verify restore wording from tracked docs/tests alone, the UX copy should direct them to checkpoint and escalate instead of creating backup or restore evidence.

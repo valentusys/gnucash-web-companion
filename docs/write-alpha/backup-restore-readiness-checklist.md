@@ -37,6 +37,15 @@ For non-mutating readiness maintenance, the reviewer packet is limited to wordin
 - any disabled-write probe described by this packet must remain a documented no-op expectation under `GNUCASH_WRITES_ENABLED=false`, not an executed product mutation;
 - docs/tests-only wording validation is not recovery proof and cannot replace an authorized restore-to-copy drill against a copied/restorable or synthetic/disposable fixture.
 
+## Default-disabled wording contract
+
+Docs/tests-only checks may prove that the repository wording stayed conservative, but they must not convert backup/restore readiness into write permission. The wording contract for this task class is:
+
+- default-disabled restore readiness means write routes are still expected to reject mutation attempts unless a separately authorized `APP_ENV=test` write session is explicitly armed;
+- a documented disabled-write probe is an expected-failure/no-write statement, not evidence that the application mutated or restored a book;
+- backup availability, restore helper availability, and restore-to-copy planning are prerequisites for future authorization, not approval to run dogfood or touch private data;
+- if restore wording cannot be verified from tracked docs/tests alone, the safe result is a checkpoint, not a fallback to creating filesystem backup or restore evidence.
+
 ## Code guard
 
 `apps/api/app/write_alpha_readiness.py` exposes:
