@@ -124,24 +124,40 @@ def _first_call_line(call_lines: dict[str, list[int]], name: str) -> int | None:
     return min(lines) if lines else None
 
 
-def _check_api_write_defaults(config_path: Path = REPO_ROOT / API_CONFIG_FILE) -> list[str]:
-    failures: list[str] = []
+def _settings_literal_defaults(config_path: Path) -> dict[str, object]:
     tree = _parse_python(config_path)
-    default_found = False
-    unsafe_default_found = False
+    defaults: dict[str, object] = {}
     for node in ast.walk(tree):
         if not isinstance(node, ast.AnnAssign):
             continue
-        if not isinstance(node.target, ast.Name) or node.target.id != "gnucash_writes_enabled":
+        if not isinstance(node.target, ast.Name):
             continue
-        if isinstance(node.value, ast.Constant) and node.value.value is False:
-            default_found = True
+        if isinstance(node.value, ast.Constant):
+            defaults[node.target.id] = node.value.value
         else:
-            unsafe_default_found = True
-    if not default_found:
+            defaults[node.target.id] = None
+    return defaults
+
+
+def _check_api_write_defaults(config_path: Path = REPO_ROOT / API_CONFIG_FILE) -> list[str]:
+    failures: list[str] = []
+    defaults = _settings_literal_defaults(config_path)
+    write_default = defaults.get("gnucash_writes_enabled")
+    if write_default is not False:
         failures.append("API Settings must default gnucash_writes_enabled to False")
-    if unsafe_default_found:
+    if "gnucash_writes_enabled" in defaults and write_default is not False:
         failures.append("API Settings must not default gnucash_writes_enabled to a non-False value")
+    return failures
+
+
+def _check_api_app_env_defaults(config_path: Path = REPO_ROOT / API_CONFIG_FILE) -> list[str]:
+    failures: list[str] = []
+    defaults = _settings_literal_defaults(config_path)
+    app_env_default = defaults.get("app_env")
+    if app_env_default != "development":
+        failures.append("API Settings must default app_env to development")
+    if app_env_default == "test":
+        failures.append("API Settings must not default app_env to test")
     return failures
 
 
@@ -478,6 +494,7 @@ def _check(env_example: Path, compose: Path, gate_doc: Path, checklist_doc: Path
         if missing:
             failures.append("#36 audit checklist must preserve: " + ", ".join(missing))
     failures.extend(_check_api_write_defaults())
+    failures.extend(_check_api_app_env_defaults())
     failures.extend(_check_write_route_test_gates())
     failures.extend(_check_write_compatibility_docs(WRITE_COMPATIBILITY_DOCS))
     failures.extend(_check_issue_36_remaining_gates(ISSUE_36_REMAINING_GATES_DOC))

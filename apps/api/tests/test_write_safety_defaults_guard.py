@@ -442,6 +442,22 @@ def test_write_safety_defaults_guard_rejects_api_write_default_true(tmp_path: Pa
     assert str(tmp_path) not in "; ".join(failures)
 
 
+def test_write_safety_defaults_guard_rejects_api_app_env_test_default(tmp_path: Path) -> None:
+    config = tmp_path / "config.py"
+    config.write_text(
+        "class Settings:\n"
+        "    app_env: str = 'test'\n"
+        "    gnucash_writes_enabled: bool = False\n",
+        encoding="utf-8",
+    )
+
+    failures = write_safety_guard._check_api_app_env_defaults(config)
+
+    assert any("app_env to development" in failure for failure in failures)
+    assert any("must not default app_env to test" in failure for failure in failures)
+    assert str(tmp_path) not in "; ".join(failures)
+
+
 def test_write_safety_defaults_guard_rejects_write_route_missing_app_env_gate(tmp_path: Path) -> None:
     routes = tmp_path / "transactions.py"
     route_defs = "\n".join(
