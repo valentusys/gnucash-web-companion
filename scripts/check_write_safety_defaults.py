@@ -53,6 +53,8 @@ WRITE_ROUTE_FUNCTIONS = (
     "delete_book_transaction",
 )
 WRITE_ROUTE_GATED_CALLS = (
+    "_resolve_viewable_book",
+    "_require_book_edit_access",
     "_write_service_for",
     "_audit_log",
     "_require_write_alpha_transaction_ownership",
