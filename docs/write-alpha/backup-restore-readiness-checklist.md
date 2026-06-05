@@ -44,6 +44,7 @@ Docs/tests-only checks may prove that the repository wording stayed conservative
 
 - default-disabled restore readiness means write routes are still expected to reject mutation attempts unless a separately authorized `APP_ENV=test` write session is explicitly armed;
 - a documented disabled-write probe is an expected-failure/no-write statement, not evidence that the application mutated or restored a book;
+- restore-to-copy wording must explicitly say the restore target is a separate disposable copy and must not overwrite the current copied fixture, original book, working book, or only-copy book;
 - backup availability, restore helper availability, and restore-to-copy planning are prerequisites for future authorization, not approval to run dogfood or touch private data;
 - if restore wording cannot be verified from tracked docs/tests alone, the safe result is a checkpoint, not a fallback to creating filesystem backup or restore evidence.
 

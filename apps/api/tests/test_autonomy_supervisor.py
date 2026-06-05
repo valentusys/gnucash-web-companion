@@ -524,6 +524,8 @@ def test_backup_restore_readiness_checklist_keeps_restore_validation_non_mutatin
         "never raw paths, filenames, account names, memos, amounts, app DB rows, books, or backup artifacts",
         "write routes are still expected to reject mutation attempts",
         "expected-failure/no-write statement",
+        "separate disposable copy",
+        "must not overwrite the current copied fixture, original book, working book, or only-copy book",
         "not approval to run dogfood or touch private data",
         "not a fallback to creating filesystem backup or restore evidence",
         "GNUCASH_WRITES_ENABLED=false",
