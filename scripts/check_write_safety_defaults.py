@@ -225,6 +225,8 @@ def _check_issue_36_dashboard(path: Path) -> list[str]:
         "default-disabled probes",
         "compatibility gaps",
         "same-context owner + PM authorization",
+        "no broad compatibility claim",
+        "no only-copy safety claim",
         "GNUCASH_WRITES_ENABLED=false",
         "APP_ENV=test",
         "NO_RELEASE",

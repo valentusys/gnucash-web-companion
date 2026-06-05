@@ -280,6 +280,8 @@ def test_write_safety_defaults_guard_rejects_missing_issue_36_dashboard_marker(
     assert any("default-disabled probes" in failure for failure in failures)
     assert any("compatibility gaps" in failure for failure in failures)
     assert any("same-context owner + PM authorization" in failure for failure in failures)
+    assert any("no broad compatibility claim" in failure for failure in failures)
+    assert any("no only-copy safety claim" in failure for failure in failures)
     assert str(tmp_path) not in "; ".join(failures)
 
 

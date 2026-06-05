@@ -5,7 +5,7 @@ Status: keep #36 open. This dashboard is a non-mutating index of evidence and ga
 ## Snapshot
 
 - Release decision: NO_RELEASE.
-- Public posture: no public write beta; no stable, production-ready, or security-audited claim.
+- Public posture: no public write beta; no stable, production-ready, or security-audited claim; no broad compatibility claim; no only-copy safety claim.
 - Defaults: `GNUCASH_WRITES_ENABLED=false` remains default and enabled write-alpha/writebeta routes remain `APP_ENV=test` gated.
 - Mutation counts for this dashboard package: CREATE 0 / PATCH 0 / DELETE 0.
 - Book boundary: no original, private, real working, or only-copy GnuCash book is a safe write target.
