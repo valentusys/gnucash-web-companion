@@ -347,6 +347,49 @@ enabled writes are still `APP_ENV=test` scoped, and whether the evidence plan ca
 pass tracked-hygiene rules. It must not open, copy, inspect, or mutate a real,
 private, original, working, or only-copy book.
 
+## R6 authorization expiry and revalidation rules
+
+A future approval packet expires immediately when any safety-relevant input
+changes. The trial must return to blocked status and require a fresh owner/PM
+checkpoint when any of these changes occur:
+
+- packet version, route family, operation shape, or mutation count changes;
+- target class, backup plan, restore-to-copy plan, or writer-closed proof changes;
+- runtime configuration, Compose rendering, default write posture, or `APP_ENV`
+  gate behavior changes;
+- evidence shape would newly require private paths, account names, transaction
+  descriptions, memos, amounts, screenshots, books, app DBs, backups, exports,
+  raw logs, `.env`, tokens, keys, or certs;
+- a previous run reached rollback review, reset failure, disabled-probe failure,
+  or any other blocked stop point.
+
+Expired approval cannot be revived by referring to this runbook, prior issue #36
+reports, copied-book evidence, or local/private knowledge. Revalidation is a new
+non-mutating approval review until the owner and PM both approve the exact updated
+packet in the same future execution context.
+
+## R6 interruption and resume expectations
+
+A future operator must predefine what happens if the session is interrupted before
+or after a mutation. Minimum expectations:
+
+1. If interrupted before write enablement, leave the trial blocked and resume only
+   at packet review.
+2. If interrupted after temporary write enablement but before mutation, reset to
+   default-disabled writes before reporting.
+3. If interrupted after mutation, resume only to collect redacted pass/fail status
+   for audit, read-back, restore-to-copy, reset, and disabled probe. Do not run a
+   new mutation to compensate.
+4. If the reset or disabled probe cannot be verified, report blocked and do not
+   claim recovery, readiness, release status, or public write beta status.
+5. Any resume report must omit raw private evidence and must not inspect local
+   books or runtime data unless the future owner/PM packet explicitly authorizes
+   that exact non-public, non-tracked evidence handling.
+
+For the current issue #36 task, these are documentation-only expectations. They
+are not permission to open, copy, inspect, or mutate a real/private/original/
+working/only-copy book.
+
 ## Stop result for the current task
 
 For issue #36, this runbook records that a real working-book trial remains
