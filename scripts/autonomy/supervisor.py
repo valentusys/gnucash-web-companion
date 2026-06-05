@@ -298,6 +298,11 @@ def parse_queue(path: Path) -> list[Task]:
     return tasks
 
 
+def normalized_safety_text(text: str) -> str:
+    """Normalize task prose/commands so safety marker checks survive spacing drift."""
+    return re.sub(r"\s+", " ", text.lower()).strip()
+
+
 def task_is_safe_for_policy(task: Task) -> bool:
     flags = {flag.strip().lower() for flag in task.safety_flags}
     if "generated-safe" not in flags:
@@ -307,10 +312,10 @@ def task_is_safe_for_policy(task: Task) -> bool:
     forbidden_flags = {"release", "touches-private-data", "dogfood", "gnucash-mutation"}
     if flags & forbidden_flags:
         return False
-    text = f"{task.goal}\n{task.allowed_scope}\n{task.stop_continue}".lower()
+    text = normalized_safety_text(f"{task.goal}\n{task.allowed_scope}\n{task.stop_continue}")
     if any(marker in text for marker in FORBIDDEN_POLICY_MARKERS):
         return False
-    verification_text = "\n".join(task.verification_commands).lower()
+    verification_text = normalized_safety_text("\n".join(task.verification_commands))
     return not any(marker in verification_text for marker in FORBIDDEN_VERIFICATION_COMMAND_MARKERS)
 
 
