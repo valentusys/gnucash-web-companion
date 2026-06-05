@@ -64,3 +64,52 @@ def test_content_violations_reject_raw_private_evidence_markers(tmp_path, monkey
         "tracked raw private-evidence marker 'PRIVATE_BOOK_PATH=' in: public-report.md",
         "tracked raw private-evidence marker 'TRANSACTION_AMOUNT=' in: public-report.md",
     ]
+
+
+def test_content_violations_reject_private_path_label_variants(tmp_path, monkeypatch):
+    sample = tmp_path / "handoff.md"
+    sample.write_text(
+        "PRIVATE_PATH: /redacted\nORIGINAL_GNUCASH_PATH=/redacted\nONLY_COPY_GNUCASH_PATH=/redacted\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
+
+    problems = guard.content_violations([sample])
+
+    assert problems == [
+        "tracked raw private-evidence marker 'PRIVATE_PATH:' in: handoff.md",
+        "tracked raw private-evidence marker 'ORIGINAL_GNUCASH_PATH=' in: handoff.md",
+        "tracked raw private-evidence marker 'ONLY_COPY_GNUCASH_PATH=' in: handoff.md",
+    ]
+
+
+def test_content_violations_reject_unsafe_affirmative_wording(tmp_path, monkeypatch):
+    sample = tmp_path / "release.md"
+    sample.write_text(
+        "Public write beta is ready.\n"
+        "Broad GnuCash compatibility is supported.\n"
+        "Only-copy books are safe for writes.\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
+
+    problems = guard.content_violations([sample])
+
+    assert problems == [
+        "tracked unsafe affirmative wording in release.md:1: Public write beta is ready.",
+        "tracked unsafe affirmative wording in release.md:2: Broad GnuCash compatibility is supported.",
+        "tracked unsafe affirmative wording in release.md:3: Only-copy books are safe for writes.",
+    ]
+
+
+def test_content_violations_allow_negative_safety_wording(tmp_path, monkeypatch):
+    sample = tmp_path / "limits.md"
+    sample.write_text(
+        "No public write beta is ready.\n"
+        "Do not claim broad GnuCash compatibility is supported.\n"
+        "Only-copy books are not safe for writes.\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
+
+    assert guard.content_violations([sample]) == []

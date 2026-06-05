@@ -8,6 +8,7 @@ cache files unless they are already tracked by git.
 
 from __future__ import annotations
 
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -84,12 +85,49 @@ FORBIDDEN_PRIVATE_EVIDENCE_MARKERS = (
     "RAW_PRIVATE_EVIDENCE_BEGIN",
     "PRIVATE_EVIDENCE_BEGIN",
     "UNREDACTED_GNUCASH_EVIDENCE",
+    "PRIVATE_PATH:",
+    "PRIVATE_PATH=",
+    "RAW_PRIVATE_PATH:",
+    "RAW_PRIVATE_PATH=",
+    "ORIGINAL_GNUCASH_PATH=",
+    "ONLY_COPY_GNUCASH_PATH=",
     "PRIVATE_BOOK_PATH=",
     "PRIVATE_GNUCASH_PATH=",
     "REAL_ACCOUNT_NAME=",
     "TRANSACTION_DESCRIPTION=",
     "TRANSACTION_MEMO=",
     "TRANSACTION_AMOUNT=",
+)
+
+# Tracked hygiene runs over every tracked file, so these patterns are narrower
+# than the public-status wording guard and are limited to high-risk affirmative
+# posture claims that should never enter committed docs, tests, or handoffs.
+FORBIDDEN_UNSAFE_AFFIRMATIVE_PATTERNS = (
+    re.compile(r"\bpublic\s+write\s+beta\s+(?:is\s+)?(?:ready|available|open|enabled|supported)\b", re.I),
+    re.compile(r"\bbroad\s+GnuCash\s+(?:Desktop\s+)?compatibility\s+(?:is\s+)?(?:ready|available|supported|claimed|proven)\b", re.I),
+    re.compile(r"\bonly-copy\s+(?:books?\s+)?(?:are\s+)?safe\s+(?:for\s+)?(?:writes?|mutation|write mode)\b", re.I),
+    re.compile(r"\bis\s+production[- ]ready\b", re.I),
+    re.compile(r"\bsecurity[- ]audited\s+(release|software|deployment|build)\b", re.I),
+)
+
+NEGATING_WORDING_MARKERS = (
+    "not ",
+    "no ",
+    "without ",
+    "does not ",
+    "do not ",
+    "never ",
+    "unclaimed",
+    "not published",
+    "avoid ",
+    "avoiding ",
+)
+
+UNSAFE_WORDING_SCANNED_SUFFIXES = (
+    ".md",
+    ".mdx",
+    ".rst",
+    ".txt",
 )
 
 
@@ -152,6 +190,22 @@ def content_violations(paths: list[Path]) -> list[str]:
         for marker in FORBIDDEN_PRIVATE_EVIDENCE_MARKERS:
             if any(token == marker or token.startswith(marker) for token in tokens):
                 problems.append(f"tracked raw private-evidence marker {marker!r} in: {rel}")
+        if path.suffix.lower() not in UNSAFE_WORDING_SCANNED_SUFFIXES:
+            continue
+        previous_line = ""
+        for line_number, line in enumerate(text.splitlines(), start=1):
+            lowered = line.lower()
+            context = f"{previous_line} {lowered}"
+            if any(marker in context for marker in NEGATING_WORDING_MARKERS):
+                previous_line = lowered
+                continue
+            for pattern in FORBIDDEN_UNSAFE_AFFIRMATIVE_PATTERNS:
+                if pattern.search(line):
+                    problems.append(
+                        f"tracked unsafe affirmative wording in {rel}:{line_number}: {line}"
+                    )
+                    break
+            previous_line = lowered
     return problems
 
 

@@ -57,7 +57,7 @@ Not published:
 - `v0.4.0-owner-writebeta`;
 - `v0.5.1-public-readonly-beta`;
 - any public write beta;
-- any stable, production-ready, or security-audited release;
+- no stable, production-ready, or security-audited release;
 - any package or image.
 
 `v0.5.0-public-readonly-beta` remains the current public read-only beta.
