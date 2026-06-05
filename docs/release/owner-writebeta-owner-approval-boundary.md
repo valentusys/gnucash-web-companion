@@ -66,6 +66,10 @@ handoff. It should name at least:
 Absent that explicit packet, workers should treat owner-writebeta as unreleased
 maintenance work even when all local checks pass.
 
+A repeated no-release documentation prompt is not that packet. It may improve
+reader guidance, but it cannot provide the missing scope, audience, blocker
+handling, or publication permission on the owner's behalf.
+
 ## Approval absence checklist
 
 If any item below is missing, the only safe release decision remains no-release:
