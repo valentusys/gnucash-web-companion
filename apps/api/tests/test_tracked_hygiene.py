@@ -75,7 +75,8 @@ def test_content_violations_reject_private_key_marker(tmp_path, monkeypatch):
 def test_content_violations_reject_raw_private_evidence_markers(tmp_path, monkeypatch):
     sample = tmp_path / "public-report.md"
     sample.write_text(
-        "RAW_PRIVATE_EVIDENCE_BEGIN\nPRIVATE_BOOK_PATH=/redacted\nTRANSACTION_AMOUNT=0.00\n",
+        "RAW_PRIVATE_EVIDENCE_BEGIN\nPRIVATE_BOOK_PATH=/redacted\nACCOUNT_NAME=Redacted Account\n"
+        "ACCOUNT_DESCRIPTION=Redacted Account Description\nTRANSACTION_AMOUNT=0.00\n",
         encoding="utf-8",
     )
     monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
@@ -85,9 +86,12 @@ def test_content_violations_reject_raw_private_evidence_markers(tmp_path, monkey
     assert problems == [
         "tracked raw private-evidence marker 'RAW_PRIVATE_EVIDENCE_BEGIN' in: public-report.md",
         "tracked raw private-evidence marker 'PRIVATE_BOOK_PATH=' in: public-report.md",
+        "tracked raw private-evidence marker 'ACCOUNT_NAME=' in: public-report.md",
+        "tracked raw private-evidence marker 'ACCOUNT_DESCRIPTION=' in: public-report.md",
         "tracked raw private-evidence marker 'TRANSACTION_AMOUNT=' in: public-report.md",
         "tracked raw private-evidence label in public-report.md:2: PRIVATE_BOOK_PATH=/redacted",
-        "tracked raw private-evidence label in public-report.md:3: TRANSACTION_AMOUNT=0.00",
+        "tracked raw private-evidence label in public-report.md:3: ACCOUNT_NAME=Redacted Account",
+        "tracked raw private-evidence label in public-report.md:5: TRANSACTION_AMOUNT=0.00",
     ]
 
 
@@ -178,6 +182,8 @@ def test_content_violations_reject_unsafe_affirmative_wording(tmp_path, monkeypa
         "Only-copy books are safe for writes.\n"
         "Public write beta launch is authorized.\n"
         "Broad GnuCash Desktop compatibility is confirmed.\n"
+        "All GnuCash versions are supported.\n"
+        "Compatible with any GnuCash Desktop version.\n"
         "Production-ready release published.\n"
         "Stable release is ready.\n"
         "Write beta is production-ready.\n"
@@ -196,12 +202,14 @@ def test_content_violations_reject_unsafe_affirmative_wording(tmp_path, monkeypa
         "tracked unsafe affirmative wording in release.md:3: Only-copy books are safe for writes.",
         "tracked unsafe affirmative wording in release.md:4: Public write beta launch is authorized.",
         "tracked unsafe affirmative wording in release.md:5: Broad GnuCash Desktop compatibility is confirmed.",
-        "tracked unsafe affirmative wording in release.md:6: Production-ready release published.",
-        "tracked unsafe affirmative wording in release.md:7: Stable release is ready.",
-        "tracked unsafe affirmative wording in release.md:8: Write beta is production-ready.",
-        "tracked unsafe affirmative wording in release.md:9: Real books are safe for writes.",
-        "tracked unsafe affirmative wording in release.md:10: Private book writes are safe.",
-        "tracked unsafe affirmative wording in release.md:11: Original books are safe for mutation.",
+        "tracked unsafe affirmative wording in release.md:6: All GnuCash versions are supported.",
+        "tracked unsafe affirmative wording in release.md:7: Compatible with any GnuCash Desktop version.",
+        "tracked unsafe affirmative wording in release.md:8: Production-ready release published.",
+        "tracked unsafe affirmative wording in release.md:9: Stable release is ready.",
+        "tracked unsafe affirmative wording in release.md:10: Write beta is production-ready.",
+        "tracked unsafe affirmative wording in release.md:11: Real books are safe for writes.",
+        "tracked unsafe affirmative wording in release.md:12: Private book writes are safe.",
+        "tracked unsafe affirmative wording in release.md:13: Original books are safe for mutation.",
     ]
 
 
