@@ -447,8 +447,11 @@ def test_public_status_guard_rejects_affirmative_writebeta_authorization_claims(
 def test_public_status_guard_rejects_write_beta_stable_security_claims():
     unsafe_claims = [
         "Write beta is stable.",
+        "Write-beta is stable.",
         "Write beta is security-audited.",
+        "Write-beta is security-audited.",
         "Write beta release is production-ready.",
+        "Write-beta release is production-ready.",
     ]
 
     for unsafe in unsafe_claims:
@@ -505,6 +508,22 @@ def test_public_status_guard_rejects_affirmative_broad_compatibility_claims():
         assert "compatibility" in str(exc).lower()
     else:
         raise AssertionError("affirmative broad compatibility claim should fail guard")
+
+
+def test_public_status_guard_rejects_hyphenated_public_write_beta_claims():
+    unsafe_claims = [
+        "Public write-beta is ready.",
+        "Public write-beta launch is authorized.",
+        "Write-beta available for public use.",
+    ]
+
+    for unsafe in unsafe_claims:
+        try:
+            guard.reject_patterns(Path("README.md"), unsafe, guard.UNSAFE_AFFIRMATIVE_PATTERNS)
+        except AssertionError as exc:
+            assert "write" in str(exc).lower()
+        else:
+            raise AssertionError(f"hyphenated unsafe write-beta claim should fail guard: {unsafe}")
 
 
 def test_public_status_guard_rejects_affirmative_broad_compatibility_confirmed_claims():

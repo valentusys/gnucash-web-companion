@@ -207,8 +207,11 @@ def test_content_violations_reject_write_beta_ready_without_public_prefix(tmp_pa
         "Write beta is authorized.\n"
         "Public write beta is published.\n"
         "Write beta is stable.\n"
+        "Write-beta is stable.\n"
         "Write beta is security-audited.\n"
-        "Write beta release is production-ready.\n",
+        "Write-beta is security-audited.\n"
+        "Write beta release is production-ready.\n"
+        "Write-beta release is production-ready.\n",
         encoding="utf-8",
     )
     monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
@@ -221,8 +224,11 @@ def test_content_violations_reject_write_beta_ready_without_public_prefix(tmp_pa
         "tracked unsafe affirmative wording in release.md:3: Write beta is authorized.",
         "tracked unsafe affirmative wording in release.md:4: Public write beta is published.",
         "tracked unsafe affirmative wording in release.md:5: Write beta is stable.",
-        "tracked unsafe affirmative wording in release.md:6: Write beta is security-audited.",
-        "tracked unsafe affirmative wording in release.md:7: Write beta release is production-ready.",
+        "tracked unsafe affirmative wording in release.md:6: Write-beta is stable.",
+        "tracked unsafe affirmative wording in release.md:7: Write beta is security-audited.",
+        "tracked unsafe affirmative wording in release.md:8: Write-beta is security-audited.",
+        "tracked unsafe affirmative wording in release.md:9: Write beta release is production-ready.",
+        "tracked unsafe affirmative wording in release.md:10: Write-beta release is production-ready.",
     ]
 
 
