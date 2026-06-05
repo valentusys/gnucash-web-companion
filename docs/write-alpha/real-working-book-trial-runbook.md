@@ -168,6 +168,67 @@ Rollback review may use only a restored copy or independently prepared backup
 copy. It may not overwrite an original, working, private-only, or only-copy book.
 Any raw recovery material must stay outside git and outside public reports.
 
+## R3 prerequisite proof matrix
+
+Before any future operator asks for approval, the packet must map every gate to a
+safe proof source. The proof source may be a redacted summary, a command name with
+exit status, or an owner/PM statement, but it must not include private paths,
+account names, transaction descriptions, memos, amounts, screenshots, books,
+backups, databases, secrets, or raw logs.
+
+| Gate | Required safe proof | If proof is absent |
+| --- | --- | --- |
+| Exact packet scope | Packet name, route family, operation shape, and mutation count | Blocked before approval request |
+| Target class | Redacted class statement and not-original/not-only-copy confirmation | Blocked before approval request |
+| Backup readiness | Independent backup checkpoint and restore-to-copy checkpoint, both redacted | Blocked before runtime arming |
+| Writer exclusion | GnuCash Desktop and other writers closed for the target class | Blocked before preflight |
+| Test-gated writes | `APP_ENV=test` scoped session and default-disabled reset plan | Blocked before write enablement |
+| Rollback path | Decision tree with stop points and no overwrite of source target | Blocked before mutation |
+| Evidence hygiene | Redacted evidence packet shape that can pass tracked hygiene | Blocked before reporting |
+| Non-release posture | Explicit no-release and no-public-write statement | Blocked before any status claim |
+
+A packet that cannot fill this matrix with safe, non-private proof remains a
+planning artifact only. Do not inspect local books or runtime data to complete the
+matrix for this issue #36 task.
+
+## R3 blocker response expectations
+
+When a blocker is found, the expected response is conservative and non-mutating:
+
+1. Stop the trial path immediately.
+2. Record only the blocker category and the redacted gate name.
+3. Do not attempt a workaround by broadening scope, changing defaults, enabling
+   writes outside `APP_ENV=test`, or substituting copied-book evidence for a real
+   working-book approval.
+4. Leave runtime state default-disabled or reset it before any status report.
+5. Continue only with docs, guard checks, tests, or a new approval packet draft.
+
+A blocker is not a partial authorization. Reaching any blocker does not permit
+opening, copying, inspecting, or mutating a real/private/original/working/only-copy
+book.
+
+## R3 future operator checklist
+
+A future authorized operator should be able to answer yes to all questions below
+before the first mutation. If any answer is no or unknown, the trial remains
+blocked:
+
+- Are the owner and PM approvals current, explicit, same-context, and tied to the
+  same packet version?
+- Is the approved mutation count exact and narrow?
+- Is the target class restorable, not original, and not only-copy?
+- Are Desktop and other writers closed before preflight?
+- Does the session preserve default-disabled writes outside the temporary
+  `APP_ENV=test` window?
+- Is rollback based on a backup/restored copy rather than overwriting the source
+  target?
+- Can all tracked reports omit private data and still state pass/fail results?
+- Does the report explicitly avoid release, public write beta, production-ready,
+  stable, security-audited, broad compatibility, and only-copy safety claims?
+
+For the current issue #36 task, these questions are documentation gates only and
+must not be used to run a trial.
+
 ## Stop result for the current task
 
 For issue #36, this runbook records that a real working-book trial remains
