@@ -101,6 +101,8 @@ Docs/tests-only restore-readiness wording checks are not restore drills. They ma
 
 Readiness evidence for a real restore drill must still be produced only in a separately authorized copied/restorable or synthetic/disposable fixture under the applicable `APP_ENV=test` gate. Public wording must keep backup and restore helper availability as prerequisites only; it must not claim public write beta readiness, stable or production safety, security-audited status, broad compatibility, or only-copy safety.
 
+Docs/tests-only review packets must summarize readiness as redacted pass/fail markers only. They must not paste raw manifest output, checksum lines, filenames, private paths, account names, descriptions, memos, amounts, screenshots, exports, app DB rows, books, backups, or runtime logs. Default-disabled safety remains the key assertion: `GNUCASH_WRITES_ENABLED=false` is the committed/default posture.
+
 Example dry-run workspace:
 
 ```bash

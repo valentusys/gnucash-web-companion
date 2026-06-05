@@ -585,6 +585,9 @@ def test_backup_recovery_runbook_keeps_docs_tests_only_readiness_non_mutating():
         "security-audited status",
         "broad compatibility",
         "only-copy safety",
+        "review packets must summarize readiness as redacted pass/fail markers only",
+        "must not paste raw manifest output, checksum lines, filenames, private paths, account names, descriptions, memos, amounts, screenshots, exports, app DB rows, books, backups, or runtime logs",
+        "Default-disabled safety remains the key assertion: `GNUCASH_WRITES_ENABLED=false` is the committed/default posture",
     ]
     for pattern in required:
         assert pattern in text
