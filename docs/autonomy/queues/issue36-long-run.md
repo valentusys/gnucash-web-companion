@@ -28,7 +28,7 @@ It does not authorize GnuCash mutations, dogfood, real/private/original/working/
 ## Task: autonomy-v2-generated-policy-preview
 - target: autonomy supervisor v2 / issue #36 policy preview
 - goal: Review generated policy prompts and improve only safe policy/runbook wording if the dry-run reveals ambiguity.
-- allowed scope: docs/autonomy/**, scripts/autonomy/** tests/docs only
+- allowed scope: docs/autonomy/** and scripts/autonomy/** only; tests/docs only if needed for documentation-policy checks
 - non-goals: live agent execution; GnuCash mutations; dogfood; private/original/working/only-copy books; releases; public write beta claims
 - verification commands:
   - cd apps/api && pytest tests/test_autonomy_supervisor.py -q
