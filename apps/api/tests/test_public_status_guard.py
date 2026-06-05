@@ -419,3 +419,31 @@ def test_public_status_guard_accepts_wrapped_negative_safety_limitations():
     safe = "- No hosted SaaS readiness, collaborative accounting, or\n  safe production write mode is claimed."
 
     guard.reject_patterns(Path("CHANGELOG.md"), safe, guard.UNSAFE_AFFIRMATIVE_PATTERNS)
+
+
+def test_public_status_guard_rejects_affirmative_broad_compatibility_claims():
+    unsafe = "Broad GnuCash compatibility is supported."
+
+    try:
+        guard.reject_patterns(Path("README.md"), unsafe, guard.UNSAFE_AFFIRMATIVE_PATTERNS)
+    except AssertionError as exc:
+        assert "compatibility" in str(exc).lower()
+    else:
+        raise AssertionError("affirmative broad compatibility claim should fail guard")
+
+
+def test_public_status_guard_rejects_affirmative_only_copy_write_safety_claims():
+    unsafe = "Only-copy books are safe for writes."
+
+    try:
+        guard.reject_patterns(Path("README.md"), unsafe, guard.UNSAFE_AFFIRMATIVE_PATTERNS)
+    except AssertionError as exc:
+        assert "only-copy" in str(exc).lower()
+    else:
+        raise AssertionError("affirmative only-copy write-safety claim should fail guard")
+
+
+def test_public_status_guard_accepts_negative_broad_compatibility_limitations():
+    safe = "- Not broad GnuCash compatibility and not real/private book write-safety."
+
+    guard.reject_patterns(Path("CHANGELOG.md"), safe, guard.UNSAFE_AFFIRMATIVE_PATTERNS)

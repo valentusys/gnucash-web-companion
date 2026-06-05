@@ -405,6 +405,10 @@ UNSAFE_AFFIRMATIVE_PATTERNS = [
     re.compile(r"\bstable\s+(release|production|write mode|deployment)\b", re.I),
     re.compile(r"\bsafe\s+for\s+real/private\b", re.I),
     re.compile(r"\bsafe\s+production\s+write\s+mode\b", re.I),
+    re.compile(r"\bbroad\s+GnuCash\s+(?:Desktop\s+)?compatibility\s+(?:is\s+)?(?:ready|available|supported|claimed|proven)\b", re.I),
+    re.compile(r"\ball\s+GnuCash\s+(?:versions|backends)\s+(?:are\s+)?(?:supported|compatible|write[- ]compatible)\b", re.I),
+    re.compile(r"\b(?:real/private|private|real|only-copy)\s+(?:book\s+)?write[- ]safety\s+(?:is\s+)?(?:proven|verified|ready|safe)\b", re.I),
+    re.compile(r"\bonly-copy\s+(?:books?\s+)?(?:are\s+)?safe\s+(?:for\s+)?(?:writes?|mutation|write mode)\b", re.I),
 ]
 
 COMPATIBILITY_REQUIRED_FRAGMENTS = [
@@ -462,7 +466,10 @@ def reject_patterns(path: Path, text: str, patterns: list[re.Pattern[str]]) -> N
         if patterns is UNSAFE_AFFIRMATIVE_PATTERNS:
             lowered = line.lower()
             context = f"{previous_line} {lowered}"
-            if any(marker in context for marker in ("not ", "no ", "without", "does not", "do not")):
+            if any(
+                marker in context
+                for marker in ("not ", "no ", "without", "does not", "do not", "avoiding", "avoid ")
+            ):
                 previous_line = lowered
                 continue
         for pattern in patterns:

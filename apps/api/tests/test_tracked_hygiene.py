@@ -47,3 +47,20 @@ def test_content_violations_reject_private_key_marker(tmp_path, monkeypatch):
     problems = guard.content_violations([sample])
 
     assert problems == ["tracked private-key marker in: safe-name.txt"]
+
+
+def test_content_violations_reject_raw_private_evidence_markers(tmp_path, monkeypatch):
+    sample = tmp_path / "public-report.md"
+    sample.write_text(
+        "RAW_PRIVATE_EVIDENCE_BEGIN\nPRIVATE_BOOK_PATH=/redacted\nTRANSACTION_AMOUNT=0.00\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
+
+    problems = guard.content_violations([sample])
+
+    assert problems == [
+        "tracked raw private-evidence marker 'RAW_PRIVATE_EVIDENCE_BEGIN' in: public-report.md",
+        "tracked raw private-evidence marker 'PRIVATE_BOOK_PATH=' in: public-report.md",
+        "tracked raw private-evidence marker 'TRANSACTION_AMOUNT=' in: public-report.md",
+    ]

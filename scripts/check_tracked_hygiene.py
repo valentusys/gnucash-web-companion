@@ -77,6 +77,21 @@ FORBIDDEN_CONTENT_MARKERS = (
     f"{PRIVATE_KEY_PREFIX}EC{PRIVATE_KEY_SUFFIX}",
 )
 
+# Marker-style labels are intentionally specific. They catch accidental paste of
+# raw local evidence packets while avoiding false positives in redaction tests and
+# safety docs that mention generic words like "amount" or "memo" negatively.
+FORBIDDEN_PRIVATE_EVIDENCE_MARKERS = (
+    "RAW_PRIVATE_EVIDENCE_BEGIN",
+    "PRIVATE_EVIDENCE_BEGIN",
+    "UNREDACTED_GNUCASH_EVIDENCE",
+    "PRIVATE_BOOK_PATH=",
+    "PRIVATE_GNUCASH_PATH=",
+    "REAL_ACCOUNT_NAME=",
+    "TRANSACTION_DESCRIPTION=",
+    "TRANSACTION_MEMO=",
+    "TRANSACTION_AMOUNT=",
+)
+
 
 def tracked_files() -> list[Path]:
     result = subprocess.run(
@@ -129,9 +144,14 @@ def content_violations(paths: list[Path]) -> list[str]:
         if b"\0" in data:
             continue
         text = data.decode("utf-8", errors="ignore")
+        rel = path.relative_to(REPO_ROOT).as_posix()
         for marker in FORBIDDEN_CONTENT_MARKERS:
             if marker in text:
-                problems.append(f"tracked private-key marker in: {path.relative_to(REPO_ROOT).as_posix()}")
+                problems.append(f"tracked private-key marker in: {rel}")
+        tokens = text.split()
+        for marker in FORBIDDEN_PRIVATE_EVIDENCE_MARKERS:
+            if any(token == marker or token.startswith(marker) for token in tokens):
+                problems.append(f"tracked raw private-evidence marker {marker!r} in: {rel}")
     return problems
 
 
