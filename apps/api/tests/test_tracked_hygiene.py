@@ -38,6 +38,25 @@ def test_path_violations_allow_safe_docs_and_code():
     assert guard.path_violations(candidates) == []
 
 
+def test_path_violations_reject_local_env_variants_but_allow_examples():
+    repo = guard.REPO_ROOT
+    candidates = [
+        repo / ".env.example",
+        repo / ".env.writealpha.example",
+        repo / ".env.local",
+        repo / "deploy" / ".env.production",
+        repo / ".envrc",
+    ]
+
+    problems = guard.path_violations(candidates)
+
+    assert not any(".env.example" in problem for problem in problems)
+    assert not any(".env.writealpha.example" in problem for problem in problems)
+    assert any(".env.local" in problem for problem in problems)
+    assert any("deploy/.env.production" in problem for problem in problems)
+    assert any(".envrc" in problem for problem in problems)
+
+
 def test_content_violations_reject_private_key_marker(tmp_path, monkeypatch):
     sample = tmp_path / "safe-name.txt"
     marker = "-----BEGIN " + "OPENSSH" + " PRIVATE KEY-----"

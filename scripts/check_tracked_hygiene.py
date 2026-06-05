@@ -17,7 +17,13 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 FORBIDDEN_EXACT_NAMES = {
     ".env",
+    ".envrc",
     "app.db",
+}
+
+ALLOWED_ENV_EXAMPLE_NAMES = {
+    ".env.example",
+    ".env.writealpha.example",
 }
 
 FORBIDDEN_SUFFIXES = {
@@ -158,6 +164,8 @@ def path_violations(paths: list[Path]) -> list[str]:
             continue
         if name in FORBIDDEN_EXACT_NAMES:
             problems.append(f"tracked forbidden filename: {rel}")
+        if name.startswith(".env.") and name not in ALLOWED_ENV_EXAMPLE_NAMES:
+            problems.append(f"tracked forbidden env filename: {rel}")
         if suffixes & FORBIDDEN_SUFFIXES or compound_suffix in FORBIDDEN_SUFFIXES:
             problems.append(f"tracked forbidden suffix: {rel}")
         if suffixes & FORBIDDEN_SCREENSHOT_SUFFIXES and not rel.startswith(ALLOWED_IMAGE_PREFIXES):
