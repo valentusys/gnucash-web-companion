@@ -19,7 +19,7 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   [#36](https://github.com/valentusys/gnucash-web-companion/issues/36) controlled-write readiness
   gates. [#22](https://github.com/valentusys/gnucash-web-companion/issues/22) and
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) are closed.
-- Latest handoffs/docs: `docs/handoff/release-no-release-decision-docs-r4.md`,
+- Latest handoffs/docs: `docs/handoff/release-no-release-decision-docs-r5.md`,
   `docs/handoff/issue22-reconcile-and-issue36-owner-writebeta-final-report.md`,
   `docs/release/v0.4-owner-writebeta-readiness-unreleased.md`,
   `docs/release/owner-writebeta-owner-approval-boundary.md`,
@@ -46,7 +46,9 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   working/only-copy safety claim, and no stable, production-ready, or security-audited wording. The
   owner-approval docs now state that clean checks are repository hygiene only, not release
   authorization, and that a future release-candidate task must start from an explicit owner/PM scope
-  decision rather than infer approval from readiness docs.
+  decision rather than infer approval from readiness docs. The r5 release/no-release documentation
+  pass adds a reviewer decision rule and approval-absence checklist so maintenance evidence cannot be
+  read as permission to prepare tags, release notes, packages, images, or public write-beta wording.
 - Recently closed queues: #13, #41, #42, #43.
 
 ## Repository

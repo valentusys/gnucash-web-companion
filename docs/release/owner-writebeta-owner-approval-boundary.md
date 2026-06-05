@@ -65,6 +65,20 @@ handoff. It should name at least:
 Absent that explicit packet, workers should treat owner-writebeta as unreleased
 maintenance work even when all local checks pass.
 
+## Approval absence checklist
+
+If any item below is missing, the only safe release decision remains no-release:
+
+- explicit owner/PM approval for release-candidate preparation;
+- named release-candidate scope and intended audience;
+- stated handling of remaining #36 gates;
+- stated handling of compatibility posture before any public write claim;
+- permission, if any, to draft release notes, final gates, packages, images, or
+  announcements.
+
+When one of those items is absent, preserve `NO_RELEASE_KEEP_MAINTENANCE` and link
+back to this page instead of inventing release readiness.
+
 ## What this documentation pass does not create
 
 This page and companion no-release docs do not create:
