@@ -396,6 +396,8 @@ STALE_CURRENT_PATTERNS = [
 RECENT_STALE_CURRENT_PATTERNS = _generated_stale_current_patterns()
 
 UNSAFE_AFFIRMATIVE_PATTERNS = [
+    re.compile(r"\bpublic\s+writes?\s+(?:is\s+|are\s+)?(?:ready|available|open|enabled|supported)\b", re.I),
+    re.compile(r"\bpublic\s+write[-\s]+mode\s+(?:is\s+)?(?:ready|available|open|enabled|supported)\b", re.I),
     re.compile(r"\bpublic\s+write[-\s]+beta\s+(?:is\s+)?(?:ready|available|open|enabled|supported)\b", re.I),
     re.compile(r"\bpublic\s+write[-\s]+beta\s+(?:is\s+)?(?:approved|authorized|published|released)\b", re.I),
     re.compile(r"\bpublic\s+write[-\s]+beta\s+(?:launch|release|rollout)\s+(?:is\s+)?(?:ready|approved|authorized)\b", re.I),
@@ -404,6 +406,7 @@ UNSAFE_AFFIRMATIVE_PATTERNS = [
     re.compile(r"\bwrite[-\s]+beta\s+(?:launch|release|rollout)\s+(?:is\s+)?(?:ready|approved|authorized|published|released)\b", re.I),
     re.compile(r"\bwrite[-\s]+beta\s+(?:is\s+)?(?:stable|production[- ]ready|security[- ]audited)\b", re.I),
     re.compile(r"\bwrite[-\s]+beta\s+(?:release|build|deployment)\s+(?:is\s+)?(?:stable|production[- ]ready|security[- ]audited)\b", re.I),
+    re.compile(r"\bwrite[-\s]+mode\s+(?:is\s+)?(?:stable|production[- ]ready|security[- ]audited)\b", re.I),
     re.compile(r"\b(owner[- ]?)?writebeta\s+(?:is\s+)?(?:public|stable|production[- ]ready|security[- ]audited)\b", re.I),
     re.compile(r"\b(owner[- ]?)?writebeta\s+(?:is\s+)?(?:approved|authorized|published|released)\b", re.I),
     re.compile(r"\bis production[- ]ready\b", re.I),
@@ -414,6 +417,8 @@ UNSAFE_AFFIRMATIVE_PATTERNS = [
     re.compile(r"\bsafe\s+production\s+write\s+mode\b", re.I),
     re.compile(r"\bbroad\s+GnuCash\s+(?:Desktop\s+)?compatibility\s+(?:is\s+)?(?:ready|available|supported|claimed|proven|validated|confirmed)\b", re.I),
     re.compile(r"\ball\s+GnuCash\s+(?:versions|backends)\s+(?:are\s+)?(?:supported|compatible|write[- ]compatible)\b", re.I),
+    re.compile(r"\bany\s+GnuCash\s+(?:versions|backends)\s+(?:are\s+)?(?:supported|compatible|write[- ]compatible)\b", re.I),
+    re.compile(r"\bworks\s+with\s+(?:all|any)\s+GnuCash\s+(?:Desktop\s+)?versions?\b", re.I),
     re.compile(r"\b(?:real/private|private|real|only-copy)\s+(?:book\s+)?write[- ]safety\s+(?:is\s+)?(?:proven|verified|ready|safe)\b", re.I),
     re.compile(r"\b(?:real/private|private|real|original|only-copy)\s+books?\s+(?:are\s+)?safe\s+(?:for\s+)?(?:writes?|mutation|write mode)\b", re.I),
     re.compile(r"\b(?:real/private|private|real|original|only-copy)\s+(?:book\s+)?writes?\s+(?:are\s+)?safe\b", re.I),

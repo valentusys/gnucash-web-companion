@@ -129,6 +129,8 @@ def test_content_violations_reject_human_written_private_evidence_labels(tmp_pat
         "Account name: Redacted Account\n"
         "Memo: Redacted memo\n"
         "Amount: 0.00\n"
+        "Balance: 0.00\n"
+        "Account balance: 0.00\n"
         "Transaction amount: 0.00\n",
         encoding="utf-8",
     )
@@ -149,7 +151,9 @@ def test_content_violations_reject_human_written_private_evidence_labels(tmp_pat
         "tracked raw private-evidence label in public-report.md:10: Account name: Redacted Account",
         "tracked raw private-evidence label in public-report.md:11: Memo: Redacted memo",
         "tracked raw private-evidence label in public-report.md:12: Amount: 0.00",
-        "tracked raw private-evidence label in public-report.md:13: Transaction amount: 0.00",
+        "tracked raw private-evidence label in public-report.md:13: Balance: 0.00",
+        "tracked raw private-evidence label in public-report.md:14: Account balance: 0.00",
+        "tracked raw private-evidence label in public-report.md:15: Transaction amount: 0.00",
     ]
 
 
@@ -186,6 +190,11 @@ def test_content_violations_reject_unsafe_affirmative_wording(tmp_path, monkeypa
         "Compatible with any GnuCash Desktop version.\n"
         "Production-ready release published.\n"
         "Stable release is ready.\n"
+        "Public writes are enabled.\n"
+        "Public write mode is available.\n"
+        "Write mode is stable.\n"
+        "Works with all GnuCash versions.\n"
+        "All GnuCash SQL backends are supported.\n"
         "Write beta is production-ready.\n"
         "Real books are safe for writes.\n"
         "Private book writes are safe.\n"
@@ -206,10 +215,15 @@ def test_content_violations_reject_unsafe_affirmative_wording(tmp_path, monkeypa
         "tracked unsafe affirmative wording in release.md:7: Compatible with any GnuCash Desktop version.",
         "tracked unsafe affirmative wording in release.md:8: Production-ready release published.",
         "tracked unsafe affirmative wording in release.md:9: Stable release is ready.",
-        "tracked unsafe affirmative wording in release.md:10: Write beta is production-ready.",
-        "tracked unsafe affirmative wording in release.md:11: Real books are safe for writes.",
-        "tracked unsafe affirmative wording in release.md:12: Private book writes are safe.",
-        "tracked unsafe affirmative wording in release.md:13: Original books are safe for mutation.",
+        "tracked unsafe affirmative wording in release.md:10: Public writes are enabled.",
+        "tracked unsafe affirmative wording in release.md:11: Public write mode is available.",
+        "tracked unsafe affirmative wording in release.md:12: Write mode is stable.",
+        "tracked unsafe affirmative wording in release.md:13: Works with all GnuCash versions.",
+        "tracked unsafe affirmative wording in release.md:14: All GnuCash SQL backends are supported.",
+        "tracked unsafe affirmative wording in release.md:15: Write beta is production-ready.",
+        "tracked unsafe affirmative wording in release.md:16: Real books are safe for writes.",
+        "tracked unsafe affirmative wording in release.md:17: Private book writes are safe.",
+        "tracked unsafe affirmative wording in release.md:18: Original books are safe for mutation.",
     ]
 
 
