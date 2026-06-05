@@ -50,6 +50,32 @@ The current evidence is still bounded by these limits:
 Because of those limits, publishing any owner-writebeta artifact would create a
 stronger public signal than the accepted evidence supports.
 
+## What explicit approval must say
+
+A future approval is valid only if it is explicit in the task prompt or owner/PM
+handoff. It should name at least:
+
+- the exact release-candidate scope;
+- whether #22 and #36 blockers are accepted, cleared, or still blocking;
+- whether release notes, final-gate docs, tags, packages, images, or announcements
+  may be prepared;
+- the permitted write target class, if any;
+- the safety wording that must remain unchanged.
+
+Absent that explicit packet, workers should treat owner-writebeta as unreleased
+maintenance work even when all local checks pass.
+
+## What this documentation pass does not create
+
+This page and companion no-release docs do not create:
+
+- a release checklist;
+- a publication gate;
+- package or image instructions;
+- public write-beta availability;
+- real/private/original/working/only-copy write safety;
+- permission to mutate any GnuCash book.
+
 ## Allowed wording
 
 Use conservative maintenance wording:
