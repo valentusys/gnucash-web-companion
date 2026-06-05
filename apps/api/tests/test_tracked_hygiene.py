@@ -19,11 +19,15 @@ def test_path_violations_reject_private_artifact_classes(tmp_path):
         repo / "docs" / "raw-ledger-export.sql",
         repo / "docs" / "book-backup.zip",
         repo / "docs" / "evidence-screenshot.png",
+        repo / "docs" / "copied-book.gnucash.sqlite-wal",
+        repo / "docs" / "app.db-shm",
     ]
 
     problems = guard.path_violations(candidates)
 
     assert len(problems) >= len(candidates)
+    assert any("copied-book.gnucash.sqlite-wal" in problem for problem in problems)
+    assert any("app.db-shm" in problem for problem in problems)
 
 
 def test_path_violations_allow_safe_docs_and_code():
