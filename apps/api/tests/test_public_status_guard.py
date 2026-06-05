@@ -353,6 +353,29 @@ def test_public_status_guard_rejects_affirmative_production_claims():
         raise AssertionError("affirmative production claim should fail guard")
 
 
+def test_public_status_guard_rejects_affirmative_public_write_beta_claims():
+    unsafe = "The public write beta is ready for users."
+
+    try:
+        guard.reject_patterns(Path("README.md"), unsafe, guard.UNSAFE_AFFIRMATIVE_PATTERNS)
+    except AssertionError as exc:
+        assert "public" in str(exc).lower()
+        assert "write" in str(exc).lower()
+    else:
+        raise AssertionError("affirmative public write beta claim should fail guard")
+
+
+def test_public_status_guard_rejects_affirmative_writebeta_status_claims():
+    unsafe = "Owner-writebeta is public."
+
+    try:
+        guard.reject_patterns(Path("README.md"), unsafe, guard.UNSAFE_AFFIRMATIVE_PATTERNS)
+    except AssertionError as exc:
+        assert "writebeta" in str(exc).lower()
+    else:
+        raise AssertionError("affirmative writebeta status claim should fail guard")
+
+
 def test_public_status_guard_accepts_negative_production_security_limitations():
     safe = "- Not production-ready and not security-audited."
 

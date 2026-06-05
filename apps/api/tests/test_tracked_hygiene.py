@@ -16,6 +16,9 @@ def test_path_violations_reject_private_artifact_classes(tmp_path):
         repo / "data" / "app" / "app.db",
         repo / "secrets" / "api.key",
         repo / "docs" / "evidence.csv",
+        repo / "docs" / "raw-ledger-export.sql",
+        repo / "docs" / "book-backup.zip",
+        repo / "docs" / "evidence-screenshot.png",
     ]
 
     problems = guard.path_violations(candidates)
@@ -28,6 +31,7 @@ def test_path_violations_allow_safe_docs_and_code():
     candidates = [
         repo / "README.md",
         repo / "docs" / "community" / "public-readonly-beta-feedback-packet.md",
+        repo / "docs" / "images" / "dashboard-desktop.png",
         repo / "apps" / "api" / "app" / "diagnostics.py",
     ]
 

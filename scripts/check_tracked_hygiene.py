@@ -20,12 +20,22 @@ FORBIDDEN_EXACT_NAMES = {
 }
 
 FORBIDDEN_SUFFIXES = {
+    ".bak",
+    ".backup",
     ".gnucash",
     ".gnucash.sqlite",
     ".sqlite",
     ".sqlite3",
     ".db",
     ".csv",
+    ".dump",
+    ".ofx",
+    ".qif",
+    ".sql",
+    ".tgz",
+    ".tar",
+    ".gz",
+    ".zip",
     ".pem",
     ".key",
     ".p12",
@@ -39,6 +49,18 @@ FORBIDDEN_PATH_PARTS = {
     "secrets",
     "backups",
 }
+
+FORBIDDEN_SCREENSHOT_SUFFIXES = {
+    ".gif",
+    ".jpeg",
+    ".jpg",
+    ".png",
+    ".webp",
+}
+
+ALLOWED_IMAGE_PREFIXES = (
+    "docs/images/",
+)
 
 FORBIDDEN_PREFIXES = (
     "data/books/",
@@ -85,6 +107,8 @@ def path_violations(paths: list[Path]) -> list[str]:
             problems.append(f"tracked forbidden filename: {rel}")
         if suffixes & FORBIDDEN_SUFFIXES or compound_suffix in FORBIDDEN_SUFFIXES:
             problems.append(f"tracked forbidden suffix: {rel}")
+        if suffixes & FORBIDDEN_SCREENSHOT_SUFFIXES and not rel.startswith(ALLOWED_IMAGE_PREFIXES):
+            problems.append(f"tracked possible screenshot/image artifact: {rel}")
         if lowered_parts & FORBIDDEN_PATH_PARTS:
             problems.append(f"tracked forbidden path component: {rel}")
         if rel.startswith(FORBIDDEN_PREFIXES):
