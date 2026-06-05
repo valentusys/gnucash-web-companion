@@ -459,6 +459,59 @@ runtime arming. The minimum communication contract is:
 Rollback communication is status reporting only. It does not authorize another
 mutation, a compensating write, or restoration over an original or only-copy book.
 
+## R8 pre-mutation stop/go register
+
+A future approval packet must include a stop/go register before any runtime
+arming. The register is a decision aid, not authorization by itself. It must use
+only redacted labels and pass/fail statuses:
+
+| Register item | Required entry | Unsafe entry that blocks |
+| --- | --- | --- |
+| Packet identity | Packet version and one route family | Multiple route families or inherited scope |
+| Mutation budget | Exact operation count and shape | Open-ended count or broad dogfood wording |
+| Target class | Restorable, not original, not only-copy | Private path, account name, or only-copy hint |
+| Backup checkpoint | Independent backup plus restore-to-copy proof | Backup-only claim without restore proof |
+| Writer exclusion | Desktop and other writers closed | Unknown writer state |
+| Runtime gate | Temporary `APP_ENV=test` session and reset plan | Default write enablement or non-test writes |
+| Evidence shape | Redacted pass/fail summary only | Raw logs, screenshots, books, DBs, paths, or amounts |
+| Release posture | Explicit no-release and no-public-write statement | Readiness, stable, production, or public beta wording |
+
+Any unsafe or missing entry makes the future trial blocked before mutation. Do not
+repair the register by opening, copying, inspecting, or mutating a real/private/
+original/working/only-copy book.
+
+## R8 owner approval wording constraints
+
+A future owner approval may be accepted only if it is narrow and same-context. It
+may approve the named packet, exact route family, operation count, target class,
+rollback proof, reset proof, and redacted evidence shape. It must not include or
+request private paths, account names, transaction descriptions, memos, amounts,
+screenshots, raw logs, books, app DBs, backups, exports, `.env`, tokens, keys, or
+certs.
+
+Unsafe approval wording blocks the trial even when the intent sounds positive.
+Examples of unsafe wording include approval to use the only copy, approval to
+"just try dogfood", approval to broaden operation counts during the run, or any
+approval that implies a public write beta, release, stable state, production
+readiness, security audit, broad compatibility, or only-copy safety.
+
+## R8 rollback evidence minimum
+
+After any future same-context authorized mutation, the minimum rollback evidence
+for review is a redacted pass/fail row for each item below:
+
+1. Pre-write independent backup existed before mutation.
+2. Route response matched the approved operation count and route family.
+3. Audit entry was written with non-sensitive metadata only.
+4. Read-back used read-only app routes and matched the expected narrow result.
+5. Restore-to-copy proof succeeded without overwriting the source target.
+6. Runtime reset returned writes to disabled posture.
+7. Disabled probe proved the write route was blocked after reset.
+
+Missing or inconsistent rollback evidence means `rollback review` or blocked
+status, not success. It does not authorize a compensating write, another trial, a
+release, or a public write beta claim.
+
 ## Stop result for the current task
 
 For issue #36, this runbook records that a real working-book trial remains
