@@ -461,16 +461,31 @@ def require_contains(path: Path, text: str, needles: list[str]) -> None:
         raise AssertionError(f"{path}: missing required current-posture text: {missing}")
 
 
+NEGATION_MARKERS = (
+    "not ",
+    "no ",
+    "without",
+    "does not",
+    "do not",
+    "avoiding",
+    "avoid ",
+    "deny ",
+    "denies ",
+    "denied ",
+)
+
+
 def reject_patterns(path: Path, text: str, patterns: list[re.Pattern[str]]) -> None:
     previous_line = ""
     for line_number, line in enumerate(text.splitlines(), start=1):
         if patterns is UNSAFE_AFFIRMATIVE_PATTERNS:
             lowered = line.lower()
-            context = f"{previous_line} {lowered}"
-            if any(
-                marker in context
-                for marker in ("not ", "no ", "without", "does not", "do not", "avoiding", "avoid ")
-            ):
+            current_line_is_negative = any(marker in lowered for marker in NEGATION_MARKERS)
+            wrapped_negative_context = (
+                line[:1].isspace()
+                or previous_line.rstrip().endswith((",", " or", " and", " no"))
+            ) and any(marker in previous_line for marker in NEGATION_MARKERS)
+            if current_line_is_negative or wrapped_negative_context:
                 previous_line = lowered
                 continue
         for pattern in patterns:

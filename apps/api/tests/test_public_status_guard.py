@@ -433,6 +433,30 @@ def test_public_status_guard_accepts_wrapped_negative_safety_limitations():
     guard.reject_patterns(Path("CHANGELOG.md"), safe, guard.UNSAFE_AFFIRMATIVE_PATTERNS)
 
 
+def test_public_status_guard_accepts_denial_of_stable_release_claims():
+    safe = "Release notes deny production readiness and stable release status."
+
+    guard.reject_patterns(Path("CHANGELOG.md"), safe, guard.UNSAFE_AFFIRMATIVE_PATTERNS)
+
+
+def test_public_status_guard_accepts_hard_wrapped_negative_list():
+    safe = "not production-ready and not safe for only-copy books. No\nstable release is claimed."
+
+    guard.reject_patterns(Path("PROJECT_STATUS.md"), safe, guard.UNSAFE_AFFIRMATIVE_PATTERNS)
+
+
+def test_public_status_guard_rejects_unrelated_claim_after_negative_context():
+    unsafe = "- No public write beta is authorized.\nThe public write beta is ready for users."
+
+    try:
+        guard.reject_patterns(Path("README.md"), unsafe, guard.UNSAFE_AFFIRMATIVE_PATTERNS)
+    except AssertionError as exc:
+        assert "public" in str(exc).lower()
+        assert "write" in str(exc).lower()
+    else:
+        raise AssertionError("new affirmative claim after negative line should fail guard")
+
+
 def test_public_status_guard_rejects_affirmative_broad_compatibility_claims():
     unsafe = "Broad GnuCash compatibility is supported."
 
