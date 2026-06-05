@@ -335,11 +335,51 @@ def _check_owner_writebeta_operating_guide(path: Path) -> list[str]:
     return ["owner-writebeta operating guide must preserve: " + ", ".join(missing)] if missing else []
 
 
+def _compose_service_environment_lines(compose_text: str, service_name: str) -> list[str]:
+    """Extract list-form environment lines for one Compose service.
+
+    The guard intentionally avoids loading arbitrary Compose interpolation or
+    requiring PyYAML; it only needs to prove the committed service defaults stay
+    pinned in the rendered Compose source posture.
+    """
+    lines = compose_text.splitlines()
+    service_indent: int | None = None
+    service_start: int | None = None
+    for index, line in enumerate(lines):
+        stripped = line.strip()
+        if stripped == f"{service_name}:":
+            service_indent = len(line) - len(line.lstrip())
+            service_start = index + 1
+            break
+    if service_indent is None or service_start is None:
+        return []
+
+    environment_indent: int | None = None
+    environment_lines: list[str] = []
+    for line in lines[service_start:]:
+        stripped = line.strip()
+        if not stripped:
+            continue
+        indent = len(line) - len(line.lstrip())
+        if indent <= service_indent:
+            break
+        if environment_indent is None:
+            if stripped == "environment:":
+                environment_indent = indent
+            continue
+        if indent <= environment_indent:
+            break
+        if stripped.startswith("-"):
+            environment_lines.append(stripped[1:].strip())
+    return environment_lines
+
+
 def _check(env_example: Path, compose: Path, gate_doc: Path, checklist_doc: Path | None = None) -> list[str]:
     env_text = _read(env_example)
     compose_text = _read(compose)
     gate_text = _read(gate_doc)
     gate_text_normalized = _normalized(gate_text)
+    api_compose_environment = _compose_service_environment_lines(compose_text, "api")
     failures: list[str] = []
 
     if WRITE_DEFAULT_TEXT not in env_text:
@@ -352,10 +392,14 @@ def _check(env_example: Path, compose: Path, gate_doc: Path, checklist_doc: Path
         failures.append(".env.example must not default APP_ENV=test")
     if COMPOSE_WRITE_DEFAULT_TEXT not in compose_text:
         failures.append("Docker Compose must render GNUCASH_WRITES_ENABLED default false")
+    if COMPOSE_WRITE_DEFAULT_TEXT not in api_compose_environment:
+        failures.append("Docker Compose api service must render GNUCASH_WRITES_ENABLED default false")
     if "GNUCASH_WRITES_ENABLED=${GNUCASH_WRITES_ENABLED:-true}" in compose_text:
         failures.append("Docker Compose must not default GNUCASH_WRITES_ENABLED true")
     if COMPOSE_APP_ENV_DEFAULT_TEXT not in compose_text:
         failures.append("Docker Compose must render APP_ENV default development, not test")
+    if COMPOSE_APP_ENV_DEFAULT_TEXT not in api_compose_environment:
+        failures.append("Docker Compose api service must render APP_ENV default development, not test")
     if "APP_ENV=${APP_ENV:-test}" in compose_text:
         failures.append("Docker Compose must not default APP_ENV=test")
     if APP_ENV_GATE_TEXT not in gate_text:
