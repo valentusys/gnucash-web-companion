@@ -534,6 +534,7 @@ def test_backup_restore_readiness_checklist_keeps_restore_validation_non_mutatin
         "private path snippets, account names, transaction descriptions, memos, amounts",
         "backup manifest and checksum wording must use opaque refs plus redacted status summaries only",
         "never raw paths, filenames, account names, memos, amounts, app DB rows, books, or backup artifacts",
+        "tracked docs, pure Python guard output, and pytest assertions",
         "write routes are still expected to reject mutation attempts",
         "expected-failure/no-write statement",
         "separate disposable copy",
@@ -554,6 +555,7 @@ def test_backup_recovery_runbook_keeps_docs_tests_only_readiness_non_mutating():
 
     required = [
         "Docs/tests-only restore-readiness wording checks are not restore drills",
+        "tracked docs, guard output, and pytest assertions",
         "must not create backup artifacts, restore artifacts, app DB records, filesystem evidence",
         "private paths, account names, memos, amounts, books, or backups",
         "documented no-op expectation under `GNUCASH_WRITES_ENABLED=false`",

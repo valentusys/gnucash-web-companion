@@ -393,6 +393,7 @@ def _check_backup_restore_readiness(path: Path) -> list[str]:
         "must not run product dogfood",
         "real/original/private/working/only-copy book",
         "docs/tests-only restore-readiness wording check",
+        "tracked docs, pure Python guard output, and pytest assertions",
         "not recovery proof",
         "documented no-op expectation",
         "app DB records",
@@ -435,6 +436,7 @@ def _check_backup_recovery_runbook(path: Path) -> list[str]:
     normalized = _normalized(text)
     required = (
         "docs/tests-only restore-readiness wording checks are not restore drills",
+        "tracked docs, guard output, and pytest assertions",
         "must not create backup artifacts",
         "restore artifacts",
         "app DB records",
