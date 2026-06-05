@@ -83,6 +83,22 @@ packet. A worker may not fill in missing approval language on the owner's behalf
 When one of those items is absent, preserve `NO_RELEASE_KEEP_MAINTENANCE` and link
 back to this page instead of inventing release readiness.
 
+## Status-summary rule
+
+Any status summary that mentions accepted evidence must also preserve the current
+decision in the same paragraph or bullet: owner-writebeta remains unreleased.
+Evidence-only wording is incomplete because readers may see a green check or
+accepted handoff as approval.
+
+Use this order:
+
+1. State the no-release decision.
+2. Name the missing owner/PM release-candidate approval.
+3. Then summarize any narrow maintenance evidence.
+
+This keeps approval as the release-state switch and prevents maintenance evidence
+from being presented as publication readiness.
+
 ## What this documentation pass does not create
 
 This page and companion no-release docs do not create:
