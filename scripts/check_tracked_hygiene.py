@@ -105,12 +105,26 @@ FORBIDDEN_PRIVATE_EVIDENCE_MARKERS = (
     "TRANSACTION_AMOUNT=",
 )
 
+# Human-written labels are checked separately from marker tokens so that a
+# lower/mixed-case heading such as "Private path: ..." cannot bypass the raw
+# evidence guard. Keep these label patterns narrow to avoid blocking negative
+# prose that merely discusses privacy rules.
+FORBIDDEN_PRIVATE_EVIDENCE_LABEL_PATTERNS = (
+    re.compile(r"^\s*(?:raw[ _-])?private[ _-]path\s*[:=]", re.I),
+    re.compile(r"^\s*(?:original|only-copy|private|real)[ _-]gnucash[ _-]path\s*[:=]", re.I),
+    re.compile(r"^\s*private[ _-]book[ _-]path\s*[:=]", re.I),
+    re.compile(r"^\s*real[ _-]account[ _-]name\s*[:=]", re.I),
+    re.compile(r"^\s*transaction[ _-](?:description|memo|amount)\s*[:=]", re.I),
+)
+
 # Tracked hygiene runs over every tracked file, so these patterns are narrower
 # than the public-status wording guard and are limited to high-risk affirmative
 # posture claims that should never enter committed docs, tests, or handoffs.
 FORBIDDEN_UNSAFE_AFFIRMATIVE_PATTERNS = (
     re.compile(r"\bpublic\s+write\s+beta\s+(?:is\s+)?(?:ready|available|open|enabled|supported)\b", re.I),
+    re.compile(r"\bpublic\s+write\s+beta\s+(?:launch|release|rollout)\s+(?:is\s+)?(?:ready|approved|authorized)\b", re.I),
     re.compile(r"\bbroad\s+GnuCash\s+(?:Desktop\s+)?compatibility\s+(?:is\s+)?(?:ready|available|supported|claimed|proven)\b", re.I),
+    re.compile(r"\bbroad\s+GnuCash\s+(?:Desktop\s+)?compatibility\s+(?:is\s+)?(?:validated|confirmed)\b", re.I),
     re.compile(r"\bonly-copy\s+(?:books?\s+)?(?:are\s+)?safe\s+(?:for\s+)?(?:writes?|mutation|write mode)\b", re.I),
     re.compile(r"\bis\s+production[- ]ready\b", re.I),
     re.compile(r"\bsecurity[- ]audited\s+(release|software|deployment|build)\b", re.I),
@@ -135,6 +149,10 @@ UNSAFE_WORDING_SCANNED_SUFFIXES = (
     ".rst",
     ".txt",
 )
+
+GUARD_SELF_TEST_FILES = {
+    "apps/api/tests/test_tracked_hygiene.py",
+}
 
 
 def tracked_files() -> list[Path]:
@@ -191,15 +209,23 @@ def content_violations(paths: list[Path]) -> list[str]:
             continue
         text = data.decode("utf-8", errors="ignore")
         rel = path.relative_to(REPO_ROOT).as_posix()
-        for marker in FORBIDDEN_CONTENT_MARKERS:
-            if marker in text:
-                problems.append(f"tracked private-key marker in: {rel}")
-        tokens = text.split()
-        for marker in FORBIDDEN_PRIVATE_EVIDENCE_MARKERS:
-            if any(token == marker or token.startswith(marker) for token in tokens):
-                problems.append(f"tracked raw private-evidence marker {marker!r} in: {rel}")
+        if rel not in GUARD_SELF_TEST_FILES:
+            for marker in FORBIDDEN_CONTENT_MARKERS:
+                if marker in text:
+                    problems.append(f"tracked private-key marker in: {rel}")
+            tokens = text.split()
+            for marker in FORBIDDEN_PRIVATE_EVIDENCE_MARKERS:
+                if any(token == marker or token.startswith(marker) for token in tokens):
+                    problems.append(f"tracked raw private-evidence marker {marker!r} in: {rel}")
         if path.suffix.lower() not in UNSAFE_WORDING_SCANNED_SUFFIXES:
             continue
+        for line_number, line in enumerate(text.splitlines(), start=1):
+            for pattern in FORBIDDEN_PRIVATE_EVIDENCE_LABEL_PATTERNS:
+                if pattern.search(line):
+                    problems.append(
+                        f"tracked raw private-evidence label in {rel}:{line_number}: {line}"
+                    )
+                    break
         previous_line = ""
         for line_number, line in enumerate(text.splitlines(), start=1):
             lowered = line.lower()

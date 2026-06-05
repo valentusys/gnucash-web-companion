@@ -82,6 +82,8 @@ def test_content_violations_reject_raw_private_evidence_markers(tmp_path, monkey
         "tracked raw private-evidence marker 'RAW_PRIVATE_EVIDENCE_BEGIN' in: public-report.md",
         "tracked raw private-evidence marker 'PRIVATE_BOOK_PATH=' in: public-report.md",
         "tracked raw private-evidence marker 'TRANSACTION_AMOUNT=' in: public-report.md",
+        "tracked raw private-evidence label in public-report.md:2: PRIVATE_BOOK_PATH=/redacted",
+        "tracked raw private-evidence label in public-report.md:3: TRANSACTION_AMOUNT=0.00",
     ]
 
 
@@ -99,6 +101,29 @@ def test_content_violations_reject_private_path_label_variants(tmp_path, monkeyp
         "tracked raw private-evidence marker 'PRIVATE_PATH:' in: handoff.md",
         "tracked raw private-evidence marker 'ORIGINAL_GNUCASH_PATH=' in: handoff.md",
         "tracked raw private-evidence marker 'ONLY_COPY_GNUCASH_PATH=' in: handoff.md",
+        "tracked raw private-evidence label in handoff.md:1: PRIVATE_PATH: /redacted",
+        "tracked raw private-evidence label in handoff.md:2: ORIGINAL_GNUCASH_PATH=/redacted",
+    ]
+
+
+def test_content_violations_reject_human_written_private_evidence_labels(tmp_path, monkeypatch):
+    sample = tmp_path / "public-report.md"
+    sample.write_text(
+        "Private path: /redacted\n"
+        "Original GnuCash path = /redacted\n"
+        "Real account name: Redacted Account\n"
+        "Transaction amount: 0.00\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
+
+    problems = guard.content_violations([sample])
+
+    assert problems == [
+        "tracked raw private-evidence label in public-report.md:1: Private path: /redacted",
+        "tracked raw private-evidence label in public-report.md:2: Original GnuCash path = /redacted",
+        "tracked raw private-evidence label in public-report.md:3: Real account name: Redacted Account",
+        "tracked raw private-evidence label in public-report.md:4: Transaction amount: 0.00",
     ]
 
 
@@ -107,7 +132,9 @@ def test_content_violations_reject_unsafe_affirmative_wording(tmp_path, monkeypa
     sample.write_text(
         "Public write beta is ready.\n"
         "Broad GnuCash compatibility is supported.\n"
-        "Only-copy books are safe for writes.\n",
+        "Only-copy books are safe for writes.\n"
+        "Public write beta launch is authorized.\n"
+        "Broad GnuCash Desktop compatibility is confirmed.\n",
         encoding="utf-8",
     )
     monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
@@ -118,6 +145,8 @@ def test_content_violations_reject_unsafe_affirmative_wording(tmp_path, monkeypa
         "tracked unsafe affirmative wording in release.md:1: Public write beta is ready.",
         "tracked unsafe affirmative wording in release.md:2: Broad GnuCash compatibility is supported.",
         "tracked unsafe affirmative wording in release.md:3: Only-copy books are safe for writes.",
+        "tracked unsafe affirmative wording in release.md:4: Public write beta launch is authorized.",
+        "tracked unsafe affirmative wording in release.md:5: Broad GnuCash Desktop compatibility is confirmed.",
     ]
 
 

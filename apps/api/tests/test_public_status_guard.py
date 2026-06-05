@@ -398,6 +398,18 @@ def test_public_status_guard_rejects_affirmative_public_write_beta_claims():
         raise AssertionError("affirmative public write beta claim should fail guard")
 
 
+def test_public_status_guard_rejects_affirmative_public_write_beta_launch_claims():
+    unsafe = "Public write beta launch is authorized."
+
+    try:
+        guard.reject_patterns(Path("README.md"), unsafe, guard.UNSAFE_AFFIRMATIVE_PATTERNS)
+    except AssertionError as exc:
+        assert "public" in str(exc).lower()
+        assert "write" in str(exc).lower()
+    else:
+        raise AssertionError("affirmative public write beta launch claim should fail guard")
+
+
 def test_public_status_guard_rejects_affirmative_writebeta_status_claims():
     unsafe = "Owner-writebeta is public."
 
@@ -430,6 +442,17 @@ def test_public_status_guard_rejects_affirmative_broad_compatibility_claims():
         assert "compatibility" in str(exc).lower()
     else:
         raise AssertionError("affirmative broad compatibility claim should fail guard")
+
+
+def test_public_status_guard_rejects_affirmative_broad_compatibility_confirmed_claims():
+    unsafe = "Broad GnuCash Desktop compatibility is confirmed."
+
+    try:
+        guard.reject_patterns(Path("README.md"), unsafe, guard.UNSAFE_AFFIRMATIVE_PATTERNS)
+    except AssertionError as exc:
+        assert "compatibility" in str(exc).lower()
+    else:
+        raise AssertionError("affirmative broad compatibility confirmed claim should fail guard")
 
 
 def test_public_status_guard_rejects_affirmative_only_copy_write_safety_claims():

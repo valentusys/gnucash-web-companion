@@ -397,6 +397,7 @@ RECENT_STALE_CURRENT_PATTERNS = _generated_stale_current_patterns()
 
 UNSAFE_AFFIRMATIVE_PATTERNS = [
     re.compile(r"\bpublic\s+write\s+beta\s+(?:is\s+)?(?:ready|available|open|enabled|supported)\b", re.I),
+    re.compile(r"\bpublic\s+write\s+beta\s+(?:launch|release|rollout)\s+(?:is\s+)?(?:ready|approved|authorized)\b", re.I),
     re.compile(r"\bwrite\s+beta\s+(?:is\s+)?(?:ready|available|open|enabled|supported)\b", re.I),
     re.compile(r"\b(owner[- ]?)?writebeta\s+(?:is\s+)?(?:public|stable|production[- ]ready|security[- ]audited)\b", re.I),
     re.compile(r"\bis production[- ]ready\b", re.I),
@@ -405,7 +406,7 @@ UNSAFE_AFFIRMATIVE_PATTERNS = [
     re.compile(r"\bstable\s+(release|production|write mode|deployment)\b", re.I),
     re.compile(r"\bsafe\s+for\s+real/private\b", re.I),
     re.compile(r"\bsafe\s+production\s+write\s+mode\b", re.I),
-    re.compile(r"\bbroad\s+GnuCash\s+(?:Desktop\s+)?compatibility\s+(?:is\s+)?(?:ready|available|supported|claimed|proven)\b", re.I),
+    re.compile(r"\bbroad\s+GnuCash\s+(?:Desktop\s+)?compatibility\s+(?:is\s+)?(?:ready|available|supported|claimed|proven|validated|confirmed)\b", re.I),
     re.compile(r"\ball\s+GnuCash\s+(?:versions|backends)\s+(?:are\s+)?(?:supported|compatible|write[- ]compatible)\b", re.I),
     re.compile(r"\b(?:real/private|private|real|only-copy)\s+(?:book\s+)?write[- ]safety\s+(?:is\s+)?(?:proven|verified|ready|safe)\b", re.I),
     re.compile(r"\bonly-copy\s+(?:books?\s+)?(?:are\s+)?safe\s+(?:for\s+)?(?:writes?|mutation|write mode)\b", re.I),
