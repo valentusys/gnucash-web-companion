@@ -24,6 +24,41 @@ CURRENT_WRITE_ALPHA_RELEASE = "v0.2.8-writealpha"
 WRITE_DEFAULT = "GNUCASH_WRITES_ENABLED=false"
 APP_ENV_GATE = "APP_ENV=test"
 
+
+def _completed_phase_number() -> int:
+    match = re.search(r"\bPhase\s+(\d+)\b", CURRENT_COMPLETED_PHASE)
+    if not match:
+        raise ValueError(f"invalid CURRENT_COMPLETED_PHASE: {CURRENT_COMPLETED_PHASE!r}")
+    return int(match.group(1))
+
+
+def _generated_stale_current_patterns(start_phase: int = 320) -> list[re.Pattern[str]]:
+    """Generate stale public-current posture patterns up to the current phase.
+
+    The public-status guard advances frequently. Generated patterns prevent the
+    stale baseline guard from silently stopping at an older phase range while
+    current docs have moved forward.
+    """
+
+    current_phase = _completed_phase_number()
+    if start_phase >= current_phase:
+        return []
+
+    patterns: list[re.Pattern[str]] = []
+    for phase in range(start_phase, current_phase):
+        patterns.extend(
+            [
+                re.compile(
+                    rf"Completed through Phase {phase}\b"
+                    rf"(?!(?: was| were) (?:the )?(?:prior|previous|historical)\b)"
+                ),
+                re.compile(rf"Phase 0[–-]{phase} are complete"),
+                re.compile(rf"Фазы 0[–-]{phase} завершены"),
+            ]
+        )
+    return patterns
+
+
 PUBLIC_STATUS_FILES = [
     Path("README.md"),
     Path("README.ru.md"),
@@ -59,6 +94,11 @@ PUBLIC_STATUS_FILES = [
 CONFIG_FILES = [
     Path(".env.example"),
     Path("docker-compose.yml"),
+]
+CURRENT_BASELINE_STATUS_FILES = [
+    Path("README.md"),
+    Path("README.ru.md"),
+    Path("docs/ROADMAP.md"),
 ]
 COMPATIBILITY_STATUS_FILES = [
     Path("docs/gnucash-compatibility.md"),
@@ -353,6 +393,7 @@ STALE_CURRENT_PATTERNS = [
     re.compile(r"current public experimental write-alpha GitHub pre-release after Phase 132", re.I),
     re.compile(r"current public experimental write-alpha GitHub pre-release after Phase 211", re.I),
 ]
+RECENT_STALE_CURRENT_PATTERNS = _generated_stale_current_patterns()
 
 UNSAFE_AFFIRMATIVE_PATTERNS = [
     re.compile(r"\bpublic\s+write\s+beta\s+(?:is\s+)?(?:ready|available|open|enabled|supported)\b", re.I),
@@ -650,6 +691,8 @@ def main() -> int:
         if path in texts:
             try:
                 reject_patterns(path, texts[path], STALE_CURRENT_PATTERNS)
+                if path in CURRENT_BASELINE_STATUS_FILES:
+                    reject_patterns(path, texts[path], RECENT_STALE_CURRENT_PATTERNS)
                 reject_patterns(path, texts[path], UNSAFE_AFFIRMATIVE_PATTERNS)
             except AssertionError as exc:
                 errors.append(str(exc))

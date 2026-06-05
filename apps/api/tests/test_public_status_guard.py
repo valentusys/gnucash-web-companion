@@ -122,6 +122,39 @@ def test_public_status_guard_rejects_phase_319_as_current_baseline():
         raise AssertionError("stale Phase 319 current baseline should fail guard")
 
 
+def test_public_status_guard_rejects_recent_stale_phase_baselines():
+    stale_claims = [
+        "- Completed through Phase 829.",
+        "- Phase 0–829 are complete.",
+        "- Фазы 0–829 завершены.",
+    ]
+
+    for stale in stale_claims:
+        try:
+            guard.reject_patterns(Path("docs/ROADMAP.md"), stale, guard.RECENT_STALE_CURRENT_PATTERNS)
+        except AssertionError as exc:
+            assert "829" in str(exc)
+        else:
+            raise AssertionError(f"recent stale phase baseline should fail guard: {stale}")
+
+
+def test_public_status_guard_accepts_current_phase_baselines():
+    current_claims = [
+        "- Completed through Phase 830.",
+        "- Phase 0–830 are complete.",
+        "- Фазы 0–830 завершены.",
+    ]
+
+    for current in current_claims:
+        guard.reject_patterns(Path("docs/ROADMAP.md"), current, guard.RECENT_STALE_CURRENT_PATTERNS)
+
+
+def test_public_status_guard_accepts_historical_prior_phase_baseline_context():
+    historical = "Completed through Phase 630 was the prior public-status guard baseline before this run."
+
+    guard.reject_patterns(Path("PROJECT_STATUS.md"), historical, guard.RECENT_STALE_CURRENT_PATTERNS)
+
+
 def test_public_status_guard_rejects_phase_264_as_current_baseline():
     stale = "- Completed through Phase 264."
 
