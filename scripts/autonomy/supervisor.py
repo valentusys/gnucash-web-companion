@@ -35,6 +35,15 @@ TRANSIENT_MARKERS = (
 )
 
 ON_EMPTY_CHOICES = ("stop", "repeat-safe-final", "generate-from-policy")
+TASK_FIELD_NAMES = (
+    "target",
+    "goal",
+    "allowed scope",
+    "non-goals",
+    "verification commands",
+    "safety flags",
+    "stop/continue recommendation",
+)
 FORBIDDEN_POLICY_MARKERS = (
     "publish release",
     "publish a write beta release",
@@ -59,6 +68,10 @@ FORBIDDEN_VERIFICATION_COMMAND_MARKERS = (
     "yarn publish",
     "publish release",
     "publish a write beta release",
+)
+FORBIDDEN_VERIFICATION_COMMAND_PATTERNS = (
+    re.compile(r"\bgit\s+push\b[^\n;]*\s--(?:follow-)?tags\b", re.I),
+    re.compile(r"\bgh\s+api\b[^\n;]*(?:\brepos/[^\s;]+/[^\s;]+/releases\b|/releases\b)", re.I),
 )
 
 SAFETY_RULES = """Repository safety rules:
@@ -227,15 +240,7 @@ def parse_queue(path: Path) -> list[Task]:
         nonlocal current_id, fields, current_list_field
         if current_id is None:
             return
-        required = [
-            "target",
-            "goal",
-            "allowed scope",
-            "non-goals",
-            "verification commands",
-            "safety flags",
-            "stop/continue recommendation",
-        ]
+        required = list(TASK_FIELD_NAMES)
         missing = [name for name in required if not fields.get(name)]
         if missing:
             raise SupervisorError(f"task {current_id} missing required field(s): {', '.join(missing)}")
@@ -277,20 +282,22 @@ def parse_queue(path: Path) -> list[Task]:
         if stripped.startswith("- ") and ":" in stripped:
             key, value = stripped[2:].split(":", 1)
             key = key.strip().lower()
-            value = value.strip()
-            if value:
-                fields[key] = value
-                current_list_field = None
-            else:
-                fields[key] = []
-                current_list_field = key
-            continue
+            if key in TASK_FIELD_NAMES:
+                value = value.strip()
+                if value:
+                    fields[key] = value
+                    current_list_field = None
+                else:
+                    fields[key] = []
+                    current_list_field = key
+                continue
         if stripped.startswith("- ") and current_list_field:
             value = stripped[2:].strip()
             current = fields.setdefault(current_list_field, [])
             if not isinstance(current, list):
                 raise SupervisorError(f"field {current_list_field} is not a list in task {current_id}")
             current.append(value)
+            continue
 
     flush()
     if not tasks:
@@ -316,7 +323,9 @@ def task_is_safe_for_policy(task: Task) -> bool:
     if any(marker in text for marker in FORBIDDEN_POLICY_MARKERS):
         return False
     verification_text = normalized_safety_text("\n".join(task.verification_commands))
-    return not any(marker in verification_text for marker in FORBIDDEN_VERIFICATION_COMMAND_MARKERS)
+    if any(marker in verification_text for marker in FORBIDDEN_VERIFICATION_COMMAND_MARKERS):
+        return False
+    return not any(pattern.search(verification_text) for pattern in FORBIDDEN_VERIFICATION_COMMAND_PATTERNS)
 
 
 def load_safe_policy_tasks(path: Path) -> list[Task]:

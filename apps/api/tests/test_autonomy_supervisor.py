@@ -324,6 +324,23 @@ def test_generated_policy_rejects_release_commands_with_extra_whitespace(tmp_pat
     assert supervisor.load_safe_policy_tasks(policy) == []
 
 
+def test_generated_policy_rejects_indirect_release_publication_commands(tmp_path):
+    for command in (
+        "git push origin --tags",
+        "git push origin main --follow-tags",
+        "gh api repos/:owner/:repo/releases -f tag_name=v0.2.9-writealpha",
+    ):
+        policy = write_policy(
+            tmp_path,
+            UNSAFE_GENERATED_VERIFICATION_POLICY.replace(
+                "gh release create v0.2.9-writealpha",
+                command,
+            ),
+        )
+
+        assert supervisor.load_safe_policy_tasks(policy) == []
+
+
 def test_budget_expiry_stops_before_next_task(tmp_path):
     queue = write_queue(tmp_path)
     report = supervisor.run_supervisor(
