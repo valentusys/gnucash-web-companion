@@ -97,6 +97,21 @@ def _read(path: Path) -> str:
         raise GuardError("required safety file could not be read") from exc
 
 
+def _env_file_assignments(env_text: str, key: str) -> list[str]:
+    """Return uncommented dotenv assignment values for key without expanding them."""
+    prefix = f"{key}="
+    values: list[str] = []
+    for raw_line in env_text.splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("export "):
+            line = line[len("export ") :].lstrip()
+        if line.startswith(prefix):
+            values.append(line[len(prefix) :].strip())
+    return values
+
+
 def _parse_python(path: Path) -> ast.Module:
     try:
         return ast.parse(_read(path), filename=str(path.name))
@@ -578,18 +593,20 @@ def _check(env_example: Path, compose: Path, gate_doc: Path, checklist_doc: Path
     compose_text = _read(compose)
     gate_text = _read(gate_doc)
     gate_text_normalized = _normalized(gate_text)
+    env_write_values = _env_file_assignments(env_text, "GNUCASH_WRITES_ENABLED")
+    env_app_env_values = _env_file_assignments(env_text, "APP_ENV")
     api_compose_environment = _compose_service_environment_lines(compose_text, "api")
     web_compose_environment = _compose_service_environment_lines(compose_text, "web")
     failures: list[str] = []
 
-    if WRITE_DEFAULT_TEXT not in env_text:
-        failures.append(".env.example must set GNUCASH_WRITES_ENABLED=false")
-    if "GNUCASH_WRITES_ENABLED=true" in env_text:
-        failures.append(".env.example must not default or suggest GNUCASH_WRITES_ENABLED=true")
-    if APP_ENV_DEFAULT_TEXT not in env_text:
-        failures.append(".env.example must default APP_ENV to development, not test")
-    if "APP_ENV=test" in env_text:
-        failures.append(".env.example must not default APP_ENV=test")
+    if "false" not in env_write_values:
+        failures.append(".env.example must set GNUCASH_WRITES_ENABLED=false as an uncommented assignment")
+    if any(value != "false" for value in env_write_values):
+        failures.append(".env.example must not default or suggest alternate GNUCASH_WRITES_ENABLED values")
+    if "development" not in env_app_env_values:
+        failures.append(".env.example must default APP_ENV to development as an uncommented assignment")
+    if any(value != "development" for value in env_app_env_values):
+        failures.append(".env.example must not default or suggest alternate APP_ENV values")
     if COMPOSE_WRITE_DEFAULT_TEXT not in compose_text:
         failures.append("Docker Compose must render GNUCASH_WRITES_ENABLED default false")
     failures.extend(
