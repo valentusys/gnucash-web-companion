@@ -114,6 +114,60 @@ Forbidden tracked evidence includes books, SQLite databases, app databases,
 backups, exports, screenshots, `.env`, tokens, keys, certs, account names,
 transaction descriptions, memos, amounts, private paths, and raw private logs.
 
+## R2 approval packet requirements
+
+A future approval request must be self-contained and bounded. It must include all
+of these fields before an operator may ask the owner and PM to decide:
+
+1. Trial name and one-sentence purpose.
+2. Route family and exact mutation count.
+3. Target class stated without private path, account name, amount, memo, or
+   transaction description.
+4. Statement that the target is not an original, only-copy, unbacked, or
+   irreplaceable book.
+5. Backup checkpoint and restore-to-copy checkpoint, both described with
+   redacted location classes only.
+6. Abort conditions for preflight, backup, lock, preview, confirmation, route
+   response, audit, read-back, compatibility check, restore proof, reset, and
+   disabled probe.
+7. Evidence packet shape limited to redacted summaries and pass/fail statuses.
+8. Reset command plan that returns writes to default-disabled posture.
+9. Explicit non-release statement: no tag, package, image, public write beta,
+   production-ready claim, stable claim, security-audited claim, broad
+   compatibility claim, or only-copy safety claim.
+
+If the packet omits any field, the only allowed result is blocked. Do not fill in
+missing private details from local knowledge or runtime inspection.
+
+## R2 owner and PM gate wording
+
+The owner approval must be explicit, current, and scoped to the exact packet. A
+safe approval record may say only that the owner approves the named packet and
+confirms the target class is restorable and not original or only-copy. It must
+not include private paths, account names, transaction descriptions, memos, or
+amounts.
+
+The PM approval must independently approve the same packet, route family,
+mutation count, rollback proof, reset proof, and evidence shape. If owner and PM
+approvals refer to different packet versions, operation counts, target classes,
+or evidence expectations, the trial remains blocked.
+
+Prior acceptance of copied/restorable evidence, issue #36 work, or this runbook
+is not approval. Approval must appear in the same execution context as the future
+trial package.
+
+## R2 rollback decision tree
+
+A future authorized packet must stop before mutation when preflight, lock,
+backup, or preview fails. It must stop after mutation and enter rollback review
+when route response, audit, read-back, compatibility, or restore-to-copy proof is
+missing or inconsistent. It must stop after reset if the disabled probe does not
+prove writes are blocked again.
+
+Rollback review may use only a restored copy or independently prepared backup
+copy. It may not overwrite an original, working, private-only, or only-copy book.
+Any raw recovery material must stay outside git and outside public reports.
+
 ## Stop result for the current task
 
 For issue #36, this runbook records that a real working-book trial remains
