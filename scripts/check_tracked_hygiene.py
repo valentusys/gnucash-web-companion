@@ -127,6 +127,8 @@ FORBIDDEN_UNSAFE_AFFIRMATIVE_PATTERNS = (
     re.compile(r"\bbroad\s+GnuCash\s+(?:Desktop\s+)?compatibility\s+(?:is\s+)?(?:validated|confirmed)\b", re.I),
     re.compile(r"\bonly-copy\s+(?:books?\s+)?(?:are\s+)?safe\s+(?:for\s+)?(?:writes?|mutation|write mode)\b", re.I),
     re.compile(r"\bis\s+production[- ]ready\b", re.I),
+    re.compile(r"\bproduction[- ]ready\s+(release|software|deployment|build)\s+(?:is\s+)?(?:ready|published|available|supported|released)\b", re.I),
+    re.compile(r"\bstable\s+(release|deployment)\s+(?:is\s+)?(?:ready|published|available|supported)\b", re.I),
     re.compile(r"\bsecurity[- ]audited\s+(release|software|deployment|build)\b", re.I),
 )
 

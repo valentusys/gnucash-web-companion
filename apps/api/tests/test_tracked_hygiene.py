@@ -134,7 +134,10 @@ def test_content_violations_reject_unsafe_affirmative_wording(tmp_path, monkeypa
         "Broad GnuCash compatibility is supported.\n"
         "Only-copy books are safe for writes.\n"
         "Public write beta launch is authorized.\n"
-        "Broad GnuCash Desktop compatibility is confirmed.\n",
+        "Broad GnuCash Desktop compatibility is confirmed.\n"
+        "Production-ready release published.\n"
+        "Stable release is ready.\n"
+        "Write beta is production-ready.\n",
         encoding="utf-8",
     )
     monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
@@ -147,6 +150,9 @@ def test_content_violations_reject_unsafe_affirmative_wording(tmp_path, monkeypa
         "tracked unsafe affirmative wording in release.md:3: Only-copy books are safe for writes.",
         "tracked unsafe affirmative wording in release.md:4: Public write beta launch is authorized.",
         "tracked unsafe affirmative wording in release.md:5: Broad GnuCash Desktop compatibility is confirmed.",
+        "tracked unsafe affirmative wording in release.md:6: Production-ready release published.",
+        "tracked unsafe affirmative wording in release.md:7: Stable release is ready.",
+        "tracked unsafe affirmative wording in release.md:8: Write beta is production-ready.",
     ]
 
 
