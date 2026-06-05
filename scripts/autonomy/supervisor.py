@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import dataclasses
 import os
+import re
 import shlex
 import subprocess
 import sys
@@ -447,6 +448,12 @@ def make_generated_task(template: Task, generation: int, cycle: int) -> Task:
     return dataclasses.replace(template, task_id=f"{template.task_id}-r{cycle}")
 
 
+def safe_prompt_slug(task_id: str) -> str:
+    """Return a path-safe slug for prompt filenames derived from policy task IDs."""
+    slug = re.sub(r"[^A-Za-z0-9_-]+", "-", task_id).strip("-_")
+    return (slug or "task")[:120]
+
+
 def choose_next_task(
     *,
     base_tasks: list[Task],
@@ -564,7 +571,7 @@ def run_supervisor(
             stop_reason = "dirty tree before task"
             break
         head_before = git.head(repo)
-        prompt_path = prompt_dir / f"{len(task_reports)+1:03d}-{task.task_id}.md"
+        prompt_path = prompt_dir / f"{len(task_reports)+1:03d}-{safe_prompt_slug(task.task_id)}.md"
         prompt_path.write_text(render_prompt(task), encoding="utf-8")
         attempts = 0
         while True:

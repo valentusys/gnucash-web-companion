@@ -623,3 +623,28 @@ def test_discovered_safe_quality_policy_task_remains_bounded_and_guarded():
     assert "Treat the allowed scope as a ceiling" in prompt
     assert "Do not spawn nested Hermes/Codex/tmux/cron workers" in prompt
     assert "no remaining safe scoped change" in prompt
+
+
+def test_prompt_paths_sanitize_generated_task_ids(tmp_path):
+    queue = write_queue(
+        tmp_path,
+        SAMPLE_QUEUE.replace("## Task: docs-one", "## Task: ../../unsafe/task:id")
+        .replace("## Task: docs-two", "## Not a task: docs-two"),
+    )
+
+    report = supervisor.run_supervisor(
+        repo=tmp_path,
+        queue_path=queue,
+        budget_seconds=3600,
+        mode="dry-run",
+        run_root=tmp_path / ".hermes" / "autonomy" / "runs" / "test",
+        git=FakeGit([""]),
+        agent=RepeatingFakeAgent(),
+        clock=FakeClock([0, 1, 2]),
+    )
+
+    prompt_path = Path(report.tasks[0].prompt_path)
+    prompt_dir = tmp_path / ".hermes" / "autonomy" / "runs" / "test" / "prompts"
+    assert prompt_path.parent == prompt_dir
+    assert prompt_path.name == "001-unsafe-task-id.md"
+    assert prompt_path.exists()
