@@ -571,6 +571,7 @@ def _check(env_example: Path, compose: Path, gate_doc: Path, checklist_doc: Path
     gate_text = _read(gate_doc)
     gate_text_normalized = _normalized(gate_text)
     api_compose_environment = _compose_service_environment_lines(compose_text, "api")
+    web_compose_environment = _compose_service_environment_lines(compose_text, "web")
     failures: list[str] = []
 
     if WRITE_DEFAULT_TEXT not in env_text:
@@ -587,6 +588,15 @@ def _check(env_example: Path, compose: Path, gate_doc: Path, checklist_doc: Path
         _check_compose_service_env_exact(
             api_compose_environment,
             service_name="api",
+            key="GNUCASH_WRITES_ENABLED",
+            expected_value="${GNUCASH_WRITES_ENABLED:-false}",
+            expected_entry=COMPOSE_WRITE_DEFAULT_TEXT,
+        )
+    )
+    failures.extend(
+        _check_compose_service_env_exact(
+            web_compose_environment,
+            service_name="web",
             key="GNUCASH_WRITES_ENABLED",
             expected_value="${GNUCASH_WRITES_ENABLED:-false}",
             expected_entry=COMPOSE_WRITE_DEFAULT_TEXT,
