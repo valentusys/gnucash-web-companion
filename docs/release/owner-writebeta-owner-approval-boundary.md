@@ -48,7 +48,8 @@ The current evidence is still bounded by these limits:
 - Passing checks prove only that guarded docs/code satisfy local policy.
 
 Because of those limits, publishing any owner-writebeta artifact would create a
-stronger public signal than the accepted evidence supports.
+stronger public signal than the accepted evidence supports. The safest public
+signal is therefore absence of a release artifact plus explicit no-release wording.
 
 ## What explicit approval must say
 
@@ -75,6 +76,9 @@ If any item below is missing, the only safe release decision remains no-release:
 - stated handling of compatibility posture before any public write claim;
 - permission, if any, to draft release notes, final gates, packages, images, or
   announcements.
+
+These items are prerequisites for changing state, not a to-do list for this docs
+packet. A worker may not fill in missing approval language on the owner's behalf.
 
 When one of those items is absent, preserve `NO_RELEASE_KEEP_MAINTENANCE` and link
 back to this page instead of inventing release readiness.
