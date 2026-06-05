@@ -86,6 +86,21 @@ UNSAFE_GENERATED_RELEASE_POLICY = """
 - stop/continue recommendation: continue
 """
 
+UNSAFE_GENERATED_VERIFICATION_POLICY = """
+# Unsafe generated verification policy
+
+## Task: unsafe-generated-verification
+- target: issue #36 / unsafe generated verification
+- goal: Prepare safe owner-writebeta docs.
+- allowed scope: docs only
+- non-goals: private books; GnuCash mutations; release publication
+- verification commands:
+  - git diff --check
+  - gh release create v0.2.9-writealpha
+- safety flags: generated-safe, no-private-data, no-release
+- stop/continue recommendation: continue
+"""
+
 
 class FakeClock:
     def __init__(self, values):
@@ -287,6 +302,12 @@ def test_generate_from_policy_stops_fail_closed_if_policy_has_no_safe_tasks(tmp_
 
 def test_generated_policy_rejects_public_write_beta_release_claims(tmp_path):
     policy = write_policy(tmp_path, UNSAFE_GENERATED_RELEASE_POLICY)
+
+    assert supervisor.load_safe_policy_tasks(policy) == []
+
+
+def test_generated_policy_rejects_release_verification_commands(tmp_path):
+    policy = write_policy(tmp_path, UNSAFE_GENERATED_VERIFICATION_POLICY)
 
     assert supervisor.load_safe_policy_tasks(policy) == []
 

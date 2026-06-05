@@ -47,6 +47,18 @@ FORBIDDEN_POLICY_MARKERS = (
     "stable release",
     "security-audited",
 )
+FORBIDDEN_VERIFICATION_COMMAND_MARKERS = (
+    "gh release",
+    "git tag",
+    "docker push",
+    "docker buildx build --push",
+    "twine upload",
+    "npm publish",
+    "pnpm publish",
+    "yarn publish",
+    "publish release",
+    "publish a write beta release",
+)
 
 SAFETY_RULES = """Repository safety rules:
 1. Never touch original/private/working/only-copy GnuCash books.
@@ -295,7 +307,10 @@ def task_is_safe_for_policy(task: Task) -> bool:
     if flags & forbidden_flags:
         return False
     text = f"{task.goal}\n{task.allowed_scope}\n{task.stop_continue}".lower()
-    return not any(marker in text for marker in FORBIDDEN_POLICY_MARKERS)
+    if any(marker in text for marker in FORBIDDEN_POLICY_MARKERS):
+        return False
+    verification_text = "\n".join(task.verification_commands).lower()
+    return not any(marker in verification_text for marker in FORBIDDEN_VERIFICATION_COMMAND_MARKERS)
 
 
 def load_safe_policy_tasks(path: Path) -> list[Task]:
