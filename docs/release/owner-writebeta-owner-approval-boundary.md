@@ -15,6 +15,23 @@ release-candidate approval.
 The public release line remains `v0.5.0-public-readonly-beta`. The owner-writebeta
 line remains maintenance-only and unreleased.
 
+## Decision ladder for reviewers
+
+Use this order when reading owner-writebeta readiness material:
+
+1. Repository checks can show that guarded docs and tests remain internally
+   consistent.
+2. Narrow W3 evidence can show only that the approved copied/restorable target
+   survived the accepted operation counts.
+3. Those two facts are maintenance evidence, not a release decision.
+4. Owner/PM approval is the first step that can change the state from
+   `NO_RELEASE_KEEP_MAINTENANCE` to release-candidate preparation.
+5. Without that approval, do not draft publication notes, final gates, packages,
+   images, or announcement wording.
+
+This ladder prevents a clean verification run from being mistaken for consent to
+ship owner-writebeta.
+
 ## Why readiness is not release authorization
 
 Readiness evidence can show that selected guards and copied-book checks were
@@ -44,6 +61,9 @@ Use conservative maintenance wording:
 - copied-book W3 evidence is narrow and redacted;
 - no public write beta is available.
 
+When in doubt, say what remains blocked before saying what passed. Passing checks
+belong in evidence history; the current state remains no-release.
+
 ## Blocked wording
 
 Do not describe owner-writebeta as released, public beta, stable, production-ready,
@@ -52,6 +72,10 @@ only-copy books.
 
 Do not say that clean verification output authorizes release publication. Clean
 verification output supports repository hygiene only.
+
+Do not turn this page into a release checklist. A checklist would imply that a
+worker may finish the remaining items and publish. The current task state does
+not authorize that path.
 
 ## Reconsideration trigger
 

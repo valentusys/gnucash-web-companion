@@ -19,7 +19,8 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   [#36](https://github.com/valentusys/gnucash-web-companion/issues/36) controlled-write readiness
   gates. [#22](https://github.com/valentusys/gnucash-web-companion/issues/22) and
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) are closed.
-- Latest handoffs/docs: `docs/handoff/issue22-reconcile-and-issue36-owner-writebeta-final-report.md`,
+- Latest handoffs/docs: `docs/handoff/release-no-release-decision-docs-r3.md`,
+  `docs/handoff/issue22-reconcile-and-issue36-owner-writebeta-final-report.md`,
   `docs/release/v0.4-owner-writebeta-readiness-unreleased.md`,
   `docs/release/owner-writebeta-owner-approval-boundary.md`,
   `docs/handoff/issue36-current-state-reconcile.md`,
