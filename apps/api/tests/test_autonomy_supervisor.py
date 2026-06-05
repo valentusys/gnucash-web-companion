@@ -406,6 +406,8 @@ def test_rendered_prompt_contains_required_safety_patterns(tmp_path):
         "Treat the allowed scope as a ceiling",
         "no remaining safe scoped change",
         "Do not commit ignored `.hermes` runtime files",
+        "Final non-interactive worker instruction",
+        "run the task verification commands, then commit those safe tracked changes before final response",
     ]
     for pattern in required:
         assert pattern in prompt

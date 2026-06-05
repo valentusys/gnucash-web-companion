@@ -342,6 +342,8 @@ Worker requirements:
 - Do not commit ignored `.hermes` runtime files, private data, generated backups, exports, screenshots, secrets, or other runtime artifacts.
 - If you cannot safely commit, leave an honest checkpoint with the exact dirty files and blocker.
 - Report concise status, changed files, test output, and safety notes.
+
+Final non-interactive worker instruction: if you make safe tracked changes, run the task verification commands, then commit those safe tracked changes before final response so the supervisor can continue with a clean tree. Do not commit ignored `.hermes` runtime files or private/runtime artifacts. If you cannot safely commit, explain the exact blocker.
 """
 
 
