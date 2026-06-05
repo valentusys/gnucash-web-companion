@@ -569,3 +569,33 @@ def test_render_prompt_for_backup_restore_readiness_docs_task_keeps_non_mutating
     assert "docs/**, scripts/check_* guards, apps/api tests" in prompt
     assert "If a generated or repeated task has no remaining safe scoped change" in prompt
     assert "python3 scripts/check_write_safety_defaults.py" in prompt
+
+
+def test_discovered_safe_quality_policy_task_remains_bounded_and_guarded():
+    policy = REPO_ROOT / "docs/autonomy/backlog-policies/issue36-owner-writebeta.md"
+
+    tasks = supervisor.load_safe_policy_tasks(policy)
+    task = next(task for task in tasks if task.task_id == "discovered-safe-quality-fixes-related-to-issue36")
+    prompt = supervisor.render_prompt(task)
+
+    assert task.allowed_scope == (
+        "docs/**, scripts/check_* guards, apps/api tests, scripts/autonomy/** if the issue relates to autonomous readiness"
+    )
+    assert "unrelated refactors" in task.non_goals
+    assert "GnuCash mutations" in task.non_goals
+    assert "dogfood" in task.non_goals
+    assert "private/original/working/only-copy books" in task.non_goals
+    assert "public write beta claims" in task.non_goals
+    assert "no-dogfood" in task.safety_flags
+    assert "preserve-write-defaults" in task.safety_flags
+    assert "app-env-test-gated-writes" in task.safety_flags
+    assert "cd apps/api && pytest tests/test_autonomy_supervisor.py -q" in task.verification_commands
+    assert "python3 scripts/check_public_status.py" in task.verification_commands
+    assert "python3 scripts/check_write_safety_defaults.py" in task.verification_commands
+    assert "python3 scripts/check_markdown_readability.py" in task.verification_commands
+    assert "python3 scripts/check_tracked_hygiene.py" in task.verification_commands
+    assert "git diff --check" in task.verification_commands
+    assert "Generated from backlog policy" in prompt
+    assert "Treat the allowed scope as a ceiling" in prompt
+    assert "Do not spawn nested Hermes/Codex/tmux/cron workers" in prompt
+    assert "no remaining safe scoped change" in prompt
