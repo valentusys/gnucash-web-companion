@@ -229,6 +229,69 @@ blocked:
 For the current issue #36 task, these questions are documentation gates only and
 must not be used to run a trial.
 
+## R4 future trial pre-authorization runbook
+
+A future operator must treat the trial as blocked until a separate approval packet
+passes every gate. The safe pre-authorization runbook is:
+
+1. Identify the packet version, route family, operation shape, and exact mutation
+   count using only redacted labels.
+2. Fill the prerequisite proof matrix with safe proof sources. Leave any unknown
+   field blank rather than inspecting private books, paths, screenshots, logs, or
+   runtime databases.
+3. Check that the packet states writes remain default-disabled outside a temporary
+   `APP_ENV=test` session and that the reset plan returns to that posture.
+4. Check that the rollback plan restores only to a copy and never overwrites an
+   original, working, private-only, or only-copy book.
+5. Check that the evidence packet can report pass/fail results without account
+   names, transaction descriptions, memos, amounts, private paths, screenshots,
+   raw logs, books, app DBs, backups, exports, `.env`, tokens, keys, or certs.
+6. Check that the report wording does not imply a release, public write beta,
+   stable state, production readiness, security audit, broad compatibility, or
+   only-copy safety.
+7. Request owner and PM approval only after the packet is complete. If approval is
+   absent, stale, mismatched, or broader/narrower than the packet, stop.
+
+This pre-authorization runbook is non-mutating. It does not allow opening,
+copying, inspecting, or changing a real, private, original, working, or only-copy
+book.
+
+## R4 approval freshness and mismatch rules
+
+Approval is valid only when owner and PM approvals are current, explicit, and
+attached to the same packet version in the same execution context as the future
+trial. The trial remains blocked if:
+
+- owner approval and PM approval name different packet versions;
+- either approval omits the route family, operation shape, mutation count,
+  rollback proof, reset proof, or evidence shape;
+- either approval introduces private details that cannot be stored safely;
+- either approval asks for a broader target class or operation count than the
+  packet describes;
+- approval was inherited from copied-book evidence, previous issue #36 reports,
+  this runbook, or any earlier phase.
+
+When approvals mismatch, do not merge assumptions. Record only the mismatch
+category in a redacted handoff and continue with non-mutating documentation or
+checks.
+
+## R4 minimum rollback proof expectations
+
+A future approved packet must define rollback proof before runtime arming. Minimum
+acceptable proof is a redacted pass/fail summary for:
+
+- pre-mutation independent backup checkpoint;
+- restore-to-copy checkpoint that does not overwrite the source target;
+- route response and audit trail consistency;
+- read-back consistency with the approved operation count;
+- compatibility check result when available for the target class;
+- post-trial reset to default-disabled writes;
+- disabled probe proving writes are blocked after reset.
+
+If any proof is unavailable or inconsistent, the expected result is blocked or
+rollback-review, not success. A future report may summarize the failed gate but
+must not commit raw private evidence.
+
 ## Stop result for the current task
 
 For issue #36, this runbook records that a real working-book trial remains
