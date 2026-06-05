@@ -38,6 +38,7 @@ RESTORE_BOUNDARY_DOC = Path("docs/write-alpha/restore-safety-boundary.md")
 COPIED_DOGFOOD_PACKET_DOC = Path("docs/write-alpha/copied-book-dogfood-readiness-packet.md")
 AFTER_W3_READINESS_BOUNDARY_DOC = Path("docs/write-alpha/after-w3-readiness-boundary.md")
 BACKUP_RESTORE_READINESS_DOC = Path("docs/write-alpha/backup-restore-readiness-checklist.md")
+OWNER_WRITEBETA_OPERATING_GUIDE_DOC = Path("docs/write-alpha/owner-writebeta-operating-guide.md")
 API_CONFIG_FILE = Path("apps/api/app/config.py")
 WRITE_ROUTES_FILE = Path("apps/api/app/routers/transactions.py")
 WRITE_ROUTE_FUNCTIONS = (
@@ -283,6 +284,25 @@ def _check_backup_restore_readiness(path: Path) -> list[str]:
     return ["backup/restore readiness checklist must preserve: " + ", ".join(missing)] if missing else []
 
 
+def _check_owner_writebeta_operating_guide(path: Path) -> list[str]:
+    text = _read(REPO_ROOT / path if not path.is_absolute() else path)
+    normalized = _normalized(text)
+    required = (
+        "#36 remains open",
+        "W3 copied/restorable CREATE/PATCH/DELETE evidence is accepted narrowly",
+        "recorded staged-copy scope only",
+        "not a public write beta",
+        "not broad GnuCash compatibility",
+        "not a real working-book safety claim",
+        "GNUCASH_WRITES_ENABLED=false",
+        "APP_ENV=test",
+        "Real/private/original/working/only-copy books remain blocked as write targets",
+        "Future copied/restorable mutation remains blocked unless the owner and PM authorize exact target class",
+    )
+    missing = [needle for needle in required if _normalized(needle) not in normalized]
+    return ["owner-writebeta operating guide must preserve: " + ", ".join(missing)] if missing else []
+
+
 def _check(env_example: Path, compose: Path, gate_doc: Path, checklist_doc: Path | None = None) -> list[str]:
     env_text = _read(env_example)
     compose_text = _read(compose)
@@ -324,6 +344,7 @@ def _check(env_example: Path, compose: Path, gate_doc: Path, checklist_doc: Path
     failures.extend(_check_copied_dogfood_packet(COPIED_DOGFOOD_PACKET_DOC))
     failures.extend(_check_after_w3_readiness_boundary(AFTER_W3_READINESS_BOUNDARY_DOC))
     failures.extend(_check_backup_restore_readiness(BACKUP_RESTORE_READINESS_DOC))
+    failures.extend(_check_owner_writebeta_operating_guide(OWNER_WRITEBETA_OPERATING_GUIDE_DOC))
     return failures
 
 

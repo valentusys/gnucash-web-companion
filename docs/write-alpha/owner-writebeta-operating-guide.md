@@ -6,13 +6,16 @@ remains blocked until a future exact same-context owner confirmation and PM auth
 
 ## Current state for #36
 
+- #36 remains open; this guide is not release approval and not mutation authorization.
 - #43 is closed after routed copied-book dogfood evidence was accepted narrowly.
+- W3 copied/restorable CREATE/PATCH/DELETE evidence is accepted narrowly for the recorded staged-copy
+  scope only.
 - Routed copied/restorable evidence exists for controlled write readiness, but it is not a public write
-  beta and not a real working-book safety claim.
+  beta, not broad GnuCash compatibility, and not a real working-book safety claim.
 - `v0.4.0-owner-writebeta` is not published unless a future release gate proves otherwise.
 - `GNUCASH_WRITES_ENABLED=false` remains the committed/default posture.
 - Enabled write-alpha/writebeta paths remain `APP_ENV=test` gated.
-- Real/private/original/only-copy books remain blocked as write targets.
+- Real/private/original/working/only-copy books remain blocked as write targets.
 - `docs/write-alpha/real-working-book-trial-runbook.md` records the future trial blockers,
   rollback expectations, and owner/PM gates; it does not authorize the trial.
 
@@ -69,7 +72,6 @@ Newly covered safe evidence since the previous daytime checkpoint:
   reused confirmations, failed-hard-stop stale sessions, and fresh-session-only
   recovery after default-disabled reset are covered by tests.
 
-This does not authorize copied-book W3 or real working-book W4. W3 remains the
-next practical blocker only if the owner stages an outside-git copied/restorable
-book and the PM authorizes exact synthetic/copy operation counts in the same
-execution context. W4 remains forbidden for autonomous runs.
+This does not authorize more copied-book mutation or any real working-book trial. Future copied/restorable
+mutation remains blocked unless the owner and PM authorize exact target class, route family, and operation
+counts in the same execution context. Real working-book mutation remains forbidden for autonomous runs.
