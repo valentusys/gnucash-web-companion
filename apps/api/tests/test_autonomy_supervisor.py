@@ -558,6 +558,12 @@ def test_backup_restore_readiness_checklist_keeps_restore_validation_non_mutatin
         "must not overwrite the current copied fixture, original book, working book, or only-copy book",
         "not approval to run dogfood or touch private data",
         "not a fallback to creating filesystem backup or restore evidence",
+        "NOT_RESTORE_DRILL",
+        "NO_BACKUP_ARTIFACT_CREATED",
+        "DO_NOT_ENABLE_WRITES",
+        "NO_PRIVATE_DATA_REVIEWED",
+        "no restore command was run and no restored book was opened",
+        "checkpoint rather than broadening scope into backup creation, restore execution, dogfood, or private-data inspection",
         "GNUCASH_WRITES_ENABLED=false",
         "APP_ENV=test",
     ]
@@ -588,6 +594,11 @@ def test_backup_recovery_runbook_keeps_docs_tests_only_readiness_non_mutating():
         "review packets must summarize readiness as redacted pass/fail markers only",
         "must not paste raw manifest output, checksum lines, filenames, private paths, account names, descriptions, memos, amounts, screenshots, exports, app DB rows, books, backups, or runtime logs",
         "Default-disabled safety remains the key assertion: `GNUCASH_WRITES_ENABLED=false` is the committed/default posture",
+        "NOT_RESTORE_DRILL",
+        "NO_BACKUP_ARTIFACT_CREATED",
+        "DO_NOT_ENABLE_WRITES",
+        "NO_PRIVATE_DATA_REVIEWED",
+        "checkpoint instead of broadening into backup creation, restore execution, dogfood, or private-data inspection",
     ]
     for pattern in required:
         assert pattern in text

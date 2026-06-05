@@ -48,6 +48,17 @@ Docs/tests-only checks may prove that the repository wording stayed conservative
 - backup availability, restore helper availability, and restore-to-copy planning are prerequisites for future authorization, not approval to run dogfood or touch private data;
 - if restore wording cannot be verified from tracked docs/tests alone, the safe result is a checkpoint, not a fallback to creating filesystem backup or restore evidence.
 
+## Negative-result labels for repeated docs/tests tasks
+
+When a generated or repeated backup/restore-readiness task has only tracked wording evidence, the review result must use explicit negative labels instead of implying operational proof:
+
+- `NOT_RESTORE_DRILL`: no restore command was run and no restored book was opened;
+- `NO_BACKUP_ARTIFACT_CREATED`: no backup copy, checksum manifest, app DB row, or runtime evidence was created for the task;
+- `DO_NOT_ENABLE_WRITES`: the result does not authorize changing `GNUCASH_WRITES_ENABLED=false`, arming write routes, or relaxing the `APP_ENV=test` gate;
+- `NO_PRIVATE_DATA_REVIEWED`: the task reviewed tracked wording/guard behavior only, not private books, paths, accounts, transactions, memos, amounts, screenshots, exports, backups, or logs.
+
+If these labels cannot be stated truthfully, stop and checkpoint rather than broadening scope into backup creation, restore execution, dogfood, or private-data inspection.
+
 ## Code guard
 
 `apps/api/app/write_alpha_readiness.py` exposes:

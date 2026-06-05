@@ -103,6 +103,8 @@ Readiness evidence for a real restore drill must still be produced only in a sep
 
 Docs/tests-only review packets must summarize readiness as redacted pass/fail markers only. They must not paste raw manifest output, checksum lines, filenames, private paths, account names, descriptions, memos, amounts, screenshots, exports, app DB rows, books, backups, or runtime logs. Default-disabled safety remains the key assertion: `GNUCASH_WRITES_ENABLED=false` is the committed/default posture.
 
+For repeated docs/tests-only readiness maintenance, label the result `NOT_RESTORE_DRILL`, `NO_BACKUP_ARTIFACT_CREATED`, `DO_NOT_ENABLE_WRITES`, and `NO_PRIVATE_DATA_REVIEWED` when those statements are true. If the labels cannot be stated from tracked wording and guard behavior alone, checkpoint instead of broadening into backup creation, restore execution, dogfood, or private-data inspection.
+
 Example dry-run workspace:
 
 ```bash

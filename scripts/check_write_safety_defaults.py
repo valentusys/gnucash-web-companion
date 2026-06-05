@@ -405,6 +405,10 @@ def _check_backup_restore_readiness(path: Path) -> list[str]:
         "public write beta readiness",
         "production safety",
         "security-audited status",
+        "NOT_RESTORE_DRILL",
+        "NO_BACKUP_ARTIFACT_CREATED",
+        "DO_NOT_ENABLE_WRITES",
+        "NO_PRIVATE_DATA_REVIEWED",
     )
     missing = [needle for needle in required if _normalized(needle) not in normalized]
     return ["backup/restore readiness checklist must preserve: " + ", ".join(missing)] if missing else []
@@ -452,6 +456,10 @@ def _check_backup_recovery_runbook(path: Path) -> list[str]:
         "security-audited status",
         "broad compatibility",
         "only-copy safety",
+        "NOT_RESTORE_DRILL",
+        "NO_BACKUP_ARTIFACT_CREATED",
+        "DO_NOT_ENABLE_WRITES",
+        "NO_PRIVATE_DATA_REVIEWED",
     )
     missing = [needle for needle in required if _normalized(needle) not in normalized]
     return ["backup/recovery runbook must preserve docs/tests-only restore-readiness boundary: " + ", ".join(missing)] if missing else []
