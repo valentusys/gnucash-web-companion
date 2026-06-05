@@ -292,6 +292,61 @@ If any proof is unavailable or inconsistent, the expected result is blocked or
 rollback-review, not success. A future report may summarize the failed gate but
 must not commit raw private evidence.
 
+## R5 same-context approval gate checklist
+
+A future operator must not treat a prepared packet, prior issue #36 evidence, or
+this runbook as approval. Before any future real working-book trial can even be
+armed, the same execution context must contain a complete approval checkpoint:
+
+1. Packet version, route family, operation shape, and exact mutation count match
+   across the packet, owner approval, PM approval, rollback plan, and evidence
+   plan.
+2. Owner approval is current, explicit, limited to that packet, and states only a
+   redacted target class that is restorable and not original or only-copy.
+3. PM approval is current, explicit, limited to that packet, and approves the
+   route family, mutation count, abort conditions, rollback proof, reset proof,
+   and evidence shape.
+4. Approval text contains no private paths, account names, transaction
+   descriptions, memos, amounts, screenshots, raw logs, books, app DBs, backups,
+   exports, `.env`, tokens, keys, or certs.
+5. Approval text does not authorize release publication, a public write beta,
+   stable status, production readiness, security-audited status, broad
+   compatibility, or only-copy safety.
+
+If any checklist item is missing, stale, contradictory, broader than the packet,
+or dependent on private evidence, the only valid status is blocked. Do not repair
+that status by inspecting local books, copying a private book, running dogfood, or
+enabling writes.
+
+## R5 blocker and rollback stop table
+
+The future trial packet must predeclare what happens at each stop point. The
+minimum conservative table is:
+
+| Stop point | Required status when it fails | Allowed follow-up |
+| --- | --- | --- |
+| Approval checkpoint | Blocked before runtime arming | Redacted packet revision only |
+| Target restorable/not-only-copy proof | Blocked before backup | Owner/PM clarification only |
+| Independent backup checkpoint | Blocked before lock or preview | Backup plan correction only |
+| Writer-closed confirmation | Blocked before preflight | Close writers and re-check only |
+| `APP_ENV=test` and default-disabled reset plan | Blocked before write enablement | Config correction only |
+| Preview or explicit confirmation | Blocked before mutation | Packet revision only |
+| Route response, audit, or read-back mismatch | Rollback review | Use restored copy; do not overwrite source |
+| Restore-to-copy proof mismatch | Rollback review | Owner/PM decision with redacted evidence only |
+| Reset or disabled probe failure | Blocked after reset attempt | Keep reporting blocked until writes are disabled |
+
+A rollback-review result is not success and is not release evidence. It may be
+reported only as a redacted pass/fail gate result.
+
+## R5 non-authorizing dry-run review path
+
+The only safe activity this issue #36 runbook authorizes is a non-mutating review
+of a future packet's shape. That review may check whether the packet contains the
+required fields, whether wording preserves `GNUCASH_WRITES_ENABLED=false`, whether
+enabled writes are still `APP_ENV=test` scoped, and whether the evidence plan can
+pass tracked-hygiene rules. It must not open, copy, inspect, or mutate a real,
+private, original, working, or only-copy book.
+
 ## Stop result for the current task
 
 For issue #36, this runbook records that a real working-book trial remains
