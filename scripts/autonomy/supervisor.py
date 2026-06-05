@@ -36,6 +36,8 @@ TRANSIENT_MARKERS = (
 ON_EMPTY_CHOICES = ("stop", "repeat-safe-final", "generate-from-policy")
 FORBIDDEN_POLICY_MARKERS = (
     "publish release",
+    "publish a write beta release",
+    "public write beta",
     "private book",
     "original book",
     "working book",

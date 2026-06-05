@@ -72,6 +72,20 @@ UNSAFE_POLICY = """
 - stop/continue recommendation: continue
 """
 
+UNSAFE_GENERATED_RELEASE_POLICY = """
+# Unsafe generated backlog policy
+
+## Task: unsafe-generated-release
+- target: issue #36 / unsafe generated release
+- goal: Publish a write beta release announcement.
+- allowed scope: docs/release only
+- non-goals: private books; GnuCash mutations
+- verification commands:
+  - git diff --check
+- safety flags: generated-safe, no-private-data, no-release
+- stop/continue recommendation: continue
+"""
+
 
 class FakeClock:
     def __init__(self, values):
@@ -269,6 +283,12 @@ def test_generate_from_policy_stops_fail_closed_if_policy_has_no_safe_tasks(tmp_
     assert report.status == "HARD_NO_SAFE_TASKS"
     assert len(report.tasks) == 1
     assert "No safe backlog policy task" in report.stop_reason
+
+
+def test_generated_policy_rejects_public_write_beta_release_claims(tmp_path):
+    policy = write_policy(tmp_path, UNSAFE_GENERATED_RELEASE_POLICY)
+
+    assert supervisor.load_safe_policy_tasks(policy) == []
 
 
 def test_budget_expiry_stops_before_next_task(tmp_path):
