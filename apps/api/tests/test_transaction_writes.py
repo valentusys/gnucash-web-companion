@@ -565,26 +565,54 @@ class TestWritesDisabledByDefault:
             fail_if_write_service_is_constructed,
         )
 
-    def test_write_alpha_create_requires_test_environment_even_when_flag_is_true(
+    def test_write_routes_short_circuit_before_book_resolution_when_app_env_not_test(
         self,
         client,
         auth_headers,
-        sample_book,
         fail_if_write_service_is_constructed,
+        monkeypatch,
     ):
-        """A casual non-test runtime flag flip must not enter the write service."""
-        app.dependency_overrides[get_settings] = lambda: WRITE_ENABLED_DEVELOPMENT_SETTINGS
+        """A casual non-test runtime flag flip must not resolve books or enter writes."""
+        resolved_books = []
 
-        response = client.post(
-            f"/books/{sample_book}/transactions",
-            json=_balanced_transaction_payload(),
-            headers=auth_headers,
+        def forbidden_book_resolution(*args, **kwargs):
+            resolved_books.append((args, kwargs))
+            raise AssertionError("write routes must not resolve books when APP_ENV is not test")
+
+        app.dependency_overrides[get_settings] = lambda: WRITE_ENABLED_DEVELOPMENT_SETTINGS
+        monkeypatch.setattr(
+            "app.routers.transactions._resolve_viewable_book",
+            forbidden_book_resolution,
         )
 
-        assert response.status_code == 403
-        assert "write-alpha" in response.json()["detail"]
-        assert "test" in response.json()["detail"]
+        responses = [
+            client.post(
+                "/books/999/transactions/validate",
+                json=_balanced_transaction_payload(),
+                headers=auth_headers,
+            ),
+            client.post(
+                "/books/999/transactions",
+                json=_balanced_transaction_payload(),
+                headers=auth_headers,
+            ),
+            client.patch(
+                "/books/999/transactions/some-tx-id",
+                json={"description": "Updated description"},
+                headers=auth_headers,
+            ),
+            client.delete(
+                "/books/999/transactions/some-tx-id",
+                headers=auth_headers,
+            ),
+        ]
+
+        for response in responses:
+            assert response.status_code == 403
+            assert "write-alpha" in response.json()["detail"]
+            assert "test" in response.json()["detail"]
         assert fail_if_write_service_is_constructed == []
+        assert resolved_books == []
 
 
 # ---------------------------------------------------------------------------
