@@ -432,3 +432,23 @@ def test_owner_writebeta_backup_restore_policy_prompt_is_non_mutating():
     ]
     for pattern in required:
         assert pattern in prompt
+
+
+def test_backup_restore_ux_doc_preserves_default_disabled_non_mutating_boundary():
+    doc = REPO_ROOT / "docs/write-alpha/backup-restore-ux-design.md"
+
+    text = doc.read_text(encoding="utf-8")
+
+    required = [
+        "GNUCASH_WRITES_ENABLED=false",
+        "APP_ENV=test",
+        "restore to a separate temporary copy",
+        "never overwrite the working book during validation",
+        "Backups must never be committed",
+        "disabled-write probe must remain a no-op",
+        "Failed restore, read-back, or audit evidence is a hard stop",
+        "must not claim public write beta readiness",
+        "only-copy safety",
+    ]
+    for pattern in required:
+        assert pattern in text
