@@ -481,3 +481,41 @@ def test_backup_restore_readiness_checklist_keeps_restore_validation_non_mutatin
     ]
     for pattern in required:
         assert pattern in text
+
+
+def test_render_prompt_for_backup_restore_readiness_docs_task_keeps_non_mutating_bounds():
+    task = supervisor.Task(
+        task_id="backup-restore-readiness-docs-tests-r6",
+        target="issue #36 / backup and restore readiness",
+        goal="Improve non-mutating backup/restore readiness docs or tests that validate wording and default-disabled safety without touching private data.",
+        allowed_scope="docs/**, scripts/check_* guards, apps/api tests for non-mutating backup/restore documentation or guard behavior",
+        non_goals="creating backups from private books; restore into real books; dogfood; release publication; public write beta claims",
+        verification_commands=[
+            "cd apps/api && pytest tests/test_autonomy_supervisor.py -q",
+            "python3 scripts/check_write_safety_defaults.py",
+            "python3 scripts/check_tracked_hygiene.py",
+            "git diff --check",
+        ],
+        safety_flags=[
+            "generated-safe",
+            "no-private-data",
+            "no-release",
+            "no-dogfood",
+            "preserve-write-defaults",
+            "app-env-test-gated-writes",
+        ],
+        stop_continue="continue if changes are non-mutating docs/tests only",
+        generated_from_policy="docs/autonomy/backlog-policies/issue36-owner-writebeta.md",
+    )
+
+    prompt = supervisor.render_prompt(task)
+
+    assert "Never touch original/private/working/only-copy GnuCash books." in prompt
+    assert "Never commit GnuCash books, SQLite books, app DBs, backups" in prompt
+    assert "Preserve GNUCASH_WRITES_ENABLED=false" in prompt
+    assert "Preserve APP_ENV=test gates" in prompt
+    assert "Do not run product dogfood or GnuCash mutations" in prompt
+    assert "creating backups from private books; restore into real books" in prompt
+    assert "docs/**, scripts/check_* guards, apps/api tests" in prompt
+    assert "If a generated or repeated task has no remaining safe scoped change" in prompt
+    assert "python3 scripts/check_write_safety_defaults.py" in prompt
