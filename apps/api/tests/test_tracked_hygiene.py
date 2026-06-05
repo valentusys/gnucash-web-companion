@@ -125,6 +125,10 @@ def test_content_violations_reject_human_written_private_evidence_labels(tmp_pat
         "Original GnuCash path = /redacted\n"
         "GnuCash path: /redacted\n"
         "Book path = /redacted\n"
+        "Source path: /redacted\n"
+        "Target path: /redacted\n"
+        "Backup path: /redacted\n"
+        "Fixture path: /redacted\n"
         "Real account name: Redacted Account\n"
         "Account name: Redacted Account\n"
         "Memo: Redacted memo\n"
@@ -147,13 +151,17 @@ def test_content_violations_reject_human_written_private_evidence_labels(tmp_pat
         "tracked raw private-evidence label in public-report.md:6: Original GnuCash path = /redacted",
         "tracked raw private-evidence label in public-report.md:7: GnuCash path: /redacted",
         "tracked raw private-evidence label in public-report.md:8: Book path = /redacted",
-        "tracked raw private-evidence label in public-report.md:9: Real account name: Redacted Account",
-        "tracked raw private-evidence label in public-report.md:10: Account name: Redacted Account",
-        "tracked raw private-evidence label in public-report.md:11: Memo: Redacted memo",
-        "tracked raw private-evidence label in public-report.md:12: Amount: 0.00",
-        "tracked raw private-evidence label in public-report.md:13: Balance: 0.00",
-        "tracked raw private-evidence label in public-report.md:14: Account balance: 0.00",
-        "tracked raw private-evidence label in public-report.md:15: Transaction amount: 0.00",
+        "tracked raw private-evidence label in public-report.md:9: Source path: /redacted",
+        "tracked raw private-evidence label in public-report.md:10: Target path: /redacted",
+        "tracked raw private-evidence label in public-report.md:11: Backup path: /redacted",
+        "tracked raw private-evidence label in public-report.md:12: Fixture path: /redacted",
+        "tracked raw private-evidence label in public-report.md:13: Real account name: Redacted Account",
+        "tracked raw private-evidence label in public-report.md:14: Account name: Redacted Account",
+        "tracked raw private-evidence label in public-report.md:15: Memo: Redacted memo",
+        "tracked raw private-evidence label in public-report.md:16: Amount: 0.00",
+        "tracked raw private-evidence label in public-report.md:17: Balance: 0.00",
+        "tracked raw private-evidence label in public-report.md:18: Account balance: 0.00",
+        "tracked raw private-evidence label in public-report.md:19: Transaction amount: 0.00",
     ]
 
 
@@ -195,7 +203,10 @@ def test_content_violations_reject_unsafe_affirmative_wording(tmp_path, monkeypa
         "Write mode is stable.\n"
         "Works with all GnuCash versions.\n"
         "All GnuCash SQL backends are supported.\n"
-        "Write beta is production-ready.\n"
+        "Write beta has shipped.\n"
+        "Write-beta has launched.\n"
+        "Public write beta rolled out.\n"
+        "Write beta is production-grade.\n"
         "Real books are safe for writes.\n"
         "Private book writes are safe.\n"
         "Original books are safe for mutation.\n",
@@ -220,10 +231,13 @@ def test_content_violations_reject_unsafe_affirmative_wording(tmp_path, monkeypa
         "tracked unsafe affirmative wording in release.md:12: Write mode is stable.",
         "tracked unsafe affirmative wording in release.md:13: Works with all GnuCash versions.",
         "tracked unsafe affirmative wording in release.md:14: All GnuCash SQL backends are supported.",
-        "tracked unsafe affirmative wording in release.md:15: Write beta is production-ready.",
-        "tracked unsafe affirmative wording in release.md:16: Real books are safe for writes.",
-        "tracked unsafe affirmative wording in release.md:17: Private book writes are safe.",
-        "tracked unsafe affirmative wording in release.md:18: Original books are safe for mutation.",
+        "tracked unsafe affirmative wording in release.md:15: Write beta has shipped.",
+        "tracked unsafe affirmative wording in release.md:16: Write-beta has launched.",
+        "tracked unsafe affirmative wording in release.md:17: Public write beta rolled out.",
+        "tracked unsafe affirmative wording in release.md:18: Write beta is production-grade.",
+        "tracked unsafe affirmative wording in release.md:19: Real books are safe for writes.",
+        "tracked unsafe affirmative wording in release.md:20: Private book writes are safe.",
+        "tracked unsafe affirmative wording in release.md:21: Original books are safe for mutation.",
     ]
 
 
