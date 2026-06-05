@@ -400,6 +400,11 @@ def _compose_service_environment_lines(compose_text: str, service_name: str) -> 
             break
         if stripped.startswith("-"):
             environment_lines.append(stripped[1:].strip())
+            continue
+        if ":" in stripped:
+            key, value = stripped.split(":", 1)
+            if key and value.strip():
+                environment_lines.append(f"{key.strip()}={value.strip()}")
     return environment_lines
 
 
