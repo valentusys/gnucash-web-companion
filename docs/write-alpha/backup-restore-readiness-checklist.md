@@ -43,6 +43,8 @@ The function is pure/non-mutating and returns a redacted `WriteAlphaReadiness` r
 - Checklist maintenance is non-mutating: safe changes may update docs or guards that verify wording, but must not create backups, must not restore into books, must not open private data, and must not run product dogfood.
 - For docs/tests-only readiness work, restore-to-copy validation remains non-mutating and does not create backup artifacts, restore artifacts, or app DB records.
 - Public readiness evidence remains restore-to-copy only and must use copied/restorable or synthetic/disposable targets; it must never overwrite a real/original/private/working/only-copy book.
+- Restore evidence must use opaque restore refs and redacted marker summaries only; do not publish filenames, private paths, account names, descriptions, memos, amounts, row contents, screenshots, exports, app DB rows, books, or backup artifacts.
+- A successful restore-to-copy marker does not prove broad compatibility or only-copy safety; it only proves that the named copied/synthetic fixture evidence met this checklist.
 - Any later enabled write-alpha/writebeta restore drill remains `APP_ENV=test` gated and must reset to `GNUCASH_WRITES_ENABLED=false` afterward.
 - It does not claim v0.2 readiness, public write beta readiness, production safety, stable release readiness, or security-audited status.
 - It does not make real/private/original/only-copy books safe targets.

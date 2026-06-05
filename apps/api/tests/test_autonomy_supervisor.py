@@ -468,6 +468,9 @@ def test_backup_restore_readiness_checklist_keeps_restore_validation_non_mutatin
         "must not restore into books",
         "restore-to-copy validation remains non-mutating",
         "does not create backup artifacts, restore artifacts, or app DB records",
+        "opaque restore refs and redacted marker summaries only",
+        "do not publish filenames, private paths, account names, descriptions, memos, amounts",
+        "does not prove broad compatibility or only-copy safety",
         "GNUCASH_WRITES_ENABLED=false",
         "APP_ENV=test",
     ]
