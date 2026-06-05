@@ -137,12 +137,12 @@ def _is_settings_app_env_lower_call(node: ast.AST) -> bool:
     )
 
 
-def _has_app_env_test_comparison(node: ast.AST) -> bool:
+def _has_non_test_app_env_rejection_comparison(node: ast.AST) -> bool:
     if not isinstance(node, ast.Compare):
         return False
     if len(node.ops) != 1 or len(node.comparators) != 1:
         return False
-    if not isinstance(node.ops[0], (ast.Eq, ast.NotEq)):
+    if not isinstance(node.ops[0], ast.NotEq):
         return False
     comparator = node.comparators[0]
     return (
@@ -152,9 +152,9 @@ def _has_app_env_test_comparison(node: ast.AST) -> bool:
     )
 
 
-def _function_has_app_env_test_gate(node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
-    """Return whether a function has an executable settings.app_env.lower() test comparison."""
-    return any(_has_app_env_test_comparison(child) for child in ast.walk(node))
+def _function_has_non_test_app_env_rejection_gate(node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
+    """Return whether a function executes settings.app_env.lower() != \"test\" gating logic."""
+    return any(_has_non_test_app_env_rejection_comparison(child) for child in ast.walk(node))
 
 
 def _decorated_transaction_write_route_functions(tree: ast.Module) -> set[str]:
@@ -229,8 +229,8 @@ def _check_write_route_test_gates(routes_path: Path = REPO_ROOT / WRITE_ROUTES_F
     tree = _parse_python(routes_path)
     functions = {node.name: node for node in ast.walk(tree) if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
     test_scope_helper = functions.get("_ensure_write_alpha_test_scope")
-    if test_scope_helper is None or not _function_has_app_env_test_gate(test_scope_helper):
-        failures.append("write-alpha test-scope helper must enforce executable settings.app_env.lower() == test logic")
+    if test_scope_helper is None or not _function_has_non_test_app_env_rejection_gate(test_scope_helper):
+        failures.append("write-alpha test-scope helper must enforce executable settings.app_env.lower() != test rejection logic")
     guarded_routes = set(WRITE_ROUTE_FUNCTIONS)
     decorated_write_routes = _decorated_transaction_write_route_functions(tree)
     for function_name in sorted(decorated_write_routes - guarded_routes):
