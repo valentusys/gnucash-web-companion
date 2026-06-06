@@ -628,6 +628,65 @@ def _check_owner_writebeta_release_boundaries(paths: tuple[Path, ...]) -> list[s
     return ["owner-writebeta release boundary docs must preserve: " + ", ".join(missing)] if missing else []
 
 
+def _strip_yaml_inline_quotes(value: str) -> str:
+    value = value.strip()
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in {'"', "'"}:
+        return value[1:-1]
+    return value
+
+
+def _split_inline_yaml_items(value: str) -> list[str]:
+    """Split a simple Compose inline sequence/mapping without expanding variables."""
+    items: list[str] = []
+    current: list[str] = []
+    quote: str | None = None
+    for character in value:
+        if quote is not None:
+            current.append(character)
+            if character == quote:
+                quote = None
+            continue
+        if character in {'"', "'"}:
+            quote = character
+            current.append(character)
+            continue
+        if character == ",":
+            item = "".join(current).strip()
+            if item:
+                items.append(item)
+            current = []
+            continue
+        current.append(character)
+    item = "".join(current).strip()
+    if item:
+        items.append(item)
+    return items
+
+
+def _compose_inline_environment_entries(value: str) -> list[str]:
+    """Normalize Compose one-line environment list/mapping entries."""
+    value = value.strip()
+    if value.startswith("[") and value.endswith("]"):
+        entries: list[str] = []
+        for item in _split_inline_yaml_items(value[1:-1]):
+            entry = _strip_yaml_inline_quotes(item)
+            if entry:
+                entries.append(entry)
+        return entries
+    if value.startswith("{") and value.endswith("}"):
+        entries = []
+        for item in _split_inline_yaml_items(value[1:-1]):
+            if ":" not in item:
+                continue
+            key, entry_value = item.split(":", 1)
+            key = _strip_yaml_inline_quotes(key)
+            entry_value = _strip_yaml_inline_quotes(entry_value)
+            if key and entry_value:
+                entries.append(f"{key}={entry_value}")
+        return entries
+    return []
+
+
 def _compose_service_environment_lines(compose_text: str, service_name: str) -> list[str]:
     """Extract normalized environment entries for one Compose service.
 
@@ -659,16 +718,23 @@ def _compose_service_environment_lines(compose_text: str, service_name: str) -> 
         if environment_indent is None:
             if stripped == "environment:":
                 environment_indent = indent
+                continue
+            if stripped.startswith("environment:"):
+                _, inline_environment = stripped.split(":", 1)
+                environment_lines.extend(_compose_inline_environment_entries(inline_environment))
+                break
             continue
         if indent <= environment_indent:
             break
         if stripped.startswith("-"):
-            environment_lines.append(stripped[1:].strip())
+            environment_lines.append(_strip_yaml_inline_quotes(stripped[1:].strip()))
             continue
         if ":" in stripped:
             key, value = stripped.split(":", 1)
             if key and value.strip():
-                environment_lines.append(f"{key.strip()}={value.strip()}")
+                environment_lines.append(
+                    f"{_strip_yaml_inline_quotes(key)}={_strip_yaml_inline_quotes(value)}"
+                )
     return environment_lines
 
 
