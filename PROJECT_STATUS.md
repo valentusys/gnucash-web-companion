@@ -19,7 +19,8 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   [#36](https://github.com/valentusys/gnucash-web-companion/issues/36) controlled-write readiness
   gates. [#22](https://github.com/valentusys/gnucash-web-companion/issues/22) and
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) are closed.
-- Latest handoffs/docs: `docs/handoff/release-no-release-decision-docs-r10.md`,
+- Latest handoffs/docs: `docs/handoff/release-no-release-decision-docs-r11.md`,
+  `docs/handoff/release-no-release-decision-docs-r10.md`,
   `docs/handoff/release-no-release-decision-docs-r9.md`,
   `docs/handoff/release-no-release-decision-docs-r8.md`,
   `docs/handoff/issue22-reconcile-and-issue36-owner-writebeta-final-report.md`,
@@ -54,7 +55,9 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   follow-up adds that repeated no-release documentation prompts are maintenance work only and cannot
   supply missing release-candidate scope or publication permission. The r10 update adds a task-triage
   and operator quick-check rule so future release-status edits keep explanation, evidence
-  reconciliation, and explicitly approved release-candidate preparation separate.
+  reconciliation, and explicitly approved release-candidate preparation separate. The r11 follow-up
+  adds a repeated-task guard for generated or backfilled task identifiers: older task names do not
+  roll back newer conservative no-release decisions or authorize release work.
 - Recently closed queues: #13, #41, #42, #43.
 
 ## Repository
