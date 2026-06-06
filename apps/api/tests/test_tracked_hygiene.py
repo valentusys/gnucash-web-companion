@@ -283,7 +283,11 @@ def test_content_violations_reject_unsafe_affirmative_wording(tmp_path, monkeypa
         "Private book writes are safe.\n"
         "Original books are safe for mutation.\n"
         "Write beta is safe for private books.\n"
-        "Write-beta supported for original books.\n",
+        "Write-beta supported for original books.\n"
+        "Owner write beta is safe for private books.\n"
+        "Owner-write beta is acceptable for only-copy books.\n"
+        "Write beta is production ready.\n"
+        "This release is production ready.\n",
         encoding="utf-8",
     )
     monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
@@ -330,6 +334,10 @@ def test_content_violations_reject_unsafe_affirmative_wording(tmp_path, monkeypa
         "tracked unsafe affirmative wording in release.md:37: Original books are safe for mutation.",
         "tracked unsafe affirmative wording in release.md:38: Write beta is safe for private books.",
         "tracked unsafe affirmative wording in release.md:39: Write-beta supported for original books.",
+        "tracked unsafe affirmative wording in release.md:40: Owner write beta is safe for private books.",
+        "tracked unsafe affirmative wording in release.md:41: Owner-write beta is acceptable for only-copy books.",
+        "tracked unsafe affirmative wording in release.md:42: Write beta is production ready.",
+        "tracked unsafe affirmative wording in release.md:43: This release is production ready.",
     ]
 
 
@@ -347,7 +355,11 @@ def test_content_violations_reject_compatibility_guarantee_wording(tmp_path, mon
         "PostgreSQL/MySQL/MariaDB SQL backends are compatible.\n"
         "Broad GnuCash compatibility is verified.\n"
         "GnuCash Desktop 5.12 is verified.\n"
-        "Verified GnuCash Desktop 5.12.1.\n",
+        "Verified GnuCash Desktop 5.12.1.\n"
+        "Every GnuCash version is supported.\n"
+        "Works with every GnuCash Desktop version.\n"
+        "Tested across every GnuCash SQL backend.\n"
+        "Compatible with every GnuCash Desktop version.\n",
         encoding="utf-8",
     )
     monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
@@ -367,6 +379,10 @@ def test_content_violations_reject_compatibility_guarantee_wording(tmp_path, mon
         "tracked unsafe affirmative wording in compatibility.md:10: Broad GnuCash compatibility is verified.",
         "tracked unsafe affirmative wording in compatibility.md:11: GnuCash Desktop 5.12 is verified.",
         "tracked unsafe affirmative wording in compatibility.md:12: Verified GnuCash Desktop 5.12.1.",
+        "tracked unsafe affirmative wording in compatibility.md:13: Every GnuCash version is supported.",
+        "tracked unsafe affirmative wording in compatibility.md:14: Works with every GnuCash Desktop version.",
+        "tracked unsafe affirmative wording in compatibility.md:15: Tested across every GnuCash SQL backend.",
+        "tracked unsafe affirmative wording in compatibility.md:16: Compatible with every GnuCash Desktop version.",
     ]
 
 
