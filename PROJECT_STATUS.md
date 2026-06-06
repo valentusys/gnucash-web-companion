@@ -57,10 +57,10 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   supply missing release-candidate scope or publication permission. The r10 update adds a task-triage
   and operator quick-check rule so future release-status edits keep explanation, evidence
   reconciliation, and explicitly approved release-candidate preparation separate. The r11 follow-up
-  adds a repeated-task guard for generated or backfilled task identifiers: older task names do not
-  roll back newer conservative no-release decisions or authorize release work. The r10-repeat pass
-  adds that historical gate docs, handoffs, and issue-state snapshots remain dated maintenance
-  evidence, not live release instructions or publication proof.
+  adds repeated-task and documentation-only progress guards: older task names and wording cleanup do
+  not roll back newer conservative no-release decisions, authorize release work, or make the docs
+  closer to publication. The r10-repeat pass adds that historical gate docs, handoffs, and issue-state
+  snapshots remain dated maintenance evidence, not live release instructions or publication proof.
 - Recently closed queues: #13, #41, #42, #43.
 
 ## Repository

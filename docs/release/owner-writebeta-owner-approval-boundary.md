@@ -166,6 +166,23 @@ Use later handoffs as evidence of wording hygiene only. They may improve reader
 navigation, but they must not be counted as publication consent, blocker
 acceptance, or permission to draft release artifacts.
 
+## Worker-result wording
+
+When reporting a no-release documentation pass, say that the explanation was
+clarified while the release decision stayed unchanged. Do not describe the result
+as release preparation, launch readiness, approval pending signature, or a final
+step before publication.
+
+The correct outcome line is:
+
+```text
+owner-writebeta remains unreleased maintenance evidence until explicit owner/PM
+release-candidate approval names the scope
+```
+
+This wording keeps the worker report aligned with the repository state and avoids
+creating a public write-beta signal from documentation maintenance.
+
 ## Reconsideration trigger
 
 A later worker may revisit release-candidate preparation only when the task prompt

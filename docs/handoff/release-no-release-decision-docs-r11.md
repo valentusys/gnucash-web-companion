@@ -11,7 +11,10 @@ prepared or published.
 ## Changed documentation
 
 - Updated `docs/release/v0.4-owner-writebeta-no-release-decision.md` with a
-  repeated-task guard for generated or backfilled task identifiers.
+  repeated-task guard for generated or backfilled task identifiers and a
+  documentation-only progress guard.
+- Updated `docs/release/owner-writebeta-owner-approval-boundary.md` with
+  conservative worker-result wording for no-release documentation passes.
 - Updated `PROJECT_STATUS.md` latest-handoff navigation and current #36 snapshot
   to point at this r11 clarification.
 
