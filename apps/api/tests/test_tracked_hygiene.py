@@ -211,6 +211,9 @@ def test_content_violations_reject_unsafe_affirmative_wording(tmp_path, monkeypa
         "Write mode is stable.\n"
         "Works with all GnuCash versions.\n"
         "All GnuCash SQL backends are supported.\n"
+        "Validated across all GnuCash Desktop releases.\n"
+        "Tested against any GnuCash SQL books.\n"
+        "Safe to use with private books.\n"
         "Write beta has shipped.\n"
         "Write-beta has launched.\n"
         "Public write beta rolled out.\n"
@@ -248,22 +251,25 @@ def test_content_violations_reject_unsafe_affirmative_wording(tmp_path, monkeypa
         "tracked unsafe affirmative wording in release.md:12: Write mode is stable.",
         "tracked unsafe affirmative wording in release.md:13: Works with all GnuCash versions.",
         "tracked unsafe affirmative wording in release.md:14: All GnuCash SQL backends are supported.",
-        "tracked unsafe affirmative wording in release.md:15: Write beta has shipped.",
-        "tracked unsafe affirmative wording in release.md:16: Write-beta has launched.",
-        "tracked unsafe affirmative wording in release.md:17: Public write beta rolled out.",
-        "tracked unsafe affirmative wording in release.md:18: Public write beta can be used.",
-        "tracked unsafe affirmative wording in release.md:19: Public write beta is recommended for users.",
-        "tracked unsafe affirmative wording in release.md:20: Write beta is production-grade.",
-        "tracked unsafe affirmative wording in release.md:21: Write beta may be enabled.",
-        "tracked unsafe affirmative wording in release.md:22: Write-beta is acceptable for public use.",
-        "tracked unsafe affirmative wording in release.md:23: Writebeta is ready.",
-        "tracked unsafe affirmative wording in release.md:24: Owner writebeta is available.",
-        "tracked unsafe affirmative wording in release.md:25: Writebeta has launched.",
-        "tracked unsafe affirmative wording in release.md:26: Owner-writebeta rollout is released.",
-        "tracked unsafe affirmative wording in release.md:27: Public write beta for private books is acceptable.",
-        "tracked unsafe affirmative wording in release.md:28: Real books are safe for writes.",
-        "tracked unsafe affirmative wording in release.md:29: Private book writes are safe.",
-        "tracked unsafe affirmative wording in release.md:30: Original books are safe for mutation.",
+        "tracked unsafe affirmative wording in release.md:15: Validated across all GnuCash Desktop releases.",
+        "tracked unsafe affirmative wording in release.md:16: Tested against any GnuCash SQL books.",
+        "tracked unsafe affirmative wording in release.md:17: Safe to use with private books.",
+        "tracked unsafe affirmative wording in release.md:18: Write beta has shipped.",
+        "tracked unsafe affirmative wording in release.md:19: Write-beta has launched.",
+        "tracked unsafe affirmative wording in release.md:20: Public write beta rolled out.",
+        "tracked unsafe affirmative wording in release.md:21: Public write beta can be used.",
+        "tracked unsafe affirmative wording in release.md:22: Public write beta is recommended for users.",
+        "tracked unsafe affirmative wording in release.md:23: Write beta is production-grade.",
+        "tracked unsafe affirmative wording in release.md:24: Write beta may be enabled.",
+        "tracked unsafe affirmative wording in release.md:25: Write-beta is acceptable for public use.",
+        "tracked unsafe affirmative wording in release.md:26: Writebeta is ready.",
+        "tracked unsafe affirmative wording in release.md:27: Owner writebeta is available.",
+        "tracked unsafe affirmative wording in release.md:28: Writebeta has launched.",
+        "tracked unsafe affirmative wording in release.md:29: Owner-writebeta rollout is released.",
+        "tracked unsafe affirmative wording in release.md:30: Public write beta for private books is acceptable.",
+        "tracked unsafe affirmative wording in release.md:31: Real books are safe for writes.",
+        "tracked unsafe affirmative wording in release.md:32: Private book writes are safe.",
+        "tracked unsafe affirmative wording in release.md:33: Original books are safe for mutation.",
     ]
 
 
