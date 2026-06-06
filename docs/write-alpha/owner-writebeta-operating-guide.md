@@ -88,3 +88,7 @@ record, checksum manifest, runtime log, or private path evidence was created or 
 did not authorize changing `GNUCASH_WRITES_ENABLED=false` or relaxing the `APP_ENV=test` gate. If those
 statements cannot be made from tracked docs/tests and guard output alone, the safe result is a checkpoint,
 not backup creation, restore execution, dogfood, or private-data inspection.
+
+If a repeated generated task finds the tracked wording and guard assertions already satisfy the boundary,
+report an explicit no-change checkpoint. Do not create operational backup/restore evidence, runtime
+manifests, or cosmetic edits solely to produce a diff.

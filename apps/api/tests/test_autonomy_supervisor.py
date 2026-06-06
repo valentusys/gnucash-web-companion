@@ -821,6 +821,9 @@ def test_owner_writebeta_operating_guide_preserves_repeated_backup_restore_docs_
         "did not authorize changing `GNUCASH_WRITES_ENABLED=false` or relaxing the `APP_ENV=test` gate",
         "checkpoint",
         "not backup creation, restore execution, dogfood, or private-data inspection",
+        "explicit no-change checkpoint",
+        "Do not create operational backup/restore evidence, runtime",
+        "manifests, or cosmetic edits solely to produce a diff",
     ]
     for pattern in required:
         assert pattern in guide
@@ -849,6 +852,12 @@ def test_backup_restore_readiness_checklist_preserves_docs_only_safety_labels():
     assert "must not restore into books" in checklist
     assert "must not open private data" in checklist
     assert "must not run product dogfood" in checklist
+    assert "Repeated generated docs/tests tasks must also avoid churn" in checklist
+    assert "explicit no-change checkpoint" in checklist
+    assert (
+        "not creating a new backup/restore procedure, operational evidence, runtime manifest, or cosmetic edit solely to produce a diff"
+        in checklist
+    )
 
 
 def test_backup_restore_readiness_checklist_has_docs_only_assertion_template():

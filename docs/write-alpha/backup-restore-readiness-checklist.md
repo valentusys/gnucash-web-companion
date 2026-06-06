@@ -59,6 +59,8 @@ When a generated or repeated backup/restore-readiness task has only tracked word
 
 If these labels cannot be stated truthfully, stop and checkpoint rather than broadening scope into backup creation, restore execution, dogfood, or private-data inspection.
 
+Repeated generated docs/tests tasks must also avoid churn. If the tracked wording and guard assertions already satisfy this boundary, the safe outcome is an explicit no-change checkpoint using the labels above, not creating a new backup/restore procedure, operational evidence, runtime manifest, or cosmetic edit solely to produce a diff.
+
 ## Docs/tests-only assertion template
 
 A repeated readiness-docs task may report this wording-only assertion only when it can be proven from tracked docs/tests and guard output:
