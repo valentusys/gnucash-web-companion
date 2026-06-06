@@ -650,6 +650,13 @@ def test_backup_recovery_runbook_keeps_docs_tests_only_readiness_non_mutating():
         "DO_NOT_ENABLE_WRITES",
         "NO_PRIVATE_DATA_REVIEWED",
         "checkpoint instead of broadening into backup creation, restore execution, dogfood, or private-data inspection",
+        "backup_restore_readiness_scope=docs-tests-only",
+        "restore_drill_performed=false",
+        "backup_artifact_created=false",
+        "private_data_reviewed=false",
+        "writes_enabled_or_app_env_gate_relaxed=false",
+        "runtime_backup_manifest_reviewed=false",
+        "restore_target_opened=false",
     ]
     for pattern in required:
         assert pattern in text
