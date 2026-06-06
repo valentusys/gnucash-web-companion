@@ -153,8 +153,17 @@ def _top_level_call_name(statement: ast.stmt) -> str | None:
     return None
 
 
-def _direct_call_statement_names(node: ast.FunctionDef | ast.AsyncFunctionDef) -> list[str | None]:
-    return [_top_level_call_name(statement) for statement in node.body]
+def _direct_executable_statement_call_names(node: ast.FunctionDef | ast.AsyncFunctionDef) -> list[str | None]:
+    """Return direct call statement names after skipping an optional function docstring."""
+    body = node.body
+    if (
+        body
+        and isinstance(body[0], ast.Expr)
+        and isinstance(body[0].value, ast.Constant)
+        and isinstance(body[0].value.value, str)
+    ):
+        body = body[1:]
+    return [_top_level_call_name(statement) for statement in body]
 
 
 def _is_settings_app_env_lower_call(node: ast.AST) -> bool:
@@ -286,7 +295,12 @@ def _check_write_route_test_gates(routes_path: Path = REPO_ROOT / WRITE_ROUTES_F
                 failures.append(
                     f"write route {function_name} must check _ensure_writes_enabled before APP_ENV=test scope"
                 )
-            direct_call_names = _direct_call_statement_names(node)
+            direct_call_names = _direct_executable_statement_call_names(node)
+            if direct_call_names[:2] != ["_ensure_writes_enabled", "_ensure_write_alpha_test_scope"]:
+                failures.append(
+                    f"write route {function_name} first executable statements must be "
+                    "_ensure_writes_enabled then _ensure_write_alpha_test_scope"
+                )
             try:
                 writes_enabled_index = direct_call_names.index("_ensure_writes_enabled")
             except ValueError:
