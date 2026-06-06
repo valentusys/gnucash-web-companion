@@ -701,6 +701,9 @@ def test_restore_safety_boundary_keeps_docs_tests_only_review_non_operational():
         "NO_PRIVATE_DATA_REVIEWED",
         "must not run restore commands, create backup artifacts, open books, mutate GnuCash data",
         "inspect runtime logs, or collect private path evidence",
+        "no retry on the same copied/restorable fixture after failed restore, read-back, or audit evidence",
+        "recover/regenerate the disposable target and re-run read-only checks first",
+        "disabled-write reset probe is a documented no-op expectation under `GNUCASH_WRITES_ENABLED=false`",
         "checkpoint rather than broadening into dogfood, backup creation, restore execution, or private-data inspection",
         "By itself this boundary keeps #36 open",
     ]

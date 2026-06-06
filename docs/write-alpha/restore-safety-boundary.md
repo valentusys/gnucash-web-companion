@@ -25,7 +25,7 @@ Allowed public evidence is limited to command names, pass/fail status, redacted 
 
 Generated docs/tests-only readiness tasks may inspect tracked wording and guard assertions only. They must report review-only evidence with these negative labels: `NOT_RESTORE_DRILL`, `NO_BACKUP_ARTIFACT_CREATED`, `DO_NOT_ENABLE_WRITES`, and `NO_PRIVATE_DATA_REVIEWED`.
 
-This wording check must not run restore commands, create backup artifacts, open books, mutate GnuCash data, inspect runtime logs, or collect private path evidence. If tracked docs and tests cannot prove the boundary, the safe outcome is a checkpoint rather than broadening into dogfood, backup creation, restore execution, or private-data inspection.
+This wording check must not run restore commands, create backup artifacts, open books, mutate GnuCash data, inspect runtime logs, or collect private path evidence. It must also document no retry on the same copied/restorable fixture after failed restore, read-back, or audit evidence; recover/regenerate the disposable target and re-run read-only checks first. Any disabled-write reset probe is a documented no-op expectation under `GNUCASH_WRITES_ENABLED=false`, not an executed mutation. If tracked docs and tests cannot prove the boundary, the safe outcome is a checkpoint rather than broadening into dogfood, backup creation, restore execution, or private-data inspection.
 
 ## Closure implication
 
