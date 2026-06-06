@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import re
 import sys
 from pathlib import Path
 
@@ -80,6 +81,9 @@ WRITE_COMPATIBILITY_FORBIDDEN_PATTERNS = (
     "write mode is production-ready",
     "write mode is security-audited",
 )
+DOTENV_ASSIGNMENT_RE = re.compile(
+    r"^(?:export\s+)?(?P<key>[A-Za-z_][A-Za-z0-9_]*)\s*=\s*(?P<value>.*)$"
+)
 
 
 def _normalized(text: str) -> str:
@@ -98,18 +102,39 @@ def _read(path: Path) -> str:
         raise GuardError("required safety file could not be read") from exc
 
 
+def _strip_dotenv_inline_comment(value: str) -> str:
+    """Strip unquoted dotenv inline comments while preserving literal values."""
+    quote: str | None = None
+    escaped = False
+    for index, character in enumerate(value):
+        if escaped:
+            escaped = False
+            continue
+        if quote == '"' and character == "\\":
+            escaped = True
+            continue
+        if quote is not None:
+            if character == quote:
+                quote = None
+            continue
+        if character in {'"', "'"}:
+            quote = character
+            continue
+        if character == "#" and (index == 0 or value[index - 1].isspace()):
+            return value[:index].rstrip()
+    return value.strip()
+
+
 def _env_file_assignments(env_text: str, key: str) -> list[str]:
     """Return uncommented dotenv assignment values for key without expanding them."""
-    prefix = f"{key}="
     values: list[str] = []
     for raw_line in env_text.splitlines():
         line = raw_line.strip()
         if not line or line.startswith("#"):
             continue
-        if line.startswith("export "):
-            line = line[len("export ") :].lstrip()
-        if line.startswith(prefix):
-            values.append(line[len(prefix) :].strip())
+        match = DOTENV_ASSIGNMENT_RE.match(line)
+        if match is not None and match.group("key") == key:
+            values.append(_strip_dotenv_inline_comment(match.group("value")))
     return values
 
 
