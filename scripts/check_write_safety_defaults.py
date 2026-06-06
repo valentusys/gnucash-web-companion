@@ -45,6 +45,7 @@ BACKUP_RECOVERY_RUNBOOK_DOC = Path("docs/operations/backup-and-recovery.md")
 OWNER_WRITEBETA_OPERATING_GUIDE_DOC = Path("docs/write-alpha/owner-writebeta-operating-guide.md")
 OWNER_WRITEBETA_APPROVAL_BOUNDARY_DOC = Path("docs/release/owner-writebeta-owner-approval-boundary.md")
 OWNER_WRITEBETA_UNRELEASED_DOC = Path("docs/release/v0.4-owner-writebeta-readiness-unreleased.md")
+OWNER_WRITEBETA_NO_RELEASE_DECISION_DOC = Path("docs/release/v0.4-owner-writebeta-no-release-decision.md")
 API_CONFIG_FILE = Path("apps/api/app/config.py")
 WRITE_ROUTES_FILE = Path("apps/api/app/routers/transactions.py")
 WRITE_ROUTE_FUNCTIONS = (
@@ -564,6 +565,7 @@ def _check_owner_writebeta_release_boundaries(paths: tuple[Path, ...]) -> list[s
         "GNUCASH_WRITES_ENABLED=false",
         "APP_ENV=test",
         "No tag, GitHub release, package, image, or release notes are authorized",
+        "narrow Desktop-generated synthetic SQLite fixture evidence only",
     )
     missing = [needle for needle in required if _normalized(needle) not in combined]
     return ["owner-writebeta release boundary docs must preserve: " + ", ".join(missing)] if missing else []
@@ -760,7 +762,11 @@ def _check(env_example: Path, compose: Path, gate_doc: Path, checklist_doc: Path
     failures.extend(_check_owner_writebeta_operating_guide(OWNER_WRITEBETA_OPERATING_GUIDE_DOC))
     failures.extend(
         _check_owner_writebeta_release_boundaries(
-            (OWNER_WRITEBETA_APPROVAL_BOUNDARY_DOC, OWNER_WRITEBETA_UNRELEASED_DOC)
+            (
+                OWNER_WRITEBETA_APPROVAL_BOUNDARY_DOC,
+                OWNER_WRITEBETA_UNRELEASED_DOC,
+                OWNER_WRITEBETA_NO_RELEASE_DECISION_DOC,
+            )
         )
     )
     return failures
