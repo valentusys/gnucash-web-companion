@@ -391,6 +391,7 @@ def test_public_status_guard_rejects_affirmative_public_write_beta_action_claims
         "Ready to release public write beta.",
         "We can publish the write-beta rollout.",
         "Ship the owner-writebeta release to users.",
+        "Ship the owner write beta release to users.",
         "Launch public writes for real books.",
     ]
 
@@ -454,30 +455,35 @@ def test_public_status_guard_rejects_affirmative_public_write_beta_launch_claims
 def test_public_status_guard_rejects_affirmative_writebeta_status_claims():
     unsafe_claims = [
         "Owner-writebeta is public.",
+        "Owner write beta is public.",
         "Writebeta is ready.",
         "Owner writebeta is available.",
+        "Owner write beta is available.",
         "Writebeta has launched.",
+        "Owner-write beta has launched.",
         "Owner-writebeta rollout is released.",
+        "Owner write beta rollout is released.",
     ]
 
     for unsafe in unsafe_claims:
         try:
             guard.reject_patterns(Path("README.md"), unsafe, guard.UNSAFE_AFFIRMATIVE_PATTERNS)
         except AssertionError as exc:
-            assert "writebeta" in str(exc).lower()
+            assert "write" in str(exc).lower()
         else:
             raise AssertionError(f"affirmative writebeta status claim should fail guard: {unsafe}")
 
 
 def test_public_status_guard_rejects_affirmative_writebeta_authorization_claims():
-    unsafe = "Owner-writebeta is authorized."
+    unsafe_claims = ["Owner-writebeta is authorized.", "Owner write beta is authorized."]
 
-    try:
-        guard.reject_patterns(Path("README.md"), unsafe, guard.UNSAFE_AFFIRMATIVE_PATTERNS)
-    except AssertionError as exc:
-        assert "writebeta" in str(exc).lower()
-    else:
-        raise AssertionError("affirmative writebeta authorization claim should fail guard")
+    for unsafe in unsafe_claims:
+        try:
+            guard.reject_patterns(Path("README.md"), unsafe, guard.UNSAFE_AFFIRMATIVE_PATTERNS)
+        except AssertionError as exc:
+            assert "write" in str(exc).lower()
+        else:
+            raise AssertionError(f"affirmative writebeta authorization claim should fail guard: {unsafe}")
 
 
 def test_public_status_guard_rejects_affirmative_public_write_beta_private_book_scope():

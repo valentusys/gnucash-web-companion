@@ -240,9 +240,13 @@ def test_content_violations_reject_unsafe_affirmative_wording(tmp_path, monkeypa
         "Write beta may be enabled.\n"
         "Write-beta is acceptable for public use.\n"
         "Writebeta is ready.\n"
+        "Owner write beta is ready.\n"
         "Owner writebeta is available.\n"
+        "Owner-write beta is available.\n"
         "Writebeta has launched.\n"
+        "Owner write beta has launched.\n"
         "Owner-writebeta rollout is released.\n"
+        "Owner write beta rollout is released.\n"
         "Public write beta for private books is acceptable.\n"
         "Real books are safe for writes.\n"
         "Private book writes are safe.\n"
@@ -282,15 +286,19 @@ def test_content_violations_reject_unsafe_affirmative_wording(tmp_path, monkeypa
         "tracked unsafe affirmative wording in release.md:24: Write beta may be enabled.",
         "tracked unsafe affirmative wording in release.md:25: Write-beta is acceptable for public use.",
         "tracked unsafe affirmative wording in release.md:26: Writebeta is ready.",
-        "tracked unsafe affirmative wording in release.md:27: Owner writebeta is available.",
-        "tracked unsafe affirmative wording in release.md:28: Writebeta has launched.",
-        "tracked unsafe affirmative wording in release.md:29: Owner-writebeta rollout is released.",
-        "tracked unsafe affirmative wording in release.md:30: Public write beta for private books is acceptable.",
-        "tracked unsafe affirmative wording in release.md:31: Real books are safe for writes.",
-        "tracked unsafe affirmative wording in release.md:32: Private book writes are safe.",
-        "tracked unsafe affirmative wording in release.md:33: Original books are safe for mutation.",
-        "tracked unsafe affirmative wording in release.md:34: Write beta is safe for private books.",
-        "tracked unsafe affirmative wording in release.md:35: Write-beta supported for original books.",
+        "tracked unsafe affirmative wording in release.md:27: Owner write beta is ready.",
+        "tracked unsafe affirmative wording in release.md:28: Owner writebeta is available.",
+        "tracked unsafe affirmative wording in release.md:29: Owner-write beta is available.",
+        "tracked unsafe affirmative wording in release.md:30: Writebeta has launched.",
+        "tracked unsafe affirmative wording in release.md:31: Owner write beta has launched.",
+        "tracked unsafe affirmative wording in release.md:32: Owner-writebeta rollout is released.",
+        "tracked unsafe affirmative wording in release.md:33: Owner write beta rollout is released.",
+        "tracked unsafe affirmative wording in release.md:34: Public write beta for private books is acceptable.",
+        "tracked unsafe affirmative wording in release.md:35: Real books are safe for writes.",
+        "tracked unsafe affirmative wording in release.md:36: Private book writes are safe.",
+        "tracked unsafe affirmative wording in release.md:37: Original books are safe for mutation.",
+        "tracked unsafe affirmative wording in release.md:38: Write beta is safe for private books.",
+        "tracked unsafe affirmative wording in release.md:39: Write-beta supported for original books.",
     ]
 
 
@@ -368,6 +376,7 @@ def test_content_violations_reject_public_write_beta_action_claims(tmp_path, mon
         "Ready to release public write beta.\n"
         "We can publish the write-beta rollout.\n"
         "Ship the owner-writebeta release to users.\n"
+        "Ship the owner write beta release to users.\n"
         "Launch public writes for real books.\n",
         encoding="utf-8",
     )
@@ -377,7 +386,8 @@ def test_content_violations_reject_public_write_beta_action_claims(tmp_path, mon
         "tracked unsafe affirmative wording in release.md:1: Ready to release public write beta.",
         "tracked unsafe affirmative wording in release.md:2: We can publish the write-beta rollout.",
         "tracked unsafe affirmative wording in release.md:3: Ship the owner-writebeta release to users.",
-        "tracked unsafe affirmative wording in release.md:4: Launch public writes for real books.",
+        "tracked unsafe affirmative wording in release.md:4: Ship the owner write beta release to users.",
+        "tracked unsafe affirmative wording in release.md:5: Launch public writes for real books.",
     ]
 
 
