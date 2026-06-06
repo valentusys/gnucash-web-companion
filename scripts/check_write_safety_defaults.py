@@ -707,7 +707,7 @@ def _compose_service_environment_lines(compose_text: str, service_name: str) -> 
     service_start: int | None = None
     for index, line in enumerate(lines):
         stripped = line.strip()
-        if stripped == f"{service_name}:":
+        if stripped.endswith(":") and _strip_yaml_inline_quotes(stripped[:-1]) == service_name:
             service_indent = len(line) - len(line.lstrip())
             service_start = index + 1
             break
@@ -763,7 +763,7 @@ def _compose_service_names(compose_text: str) -> list[str]:
         if indent <= services_indent:
             break
         if indent == services_indent + 2 and stripped.endswith(":"):
-            service_names.append(stripped[:-1])
+            service_names.append(_strip_yaml_inline_quotes(stripped[:-1]))
     return service_names
 
 
