@@ -41,6 +41,7 @@ DEFAULT_DOCS = PUBLIC_STATUS_DOCS + (
     Path("docs/handoff/issue36-owner-writebeta-remaining-gates-audit-r9.md"),
     Path("docs/handoff/issue36-owner-writebeta-remaining-gates-audit-r10.md"),
     Path("docs/handoff/issue36-owner-writebeta-remaining-gates-audit-r11.md"),
+    Path("docs/handoff/issue36-owner-writebeta-remaining-gates-audit-r12.md"),
 )
 
 # Avoid noisy historical whole-file reflow: public/status archives are long by
