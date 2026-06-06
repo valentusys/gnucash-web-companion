@@ -207,6 +207,11 @@ def test_content_violations_reject_unsafe_affirmative_wording(tmp_path, monkeypa
         "Write-beta has launched.\n"
         "Public write beta rolled out.\n"
         "Write beta is production-grade.\n"
+        "Writebeta is ready.\n"
+        "Owner writebeta is available.\n"
+        "Writebeta has launched.\n"
+        "Owner-writebeta rollout is released.\n"
+        "Public write beta for private books is acceptable.\n"
         "Real books are safe for writes.\n"
         "Private book writes are safe.\n"
         "Original books are safe for mutation.\n",
@@ -235,9 +240,14 @@ def test_content_violations_reject_unsafe_affirmative_wording(tmp_path, monkeypa
         "tracked unsafe affirmative wording in release.md:16: Write-beta has launched.",
         "tracked unsafe affirmative wording in release.md:17: Public write beta rolled out.",
         "tracked unsafe affirmative wording in release.md:18: Write beta is production-grade.",
-        "tracked unsafe affirmative wording in release.md:19: Real books are safe for writes.",
-        "tracked unsafe affirmative wording in release.md:20: Private book writes are safe.",
-        "tracked unsafe affirmative wording in release.md:21: Original books are safe for mutation.",
+        "tracked unsafe affirmative wording in release.md:19: Writebeta is ready.",
+        "tracked unsafe affirmative wording in release.md:20: Owner writebeta is available.",
+        "tracked unsafe affirmative wording in release.md:21: Writebeta has launched.",
+        "tracked unsafe affirmative wording in release.md:22: Owner-writebeta rollout is released.",
+        "tracked unsafe affirmative wording in release.md:23: Public write beta for private books is acceptable.",
+        "tracked unsafe affirmative wording in release.md:24: Real books are safe for writes.",
+        "tracked unsafe affirmative wording in release.md:25: Private book writes are safe.",
+        "tracked unsafe affirmative wording in release.md:26: Original books are safe for mutation.",
     ]
 
 
@@ -303,6 +313,7 @@ def test_content_violations_allow_negative_safety_wording(tmp_path, monkeypatch)
     sample = tmp_path / "limits.md"
     sample.write_text(
         "No public write beta is ready.\n"
+        "Is owner-writebeta published? No. It remains unpublished.\n"
         "Do not claim broad GnuCash compatibility is supported.\n"
         "Only-copy books are not safe for writes.\n"
         "Even future closure must not mean:\n"

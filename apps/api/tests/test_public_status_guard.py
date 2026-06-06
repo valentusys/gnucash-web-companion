@@ -423,14 +423,21 @@ def test_public_status_guard_rejects_affirmative_public_write_beta_launch_claims
 
 
 def test_public_status_guard_rejects_affirmative_writebeta_status_claims():
-    unsafe = "Owner-writebeta is public."
+    unsafe_claims = [
+        "Owner-writebeta is public.",
+        "Writebeta is ready.",
+        "Owner writebeta is available.",
+        "Writebeta has launched.",
+        "Owner-writebeta rollout is released.",
+    ]
 
-    try:
-        guard.reject_patterns(Path("README.md"), unsafe, guard.UNSAFE_AFFIRMATIVE_PATTERNS)
-    except AssertionError as exc:
-        assert "writebeta" in str(exc).lower()
-    else:
-        raise AssertionError("affirmative writebeta status claim should fail guard")
+    for unsafe in unsafe_claims:
+        try:
+            guard.reject_patterns(Path("README.md"), unsafe, guard.UNSAFE_AFFIRMATIVE_PATTERNS)
+        except AssertionError as exc:
+            assert "writebeta" in str(exc).lower()
+        else:
+            raise AssertionError(f"affirmative writebeta status claim should fail guard: {unsafe}")
 
 
 def test_public_status_guard_rejects_affirmative_writebeta_authorization_claims():
@@ -442,6 +449,18 @@ def test_public_status_guard_rejects_affirmative_writebeta_authorization_claims(
         assert "writebeta" in str(exc).lower()
     else:
         raise AssertionError("affirmative writebeta authorization claim should fail guard")
+
+
+def test_public_status_guard_rejects_affirmative_public_write_beta_private_book_scope():
+    unsafe = "Public write beta for private books is acceptable."
+
+    try:
+        guard.reject_patterns(Path("README.md"), unsafe, guard.UNSAFE_AFFIRMATIVE_PATTERNS)
+    except AssertionError as exc:
+        assert "public" in str(exc).lower()
+        assert "private" in str(exc).lower()
+    else:
+        raise AssertionError("public write beta private-book scope claim should fail guard")
 
 
 def test_public_status_guard_rejects_write_beta_stable_security_claims():
@@ -464,7 +483,7 @@ def test_public_status_guard_rejects_write_beta_stable_security_claims():
 
 
 def test_public_status_guard_accepts_negative_production_security_limitations():
-    safe = "- Not production-ready and not security-audited."
+    safe = "- Not production-ready and not security-audited.\nIs owner-writebeta published? No. It remains unpublished."
 
     guard.reject_patterns(Path("CHANGELOG.md"), safe, guard.UNSAFE_AFFIRMATIVE_PATTERNS)
 

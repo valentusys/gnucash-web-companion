@@ -157,8 +157,12 @@ UNSAFE_AFFIRMATIVE_PATTERNS = [
     re.compile(r"\bwrite[-\s]+beta\s+(?:is\s+)?(?:stable|production[- ]ready|security[- ]audited|production[- ]grade)\b", re.I),
     re.compile(r"\bwrite[-\s]+beta\s+(?:release|build|deployment)\s+(?:is\s+)?(?:stable|production[- ]ready|security[- ]audited)\b", re.I),
     re.compile(r"\bwrite[-\s]+mode\s+(?:is\s+)?(?:stable|production[- ]ready|security[- ]audited)\b", re.I),
+    re.compile(r"\b(owner[- ]?)?writebeta\s+(?:is\s+)?(?:ready|available|open|enabled|supported)\b", re.I),
     re.compile(r"\b(owner[- ]?)?writebeta\s+(?:is\s+)?(?:public|stable|production[- ]ready|security[- ]audited)\b", re.I),
     re.compile(r"\b(owner[- ]?)?writebeta\s+(?:is\s+)?(?:approved|authorized|published|released)\b", re.I),
+    re.compile(r"\b(owner[- ]?)?writebeta\s+(?:has\s+)?(?:shipped|launched|rolled\s+out)\b", re.I),
+    re.compile(r"\b(owner[- ]?)?writebeta\s+(?:launch|release|rollout)\s+(?:is\s+)?(?:ready|approved|authorized|published|released)\b", re.I),
+    re.compile(r"\bpublic\s+write[-\s]+beta\b.*\b(?:real/private|private|real|original|only-copy)\s+books?\b", re.I),
     re.compile(r"\bis production[- ]ready\b", re.I),
     re.compile(r"\bproduction[- ]ready\s+(release|software|deployment|build)\b", re.I),
     re.compile(r"\bsecurity[- ]audited\s+(release|software|deployment|build)\b", re.I),
@@ -241,6 +245,7 @@ NEGATION_MARKERS = (
     "denies ",
     "denied ",
     "blocker",
+    "unpublished",
 )
 
 
