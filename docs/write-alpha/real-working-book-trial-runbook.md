@@ -512,6 +512,49 @@ Missing or inconsistent rollback evidence means `rollback review` or blocked
 status, not success. It does not authorize a compensating write, another trial, a
 release, or a public write beta claim.
 
+## R9 future approval-to-runtime gate sequence
+
+A future same-context approval packet must keep approval review separate from
+runtime arming. Passing a documentation review is not permission to arm writes.
+The minimum sequence is:
+
+1. Complete the approval packet using only redacted target-class labels and
+   pass/fail proof sources.
+2. Obtain owner and PM approval for the same packet version, route family,
+   operation shape, exact mutation count, rollback proof, reset proof, and
+   evidence shape.
+3. Re-check that the packet still preserves `GNUCASH_WRITES_ENABLED=false` in
+   committed defaults and rendered Compose, and that any temporary enabled-write
+   runtime remains `APP_ENV=test` scoped.
+4. Re-check blockers immediately before arming writes: target not original or
+   only-copy, independent backup and restore-to-copy proof available, Desktop and
+   other writers closed, and evidence still redacted.
+5. Arm only the approved temporary test-scoped runtime, perform only the approved
+   operation count, then reset to disabled writes and run the disabled probe.
+
+If any step is absent, stale, mismatched, broader than the packet, or requires
+private tracked evidence, the future status is blocked before mutation. Do not
+continue by relying on prior copied-book evidence, this runbook, or local/private
+knowledge.
+
+## R9 approval revocation and post-reset blockers
+
+A future trial must treat approval as revoked and return to blocked status when:
+
+- the owner or PM changes, narrows, broadens, or withdraws approval;
+- the route family, operation count, target class, backup plan, restore plan,
+  writer state, runtime gate, evidence shape, or reset plan changes;
+- reset cannot be performed or the disabled probe does not prove write routes are
+  blocked again;
+- any report would need private paths, account names, transaction descriptions,
+  memos, amounts, screenshots, books, app DBs, backups, exports, raw logs,
+  `.env`, tokens, keys, or certs.
+
+Revoked, expired, or post-reset-blocked approval is not a partial success. It does
+not authorize a compensating mutation, a second trial, a release, a public write
+beta, stable wording, production-ready wording, security-audited wording, broad
+compatibility wording, or only-copy safety wording.
+
 ## Stop result for the current task
 
 For issue #36, this runbook records that a real working-book trial remains
