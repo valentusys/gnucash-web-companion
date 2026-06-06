@@ -28,6 +28,7 @@ DEFAULT_DOCS = PUBLIC_STATUS_DOCS + (
     Path("docs/write-alpha/evidence-matrix.md"),
     Path("docs/release/owner-writebeta-owner-approval-boundary.md"),
     Path("docs/release/v0.4-owner-writebeta-readiness-unreleased.md"),
+    Path("docs/release/v0.4-owner-writebeta-no-release-decision.md"),
     Path("docs/release/v0.5.0-public-readonly-beta-notes.md"),
     Path("docs/release/v0.5.0-public-readonly-beta-final-gate.md"),
     Path("docs/release/v0.5.0-public-readonly-beta-publication-evidence.md"),
@@ -37,6 +38,7 @@ DEFAULT_DOCS = PUBLIC_STATUS_DOCS + (
     Path("docs/handoff/issue36-owner-writebeta-remaining-gates-audit-r6.md"),
     Path("docs/handoff/issue36-owner-writebeta-remaining-gates-audit-r7.md"),
     Path("docs/handoff/issue36-owner-writebeta-remaining-gates-audit-r8.md"),
+    Path("docs/handoff/issue36-owner-writebeta-remaining-gates-audit-r9.md"),
 )
 
 # Avoid noisy historical whole-file reflow: public/status archives are long by

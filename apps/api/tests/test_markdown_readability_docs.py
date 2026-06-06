@@ -20,8 +20,10 @@ ISSUE_36_DASHBOARD = ROOT / "docs/write-alpha/controlled-write-readiness-dashboa
 WRITE_EVIDENCE_MATRIX = ROOT / "docs/write-alpha/evidence-matrix.md"
 OWNER_WRITEBETA_APPROVAL_BOUNDARY = ROOT / "docs/release/owner-writebeta-owner-approval-boundary.md"
 OWNER_WRITEBETA_UNRELEASED = ROOT / "docs/release/v0.4-owner-writebeta-readiness-unreleased.md"
+OWNER_WRITEBETA_NO_RELEASE = ROOT / "docs/release/v0.4-owner-writebeta-no-release-decision.md"
 OWNER_WRITEBETA_HANDOFF_R5 = ROOT / "docs/handoff/issue36-owner-writebeta-remaining-gates-audit-r5.md"
 OWNER_WRITEBETA_HANDOFF_R8 = ROOT / "docs/handoff/issue36-owner-writebeta-remaining-gates-audit-r8.md"
+OWNER_WRITEBETA_HANDOFF_R9 = ROOT / "docs/handoff/issue36-owner-writebeta-remaining-gates-audit-r9.md"
 ISSUE_28_CLOSURE_AUDIT = ROOT / "docs/development/issue-28-closure-audit.md"
 PUBLIC_FEEDBACK_PACKET = ROOT / "docs/community/public-readonly-beta-feedback-packet.md"
 
@@ -182,8 +184,10 @@ def test_issue_36_owner_writebeta_docs_are_in_default_readability_guard() -> Non
         "docs/write-alpha/evidence-matrix.md": WRITE_EVIDENCE_MATRIX,
         "docs/release/owner-writebeta-owner-approval-boundary.md": OWNER_WRITEBETA_APPROVAL_BOUNDARY,
         "docs/release/v0.4-owner-writebeta-readiness-unreleased.md": OWNER_WRITEBETA_UNRELEASED,
+        "docs/release/v0.4-owner-writebeta-no-release-decision.md": OWNER_WRITEBETA_NO_RELEASE,
         "docs/handoff/issue36-owner-writebeta-remaining-gates-audit-r5.md": OWNER_WRITEBETA_HANDOFF_R5,
         "docs/handoff/issue36-owner-writebeta-remaining-gates-audit-r8.md": OWNER_WRITEBETA_HANDOFF_R8,
+        "docs/handoff/issue36-owner-writebeta-remaining-gates-audit-r9.md": OWNER_WRITEBETA_HANDOFF_R9,
     }
 
     for rel in guarded_docs:
