@@ -777,7 +777,16 @@ def _compose_service_names(compose_text: str) -> list[str]:
 
 def _compose_service_environment_values(environment_lines: list[str], key: str) -> list[str]:
     prefix = f"{key}="
-    return [line[len(prefix) :] for line in environment_lines if line.startswith(prefix)]
+    return [
+        _strip_yaml_inline_quotes(line[len(prefix) :])
+        for line in environment_lines
+        if line.startswith(prefix)
+    ]
+
+
+def _compose_app_env_value_defaults_to_test(value: str) -> bool:
+    normalized = _strip_yaml_inline_quotes(value).strip().lower().replace(" ", "")
+    return normalized in {"test", "${app_env:-test}", "${app_env-test}", "${app_env:=test}"}
 
 
 def _check_compose_service_env_exact(
@@ -809,7 +818,7 @@ def _check_compose_all_service_env_safe(compose_text: str) -> list[str]:
             failures.append(
                 f"Docker Compose {service_name} service must not include alternate GNUCASH_WRITES_ENABLED defaults"
             )
-        if any(value == "test" or value == "${APP_ENV:-test}" for value in app_env_values):
+        if any(_compose_app_env_value_defaults_to_test(value) for value in app_env_values):
             failures.append(f"Docker Compose {service_name} service must not default APP_ENV to test")
     return failures
 
