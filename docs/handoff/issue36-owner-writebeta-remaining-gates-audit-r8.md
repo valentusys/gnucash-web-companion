@@ -1,7 +1,7 @@
 # Issue #36 owner-writebeta remaining gates audit r8
 
 Date: 2026-06-06
-Task id: owner-writebeta-remaining-gates-audit-r4
+Task id: owner-writebeta-remaining-gates-audit-r8
 
 ## Result
 
