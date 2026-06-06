@@ -60,6 +60,13 @@ FORBIDDEN_POLICY_MARKERS = (
     "broad compatibility proven",
     "broad compatibility claim authorized",
     "broad compatibility ready",
+    "create tag",
+    "tag creation",
+    "publish package",
+    "package publication",
+    "publish image",
+    "image publication",
+    "push image",
 )
 FORBIDDEN_VERIFICATION_COMMAND_MARKERS = (
     "gh release",
