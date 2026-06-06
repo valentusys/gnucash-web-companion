@@ -91,7 +91,32 @@ def test_content_violations_reject_raw_private_evidence_markers(tmp_path, monkey
         "tracked raw private-evidence marker 'TRANSACTION_AMOUNT=' in: public-report.md",
         "tracked raw private-evidence label in public-report.md:2: PRIVATE_BOOK_PATH=/redacted",
         "tracked raw private-evidence label in public-report.md:3: ACCOUNT_NAME=Redacted Account",
+        "tracked raw private-evidence label in public-report.md:4: ACCOUNT_DESCRIPTION=Redacted Account Description",
         "tracked raw private-evidence label in public-report.md:5: TRANSACTION_AMOUNT=0.00",
+    ]
+
+
+def test_content_violations_reject_private_account_description_and_balance_markers(tmp_path, monkeypatch):
+    sample = tmp_path / "public-report.md"
+    sample.write_text(
+        "PRIVATE_ACCOUNT_NAME=Redacted Account\n"
+        "REAL_ACCOUNT_DESCRIPTION=Redacted account description\n"
+        "ACCOUNT_BALANCE=0.00\n"
+        "BALANCE=0.00\n"
+        "PRIVATE_TRANSACTION_DESCRIPTION=Redacted transaction\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
+
+    assert guard.content_violations([sample]) == [
+        "tracked raw private-evidence marker 'PRIVATE_ACCOUNT_NAME=' in: public-report.md",
+        "tracked raw private-evidence marker 'REAL_ACCOUNT_DESCRIPTION=' in: public-report.md",
+        "tracked raw private-evidence marker 'ACCOUNT_BALANCE=' in: public-report.md",
+        "tracked raw private-evidence marker 'BALANCE=' in: public-report.md",
+        "tracked raw private-evidence marker 'PRIVATE_TRANSACTION_DESCRIPTION=' in: public-report.md",
+        "tracked raw private-evidence label in public-report.md:2: REAL_ACCOUNT_DESCRIPTION=Redacted account description",
+        "tracked raw private-evidence label in public-report.md:3: ACCOUNT_BALANCE=0.00",
+        "tracked raw private-evidence label in public-report.md:4: BALANCE=0.00",
     ]
 
 
@@ -149,6 +174,8 @@ def test_content_violations_reject_human_written_private_evidence_labels(tmp_pat
         "Log path: /redacted\n"
         "Real account name: Redacted Account\n"
         "Account name: Redacted Account\n"
+        "Account description: Redacted account description\n"
+        "Private account description: Redacted account description\n"
         "Memo: Redacted memo\n"
         "Amount: 0.00\n"
         "Balance: 0.00\n"
@@ -182,11 +209,13 @@ def test_content_violations_reject_human_written_private_evidence_labels(tmp_pat
         "tracked raw private-evidence label in public-report.md:19: Log path: /redacted",
         "tracked raw private-evidence label in public-report.md:20: Real account name: Redacted Account",
         "tracked raw private-evidence label in public-report.md:21: Account name: Redacted Account",
-        "tracked raw private-evidence label in public-report.md:22: Memo: Redacted memo",
-        "tracked raw private-evidence label in public-report.md:23: Amount: 0.00",
-        "tracked raw private-evidence label in public-report.md:24: Balance: 0.00",
-        "tracked raw private-evidence label in public-report.md:25: Account balance: 0.00",
-        "tracked raw private-evidence label in public-report.md:26: Transaction amount: 0.00",
+        "tracked raw private-evidence label in public-report.md:22: Account description: Redacted account description",
+        "tracked raw private-evidence label in public-report.md:23: Private account description: Redacted account description",
+        "tracked raw private-evidence label in public-report.md:24: Memo: Redacted memo",
+        "tracked raw private-evidence label in public-report.md:25: Amount: 0.00",
+        "tracked raw private-evidence label in public-report.md:26: Balance: 0.00",
+        "tracked raw private-evidence label in public-report.md:27: Account balance: 0.00",
+        "tracked raw private-evidence label in public-report.md:28: Transaction amount: 0.00",
     ]
 
 
@@ -196,7 +225,8 @@ def test_content_violations_reject_markdown_private_evidence_labels(tmp_path, mo
         "- Private path: /redacted\n"
         "* Original GnuCash path = /redacted\n"
         "+ Real account name: Redacted Account\n"
-        "> Transaction memo: Redacted memo\n",
+        "> Transaction memo: Redacted memo\n"
+        "- Account description: Redacted account description\n",
         encoding="utf-8",
     )
     monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
@@ -208,6 +238,7 @@ def test_content_violations_reject_markdown_private_evidence_labels(tmp_path, mo
         "tracked raw private-evidence label in public-report.md:2: * Original GnuCash path = /redacted",
         "tracked raw private-evidence label in public-report.md:3: + Real account name: Redacted Account",
         "tracked raw private-evidence label in public-report.md:4: > Transaction memo: Redacted memo",
+        "tracked raw private-evidence label in public-report.md:5: - Account description: Redacted account description",
     ]
 
 
