@@ -589,6 +589,14 @@ def _check_backup_recovery_runbook(path: Path) -> list[str]:
         "NO_BACKUP_ARTIFACT_CREATED",
         "DO_NOT_ENABLE_WRITES",
         "NO_PRIVATE_DATA_REVIEWED",
+        "review packets must summarize readiness as redacted pass/fail markers only",
+        "backup_restore_readiness_scope=docs-tests-only",
+        "restore_drill_performed=false",
+        "backup_artifact_created=false",
+        "private_data_reviewed=false",
+        "writes_enabled_or_app_env_gate_relaxed=false",
+        "runtime_backup_manifest_reviewed=false",
+        "restore_target_opened=false",
     )
     missing = [needle for needle in required if _normalized(needle) not in normalized]
     return ["backup/recovery runbook must preserve docs/tests-only restore-readiness boundary: " + ", ".join(missing)] if missing else []
