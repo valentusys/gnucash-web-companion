@@ -22,8 +22,11 @@ OWNER_WRITEBETA_APPROVAL_BOUNDARY = ROOT / "docs/release/owner-writebeta-owner-a
 OWNER_WRITEBETA_UNRELEASED = ROOT / "docs/release/v0.4-owner-writebeta-readiness-unreleased.md"
 OWNER_WRITEBETA_NO_RELEASE = ROOT / "docs/release/v0.4-owner-writebeta-no-release-decision.md"
 OWNER_WRITEBETA_HANDOFF_R5 = ROOT / "docs/handoff/issue36-owner-writebeta-remaining-gates-audit-r5.md"
+OWNER_WRITEBETA_HANDOFF_R6 = ROOT / "docs/handoff/issue36-owner-writebeta-remaining-gates-audit-r6.md"
+OWNER_WRITEBETA_HANDOFF_R7 = ROOT / "docs/handoff/issue36-owner-writebeta-remaining-gates-audit-r7.md"
 OWNER_WRITEBETA_HANDOFF_R8 = ROOT / "docs/handoff/issue36-owner-writebeta-remaining-gates-audit-r8.md"
 OWNER_WRITEBETA_HANDOFF_R9 = ROOT / "docs/handoff/issue36-owner-writebeta-remaining-gates-audit-r9.md"
+OWNER_WRITEBETA_HANDOFF_R10 = ROOT / "docs/handoff/issue36-owner-writebeta-remaining-gates-audit-r10.md"
 ISSUE_28_CLOSURE_AUDIT = ROOT / "docs/development/issue-28-closure-audit.md"
 PUBLIC_FEEDBACK_PACKET = ROOT / "docs/community/public-readonly-beta-feedback-packet.md"
 
@@ -186,8 +189,11 @@ def test_issue_36_owner_writebeta_docs_are_in_default_readability_guard() -> Non
         "docs/release/v0.4-owner-writebeta-readiness-unreleased.md": OWNER_WRITEBETA_UNRELEASED,
         "docs/release/v0.4-owner-writebeta-no-release-decision.md": OWNER_WRITEBETA_NO_RELEASE,
         "docs/handoff/issue36-owner-writebeta-remaining-gates-audit-r5.md": OWNER_WRITEBETA_HANDOFF_R5,
+        "docs/handoff/issue36-owner-writebeta-remaining-gates-audit-r6.md": OWNER_WRITEBETA_HANDOFF_R6,
+        "docs/handoff/issue36-owner-writebeta-remaining-gates-audit-r7.md": OWNER_WRITEBETA_HANDOFF_R7,
         "docs/handoff/issue36-owner-writebeta-remaining-gates-audit-r8.md": OWNER_WRITEBETA_HANDOFF_R8,
         "docs/handoff/issue36-owner-writebeta-remaining-gates-audit-r9.md": OWNER_WRITEBETA_HANDOFF_R9,
+        "docs/handoff/issue36-owner-writebeta-remaining-gates-audit-r10.md": OWNER_WRITEBETA_HANDOFF_R10,
     }
 
     for rel in guarded_docs:
