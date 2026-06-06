@@ -735,3 +735,28 @@ def test_prompt_paths_sanitize_generated_task_ids(tmp_path):
     assert prompt_path.parent == prompt_dir
     assert prompt_path.name == "001-unsafe-task-id.md"
     assert prompt_path.exists()
+
+
+def test_backup_restore_readiness_checklist_preserves_docs_only_safety_labels():
+    checklist = (
+        REPO_ROOT / "docs" / "write-alpha" / "backup-restore-readiness-checklist.md"
+    ).read_text(encoding="utf-8")
+
+    required_labels = (
+        "NOT_RESTORE_DRILL",
+        "NO_BACKUP_ARTIFACT_CREATED",
+        "DO_NOT_ENABLE_WRITES",
+        "NO_PRIVATE_DATA_REVIEWED",
+    )
+    for label in required_labels:
+        assert label in checklist
+
+    assert "docs/tests-only restore-readiness wording check" in checklist
+    assert "GNUCASH_WRITES_ENABLED=false" in checklist
+    assert "APP_ENV=test" in checklist
+    assert "not recovery proof" in checklist
+    assert "must not overwrite" in checklist
+    assert "must not create backups" in checklist
+    assert "must not restore into books" in checklist
+    assert "must not open private data" in checklist
+    assert "must not run product dogfood" in checklist
