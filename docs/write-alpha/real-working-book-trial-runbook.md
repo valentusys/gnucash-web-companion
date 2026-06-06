@@ -623,6 +623,37 @@ trial is blocked before mutation. Do not proceed by inspecting local books,
 copying a private target, running dogfood, changing defaults, enabling writes
 outside `APP_ENV=test`, or treating this runbook as approval.
 
+## R12 owner re-approval and rollback expectation gate
+
+A future real working-book packet must require owner re-approval before any
+additional action when the trial plan changes after approval or when a rollback
+checkpoint reaches review status. Re-approval is a new same-context gate, not a
+continuation of earlier approval. It must be limited to redacted pass/fail status
+for:
+
+1. What changed: packet version, route family, operation shape, mutation count,
+   target class, writer state, backup/restore plan, runtime posture, evidence
+   shape, or reset proof.
+2. Why the previous approval no longer applies: stale approval, mismatched scope,
+   rollback-review status, blocked reset, failed disabled probe, or unavailable
+   redacted evidence.
+3. What remains forbidden: opening or mutating an original/private/working/
+   only-copy book, compensating writes, broad dogfood, release publication, public
+   write beta wording, stable status, production readiness, security-audited
+   status, broad compatibility claims, and only-copy safety claims.
+4. What rollback can do: inspect only the approved redacted status and restored
+   copy evidence defined by the future packet; never overwrite the source target
+   and never commit raw private evidence.
+5. What a safe stop looks like: default-disabled writes restored or reported as
+   blocked after reset attempt, with no further mutation until owner and PM both
+   approve a new exact packet.
+
+If owner re-approval or PM re-approval is absent, stale, broader than the updated
+packet, or dependent on private tracked evidence, the future result remains
+blocked or rollback-review. Do not convert rollback-review into success by adding
+new mutations, using local/private knowledge, or treating this R12 section as
+approval.
+
 ## Stop result for the current task
 
 For issue #36, this runbook records that a real working-book trial remains
