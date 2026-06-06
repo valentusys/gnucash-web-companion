@@ -179,6 +179,8 @@ FORBIDDEN_UNSAFE_AFFIRMATIVE_PATTERNS = (
     re.compile(r"\bGnuCash\s+Desktop\s+\d+(?:\.\d+){1,3}\s+(?:compatibility\s+)?(?:is\s+)?(?:supported|compatible|validated|confirmed)\b", re.I),
     re.compile(r"\b(?:supports|validated|confirmed)\s+GnuCash\s+Desktop\s+\d+(?:\.\d+){1,3}\b", re.I),
     re.compile(r"\bPostgreSQL/MySQL/MariaDB\s+(?:GnuCash\s+)?(?:SQL\s+)?backends?\s+(?:are\s+)?(?:supported|compatible|validated|confirmed)\b", re.I),
+    re.compile(r"\b(?:real/private|private|real|only-copy)\s+(?:book\s+)?write[- ]safety\s+(?:is\s+)?(?:proven|verified|validated|confirmed|ready|safe)\b", re.I),
+    re.compile(r"\b(?:real/private|private|real|original|only-copy)\s+(?:book\s+)?safety\s+(?:is\s+)?(?:proven|verified|validated|confirmed|ready|safe)\b", re.I),
     re.compile(r"\b(?:real/private|private|real|original|only-copy)\s+books?\s+(?:are\s+)?safe\s+(?:for\s+)?(?:writes?|mutation|write mode)\b", re.I),
     re.compile(r"\b(?:real/private|private|real|original|only-copy)\s+(?:book\s+)?writes?\s+(?:are\s+)?safe\b", re.I),
     re.compile(r"\bonly-copy\s+(?:books?\s+)?(?:are\s+)?safe\s+(?:for\s+)?(?:writes?|mutation|write mode)\b", re.I),

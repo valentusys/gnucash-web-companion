@@ -381,6 +381,25 @@ def test_content_violations_reject_public_write_beta_action_claims(tmp_path, mon
     ]
 
 
+def test_content_violations_reject_only_copy_safety_posture_claims(tmp_path, monkeypatch):
+    sample = tmp_path / "safety.md"
+    sample.write_text(
+        "Only-copy write-safety is verified.\n"
+        "Original book safety is confirmed.\n"
+        "Private safety is proven.\n"
+        "Real/private book write safety is validated.\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
+
+    assert guard.content_violations([sample]) == [
+        "tracked unsafe affirmative wording in safety.md:1: Only-copy write-safety is verified.",
+        "tracked unsafe affirmative wording in safety.md:2: Original book safety is confirmed.",
+        "tracked unsafe affirmative wording in safety.md:3: Private safety is proven.",
+        "tracked unsafe affirmative wording in safety.md:4: Real/private book write safety is validated.",
+    ]
+
+
 def test_content_violations_allow_negative_safety_wording(tmp_path, monkeypatch):
     sample = tmp_path / "limits.md"
     sample.write_text(
