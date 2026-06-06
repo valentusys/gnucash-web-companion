@@ -59,6 +59,22 @@ When a generated or repeated backup/restore-readiness task has only tracked word
 
 If these labels cannot be stated truthfully, stop and checkpoint rather than broadening scope into backup creation, restore execution, dogfood, or private-data inspection.
 
+## Docs/tests-only assertion template
+
+A repeated readiness-docs task may report this wording-only assertion only when it can be proven from tracked docs/tests and guard output:
+
+```text
+backup_restore_readiness_scope=docs-tests-only
+restore_drill_performed=false
+backup_artifact_created=false
+private_data_reviewed=false
+writes_enabled_or_app_env_gate_relaxed=false
+runtime_backup_manifest_reviewed=false
+restore_target_opened=false
+```
+
+The assertion must not include raw backup manifests, checksum lines, restore filenames, private paths, account names, descriptions, memos, amounts, screenshots, exports, app DB rows, books, backups, runtime logs, or product dogfood output. If a reviewer cannot truthfully set every boolean above to the conservative value, the safe result is a checkpoint, not an operational restore-readiness claim.
+
 ## Code guard
 
 `apps/api/app/write_alpha_readiness.py` exposes:

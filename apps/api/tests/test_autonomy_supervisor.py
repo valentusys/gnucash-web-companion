@@ -768,3 +768,24 @@ def test_backup_restore_readiness_checklist_preserves_docs_only_safety_labels():
     assert "must not restore into books" in checklist
     assert "must not open private data" in checklist
     assert "must not run product dogfood" in checklist
+
+
+def test_backup_restore_readiness_checklist_has_docs_only_assertion_template():
+    checklist = (
+        REPO_ROOT / "docs" / "write-alpha" / "backup-restore-readiness-checklist.md"
+    ).read_text(encoding="utf-8")
+
+    required_assertions = [
+        "backup_restore_readiness_scope=docs-tests-only",
+        "restore_drill_performed=false",
+        "backup_artifact_created=false",
+        "private_data_reviewed=false",
+        "writes_enabled_or_app_env_gate_relaxed=false",
+        "runtime_backup_manifest_reviewed=false",
+        "restore_target_opened=false",
+        "raw backup manifests, checksum lines, restore filenames",
+        "runtime logs, or product dogfood output",
+        "not an operational restore-readiness claim",
+    ]
+    for pattern in required_assertions:
+        assert pattern in checklist
