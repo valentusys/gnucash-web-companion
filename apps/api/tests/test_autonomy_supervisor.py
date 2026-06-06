@@ -591,6 +591,13 @@ def test_backup_restore_readiness_checklist_keeps_restore_validation_non_mutatin
         "checkpoint rather than broadening scope into backup creation, restore execution, dogfood, or private-data inspection",
         "GNUCASH_WRITES_ENABLED=false",
         "APP_ENV=test",
+        "backup_restore_readiness_scope=docs-tests-only",
+        "restore_drill_performed=false",
+        "backup_artifact_created=false",
+        "private_data_reviewed=false",
+        "writes_enabled_or_app_env_gate_relaxed=false",
+        "runtime_backup_manifest_reviewed=false",
+        "restore_target_opened=false",
     ]
     for pattern in required:
         assert pattern in text
