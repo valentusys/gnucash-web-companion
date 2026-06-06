@@ -555,6 +555,43 @@ not authorize a compensating mutation, a second trial, a release, a public write
 beta, stable wording, production-ready wording, security-audited wording, broad
 compatibility wording, or only-copy safety wording.
 
+## R10 future blocker ledger and rollback owner acknowledgement
+
+A future real working-book packet must include a blocker ledger before approval is
+requested. The ledger is documentation only until the owner and PM approve the
+same packet in the future execution context. It must record only redacted
+pass/fail values for:
+
+1. Approval identity: packet version, route family, operation shape, and exact
+   mutation count match across owner approval, PM approval, rollback plan, and
+   evidence plan.
+2. Target safety: the target class is owner-controlled, restorable, not original,
+   not only-copy, not inside git, and not represented by a private path in tracked
+   files.
+3. Runtime safety: committed defaults and rendered Compose preserve
+   `GNUCASH_WRITES_ENABLED=false`, and temporary write enablement is limited to
+   `APP_ENV=test`.
+4. Rollback readiness: independent backup, restore-to-copy, reset, and disabled
+   probe steps are defined before arming writes.
+5. Evidence hygiene: reports can be written without books, SQLite DBs, app DBs,
+   backups, exports, screenshots, raw logs, `.env`, tokens, keys, certs, private
+   paths, account names, transaction descriptions, memos, or amounts.
+6. Non-release posture: the packet does not imply release publication, public
+   write beta, stable status, production readiness, security-audited status,
+   broad compatibility, or only-copy safety.
+
+If any ledger row is missing, stale, contradictory, or requires private evidence,
+the future trial remains blocked before mutation. The operator must not repair the
+ledger by opening, copying, inspecting, or mutating a real/private/original/
+working/only-copy book.
+
+Before any future mutation, the owner acknowledgement must explicitly accept the
+rollback expectations for the same packet: a failed route response, audit,
+read-back, compatibility check, restore-to-copy proof, reset, or disabled probe
+means `rollback review` or blocked status, not success. That acknowledgement does
+not authorize overwriting an original or only-copy book, running a compensating
+mutation, publishing a release, or claiming public write beta readiness.
+
 ## Stop result for the current task
 
 For issue #36, this runbook records that a real working-book trial remains
