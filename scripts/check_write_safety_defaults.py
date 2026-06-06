@@ -140,6 +140,22 @@ def _first_call_line(call_lines: dict[str, list[int]], name: str) -> int | None:
     return min(lines) if lines else None
 
 
+def _top_level_call_name(statement: ast.stmt) -> str | None:
+    """Return the direct call name for simple top-level function-body call statements."""
+    if not isinstance(statement, ast.Expr) or not isinstance(statement.value, ast.Call):
+        return None
+    func = statement.value.func
+    if isinstance(func, ast.Name):
+        return func.id
+    if isinstance(func, ast.Attribute):
+        return func.attr
+    return None
+
+
+def _direct_call_statement_names(node: ast.FunctionDef | ast.AsyncFunctionDef) -> list[str | None]:
+    return [_top_level_call_name(statement) for statement in node.body]
+
+
 def _is_settings_app_env_lower_call(node: ast.AST) -> bool:
     return (
         isinstance(node, ast.Call)
@@ -268,6 +284,19 @@ def _check_write_route_test_gates(routes_path: Path = REPO_ROOT / WRITE_ROUTES_F
             if writes_enabled_line > test_scope_line:
                 failures.append(
                     f"write route {function_name} must check _ensure_writes_enabled before APP_ENV=test scope"
+                )
+            direct_call_names = _direct_call_statement_names(node)
+            try:
+                writes_enabled_index = direct_call_names.index("_ensure_writes_enabled")
+            except ValueError:
+                writes_enabled_index = -1
+            has_non_adjacent_guard = writes_enabled_index >= 0 and (
+                writes_enabled_index + 1 >= len(direct_call_names)
+                or direct_call_names[writes_enabled_index + 1] != "_ensure_write_alpha_test_scope"
+            )
+            if has_non_adjacent_guard:
+                failures.append(
+                    f"write route {function_name} must call _ensure_write_alpha_test_scope immediately after _ensure_writes_enabled"
                 )
             for gated_call in WRITE_ROUTE_GATED_CALLS:
                 gated_call_line = _first_call_line(call_lines, gated_call)

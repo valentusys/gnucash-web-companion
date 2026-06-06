@@ -744,6 +744,34 @@ def test_write_safety_defaults_guard_rejects_route_that_checks_app_env_before_wr
     assert str(tmp_path) not in "; ".join(failures)
 
 
+def test_write_safety_defaults_guard_requires_adjacent_write_and_app_env_gates(
+    tmp_path: Path,
+) -> None:
+    routes = tmp_path / "transactions.py"
+    route_defs = "\n".join(
+        f"async def {name}():\n"
+        "    _ensure_writes_enabled(settings)\n"
+        "    _resolve_request_context(request)\n"
+        "    _ensure_write_alpha_test_scope(settings)\n"
+        for name in write_safety_guard.WRITE_ROUTE_FUNCTIONS
+    )
+    routes.write_text(
+        "def _ensure_write_alpha_test_scope(settings):\n"
+        "    if settings.app_env.lower() != \"test\":\n"
+        "        raise RuntimeError(\"controlled write-alpha routes are limited to explicit test-environment\")\n\n"
+        f"{route_defs}\n",
+        encoding="utf-8",
+    )
+
+    failures = write_safety_guard._check_write_route_test_gates(routes)
+
+    assert any(
+        "_ensure_write_alpha_test_scope immediately after _ensure_writes_enabled" in failure
+        for failure in failures
+    )
+    assert str(tmp_path) not in "; ".join(failures)
+
+
 def test_write_safety_defaults_guard_rejects_route_side_effects_before_app_env_gate(
     tmp_path: Path,
 ) -> None:
