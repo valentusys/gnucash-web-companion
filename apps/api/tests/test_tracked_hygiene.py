@@ -313,7 +313,10 @@ def test_content_violations_reject_compatibility_guarantee_wording(tmp_path, mon
         "Supports GnuCash Desktop 5.12.\n"
         "Validated GnuCash Desktop 5.12.1.\n"
         "PostgreSQL/MySQL/MariaDB GnuCash backends are supported.\n"
-        "PostgreSQL/MySQL/MariaDB SQL backends are compatible.\n",
+        "PostgreSQL/MySQL/MariaDB SQL backends are compatible.\n"
+        "Broad GnuCash compatibility is verified.\n"
+        "GnuCash Desktop 5.12 is verified.\n"
+        "Verified GnuCash Desktop 5.12.1.\n",
         encoding="utf-8",
     )
     monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
@@ -330,6 +333,9 @@ def test_content_violations_reject_compatibility_guarantee_wording(tmp_path, mon
         "tracked unsafe affirmative wording in compatibility.md:7: Validated GnuCash Desktop 5.12.1.",
         "tracked unsafe affirmative wording in compatibility.md:8: PostgreSQL/MySQL/MariaDB GnuCash backends are supported.",
         "tracked unsafe affirmative wording in compatibility.md:9: PostgreSQL/MySQL/MariaDB SQL backends are compatible.",
+        "tracked unsafe affirmative wording in compatibility.md:10: Broad GnuCash compatibility is verified.",
+        "tracked unsafe affirmative wording in compatibility.md:11: GnuCash Desktop 5.12 is verified.",
+        "tracked unsafe affirmative wording in compatibility.md:12: Verified GnuCash Desktop 5.12.1.",
     ]
 
 
@@ -441,6 +447,23 @@ def test_content_violations_reject_unbulleted_claim_after_negative_colon(tmp_pat
 
     assert guard.content_violations([sample]) == [
         "tracked unsafe affirmative wording in limits.md:2: The public write beta is ready for users."
+    ]
+
+
+def test_content_violations_reject_private_book_path_like_values(tmp_path, monkeypatch):
+    sample = tmp_path / "evidence.md"
+    sample.write_text(
+        "Probe command used /home/example-user/synthetic-fixtures/sample-book.gnucash.\n"
+        "Windows source E:\\SyntheticFixtures\\sample-book.gnucash.sqlite was referenced.\n"
+        "Mac source /Users/example-user/SyntheticFixtures/source.sqlite3 was referenced.\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
+
+    assert guard.content_violations([sample]) == [
+        "tracked private book path-like value in evidence.md:1: Probe command used /home/example-user/synthetic-fixtures/sample-book.gnucash.",
+        "tracked private book path-like value in evidence.md:2: Windows source E:\\SyntheticFixtures\\sample-book.gnucash.sqlite was referenced.",
+        "tracked private book path-like value in evidence.md:3: Mac source /Users/example-user/SyntheticFixtures/source.sqlite3 was referenced.",
     ]
 
 

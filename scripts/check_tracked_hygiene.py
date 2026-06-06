@@ -171,7 +171,7 @@ FORBIDDEN_UNSAFE_AFFIRMATIVE_PATTERNS = (
     re.compile(r"\bowner[-\s]+write[-\s]+beta\s+(?:launch|release|rollout)\s+(?:is\s+)?(?:ready|approved|authorized|published|released)\b", re.I),
     re.compile(r"\bpublic\s+write[-\s]+beta\b.*\b(?:real/private|private|real|original|only-copy)\s+books?\b", re.I),
     re.compile(r"\bbroad\s+GnuCash\s+(?:Desktop\s+)?compatibility\s+(?:is\s+)?(?:ready|available|supported|claimed|proven)\b", re.I),
-    re.compile(r"\bbroad\s+GnuCash\s+(?:Desktop\s+)?compatibility\s+(?:is\s+)?(?:validated|confirmed)\b", re.I),
+    re.compile(r"\bbroad\s+GnuCash\s+(?:Desktop\s+)?compatibility\s+(?:is\s+)?(?:validated|verified|confirmed)\b", re.I),
     re.compile(r"\b(?:all|any)\s+GnuCash\s+(?:Desktop\s+)?versions?\s+(?:are\s+)?(?:supported|compatible|validated|confirmed)\b", re.I),
     re.compile(r"\b(?:all|any)\s+GnuCash\s+(?:SQL\s+)?backends?\s+(?:are\s+)?(?:supported|compatible|validated|confirmed)\b", re.I),
     re.compile(r"\ball\s+SQL\s+backends?\s+(?:are\s+)?(?:supported|compatible|validated|confirmed)\b", re.I),
@@ -180,8 +180,8 @@ FORBIDDEN_UNSAFE_AFFIRMATIVE_PATTERNS = (
     re.compile(r"\b(?:validated|verified|tested)\s+(?:against|across|on)\s+(?:all|any)\s+GnuCash\s+(?:Desktop\s+)?(?:versions?|releases?|books?|SQL\s+books?|backends?)\b", re.I),
     re.compile(r"\bcompatible\s+with\s+(?:all|any)\s+GnuCash\s+(?:Desktop\s+)?versions?\b", re.I),
     re.compile(r"\bworks\s+with\s+(?:all|any)\s+GnuCash\s+(?:Desktop\s+)?versions?\b", re.I),
-    re.compile(r"\bGnuCash\s+Desktop\s+\d+(?:\.\d+){1,3}\s+(?:compatibility\s+)?(?:is\s+)?(?:supported|compatible|validated|confirmed)\b", re.I),
-    re.compile(r"\b(?:supports|validated|confirmed)\s+GnuCash\s+Desktop\s+\d+(?:\.\d+){1,3}\b", re.I),
+    re.compile(r"\bGnuCash\s+Desktop\s+\d+(?:\.\d+){1,3}\s+(?:compatibility\s+)?(?:is\s+)?(?:supported|compatible|validated|verified|confirmed)\b", re.I),
+    re.compile(r"\b(?:supports|validated|verified|confirmed)\s+GnuCash\s+Desktop\s+\d+(?:\.\d+){1,3}\b", re.I),
     re.compile(r"\bPostgreSQL/MySQL/MariaDB\s+(?:GnuCash\s+)?(?:SQL\s+)?backends?\s+(?:are\s+)?(?:supported|compatible|validated|confirmed)\b", re.I),
     re.compile(r"\b(?:real/private|private|real|only-copy)\s+(?:book\s+)?write[- ]safety\s+(?:is\s+)?(?:proven|verified|validated|confirmed|ready|safe)\b", re.I),
     re.compile(r"\b(?:real/private|private|real|original|only-copy)\s+(?:book\s+)?safety\s+(?:is\s+)?(?:proven|verified|validated|confirmed|ready|safe)\b", re.I),
@@ -193,6 +193,13 @@ FORBIDDEN_UNSAFE_AFFIRMATIVE_PATTERNS = (
     re.compile(r"\bproduction[- ]ready\s+(release|software|deployment|build)\s+(?:is\s+)?(?:ready|published|available|supported|released)\b", re.I),
     re.compile(r"\bstable\s+(release|deployment)\s+(?:is\s+)?(?:ready|published|available|supported)\b", re.I),
     re.compile(r"\bsecurity[- ]audited\s+(release|software|deployment|build)\b", re.I),
+)
+FORBIDDEN_PRIVATE_BOOK_PATH_PATTERNS = (
+    re.compile(
+        r"(?:^|[\s`'\"(=])(?:/home/[^\s`'\")]+|/Users/[^\s`'\")]+|[A-Za-z]:\\[^\s`'\")]+)"
+        r"\.(?:gnucash|gnucash\.sqlite|sqlite|sqlite3)\b",
+        re.I,
+    ),
 )
 
 NEGATING_WORDING_MARKERS = (
@@ -304,6 +311,12 @@ def content_violations(paths: list[Path]) -> list[str]:
                 if pattern.search(line):
                     problems.append(
                         f"tracked raw private-evidence label in {rel}:{line_number}: {line}"
+                    )
+                    break
+            for pattern in FORBIDDEN_PRIVATE_BOOK_PATH_PATTERNS:
+                if pattern.search(line):
+                    problems.append(
+                        f"tracked private book path-like value in {rel}:{line_number}: {line}"
                     )
                     break
         previous_line = ""

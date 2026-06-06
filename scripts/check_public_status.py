@@ -180,7 +180,7 @@ UNSAFE_AFFIRMATIVE_PATTERNS = [
     re.compile(r"\bstable\s+(release|production|write mode|deployment)\b", re.I),
     re.compile(r"\bsafe\s+for\s+real/private\b", re.I),
     re.compile(r"\bsafe\s+production\s+write\s+mode\b", re.I),
-    re.compile(r"\bbroad\s+GnuCash\s+(?:Desktop\s+)?compatibility\s+(?:is\s+)?(?:ready|available|supported|claimed|proven|validated|confirmed)\b", re.I),
+    re.compile(r"\bbroad\s+GnuCash\s+(?:Desktop\s+)?compatibility\s+(?:is\s+)?(?:ready|available|supported|claimed|proven|validated|verified|confirmed)\b", re.I),
     re.compile(r"\ball\s+GnuCash\s+(?:versions|backends)\s+(?:are\s+)?(?:supported|compatible|write[- ]compatible)\b", re.I),
     re.compile(r"\bany\s+GnuCash\s+(?:versions|backends)\s+(?:are\s+)?(?:supported|compatible|write[- ]compatible)\b", re.I),
     re.compile(r"\ball\s+SQL\s+backends?\s+(?:are\s+)?(?:supported|compatible|validated|confirmed)\b", re.I),
@@ -203,8 +203,8 @@ COMPATIBILITY_REQUIRED_FRAGMENTS = [
     "No broad GnuCash Desktop version support is claimed",
 ]
 COMPATIBILITY_UNSAFE_CLAIM_PATTERNS = [
-    re.compile(r"\bGnuCash\s+Desktop\s+\d+(?:\.\d+){1,3}\s+(?:is\s+)?supported\b", re.I),
-    re.compile(r"\bsupports\s+GnuCash\s+Desktop\s+\d+(?:\.\d+){1,3}\b", re.I),
+    re.compile(r"\bGnuCash\s+Desktop\s+\d+(?:\.\d+){1,3}\s+(?:is\s+)?(?:supported|compatible|validated|verified|confirmed)\b", re.I),
+    re.compile(r"\b(?:supports|validated|verified|confirmed)\s+GnuCash\s+Desktop\s+\d+(?:\.\d+){1,3}\b", re.I),
     re.compile(r"\bDesktop-version\s+support\b", re.I),
     re.compile(r"\bPostgreSQL/MySQL/MariaDB\s+supported\b", re.I),
     re.compile(r"\ball\s+SQL\s+backends\s+(?:are\s+)?supported\b", re.I),
