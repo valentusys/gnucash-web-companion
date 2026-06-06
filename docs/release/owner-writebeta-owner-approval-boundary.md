@@ -156,6 +156,16 @@ A docs-only worker may update explanatory no-release text, status navigation, an
 handoff notes. That work remains safe only while it keeps `NO_RELEASE_KEEP_MAINTENANCE`
 as the current state and avoids publication artifacts.
 
+## Non-cumulative documentation rule
+
+Repeated conservative documentation passes do not accumulate into release
+approval. Ten no-release handoffs still mean no release if none of them contains
+explicit owner/PM release-candidate authorization.
+
+Use later handoffs as evidence of wording hygiene only. They may improve reader
+navigation, but they must not be counted as publication consent, blocker
+acceptance, or permission to draft release artifacts.
+
 ## Reconsideration trigger
 
 A later worker may revisit release-candidate preparation only when the task prompt

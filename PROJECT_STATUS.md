@@ -19,9 +19,9 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   [#36](https://github.com/valentusys/gnucash-web-companion/issues/36) controlled-write readiness
   gates. [#22](https://github.com/valentusys/gnucash-web-companion/issues/22) and
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) are closed.
-- Latest handoffs/docs: `docs/handoff/release-no-release-decision-docs-r9.md`,
+- Latest handoffs/docs: `docs/handoff/release-no-release-decision-docs-r10.md`,
+  `docs/handoff/release-no-release-decision-docs-r9.md`,
   `docs/handoff/release-no-release-decision-docs-r8.md`,
-  `docs/handoff/release-no-release-decision-docs-r7.md`,
   `docs/handoff/issue22-reconcile-and-issue36-owner-writebeta-final-report.md`,
   `docs/release/v0.4-owner-writebeta-readiness-unreleased.md`,
   `docs/release/owner-writebeta-owner-approval-boundary.md`,
@@ -52,7 +52,9 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   pass clarifies review order: no-release state and missing owner/PM approval come before any narrow
   evidence summary, so accepted evidence cannot be converted into a publication checklist. The r9
   follow-up adds that repeated no-release documentation prompts are maintenance work only and cannot
-  supply missing release-candidate scope or publication permission.
+  supply missing release-candidate scope or publication permission. The r10 update adds a task-triage
+  and operator quick-check rule so future release-status edits keep explanation, evidence
+  reconciliation, and explicitly approved release-candidate preparation separate.
 - Recently closed queues: #13, #41, #42, #43.
 
 ## Repository
