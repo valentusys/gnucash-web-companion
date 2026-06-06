@@ -300,7 +300,12 @@ def test_content_violations_reject_compatibility_guarantee_wording(tmp_path, mon
         "Fully compatible with GnuCash Desktop releases.\n"
         "Guaranteed compatible with GnuCash SQL books.\n"
         "Production-ready compatibility for write beta.\n"
-        "All SQL backends are supported.\n",
+        "All SQL backends are supported.\n"
+        "GnuCash Desktop 5.12 compatibility is supported.\n"
+        "Supports GnuCash Desktop 5.12.\n"
+        "Validated GnuCash Desktop 5.12.1.\n"
+        "PostgreSQL/MySQL/MariaDB GnuCash backends are supported.\n"
+        "PostgreSQL/MySQL/MariaDB SQL backends are compatible.\n",
         encoding="utf-8",
     )
     monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
@@ -312,6 +317,11 @@ def test_content_violations_reject_compatibility_guarantee_wording(tmp_path, mon
         "tracked unsafe affirmative wording in compatibility.md:2: Guaranteed compatible with GnuCash SQL books.",
         "tracked unsafe affirmative wording in compatibility.md:3: Production-ready compatibility for write beta.",
         "tracked unsafe affirmative wording in compatibility.md:4: All SQL backends are supported.",
+        "tracked unsafe affirmative wording in compatibility.md:5: GnuCash Desktop 5.12 compatibility is supported.",
+        "tracked unsafe affirmative wording in compatibility.md:6: Supports GnuCash Desktop 5.12.",
+        "tracked unsafe affirmative wording in compatibility.md:7: Validated GnuCash Desktop 5.12.1.",
+        "tracked unsafe affirmative wording in compatibility.md:8: PostgreSQL/MySQL/MariaDB GnuCash backends are supported.",
+        "tracked unsafe affirmative wording in compatibility.md:9: PostgreSQL/MySQL/MariaDB SQL backends are compatible.",
     ]
 
 
