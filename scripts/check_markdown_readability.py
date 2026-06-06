@@ -33,6 +33,10 @@ DEFAULT_DOCS = PUBLIC_STATUS_DOCS + (
     Path("docs/release/v0.5.0-public-readonly-beta-publication-evidence.md"),
     Path("docs/development/markdown-readability.md"),
     Path("docs/handoff/overnight-2026-06-02-worker-17.md"),
+    Path("docs/handoff/issue36-owner-writebeta-remaining-gates-audit-r5.md"),
+    Path("docs/handoff/issue36-owner-writebeta-remaining-gates-audit-r6.md"),
+    Path("docs/handoff/issue36-owner-writebeta-remaining-gates-audit-r7.md"),
+    Path("docs/handoff/issue36-owner-writebeta-remaining-gates-audit-r8.md"),
 )
 
 # Avoid noisy historical whole-file reflow: public/status archives are long by
