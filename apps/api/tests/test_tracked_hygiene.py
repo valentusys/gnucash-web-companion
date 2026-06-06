@@ -331,6 +331,25 @@ def test_content_violations_reject_write_beta_ready_without_public_prefix(tmp_pa
     ]
 
 
+def test_content_violations_reject_public_write_beta_action_claims(tmp_path, monkeypatch):
+    sample = tmp_path / "release.md"
+    sample.write_text(
+        "Ready to release public write beta.\n"
+        "We can publish the write-beta rollout.\n"
+        "Ship the owner-writebeta release to users.\n"
+        "Launch public writes for real books.\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
+
+    assert guard.content_violations([sample]) == [
+        "tracked unsafe affirmative wording in release.md:1: Ready to release public write beta.",
+        "tracked unsafe affirmative wording in release.md:2: We can publish the write-beta rollout.",
+        "tracked unsafe affirmative wording in release.md:3: Ship the owner-writebeta release to users.",
+        "tracked unsafe affirmative wording in release.md:4: Launch public writes for real books.",
+    ]
+
+
 def test_content_violations_allow_negative_safety_wording(tmp_path, monkeypatch):
     sample = tmp_path / "limits.md"
     sample.write_text(
@@ -339,7 +358,11 @@ def test_content_violations_allow_negative_safety_wording(tmp_path, monkeypatch)
         "Do not claim broad GnuCash compatibility is supported.\n"
         "Only-copy books are not safe for writes.\n"
         "Even future closure must not mean:\n"
-        "- real working-book writes are safe;\n",
+        "- real working-book writes are safe;\n"
+        "Do not release public write beta.\n"
+        "This prevents consent to\n"
+        "ship owner-writebeta.\n"
+        "- forbidden implication: clean checks publish owner-writebeta.\n",
         encoding="utf-8",
     )
     monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
