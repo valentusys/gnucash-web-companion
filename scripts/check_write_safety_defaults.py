@@ -249,7 +249,13 @@ def _decorated_transaction_write_route_functions(tree: ast.Module) -> set[str]:
 def _settings_literal_defaults(config_path: Path) -> dict[str, object]:
     tree = _parse_python(config_path)
     defaults: dict[str, object] = {}
-    for node in ast.walk(tree):
+    settings_class = next(
+        (node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == "Settings"),
+        None,
+    )
+    if settings_class is None:
+        return defaults
+    for node in settings_class.body:
         if not isinstance(node, ast.AnnAssign):
             continue
         if not isinstance(node.target, ast.Name):

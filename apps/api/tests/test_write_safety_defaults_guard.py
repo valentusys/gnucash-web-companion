@@ -697,6 +697,53 @@ def test_write_safety_defaults_guard_rejects_api_app_env_test_default(tmp_path: 
     assert str(tmp_path) not in "; ".join(failures)
 
 
+def test_write_safety_defaults_guard_ignores_module_level_settings_default_spoof(
+    tmp_path: Path,
+) -> None:
+    config = tmp_path / "config.py"
+    config.write_text(
+        "gnucash_writes_enabled: bool = False\n"
+        "app_env: str = 'development'\n"
+        "class Settings:\n"
+        "    app_env: str = 'test'\n"
+        "    gnucash_writes_enabled: bool = True\n",
+        encoding="utf-8",
+    )
+
+    write_failures = write_safety_guard._check_api_write_defaults(config)
+    app_env_failures = write_safety_guard._check_api_app_env_defaults(config)
+
+    assert any("gnucash_writes_enabled to False" in failure for failure in write_failures)
+    assert any("non-False value" in failure for failure in write_failures)
+    assert any("app_env to development" in failure for failure in app_env_failures)
+    assert any("must not default app_env to test" in failure for failure in app_env_failures)
+    assert str(tmp_path) not in "; ".join(write_failures + app_env_failures)
+
+
+def test_write_safety_defaults_guard_ignores_non_settings_class_default_spoof(
+    tmp_path: Path,
+) -> None:
+    config = tmp_path / "config.py"
+    config.write_text(
+        "class Defaults:\n"
+        "    app_env: str = 'development'\n"
+        "    gnucash_writes_enabled: bool = False\n"
+        "class Settings:\n"
+        "    app_env: str = 'test'\n"
+        "    gnucash_writes_enabled: bool = True\n",
+        encoding="utf-8",
+    )
+
+    write_failures = write_safety_guard._check_api_write_defaults(config)
+    app_env_failures = write_safety_guard._check_api_app_env_defaults(config)
+
+    assert any("gnucash_writes_enabled to False" in failure for failure in write_failures)
+    assert any("non-False value" in failure for failure in write_failures)
+    assert any("app_env to development" in failure for failure in app_env_failures)
+    assert any("must not default app_env to test" in failure for failure in app_env_failures)
+    assert str(tmp_path) not in "; ".join(write_failures + app_env_failures)
+
+
 def test_write_safety_defaults_guard_rejects_new_transaction_write_route_not_in_guard_list(
     tmp_path: Path,
 ) -> None:
