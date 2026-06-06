@@ -113,6 +113,14 @@ def _env_file_assignments(env_text: str, key: str) -> list[str]:
     return values
 
 
+def _env_file_mentions_unsafe_write_default_example(env_text: str) -> bool:
+    """Return whether .env.example mentions public write/test defaults anywhere."""
+    normalized_lines = [line.strip().lower().replace(" ", "") for line in env_text.splitlines()]
+    return any(
+        "gnucash_writes_enabled=true" in line or "app_env=test" in line for line in normalized_lines
+    )
+
+
 def _parse_python(path: Path) -> ast.Module:
     try:
         return ast.parse(_read(path), filename=str(path.name))
@@ -817,6 +825,8 @@ def _check(env_example: Path, compose: Path, gate_doc: Path, checklist_doc: Path
         failures.append(".env.example must default APP_ENV to development as an uncommented assignment")
     if any(value != "development" for value in env_app_env_values):
         failures.append(".env.example must not default or suggest alternate APP_ENV values")
+    if _env_file_mentions_unsafe_write_default_example(env_text):
+        failures.append(".env.example must not mention GNUCASH_WRITES_ENABLED=true or APP_ENV=test defaults")
     if COMPOSE_WRITE_DEFAULT_TEXT not in compose_text:
         failures.append("Docker Compose must render GNUCASH_WRITES_ENABLED default false")
     failures.extend(
