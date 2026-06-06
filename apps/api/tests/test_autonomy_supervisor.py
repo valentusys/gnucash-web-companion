@@ -343,6 +343,7 @@ def test_generated_policy_rejects_indirect_release_publication_commands(tmp_path
         "git push origin --tags",
         "git push origin main --follow-tags",
         "gh api repos/:owner/:repo/releases -f tag_name=v0.2.9-writealpha",
+        "docker buildx build . --push -t example/unsafe:latest",
     ):
         policy = write_policy(
             tmp_path,
