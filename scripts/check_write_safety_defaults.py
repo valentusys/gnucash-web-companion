@@ -474,6 +474,12 @@ def _check_backup_restore_ux_design(path: Path) -> list[str]:
         "production safety",
         "security-audited status",
         "copied/restorable or synthetic/disposable",
+        "NOT_RESTORE_DRILL",
+        "NO_BACKUP_ARTIFACT_CREATED",
+        "DO_NOT_ENABLE_WRITES",
+        "NO_PRIVATE_DATA_REVIEWED",
+        "no restore command was run and no restored book was opened",
+        "does not authorize changing `GNUCASH_WRITES_ENABLED=false` or relaxing the `APP_ENV=test` gate",
     )
     missing = [needle for needle in required if _normalized(needle) not in normalized]
     return ["backup/restore UX design must preserve docs/tests-only safety wording: " + ", ".join(missing)] if missing else []

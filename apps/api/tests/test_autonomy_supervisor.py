@@ -539,6 +539,12 @@ def test_backup_restore_ux_doc_preserves_default_disabled_non_mutating_boundary(
         "prerequisites only",
         "must not change the default disabled state",
         "checkpoint and escalate instead of creating backup or restore evidence",
+        "NOT_RESTORE_DRILL",
+        "NO_BACKUP_ARTIFACT_CREATED",
+        "DO_NOT_ENABLE_WRITES",
+        "NO_PRIVATE_DATA_REVIEWED",
+        "no restore command was run and no restored book was opened",
+        "does not authorize changing `GNUCASH_WRITES_ENABLED=false` or relaxing the `APP_ENV=test` gate",
     ]
     for pattern in required:
         assert pattern in text

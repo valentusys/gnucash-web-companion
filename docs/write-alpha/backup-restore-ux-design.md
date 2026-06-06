@@ -23,3 +23,9 @@ Docs/tests-only readiness copy:
 - Restore-to-copy validation remains a future separately authorized copied/restorable or synthetic/disposable fixture drill under `APP_ENV=test`; docs/tests-only checks do not satisfy that drill.
 - Backup availability and restore-helper readiness are displayed as prerequisites only; they must not change the default disabled state or invite retrying on the same copy after failed restore/read-back/audit evidence.
 - If the operator cannot verify restore wording from tracked docs/tests alone, the UX copy should direct them to checkpoint and escalate instead of creating backup or restore evidence.
+
+Docs/tests-only status labels shown in reviewer-facing UX copy:
+- `NOT_RESTORE_DRILL`: no restore command was run and no restored book was opened.
+- `NO_BACKUP_ARTIFACT_CREATED`: no backup copy, checksum manifest, app DB row, or filesystem evidence was created.
+- `DO_NOT_ENABLE_WRITES`: the wording check does not authorize changing `GNUCASH_WRITES_ENABLED=false` or relaxing the `APP_ENV=test` gate.
+- `NO_PRIVATE_DATA_REVIEWED`: the wording check reviewed tracked text/guard assertions only, not private books, paths, accounts, transactions, memos, amounts, screenshots, exports, backups, or logs.
