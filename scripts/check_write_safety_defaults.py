@@ -290,6 +290,19 @@ def _check_write_route_test_gates(routes_path: Path = REPO_ROOT / WRITE_ROUTES_F
                 writes_enabled_index = direct_call_names.index("_ensure_writes_enabled")
             except ValueError:
                 writes_enabled_index = -1
+            try:
+                test_scope_index = direct_call_names.index("_ensure_write_alpha_test_scope")
+            except ValueError:
+                test_scope_index = -1
+            if writes_enabled_index < 0:
+                failures.append(
+                    f"write route {function_name} must call _ensure_writes_enabled as a direct guard statement"
+                )
+            if test_scope_index < 0:
+                failures.append(
+                    f"write route {function_name} must call _ensure_write_alpha_test_scope "
+                    "as a direct guard statement"
+                )
             has_non_adjacent_guard = writes_enabled_index >= 0 and (
                 writes_enabled_index + 1 >= len(direct_call_names)
                 or direct_call_names[writes_enabled_index + 1] != "_ensure_write_alpha_test_scope"
