@@ -159,6 +159,7 @@ UNSAFE_AFFIRMATIVE_PATTERNS = [
     re.compile(r"\bwrite[-\s]+beta\s+(?:has\s+)?(?:shipped|launched|rolled\s+out)\b", re.I),
     re.compile(r"\bwrite[-\s]+beta\s+(?:can|may)\s+(?:be\s+)?(?:used|enabled|opened|rolled\s+out)\b", re.I),
     re.compile(r"\bwrite[-\s]+beta\s+(?:is\s+)?(?:recommended|acceptable|approved)\s+for\s+(?:use|users|public\s+use|real/private|private|real|original|only-copy)\b", re.I),
+    re.compile(r"\bwrite[-\s]+beta\s+(?:is\s+)?(?:safe|supported|approved|recommended|acceptable)\s+for\s+(?:real/private|private|real|original|only-copy)\s+books?\b", re.I),
     re.compile(r"\bwrite[-\s]+beta\s+(?:launch|release|rollout)\s+(?:is\s+)?(?:ready|approved|authorized|published|released)\b", re.I),
     re.compile(r"\bwrite[-\s]+beta\s+(?:is\s+)?(?:stable|production[- ]ready|security[- ]audited|production[- ]grade)\b", re.I),
     re.compile(r"\bwrite[-\s]+beta\s+(?:release|build|deployment)\s+(?:is\s+)?(?:stable|production[- ]ready|security[- ]audited)\b", re.I),

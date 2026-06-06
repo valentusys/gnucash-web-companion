@@ -98,7 +98,9 @@ def test_content_violations_reject_raw_private_evidence_markers(tmp_path, monkey
 def test_content_violations_reject_private_path_label_variants(tmp_path, monkeypatch):
     sample = tmp_path / "handoff.md"
     sample.write_text(
-        "PRIVATE_PATH: /redacted\nORIGINAL_GNUCASH_PATH=/redacted\nONLY_COPY_GNUCASH_PATH=/redacted\n",
+        "PRIVATE_PATH: /redacted\nORIGINAL_GNUCASH_PATH=/redacted\nONLY_COPY_GNUCASH_PATH=/redacted\n"
+        "ORIGINAL_BOOK_PATH=/redacted\nONLY_COPY_BOOK_PATH=/redacted\nWORKING_BOOK_PATH=/redacted\n"
+        "LOCAL_BOOK_PATH=/redacted\n",
         encoding="utf-8",
     )
     monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
@@ -109,8 +111,17 @@ def test_content_violations_reject_private_path_label_variants(tmp_path, monkeyp
         "tracked raw private-evidence marker 'PRIVATE_PATH:' in: handoff.md",
         "tracked raw private-evidence marker 'ORIGINAL_GNUCASH_PATH=' in: handoff.md",
         "tracked raw private-evidence marker 'ONLY_COPY_GNUCASH_PATH=' in: handoff.md",
+        "tracked raw private-evidence marker 'ORIGINAL_BOOK_PATH=' in: handoff.md",
+        "tracked raw private-evidence marker 'ONLY_COPY_BOOK_PATH=' in: handoff.md",
+        "tracked raw private-evidence marker 'WORKING_BOOK_PATH=' in: handoff.md",
+        "tracked raw private-evidence marker 'LOCAL_BOOK_PATH=' in: handoff.md",
         "tracked raw private-evidence label in handoff.md:1: PRIVATE_PATH: /redacted",
         "tracked raw private-evidence label in handoff.md:2: ORIGINAL_GNUCASH_PATH=/redacted",
+        "tracked raw private-evidence label in handoff.md:3: ONLY_COPY_GNUCASH_PATH=/redacted",
+        "tracked raw private-evidence label in handoff.md:4: ORIGINAL_BOOK_PATH=/redacted",
+        "tracked raw private-evidence label in handoff.md:5: ONLY_COPY_BOOK_PATH=/redacted",
+        "tracked raw private-evidence label in handoff.md:6: WORKING_BOOK_PATH=/redacted",
+        "tracked raw private-evidence label in handoff.md:7: LOCAL_BOOK_PATH=/redacted",
     ]
 
 
@@ -123,6 +134,9 @@ def test_content_violations_reject_human_written_private_evidence_labels(tmp_pat
         "Unredacted GnuCash evidence: raw row dump\n"
         "GnuCash evidence = raw row dump\n"
         "Original GnuCash path = /redacted\n"
+        "Original book path = /redacted\n"
+        "Working book path: /redacted\n"
+        "Local book path: /redacted\n"
         "GnuCash path: /redacted\n"
         "Book path = /redacted\n"
         "Source path: /redacted\n"
@@ -153,23 +167,26 @@ def test_content_violations_reject_human_written_private_evidence_labels(tmp_pat
         "tracked raw private-evidence label in public-report.md:4: Unredacted GnuCash evidence: raw row dump",
         "tracked raw private-evidence label in public-report.md:5: GnuCash evidence = raw row dump",
         "tracked raw private-evidence label in public-report.md:6: Original GnuCash path = /redacted",
-        "tracked raw private-evidence label in public-report.md:7: GnuCash path: /redacted",
-        "tracked raw private-evidence label in public-report.md:8: Book path = /redacted",
-        "tracked raw private-evidence label in public-report.md:9: Source path: /redacted",
-        "tracked raw private-evidence label in public-report.md:10: Target path: /redacted",
-        "tracked raw private-evidence label in public-report.md:11: Backup path: /redacted",
-        "tracked raw private-evidence label in public-report.md:12: Fixture path: /redacted",
-        "tracked raw private-evidence label in public-report.md:13: Evidence path: /redacted",
-        "tracked raw private-evidence label in public-report.md:14: Report path: /redacted",
-        "tracked raw private-evidence label in public-report.md:15: Output path: /redacted",
-        "tracked raw private-evidence label in public-report.md:16: Log path: /redacted",
-        "tracked raw private-evidence label in public-report.md:17: Real account name: Redacted Account",
-        "tracked raw private-evidence label in public-report.md:18: Account name: Redacted Account",
-        "tracked raw private-evidence label in public-report.md:19: Memo: Redacted memo",
-        "tracked raw private-evidence label in public-report.md:20: Amount: 0.00",
-        "tracked raw private-evidence label in public-report.md:21: Balance: 0.00",
-        "tracked raw private-evidence label in public-report.md:22: Account balance: 0.00",
-        "tracked raw private-evidence label in public-report.md:23: Transaction amount: 0.00",
+        "tracked raw private-evidence label in public-report.md:7: Original book path = /redacted",
+        "tracked raw private-evidence label in public-report.md:8: Working book path: /redacted",
+        "tracked raw private-evidence label in public-report.md:9: Local book path: /redacted",
+        "tracked raw private-evidence label in public-report.md:10: GnuCash path: /redacted",
+        "tracked raw private-evidence label in public-report.md:11: Book path = /redacted",
+        "tracked raw private-evidence label in public-report.md:12: Source path: /redacted",
+        "tracked raw private-evidence label in public-report.md:13: Target path: /redacted",
+        "tracked raw private-evidence label in public-report.md:14: Backup path: /redacted",
+        "tracked raw private-evidence label in public-report.md:15: Fixture path: /redacted",
+        "tracked raw private-evidence label in public-report.md:16: Evidence path: /redacted",
+        "tracked raw private-evidence label in public-report.md:17: Report path: /redacted",
+        "tracked raw private-evidence label in public-report.md:18: Output path: /redacted",
+        "tracked raw private-evidence label in public-report.md:19: Log path: /redacted",
+        "tracked raw private-evidence label in public-report.md:20: Real account name: Redacted Account",
+        "tracked raw private-evidence label in public-report.md:21: Account name: Redacted Account",
+        "tracked raw private-evidence label in public-report.md:22: Memo: Redacted memo",
+        "tracked raw private-evidence label in public-report.md:23: Amount: 0.00",
+        "tracked raw private-evidence label in public-report.md:24: Balance: 0.00",
+        "tracked raw private-evidence label in public-report.md:25: Account balance: 0.00",
+        "tracked raw private-evidence label in public-report.md:26: Transaction amount: 0.00",
     ]
 
 
@@ -229,7 +246,9 @@ def test_content_violations_reject_unsafe_affirmative_wording(tmp_path, monkeypa
         "Public write beta for private books is acceptable.\n"
         "Real books are safe for writes.\n"
         "Private book writes are safe.\n"
-        "Original books are safe for mutation.\n",
+        "Original books are safe for mutation.\n"
+        "Write beta is safe for private books.\n"
+        "Write-beta supported for original books.\n",
         encoding="utf-8",
     )
     monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
@@ -270,6 +289,8 @@ def test_content_violations_reject_unsafe_affirmative_wording(tmp_path, monkeypa
         "tracked unsafe affirmative wording in release.md:31: Real books are safe for writes.",
         "tracked unsafe affirmative wording in release.md:32: Private book writes are safe.",
         "tracked unsafe affirmative wording in release.md:33: Original books are safe for mutation.",
+        "tracked unsafe affirmative wording in release.md:34: Write beta is safe for private books.",
+        "tracked unsafe affirmative wording in release.md:35: Write-beta supported for original books.",
     ]
 
 
