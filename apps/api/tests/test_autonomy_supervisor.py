@@ -893,3 +893,20 @@ def test_backup_restore_readiness_checklist_has_docs_only_assertion_template():
     ]
     for pattern in required_assertions:
         assert pattern in checklist
+
+
+def test_backup_restore_readiness_checklist_forbids_assumed_operational_markers():
+    checklist = (
+        REPO_ROOT / "docs" / "write-alpha" / "backup-restore-readiness-checklist.md"
+    ).read_text(encoding="utf-8")
+
+    required = [
+        "do not fill operational markers",
+        "`backup_location`",
+        "`restore_hash_verified`",
+        "`restore_row_count_verified`",
+        "`restore_schema_marker_verified`",
+        "from assumptions when no authorized restore drill was run",
+    ]
+    for pattern in required:
+        assert pattern in checklist

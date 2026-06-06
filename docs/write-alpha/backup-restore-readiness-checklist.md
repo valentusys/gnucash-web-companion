@@ -33,6 +33,7 @@ For non-mutating readiness maintenance, the reviewer packet is limited to wordin
 
 - accepted inputs: tracked docs, pure Python guard output, and pytest assertions that read tracked text only;
 - forbidden inputs: filesystem backup copies, restore artifacts, app DB records, private path snippets, account names, transaction descriptions, memos, amounts, screenshots, or CSV/export rows;
+- do not fill operational markers such as `backup_location`, `restore_hash_verified`, `restore_row_count_verified`, or `restore_schema_marker_verified` from assumptions when no authorized restore drill was run;
 - backup manifest and checksum wording must use opaque refs plus redacted status summaries only, never raw paths, filenames, account names, memos, amounts, app DB rows, books, or backup artifacts;
 - proof language must say `docs/tests-only restore-readiness wording check`, not disaster-recovery validation or public write beta readiness;
 - any disabled-write probe described by this packet must remain a documented no-op expectation under `GNUCASH_WRITES_ENABLED=false`, not an executed product mutation;
