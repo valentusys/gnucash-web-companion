@@ -335,7 +335,9 @@ def task_is_safe_for_policy(task: Task) -> bool:
     forbidden_flags = {"release", "touches-private-data", "dogfood", "gnucash-mutation"}
     if flags & forbidden_flags:
         return False
-    text = normalized_safety_text(f"{task.goal}\n{task.allowed_scope}\n{task.stop_continue}")
+    text = normalized_safety_text(
+        f"{task.target}\n{task.goal}\n{task.allowed_scope}\n{task.stop_continue}"
+    )
     if any(marker in text for marker in FORBIDDEN_POLICY_MARKERS):
         return False
     verification_text = normalized_safety_text("\n".join(task.verification_commands))

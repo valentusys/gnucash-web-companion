@@ -320,6 +320,20 @@ def test_generated_policy_rejects_broad_compatibility_claims(tmp_path):
     assert [task.task_id for task in safe_tasks] == ["generated-final-gate"]
 
 
+def test_generated_policy_rejects_unsafe_targets(tmp_path):
+    policy = write_policy(
+        tmp_path,
+        SAMPLE_POLICY.replace(
+            "- target: issue #36 / generated audit",
+            "- target: issue #36 / public write beta rollout",
+        ),
+    )
+
+    safe_tasks = supervisor.load_safe_policy_tasks(policy)
+
+    assert [task.task_id for task in safe_tasks] == ["generated-final-gate"]
+
+
 def test_generated_policy_rejects_tag_package_and_image_publication_goals(tmp_path):
     unsafe_goals = (
         "Create tag v0.2.9-writealpha for owner-writebeta.",
