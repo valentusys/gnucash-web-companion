@@ -489,6 +489,7 @@ def test_rendered_prompt_contains_required_safety_patterns(tmp_path):
         "commit only those safe tracked changes after verification",
         "Treat the allowed scope as a ceiling",
         "no remaining safe scoped change",
+        "Run each verification command from the repository root in an isolated shell",
         "Do not commit ignored `.hermes` runtime files",
         "Final non-interactive worker instruction",
         "run the task verification commands, then commit those safe tracked changes before final response",

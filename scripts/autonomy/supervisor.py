@@ -374,6 +374,7 @@ Worker requirements:
 - If a generated or repeated task has no remaining safe scoped change, report that honestly instead of inventing edits.
 - Do not spawn nested Hermes/Codex/tmux/cron workers.
 - Run the relevant verification commands you can safely run.
+- Run each verification command from the repository root in an isolated shell; do not let a `cd ... && ...` command change the working directory for later root-relative guard commands.
 - If you make safe tracked changes, commit only those safe tracked changes after verification so the supervisor can continue from a clean tree.
 - Do not commit ignored `.hermes` runtime files, private data, generated backups, exports, screenshots, secrets, or other runtime artifacts.
 - If you cannot safely commit, leave an honest checkpoint with the exact dirty files and blocker.
