@@ -76,7 +76,8 @@ def test_content_violations_reject_raw_private_evidence_markers(tmp_path, monkey
     sample = tmp_path / "public-report.md"
     sample.write_text(
         "RAW_PRIVATE_EVIDENCE_BEGIN\nPRIVATE_BOOK_PATH=/redacted\nACCOUNT_NAME=Redacted Account\n"
-        "ACCOUNT_DESCRIPTION=Redacted Account Description\nTRANSACTION_AMOUNT=0.00\n",
+        "ACCOUNT_DESCRIPTION=Redacted Account Description\nTRANSACTION_AMOUNT=0.00\n"
+        "ACCOUNT_NAME: Redacted Account\nTRANSACTION_MEMO: Redacted memo\n",
         encoding="utf-8",
     )
     monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
@@ -87,12 +88,16 @@ def test_content_violations_reject_raw_private_evidence_markers(tmp_path, monkey
         "tracked raw private-evidence marker 'RAW_PRIVATE_EVIDENCE_BEGIN' in: public-report.md",
         "tracked raw private-evidence marker 'PRIVATE_BOOK_PATH=' in: public-report.md",
         "tracked raw private-evidence marker 'ACCOUNT_NAME=' in: public-report.md",
+        "tracked raw private-evidence marker 'ACCOUNT_NAME:' in: public-report.md",
         "tracked raw private-evidence marker 'ACCOUNT_DESCRIPTION=' in: public-report.md",
+        "tracked raw private-evidence marker 'TRANSACTION_MEMO:' in: public-report.md",
         "tracked raw private-evidence marker 'TRANSACTION_AMOUNT=' in: public-report.md",
         "tracked raw private-evidence label in public-report.md:2: PRIVATE_BOOK_PATH=/redacted",
         "tracked raw private-evidence label in public-report.md:3: ACCOUNT_NAME=Redacted Account",
         "tracked raw private-evidence label in public-report.md:4: ACCOUNT_DESCRIPTION=Redacted Account Description",
         "tracked raw private-evidence label in public-report.md:5: TRANSACTION_AMOUNT=0.00",
+        "tracked raw private-evidence label in public-report.md:6: ACCOUNT_NAME: Redacted Account",
+        "tracked raw private-evidence label in public-report.md:7: TRANSACTION_MEMO: Redacted memo",
     ]
 
 
@@ -117,6 +122,16 @@ def test_content_violations_reject_private_account_description_and_balance_marke
         "tracked raw private-evidence label in public-report.md:2: REAL_ACCOUNT_DESCRIPTION=Redacted account description",
         "tracked raw private-evidence label in public-report.md:3: ACCOUNT_BALANCE=0.00",
         "tracked raw private-evidence label in public-report.md:4: BALANCE=0.00",
+    ]
+
+
+def test_content_violations_reject_generic_account_label(tmp_path, monkeypatch):
+    sample = tmp_path / "handoff.md"
+    sample.write_text("Account: Redacted account name\n", encoding="utf-8")
+    monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
+
+    assert guard.content_violations([sample]) == [
+        "tracked raw private-evidence label in handoff.md:1: Account: Redacted account name"
     ]
 
 
