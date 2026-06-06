@@ -613,6 +613,27 @@ def _compose_service_environment_lines(compose_text: str, service_name: str) -> 
     return environment_lines
 
 
+def _compose_service_names(compose_text: str) -> list[str]:
+    """Return service names declared directly under the Compose services block."""
+    lines = compose_text.splitlines()
+    services_indent: int | None = None
+    service_names: list[str] = []
+    for line in lines:
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        indent = len(line) - len(line.lstrip())
+        if services_indent is None:
+            if stripped == "services:":
+                services_indent = indent
+            continue
+        if indent <= services_indent:
+            break
+        if indent == services_indent + 2 and stripped.endswith(":"):
+            service_names.append(stripped[:-1])
+    return service_names
+
+
 def _compose_service_environment_values(environment_lines: list[str], key: str) -> list[str]:
     prefix = f"{key}="
     return [line[len(prefix) :] for line in environment_lines if line.startswith(prefix)]
@@ -633,6 +654,22 @@ def _check_compose_service_env_exact(
     unsafe_values = [value for value in values if value != expected_value]
     if unsafe_values:
         failures.append(f"Docker Compose {service_name} service must not include alternate {key} defaults")
+    return failures
+
+
+def _check_compose_all_service_env_safe(compose_text: str) -> list[str]:
+    """Reject unsafe write/app-env defaults in any committed Compose service."""
+    failures: list[str] = []
+    for service_name in _compose_service_names(compose_text):
+        environment_lines = _compose_service_environment_lines(compose_text, service_name)
+        write_values = _compose_service_environment_values(environment_lines, "GNUCASH_WRITES_ENABLED")
+        app_env_values = _compose_service_environment_values(environment_lines, "APP_ENV")
+        if any(value != "${GNUCASH_WRITES_ENABLED:-false}" for value in write_values):
+            failures.append(
+                f"Docker Compose {service_name} service must not include alternate GNUCASH_WRITES_ENABLED defaults"
+            )
+        if any(value == "test" or value == "${APP_ENV:-test}" for value in app_env_values):
+            failures.append(f"Docker Compose {service_name} service must not default APP_ENV to test")
     return failures
 
 
@@ -690,6 +727,7 @@ def _check(env_example: Path, compose: Path, gate_doc: Path, checklist_doc: Path
     )
     if "APP_ENV=${APP_ENV:-test}" in compose_text:
         failures.append("Docker Compose must not default APP_ENV=test")
+    failures.extend(_check_compose_all_service_env_safe(compose_text))
     if APP_ENV_GATE_TEXT not in gate_text:
         failures.append("write-readiness documentation must preserve APP_ENV=test gate text")
     if EXPLICIT_WRITE_ENABLE_TEXT not in gate_text_normalized:
