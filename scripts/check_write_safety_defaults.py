@@ -178,6 +178,31 @@ def _is_settings_app_env_lower_call(node: ast.AST) -> bool:
     )
 
 
+def _is_settings_gnucash_writes_enabled_attr(node: ast.AST) -> bool:
+    return (
+        isinstance(node, ast.Attribute)
+        and node.attr == "gnucash_writes_enabled"
+        and isinstance(node.value, ast.Name)
+        and node.value.id == "settings"
+    )
+
+
+def _has_disabled_write_rejection_condition(node: ast.AST) -> bool:
+    return (
+        isinstance(node, ast.UnaryOp)
+        and isinstance(node.op, ast.Not)
+        and _is_settings_gnucash_writes_enabled_attr(node.operand)
+    )
+
+
+def _function_has_disabled_write_rejection_gate(node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
+    """Return whether a function executes fail-closed write-default rejection logic."""
+    return any(
+        isinstance(child, ast.If) and _has_disabled_write_rejection_condition(child.test)
+        for child in ast.walk(node)
+    )
+
+
 def _has_non_test_app_env_rejection_comparison(node: ast.AST) -> bool:
     if not isinstance(node, ast.Compare):
         return False
@@ -269,6 +294,11 @@ def _check_write_route_test_gates(routes_path: Path = REPO_ROOT / WRITE_ROUTES_F
 
     tree = _parse_python(routes_path)
     functions = {node.name: node for node in ast.walk(tree) if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
+    writes_enabled_helper = functions.get("_ensure_writes_enabled")
+    if writes_enabled_helper is None or not _function_has_disabled_write_rejection_gate(writes_enabled_helper):
+        failures.append(
+            "write default helper must enforce executable not settings.gnucash_writes_enabled rejection logic"
+        )
     test_scope_helper = functions.get("_ensure_write_alpha_test_scope")
     if test_scope_helper is None or not _function_has_non_test_app_env_rejection_gate(test_scope_helper):
         failures.append("write-alpha test-scope helper must enforce executable settings.app_env.lower() != test rejection logic")
