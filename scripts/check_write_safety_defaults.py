@@ -228,10 +228,17 @@ def _has_disabled_write_rejection_condition(node: ast.AST) -> bool:
     )
 
 
+def _body_has_raise(statements: list[ast.stmt]) -> bool:
+    """Return whether an executable branch raises instead of only mentioning a guard."""
+    return any(isinstance(child, ast.Raise) for statement in statements for child in ast.walk(statement))
+
+
 def _function_has_disabled_write_rejection_gate(node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
     """Return whether a function executes fail-closed write-default rejection logic."""
     return any(
-        isinstance(child, ast.If) and _has_disabled_write_rejection_condition(child.test)
+        isinstance(child, ast.If)
+        and _has_disabled_write_rejection_condition(child.test)
+        and _body_has_raise(child.body)
         for child in ast.walk(node)
     )
 
@@ -253,7 +260,12 @@ def _has_non_test_app_env_rejection_comparison(node: ast.AST) -> bool:
 
 def _function_has_non_test_app_env_rejection_gate(node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
     """Return whether a function executes settings.app_env.lower() != \"test\" gating logic."""
-    return any(_has_non_test_app_env_rejection_comparison(child) for child in ast.walk(node))
+    return any(
+        isinstance(child, ast.If)
+        and _has_non_test_app_env_rejection_comparison(child.test)
+        and _body_has_raise(child.body)
+        for child in ast.walk(node)
+    )
 
 
 def _decorated_transaction_write_route_functions(tree: ast.Module) -> set[str]:
