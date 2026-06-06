@@ -592,6 +592,37 @@ means `rollback review` or blocked status, not success. That acknowledgement doe
 not authorize overwriting an original or only-copy book, running a compensating
 mutation, publishing a release, or claiming public write beta readiness.
 
+## R11 future final preflight approval checkpoint
+
+A future real working-book packet must include one final preflight checkpoint after
+owner/PM approval and before any runtime arming. The checkpoint is a stop/go
+record, not authorization by itself. It must confirm only redacted pass/fail
+status for:
+
+1. Approval freshness: owner and PM approvals still name the same packet version,
+   route family, operation shape, exact mutation count, rollback proof, reset
+   proof, and evidence shape.
+2. Target and writer state: the target class is still restorable, not original,
+   not only-copy, and GnuCash Desktop plus other writers are closed before
+   preflight.
+3. Runtime posture: committed defaults and rendered Compose still preserve
+   `GNUCASH_WRITES_ENABLED=false`; the temporary write-enabled session is still
+   limited to `APP_ENV=test`.
+4. Rollback path: independent backup, restore-to-copy, post-trial reset, and
+   disabled-probe steps are ready before mutation, and no rollback step overwrites
+   the source target.
+5. Evidence boundary: the final report can be written with command names, exit
+   statuses, approved operation count, redacted IDs, and pass/fail statuses only.
+6. Claim boundary: the packet still forbids release publication, public write
+   beta wording, stable status, production readiness, security-audited status,
+   broad compatibility claims, and only-copy safety claims.
+
+If any final preflight item is absent, stale, mismatched, unverifiable, broader
+than the approved packet, or dependent on private tracked evidence, the future
+trial is blocked before mutation. Do not proceed by inspecting local books,
+copying a private target, running dogfood, changing defaults, enabling writes
+outside `APP_ENV=test`, or treating this runbook as approval.
+
 ## Stop result for the current task
 
 For issue #36, this runbook records that a real working-book trial remains
