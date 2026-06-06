@@ -745,6 +745,28 @@ def test_prompt_paths_sanitize_generated_task_ids(tmp_path):
     assert prompt_path.exists()
 
 
+def test_owner_writebeta_operating_guide_preserves_repeated_backup_restore_docs_only_boundary():
+    guide = (REPO_ROOT / "docs/write-alpha/owner-writebeta-operating-guide.md").read_text(encoding="utf-8")
+
+    required = [
+        "Repeated backup/restore readiness docs/tests tasks",
+        "Generated backup/restore readiness maintenance may update tracked wording, guard assertions, or pytest",
+        "NOT_RESTORE_DRILL",
+        "NO_BACKUP_ARTIFACT_CREATED",
+        "DO_NOT_ENABLE_WRITES",
+        "NO_PRIVATE_DATA_REVIEWED",
+        "no restore command was run",
+        "no restored book was opened",
+        "no backup artifact, app DB",
+        "runtime log, or private path evidence was created or reviewed",
+        "did not authorize changing `GNUCASH_WRITES_ENABLED=false` or relaxing the `APP_ENV=test` gate",
+        "checkpoint",
+        "not backup creation, restore execution, dogfood, or private-data inspection",
+    ]
+    for pattern in required:
+        assert pattern in guide
+
+
 def test_backup_restore_readiness_checklist_preserves_docs_only_safety_labels():
     checklist = (
         REPO_ROOT / "docs" / "write-alpha" / "backup-restore-readiness-checklist.md"

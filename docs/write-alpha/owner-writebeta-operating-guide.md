@@ -75,3 +75,16 @@ Newly covered safe evidence since the previous daytime checkpoint:
 This does not authorize more copied-book mutation or any real working-book trial. Future copied/restorable
 mutation remains blocked unless the owner and PM authorize exact target class, route family, and operation
 counts in the same execution context. Real working-book mutation remains forbidden for autonomous runs.
+
+## Repeated backup/restore readiness docs/tests tasks
+
+Generated backup/restore readiness maintenance may update tracked wording, guard assertions, or pytest
+assertions only. It must report the conservative docs/tests-only labels when true:
+`NOT_RESTORE_DRILL`, `NO_BACKUP_ARTIFACT_CREATED`, `DO_NOT_ENABLE_WRITES`, and
+`NO_PRIVATE_DATA_REVIEWED`.
+
+Those labels mean no restore command was run, no restored book was opened, no backup artifact, app DB
+record, checksum manifest, runtime log, or private path evidence was created or reviewed, and the work
+did not authorize changing `GNUCASH_WRITES_ENABLED=false` or relaxing the `APP_ENV=test` gate. If those
+statements cannot be made from tracked docs/tests and guard output alone, the safe result is a checkpoint,
+not backup creation, restore execution, dogfood, or private-data inspection.
