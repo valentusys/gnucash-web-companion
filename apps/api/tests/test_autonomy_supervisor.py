@@ -887,8 +887,9 @@ def test_backup_restore_readiness_checklist_has_docs_only_assertion_template():
         "writes_enabled_or_app_env_gate_relaxed=false",
         "runtime_backup_manifest_reviewed=false",
         "restore_target_opened=false",
+        "app_db_opened_or_modified=false",
         "raw backup manifests, checksum lines, restore filenames",
-        "runtime logs, or product dogfood output",
+        "runtime logs, app DB inspection output, or product dogfood output",
         "not an operational restore-readiness claim",
     ]
     for pattern in required_assertions:

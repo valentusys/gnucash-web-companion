@@ -56,7 +56,7 @@ When a generated or repeated backup/restore-readiness task has only tracked word
 - `NOT_RESTORE_DRILL`: no restore command was run and no restored book was opened;
 - `NO_BACKUP_ARTIFACT_CREATED`: no backup copy, checksum manifest, app DB row, or runtime evidence was created for the task;
 - `DO_NOT_ENABLE_WRITES`: the result does not authorize changing `GNUCASH_WRITES_ENABLED=false`, arming write routes, or relaxing the `APP_ENV=test` gate;
-- `NO_PRIVATE_DATA_REVIEWED`: the task reviewed tracked wording/guard behavior only, not private books, paths, accounts, transactions, memos, amounts, screenshots, exports, backups, or logs.
+- `NO_PRIVATE_DATA_REVIEWED`: the task reviewed tracked wording/guard behavior only, not private books, paths, accounts, transactions, memos, amounts, screenshots, exports, backups, app DB inspection output, or logs.
 
 If these labels cannot be stated truthfully, stop and checkpoint rather than broadening scope into backup creation, restore execution, dogfood, or private-data inspection.
 
@@ -74,9 +74,10 @@ private_data_reviewed=false
 writes_enabled_or_app_env_gate_relaxed=false
 runtime_backup_manifest_reviewed=false
 restore_target_opened=false
+app_db_opened_or_modified=false
 ```
 
-The assertion must not include raw backup manifests, checksum lines, restore filenames, private paths, account names, descriptions, memos, amounts, screenshots, exports, app DB rows, books, backups, runtime logs, or product dogfood output. If a reviewer cannot truthfully set every boolean above to the conservative value, the safe result is a checkpoint, not an operational restore-readiness claim.
+The assertion must not include raw backup manifests, checksum lines, restore filenames, private paths, account names, descriptions, memos, amounts, screenshots, exports, app DB rows, books, backups, runtime logs, app DB inspection output, or product dogfood output. If a reviewer cannot truthfully set every boolean above to the conservative value, the safe result is a checkpoint, not an operational restore-readiness claim.
 
 ## Code guard
 
