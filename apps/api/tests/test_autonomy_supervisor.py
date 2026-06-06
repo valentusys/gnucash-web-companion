@@ -359,6 +359,25 @@ def test_generated_policy_rejects_indirect_release_publication_commands(tmp_path
         assert supervisor.load_safe_policy_tasks(policy) == []
 
 
+def test_generated_policy_rejects_indirect_image_publication_commands(tmp_path):
+    for command in (
+        "docker compose push",
+        "docker buildx build . --output=type=registry -t example/unsafe:latest",
+        "docker buildx build . --output type=registry -t example/unsafe:latest",
+        "docker buildx build . -o=type=registry -t example/unsafe:latest",
+        "docker buildx build . -o type=registry -t example/unsafe:latest",
+    ):
+        policy = write_policy(
+            tmp_path,
+            UNSAFE_GENERATED_VERIFICATION_POLICY.replace(
+                "gh release create v0.2.9-writealpha",
+                command,
+            ),
+        )
+
+        assert supervisor.load_safe_policy_tasks(policy) == []
+
+
 def test_budget_expiry_stops_before_next_task(tmp_path):
     queue = write_queue(tmp_path)
     report = supervisor.run_supervisor(

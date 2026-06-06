@@ -66,6 +66,7 @@ FORBIDDEN_VERIFICATION_COMMAND_MARKERS = (
     "git tag",
     "docker push",
     "docker buildx build --push",
+    "docker compose push",
     "twine upload",
     "npm publish",
     "pnpm publish",
@@ -78,6 +79,8 @@ FORBIDDEN_VERIFICATION_COMMAND_PATTERNS = (
     re.compile(r"\bgit\s+push\b[^\n;]*\b(?:refs/tags/[^\s;]+|tag\s+[^\s;]+|v\d+(?:\.\d+)+[^\s;]*)\b", re.I),
     re.compile(r"\bgh\s+api\b[^\n;]*(?:\brepos/[^\s;]+/[^\s;]+/releases\b|/releases\b)", re.I),
     re.compile(r"\bdocker\s+buildx\s+build\b[^\n;]*\s--push\b", re.I),
+    re.compile(r"\bdocker\s+buildx\s+build\b[^\n;]*\s--output(?:=|\s+)type=registry\b", re.I),
+    re.compile(r"\bdocker\s+buildx\s+build\b[^\n;]*\s-o(?:=|\s+)type=registry\b", re.I),
 )
 
 SAFETY_RULES = """Repository safety rules:
