@@ -1,6 +1,6 @@
 # PROJECT_STATUS
 
-Last updated: 2026-06-05
+Last updated: 2026-06-06
 
 ## Quick navigation
 
@@ -19,7 +19,8 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   [#36](https://github.com/valentusys/gnucash-web-companion/issues/36) controlled-write readiness
   gates. [#22](https://github.com/valentusys/gnucash-web-companion/issues/22) and
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) are closed.
-- Latest handoffs/docs: `docs/handoff/release-no-release-decision-docs-r10-repeat.md`,
+- Latest handoffs/docs: `docs/handoff/release-no-release-decision-docs-r12.md`,
+  `docs/handoff/release-no-release-decision-docs-r10-repeat.md`,
   `docs/handoff/release-no-release-decision-docs-r11.md`,
   `docs/handoff/release-no-release-decision-docs-r10.md`,
   `docs/handoff/release-no-release-decision-docs-r9.md`,
@@ -60,7 +61,9 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   adds repeated-task and documentation-only progress guards: older task names and wording cleanup do
   not roll back newer conservative no-release decisions, authorize release work, or make the docs
   closer to publication. The r10-repeat pass adds that historical gate docs, handoffs, and issue-state
-  snapshots remain dated maintenance evidence, not live release instructions or publication proof.
+  snapshots remain dated maintenance evidence, not live release instructions or publication proof. The
+  r12 clarification adds that generated backlog metadata such as `generated-safe`, `no-release`, and
+  `docs-only` is a maintenance safety envelope, not owner/PM release-candidate approval.
 - Recently closed queues: #13, #41, #42, #43.
 
 ## Repository

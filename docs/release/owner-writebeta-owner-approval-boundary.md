@@ -70,6 +70,11 @@ A repeated no-release documentation prompt is not that packet. It may improve
 reader guidance, but it cannot provide the missing scope, audience, blocker
 handling, or publication permission on the owner's behalf.
 
+Generated backlog metadata is not that packet either. A worker task may be marked
+safe to continue, docs-only, or no-release, but those flags only bound the
+maintenance work. They do not name a release-candidate scope, approve publication
+artifacts, or accept the public signal risk of owner-writebeta.
+
 ## Approval absence checklist
 
 If any item below is missing, the only safe release decision remains no-release:
