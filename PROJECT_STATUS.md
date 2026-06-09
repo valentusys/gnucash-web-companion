@@ -19,7 +19,8 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   [#36](https://github.com/valentusys/gnucash-web-companion/issues/36) controlled-write readiness
   gates. [#22](https://github.com/valentusys/gnucash-web-companion/issues/22) and
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) are closed.
-- Latest handoffs/docs: `docs/handoff/release-no-release-decision-docs-r12.md`,
+- Latest handoffs/docs: `docs/handoff/release-no-release-decision-docs-r13.md`,
+  `docs/handoff/release-no-release-decision-docs-r12.md`,
   `docs/handoff/release-no-release-decision-docs-r10-repeat.md`,
   `docs/handoff/release-no-release-decision-docs-r11.md`,
   `docs/handoff/release-no-release-decision-docs-r10.md`,
@@ -67,7 +68,9 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   current-state reconcile records that tracked hygiene now also guards committed content against
   private/runtime artifact classes, raw private-evidence markers, private-looking path/account/
   description/memo/amount labels, and high-risk affirmative write/public readiness claims. Passing
-  those guards remains repository hygiene only, not release authorization.
+  those guards remains repository hygiene only, not release authorization. The r13 clarification records
+  that no-release docs under `docs/release/` are negative-decision explanations, not implicit release
+  artifacts, publication copy, package metadata, or announcement text.
 - Recently closed queues: #13, #41, #42, #43.
 
 ## Repository

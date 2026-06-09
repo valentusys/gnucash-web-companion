@@ -119,6 +119,11 @@ This page and companion no-release docs do not create:
 - real/private/original/working/only-copy write safety;
 - permission to mutate any GnuCash book.
 
+They also do not create an implicit release artifact just because they sit under
+`docs/release/`. In this context, the directory records a negative release
+decision. The content must stay explanatory and must not become release notes,
+publication instructions, package metadata, or announcement copy.
+
 ## Allowed wording
 
 Use conservative maintenance wording:
