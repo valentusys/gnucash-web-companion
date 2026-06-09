@@ -79,6 +79,19 @@ app_db_opened_or_modified=false
 
 The assertion must not include raw backup manifests, checksum lines, restore filenames, private paths, account names, descriptions, memos, amounts, screenshots, exports, app DB rows, books, backups, runtime logs, app DB inspection output, or product dogfood output. If a reviewer cannot truthfully set every boolean above to the conservative value, the safe result is a checkpoint, not an operational restore-readiness claim.
 
+## Copy/paste-safe reviewer statement
+
+Use this statement only for generated docs/tests-only maintenance where the negative labels and assertion template above are true:
+
+```text
+This was a docs/tests-only restore-readiness wording check, not a restore drill.
+No backup artifact, restore artifact, app DB row, runtime manifest, runtime log, private path, account name, transaction description, memo, amount, book, or backup was created, opened, reviewed, or published.
+`GNUCASH_WRITES_ENABLED=false` remains the default and the `APP_ENV=test` write gate was not relaxed.
+This statement is not disaster-recovery proof, public write beta readiness, production safety, broad compatibility, security-audited status, or only-copy safety.
+```
+
+Do not use this statement if any operational backup/restore command, runtime manifest review, app DB inspection, product dogfood, private-data review, or write-gate change occurred; checkpoint with exact blockers instead.
+
 ## Code guard
 
 `apps/api/app/write_alpha_readiness.py` exposes:

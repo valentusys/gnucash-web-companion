@@ -916,3 +916,19 @@ def test_backup_restore_readiness_checklist_forbids_assumed_operational_markers(
     ]
     for pattern in required:
         assert pattern in checklist
+
+
+def test_backup_restore_readiness_checklist_has_copy_paste_safe_reviewer_statement():
+    checklist = (
+        REPO_ROOT / "docs" / "write-alpha" / "backup-restore-readiness-checklist.md"
+    ).read_text(encoding="utf-8")
+
+    required = [
+        "Copy/paste-safe reviewer statement",
+        "This was a docs/tests-only restore-readiness wording check, not a restore drill.",
+        "No backup artifact, restore artifact, app DB row, runtime manifest, runtime log, private path, account name, transaction description, memo, amount, book, or backup was created, opened, reviewed, or published.",
+        "`GNUCASH_WRITES_ENABLED=false` remains the default and the `APP_ENV=test` write gate was not relaxed.",
+        "This statement is not disaster-recovery proof, public write beta readiness, production safety, broad compatibility, security-audited status, or only-copy safety.",
+    ]
+    for pattern in required:
+        assert pattern in checklist
