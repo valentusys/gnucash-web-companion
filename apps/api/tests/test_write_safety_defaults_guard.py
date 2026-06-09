@@ -1155,6 +1155,35 @@ def test_write_safety_defaults_guard_rejects_non_raising_write_default_gate(tmp_
     assert str(tmp_path) not in "; ".join(failures)
 
 
+def test_write_safety_defaults_guard_rejects_nested_function_only_write_default_raise(
+    tmp_path: Path,
+) -> None:
+    routes = tmp_path / "transactions.py"
+    route_defs = "\n".join(
+        f"async def {name}():\n"
+        "    _ensure_writes_enabled(settings)\n"
+        "    _ensure_write_alpha_test_scope(settings)\n"
+        for name in write_safety_guard.WRITE_ROUTE_FUNCTIONS
+    )
+    routes.write_text(
+        "def _ensure_writes_enabled(settings):\n"
+        "    if not settings.gnucash_writes_enabled:\n"
+        "        def never_called():\n"
+        "            raise RuntimeError(\"GnuCash writes are disabled. MVP v0.1 is read-only by default.\")\n"
+        "        return None\n\n"
+        "def _ensure_write_alpha_test_scope(settings):\n"
+        "    if settings.app_env.lower() != \"test\":\n"
+        "        raise RuntimeError(\"controlled write-alpha routes are limited to explicit test-environment\")\n\n"
+        f"{route_defs}\n",
+        encoding="utf-8",
+    )
+
+    failures = write_safety_guard._check_write_route_test_gates(routes)
+
+    assert any("not settings.gnucash_writes_enabled rejection logic" in failure for failure in failures)
+    assert str(tmp_path) not in "; ".join(failures)
+
+
 def test_write_safety_defaults_guard_rejects_write_route_missing_app_env_gate(tmp_path: Path) -> None:
     routes = tmp_path / "transactions.py"
     route_defs = "\n".join(
@@ -1236,6 +1265,33 @@ def test_write_safety_defaults_guard_rejects_non_raising_app_env_gate(tmp_path: 
         "        raise RuntimeError(\"GnuCash writes are disabled. MVP v0.1 is read-only by default.\")\n\n"
         "def _ensure_write_alpha_test_scope(settings):\n"
         "    if settings.app_env.lower() != \"test\":\n"
+        "        return None\n\n"
+        f"{route_defs}\n",
+        encoding="utf-8",
+    )
+
+    failures = write_safety_guard._check_write_route_test_gates(routes)
+
+    assert any("settings.app_env.lower() != test rejection logic" in failure for failure in failures)
+    assert str(tmp_path) not in "; ".join(failures)
+
+
+def test_write_safety_defaults_guard_rejects_nested_class_only_app_env_raise(tmp_path: Path) -> None:
+    routes = tmp_path / "transactions.py"
+    route_defs = "\n".join(
+        f"async def {name}():\n"
+        "    _ensure_writes_enabled(settings)\n"
+        "    _ensure_write_alpha_test_scope(settings)\n"
+        for name in write_safety_guard.WRITE_ROUTE_FUNCTIONS
+    )
+    routes.write_text(
+        "def _ensure_writes_enabled(settings):\n"
+        "    if not settings.gnucash_writes_enabled:\n"
+        "        raise RuntimeError(\"GnuCash writes are disabled. MVP v0.1 is read-only by default.\")\n\n"
+        "def _ensure_write_alpha_test_scope(settings):\n"
+        "    if settings.app_env.lower() != \"test\":\n"
+        "        class NeverInstantiated:\n"
+        "            raise RuntimeError(\"controlled write-alpha routes are limited to explicit test-environment\")\n"
         "        return None\n\n"
         f"{route_defs}\n",
         encoding="utf-8",

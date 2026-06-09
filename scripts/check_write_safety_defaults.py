@@ -228,9 +228,22 @@ def _has_disabled_write_rejection_condition(node: ast.AST) -> bool:
     )
 
 
+def _statement_tree_has_executable_raise(statement: ast.stmt) -> bool:
+    """Return whether a statement tree raises without counting nested definitions."""
+    stack: list[ast.AST] = [statement]
+    while stack:
+        node = stack.pop()
+        if isinstance(node, ast.Raise):
+            return True
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Lambda)):
+            continue
+        stack.extend(ast.iter_child_nodes(node))
+    return False
+
+
 def _body_has_raise(statements: list[ast.stmt]) -> bool:
-    """Return whether an executable branch raises instead of only mentioning a guard."""
-    return any(isinstance(child, ast.Raise) for statement in statements for child in ast.walk(statement))
+    """Return whether an executable branch raises instead of only defining a raiser."""
+    return any(_statement_tree_has_executable_raise(statement) for statement in statements)
 
 
 def _function_has_disabled_write_rejection_gate(node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
