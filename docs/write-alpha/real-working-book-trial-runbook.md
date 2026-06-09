@@ -654,6 +654,36 @@ blocked or rollback-review. Do not convert rollback-review into success by addin
 new mutations, using local/private knowledge, or treating this R12 section as
 approval.
 
+## R13 handoff and resume blocker gate
+
+A future real working-book packet must not be resumed from stale handoff notes,
+prior issue #36 evidence, copied-book evidence, or a partially completed operator
+session. Before any future operator resumes a prepared packet, the operator must
+create a new same-context resume checkpoint that records only redacted pass/fail
+status for:
+
+1. Packet continuity: the packet version, route family, operation shape, exact
+   mutation count, rollback proof, reset proof, and evidence shape still match the
+   latest owner and PM approvals.
+2. Runtime continuity: writes are currently default-disabled unless the packet is
+   at the explicitly approved temporary `APP_ENV=test` arming step.
+3. Target continuity: the target class is still not original, not only-copy, not
+   inside git, independently restorable, and free of other writers.
+4. Rollback continuity: backup, restore-to-copy, reset, disabled-probe, and
+   rollback-review steps remain available without overwriting the source target.
+5. Evidence continuity: the resumed report can still omit private paths, account
+   names, transaction descriptions, memos, amounts, books, SQLite DBs, app DBs,
+   backups, exports, screenshots, raw logs, `.env`, tokens, keys, and certs.
+6. Claim continuity: the resumed packet still makes no release, public write beta,
+   stable, production-ready, security-audited, broad compatibility, or only-copy
+   safety claim.
+
+If any resume checkpoint item is unknown, stale, mismatched, dependent on private
+tracked evidence, or broader than the approved packet, the future operator must
+stop before mutation and request a new exact owner and PM approval packet. Resume
+state is never permission to open, copy, inspect, dogfood, or mutate a real,
+private, original, working, or only-copy book.
+
 ## Stop result for the current task
 
 For issue #36, this runbook records that a real working-book trial remains
