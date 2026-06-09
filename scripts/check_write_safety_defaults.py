@@ -810,6 +810,7 @@ def _compose_service_names(compose_text: str) -> list[str]:
     """Return service names declared directly under the Compose services block."""
     lines = compose_text.splitlines()
     services_indent: int | None = None
+    service_indent: int | None = None
     service_names: list[str] = []
     for line in lines:
         stripped = line.strip()
@@ -822,7 +823,9 @@ def _compose_service_names(compose_text: str) -> list[str]:
             continue
         if indent <= services_indent:
             break
-        if indent == services_indent + 2 and stripped.endswith(":"):
+        if service_indent is None:
+            service_indent = indent
+        if indent == service_indent and stripped.endswith(":"):
             service_names.append(_strip_yaml_inline_quotes(stripped[:-1]))
     return service_names
 
