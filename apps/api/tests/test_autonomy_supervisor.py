@@ -396,6 +396,11 @@ def test_generated_policy_rejects_indirect_release_publication_commands(tmp_path
 def test_generated_policy_rejects_indirect_image_publication_commands(tmp_path):
     for command in (
         "docker compose push",
+        "docker image push example/unsafe:latest",
+        "docker manifest push example/unsafe:latest",
+        "podman push example/unsafe:latest",
+        "podman manifest push example/unsafe:latest",
+        "oras push example/unsafe:latest ./artifact.tar",
         "docker buildx build . --output=type=registry -t example/unsafe:latest",
         "docker buildx build . --output type=registry -t example/unsafe:latest",
         "docker buildx build . -o=type=registry -t example/unsafe:latest",
