@@ -165,6 +165,25 @@ def test_content_violations_reject_private_path_label_variants(tmp_path, monkeyp
     ]
 
 
+def test_content_violations_reject_private_scoped_path_markers(tmp_path, monkeypatch):
+    sample = tmp_path / "handoff.md"
+    sample.write_text(
+        "PRIVATE_LOCAL_PATH=/redacted\n"
+        "PRIVATE_SOURCE_PATH: /redacted\n"
+        "PRIVATE_TARGET_PATH=/redacted\n"
+        "PRIVATE_EVIDENCE_PATH: /redacted\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
+
+    assert guard.content_violations([sample]) == [
+        "tracked raw private-evidence marker 'PRIVATE_LOCAL_PATH=' in: handoff.md",
+        "tracked raw private-evidence marker 'PRIVATE_SOURCE_PATH:' in: handoff.md",
+        "tracked raw private-evidence marker 'PRIVATE_TARGET_PATH=' in: handoff.md",
+        "tracked raw private-evidence marker 'PRIVATE_EVIDENCE_PATH:' in: handoff.md",
+    ]
+
+
 def test_content_violations_reject_human_written_private_evidence_labels(tmp_path, monkeypatch):
     sample = tmp_path / "public-report.md"
     sample.write_text(
@@ -302,7 +321,12 @@ def test_content_violations_reject_unsafe_affirmative_wording(tmp_path, monkeypa
         "Owner write beta is safe for private books.\n"
         "Owner-write beta is acceptable for only-copy books.\n"
         "Write beta is production ready.\n"
-        "This release is production ready.\n",
+        "This release is production ready.\n"
+        "Write beta is general availability.\n"
+        "Write beta GA is released.\n"
+        "Owner-writebeta is production-safe.\n"
+        "Owner write beta is field-tested.\n"
+        "Broad GnuCash compatibility is complete.\n",
         encoding="utf-8",
     )
     monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
@@ -353,6 +377,11 @@ def test_content_violations_reject_unsafe_affirmative_wording(tmp_path, monkeypa
         "tracked unsafe affirmative wording in release.md:41: Owner-write beta is acceptable for only-copy books.",
         "tracked unsafe affirmative wording in release.md:42: Write beta is production ready.",
         "tracked unsafe affirmative wording in release.md:43: This release is production ready.",
+        "tracked unsafe affirmative wording in release.md:44: Write beta is general availability.",
+        "tracked unsafe affirmative wording in release.md:45: Write beta GA is released.",
+        "tracked unsafe affirmative wording in release.md:46: Owner-writebeta is production-safe.",
+        "tracked unsafe affirmative wording in release.md:47: Owner write beta is field-tested.",
+        "tracked unsafe affirmative wording in release.md:48: Broad GnuCash compatibility is complete.",
     ]
 
 
