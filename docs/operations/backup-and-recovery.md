@@ -115,6 +115,7 @@ private_data_reviewed=false
 writes_enabled_or_app_env_gate_relaxed=false
 runtime_backup_manifest_reviewed=false
 restore_target_opened=false
+app_db_opened_or_modified=false
 ```
 
 Do not add backup paths, restore filenames, checksum manifests, app DB rows, screenshots, CSV exports, account names, memos, amounts, private paths, books, backups, or runtime logs to that assertion.

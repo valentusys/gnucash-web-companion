@@ -569,6 +569,7 @@ def _check_backup_restore_readiness(path: Path) -> list[str]:
         "writes_enabled_or_app_env_gate_relaxed=false",
         "runtime_backup_manifest_reviewed=false",
         "restore_target_opened=false",
+        "app_db_opened_or_modified=false",
     )
     missing = [needle for needle in required if _normalized(needle) not in normalized]
     return ["backup/restore readiness checklist must preserve: " + ", ".join(missing)] if missing else []
@@ -634,6 +635,7 @@ def _check_backup_recovery_runbook(path: Path) -> list[str]:
         "writes_enabled_or_app_env_gate_relaxed=false",
         "runtime_backup_manifest_reviewed=false",
         "restore_target_opened=false",
+        "app_db_opened_or_modified=false",
     )
     missing = [needle for needle in required if _normalized(needle) not in normalized]
     return ["backup/recovery runbook must preserve docs/tests-only restore-readiness boundary: " + ", ".join(missing)] if missing else []

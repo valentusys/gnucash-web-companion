@@ -1428,6 +1428,25 @@ def test_write_safety_defaults_guard_rejects_missing_after_w3_boundary_marker(
     assert str(tmp_path) not in "; ".join(failures)
 
 
+def test_backup_restore_readiness_guard_rejects_missing_app_db_no_open_marker(
+    tmp_path: Path,
+) -> None:
+    source = ROOT / "docs/write-alpha/backup-restore-readiness-checklist.md"
+    doc = tmp_path / "backup-restore-readiness-checklist.md"
+    doc.write_text(
+        source.read_text(encoding="utf-8").replace(
+            "app_db_opened_or_modified=false\n",
+            "",
+        ),
+        encoding="utf-8",
+    )
+
+    failures = write_safety_guard._check_backup_restore_readiness(doc)
+
+    assert any("app_db_opened_or_modified=false" in failure for failure in failures)
+    assert str(tmp_path) not in "; ".join(failures)
+
+
 def test_write_safety_defaults_guard_rejects_missing_owner_writebeta_release_boundary_marker(
     tmp_path: Path,
 ) -> None:
