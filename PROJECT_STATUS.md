@@ -63,7 +63,11 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   closer to publication. The r10-repeat pass adds that historical gate docs, handoffs, and issue-state
   snapshots remain dated maintenance evidence, not live release instructions or publication proof. The
   r12 clarification adds that generated backlog metadata such as `generated-safe`, `no-release`, and
-  `docs-only` is a maintenance safety envelope, not owner/PM release-candidate approval.
+  `docs-only` is a maintenance safety envelope, not owner/PM release-candidate approval. The 2026-06-09
+  current-state reconcile records that tracked hygiene now also guards committed content against
+  private/runtime artifact classes, raw private-evidence markers, private-looking path/account/
+  description/memo/amount labels, and high-risk affirmative write/public readiness claims. Passing
+  those guards remains repository hygiene only, not release authorization.
 - Recently closed queues: #13, #41, #42, #43.
 
 ## Repository

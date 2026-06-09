@@ -41,8 +41,11 @@ Accepted evidence is narrow and review-only unless noted otherwise:
   read-only fixture only. That closure removes the docs-vs-GitHub drift but does not prove write
   compatibility, broad Desktop-version support, real-book safety, or non-SQLite backend support.
 - Current guard state: write-safety, public-status, markdown-readability, and tracked-hygiene guards
-  remain the required non-mutating checks before any future #36 closure or release decision. Passing
-  those guards is not itself release authorization.
+  remain the required non-mutating checks before any future #36 closure or release decision.
+  Tracked-hygiene coverage includes committed private/runtime artifact classes, raw private-evidence
+  markers, private-looking path/account/description/memo/amount labels, and high-risk affirmative
+  write/public readiness claims. Passing those guards is repository hygiene only, not release
+  authorization.
 
 ## Gates still blocking #36 closure
 
