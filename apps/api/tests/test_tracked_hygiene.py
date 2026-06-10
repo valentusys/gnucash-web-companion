@@ -412,8 +412,11 @@ def test_content_violations_reject_unsafe_affirmative_wording(tmp_path, monkeypa
         "This release is production ready.\n"
         "Production ready release published.\n"
         "Write beta is general availability.\n"
+        "Write beta is generally available.\n"
+        "Write beta general availability release is available.\n"
         "Write beta GA is released.\n"
         "Owner-writebeta is production-safe.\n"
+        "Owner write beta is generally available.\n"
         "Owner write beta is field-tested.\n"
         "Broad GnuCash compatibility is complete.\n"
         "Public write beta is release-ready.\n"
@@ -477,14 +480,17 @@ def test_content_violations_reject_unsafe_affirmative_wording(tmp_path, monkeypa
         "tracked unsafe affirmative wording in release.md:48: This release is production ready.",
         "tracked unsafe affirmative wording in release.md:49: Production ready release published.",
         "tracked unsafe affirmative wording in release.md:50: Write beta is general availability.",
-        "tracked unsafe affirmative wording in release.md:51: Write beta GA is released.",
-        "tracked unsafe affirmative wording in release.md:52: Owner-writebeta is production-safe.",
-        "tracked unsafe affirmative wording in release.md:53: Owner write beta is field-tested.",
-        "tracked unsafe affirmative wording in release.md:54: Broad GnuCash compatibility is complete.",
-        "tracked unsafe affirmative wording in release.md:55: Public write beta is release-ready.",
-        "tracked unsafe affirmative wording in release.md:56: Public write beta is safe for users.",
-        "tracked unsafe affirmative wording in release.md:57: Write beta is ship ready.",
-        "tracked unsafe affirmative wording in release.md:58: Write-beta is suitable for public use.",
+        "tracked unsafe affirmative wording in release.md:51: Write beta is generally available.",
+        "tracked unsafe affirmative wording in release.md:52: Write beta general availability release is available.",
+        "tracked unsafe affirmative wording in release.md:53: Write beta GA is released.",
+        "tracked unsafe affirmative wording in release.md:54: Owner-writebeta is production-safe.",
+        "tracked unsafe affirmative wording in release.md:55: Owner write beta is generally available.",
+        "tracked unsafe affirmative wording in release.md:56: Owner write beta is field-tested.",
+        "tracked unsafe affirmative wording in release.md:57: Broad GnuCash compatibility is complete.",
+        "tracked unsafe affirmative wording in release.md:58: Public write beta is release-ready.",
+        "tracked unsafe affirmative wording in release.md:59: Public write beta is safe for users.",
+        "tracked unsafe affirmative wording in release.md:60: Write beta is ship ready.",
+        "tracked unsafe affirmative wording in release.md:61: Write-beta is suitable for public use.",
     ]
 
 

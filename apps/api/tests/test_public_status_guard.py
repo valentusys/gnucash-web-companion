@@ -542,8 +542,11 @@ def test_public_status_guard_rejects_write_beta_stable_security_claims():
 def test_public_status_guard_rejects_write_beta_ga_and_production_safe_claims():
     unsafe_claims = [
         "Write beta is general availability.",
+        "Write beta is generally available.",
+        "Write beta general availability release is available.",
         "Write beta GA is released.",
         "Owner-writebeta is production-safe.",
+        "Owner write beta is generally available.",
         "Owner write beta is field-tested.",
     ]
 
