@@ -195,7 +195,7 @@ def test_finite_queue_still_exits_as_before_by_default(tmp_path):
 
 def test_backup_restore_docs_only_prompt_keeps_non_mutating_boundaries():
     task = supervisor.Task(
-        task_id="backup-restore-readiness-docs-tests-r5",
+        task_id="backup-restore-readiness-docs-tests-r6",
         target="issue #36 / backup and restore readiness",
         goal=(
             "Improve non-mutating backup/restore readiness docs or tests that "
@@ -702,6 +702,7 @@ def test_owner_writebeta_backup_restore_policy_prompt_is_non_mutating():
         "NO_BACKUP_ARTIFACT_CREATED",
         "DO_NOT_ENABLE_WRITES",
         "NO_PRIVATE_DATA_REVIEWED",
+        "no-dogfood",
     ]
     for pattern in required:
         assert pattern in prompt
@@ -789,6 +790,7 @@ def test_backup_restore_readiness_checklist_keeps_restore_validation_non_mutatin
         "writes_enabled_or_app_env_gate_relaxed=false",
         "runtime_backup_manifest_reviewed=false",
         "restore_target_opened=false",
+        "app_db_opened_or_modified=false",
     ]
     for pattern in required:
         assert pattern in text
@@ -829,6 +831,7 @@ def test_backup_recovery_runbook_keeps_docs_tests_only_readiness_non_mutating():
         "writes_enabled_or_app_env_gate_relaxed=false",
         "runtime_backup_manifest_reviewed=false",
         "restore_target_opened=false",
+        "app_db_opened_or_modified=false",
     ]
     for pattern in required:
         assert pattern in text
