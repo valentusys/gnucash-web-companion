@@ -228,14 +228,16 @@ def _has_disabled_write_rejection_condition(node: ast.AST) -> bool:
     )
 
 
-def _body_has_direct_raise(statements: list[ast.stmt]) -> bool:
-    """Return whether a guarded branch directly raises.
+def _body_starts_with_direct_raise(statements: list[ast.stmt]) -> bool:
+    """Return whether a guarded branch immediately raises.
 
     A nested raise under another conditional can be bypassed while still making
-    the AST contain a Raise node. The write-default and APP_ENV=test helpers
-    must fail closed on the guarded branch itself, not only in a nested branch.
+    the AST contain a Raise node. A direct raise after a return or other branch
+    statement can also be unreachable. The write-default and APP_ENV=test
+    helpers must fail closed as the first executable statement in the guarded
+    branch.
     """
-    return any(isinstance(statement, ast.Raise) for statement in statements)
+    return bool(statements) and isinstance(statements[0], ast.Raise)
 
 
 def _function_has_disabled_write_rejection_gate(node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
@@ -243,7 +245,7 @@ def _function_has_disabled_write_rejection_gate(node: ast.FunctionDef | ast.Asyn
     return any(
         isinstance(child, ast.If)
         and _has_disabled_write_rejection_condition(child.test)
-        and _body_has_direct_raise(child.body)
+        and _body_starts_with_direct_raise(child.body)
         for child in ast.walk(node)
     )
 
@@ -268,7 +270,7 @@ def _function_has_non_test_app_env_rejection_gate(node: ast.FunctionDef | ast.As
     return any(
         isinstance(child, ast.If)
         and _has_non_test_app_env_rejection_comparison(child.test)
-        and _body_has_direct_raise(child.body)
+        and _body_starts_with_direct_raise(child.body)
         for child in ast.walk(node)
     )
 
