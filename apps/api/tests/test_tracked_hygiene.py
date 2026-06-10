@@ -469,6 +469,27 @@ def test_content_violations_reject_unsafe_affirmative_wording(tmp_path, monkeypa
     ]
 
 
+def test_content_violations_reject_general_stable_security_audited_claims(tmp_path, monkeypatch):
+    sample = tmp_path / "release.md"
+    sample.write_text(
+        "Release is stable.\n"
+        "Deployment is security-audited.\n"
+        "Software is production ready.\n"
+        "Build is production-ready.\n"
+        "Broad GnuCash compatibility has been validated.\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
+
+    assert guard.content_violations([sample]) == [
+        "tracked unsafe affirmative wording in release.md:1: Release is stable.",
+        "tracked unsafe affirmative wording in release.md:2: Deployment is security-audited.",
+        "tracked unsafe affirmative wording in release.md:3: Software is production ready.",
+        "tracked unsafe affirmative wording in release.md:4: Build is production-ready.",
+        "tracked unsafe affirmative wording in release.md:5: Broad GnuCash compatibility has been validated.",
+    ]
+
+
 def test_content_violations_reject_compatibility_guarantee_wording(tmp_path, monkeypatch):
     sample = tmp_path / "compatibility.md"
     sample.write_text(

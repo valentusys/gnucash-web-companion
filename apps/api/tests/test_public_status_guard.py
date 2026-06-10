@@ -660,14 +660,21 @@ def test_public_status_guard_rejects_write_beta_launch_without_public_prefix():
 
 
 def test_public_status_guard_rejects_affirmative_broad_compatibility_confirmed_claims():
-    unsafe = "Broad GnuCash Desktop compatibility is confirmed."
+    unsafe_claims = [
+        "Broad GnuCash Desktop compatibility is confirmed.",
+        "Broad GnuCash compatibility has been proven.",
+        "Broad GnuCash Desktop compatibility been validated.",
+    ]
 
-    try:
-        guard.reject_patterns(Path("README.md"), unsafe, guard.UNSAFE_AFFIRMATIVE_PATTERNS)
-    except AssertionError as exc:
-        assert "compatibility" in str(exc).lower()
-    else:
-        raise AssertionError("affirmative broad compatibility confirmed claim should fail guard")
+    for unsafe in unsafe_claims:
+        try:
+            guard.reject_patterns(Path("README.md"), unsafe, guard.UNSAFE_AFFIRMATIVE_PATTERNS)
+        except AssertionError as exc:
+            assert "compatibility" in str(exc).lower()
+        else:
+            raise AssertionError(
+                f"affirmative broad compatibility confirmed claim should fail guard: {unsafe}"
+            )
 
 
 def test_public_status_guard_rejects_compatibility_guarantee_wording():
@@ -685,6 +692,27 @@ def test_public_status_guard_rejects_compatibility_guarantee_wording():
             assert "compat" in str(exc).lower() or "backend" in str(exc).lower()
         else:
             raise AssertionError(f"unsafe compatibility guarantee should fail guard: {unsafe}")
+
+
+def test_public_status_guard_rejects_stable_security_audited_status_claims():
+    unsafe_claims = [
+        "Release is stable.",
+        "Deployment is security-audited.",
+        "Software is production ready.",
+        "Build is production-ready.",
+    ]
+
+    for unsafe in unsafe_claims:
+        try:
+            guard.reject_patterns(Path("README.md"), unsafe, guard.UNSAFE_AFFIRMATIVE_PATTERNS)
+        except AssertionError as exc:
+            assert (
+                "stable" in str(exc).lower()
+                or "production" in str(exc).lower()
+                or "security" in str(exc).lower()
+            )
+        else:
+            raise AssertionError(f"unsafe stable/security status claim should fail guard: {unsafe}")
 
 
 def test_public_status_guard_rejects_affirmative_only_copy_write_safety_claims():
