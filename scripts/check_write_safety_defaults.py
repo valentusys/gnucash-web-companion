@@ -285,7 +285,7 @@ def _decorated_transaction_write_route_functions(tree: ast.Module) -> set[str]:
             func = decorator.func
             if not isinstance(func, ast.Attribute):
                 continue
-            if func.attr not in {"post", "patch", "delete"}:
+            if func.attr not in {"post", "put", "patch", "delete"}:
                 continue
             if not decorator.args:
                 continue

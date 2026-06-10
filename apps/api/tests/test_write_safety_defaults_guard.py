@@ -1144,6 +1144,48 @@ def test_write_safety_defaults_guard_rejects_new_transaction_write_route_not_in_
     assert str(tmp_path) not in "; ".join(failures)
 
 
+def test_write_safety_defaults_guard_rejects_new_put_transaction_write_route_not_in_guard_list(
+    tmp_path: Path,
+) -> None:
+    routes = tmp_path / "transactions.py"
+    route_defs = "\n".join(
+        f"@router.post('/books/{{book_id}}/transactions')\n"
+        f"async def {name}():\n"
+        "    _ensure_writes_enabled(settings)\n"
+        "    _ensure_write_alpha_test_scope(settings)\n"
+        for name in write_safety_guard.WRITE_ROUTE_FUNCTIONS
+    )
+    routes.write_text(
+        "class router:\n"
+        "    @staticmethod\n"
+        "    def post(path):\n"
+        "        return lambda fn: fn\n"
+        "    @staticmethod\n"
+        "    def put(path):\n"
+        "        return lambda fn: fn\n\n"
+        "def _ensure_writes_enabled(settings):\n"
+        "    if not settings.gnucash_writes_enabled:\n"
+        "        raise RuntimeError(\"GnuCash writes are disabled. MVP v0.1 is read-only by default.\")\n\n"
+        "def _ensure_write_alpha_test_scope(settings):\n"
+        "    if settings.app_env.lower() != \"test\":\n"
+        "        raise RuntimeError(\"controlled write-alpha routes are limited to explicit test-environment\")\n\n"
+        f"{route_defs}\n"
+        "@router.put('/books/{book_id}/transactions/{transaction_id}')\n"
+        "async def replace_book_transaction():\n"
+        "    _ensure_writes_enabled(settings)\n"
+        "    _ensure_write_alpha_test_scope(settings)\n",
+        encoding="utf-8",
+    )
+
+    failures = write_safety_guard._check_write_route_test_gates(routes)
+
+    assert any(
+        "write route replace_book_transaction must be registered in WRITE_ROUTE_FUNCTIONS" in failure
+        for failure in failures
+    )
+    assert str(tmp_path) not in "; ".join(failures)
+
+
 def test_write_safety_defaults_guard_rejects_docstring_only_write_default_gate(tmp_path: Path) -> None:
     routes = tmp_path / "transactions.py"
     route_defs = "\n".join(
