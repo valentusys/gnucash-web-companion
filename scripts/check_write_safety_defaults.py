@@ -24,7 +24,6 @@ RESET_TEXT = "reset"
 DISABLED_PROBE_TEXT = "disabled-probe"
 CHECKLIST_REQUIRED_TEXTS = (
     "#36",
-    "keep #36 open",
     "no-release/no-public-write posture",
     "GNUCASH_WRITES_ENABLED=false",
     "APP_ENV=test",
@@ -563,7 +562,7 @@ def _check_issue_36_remaining_gates(path: Path) -> list[str]:
     text = _read(REPO_ROOT / path if not path.is_absolute() else path)
     normalized = _normalized(text)
     required = (
-        "keep #36 open",
+        "CLOSE_36_AS_MAINTENANCE_BOUNDARY",
         "copied-book dogfood gate accepted",
         "W3 CREATE 2 / PATCH 1 / DELETE 1",
         "supported-version write compatibility evidence",
@@ -586,7 +585,7 @@ def _check_issue_36_dashboard(path: Path) -> list[str]:
     text = _read(REPO_ROOT / path if not path.is_absolute() else path)
     normalized = _normalized(text)
     required = (
-        "keep #36 open",
+        "CLOSE_36_AS_MAINTENANCE_BOUNDARY",
         "state-machine evidence",
         "copied-book evidence",
         "restore evidence",

@@ -1,6 +1,6 @@
 # PROJECT_STATUS
 
-Last updated: 2026-06-06
+Last updated: 2026-06-10
 
 ## Quick navigation
 
@@ -15,9 +15,8 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
 - Current safety posture: writes are disabled by default; see
   [docs/write-alpha/copied-book-write-alpha-posture.md](docs/write-alpha/copied-book-write-alpha-posture.md)
   for controlled-write boundaries.
-- Active issue queue:
-  [#36](https://github.com/valentusys/gnucash-web-companion/issues/36) controlled-write readiness
-  gates. [#22](https://github.com/valentusys/gnucash-web-companion/issues/22) and
+- Active issue queue: #36 is closed as `CLOSE_36_AS_MAINTENANCE_BOUNDARY`;
+  [#22](https://github.com/valentusys/gnucash-web-companion/issues/22) and
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) are closed.
 - Latest handoffs/docs: `docs/handoff/release-no-release-decision-docs-r4-repeat.md`,
   `docs/handoff/release-no-release-decision-docs-r14.md`,
@@ -42,19 +41,21 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   security-audited release claim.
 - Write-mode default: `GNUCASH_WRITES_ENABLED=false` remains default; enabled write-alpha/writebeta
   work remains experimental and `APP_ENV=test` gated.
-- Current open queue: #36 controlled-write readiness gates. #22 compatibility fixtures and #28 are
-  closed. For #36, the W3 copied-book dogfood gate is now accepted narrowly for the staged
-  outside-git copied/restorable target and exact PM-authorized counts: 2 CREATE, 1 metadata/memo-only
-  PATCH on a write-alpha-created transaction, and 1 DELETE of a write-alpha-created disposable
-  transaction. #36 remains open for supported-version compatibility, real-book/owner-only decisions,
-  and release/no-release gates. No release was published; `NO_RELEASE` remains current.
+- Current controlled-write tracker state: #36 is closed as `CLOSE_36_AS_MAINTENANCE_BOUNDARY`. The W3
+  copied-book dogfood gate is accepted narrowly for the staged outside-git copied/restorable target and
+  exact PM-authorized counts: 2 CREATE, 1 metadata/memo-only PATCH on a write-alpha-created transaction,
+  and 1 DELETE of a write-alpha-created disposable transaction. Future owner-writebeta release-candidate
+  decision, real-book trial safety model, or broader write compatibility evidence must be a new issue or
+  explicit owner/PM task. No release was published; `NO_RELEASE` remains current.
 - Current #36 docs reconciliation: owner-writebeta remains maintenance-only and unreleased until
   explicit owner approval. The guard state still requires default `GNUCASH_WRITES_ENABLED=false`,
   enabled write-alpha/writebeta `APP_ENV=test` gating, no public write beta, no real/private/original/
   working/only-copy safety claim, and no stable, production-ready, or security-audited wording. The
   owner-approval docs now state that clean checks are repository hygiene only, not release
   authorization, and that a future release-candidate task must start from an explicit owner/PM scope
-  decision rather than infer approval from readiness docs. The r8 release/no-release documentation
+  decision rather than infer approval from readiness docs. The 2026-06-10 PM/Owner packet closes #36 as a
+  maintenance boundary while preserving `NO_RELEASE`, no public write beta, no real/private/original/
+  working/only-copy mutation, and unpublished `v0.4.0-owner-writebeta`. The r8 release/no-release documentation
   pass clarifies review order: no-release state and missing owner/PM approval come before any narrow
   evidence summary, so accepted evidence cannot be converted into a publication checklist. The r9
   follow-up adds that repeated no-release documentation prompts are maintenance work only and cannot

@@ -1082,8 +1082,8 @@ def test_write_safety_defaults_guard_rejects_missing_issue_36_remaining_gate_mar
 ) -> None:
     doc = tmp_path / "issue-36.md"
     doc.write_text(
-        "keep #36 open. GNUCASH_WRITES_ENABLED=false. APP_ENV=test. NO_RELEASE. "
-        "CREATE 0 / PATCH 0 / DELETE 0. no public write beta.\n",
+        "CLOSE_36_AS_MAINTENANCE_BOUNDARY. GNUCASH_WRITES_ENABLED=false. APP_ENV=test. "
+        "NO_RELEASE. CREATE 0 / PATCH 0 / DELETE 0. no public write beta.\n",
         encoding="utf-8",
     )
 
@@ -1103,8 +1103,9 @@ def test_write_safety_defaults_guard_rejects_missing_issue_36_dashboard_marker(
 ) -> None:
     doc = tmp_path / "dashboard.md"
     doc.write_text(
-        "keep #36 open. state-machine evidence. copied-book evidence. restore evidence. "
-        "GNUCASH_WRITES_ENABLED=false. APP_ENV=test. NO_RELEASE. CREATE 0 / PATCH 0 / DELETE 0.\n",
+        "CLOSE_36_AS_MAINTENANCE_BOUNDARY. state-machine evidence. copied-book evidence. "
+        "restore evidence. GNUCASH_WRITES_ENABLED=false. APP_ENV=test. NO_RELEASE. "
+        "CREATE 0 / PATCH 0 / DELETE 0.\n",
         encoding="utf-8",
     )
 
