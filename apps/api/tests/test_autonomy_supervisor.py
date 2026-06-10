@@ -911,6 +911,9 @@ def test_discovered_safe_quality_policy_task_remains_bounded_and_guarded():
     assert "Generated from backlog policy" in prompt
     assert "Treat the allowed scope as a ceiling" in prompt
     assert "Do not spawn nested Hermes/Codex/tmux/cron workers" in prompt
+    assert "Run each verification command from the repository root in an isolated shell" in prompt
+    assert "commit only those safe tracked changes after verification" in prompt
+    assert "Do not commit ignored `.hermes` runtime files" in prompt
     assert "no remaining safe scoped change" in prompt
 
 
