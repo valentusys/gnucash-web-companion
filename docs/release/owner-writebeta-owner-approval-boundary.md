@@ -201,3 +201,14 @@ preparation, with owner/PM approval and a named scope.
 
 Until then, documentation should explain the no-release state and must not create
 release artifacts or broaden write-safety claims.
+
+## Stop-condition reading
+
+Read blocker lists in this packet as stop conditions for release publication. They
+are not a queue of safe tasks that any generated docs worker can complete.
+
+If a later note says a check passed, a handoff was reconciled, or an issue label
+changed, that note can update maintenance history only. It still must not be used
+as permission to prepare release notes, tags, packages, images, announcements, or
+public write-beta copy unless the same task carries explicit owner/PM
+release-candidate approval.
