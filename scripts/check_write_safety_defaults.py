@@ -49,6 +49,7 @@ OWNER_WRITEBETA_UNRELEASED_DOC = Path("docs/release/v0.4-owner-writebeta-readine
 OWNER_WRITEBETA_NO_RELEASE_DECISION_DOC = Path("docs/release/v0.4-owner-writebeta-no-release-decision.md")
 API_CONFIG_FILE = Path("apps/api/app/config.py")
 WRITE_ROUTES_FILE = Path("apps/api/app/routers/transactions.py")
+OWNER_WRITEBETA_ROUTES_FILE = Path("apps/api/app/routers/owner_writebeta.py")
 WRITE_ROUTE_FUNCTIONS = (
     "validate_book_transaction",
     "create_book_transaction",
@@ -313,6 +314,90 @@ def _decorated_transaction_write_route_functions(tree: ast.Module) -> set[str]:
     return route_functions
 
 
+def _is_name(node: ast.AST, name: str) -> bool:
+    return isinstance(node, ast.Name) and node.id == name
+
+
+def _is_attr(node: ast.AST, owner: str, attr: str) -> bool:
+    return isinstance(node, ast.Attribute) and node.attr == attr and _is_name(node.value, owner)
+
+
+def _is_list_append_string_call(node: ast.AST, list_name: str, value: str) -> bool:
+    return (
+        isinstance(node, ast.Expr)
+        and isinstance(node.value, ast.Call)
+        and isinstance(node.value.func, ast.Attribute)
+        and node.value.func.attr == "append"
+        and _is_name(node.value.func.value, list_name)
+        and len(node.value.args) == 1
+        and isinstance(node.value.args[0], ast.Constant)
+        and node.value.args[0].value == value
+    )
+
+
+def _body_starts_with_list_append(statements: list[ast.stmt], list_name: str, value: str) -> bool:
+    return bool(statements) and _is_list_append_string_call(statements[0], list_name, value)
+
+
+def _function_has_owner_writebeta_disabled_status_block(node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
+    body = _executable_body(node)
+    for statement in body:
+        if not isinstance(statement, ast.If):
+            continue
+        if not _has_disabled_write_rejection_condition(statement.test):
+            continue
+        return _body_starts_with_list_append(statement.body, "blocked", "writes_disabled_default") and _body_starts_with_list_append(
+            statement.orelse,
+            "passed",
+            "writes_explicitly_enabled_runtime",
+        )
+    return False
+
+
+def _function_has_owner_writebeta_app_env_status_block(node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
+    body = _executable_body(node)
+    for statement in body:
+        if not isinstance(statement, ast.If):
+            continue
+        if not _has_non_test_app_env_rejection_comparison(statement.test):
+            continue
+        return _body_starts_with_list_append(statement.body, "blocked", "app_env_not_test") and _body_starts_with_list_append(
+            statement.orelse,
+            "passed",
+            "app_env_test_gate",
+        )
+    return False
+
+
+def _is_bool_blocked_call(node: ast.AST) -> bool:
+    return (
+        isinstance(node, ast.Call)
+        and _is_name(node.func, "bool")
+        and len(node.args) == 1
+        and _is_name(node.args[0], "blocked")
+    )
+
+
+def _owner_writebeta_status_returns_blocking_expression(node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
+    for statement in ast.walk(node):
+        if not isinstance(statement, ast.Return):
+            continue
+        call = statement.value
+        if not isinstance(call, ast.Call):
+            continue
+        for keyword in call.keywords:
+            if keyword.arg != "writes_blocked":
+                continue
+            value = keyword.value
+            return (
+                isinstance(value, ast.BoolOp)
+                and isinstance(value.op, ast.Or)
+                and any(_is_attr(item, "session_state", "writes_blocked") for item in value.values)
+                and any(_is_bool_blocked_call(item) for item in value.values)
+            )
+    return False
+
+
 def _settings_literal_defaults(config_path: Path) -> dict[str, object]:
     tree = _parse_python(config_path)
     defaults: dict[str, object] = {}
@@ -435,6 +520,23 @@ def _check_write_route_test_gates(routes_path: Path = REPO_ROOT / WRITE_ROUTES_F
                     failures.append(
                         f"write route {function_name} must call {gated_call} only after APP_ENV=test scope"
                     )
+    return failures
+
+
+def _check_owner_writebeta_status_gates(routes_path: Path = REPO_ROOT / OWNER_WRITEBETA_ROUTES_FILE) -> list[str]:
+    """Guard owner-writebeta status so unblocked visibility requires enabled writes plus APP_ENV=test."""
+    failures: list[str] = []
+    tree = _parse_python(routes_path)
+    functions = {node.name: node for node in ast.walk(tree) if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
+    status_helper = functions.get("_status")
+    if status_helper is None:
+        return ["owner-writebeta status helper must exist"]
+    if not _function_has_owner_writebeta_disabled_status_block(status_helper):
+        failures.append("owner-writebeta status must block when settings.gnucash_writes_enabled is false")
+    if not _function_has_owner_writebeta_app_env_status_block(status_helper):
+        failures.append("owner-writebeta status must block when APP_ENV is not test")
+    if not _owner_writebeta_status_returns_blocking_expression(status_helper):
+        failures.append("owner-writebeta status writes_blocked must include session_state.writes_blocked or env/default blocks")
     return failures
 
 
@@ -1002,6 +1104,7 @@ def _check(env_example: Path, compose: Path, gate_doc: Path, checklist_doc: Path
     failures.extend(_check_api_write_defaults())
     failures.extend(_check_api_app_env_defaults())
     failures.extend(_check_write_route_test_gates())
+    failures.extend(_check_owner_writebeta_status_gates())
     failures.extend(_check_write_compatibility_docs(WRITE_COMPATIBILITY_DOCS))
     failures.extend(_check_issue_36_remaining_gates(ISSUE_36_REMAINING_GATES_DOC))
     failures.extend(_check_issue_36_dashboard(ISSUE_36_DASHBOARD_DOC))

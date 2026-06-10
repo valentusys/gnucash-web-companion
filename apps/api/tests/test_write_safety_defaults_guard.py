@@ -1167,6 +1167,78 @@ def test_write_safety_defaults_guard_ignores_non_settings_class_default_spoof(
     assert str(tmp_path) not in "; ".join(write_failures + app_env_failures)
 
 
+def test_write_safety_defaults_guard_rejects_owner_writebeta_status_missing_write_default_block(
+    tmp_path: Path,
+) -> None:
+    routes = tmp_path / "owner_writebeta.py"
+    routes.write_text(
+        "def _status(book_id, session_state, settings):\n"
+        "    blocked = []\n"
+        "    passed = []\n"
+        "    passed.append('writes_explicitly_enabled_runtime')\n"
+        "    if settings.app_env.lower() != \"test\":\n"
+        "        blocked.append('app_env_not_test')\n"
+        "    else:\n"
+        "        passed.append('app_env_test_gate')\n"
+        "    return DTO(writes_blocked=session_state.writes_blocked or bool(blocked))\n",
+        encoding="utf-8",
+    )
+
+    failures = write_safety_guard._check_owner_writebeta_status_gates(routes)
+
+    assert any("settings.gnucash_writes_enabled is false" in failure for failure in failures)
+    assert str(tmp_path) not in "; ".join(failures)
+
+
+def test_write_safety_defaults_guard_rejects_owner_writebeta_status_missing_app_env_block(
+    tmp_path: Path,
+) -> None:
+    routes = tmp_path / "owner_writebeta.py"
+    routes.write_text(
+        "def _status(book_id, session_state, settings):\n"
+        "    blocked = []\n"
+        "    passed = []\n"
+        "    if not settings.gnucash_writes_enabled:\n"
+        "        blocked.append('writes_disabled_default')\n"
+        "    else:\n"
+        "        passed.append('writes_explicitly_enabled_runtime')\n"
+        "    passed.append('app_env_test_gate')\n"
+        "    return DTO(writes_blocked=session_state.writes_blocked or bool(blocked))\n",
+        encoding="utf-8",
+    )
+
+    failures = write_safety_guard._check_owner_writebeta_status_gates(routes)
+
+    assert any("APP_ENV is not test" in failure for failure in failures)
+    assert str(tmp_path) not in "; ".join(failures)
+
+
+def test_write_safety_defaults_guard_rejects_owner_writebeta_status_unblocked_return(
+    tmp_path: Path,
+) -> None:
+    routes = tmp_path / "owner_writebeta.py"
+    routes.write_text(
+        "def _status(book_id, session_state, settings):\n"
+        "    blocked = []\n"
+        "    passed = []\n"
+        "    if not settings.gnucash_writes_enabled:\n"
+        "        blocked.append('writes_disabled_default')\n"
+        "    else:\n"
+        "        passed.append('writes_explicitly_enabled_runtime')\n"
+        "    if settings.app_env.lower() != \"test\":\n"
+        "        blocked.append('app_env_not_test')\n"
+        "    else:\n"
+        "        passed.append('app_env_test_gate')\n"
+        "    return DTO(writes_blocked=False)\n",
+        encoding="utf-8",
+    )
+
+    failures = write_safety_guard._check_owner_writebeta_status_gates(routes)
+
+    assert any("writes_blocked must include" in failure for failure in failures)
+    assert str(tmp_path) not in "; ".join(failures)
+
+
 def test_write_safety_defaults_guard_rejects_new_transaction_write_route_not_in_guard_list(
     tmp_path: Path,
 ) -> None:
