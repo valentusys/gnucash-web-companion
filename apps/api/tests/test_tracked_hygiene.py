@@ -488,6 +488,25 @@ def test_content_violations_reject_unsafe_affirmative_wording(tmp_path, monkeypa
     ]
 
 
+def test_content_violations_reject_has_been_write_beta_approval_wording(tmp_path, monkeypatch):
+    sample = tmp_path / "approval.md"
+    sample.write_text(
+        "Public write beta has been authorized.\n"
+        "Write beta has been approved.\n"
+        "Owner-writebeta has been published.\n"
+        "Owner write beta has been released.\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
+
+    assert guard.content_violations([sample]) == [
+        "tracked unsafe affirmative wording in approval.md:1: Public write beta has been authorized.",
+        "tracked unsafe affirmative wording in approval.md:2: Write beta has been approved.",
+        "tracked unsafe affirmative wording in approval.md:3: Owner-writebeta has been published.",
+        "tracked unsafe affirmative wording in approval.md:4: Owner write beta has been released.",
+    ]
+
+
 def test_content_violations_reject_general_stable_security_audited_claims(tmp_path, monkeypatch):
     sample = tmp_path / "release.md"
     sample.write_text(

@@ -491,7 +491,12 @@ def test_public_status_guard_rejects_affirmative_writebeta_authorization_claims(
         "Owner write beta is authorized.",
         "Owner write beta authorized.",
         "Write beta released.",
+        "Write beta has been approved.",
         "Writebeta published.",
+        "Writebeta has been released.",
+        "Owner-writebeta has been published.",
+        "Owner write beta has been authorized.",
+        "Public write beta has been authorized.",
     ]
 
     for unsafe in unsafe_claims:
