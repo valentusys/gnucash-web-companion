@@ -195,7 +195,7 @@ def test_finite_queue_still_exits_as_before_by_default(tmp_path):
 
 def test_backup_restore_docs_only_prompt_keeps_non_mutating_boundaries():
     task = supervisor.Task(
-        task_id="backup-restore-readiness-docs-tests-r3",
+        task_id="backup-restore-readiness-docs-tests-r5",
         target="issue #36 / backup and restore readiness",
         goal=(
             "Improve non-mutating backup/restore readiness docs or tests that "
@@ -222,6 +222,10 @@ def test_backup_restore_docs_only_prompt_keeps_non_mutating_boundaries():
             "no-dogfood",
             "preserve-write-defaults",
             "app-env-test-gated-writes",
+            "NOT_RESTORE_DRILL",
+            "NO_BACKUP_ARTIFACT_CREATED",
+            "DO_NOT_ENABLE_WRITES",
+            "NO_PRIVATE_DATA_REVIEWED",
         ],
         stop_continue="continue if changes are non-mutating docs/tests only",
         generated_from_policy="docs/autonomy/backlog-policies/issue36-owner-writebeta.md",
@@ -240,6 +244,10 @@ def test_backup_restore_docs_only_prompt_keeps_non_mutating_boundaries():
     assert "If a generated or repeated task has no remaining safe scoped change" in prompt
     assert "cd apps/api && pytest tests/test_autonomy_supervisor.py -q" in prompt
     assert "python3 scripts/check_write_safety_defaults.py" in prompt
+    assert "NOT_RESTORE_DRILL" in prompt
+    assert "NO_BACKUP_ARTIFACT_CREATED" in prompt
+    assert "DO_NOT_ENABLE_WRITES" in prompt
+    assert "NO_PRIVATE_DATA_REVIEWED" in prompt
 
 
 def test_dry_run_renders_prompts_and_continues_after_early_success(tmp_path):
@@ -688,6 +696,10 @@ def test_owner_writebeta_backup_restore_policy_prompt_is_non_mutating():
         "APP_ENV=test",
         "python3 scripts/check_write_safety_defaults.py",
         "python3 scripts/check_tracked_hygiene.py",
+        "NOT_RESTORE_DRILL",
+        "NO_BACKUP_ARTIFACT_CREATED",
+        "DO_NOT_ENABLE_WRITES",
+        "NO_PRIVATE_DATA_REVIEWED",
     ]
     for pattern in required:
         assert pattern in prompt

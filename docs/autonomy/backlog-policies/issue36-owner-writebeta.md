@@ -69,7 +69,7 @@ Policy invariants:
   - python3 scripts/check_write_safety_defaults.py
   - python3 scripts/check_tracked_hygiene.py
   - git diff --check
-- safety flags: generated-safe, no-private-data, no-release, no-dogfood, preserve-write-defaults, app-env-test-gated-writes
+- safety flags: generated-safe, no-private-data, no-release, no-dogfood, preserve-write-defaults, app-env-test-gated-writes, NOT_RESTORE_DRILL, NO_BACKUP_ARTIFACT_CREATED, DO_NOT_ENABLE_WRITES, NO_PRIVATE_DATA_REVIEWED
 - stop/continue recommendation: continue if changes are non-mutating docs/tests only
 
 ## Task: default-disabled-write-safety-guard-improvements
