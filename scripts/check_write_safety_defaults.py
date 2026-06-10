@@ -141,7 +141,10 @@ def _env_file_assignments(env_text: str, key: str) -> list[str]:
 
 def _env_file_mentions_unsafe_write_default_example(env_text: str) -> bool:
     """Return whether .env.example mentions public write/test defaults anywhere."""
-    normalized_lines = [line.strip().lower().replace(" ", "") for line in env_text.splitlines()]
+    normalized_lines = [
+        re.sub(r"\s+", "", line.lower()).replace("'", "").replace('"', "")
+        for line in env_text.splitlines()
+    ]
     return any(
         "gnucash_writes_enabled=true" in line or "app_env=test" in line for line in normalized_lines
     )

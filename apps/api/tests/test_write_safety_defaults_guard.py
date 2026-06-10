@@ -115,6 +115,41 @@ def test_write_safety_defaults_guard_rejects_commented_env_write_enablement_exam
     assert str(tmp_path) not in "; ".join(failures)
 
 
+def test_write_safety_defaults_guard_rejects_quoted_commented_env_write_enablement_examples(
+    tmp_path: Path,
+) -> None:
+    env_example = tmp_path / ".env.example"
+    compose = tmp_path / "docker-compose.yml"
+    status_doc = tmp_path / "status.md"
+    env_example.write_text(
+        "APP_ENV=development\n"
+        "GNUCASH_WRITES_ENABLED=false\n"
+        "# Do not document APP_ENV = 'test' or GNUCASH_WRITES_ENABLED = \"true\" in public defaults.\n",
+        encoding="utf-8",
+    )
+    compose.write_text(
+        "services:\n"
+        "  api:\n"
+        "    environment:\n"
+        "      - APP_ENV=${APP_ENV:-development}\n"
+        "      - GNUCASH_WRITES_ENABLED=${GNUCASH_WRITES_ENABLED:-false}\n"
+        "  web:\n"
+        "    environment:\n"
+        "      - GNUCASH_WRITES_ENABLED=${GNUCASH_WRITES_ENABLED:-false}\n",
+        encoding="utf-8",
+    )
+    status_doc.write_text(
+        "Enabled write-alpha remains APP_ENV=test gated, requires explicit write enablement, "
+        "and reset/default-disabled disabled-probe evidence.\n",
+        encoding="utf-8",
+    )
+
+    failures = write_safety_guard._check(env_example, compose, status_doc, checklist_doc=None)
+
+    assert any("must not mention GNUCASH_WRITES_ENABLED=true or APP_ENV=test" in failure for failure in failures)
+    assert str(tmp_path) not in "; ".join(failures)
+
+
 def test_write_safety_defaults_guard_rejects_duplicate_env_alternate_defaults(tmp_path: Path) -> None:
     env_example = tmp_path / ".env.example"
     compose = tmp_path / "docker-compose.yml"
