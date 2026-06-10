@@ -122,6 +122,30 @@ def test_content_violations_reject_private_account_description_and_balance_marke
         "tracked raw private-evidence label in public-report.md:2: REAL_ACCOUNT_DESCRIPTION=Redacted account description",
         "tracked raw private-evidence label in public-report.md:3: ACCOUNT_BALANCE=0.00",
         "tracked raw private-evidence label in public-report.md:4: BALANCE=0.00",
+        "tracked raw private-evidence label in public-report.md:5: PRIVATE_TRANSACTION_DESCRIPTION=Redacted transaction",
+    ]
+
+
+def test_content_violations_reject_real_private_transaction_detail_markers(tmp_path, monkeypatch):
+    sample = tmp_path / "public-report.md"
+    sample.write_text(
+        "REAL_TRANSACTION_DESCRIPTION=Redacted transaction\n"
+        "REAL_TRANSACTION_MEMO: Redacted memo\n"
+        "PRIVATE_TRANSACTION_MEMO=Redacted memo\n"
+        "PRIVATE_TRANSACTION_AMOUNT: 0.00\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
+
+    assert guard.content_violations([sample]) == [
+        "tracked raw private-evidence marker 'REAL_TRANSACTION_DESCRIPTION=' in: public-report.md",
+        "tracked raw private-evidence marker 'REAL_TRANSACTION_MEMO:' in: public-report.md",
+        "tracked raw private-evidence marker 'PRIVATE_TRANSACTION_MEMO=' in: public-report.md",
+        "tracked raw private-evidence marker 'PRIVATE_TRANSACTION_AMOUNT:' in: public-report.md",
+        "tracked raw private-evidence label in public-report.md:1: REAL_TRANSACTION_DESCRIPTION=Redacted transaction",
+        "tracked raw private-evidence label in public-report.md:2: REAL_TRANSACTION_MEMO: Redacted memo",
+        "tracked raw private-evidence label in public-report.md:3: PRIVATE_TRANSACTION_MEMO=Redacted memo",
+        "tracked raw private-evidence label in public-report.md:4: PRIVATE_TRANSACTION_AMOUNT: 0.00",
     ]
 
 
@@ -305,9 +329,13 @@ def test_content_violations_reject_unsafe_affirmative_wording(tmp_path, monkeypa
         "Write beta is production-grade.\n"
         "Write beta may be enabled.\n"
         "Write-beta is acceptable for public use.\n"
+        "Write beta released.\n"
         "Writebeta is ready.\n"
+        "Writebeta published.\n"
         "Owner write beta is ready.\n"
+        "Owner write beta authorized.\n"
         "Owner writebeta is available.\n"
+        "Owner writebeta released.\n"
         "Owner-write beta is available.\n"
         "Writebeta has launched.\n"
         "Owner write beta has launched.\n"
@@ -323,6 +351,7 @@ def test_content_violations_reject_unsafe_affirmative_wording(tmp_path, monkeypa
         "Owner-write beta is acceptable for only-copy books.\n"
         "Write beta is production ready.\n"
         "This release is production ready.\n"
+        "Production ready release published.\n"
         "Write beta is general availability.\n"
         "Write beta GA is released.\n"
         "Owner-writebeta is production-safe.\n"
@@ -365,33 +394,38 @@ def test_content_violations_reject_unsafe_affirmative_wording(tmp_path, monkeypa
         "tracked unsafe affirmative wording in release.md:24: Write beta is production-grade.",
         "tracked unsafe affirmative wording in release.md:25: Write beta may be enabled.",
         "tracked unsafe affirmative wording in release.md:26: Write-beta is acceptable for public use.",
-        "tracked unsafe affirmative wording in release.md:27: Writebeta is ready.",
-        "tracked unsafe affirmative wording in release.md:28: Owner write beta is ready.",
-        "tracked unsafe affirmative wording in release.md:29: Owner writebeta is available.",
-        "tracked unsafe affirmative wording in release.md:30: Owner-write beta is available.",
-        "tracked unsafe affirmative wording in release.md:31: Writebeta has launched.",
-        "tracked unsafe affirmative wording in release.md:32: Owner write beta has launched.",
-        "tracked unsafe affirmative wording in release.md:33: Owner-writebeta rollout is released.",
-        "tracked unsafe affirmative wording in release.md:34: Owner write beta rollout is released.",
-        "tracked unsafe affirmative wording in release.md:35: Public write beta for private books is acceptable.",
-        "tracked unsafe affirmative wording in release.md:36: Real books are safe for writes.",
-        "tracked unsafe affirmative wording in release.md:37: Private book writes are safe.",
-        "tracked unsafe affirmative wording in release.md:38: Original books are safe for mutation.",
-        "tracked unsafe affirmative wording in release.md:39: Write beta is safe for private books.",
-        "tracked unsafe affirmative wording in release.md:40: Write-beta supported for original books.",
-        "tracked unsafe affirmative wording in release.md:41: Owner write beta is safe for private books.",
-        "tracked unsafe affirmative wording in release.md:42: Owner-write beta is acceptable for only-copy books.",
-        "tracked unsafe affirmative wording in release.md:43: Write beta is production ready.",
-        "tracked unsafe affirmative wording in release.md:44: This release is production ready.",
-        "tracked unsafe affirmative wording in release.md:45: Write beta is general availability.",
-        "tracked unsafe affirmative wording in release.md:46: Write beta GA is released.",
-        "tracked unsafe affirmative wording in release.md:47: Owner-writebeta is production-safe.",
-        "tracked unsafe affirmative wording in release.md:48: Owner write beta is field-tested.",
-        "tracked unsafe affirmative wording in release.md:49: Broad GnuCash compatibility is complete.",
-        "tracked unsafe affirmative wording in release.md:50: Public write beta is release-ready.",
-        "tracked unsafe affirmative wording in release.md:51: Public write beta is safe for users.",
-        "tracked unsafe affirmative wording in release.md:52: Write beta is ship ready.",
-        "tracked unsafe affirmative wording in release.md:53: Write-beta is suitable for public use.",
+        "tracked unsafe affirmative wording in release.md:27: Write beta released.",
+        "tracked unsafe affirmative wording in release.md:28: Writebeta is ready.",
+        "tracked unsafe affirmative wording in release.md:29: Writebeta published.",
+        "tracked unsafe affirmative wording in release.md:30: Owner write beta is ready.",
+        "tracked unsafe affirmative wording in release.md:31: Owner write beta authorized.",
+        "tracked unsafe affirmative wording in release.md:32: Owner writebeta is available.",
+        "tracked unsafe affirmative wording in release.md:33: Owner writebeta released.",
+        "tracked unsafe affirmative wording in release.md:34: Owner-write beta is available.",
+        "tracked unsafe affirmative wording in release.md:35: Writebeta has launched.",
+        "tracked unsafe affirmative wording in release.md:36: Owner write beta has launched.",
+        "tracked unsafe affirmative wording in release.md:37: Owner-writebeta rollout is released.",
+        "tracked unsafe affirmative wording in release.md:38: Owner write beta rollout is released.",
+        "tracked unsafe affirmative wording in release.md:39: Public write beta for private books is acceptable.",
+        "tracked unsafe affirmative wording in release.md:40: Real books are safe for writes.",
+        "tracked unsafe affirmative wording in release.md:41: Private book writes are safe.",
+        "tracked unsafe affirmative wording in release.md:42: Original books are safe for mutation.",
+        "tracked unsafe affirmative wording in release.md:43: Write beta is safe for private books.",
+        "tracked unsafe affirmative wording in release.md:44: Write-beta supported for original books.",
+        "tracked unsafe affirmative wording in release.md:45: Owner write beta is safe for private books.",
+        "tracked unsafe affirmative wording in release.md:46: Owner-write beta is acceptable for only-copy books.",
+        "tracked unsafe affirmative wording in release.md:47: Write beta is production ready.",
+        "tracked unsafe affirmative wording in release.md:48: This release is production ready.",
+        "tracked unsafe affirmative wording in release.md:49: Production ready release published.",
+        "tracked unsafe affirmative wording in release.md:50: Write beta is general availability.",
+        "tracked unsafe affirmative wording in release.md:51: Write beta GA is released.",
+        "tracked unsafe affirmative wording in release.md:52: Owner-writebeta is production-safe.",
+        "tracked unsafe affirmative wording in release.md:53: Owner write beta is field-tested.",
+        "tracked unsafe affirmative wording in release.md:54: Broad GnuCash compatibility is complete.",
+        "tracked unsafe affirmative wording in release.md:55: Public write beta is release-ready.",
+        "tracked unsafe affirmative wording in release.md:56: Public write beta is safe for users.",
+        "tracked unsafe affirmative wording in release.md:57: Write beta is ship ready.",
+        "tracked unsafe affirmative wording in release.md:58: Write-beta is suitable for public use.",
     ]
 
 

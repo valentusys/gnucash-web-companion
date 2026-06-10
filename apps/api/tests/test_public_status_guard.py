@@ -376,14 +376,18 @@ def test_public_status_guard_rejects_phase_229_as_current_baseline():
 
 
 def test_public_status_guard_rejects_affirmative_production_claims():
-    unsafe = "This is production-ready software."
+    unsafe_claims = [
+        "This is production-ready software.",
+        "Production ready release published.",
+    ]
 
-    try:
-        guard.reject_patterns(Path("README.md"), unsafe, guard.UNSAFE_AFFIRMATIVE_PATTERNS)
-    except AssertionError as exc:
-        assert "production" in str(exc).lower()
-    else:
-        raise AssertionError("affirmative production claim should fail guard")
+    for unsafe in unsafe_claims:
+        try:
+            guard.reject_patterns(Path("README.md"), unsafe, guard.UNSAFE_AFFIRMATIVE_PATTERNS)
+        except AssertionError as exc:
+            assert "production" in str(exc).lower()
+        else:
+            raise AssertionError(f"affirmative production claim should fail guard: {unsafe}")
 
 
 def test_public_status_guard_rejects_affirmative_public_write_beta_action_claims():
@@ -481,7 +485,14 @@ def test_public_status_guard_rejects_affirmative_writebeta_status_claims():
 
 
 def test_public_status_guard_rejects_affirmative_writebeta_authorization_claims():
-    unsafe_claims = ["Owner-writebeta is authorized.", "Owner write beta is authorized."]
+    unsafe_claims = [
+        "Owner-writebeta is authorized.",
+        "Owner-writebeta authorized.",
+        "Owner write beta is authorized.",
+        "Owner write beta authorized.",
+        "Write beta released.",
+        "Writebeta published.",
+    ]
 
     for unsafe in unsafe_claims:
         try:
