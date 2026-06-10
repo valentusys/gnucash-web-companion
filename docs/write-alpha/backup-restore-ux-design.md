@@ -29,3 +29,15 @@ Docs/tests-only status labels shown in reviewer-facing UX copy:
 - `NO_BACKUP_ARTIFACT_CREATED`: no backup copy, checksum manifest, app DB row, or filesystem evidence was created.
 - `DO_NOT_ENABLE_WRITES`: the wording check does not authorize changing `GNUCASH_WRITES_ENABLED=false` or relaxing the `APP_ENV=test` gate.
 - `NO_PRIVATE_DATA_REVIEWED`: the wording check reviewed tracked text/guard assertions only, not private books, paths, accounts, transactions, memos, amounts, screenshots, exports, backups, or logs.
+
+Reviewer-facing docs/tests-only assertion copy must stay negative and non-operational:
+- `backup_restore_readiness_scope=docs-tests-only`
+- `restore_drill_performed=false`
+- `backup_artifact_created=false`
+- `private_data_reviewed=false`
+- `writes_enabled_or_app_env_gate_relaxed=false`
+- `runtime_backup_manifest_reviewed=false`
+- `restore_target_opened=false`
+- `app_db_opened_or_modified=false`
+
+Do not add restore filenames, checksum lines, backup manifests, app DB rows, runtime logs, private paths, account names, transaction descriptions, memos, amounts, screenshots, exports, books, or backup artifacts to UX copy for a docs/tests-only wording check.

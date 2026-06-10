@@ -695,6 +695,15 @@ def test_backup_restore_ux_doc_preserves_default_disabled_non_mutating_boundary(
         "NO_PRIVATE_DATA_REVIEWED",
         "no restore command was run and no restored book was opened",
         "does not authorize changing `GNUCASH_WRITES_ENABLED=false` or relaxing the `APP_ENV=test` gate",
+        "backup_restore_readiness_scope=docs-tests-only",
+        "restore_drill_performed=false",
+        "backup_artifact_created=false",
+        "private_data_reviewed=false",
+        "writes_enabled_or_app_env_gate_relaxed=false",
+        "runtime_backup_manifest_reviewed=false",
+        "restore_target_opened=false",
+        "app_db_opened_or_modified=false",
+        "Do not add restore filenames, checksum lines, backup manifests, app DB rows, runtime logs, private paths, account names, transaction descriptions, memos, amounts, screenshots, exports, books, or backup artifacts",
     ]
     for pattern in required:
         assert pattern in text
