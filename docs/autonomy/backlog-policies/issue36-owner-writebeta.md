@@ -15,6 +15,8 @@ Policy invariants:
 - No stable, production-ready, security-audited, broad compatibility, or only-copy safety claim.
 - Runtime prompts/reports stay under ignored `.hermes/autonomy/` unless a tracked handoff is explicitly requested.
 - Generated workers must treat each task's allowed scope as a ceiling, not a suggestion to search for unrelated work.
+- The `generated-safe` label means the supervisor may render the task; it does not override stricter queue, prompt, owner, or repository safety rules.
+- Non-goals are binding exclusions even when they mention forbidden activities by name.
 - Repeated generated tasks may be no-ops when no safe, scoped improvement remains; workers should report that honestly instead of broadening scope.
 
 ## Task: owner-writebeta-remaining-gates-audit
