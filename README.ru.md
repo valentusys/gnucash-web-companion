@@ -47,14 +47,14 @@ release docs и handoff-файлах, чтобы этот файл не стан
   maintenance evidence only, не approval для real-book mutation.
 - Недавно закрытые очереди: #22 compatibility fixtures, #28 markdown readability, #13, #41, #42, #43.
 
-## Карта очередей
+## Карта открытых очередей
 
 - #36: controlled-write readiness закрыта как `CLOSE_36_AS_MAINTENANCE_BOUNDARY`; open-ended
   maintenance queue больше нет. Future owner-writebeta release-candidate decision или broader compatibility evidence требуют новой
   issue и явного owner/PM scope; #44 отслеживает только owner real-book trial safety model.
-- #22: compatibility fixtures закрыта narrowly for isolated Desktop-generated synthetic SQLite
+- #22: compatibility fixtures закрыта narrowly for isolated Desktop-generated synthetic SQLite fixture
   read-only evidence only; future Desktop/backend/version fixture expansion остаётся separate work.
-- #28: raw Markdown readability закрыта после terminal-readability/status guard cleanup.
+- #28: raw Markdown readability закрыта после terminal-readability/status guard cleanup без whole-repo reflow.
 
 ## Где смотреть подробности
 
