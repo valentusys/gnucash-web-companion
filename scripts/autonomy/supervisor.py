@@ -86,6 +86,11 @@ FORBIDDEN_VERIFICATION_COMMAND_MARKERS = (
     "publish release",
     "publish a write beta release",
 )
+FORBIDDEN_POLICY_PATTERNS = (
+    re.compile(r"\b(?:run|perform|execute|start)\s+(?:product\s+)?dogfood\b", re.I),
+    re.compile(r"\b(?:run|perform|execute|start)\s+.*\b(?:GnuCash\s+)?mutations?\b", re.I),
+    re.compile(r"\b(?:enable|turn\s+on|set)\s+.*\bGNUCASH_WRITES_ENABLED\s*=\s*true\b", re.I),
+)
 FORBIDDEN_VERIFICATION_COMMAND_PATTERNS = (
     re.compile(r"\bgit\s+push\b[^\n;]*\s--(?:follow-)?tags\b", re.I),
     re.compile(r"\bgit\s+push\b[^\n;]*\b(?:refs/tags/[^\s;]+|tag\s+[^\s;]+|v\d+(?:\.\d+)+[^\s;]*)\b", re.I),
@@ -93,6 +98,8 @@ FORBIDDEN_VERIFICATION_COMMAND_PATTERNS = (
     re.compile(r"\bdocker\s+buildx\s+build\b[^\n;]*\s--push\b", re.I),
     re.compile(r"\bdocker\s+buildx\s+build\b[^\n;]*\s--output(?:=|\s+)type=registry\b", re.I),
     re.compile(r"\bdocker\s+buildx\s+build\b[^\n;]*\s-o(?:=|\s+)type=registry\b", re.I),
+    re.compile(r"\bGNUCASH_WRITES_ENABLED\s*=\s*(?:1|true|yes|on)\b", re.I),
+    re.compile(r"\b(?:python3?|bash|sh|./)?\s*[^\n;]*(?:dogfood|owner_write_session|write_session_preflight)\b", re.I),
 )
 
 SAFETY_RULES = """Repository safety rules:
@@ -344,6 +351,8 @@ def task_is_safe_for_policy(task: Task) -> bool:
         f"{task.target}\n{task.goal}\n{task.allowed_scope}\n{task.stop_continue}"
     )
     if any(marker in text for marker in FORBIDDEN_POLICY_MARKERS):
+        return False
+    if any(pattern.search(text) for pattern in FORBIDDEN_POLICY_PATTERNS):
         return False
     verification_text = normalized_safety_text("\n".join(task.verification_commands))
     if any(marker in verification_text for marker in FORBIDDEN_VERIFICATION_COMMAND_MARKERS):
