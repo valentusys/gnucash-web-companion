@@ -755,14 +755,27 @@ def _compose_service_environment_lines(compose_text: str, service_name: str) -> 
     pinned in the rendered Compose source posture.
     """
     lines = compose_text.splitlines()
+    services_indent: int | None = None
     service_indent: int | None = None
     service_start: int | None = None
     for index, line in enumerate(lines):
         stripped = line.strip()
-        if stripped.endswith(":") and _strip_yaml_inline_quotes(stripped[:-1]) == service_name:
-            service_indent = len(line) - len(line.lstrip())
-            service_start = index + 1
+        if not stripped or stripped.startswith("#"):
+            continue
+        indent = len(line) - len(line.lstrip())
+        if services_indent is None:
+            if stripped == "services:":
+                services_indent = indent
+            continue
+        if indent <= services_indent:
             break
+        if service_indent is None:
+            service_indent = indent
+        if indent == service_indent and stripped.endswith(":"):
+            candidate = _strip_yaml_inline_quotes(stripped[:-1])
+            if candidate == service_name:
+                service_start = index + 1
+                break
     if service_indent is None or service_start is None:
         return []
 

@@ -494,6 +494,26 @@ def test_compose_service_names_extracts_declared_services_only() -> None:
     assert write_safety_guard._compose_service_names(compose_text) == ["api", "web"]
 
 
+def test_compose_service_environment_lines_ignores_same_name_outside_services() -> None:
+    compose_text = (
+        "api:\n"
+        "  environment:\n"
+        "    - APP_ENV=${APP_ENV:-development}\n"
+        "    - GNUCASH_WRITES_ENABLED=${GNUCASH_WRITES_ENABLED:-false}\n"
+        "services:\n"
+        "  api:\n"
+        "    environment:\n"
+        "      - APP_ENV=test\n"
+        "      - GNUCASH_WRITES_ENABLED=true\n"
+    )
+
+    environment = write_safety_guard._compose_service_environment_lines(compose_text, "api")
+
+    assert "APP_ENV=test" in environment
+    assert "GNUCASH_WRITES_ENABLED=true" in environment
+    assert "APP_ENV=${APP_ENV:-development}" not in environment
+
+
 def test_compose_service_names_support_non_two_space_service_indentation() -> None:
     compose_text = (
         "services:\n"
