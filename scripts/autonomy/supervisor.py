@@ -105,7 +105,11 @@ FORBIDDEN_VERIFICATION_COMMAND_PATTERNS = (
     re.compile(r"\bdocker\s+buildx\s+build\b[^\n;]*\s--output(?:=|\s+)type=registry\b", re.I),
     re.compile(r"\bdocker\s+buildx\s+build\b[^\n;]*\s-o(?:=|\s+)type=registry\b", re.I),
     re.compile(r"\bGNUCASH_WRITES_ENABLED\s*=\s*(?:1|true|yes|on)\b", re.I),
-    re.compile(r"\b(?:python3?|bash|sh|./)?\s*[^\n;]*(?:dogfood|owner_write_session|write_session_preflight)\b", re.I),
+    re.compile(
+        r"\b(?:python3?|bash|sh|./)?\s*[^\n;]*(?:dogfood|owner_write_session|write_session_preflight|write_alpha_create_delete_chain)\b",
+        re.I,
+    ),
+    re.compile(r"\b(?:python3?|bash|sh|./)?\s*[^\n;]*write-alpha-(?:create|patch|delete)[^\n;]*\.py\b", re.I),
 )
 
 SAFETY_RULES = """Repository safety rules:

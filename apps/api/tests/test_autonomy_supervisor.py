@@ -537,6 +537,24 @@ def test_generated_policy_rejects_dogfood_or_mutation_goals_even_with_safe_flags
         ]
 
 
+def test_generated_policy_rejects_mutating_write_alpha_verification_commands(tmp_path):
+    unsafe_commands = (
+        "python3 scripts/write_alpha_create_delete_chain.py",
+        "python3 scripts/smoke/write-alpha-create-smoke.py",
+        "python3 scripts/smoke/write-alpha-patch-smoke.py",
+        "python3 scripts/smoke/write-alpha-delete-restore-smoke.py",
+    )
+    for command in unsafe_commands:
+        policy = write_policy(
+            tmp_path,
+            SAMPLE_POLICY.replace("python3 scripts/check_public_status.py", command),
+        )
+
+        assert [task.task_id for task in supervisor.load_safe_policy_tasks(policy)] == [
+            "generated-final-gate"
+        ]
+
+
 def test_budget_expiry_stops_before_next_task(tmp_path):
     queue = write_queue(tmp_path)
     report = supervisor.run_supervisor(
