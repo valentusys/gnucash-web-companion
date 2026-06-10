@@ -710,6 +710,29 @@ tracked evidence, the future trial remains blocked. Do not repair isolation by
 opening, copying, inspecting, or mutating a real/private/original/working/
 only-copy book.
 
+## R15 pre-approval evidence retention gate
+
+A future real working-book packet must decide where every evidence class is kept
+before owner or PM approval can be used. The retention plan is a blocker check,
+not permission to collect evidence. It must record redacted pass/fail status for:
+
+1. Tracked-report evidence: only command names, exit statuses, approved route
+   family, exact mutation count, redacted opaque IDs, and pass/fail gate results
+   may be committed.
+2. Runtime-only evidence: raw logs, screenshots, books, SQLite DBs, app DBs,
+   backups, exports, private paths, account names, transaction descriptions,
+   memos, amounts, `.env`, tokens, keys, certs, and restore artifacts stay out of
+   git and out of public status reports.
+3. Retention owner: the future packet names who may view runtime-only evidence
+   without printing private details in tracked files.
+4. Disposal/reset point: the packet defines when temporary evidence is removed or
+   returned to owner control after reset and disabled-probe checks.
+5. Failure result: if safe retention cannot be proven without private tracked
+   evidence, the packet remains blocked before mutation.
+
+This retention gate does not authorize opening, copying, inspecting, dogfood, or
+mutating a real/private/original/working/only-copy book for issue #36.
+
 ## Stop result for the current task
 
 For issue #36, this runbook records that a real working-book trial remains
