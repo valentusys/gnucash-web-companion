@@ -187,6 +187,25 @@ FORBIDDEN_PRIVATE_EVIDENCE_LABEL_PATTERNS = (
     re.compile(r"^\s*(?:[-*+]\s+|>\s*)?(?:account[ _-])?balance\s*[:=]", re.I),
 )
 
+# Catch raw evidence labels pasted mid-sentence or in table cells, for example
+# "Notes | PRIVATE_BOOK_PATH = ...". The line-start label guard above remains
+# broader; this inline guard stays marker-like to avoid blocking negative prose
+# that discusses privacy policy in ordinary sentences.
+FORBIDDEN_PRIVATE_EVIDENCE_INLINE_LABEL_PATTERNS = (
+    re.compile(r"(?<!^)\braw[ _-]private[ _-]evidence\s*[:=]", re.I),
+    re.compile(r"(?<!^)\b(?:unredacted[ _-])?gnucash[ _-]evidence\s*[:=]", re.I),
+    re.compile(r"(?<!^)\b(?:raw[ _-])?private[ _-](?:file[ _-])?path\s*[:=]", re.I),
+    re.compile(
+        r"(?<!^)\b(?:private|raw|original|only[ _-]copy|working|local|real)[ _-](?:gnucash|book)[ _-]path\s*[:=]",
+        re.I,
+    ),
+    re.compile(r"(?<!^)\b(?:private|raw)?[ _-]*(?:evidence|export|screenshot)[ _-]path\s*[:=]", re.I),
+    re.compile(
+        r"(?<!^)\b(?:real|private|raw)[ _-]*(?:account[ _-](?:name|description)|transaction[ _-](?:description|memo|amount)|account[ _-]balance)\s*[:=]",
+        re.I,
+    ),
+)
+
 # Tracked hygiene runs over every tracked file, so these patterns are narrower
 # than the public-status wording guard and are limited to high-risk affirmative
 # posture claims that should never enter committed docs, tests, or handoffs.
@@ -264,7 +283,7 @@ FORBIDDEN_UNSAFE_AFFIRMATIVE_PATTERNS = (
 )
 FORBIDDEN_PRIVATE_BOOK_PATH_PATTERNS = (
     re.compile(
-        r"(?:^|[\s`'\"(=]|file://)(?:/home/[^\s`'\")]+|/Users/[^\s`'\")]+|[A-Za-z]:[\\/][^\s`'\")]+)"
+        r"(?:^|[\s`'\"(=]|file://)(?:/home/[^\s`'\")]+|/Users/[^\s`'\")]+|/mnt/[^\s`'\")]+|/media/[^\s`'\")]+|/Volumes/[^\s`'\")]+|[A-Za-z]:[\\/][^\s`'\")]+)"
         r"\.(?:gnucash|gnucash\.sqlite|sqlite|sqlite3)\b",
         re.I,
     ),
@@ -375,12 +394,21 @@ def content_violations(paths: list[Path]) -> list[str]:
                 re.I,
             ):
                 continue
+            label_matched = False
             for pattern in FORBIDDEN_PRIVATE_EVIDENCE_LABEL_PATTERNS:
                 if pattern.search(line):
                     problems.append(
                         f"tracked raw private-evidence label in {rel}:{line_number}: {line}"
                     )
+                    label_matched = True
                     break
+            if not label_matched:
+                for pattern in FORBIDDEN_PRIVATE_EVIDENCE_INLINE_LABEL_PATTERNS:
+                    if pattern.search(line):
+                        problems.append(
+                            f"tracked raw private-evidence inline label in {rel}:{line_number}: {line}"
+                        )
+                        break
             for pattern in FORBIDDEN_PRIVATE_BOOK_PATH_PATTERNS:
                 if pattern.search(line):
                     problems.append(

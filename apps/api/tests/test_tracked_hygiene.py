@@ -208,6 +208,25 @@ def test_content_violations_reject_private_scoped_path_markers(tmp_path, monkeyp
     ]
 
 
+def test_content_violations_reject_inline_private_evidence_labels(tmp_path, monkeypatch):
+    sample = tmp_path / "table-report.md"
+    sample.write_text(
+        "| note | PRIVATE_BOOK_PATH = /redacted |\n"
+        "Summary includes private evidence path: /redacted/report.txt\n"
+        "Audit row says real transaction memo = redacted memo\n"
+        "Operator note: private account description: redacted account\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
+
+    assert guard.content_violations([sample]) == [
+        "tracked raw private-evidence inline label in table-report.md:1: | note | PRIVATE_BOOK_PATH = /redacted |",
+        "tracked raw private-evidence inline label in table-report.md:2: Summary includes private evidence path: /redacted/report.txt",
+        "tracked raw private-evidence inline label in table-report.md:3: Audit row says real transaction memo = redacted memo",
+        "tracked raw private-evidence inline label in table-report.md:4: Operator note: private account description: redacted account",
+    ]
+
+
 def test_content_violations_reject_export_screenshot_and_raw_evidence_path_markers(tmp_path, monkeypatch):
     sample = tmp_path / "handoff.md"
     sample.write_text(
@@ -655,7 +674,10 @@ def test_content_violations_reject_private_book_path_like_values(tmp_path, monke
         "Windows source E:\\SyntheticFixtures\\sample-book.gnucash.sqlite was referenced.\n"
         "Mac source /Users/example-user/SyntheticFixtures/source.sqlite3 was referenced.\n"
         "File URI file:///home/example-user/synthetic-fixtures/source.sqlite was referenced.\n"
-        "Windows slash path C:/SyntheticFixtures/source.gnucash was referenced.\n",
+        "Windows slash path C:/SyntheticFixtures/source.gnucash was referenced.\n"
+        "Mount source /mnt/private-ledgers/source.gnucash was referenced.\n"
+        "Media source /media/operator/source.sqlite was referenced.\n"
+        "Volume source /Volumes/PrivateBooks/source.sqlite3 was referenced.\n",
         encoding="utf-8",
     )
     monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
@@ -666,6 +688,9 @@ def test_content_violations_reject_private_book_path_like_values(tmp_path, monke
         "tracked private book path-like value in evidence.md:3: Mac source /Users/example-user/SyntheticFixtures/source.sqlite3 was referenced.",
         "tracked private book path-like value in evidence.md:4: File URI file:///home/example-user/synthetic-fixtures/source.sqlite was referenced.",
         "tracked private book path-like value in evidence.md:5: Windows slash path C:/SyntheticFixtures/source.gnucash was referenced.",
+        "tracked private book path-like value in evidence.md:6: Mount source /mnt/private-ledgers/source.gnucash was referenced.",
+        "tracked private book path-like value in evidence.md:7: Media source /media/operator/source.sqlite was referenced.",
+        "tracked private book path-like value in evidence.md:8: Volume source /Volumes/PrivateBooks/source.sqlite3 was referenced.",
     ]
 
 
