@@ -47,6 +47,9 @@ TASK_FIELD_NAMES = (
 FORBIDDEN_POLICY_MARKERS = (
     "publish release",
     "publish a write beta release",
+    "release tooling",
+    "release automation",
+    "release workflow",
     "public write beta",
     "private book",
     "original book",
@@ -62,6 +65,8 @@ FORBIDDEN_POLICY_MARKERS = (
     "broad compatibility ready",
     "create tag",
     "tag creation",
+    "tag tooling",
+    "tag automation",
     "publish package",
     "package publication",
     "publish image",

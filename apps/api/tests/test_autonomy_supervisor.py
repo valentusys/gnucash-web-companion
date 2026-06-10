@@ -403,6 +403,28 @@ def test_generated_policy_rejects_tag_package_and_image_publication_goals(tmp_pa
         ]
 
 
+def test_generated_policy_rejects_release_or_tag_tooling_scope_even_with_safe_flags(tmp_path):
+    unsafe_scopes = (
+        "release tooling",
+        "release automation",
+        "release workflow",
+        "tag tooling",
+        "tag automation",
+    )
+    for scope in unsafe_scopes:
+        policy = write_policy(
+            tmp_path,
+            SAMPLE_POLICY.replace(
+                "- allowed scope: docs and tests only",
+                f"- allowed scope: {scope}",
+            ),
+        )
+
+        assert [task.task_id for task in supervisor.load_safe_policy_tasks(policy)] == [
+            "generated-final-gate"
+        ]
+
+
 def test_generated_policy_rejects_release_verification_commands(tmp_path):
     policy = write_policy(tmp_path, UNSAFE_GENERATED_VERIFICATION_POLICY)
 
