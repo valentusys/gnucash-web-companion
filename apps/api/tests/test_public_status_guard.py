@@ -417,15 +417,21 @@ def test_public_status_guard_accepts_negative_public_write_beta_action_claims():
 
 
 def test_public_status_guard_rejects_affirmative_public_write_beta_claims():
-    unsafe = "The public write beta is ready for users."
+    unsafe_claims = [
+        "The public write beta is ready for users.",
+        "Public write beta is release-ready.",
+        "Public write beta is safe for users.",
+        "Write beta is ship ready.",
+        "Write-beta is suitable for public use.",
+    ]
 
-    try:
-        guard.reject_patterns(Path("README.md"), unsafe, guard.UNSAFE_AFFIRMATIVE_PATTERNS)
-    except AssertionError as exc:
-        assert "public" in str(exc).lower()
-        assert "write" in str(exc).lower()
-    else:
-        raise AssertionError("affirmative public write beta claim should fail guard")
+    for unsafe in unsafe_claims:
+        try:
+            guard.reject_patterns(Path("README.md"), unsafe, guard.UNSAFE_AFFIRMATIVE_PATTERNS)
+        except AssertionError as exc:
+            assert "write" in str(exc).lower()
+        else:
+            raise AssertionError(f"affirmative public write beta claim should fail guard: {unsafe}")
 
 
 def test_public_status_guard_rejects_affirmative_public_write_beta_publication_claims():

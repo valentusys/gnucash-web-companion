@@ -326,7 +326,11 @@ def test_content_violations_reject_unsafe_affirmative_wording(tmp_path, monkeypa
         "Write beta GA is released.\n"
         "Owner-writebeta is production-safe.\n"
         "Owner write beta is field-tested.\n"
-        "Broad GnuCash compatibility is complete.\n",
+        "Broad GnuCash compatibility is complete.\n"
+        "Public write beta is release-ready.\n"
+        "Public write beta is safe for users.\n"
+        "Write beta is ship ready.\n"
+        "Write-beta is suitable for public use.\n",
         encoding="utf-8",
     )
     monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
@@ -382,6 +386,10 @@ def test_content_violations_reject_unsafe_affirmative_wording(tmp_path, monkeypa
         "tracked unsafe affirmative wording in release.md:46: Owner-writebeta is production-safe.",
         "tracked unsafe affirmative wording in release.md:47: Owner write beta is field-tested.",
         "tracked unsafe affirmative wording in release.md:48: Broad GnuCash compatibility is complete.",
+        "tracked unsafe affirmative wording in release.md:49: Public write beta is release-ready.",
+        "tracked unsafe affirmative wording in release.md:50: Public write beta is safe for users.",
+        "tracked unsafe affirmative wording in release.md:51: Write beta is ship ready.",
+        "tracked unsafe affirmative wording in release.md:52: Write-beta is suitable for public use.",
     ]
 
 
