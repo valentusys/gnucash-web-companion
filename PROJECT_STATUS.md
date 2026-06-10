@@ -19,7 +19,8 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   [#36](https://github.com/valentusys/gnucash-web-companion/issues/36) controlled-write readiness
   gates. [#22](https://github.com/valentusys/gnucash-web-companion/issues/22) and
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) are closed.
-- Latest handoffs/docs: `docs/handoff/release-no-release-decision-docs-r14.md`,
+- Latest handoffs/docs: `docs/handoff/release-no-release-decision-docs-r4-repeat.md`,
+  `docs/handoff/release-no-release-decision-docs-r14.md`,
   `docs/handoff/release-no-release-decision-docs-r13.md`,
   `docs/handoff/release-no-release-decision-docs-r12.md`,
   `docs/handoff/release-no-release-decision-docs-r10-repeat.md`,
@@ -73,7 +74,10 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   that no-release docs under `docs/release/` are negative-decision explanations, not implicit release
   artifacts, publication copy, package metadata, or announcement text. The r14 clarification records
   that blocker lists are stop conditions for release publication, not a worker checklist that can be
-  completed by repeated docs tasks, passed checks, handoff reconciliation, or issue-label changes.
+  completed by repeated docs tasks, passed checks, handoff reconciliation, or issue-label changes. The
+  r4-repeat clarification records that a bounded docs-worker prompt can authorize conservative edits,
+  verification, and a safe commit, but cannot substitute for explicit owner/PM release-candidate
+  approval or change public write posture.
 - Recently closed queues: #13, #41, #42, #43.
 
 ## Repository

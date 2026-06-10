@@ -176,6 +176,16 @@ Use later handoffs as evidence of wording hygiene only. They may improve reader
 navigation, but they must not be counted as publication consent, blocker
 acceptance, or permission to draft release artifacts.
 
+## Worker prompt boundary
+
+A docs-only worker prompt may require checks and a commit, but that requirement is
+repository housekeeping. It does not create release-candidate scope, public
+audience approval, or permission to change the write posture.
+
+When a task combines "improve no-release documentation" with "commit safe tracked
+changes," report the result as maintenance clarification. Do not summarize it as a
+release package, approval path, publication rehearsal, or final gate.
+
 ## Worker-result wording
 
 When reporting a no-release documentation pass, say that the explanation was
