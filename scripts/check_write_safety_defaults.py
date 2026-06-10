@@ -775,7 +775,11 @@ def _check_owner_writebeta_operating_guide(path: Path) -> list[str]:
     text = _read(REPO_ROOT / path if not path.is_absolute() else path)
     normalized = _normalized(text)
     required = (
-        "#36 remains open",
+        "#36 is closed as `CLOSE_36_AS_MAINTENANCE_BOUNDARY`",
+        "#44 is the active owner real-book trial safety-model issue",
+        "not mutation approval",
+        "not release approval",
+        "not public write beta approval",
         "W3 copied/restorable CREATE/PATCH/DELETE evidence is accepted narrowly",
         "recorded staged-copy scope only",
         "not a public write beta",

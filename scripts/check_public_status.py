@@ -144,6 +144,11 @@ STALE_CURRENT_PATTERNS = _legacy_stale_current_patterns()
 RECENT_STALE_CURRENT_PATTERNS = _generated_stale_current_patterns()
 
 UNSAFE_AFFIRMATIVE_PATTERNS = [
+    re.compile(r"\breal[-\s]+book(?:\s+trial)?\s+(?:is\s+)?(?:approved|authorized)\b", re.I),
+    re.compile(r"\breal[-\s]+book\s+mutation\s+(?:is\s+)?(?:approved|authorized)\b", re.I),
+    re.compile(r"\brelease\s+(?:is\s+)?(?:approved|authorized)\b", re.I),
+    re.compile(r"\bpublic\s+write[-\s]+beta\s+(?:approved|authorized)\b", re.I),
+    re.compile(r"\bonly-copy\s+(?:books?\s+)?(?:is\s+|are\s+)?safe\b", re.I),
     re.compile(r"\bpublic\s+writes?\s+(?:is\s+|are\s+)?(?:ready|available|open|enabled|supported)\b", re.I),
     re.compile(r"\bpublic\s+write[-\s]+mode\s+(?:is\s+)?(?:ready|available|open|enabled|supported)\b", re.I),
     re.compile(r"\bpublic\s+write[-\s]+beta\s+(?:is\s+)?(?:ready|available|open|enabled|supported)\b", re.I),

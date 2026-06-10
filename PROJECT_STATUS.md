@@ -11,17 +11,22 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   [CHANGELOG.md](CHANGELOG.md).
 - Current public release status:
   [v0.5.0-public-readonly-beta](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.5.0-public-readonly-beta)
-  remains the public read-only beta; `v0.5.1-public-readonly-beta` is not published.
+  remains the public read-only beta. `v0.5.1-public-readonly-beta` is not published, and
+  `v0.4.0-owner-writebeta` remains unpublished.
 - Current safety posture: writes are disabled by default; see
   [docs/write-alpha/copied-book-write-alpha-posture.md](docs/write-alpha/copied-book-write-alpha-posture.md)
   for controlled-write boundaries.
 - Active issue queue:
   [#36](https://github.com/valentusys/gnucash-web-companion/issues/36) is closed as
   `CLOSE_36_AS_MAINTENANCE_BOUNDARY`; no open-ended controlled-write maintenance queue remains.
-  [#44](https://github.com/valentusys/gnucash-web-companion/issues/44) tracks the owner real-book trial
-  safety model only. [#22](https://github.com/valentusys/gnucash-web-companion/issues/22) and
+  Current active issue is [#44](https://github.com/valentusys/gnucash-web-companion/issues/44),
+  Owner real-book trial safety model. #44 is not mutation approval, release approval, or public write
+  beta approval. [#22](https://github.com/valentusys/gnucash-web-companion/issues/22) and
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) are closed.
-- Latest handoffs/docs: `docs/handoff/owner-real-book-trial-scope-proposal.md`,
+- Latest handoffs/docs: `docs/handoff/issue44-real-book-trial-preparation.md`,
+  `docs/write-alpha/owner-real-book-trial-runbook.md`,
+  `docs/write-alpha/owner-real-book-trial-checklist.md`,
+  `docs/handoff/owner-real-book-trial-scope-proposal.md`,
   `docs/handoff/release-no-release-decision-docs-r4-repeat.md`,
   `docs/handoff/release-no-release-decision-docs-r14.md`,
   `docs/handoff/release-no-release-decision-docs-r13.md`,
@@ -41,8 +46,8 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
 ## Current status snapshot
 
 - Public read-only beta: `v0.5.0-public-readonly-beta` remains current.
-- Not published: `v0.5.1-public-readonly-beta`; no public write beta; no stable, production-ready, or
-  security-audited release claim.
+- Not published: `v0.5.1-public-readonly-beta` and `v0.4.0-owner-writebeta`; no public write beta;
+  no stable, production-ready, or security-audited release claim.
 - Write-mode default: `GNUCASH_WRITES_ENABLED=false` remains default; enabled write-alpha/writebeta
   work remains experimental and `APP_ENV=test` gated.
 - Current controlled-write tracker state: #36 is closed as `CLOSE_36_AS_MAINTENANCE_BOUNDARY`. The W3
@@ -50,7 +55,8 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   exact PM-authorized counts: 2 CREATE, 1 metadata/memo-only PATCH on a write-alpha-created transaction,
   and 1 DELETE of a write-alpha-created disposable transaction. No open-ended maintenance queue remains.
   Future owner-writebeta release-candidate decision or broader write compatibility evidence must be a new
-  issue or explicit owner/PM task; #44 tracks the owner real-book trial safety model only. No release was published;
+  issue or explicit owner/PM task; #44 tracks the owner real-book trial safety model only. #44 is not
+  mutation approval, release approval, or public write beta approval. No release was published;
   `NO_RELEASE` remains current.
 - Current #36 docs reconciliation: owner-writebeta remains maintenance-only and unreleased until
   explicit owner approval. The guard state still requires default `GNUCASH_WRITES_ENABLED=false`,

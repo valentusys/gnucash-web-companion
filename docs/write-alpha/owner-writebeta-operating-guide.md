@@ -4,9 +4,12 @@ Use copied/restorable books only after explicit PM authorization, preflight, ind
 restore-to-copy plan, state-machine readiness, and redacted evidence. Real working-book mutation
 remains blocked until a future exact same-context owner confirmation and PM authorization.
 
-## Current state for #36
+## Current state for #36 and #44
 
-- #36 remains open; this guide is not release approval and not mutation authorization.
+- #36 is closed as `CLOSE_36_AS_MAINTENANCE_BOUNDARY`; this guide is not release approval and not
+  mutation authorization.
+- #44 is the active owner real-book trial safety-model issue; it is not mutation approval, not release
+  approval, and not public write beta approval.
 - #43 is closed after routed copied-book dogfood evidence was accepted narrowly.
 - W3 copied/restorable CREATE/PATCH/DELETE evidence is accepted narrowly for the recorded staged-copy
   scope only.
@@ -47,7 +50,8 @@ same execution context as the operation. The authorization must state:
 4. redaction and evidence-publication limits;
 5. No original/private/real-working/only-copy book is the target.
 
-If authorization is absent, run non-mutating guards/docs/tests only and keep #36 open.
+If authorization is absent, run non-mutating guards/docs/tests only; #36 stays closed as the maintenance
+boundary, and any new real-book trial scope stays under #44.
 
 ## Phase 778 addendum
 

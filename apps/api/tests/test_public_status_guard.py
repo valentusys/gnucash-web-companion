@@ -560,6 +560,37 @@ def test_public_status_guard_rejects_write_beta_ga_and_production_safe_claims():
             raise AssertionError(f"unsafe write beta GA/production-safe claim should fail guard: {unsafe}")
 
 
+def test_public_status_guard_rejects_affirmative_real_book_approval_claims():
+    unsafe_claims = [
+        "Real-book approved.",
+        "Real book trial is authorized.",
+        "Real-book mutation approved.",
+        "Release approved.",
+        "Public write beta approved.",
+        "Only-copy safe.",
+    ]
+
+    for unsafe in unsafe_claims:
+        try:
+            guard.reject_patterns(Path("README.md"), unsafe, guard.UNSAFE_AFFIRMATIVE_PATTERNS)
+        except AssertionError as exc:
+            assert any(
+                marker in str(exc).lower()
+                for marker in ("real", "release", "public", "only-copy")
+            )
+        else:
+            raise AssertionError(f"unsafe approval/safety claim should fail guard: {unsafe}")
+
+
+def test_public_status_guard_accepts_negative_real_book_approval_limitations():
+    safe = (
+        "#44 is not mutation approval, not release approval, and not public write beta approval.\n"
+        "Only-copy books are not safe. Real-book trial is not approved."
+    )
+
+    guard.reject_patterns(Path("README.md"), safe, guard.UNSAFE_AFFIRMATIVE_PATTERNS)
+
+
 def test_public_status_guard_accepts_negative_production_security_limitations():
     safe = "- Not production-ready and not security-audited.\nIs owner-writebeta published? No. It remains unpublished."
 

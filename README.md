@@ -63,6 +63,8 @@ the current write-alpha publication baseline remains Phase 261.
 - **Closed maintenance boundary:** #36 controlled-write readiness is closed as
   `CLOSE_36_AS_MAINTENANCE_BOUNDARY`; it is historical maintenance evidence only, not real-book
   approval.
+- **Current active issue:** #44 Owner real-book trial safety model. #44 is not mutation approval,
+  release approval, or public write beta approval.
 - **Recently closed:** #22 compatibility fixtures, #28 Markdown readability, #13, #41, #42, and #43.
 - **Issue #22 closure:** accepted narrowly for one isolated GnuCash 5.14
   Desktop-generated synthetic SQLite fixture only. It is not a broad Desktop-version, SQL-backend,
@@ -74,8 +76,8 @@ the current write-alpha publication baseline remains Phase 261.
 ## Current queue map
 
 - #36 controlled-write readiness: closed as `CLOSE_36_AS_MAINTENANCE_BOUNDARY`; no open-ended
-  maintenance queue remains. Future owner-writebeta release-candidate decisions or broader compatibility evidence require a new
-  issue and explicit owner/PM scope; #44 tracks the owner real-book trial safety model only.
+  maintenance queue remains. Current active issue is #44 Owner real-book trial safety model.
+  #44 is not mutation approval, release approval, or public write beta approval.
 - #22 compatibility fixtures: closed narrowly for isolated Desktop-generated synthetic SQLite read-only
   evidence only; future Desktop/backend/version fixture expansion remains separate work.
 - #28 Markdown readability: closed after terminal-readability/status guard cleanup.
@@ -437,10 +439,10 @@ the current write-alpha publication baseline remains Phase 261.
   needed/applicable because `v0.1.0-readonly` has not been published; v0.1 publication remains
   blocked by #24/#25, and v0.1.1 should not be considered until after a real v0.1.0 release plus
   post-release maintenance change set exist.
-- Phase 76 completed a v0.2 planning audit and found the project is not ready to create/promote a
-  controlled-writes planning milestone: `v0.1.0-readonly` remains unpublished and blocked by
-  #24/#25, copied-book dogfood evidence is still missing, #36 remains open for v0.2 write-readiness
-  gates, and controlled writes must stay experimental/post-MVP and disabled by default.
+- Phase 76 completed a v0.2 planning audit and found the project was not ready to create/promote a
+  controlled-writes planning milestone: `v0.1.0-readonly` was unpublished and blocked by #24/#25,
+  copied-book dogfood evidence was still missing, and controlled writes had to stay experimental,
+  post-MVP, and disabled by default. Current #36 state is closed as `CLOSE_36_AS_MAINTENANCE_BOUNDARY`.
 - Phase 77 completed a real Docker read-only dogfood attempt on a copied/disposable GnuCash SQL
   book: API login, health, accounts, account detail, transactions, transaction detail,
   search/filter, CSV export, and disabled write-endpoint probes passed with

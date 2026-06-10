@@ -45,13 +45,15 @@ release docs и handoff-файлах, чтобы этот файл не стан
 - real/private/original/only-copy books не являются безопасной write-целью.
 - #36 controlled-write readiness закрыта как `CLOSE_36_AS_MAINTENANCE_BOUNDARY`; это historical
   maintenance evidence only, не approval для real-book mutation.
+- Current active issue is #44 Owner real-book trial safety model. #44 is not mutation approval,
+  release approval, or public write beta approval.
 - Недавно закрытые очереди: #22 compatibility fixtures, #28 markdown readability, #13, #41, #42, #43.
 
 ## Карта открытых очередей
 
 - #36: controlled-write readiness закрыта как `CLOSE_36_AS_MAINTENANCE_BOUNDARY`; open-ended
-  maintenance queue больше нет. Future owner-writebeta release-candidate decision или broader compatibility evidence требуют новой
-  issue и явного owner/PM scope; #44 отслеживает только owner real-book trial safety model.
+  maintenance queue больше нет. Current active issue is #44 Owner real-book trial safety model.
+  #44 is not mutation approval, release approval, or public write beta approval.
 - #22: compatibility fixtures закрыта narrowly for isolated Desktop-generated synthetic SQLite fixture
   read-only evidence only; future Desktop/backend/version fixture expansion остаётся separate work.
 - #28: raw Markdown readability закрыта после terminal-readability/status guard cleanup без whole-repo reflow.
