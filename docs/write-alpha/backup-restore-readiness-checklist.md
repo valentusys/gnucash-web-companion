@@ -37,6 +37,7 @@ For non-mutating readiness maintenance, the reviewer packet is limited to wordin
 - backup manifest and checksum wording must use opaque refs plus redacted status summaries only, never raw paths, filenames, account names, memos, amounts, app DB rows, books, or backup artifacts;
 - proof language must say `docs/tests-only restore-readiness wording check`, not disaster-recovery validation or public write beta readiness;
 - any disabled-write probe described by this packet must remain a documented no-op expectation under `GNUCASH_WRITES_ENABLED=false`, not an executed product mutation;
+- docs/tests-only wording validation must not run backup, restore, GnuCash CLI, app DB inspection, or product dogfood commands; it may only inspect tracked docs/tests and pure guard output;
 - docs/tests-only wording validation is not recovery proof and cannot replace an authorized restore-to-copy drill against a copied/restorable or synthetic/disposable fixture.
 
 ## Default-disabled wording contract
