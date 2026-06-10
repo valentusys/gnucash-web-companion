@@ -240,13 +240,27 @@ def _body_starts_with_direct_raise(statements: list[ast.stmt]) -> bool:
     return bool(statements) and isinstance(statements[0], ast.Raise)
 
 
+def _executable_body(node: ast.FunctionDef | ast.AsyncFunctionDef) -> list[ast.stmt]:
+    """Return function body after skipping an optional docstring."""
+    body = node.body
+    if (
+        body
+        and isinstance(body[0], ast.Expr)
+        and isinstance(body[0].value, ast.Constant)
+        and isinstance(body[0].value.value, str)
+    ):
+        return body[1:]
+    return body
+
+
 def _function_has_disabled_write_rejection_gate(node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
-    """Return whether a function executes fail-closed write-default rejection logic."""
-    return any(
-        isinstance(child, ast.If)
-        and _has_disabled_write_rejection_condition(child.test)
-        and _body_starts_with_direct_raise(child.body)
-        for child in ast.walk(node)
+    """Return whether a helper starts with fail-closed write-default rejection logic."""
+    body = _executable_body(node)
+    return (
+        bool(body)
+        and isinstance(body[0], ast.If)
+        and _has_disabled_write_rejection_condition(body[0].test)
+        and _body_starts_with_direct_raise(body[0].body)
     )
 
 
@@ -266,12 +280,13 @@ def _has_non_test_app_env_rejection_comparison(node: ast.AST) -> bool:
 
 
 def _function_has_non_test_app_env_rejection_gate(node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
-    """Return whether a function executes settings.app_env.lower() != \"test\" gating logic."""
-    return any(
-        isinstance(child, ast.If)
-        and _has_non_test_app_env_rejection_comparison(child.test)
-        and _body_starts_with_direct_raise(child.body)
-        for child in ast.walk(node)
+    """Return whether a helper starts with settings.app_env.lower() != \"test\" gating logic."""
+    body = _executable_body(node)
+    return (
+        bool(body)
+        and isinstance(body[0], ast.If)
+        and _has_non_test_app_env_rejection_comparison(body[0].test)
+        and _body_starts_with_direct_raise(body[0].body)
     )
 
 
