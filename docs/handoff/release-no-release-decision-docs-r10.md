@@ -44,3 +44,15 @@ python3 scripts/check_markdown_readability.py
 python3 scripts/check_tracked_hygiene.py
 git diff --check
 ```
+
+## 2026-06-10 bounded rerun addendum
+
+The rerun kept the same decision: owner-writebeta remains unreleased maintenance
+evidence until explicit owner/PM release-candidate approval names the scope. The
+only safe scoped clarification was to make the source hierarchy explicit: clean
+checks, generated safe-task metadata, historical handoffs, and repeated no-release
+docs cannot be combined into implied release authorization.
+
+No release notes, tag, package, image, announcement, publication checklist,
+GnuCash mutation, private evidence review, write-default change, or public write
+beta claim was added.
