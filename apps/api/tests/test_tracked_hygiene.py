@@ -548,6 +548,7 @@ def test_content_violations_reject_compatibility_guarantee_wording(tmp_path, mon
         "PostgreSQL/MySQL/MariaDB SQL backends are compatible.\n"
         "Broad GnuCash compatibility is verified.\n"
         "GnuCash Desktop 5.12 is verified.\n"
+        "GnuCash Desktop 5.12.1 write-compatible.\n"
         "Verified GnuCash Desktop 5.12.1.\n"
         "Every GnuCash version is supported.\n"
         "Works with every GnuCash Desktop version.\n"
@@ -572,12 +573,13 @@ def test_content_violations_reject_compatibility_guarantee_wording(tmp_path, mon
         "tracked unsafe affirmative wording in compatibility.md:9: PostgreSQL/MySQL/MariaDB SQL backends are compatible.",
         "tracked unsafe affirmative wording in compatibility.md:10: Broad GnuCash compatibility is verified.",
         "tracked unsafe affirmative wording in compatibility.md:11: GnuCash Desktop 5.12 is verified.",
-        "tracked unsafe affirmative wording in compatibility.md:12: Verified GnuCash Desktop 5.12.1.",
-        "tracked unsafe affirmative wording in compatibility.md:13: Every GnuCash version is supported.",
-        "tracked unsafe affirmative wording in compatibility.md:14: Works with every GnuCash Desktop version.",
-        "tracked unsafe affirmative wording in compatibility.md:15: Tested across every GnuCash SQL backend.",
-        "tracked unsafe affirmative wording in compatibility.md:16: Compatible with every GnuCash Desktop version.",
-        "tracked unsafe affirmative wording in compatibility.md:17: Every GnuCash Desktop version is write-compatible.",
+        "tracked unsafe affirmative wording in compatibility.md:12: GnuCash Desktop 5.12.1 write-compatible.",
+        "tracked unsafe affirmative wording in compatibility.md:13: Verified GnuCash Desktop 5.12.1.",
+        "tracked unsafe affirmative wording in compatibility.md:14: Every GnuCash version is supported.",
+        "tracked unsafe affirmative wording in compatibility.md:15: Works with every GnuCash Desktop version.",
+        "tracked unsafe affirmative wording in compatibility.md:16: Tested across every GnuCash SQL backend.",
+        "tracked unsafe affirmative wording in compatibility.md:17: Compatible with every GnuCash Desktop version.",
+        "tracked unsafe affirmative wording in compatibility.md:18: Every GnuCash Desktop version is write-compatible.",
     ]
 
 

@@ -207,6 +207,7 @@ UNSAFE_AFFIRMATIVE_PATTERNS = [
     re.compile(r"\b(?:fully|guaranteed)\s+compatible\s+with\s+GnuCash\s+(?:Desktop\s+)?(?:versions?|releases?|books?|SQL\s+books?)\b", re.I),
     re.compile(r"\bproduction[- ]ready\s+compatibility\b", re.I),
     re.compile(r"\b(?:validated|verified|tested)\s+(?:against|across|on)\s+(?:all|any|every)\s+GnuCash\s+(?:Desktop\s+)?(?:versions?|releases?|books?|SQL\s+books?|SQL\s+backends?|backends?)\b", re.I),
+    re.compile(r"\bGnuCash\s+Desktop\s+\d+(?:\.\d+){1,3}\s+write[- ]compatible\b", re.I),
     re.compile(r"\bworks\s+with\s+(?:all|any|every)\s+GnuCash\s+(?:Desktop\s+)?versions?\b", re.I),
     re.compile(r"\b(?:real/private|private|real|only-copy)\s+(?:book\s+)?write[- ]safety\s+(?:is\s+)?(?:proven|verified|validated|confirmed|ready|safe)\b", re.I),
     re.compile(r"\b(?:real/private|private|real|original|only-copy)\s+(?:book\s+)?safety\s+(?:is\s+)?(?:proven|verified|validated|confirmed|ready|safe)\b", re.I),
@@ -224,6 +225,7 @@ COMPATIBILITY_REQUIRED_FRAGMENTS = [
 ]
 COMPATIBILITY_UNSAFE_CLAIM_PATTERNS = [
     re.compile(r"\bGnuCash\s+Desktop\s+\d+(?:\.\d+){1,3}\s+(?:is\s+)?(?:supported|compatible|validated|verified|confirmed)\b", re.I),
+    re.compile(r"\bGnuCash\s+Desktop\s+\d+(?:\.\d+){1,3}\s+write[- ]compatible\b", re.I),
     re.compile(r"\b(?:supports|validated|verified|confirmed)\s+GnuCash\s+Desktop\s+\d+(?:\.\d+){1,3}\b", re.I),
     re.compile(r"\bDesktop-version\s+support\b", re.I),
     re.compile(r"\bPostgreSQL/MySQL/MariaDB\s+supported\b", re.I),

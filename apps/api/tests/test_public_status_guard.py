@@ -47,6 +47,7 @@ def test_compatibility_status_guard_rejects_desktop_or_backend_support_claims() 
     PostgreSQL/MySQL/MariaDB GnuCash backends are unclaimed.
     No broad GnuCash Desktop version support is claimed.
     GnuCash Desktop 5.10 is supported and PostgreSQL/MySQL/MariaDB supported.
+    GnuCash Desktop 5.12 write-compatible.
     """
 
     try:
@@ -691,6 +692,7 @@ def test_public_status_guard_rejects_compatibility_guarantee_wording():
         "Guaranteed compatible with GnuCash SQL books.",
         "Production-ready compatibility for write beta.",
         "All SQL backends are supported.",
+        "GnuCash Desktop 5.12.1 write-compatible.",
     ]
 
     for unsafe in unsafe_claims:
