@@ -730,6 +730,34 @@ def test_restore_safety_boundary_keeps_docs_tests_only_review_non_operational():
         assert pattern in text
 
 
+def test_restore_verification_harness_keeps_docs_tests_only_citation_non_operational():
+    doc = REPO_ROOT / "docs/write-alpha/restore-verification-harness.md"
+
+    text = doc.read_text(encoding="utf-8")
+
+    required = [
+        "docs/tests-only readiness tasks may cite this harness as a future operator tool",
+        "not harness execution and not restore proof",
+        "NOT_RESTORE_DRILL",
+        "NO_BACKUP_ARTIFACT_CREATED",
+        "DO_NOT_ENABLE_WRITES",
+        "NO_PRIVATE_DATA_REVIEWED",
+        "do not run this harness",
+        "do not create a backup",
+        "do not overwrite or open a book",
+        "do not inspect app DB rows or runtime logs",
+        "do not paste raw manifest output, checksum lines, filenames, private paths, account names, transaction descriptions, memos, amounts, screenshots, exports, app DB rows, books, backups, or runtime artifacts",
+        "documented no-op expectation under `GNUCASH_WRITES_ENABLED=false`",
+        "not an executed mutation, recovery check, disaster-recovery validation, public write beta readiness claim",
+        "broad compatibility claim",
+        "only-copy safety claim",
+        "Run this only after a separately authorized bounded CREATE-only copied-book dogfood step",
+        "does not prove broad disaster recovery, production readiness, public-internet safety, security, broad compatibility, only-copy safety, or real/private-book write safety",
+    ]
+    for pattern in required:
+        assert pattern in text
+
+
 def test_render_prompt_for_backup_restore_readiness_docs_task_keeps_non_mutating_bounds():
     task = supervisor.Task(
         task_id="backup-restore-readiness-docs-tests-r7",

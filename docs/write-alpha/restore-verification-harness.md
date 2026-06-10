@@ -65,8 +65,16 @@ The evidence file records only redacted fields:
 
 It does not include raw paths, filenames, account names, transaction descriptions, split memos, amounts, API response bodies, Desktop output, screenshots, CSV rows, app DBs, books, backups, `.env`, tokens, keys, or certs.
 
+## Docs/tests-only citation boundary
+
+Generated docs/tests-only readiness tasks may cite this harness as a future operator tool, but that citation is not harness execution and not restore proof. A wording-only task must state `NOT_RESTORE_DRILL`, `NO_BACKUP_ARTIFACT_CREATED`, `DO_NOT_ENABLE_WRITES`, and `NO_PRIVATE_DATA_REVIEWED` when true.
+
+For docs/tests-only maintenance, do not run this harness, do not create a backup, do not overwrite or open a book, do not inspect app DB rows or runtime logs, and do not paste raw manifest output, checksum lines, filenames, private paths, account names, transaction descriptions, memos, amounts, screenshots, exports, app DB rows, books, backups, or runtime artifacts.
+
+A docs/tests-only disabled-write reset probe remains a documented no-op expectation under `GNUCASH_WRITES_ENABLED=false`; it is not an executed mutation, recovery check, disaster-recovery validation, public write beta readiness claim, broad compatibility claim, production safety claim, security-audited claim, or only-copy safety claim.
+
 ## Relationship to copied-book dogfood
 
-Run this after a bounded CREATE-only copied-book dogfood step and after the Phase 256 compatibility check. If a later phase explicitly authorizes PATCH or DELETE on a write-alpha-created test transaction, run restore verification after that mutation too.
+Run this only after a separately authorized bounded CREATE-only copied-book dogfood step and after the Phase 256 compatibility check. If a later phase explicitly authorizes PATCH or DELETE on a write-alpha-created test transaction, run restore verification after that mutation too.
 
-A successful restore proof only says the copied/disposable working book was restored from the provided backup in this local run. It does not prove broad disaster recovery, production readiness, public-internet safety, security, or real/private-book write safety.
+A successful restore proof only says the copied/disposable working book was restored from the provided backup in this local run. It does not prove broad disaster recovery, production readiness, public-internet safety, security, broad compatibility, only-copy safety, or real/private-book write safety.
