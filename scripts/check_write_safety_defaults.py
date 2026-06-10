@@ -762,8 +762,8 @@ def _compose_inline_environment_entries(value: str) -> list[str]:
             key, entry_value = item.split(":", 1)
             key = _strip_yaml_inline_quotes(key)
             entry_value = _strip_yaml_inline_quotes(entry_value)
-            if key and entry_value:
-                entries.append(f"{key}={entry_value}")
+            if key:
+                entries.append(f"{key}={entry_value}" if entry_value else key)
         return entries
     return []
 
@@ -829,6 +829,8 @@ def _compose_service_environment_lines(compose_text: str, service_name: str) -> 
                 environment_lines.append(
                     f"{_strip_yaml_inline_quotes(key)}={_strip_yaml_inline_quotes(value)}"
                 )
+            elif key:
+                environment_lines.append(_strip_yaml_inline_quotes(key))
     return environment_lines
 
 
@@ -865,6 +867,17 @@ def _compose_service_environment_values(environment_lines: list[str], key: str) 
     ]
 
 
+def _compose_service_environment_has_bare_key(environment_lines: list[str], key: str) -> bool:
+    """Return whether Compose would inherit a guarded variable from the host.
+
+    Compose list entries like ``- APP_ENV`` and mapping entries like
+    ``APP_ENV:`` do not pin a safe default; they pass through the host value
+    when present. For write-safety variables that can silently turn a service
+    into enabled-write/test mode, so reject them explicitly.
+    """
+    return any(_strip_yaml_inline_quotes(line).strip() == key for line in environment_lines)
+
+
 def _compose_app_env_value_defaults_to_test(value: str) -> bool:
     normalized = _strip_yaml_inline_quotes(value).strip().lower().replace(" ", "")
     return normalized in {"test", "${app_env:-test}", "${app_env-test}", "${app_env:=test}"}
@@ -895,6 +908,14 @@ def _check_compose_all_service_env_safe(compose_text: str) -> list[str]:
         environment_lines = _compose_service_environment_lines(compose_text, service_name)
         write_values = _compose_service_environment_values(environment_lines, "GNUCASH_WRITES_ENABLED")
         app_env_values = _compose_service_environment_values(environment_lines, "APP_ENV")
+        if _compose_service_environment_has_bare_key(environment_lines, "GNUCASH_WRITES_ENABLED"):
+            failures.append(
+                f"Docker Compose {service_name} service must not inherit GNUCASH_WRITES_ENABLED from host environment"
+            )
+        if _compose_service_environment_has_bare_key(environment_lines, "APP_ENV"):
+            failures.append(
+                f"Docker Compose {service_name} service must not inherit APP_ENV from host environment"
+            )
         if any(value != "${GNUCASH_WRITES_ENABLED:-false}" for value in write_values):
             failures.append(
                 f"Docker Compose {service_name} service must not include alternate GNUCASH_WRITES_ENABLED defaults"

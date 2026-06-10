@@ -355,6 +355,61 @@ def test_compose_service_environment_lines_supports_inline_mapping_form() -> Non
     assert "GNUCASH_WRITES_ENABLED=${GNUCASH_WRITES_ENABLED:-false}" in environment
 
 
+def test_compose_service_environment_lines_preserves_bare_guarded_keys() -> None:
+    compose_text = (
+        "services:\n"
+        "  api:\n"
+        "    environment:\n"
+        "      - APP_ENV\n"
+        "      GNUCASH_WRITES_ENABLED:\n"
+        "  worker:\n"
+        "    environment: {APP_ENV: , GNUCASH_WRITES_ENABLED:}\n"
+    )
+
+    api_environment = write_safety_guard._compose_service_environment_lines(compose_text, "api")
+    worker_environment = write_safety_guard._compose_service_environment_lines(compose_text, "worker")
+
+    assert "APP_ENV" in api_environment
+    assert "GNUCASH_WRITES_ENABLED" in api_environment
+    assert "APP_ENV" in worker_environment
+    assert "GNUCASH_WRITES_ENABLED" in worker_environment
+
+
+def test_write_safety_defaults_guard_rejects_bare_compose_guarded_keys_in_any_service(
+    tmp_path: Path,
+) -> None:
+    env_example = tmp_path / ".env.example"
+    compose = tmp_path / "docker-compose.yml"
+    status_doc = tmp_path / "status.md"
+    env_example.write_text("APP_ENV=development\nGNUCASH_WRITES_ENABLED=false\n", encoding="utf-8")
+    compose.write_text(
+        "services:\n"
+        "  api:\n"
+        "    environment:\n"
+        "      - APP_ENV=${APP_ENV:-development}\n"
+        "      - GNUCASH_WRITES_ENABLED=${GNUCASH_WRITES_ENABLED:-false}\n"
+        "  worker:\n"
+        "    environment:\n"
+        "      - APP_ENV\n"
+        "      GNUCASH_WRITES_ENABLED:\n",
+        encoding="utf-8",
+    )
+    status_doc.write_text(
+        "Enabled write-alpha remains APP_ENV=test gated, requires explicit write enablement, "
+        "and reset/default-disabled disabled-probe evidence.\n",
+        encoding="utf-8",
+    )
+
+    failures = write_safety_guard._check(env_example, compose, status_doc, checklist_doc=None)
+
+    assert any("worker service" in failure and "inherit APP_ENV" in failure for failure in failures)
+    assert any(
+        "worker service" in failure and "inherit GNUCASH_WRITES_ENABLED" in failure
+        for failure in failures
+    )
+    assert str(tmp_path) not in "; ".join(failures)
+
+
 def test_write_safety_defaults_guard_rejects_inline_mapping_write_enablement_in_any_compose_service(
     tmp_path: Path,
 ) -> None:
