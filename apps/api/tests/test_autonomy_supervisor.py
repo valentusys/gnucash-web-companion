@@ -502,6 +502,8 @@ def test_generated_policy_rejects_write_enabled_or_dogfood_verification_commands
         "env GNUCASH_WRITES_ENABLED=1 APP_ENV=test pytest tests/test_write_routes.py",
         "python3 scripts/owner_write_session_preflight.py --target copied-book",
         "python3 scripts/dogfood/run_owner_writebeta.py",
+        "gh api repos/example/project/git/refs -f ref=refs/tags/v0.4.0-owner-writebeta",
+        "gh api /repos/example/project/git/tags -f tag=v0.4.0-owner-writebeta",
     )
     for command in unsafe_commands:
         policy = write_policy(
