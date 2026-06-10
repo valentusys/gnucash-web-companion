@@ -208,6 +208,32 @@ def test_content_violations_reject_private_scoped_path_markers(tmp_path, monkeyp
     ]
 
 
+def test_content_violations_reject_export_screenshot_and_raw_evidence_path_markers(tmp_path, monkeypatch):
+    sample = tmp_path / "handoff.md"
+    sample.write_text(
+        "RAW_EVIDENCE_PATH=/redacted\n"
+        "EXPORT_PATH: /redacted/export.csv\n"
+        "CSV_EXPORT_PATH=/redacted/export.csv\n"
+        "SCREENSHOT_PATH: /redacted/screen.png\n"
+        "PRIVATE_SCREENSHOT_PATH=/redacted/screen.png\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
+
+    assert guard.content_violations([sample]) == [
+        "tracked raw private-evidence marker 'RAW_EVIDENCE_PATH=' in: handoff.md",
+        "tracked raw private-evidence marker 'EXPORT_PATH:' in: handoff.md",
+        "tracked raw private-evidence marker 'CSV_EXPORT_PATH=' in: handoff.md",
+        "tracked raw private-evidence marker 'SCREENSHOT_PATH:' in: handoff.md",
+        "tracked raw private-evidence marker 'PRIVATE_SCREENSHOT_PATH=' in: handoff.md",
+        "tracked raw private-evidence label in handoff.md:1: RAW_EVIDENCE_PATH=/redacted",
+        "tracked raw private-evidence label in handoff.md:2: EXPORT_PATH: /redacted/export.csv",
+        "tracked raw private-evidence label in handoff.md:3: CSV_EXPORT_PATH=/redacted/export.csv",
+        "tracked raw private-evidence label in handoff.md:4: SCREENSHOT_PATH: /redacted/screen.png",
+        "tracked raw private-evidence label in handoff.md:5: PRIVATE_SCREENSHOT_PATH=/redacted/screen.png",
+    ]
+
+
 def test_content_violations_reject_human_written_private_evidence_labels(tmp_path, monkeypatch):
     sample = tmp_path / "public-report.md"
     sample.write_text(
@@ -230,6 +256,13 @@ def test_content_violations_reject_human_written_private_evidence_labels(tmp_pat
         "Report path: /redacted\n"
         "Output path: /redacted\n"
         "Log path: /redacted\n"
+        "Raw evidence path: /redacted\n"
+        "Export path: /redacted/export.csv\n"
+        "CSV export path: /redacted/export.csv\n"
+        "Screenshot path: /redacted/screen.png\n"
+        "Private screenshot path: /redacted/screen.png\n"
+        "Image path: /redacted/screen.png\n"
+        "Artifact path: /redacted/artifact.txt\n"
         "Real account name: Redacted Account\n"
         "Account name: Redacted Account\n"
         "Account description: Redacted account description\n"
@@ -265,15 +298,22 @@ def test_content_violations_reject_human_written_private_evidence_labels(tmp_pat
         "tracked raw private-evidence label in public-report.md:17: Report path: /redacted",
         "tracked raw private-evidence label in public-report.md:18: Output path: /redacted",
         "tracked raw private-evidence label in public-report.md:19: Log path: /redacted",
-        "tracked raw private-evidence label in public-report.md:20: Real account name: Redacted Account",
-        "tracked raw private-evidence label in public-report.md:21: Account name: Redacted Account",
-        "tracked raw private-evidence label in public-report.md:22: Account description: Redacted account description",
-        "tracked raw private-evidence label in public-report.md:23: Private account description: Redacted account description",
-        "tracked raw private-evidence label in public-report.md:24: Memo: Redacted memo",
-        "tracked raw private-evidence label in public-report.md:25: Amount: 0.00",
-        "tracked raw private-evidence label in public-report.md:26: Balance: 0.00",
-        "tracked raw private-evidence label in public-report.md:27: Account balance: 0.00",
-        "tracked raw private-evidence label in public-report.md:28: Transaction amount: 0.00",
+        "tracked raw private-evidence label in public-report.md:20: Raw evidence path: /redacted",
+        "tracked raw private-evidence label in public-report.md:21: Export path: /redacted/export.csv",
+        "tracked raw private-evidence label in public-report.md:22: CSV export path: /redacted/export.csv",
+        "tracked raw private-evidence label in public-report.md:23: Screenshot path: /redacted/screen.png",
+        "tracked raw private-evidence label in public-report.md:24: Private screenshot path: /redacted/screen.png",
+        "tracked raw private-evidence label in public-report.md:25: Image path: /redacted/screen.png",
+        "tracked raw private-evidence label in public-report.md:26: Artifact path: /redacted/artifact.txt",
+        "tracked raw private-evidence label in public-report.md:27: Real account name: Redacted Account",
+        "tracked raw private-evidence label in public-report.md:28: Account name: Redacted Account",
+        "tracked raw private-evidence label in public-report.md:29: Account description: Redacted account description",
+        "tracked raw private-evidence label in public-report.md:30: Private account description: Redacted account description",
+        "tracked raw private-evidence label in public-report.md:31: Memo: Redacted memo",
+        "tracked raw private-evidence label in public-report.md:32: Amount: 0.00",
+        "tracked raw private-evidence label in public-report.md:33: Balance: 0.00",
+        "tracked raw private-evidence label in public-report.md:34: Account balance: 0.00",
+        "tracked raw private-evidence label in public-report.md:35: Transaction amount: 0.00",
     ]
 
 
@@ -447,7 +487,8 @@ def test_content_violations_reject_compatibility_guarantee_wording(tmp_path, mon
         "Every GnuCash version is supported.\n"
         "Works with every GnuCash Desktop version.\n"
         "Tested across every GnuCash SQL backend.\n"
-        "Compatible with every GnuCash Desktop version.\n",
+        "Compatible with every GnuCash Desktop version.\n"
+        "Every GnuCash Desktop version is write-compatible.\n",
         encoding="utf-8",
     )
     monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
@@ -471,6 +512,7 @@ def test_content_violations_reject_compatibility_guarantee_wording(tmp_path, mon
         "tracked unsafe affirmative wording in compatibility.md:14: Works with every GnuCash Desktop version.",
         "tracked unsafe affirmative wording in compatibility.md:15: Tested across every GnuCash SQL backend.",
         "tracked unsafe affirmative wording in compatibility.md:16: Compatible with every GnuCash Desktop version.",
+        "tracked unsafe affirmative wording in compatibility.md:17: Every GnuCash Desktop version is write-compatible.",
     ]
 
 
