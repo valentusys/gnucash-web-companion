@@ -414,8 +414,14 @@ def _balanced_transaction_payload():
 class TestWritesDisabledByDefault:
     """MVP v0.1 must remain read-only unless post-MVP writes are explicitly enabled."""
 
-    def test_settings_default_keeps_writes_disabled(self):
-        assert Settings().gnucash_writes_enabled is False
+    def test_settings_default_keeps_writes_disabled_and_non_test(self, monkeypatch):
+        monkeypatch.delenv("GNUCASH_WRITES_ENABLED", raising=False)
+        monkeypatch.delenv("APP_ENV", raising=False)
+
+        settings = Settings()
+
+        assert settings.gnucash_writes_enabled is False
+        assert settings.app_env == "development"
 
     def test_repository_default_configuration_keeps_writes_disabled(self):
         env_example = (REPO_ROOT / ".env.example").read_text()
@@ -423,6 +429,51 @@ class TestWritesDisabledByDefault:
 
         assert "GNUCASH_WRITES_ENABLED=false" in env_example
         assert "GNUCASH_WRITES_ENABLED=${GNUCASH_WRITES_ENABLED:-false}" in compose
+
+    def test_default_runtime_settings_short_circuit_before_app_env_gate_and_book_resolution(
+        self,
+        client,
+        auth_headers,
+        monkeypatch,
+    ):
+        """Default Settings are development/read-only and must fail closed before resolving a book."""
+        monkeypatch.delenv("GNUCASH_WRITES_ENABLED", raising=False)
+        monkeypatch.delenv("APP_ENV", raising=False)
+        resolved_books = []
+        write_services = []
+
+        def forbidden_book_resolution(*args, **kwargs):
+            resolved_books.append((args, kwargs))
+            raise AssertionError("default-disabled writes must not resolve books")
+
+        def forbidden_write_service(*args, **kwargs):
+            write_services.append((args, kwargs))
+            raise AssertionError("default-disabled writes must not construct write services")
+
+        default_runtime_settings = Settings(
+            app_database_url="sqlite:///:memory:",
+            jwt_secret="test-secret-key-for-unit-tests-32-bytes-minimum",
+            jwt_token_expire_minutes=30,
+            app_admin_username="admin",
+            app_admin_password="testpassword123",
+        )
+        assert default_runtime_settings.gnucash_writes_enabled is False
+        assert default_runtime_settings.app_env == "development"
+        app.dependency_overrides[get_settings] = lambda: default_runtime_settings
+        monkeypatch.setattr("app.routers.transactions._resolve_viewable_book", forbidden_book_resolution)
+        monkeypatch.setattr("app.routers.transactions._write_service_for", forbidden_write_service)
+
+        response = client.post(
+            "/books/999/transactions/validate",
+            json=_balanced_transaction_payload(),
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 403
+        assert "read-only" in response.json()["detail"]
+        assert "test" not in response.json()["detail"].lower()
+        assert resolved_books == []
+        assert write_services == []
 
     @pytest.fixture
     def fail_if_write_service_is_constructed(self, monkeypatch):
