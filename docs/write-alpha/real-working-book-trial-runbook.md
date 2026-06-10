@@ -684,6 +684,32 @@ stop before mutation and request a new exact owner and PM approval packet. Resum
 state is never permission to open, copy, inspect, dogfood, or mutate a real,
 private, original, working, or only-copy book.
 
+## R14 pre-trial operator isolation gate
+
+A future real working-book packet must identify the operator environment before
+any approval can be used to arm writes. The gate is a blocker check only and must
+record redacted pass/fail status for:
+
+1. Repository isolation: the trial workspace is not the owner-only source of any
+   book, backup, app DB, export, screenshot, `.env`, token, key, cert, or raw
+   private evidence.
+2. Runtime isolation: the temporary write-enabled runtime, if ever approved, is
+   limited to `APP_ENV=test` and has a named reset step back to default-disabled
+   writes.
+3. Artifact isolation: raw logs, temporary evidence, restored copies, and backup
+   material stay outside tracked files and outside public status reports.
+4. Operator continuity: the operator can prove the latest owner and PM approvals,
+   packet version, rollback proof, reset proof, and evidence shape are still the
+   same-context inputs for this one packet.
+5. Stop authority: any isolation failure immediately returns the packet to
+   blocked status before mutation, without compensating writes, dogfood, release
+   publication, or public write beta wording.
+
+If any isolation row is missing, stale, mismatched, or dependent on private
+tracked evidence, the future trial remains blocked. Do not repair isolation by
+opening, copying, inspecting, or mutating a real/private/original/working/
+only-copy book.
+
 ## Stop result for the current task
 
 For issue #36, this runbook records that a real working-book trial remains
