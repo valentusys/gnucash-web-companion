@@ -3,7 +3,7 @@
 Before any write the operator must see:
 - target class: copied/restorable or future PM-authorized working copy;
 - backup class: independent/outside app or blocked;
-- restore readiness: verified helper plus dry-run/restore-to-copy plan;
+- restore readiness: verified helper availability plus a documented no-op dry-run/restore-to-copy plan; docs/tests-only maintenance must not run restore commands;
 - Desktop closed confirmation requirement;
 - default posture: `GNUCASH_WRITES_ENABLED=false` until an explicitly authorized, `APP_ENV=test`-gated write session is armed;
 - stop condition if restore cannot be proven.

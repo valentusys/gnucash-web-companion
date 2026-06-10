@@ -281,6 +281,7 @@ def test_backup_restore_docs_only_copy_keeps_negative_non_operational_labels():
     assert "must not create backup artifacts" in combined
     assert "must not create backup artifacts, restore artifacts, app DB records" in combined
     assert "must not run backup, restore, GnuCash CLI, app DB inspection, or product dogfood commands" in combined
+    assert "docs/tests-only maintenance must not run restore commands" in combined
     assert "must not overwrite the current copied fixture, original book, working book, or only-copy book" in combined
     assert "must not change the default disabled state or invite retrying on the same copy" in combined
     assert "`GNUCASH_WRITES_ENABLED=false` remains the default" in combined
