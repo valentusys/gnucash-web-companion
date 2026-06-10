@@ -30,6 +30,8 @@ OWNER_WRITEBETA_HANDOFF_R10 = ROOT / "docs/handoff/issue36-owner-writebeta-remai
 OWNER_WRITEBETA_HANDOFF_R11 = ROOT / "docs/handoff/issue36-owner-writebeta-remaining-gates-audit-r11.md"
 OWNER_WRITEBETA_HANDOFF_R12 = ROOT / "docs/handoff/issue36-owner-writebeta-remaining-gates-audit-r12.md"
 OWNER_WRITEBETA_HANDOFF_R13 = ROOT / "docs/handoff/issue36-owner-writebeta-remaining-gates-audit-r13.md"
+REAL_BOOK_BLOCKER_RUNBOOK_R14 = ROOT / "docs/handoff/issue36-real-working-book-trial-blocker-runbook-r14.md"
+REAL_BOOK_BLOCKER_RUNBOOK_R15 = ROOT / "docs/handoff/issue36-real-working-book-trial-blocker-runbook-r15.md"
 ISSUE_28_CLOSURE_AUDIT = ROOT / "docs/development/issue-28-closure-audit.md"
 PUBLIC_FEEDBACK_PACKET = ROOT / "docs/community/public-readonly-beta-feedback-packet.md"
 
@@ -200,6 +202,8 @@ def test_issue_36_owner_writebeta_docs_are_in_default_readability_guard() -> Non
         "docs/handoff/issue36-owner-writebeta-remaining-gates-audit-r11.md": OWNER_WRITEBETA_HANDOFF_R11,
         "docs/handoff/issue36-owner-writebeta-remaining-gates-audit-r12.md": OWNER_WRITEBETA_HANDOFF_R12,
         "docs/handoff/issue36-owner-writebeta-remaining-gates-audit-r13.md": OWNER_WRITEBETA_HANDOFF_R13,
+        "docs/handoff/issue36-real-working-book-trial-blocker-runbook-r14.md": REAL_BOOK_BLOCKER_RUNBOOK_R14,
+        "docs/handoff/issue36-real-working-book-trial-blocker-runbook-r15.md": REAL_BOOK_BLOCKER_RUNBOOK_R15,
     }
 
     for rel in guarded_docs:
