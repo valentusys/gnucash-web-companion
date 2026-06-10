@@ -15,9 +15,10 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
 - Current safety posture: writes are disabled by default; see
   [docs/write-alpha/copied-book-write-alpha-posture.md](docs/write-alpha/copied-book-write-alpha-posture.md)
   for controlled-write boundaries.
-- Active issue queue: #36 is closed as `CLOSE_36_AS_MAINTENANCE_BOUNDARY`;
-  [#22](https://github.com/valentusys/gnucash-web-companion/issues/22) and
-  [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) are closed.
+- Active issue queue:
+  [#36](https://github.com/valentusys/gnucash-web-companion/issues/36) is closed as
+  `CLOSE_36_AS_MAINTENANCE_BOUNDARY`; [#22](https://github.com/valentusys/gnucash-web-companion/issues/22)
+  and [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) are closed.
 - Latest handoffs/docs: `docs/handoff/release-no-release-decision-docs-r4-repeat.md`,
   `docs/handoff/release-no-release-decision-docs-r14.md`,
   `docs/handoff/release-no-release-decision-docs-r13.md`,
