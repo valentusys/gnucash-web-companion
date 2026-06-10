@@ -250,6 +250,40 @@ def test_backup_restore_docs_only_prompt_keeps_non_mutating_boundaries():
     assert "NO_PRIVATE_DATA_REVIEWED" in prompt
 
 
+def test_backup_restore_docs_only_copy_keeps_negative_non_operational_labels():
+    checklist = (REPO_ROOT / "docs/write-alpha/backup-restore-readiness-checklist.md").read_text(
+        encoding="utf-8"
+    )
+    ux_copy = (REPO_ROOT / "docs/write-alpha/backup-restore-ux-design.md").read_text(
+        encoding="utf-8"
+    )
+    combined = f"{checklist}\n{ux_copy}"
+
+    for required in [
+        "docs/tests-only restore-readiness wording check",
+        "NOT_RESTORE_DRILL",
+        "NO_BACKUP_ARTIFACT_CREATED",
+        "DO_NOT_ENABLE_WRITES",
+        "NO_PRIVATE_DATA_REVIEWED",
+        "restore_drill_performed=false",
+        "backup_artifact_created=false",
+        "private_data_reviewed=false",
+        "writes_enabled_or_app_env_gate_relaxed=false",
+        "runtime_backup_manifest_reviewed=false",
+        "restore_target_opened=false",
+        "app_db_opened_or_modified=false",
+    ]:
+        assert required in combined
+
+    assert "not recovery proof" in combined
+    assert "not disaster-recovery validation" in combined
+    assert "public write beta readiness" in combined
+    assert "must not create backup artifacts" in combined
+    assert "must not create backup artifacts, restore artifacts, app DB records" in combined
+    assert "`GNUCASH_WRITES_ENABLED=false` remains the default" in combined
+    assert "`APP_ENV=test` write gate was not relaxed" in combined
+
+
 def test_dry_run_renders_prompts_and_continues_after_early_success(tmp_path):
     queue = write_queue(tmp_path)
     git = FakeGit([""])
