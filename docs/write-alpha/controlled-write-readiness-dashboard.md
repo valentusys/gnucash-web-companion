@@ -7,7 +7,8 @@ It is not release approval and not authorization to mutate any book.
 
 - Release decision: NO_RELEASE.
 - Public posture: no public write beta; no stable, production-ready, or security-audited
-  claim; no broad compatibility claim; no only-copy safety claim.
+  claim; no broad compatibility claim; no real/private/original/working/only-copy safety claim,
+  including no only-copy safety claim.
 - Defaults: `GNUCASH_WRITES_ENABLED=false` remains default and enabled write-alpha/writebeta routes remain `APP_ENV=test` gated.
 - Mutation counts for this dashboard package: CREATE 0 / PATCH 0 / DELETE 0.
 - Book boundary: no original, private, real working, or only-copy GnuCash book is a safe write target.

@@ -98,8 +98,9 @@ one of the allowed release decisions. That gate must preserve all of these const
 
 - owner-only scope, not public write beta;
 - default `GNUCASH_WRITES_ENABLED=false` and enabled write-alpha/writebeta `APP_ENV=test` gate;
-- no stable, production-ready, security-audited, hosted-SaaS, or public-internet safety claim;
-- no real/private/original/working/only-copy first-use mutation claim;
+- no stable, production-ready, or security-audited claim;
+- no hosted-SaaS or public-internet safety claim;
+- no real/private/original/working/only-copy safety claim or first-use mutation claim;
 - W3 evidence described only as staged copied/restorable evidence;
 - exact blockers for supported-version compatibility and real working-book owner decision.
 
