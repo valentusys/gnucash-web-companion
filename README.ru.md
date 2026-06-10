@@ -43,21 +43,18 @@ release docs и handoff-файлах, чтобы этот файл не стан
 - Controlled-write код, если присутствует, является experimental post-MVP/write-alpha,
   отключён по умолчанию и дополнительно ограничен backend `APP_ENV=test` gate при явном включении.
 - real/private/original/only-copy books не являются безопасной write-целью.
-- Open queues: #22 compatibility fixtures, #28 markdown readability, #36 controlled-write
-  readiness gates. #28 продолжается как постепенная cleanup-задача без whole-repo reflow.
-- Недавно закрытые очереди: #13, #41, #42, #43.
+- #36 controlled-write readiness закрыта как `CLOSE_36_AS_MAINTENANCE_BOUNDARY`; это historical
+  maintenance evidence only, не approval для real-book mutation.
+- Недавно закрытые очереди: #22 compatibility fixtures, #28 markdown readability, #13, #41, #42, #43.
 
-## Карта открытых очередей
+## Карта очередей
 
-- #22: compatibility fixtures. Открыта до появления isolated disposable
-  Desktop-generated synthetic SQLite fixture evidence; real/private/original/only-copy books не
-  подходят для этого evidence.
-- #28: raw Markdown readability. Цель — сделать публичные/status docs удобными для review в
-  терминале, без массового переписывания исторических handoff/release файлов и без ослабления
-  safety/no-release wording.
-- #36: controlled-write readiness. Открыта до принятия remaining gates: supported-version write
-  compatibility, future copied/restorable authorization packet, restore evidence boundaries,
-  `GNUCASH_WRITES_ENABLED=false`, `APP_ENV=test`, and NO_RELEASE posture.
+- #36: controlled-write readiness закрыта как `CLOSE_36_AS_MAINTENANCE_BOUNDARY`; open-ended
+  maintenance queue больше нет. Future owner-writebeta release-candidate decision или broader compatibility evidence требуют новой
+  issue и явного owner/PM scope; #44 отслеживает только owner real-book trial safety model.
+- #22: compatibility fixtures закрыта narrowly for isolated Desktop-generated synthetic SQLite
+  read-only evidence only; future Desktop/backend/version fixture expansion остаётся separate work.
+- #28: raw Markdown readability закрыта после terminal-readability/status guard cleanup.
 
 ## Где смотреть подробности
 

@@ -1,6 +1,6 @@
 # PROJECT_STATUS
 
-Last updated: 2026-06-10
+Last updated: 2026-06-11
 
 ## Quick navigation
 
@@ -17,9 +17,12 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   for controlled-write boundaries.
 - Active issue queue:
   [#36](https://github.com/valentusys/gnucash-web-companion/issues/36) is closed as
-  `CLOSE_36_AS_MAINTENANCE_BOUNDARY`; [#22](https://github.com/valentusys/gnucash-web-companion/issues/22)
-  and [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) are closed.
-- Latest handoffs/docs: `docs/handoff/release-no-release-decision-docs-r4-repeat.md`,
+  `CLOSE_36_AS_MAINTENANCE_BOUNDARY`; no open-ended controlled-write maintenance queue remains.
+  [#44](https://github.com/valentusys/gnucash-web-companion/issues/44) tracks the owner real-book trial
+  safety model only. [#22](https://github.com/valentusys/gnucash-web-companion/issues/22) and
+  [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) are closed.
+- Latest handoffs/docs: `docs/handoff/owner-real-book-trial-scope-proposal.md`,
+  `docs/handoff/release-no-release-decision-docs-r4-repeat.md`,
   `docs/handoff/release-no-release-decision-docs-r14.md`,
   `docs/handoff/release-no-release-decision-docs-r13.md`,
   `docs/handoff/release-no-release-decision-docs-r12.md`,
@@ -45,9 +48,10 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
 - Current controlled-write tracker state: #36 is closed as `CLOSE_36_AS_MAINTENANCE_BOUNDARY`. The W3
   copied-book dogfood gate is accepted narrowly for the staged outside-git copied/restorable target and
   exact PM-authorized counts: 2 CREATE, 1 metadata/memo-only PATCH on a write-alpha-created transaction,
-  and 1 DELETE of a write-alpha-created disposable transaction. Future owner-writebeta release-candidate
-  decision, real-book trial safety model, or broader write compatibility evidence must be a new issue or
-  explicit owner/PM task. No release was published; `NO_RELEASE` remains current.
+  and 1 DELETE of a write-alpha-created disposable transaction. No open-ended maintenance queue remains.
+  Future owner-writebeta release-candidate decision or broader write compatibility evidence must be a new
+  issue or explicit owner/PM task; #44 tracks the owner real-book trial safety model only. No release was published;
+  `NO_RELEASE` remains current.
 - Current #36 docs reconciliation: owner-writebeta remains maintenance-only and unreleased until
   explicit owner approval. The guard state still requires default `GNUCASH_WRITES_ENABLED=false`,
   enabled write-alpha/writebeta `APP_ENV=test` gating, no public write beta, no real/private/original/

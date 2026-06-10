@@ -60,7 +60,9 @@ the current write-alpha publication baseline remains Phase 261.
   controlled-write code is experimental post-MVP work and disabled by default.
 - **Write safety:** `GNUCASH_WRITES_ENABLED=false` remains default; explicit write-alpha/writebeta
   flows remain test-gated, and no real/private/original/only-copy book is a safe write target.
-- **Open follow-up queues:** #36 controlled-write readiness gates.
+- **Closed maintenance boundary:** #36 controlled-write readiness is closed as
+  `CLOSE_36_AS_MAINTENANCE_BOUNDARY`; it is historical maintenance evidence only, not real-book
+  approval.
 - **Recently closed:** #22 compatibility fixtures, #28 Markdown readability, #13, #41, #42, and #43.
 - **Issue #22 closure:** accepted narrowly for one isolated GnuCash 5.14
   Desktop-generated synthetic SQLite fixture only. It is not a broad Desktop-version, SQL-backend,
@@ -71,10 +73,11 @@ the current write-alpha publication baseline remains Phase 261.
 
 ## Current queue map
 
-- #36 controlled-write readiness: keep open after accepted W3 copied-book evidence until PM accepts
-  the remaining owner-writebeta gates, compatibility limits, real-book boundary, and closure criteria.
-- #22 compatibility fixtures: closed narrowly for isolated Desktop-generated synthetic SQLite
-  read-only evidence only; future Desktop/backend/version fixture expansion remains separate work.
+- #36 controlled-write readiness: closed as `CLOSE_36_AS_MAINTENANCE_BOUNDARY`; no open-ended
+  maintenance queue remains. Future owner-writebeta release-candidate decisions or broader compatibility evidence require a new
+  issue and explicit owner/PM scope; #44 tracks the owner real-book trial safety model only.
+- #22 compatibility fixtures: closed narrowly for isolated Desktop-generated synthetic SQLite read-only
+  evidence only; future Desktop/backend/version fixture expansion remains separate work.
 - #28 Markdown readability: closed after terminal-readability/status guard cleanup.
 
 - **Latest read-only beta notes:**
