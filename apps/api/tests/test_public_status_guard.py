@@ -634,6 +634,9 @@ def test_public_status_guard_rejects_write_beta_launch_without_public_prefix():
     unsafe_claims = [
         "Write beta launch is authorized.",
         "Write-beta rollout is released.",
+        "Write beta rollout is complete.",
+        "Public write beta rollout is complete.",
+        "Owner write beta rollout is complete.",
     ]
 
     for unsafe in unsafe_claims:

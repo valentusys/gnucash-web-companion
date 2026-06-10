@@ -178,7 +178,7 @@ FORBIDDEN_UNSAFE_AFFIRMATIVE_PATTERNS = (
     re.compile(r"\b(?:release|publish|ship|launch|roll\s+out|open|enable)\s+(?:the\s+)?(?:public\s+writes?|public\s+write[-\s]+mode|public\s+write[-\s]+beta|write[-\s]+beta(?:\s+(?:release|rollout|launch))?|(?:owner[-\s]+write[-\s]+beta|owner[-\s]?writebeta)(?:\s+(?:release|rollout|launch))?)\b", re.I),
     re.compile(r"\bpublic\s+write[-\s]+beta\s+(?:is\s+)?(?:recommended|acceptable|approved)\s+for\s+(?:use|users|public\s+use|real/private|private|real|original|only-copy)\b", re.I),
     re.compile(r"\bpublic\s+write[-\s]+beta\s+(?:is\s+)?(?:safe|suitable|fit)\s+for\s+(?:use|users|public\s+use|real/private|private|real|original|only-copy)\b", re.I),
-    re.compile(r"\bpublic\s+write[-\s]+beta\s+(?:launch|release|rollout)\s+(?:is\s+)?(?:ready|approved|authorized)\b", re.I),
+    re.compile(r"\bpublic\s+write[-\s]+beta\s+(?:launch|release|rollout)\s+(?:is\s+)?(?:ready|approved|authorized|complete)\b", re.I),
     re.compile(r"\bwrite[-\s]+beta\s+(?:is\s+)?(?:ready|available|open|enabled|supported)\b", re.I),
     re.compile(r"\bwrite[-\s]+beta\s+(?:is\s+)?(?:release[-\s]?ready|ship[-\s]?ready|launch[-\s]?ready|rollout[-\s]?ready)\b", re.I),
     re.compile(r"\bwrite[-\s]+beta\s+(?:is\s+)?(?:approved|authorized|published|released)\b", re.I),
@@ -187,7 +187,7 @@ FORBIDDEN_UNSAFE_AFFIRMATIVE_PATTERNS = (
     re.compile(r"\bwrite[-\s]+beta\s+(?:is\s+)?(?:recommended|acceptable|approved)\s+for\s+(?:use|users|public\s+use|real/private|private|real|original|only-copy)\b", re.I),
     re.compile(r"\bwrite[-\s]+beta\s+(?:is\s+)?(?:safe|suitable|fit)\s+for\s+(?:use|users|public\s+use|real/private|private|real|original|only-copy)\b", re.I),
     re.compile(r"\bwrite[-\s]+beta\s+(?:is\s+)?(?:safe|supported|approved|recommended|acceptable)\s+for\s+(?:real/private|private|real|original|only-copy)\s+books?\b", re.I),
-    re.compile(r"\bwrite[-\s]+beta\s+(?:launch|release|rollout)\s+(?:is\s+)?(?:ready|approved|authorized|published|released)\b", re.I),
+    re.compile(r"\bwrite[-\s]+beta\s+(?:launch|release|rollout)\s+(?:is\s+)?(?:ready|approved|authorized|published|released|complete)\b", re.I),
     re.compile(r"\bwrite[-\s]+beta\s+(?:is\s+)?(?:stable|production[- ]ready|production\s+ready|security[- ]audited|production[- ]grade)\b", re.I),
     re.compile(r"\bwrite[-\s]+beta\s+(?:is\s+)?(?:ga|general\s+availability|production[- ]safe|production\s+safe|field[- ]tested)\b", re.I),
     re.compile(r"\bwrite[-\s]+beta\s+(?:ga|general\s+availability)\s+(?:is\s+)?(?:ready|approved|authorized|published|released|available)\b", re.I),
@@ -197,13 +197,13 @@ FORBIDDEN_UNSAFE_AFFIRMATIVE_PATTERNS = (
     re.compile(r"\b(owner[- ]?)?writebeta\s+(?:is\s+)?(?:public|stable|production[- ]ready|security[- ]audited|approved|authorized|published|released)\b", re.I),
     re.compile(r"\b(owner[- ]?)?writebeta\s+(?:is\s+)?(?:ga|general\s+availability|production[- ]safe|production\s+safe|field[- ]tested)\b", re.I),
     re.compile(r"\b(owner[- ]?)?writebeta\s+(?:has\s+)?(?:shipped|launched|rolled\s+out)\b", re.I),
-    re.compile(r"\b(owner[- ]?)?writebeta\s+(?:launch|release|rollout)\s+(?:is\s+)?(?:ready|approved|authorized|published|released)\b", re.I),
+    re.compile(r"\b(owner[- ]?)?writebeta\s+(?:launch|release|rollout)\s+(?:is\s+)?(?:ready|approved|authorized|published|released|complete)\b", re.I),
     re.compile(r"\bowner[-\s]+write[-\s]+beta\s+(?:is\s+)?(?:ready|available|open|enabled|supported)\b", re.I),
     re.compile(r"\bowner[-\s]+write[-\s]+beta\s+(?:is\s+)?(?:public|stable|production[- ]ready|production\s+ready|security[- ]audited|approved|authorized|published|released)\b", re.I),
     re.compile(r"\bowner[-\s]+write[-\s]+beta\s+(?:is\s+)?(?:ga|general\s+availability|production[- ]safe|production\s+safe|field[- ]tested)\b", re.I),
     re.compile(r"\bowner[-\s]+write[-\s]+beta\s+(?:is\s+)?(?:safe|supported|approved|recommended|acceptable)\s+for\s+(?:real/private|private|real|original|only-copy)\s+books?\b", re.I),
     re.compile(r"\bowner[-\s]+write[-\s]+beta\s+(?:has\s+)?(?:shipped|launched|rolled\s+out)\b", re.I),
-    re.compile(r"\bowner[-\s]+write[-\s]+beta\s+(?:launch|release|rollout)\s+(?:is\s+)?(?:ready|approved|authorized|published|released)\b", re.I),
+    re.compile(r"\bowner[-\s]+write[-\s]+beta\s+(?:launch|release|rollout)\s+(?:is\s+)?(?:ready|approved|authorized|published|released|complete)\b", re.I),
     re.compile(r"\bpublic\s+write[-\s]+beta\b.*\b(?:real/private|private|real|original|only-copy)\s+books?\b", re.I),
     re.compile(r"\bbroad\s+GnuCash\s+(?:Desktop\s+)?compatibility\s+(?:is\s+)?(?:ready|available|supported|claimed|proven)\b", re.I),
     re.compile(r"\bbroad\s+GnuCash\s+(?:Desktop\s+)?compatibility\s+(?:is\s+)?(?:validated|verified|confirmed)\b", re.I),
@@ -233,7 +233,7 @@ FORBIDDEN_UNSAFE_AFFIRMATIVE_PATTERNS = (
 )
 FORBIDDEN_PRIVATE_BOOK_PATH_PATTERNS = (
     re.compile(
-        r"(?:^|[\s`'\"(=])(?:/home/[^\s`'\")]+|/Users/[^\s`'\")]+|[A-Za-z]:\\[^\s`'\")]+)"
+        r"(?:^|[\s`'\"(=]|file://)(?:/home/[^\s`'\")]+|/Users/[^\s`'\")]+|[A-Za-z]:[\\/][^\s`'\")]+)"
         r"\.(?:gnucash|gnucash\.sqlite|sqlite|sqlite3)\b",
         re.I,
     ),

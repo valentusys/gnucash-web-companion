@@ -299,6 +299,7 @@ def test_content_violations_reject_unsafe_affirmative_wording(tmp_path, monkeypa
         "Write beta has shipped.\n"
         "Write-beta has launched.\n"
         "Public write beta rolled out.\n"
+        "Public write beta rollout is complete.\n"
         "Public write beta can be used.\n"
         "Public write beta is recommended for users.\n"
         "Write beta is production-grade.\n"
@@ -358,38 +359,39 @@ def test_content_violations_reject_unsafe_affirmative_wording(tmp_path, monkeypa
         "tracked unsafe affirmative wording in release.md:18: Write beta has shipped.",
         "tracked unsafe affirmative wording in release.md:19: Write-beta has launched.",
         "tracked unsafe affirmative wording in release.md:20: Public write beta rolled out.",
-        "tracked unsafe affirmative wording in release.md:21: Public write beta can be used.",
-        "tracked unsafe affirmative wording in release.md:22: Public write beta is recommended for users.",
-        "tracked unsafe affirmative wording in release.md:23: Write beta is production-grade.",
-        "tracked unsafe affirmative wording in release.md:24: Write beta may be enabled.",
-        "tracked unsafe affirmative wording in release.md:25: Write-beta is acceptable for public use.",
-        "tracked unsafe affirmative wording in release.md:26: Writebeta is ready.",
-        "tracked unsafe affirmative wording in release.md:27: Owner write beta is ready.",
-        "tracked unsafe affirmative wording in release.md:28: Owner writebeta is available.",
-        "tracked unsafe affirmative wording in release.md:29: Owner-write beta is available.",
-        "tracked unsafe affirmative wording in release.md:30: Writebeta has launched.",
-        "tracked unsafe affirmative wording in release.md:31: Owner write beta has launched.",
-        "tracked unsafe affirmative wording in release.md:32: Owner-writebeta rollout is released.",
-        "tracked unsafe affirmative wording in release.md:33: Owner write beta rollout is released.",
-        "tracked unsafe affirmative wording in release.md:34: Public write beta for private books is acceptable.",
-        "tracked unsafe affirmative wording in release.md:35: Real books are safe for writes.",
-        "tracked unsafe affirmative wording in release.md:36: Private book writes are safe.",
-        "tracked unsafe affirmative wording in release.md:37: Original books are safe for mutation.",
-        "tracked unsafe affirmative wording in release.md:38: Write beta is safe for private books.",
-        "tracked unsafe affirmative wording in release.md:39: Write-beta supported for original books.",
-        "tracked unsafe affirmative wording in release.md:40: Owner write beta is safe for private books.",
-        "tracked unsafe affirmative wording in release.md:41: Owner-write beta is acceptable for only-copy books.",
-        "tracked unsafe affirmative wording in release.md:42: Write beta is production ready.",
-        "tracked unsafe affirmative wording in release.md:43: This release is production ready.",
-        "tracked unsafe affirmative wording in release.md:44: Write beta is general availability.",
-        "tracked unsafe affirmative wording in release.md:45: Write beta GA is released.",
-        "tracked unsafe affirmative wording in release.md:46: Owner-writebeta is production-safe.",
-        "tracked unsafe affirmative wording in release.md:47: Owner write beta is field-tested.",
-        "tracked unsafe affirmative wording in release.md:48: Broad GnuCash compatibility is complete.",
-        "tracked unsafe affirmative wording in release.md:49: Public write beta is release-ready.",
-        "tracked unsafe affirmative wording in release.md:50: Public write beta is safe for users.",
-        "tracked unsafe affirmative wording in release.md:51: Write beta is ship ready.",
-        "tracked unsafe affirmative wording in release.md:52: Write-beta is suitable for public use.",
+        "tracked unsafe affirmative wording in release.md:21: Public write beta rollout is complete.",
+        "tracked unsafe affirmative wording in release.md:22: Public write beta can be used.",
+        "tracked unsafe affirmative wording in release.md:23: Public write beta is recommended for users.",
+        "tracked unsafe affirmative wording in release.md:24: Write beta is production-grade.",
+        "tracked unsafe affirmative wording in release.md:25: Write beta may be enabled.",
+        "tracked unsafe affirmative wording in release.md:26: Write-beta is acceptable for public use.",
+        "tracked unsafe affirmative wording in release.md:27: Writebeta is ready.",
+        "tracked unsafe affirmative wording in release.md:28: Owner write beta is ready.",
+        "tracked unsafe affirmative wording in release.md:29: Owner writebeta is available.",
+        "tracked unsafe affirmative wording in release.md:30: Owner-write beta is available.",
+        "tracked unsafe affirmative wording in release.md:31: Writebeta has launched.",
+        "tracked unsafe affirmative wording in release.md:32: Owner write beta has launched.",
+        "tracked unsafe affirmative wording in release.md:33: Owner-writebeta rollout is released.",
+        "tracked unsafe affirmative wording in release.md:34: Owner write beta rollout is released.",
+        "tracked unsafe affirmative wording in release.md:35: Public write beta for private books is acceptable.",
+        "tracked unsafe affirmative wording in release.md:36: Real books are safe for writes.",
+        "tracked unsafe affirmative wording in release.md:37: Private book writes are safe.",
+        "tracked unsafe affirmative wording in release.md:38: Original books are safe for mutation.",
+        "tracked unsafe affirmative wording in release.md:39: Write beta is safe for private books.",
+        "tracked unsafe affirmative wording in release.md:40: Write-beta supported for original books.",
+        "tracked unsafe affirmative wording in release.md:41: Owner write beta is safe for private books.",
+        "tracked unsafe affirmative wording in release.md:42: Owner-write beta is acceptable for only-copy books.",
+        "tracked unsafe affirmative wording in release.md:43: Write beta is production ready.",
+        "tracked unsafe affirmative wording in release.md:44: This release is production ready.",
+        "tracked unsafe affirmative wording in release.md:45: Write beta is general availability.",
+        "tracked unsafe affirmative wording in release.md:46: Write beta GA is released.",
+        "tracked unsafe affirmative wording in release.md:47: Owner-writebeta is production-safe.",
+        "tracked unsafe affirmative wording in release.md:48: Owner write beta is field-tested.",
+        "tracked unsafe affirmative wording in release.md:49: Broad GnuCash compatibility is complete.",
+        "tracked unsafe affirmative wording in release.md:50: Public write beta is release-ready.",
+        "tracked unsafe affirmative wording in release.md:51: Public write beta is safe for users.",
+        "tracked unsafe affirmative wording in release.md:52: Write beta is ship ready.",
+        "tracked unsafe affirmative wording in release.md:53: Write-beta is suitable for public use.",
     ]
 
 
@@ -554,7 +556,9 @@ def test_content_violations_reject_private_book_path_like_values(tmp_path, monke
     sample.write_text(
         "Probe command used /home/example-user/synthetic-fixtures/sample-book.gnucash.\n"
         "Windows source E:\\SyntheticFixtures\\sample-book.gnucash.sqlite was referenced.\n"
-        "Mac source /Users/example-user/SyntheticFixtures/source.sqlite3 was referenced.\n",
+        "Mac source /Users/example-user/SyntheticFixtures/source.sqlite3 was referenced.\n"
+        "File URI file:///home/example-user/synthetic-fixtures/source.sqlite was referenced.\n"
+        "Windows slash path C:/SyntheticFixtures/source.gnucash was referenced.\n",
         encoding="utf-8",
     )
     monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)
@@ -563,6 +567,8 @@ def test_content_violations_reject_private_book_path_like_values(tmp_path, monke
         "tracked private book path-like value in evidence.md:1: Probe command used /home/example-user/synthetic-fixtures/sample-book.gnucash.",
         "tracked private book path-like value in evidence.md:2: Windows source E:\\SyntheticFixtures\\sample-book.gnucash.sqlite was referenced.",
         "tracked private book path-like value in evidence.md:3: Mac source /Users/example-user/SyntheticFixtures/source.sqlite3 was referenced.",
+        "tracked private book path-like value in evidence.md:4: File URI file:///home/example-user/synthetic-fixtures/source.sqlite was referenced.",
+        "tracked private book path-like value in evidence.md:5: Windows slash path C:/SyntheticFixtures/source.gnucash was referenced.",
     ]
 
 
