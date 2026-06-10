@@ -985,7 +985,14 @@ def _compose_service_environment_has_bare_key(environment_lines: list[str], key:
 
 def _compose_app_env_value_defaults_to_test(value: str) -> bool:
     normalized = _strip_yaml_inline_quotes(value).strip().lower().replace(" ", "")
-    return normalized in {"test", "${app_env:-test}", "${app_env-test}", "${app_env:=test}"}
+    return normalized in {
+        "test",
+        "${app_env:-test}",
+        "${app_env-test}",
+        "${app_env:=test}",
+        "${app_env:+test}",
+        "${app_env+test}",
+    }
 
 
 def _check_compose_service_env_exact(
