@@ -19,11 +19,17 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
 - Active issue queue:
   [#36](https://github.com/valentusys/gnucash-web-companion/issues/36) is closed as
   `CLOSE_36_AS_MAINTENANCE_BOUNDARY`; no open-ended controlled-write maintenance queue remains.
-  Current active issue is [#44](https://github.com/valentusys/gnucash-web-companion/issues/44),
-  Owner real-book trial safety model. #44 is not mutation approval, release approval, or public write
-  beta approval. [#22](https://github.com/valentusys/gnucash-web-companion/issues/22) and
+  [#44](https://github.com/valentusys/gnucash-web-companion/issues/44) completed the first owner
+  real-book CREATE trial and is closed as successful-trial evidence, not ongoing mutation approval.
+  Current active issue is [#45](https://github.com/valentusys/gnucash-web-companion/issues/45), Owner
+  real-book CREATE-only operating mode. #45 is not CREATE approval by itself, PATCH approval, DELETE
+  approval, release approval, or public write beta approval.
+  [#22](https://github.com/valentusys/gnucash-web-companion/issues/22) and
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) are closed.
-- Latest handoffs/docs: `docs/handoff/issue44-real-book-trial-preparation.md`,
+- Latest handoffs/docs: `docs/handoff/issue44-post-success-transition.md`,
+  `docs/write-alpha/owner-real-book-create-only-operating-mode.md`,
+  `docs/handoff/issue44-first-real-book-create-trial-report.md`,
+  `docs/handoff/issue44-real-book-trial-preparation.md`,
   `docs/write-alpha/owner-real-book-trial-runbook.md`,
   `docs/write-alpha/owner-real-book-trial-checklist.md`,
   `docs/handoff/owner-real-book-trial-scope-proposal.md`,
@@ -55,9 +61,12 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   exact PM-authorized counts: 2 CREATE, 1 metadata/memo-only PATCH on a write-alpha-created transaction,
   and 1 DELETE of a write-alpha-created disposable transaction. No open-ended maintenance queue remains.
   Future owner-writebeta release-candidate decision or broader write compatibility evidence must be a new
-  issue or explicit owner/PM task; #44 tracks the owner real-book trial safety model only. #44 is not
-  mutation approval, release approval, or public write beta approval. No release was published;
-  `NO_RELEASE` remains current.
+  issue or explicit owner/PM task. #44 completed the owner real-book trial safety-model scope with one
+  successful CREATE, redacted route-backup/read-back/audit/reset/probe evidence, and owner manual
+  Desktop verification; #44 is closed and is not ongoing mutation approval, release approval, or public
+  write beta approval. #45 is the active owner real-book CREATE-only operating-mode issue, but #45 is
+  not CREATE approval by itself, PATCH approval, DELETE approval, release approval, or public write beta
+  approval. No release was published; `NO_RELEASE` remains current.
 - Current #36 docs reconciliation: owner-writebeta remains maintenance-only and unreleased until
   explicit owner approval. The guard state still requires default `GNUCASH_WRITES_ENABLED=false`,
   enabled write-alpha/writebeta `APP_ENV=test` gating, no public write beta, no real/private/original/

@@ -20,6 +20,7 @@ Final verdict: **CREATE_TRIAL_SUCCEEDED**
 - Audit evidence captured: yes, opaque ref `aud-69040590ca33`
 - Default-disabled reset: passed
 - Disabled-write probes after reset: passed for validate/preflight, CREATE, PATCH, and DELETE route families
+- Manual GnuCash Desktop verification: passed by owner; the created transaction looked correct.
 
 ## Safety summary
 

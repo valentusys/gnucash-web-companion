@@ -63,8 +63,11 @@ the current write-alpha publication baseline remains Phase 261.
 - **Closed maintenance boundary:** #36 controlled-write readiness is closed as
   `CLOSE_36_AS_MAINTENANCE_BOUNDARY`; it is historical maintenance evidence only, not real-book
   approval.
-- **Current active issue:** #44 Owner real-book trial safety model. #44 is not mutation approval,
-  release approval, or public write beta approval.
+- **Recently completed owner real-book trial:** #44 completed one owner-approved real-book CREATE trial
+  with redacted backup/read-back/audit/reset/probe evidence and manual Desktop verification. #44 is
+  closed and is not ongoing mutation approval.
+- **Current active issue:** #45 Owner real-book CREATE-only operating mode. #45 is not CREATE approval
+  by itself, PATCH approval, DELETE approval, release approval, or public write beta approval.
 - **Recently closed:** #22 compatibility fixtures, #28 Markdown readability, #13, #41, #42, and #43.
 - **Issue #22 closure:** accepted narrowly for one isolated GnuCash 5.14
   Desktop-generated synthetic SQLite fixture only. It is not a broad Desktop-version, SQL-backend,
@@ -76,8 +79,10 @@ the current write-alpha publication baseline remains Phase 261.
 ## Current queue map
 
 - #36 controlled-write readiness: closed as `CLOSE_36_AS_MAINTENANCE_BOUNDARY`; no open-ended
-  maintenance queue remains. Current active issue is #44 Owner real-book trial safety model.
-  #44 is not mutation approval, release approval, or public write beta approval.
+  maintenance queue remains. #44 Owner real-book trial safety model is closed after one successful
+  owner-approved CREATE trial and manual Desktop verification. Current active issue is #45 Owner
+  real-book CREATE-only operating mode. #45 is not CREATE approval by itself, PATCH approval, DELETE
+  approval, release approval, or public write beta approval.
 - #22 compatibility fixtures: closed narrowly for isolated Desktop-generated synthetic SQLite read-only
   evidence only; future Desktop/backend/version fixture expansion remains separate work.
 - #28 Markdown readability: closed after terminal-readability/status guard cleanup.
