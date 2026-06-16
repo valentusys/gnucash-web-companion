@@ -1,6 +1,6 @@
 # PROJECT_STATUS
 
-Last updated: 2026-06-11
+Last updated: 2026-06-16
 
 ## Quick navigation
 
@@ -22,12 +22,17 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   [#44](https://github.com/valentusys/gnucash-web-companion/issues/44) completed the first owner
   real-book CREATE trial and is closed as successful-trial evidence, not ongoing mutation approval.
   Current active issue is [#45](https://github.com/valentusys/gnucash-web-companion/issues/45), Owner
-  real-book CREATE-only operating mode. #45 is not CREATE approval by itself, PATCH approval, DELETE
-  approval, release approval, or public write beta approval.
+  real-book CREATE-only operating mode. #45 CREATE-only operating policy v1 is documented after
+  owner-manual-verified #44/#45 CREATE evidence, but #45 is not CREATE approval by itself, PATCH
+  approval, DELETE approval, release approval, or public write beta approval.
   [#22](https://github.com/valentusys/gnucash-web-companion/issues/22) and
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) are closed.
-- Latest handoffs/docs: `docs/handoff/issue44-post-success-transition.md`,
+- Latest handoffs/docs: `docs/handoff/issue45-create-only-operating-policy-v1.md`,
   `docs/write-alpha/owner-real-book-create-only-operating-mode.md`,
+  `docs/handoff/issue45-next-create-only-operating-session-report.md`,
+  `docs/handoff/issue45-second-create-only-operating-session-report.md`,
+  `docs/handoff/issue45-first-create-only-operating-session-report.md`,
+  `docs/handoff/issue44-post-success-transition.md`,
   `docs/handoff/issue44-first-real-book-create-trial-report.md`,
   `docs/handoff/issue44-real-book-trial-preparation.md`,
   `docs/write-alpha/owner-real-book-trial-runbook.md`,
@@ -73,7 +78,13 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   working/only-copy safety claim, and no stable, production-ready, or security-audited wording. The
   owner-approval docs now state that clean checks are repository hygiene only, not release
   authorization, and that a future release-candidate task must start from an explicit owner/PM scope
-  decision rather than infer approval from readiness docs. The 2026-06-10 PM/Owner packet closes #36 as a
+  decision rather than infer approval from readiness docs. On 2026-06-16, #45 CREATE-only operating
+  policy v1 was documented after manually verified #44/#45 CREATE evidence: future sessions may only be
+  bounded owner-only CREATE-only sessions with fresh same-context approval, route backup before each
+  CREATE, read-back, redacted audit, default-disabled reset, disabled probes, and owner Desktop
+  verification; PATCH/DELETE/batch, unattended mutation, dogfood loops, public write beta, release
+  publication, and production/stable/security-audited claims remain forbidden. The 2026-06-10 PM/Owner
+  packet closes #36 as a
   maintenance boundary while preserving `NO_RELEASE`, no public write beta, no real/private/original/
   working/only-copy mutation, and unpublished `v0.4.0-owner-writebeta`. The r8 release/no-release documentation
   pass clarifies review order: no-release state and missing owner/PM approval come before any narrow
