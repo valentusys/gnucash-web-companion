@@ -47,20 +47,20 @@ release docs и handoff-файлах, чтобы этот файл не стан
   maintenance evidence only, не approval для real-book mutation.
 - #44 Owner real-book trial safety model закрыта после одного успешного owner-approved real-book
   CREATE trial и manual Desktop verification; это не ongoing mutation approval.
-- Current active issue is #45 Owner real-book CREATE-only operating mode. CREATE-only operating policy
-  v1 is documented after owner-manual-verified #44/#45 CREATE evidence, but #45 is not CREATE approval
-  by itself, PATCH approval, DELETE approval, release approval, or public write beta approval.
+- Current active issues: #45 remains the CREATE-only operating-mode tracker after owner-verified
+  generated CREATE-only test-copy sessions. #46 tracks a separate future owner-only PATCH app-created
+  transaction trial. Neither issue is mutation approval by itself, DELETE approval, release approval, or
+  public write beta approval.
 - Недавно закрытые очереди: #22 compatibility fixtures, #28 markdown readability, #13, #41, #42, #43.
 
 ## Карта открытых очередей
 
 - #36: controlled-write readiness закрыта как `CLOSE_36_AS_MAINTENANCE_BOUNDARY`; open-ended
   maintenance queue больше нет. #44 Owner real-book trial safety model закрыта после одного успешного
-  owner-approved CREATE trial и manual Desktop verification. Current active issue is #45 Owner
-  real-book CREATE-only operating mode. #45 policy v1 allows only future bounded owner-only CREATE-only
-  sessions with fresh same-context owner approval, route backup before each CREATE, read-back, redacted
-  audit, disabled reset/probes, and owner Desktop verification. #45 is not CREATE approval by itself,
-  PATCH approval, DELETE approval, release approval, or public write beta approval.
+  owner-approved CREATE trial и manual Desktop verification. #45 remains the CREATE-only operating-mode
+  tracker after owner-verified generated CREATE-only test-copy sessions. #46 is the separate future
+  owner-only PATCH app-created transaction trial boundary. PATCH remains unauthorized until fresh
+  same-context owner/PM approval; DELETE, batch, release, and public write beta remain forbidden.
 - #22: compatibility fixtures закрыта narrowly for isolated Desktop-generated synthetic SQLite fixture
   read-only evidence only; future Desktop/backend/version fixture expansion остаётся separate work.
 - #28: raw Markdown readability закрыта после terminal-readability/status guard cleanup без whole-repo reflow.

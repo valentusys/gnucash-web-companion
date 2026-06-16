@@ -103,10 +103,12 @@ only redacted target classes and opaque backup/audit references in committed or 
 
 ## Future PATCH boundary
 
-PATCH is out of scope for #45. PATCH of app-created transactions may be considered later only under a
-separate owner/PM issue or approval packet that defines app-created ownership boundaries, exact editable
-fields, backup/read-back/audit/rollback policy, manual Desktop verification expectations, and explicit
-exclusions for historical/manual transactions, DELETE, and batch operations.
+PATCH is out of scope for #45. Generated CREATE-only test-copy sessions are sufficiently validated for
+CREATE-only on the test copy, but they do not authorize PATCH. PATCH of app-created transactions may be
+considered only under [#46 Owner real-book PATCH app-created transaction trial](https://github.com/valentusys/gnucash-web-companion/issues/46)
+or a later separate owner/PM issue or approval packet that defines app-created ownership boundaries,
+exact editable fields, backup/read-back/audit/rollback policy, manual Desktop verification expectations,
+and explicit exclusions for historical/manual transactions, DELETE, and batch operations.
 
 ## Evidence policy
 
