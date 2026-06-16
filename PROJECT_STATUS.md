@@ -21,16 +21,17 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   `CLOSE_36_AS_MAINTENANCE_BOUNDARY`; no open-ended controlled-write maintenance queue remains.
   [#44](https://github.com/valentusys/gnucash-web-companion/issues/44) completed the first owner
   real-book CREATE trial and is closed as successful-trial evidence, not ongoing mutation approval.
-  Current evidence trackers are [#45](https://github.com/valentusys/gnucash-web-companion/issues/45),
-  Owner real-book CREATE-only operating mode, and [#46](https://github.com/valentusys/gnucash-web-companion/issues/46),
-  Owner real-book PATCH app-created transaction trial. #45 CREATE-only and #46 PATCH app-created
-  metadata-only test-copy sessions are sufficiently validated after owner Desktop verification. New issue
-  [#47](https://github.com/valentusys/gnucash-web-companion/issues/47) tracks the separate owner-only
-  CREATE + PATCH app-created metadata-only operating-mode boundary. None of these issues are DELETE
-  approval, release approval, or public write beta approval.
+  Current trackers are [#45](https://github.com/valentusys/gnucash-web-companion/issues/45),
+  Owner real-book CREATE-only operating mode, [#46](https://github.com/valentusys/gnucash-web-companion/issues/46),
+  Owner real-book PATCH app-created transaction trial, and [#47](https://github.com/valentusys/gnucash-web-companion/issues/47),
+  Owner real-book CREATE + PATCH app-created metadata-only operating mode. #45 remains the CREATE-only
+  tracker, #46 remains the PATCH app-created metadata-only boundary/evidence tracker, and #47 is the active
+  mixed CREATE + PATCH app-created metadata-only operating-mode tracker after the owner-verified first
+  mixed session. None of these issues are DELETE approval, release approval, or public write beta approval.
   [#22](https://github.com/valentusys/gnucash-web-companion/issues/22) and
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) are closed.
-- Latest handoffs/docs: `docs/handoff/issue46-to-create-patch-app-created-transition.md`,
+- Latest handoffs/docs: `docs/handoff/issue47-first-mixed-session-transition.md`,
+  `docs/handoff/issue46-to-create-patch-app-created-transition.md`,
   `docs/write-alpha/owner-real-book-create-patch-app-created-operating-mode.md`,
   `docs/handoff/issue45-to-patch-app-created-transition.md`,
   `docs/handoff/issue45-create-only-operating-policy-v1.md`,
@@ -76,10 +77,11 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   successful CREATE, redacted route-backup/read-back/audit/reset/probe evidence, and owner manual
   Desktop verification; #44 is closed and is not ongoing mutation approval, release approval, or public
   write beta approval. #45 remains the CREATE-only operating-mode tracker after sufficiently validated
-  generated CREATE-only test-copy sessions; #46 remains the PATCH app-created metadata-only evidence
-  tracker after first 5/5 and expanded 20/20 owner-verified PATCH trials; #47 is the separate CREATE +
-  PATCH app-created metadata-only operating-mode boundary. None of these issues are release approval or
-  public write beta approval. No release was published; `NO_RELEASE` remains current.
+  generated CREATE-only test-copy sessions; #46 remains the PATCH app-created metadata-only boundary/evidence
+  tracker after first 5/5 and expanded 20/20 owner-verified PATCH trials; #47 is the active mixed CREATE +
+  PATCH app-created metadata-only operating-mode tracker after the owner-verified first mixed session
+  (CREATE 10/10, PATCH 5/5, DELETE 0, batch 0). None of these issues are DELETE/batch approval, release
+  approval, or public write beta approval. No release was published; `NO_RELEASE` remains current.
 - Current #36 docs reconciliation: owner-writebeta remains maintenance-only and unreleased until
   explicit owner approval. The guard state still requires default `GNUCASH_WRITES_ENABLED=false`,
   enabled write-alpha/writebeta `APP_ENV=test` gating, no public write beta, no real/private/original/
@@ -98,6 +100,11 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   #47 was opened for future bounded CREATE + PATCH app-created metadata-only operating sessions with
   exact counts, app-created identity proof, backup/read-back/audit/reset/probes, Syncthing conflict checks
   when applicable, correct private Telegram verification tables, and redacted-only GitHub/tracked reporting.
+  After the first mixed #47 session was owner-verified, CREATE + PATCH app-created metadata-only operating
+  policy v1 was documented: future sessions require explicit bounded CREATE/PATCH counts, PATCH targets
+  must be app-created only, PATCH scope remains description/memo metadata-only, DELETE/batch and amount/
+  account/split/date/currency/balance-affecting changes remain forbidden, and private verification tables
+  must keep Date/GUID/Accounts/Description/Amounts columns unambiguous or fall back to numbered plain text.
   The 2026-06-10 PM/Owner
   packet closes #36 as a
   maintenance boundary while preserving `NO_RELEASE`, no public write beta, no real/private/original/

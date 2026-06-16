@@ -47,11 +47,10 @@ release docs и handoff-файлах, чтобы этот файл не стан
   maintenance evidence only, не approval для real-book mutation.
 - #44 Owner real-book trial safety model закрыта после одного успешного owner-approved real-book
   CREATE trial и manual Desktop verification; это не ongoing mutation approval.
-- Current active issues: #45 remains the CREATE-only evidence tracker after owner-verified generated
-  CREATE-only test-copy sessions. #46 remains the PATCH app-created metadata-only evidence tracker after
-  owner-verified 5/5 and 20/20 trials. #47 tracks the separate future owner-only CREATE + PATCH app-created
-  metadata-only operating-mode boundary. None are mutation approval by themselves, DELETE approval,
-  release approval, or public write beta approval.
+- Current active issues: #45 remains the CREATE-only tracker. #46 remains the PATCH app-created
+  metadata-only boundary/evidence tracker. #47 is the active mixed CREATE + PATCH app-created metadata-only
+  operating-mode tracker after an owner-verified first mixed session. None are mutation approval by
+  themselves, DELETE/batch approval, release approval, or public write beta approval.
 - Недавно закрытые очереди: #22 compatibility fixtures, #28 markdown readability, #13, #41, #42, #43.
 
 ## Карта открытых очередей
@@ -59,10 +58,10 @@ release docs и handoff-файлах, чтобы этот файл не стан
 - #36: controlled-write readiness закрыта как `CLOSE_36_AS_MAINTENANCE_BOUNDARY`; open-ended
   maintenance queue больше нет. #44 Owner real-book trial safety model закрыта после одного успешного
   owner-approved CREATE trial и manual Desktop verification. #45 and #46 record owner-verified CREATE-only
-  and PATCH app-created metadata-only test-copy evidence. #47 is the separate future owner-only CREATE +
-  PATCH app-created metadata-only operating-mode boundary. CREATE/PATCH remain unauthorized until fresh
-  same-context owner/PM approval with exact counts; DELETE, batch, release, and public write beta remain
-  forbidden.
+  and PATCH app-created metadata-only test-copy evidence. #47 is the active owner-only mixed CREATE + PATCH
+  app-created metadata-only operating-mode tracker after the owner-verified first mixed session. CREATE/PATCH
+  remain unauthorized until fresh same-context owner/PM approval with exact counts; DELETE, batch, amount/
+  account/split/date/currency/balance-affecting changes, release, and public write beta remain forbidden.
 - #22: compatibility fixtures закрыта narrowly for isolated Desktop-generated synthetic SQLite fixture
   read-only evidence only; future Desktop/backend/version fixture expansion остаётся separate work.
 - #28: raw Markdown readability закрыта после terminal-readability/status guard cleanup без whole-repo reflow.

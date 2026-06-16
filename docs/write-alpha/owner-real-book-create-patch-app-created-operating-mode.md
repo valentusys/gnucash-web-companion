@@ -1,7 +1,7 @@
 # Owner real-book CREATE + PATCH app-created metadata-only operating mode
 
 Issue: [#47 Owner real-book CREATE + PATCH app-created metadata-only operating mode](https://github.com/valentusys/gnucash-web-companion/issues/47)
-Status: **operating-mode boundary documented**. This document does not authorize mutation by itself.
+Status: **CREATE + PATCH app-created metadata-only operating policy v1 documented**. This document does not authorize mutation by itself.
 
 ## Evidence basis
 
@@ -11,10 +11,20 @@ This boundary is based on owner-verified test-copy evidence only:
 - #46 PATCH app-created metadata-only trials succeeded and were owner-verified:
   - first PATCH trial: 5 / 5;
   - expanded PATCH trial: 20 / 20.
+- #47 first mixed CREATE + PATCH app-created metadata-only session succeeded and was owner-verified:
+  - CREATE: 10 / 10;
+  - PATCH: 5 / 5;
+  - DELETE: 0;
+  - batch: 0;
+  - PATCH was metadata/description-only;
+  - amount/account/split/date/currency unchanged checks passed.
 
-This evidence is not a public write beta, release, stable, production-ready, or security-audited claim.
+This evidence supports **operating policy v1** for future bounded owner-approved mixed sessions on a test copy
+or owner-selected target. It is not a public write beta, release, stable, production-ready, or security-audited claim.
 
-## Scope
+## Policy v1 scope
+
+Policy v1 allows future bounded owner-approved sessions only under fresh same-context owner/PM approval.
 
 Future sessions under #47 may include only:
 
@@ -23,6 +33,16 @@ Future sessions under #47 may include only:
 - CREATE as bounded individual operations;
 - PATCH only for app-created transactions;
 - PATCH scope only description/memo metadata-only;
+- DELETE 0;
+- batch 0;
+- no unattended mutation;
+- no public write beta;
+- no release/tag/package/image publication;
+- no production/stable/security-audited claims;
+- backup/read-back/audit/reset/probes;
+- Syncthing conflict-copy checks before/after if applicable;
+- redacted-only GitHub/tracked reporting;
+- private details only in Telegram;
 - explicit same-context owner/PM approval before every session.
 
 ## Required per-session approval
@@ -110,7 +130,17 @@ After every session:
 ## Private Telegram verification lists
 
 Private owner verification lists must have correct human-readable columns and must not swap Date, GUID,
-Description, or Amounts. Use structured evidence to generate the table when possible.
+Accounts, Description, or Amounts. Use structured evidence to generate the table when possible.
+
+Required column rules:
+
+- Date must contain a date.
+- GUID must contain a transaction GUID.
+- Accounts must contain selected debit/credit accounts.
+- Description before/after must contain descriptions.
+- Amounts must contain amounts.
+- Do not swap columns.
+- If a formatted table cannot be produced safely, return compact numbered plain text instead.
 
 For CREATE/PATCH sessions, include only in private Telegram context when needed:
 
@@ -126,6 +156,6 @@ GitHub/tracked reports remain redacted-only and must not contain those private d
 
 ## Relationship to #45 and #46
 
-#45 remains the CREATE-only evidence/tracker boundary. #46 remains PATCH app-created metadata-only evidence.
-#47 is the next boundary for considering future bounded mixed CREATE plus PATCH app-created metadata-only
-sessions. #47 is not mutation approval by itself.
+#45 remains the CREATE-only tracker. #46 remains the PATCH app-created metadata-only boundary/evidence
+tracker. #47 is the active mixed CREATE + PATCH app-created metadata-only operating-mode tracker after the
+owner-verified first mixed session. #47 is not mutation approval by itself.
