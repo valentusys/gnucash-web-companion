@@ -66,10 +66,11 @@ the current write-alpha publication baseline remains Phase 261.
 - **Recently completed owner real-book trial:** #44 completed one owner-approved real-book CREATE trial
   with redacted backup/read-back/audit/reset/probe evidence and manual Desktop verification. #44 is
   closed and is not ongoing mutation approval.
-- **Current active issues:** #45 remains the CREATE-only operating-mode tracker after owner-verified
-  generated CREATE-only test-copy sessions. #46 tracks a separate future owner-only PATCH app-created
-  transaction trial. Neither issue is mutation approval by itself, DELETE approval, release approval, or
-  public write beta approval.
+- **Current active issues:** #45 remains the CREATE-only evidence tracker after owner-verified generated
+  CREATE-only test-copy sessions. #46 remains the PATCH app-created metadata-only evidence tracker after
+  owner-verified 5/5 and 20/20 trials. #47 tracks the separate future owner-only CREATE + PATCH app-created
+  metadata-only operating-mode boundary. None are mutation approval by themselves, DELETE approval,
+  release approval, or public write beta approval.
 - **Recently closed:** #22 compatibility fixtures, #28 Markdown readability, #13, #41, #42, and #43.
 - **Issue #22 closure:** accepted narrowly for one isolated GnuCash 5.14
   Desktop-generated synthetic SQLite fixture only. It is not a broad Desktop-version, SQL-backend,
@@ -82,10 +83,11 @@ the current write-alpha publication baseline remains Phase 261.
 
 - #36 controlled-write readiness: closed as `CLOSE_36_AS_MAINTENANCE_BOUNDARY`; no open-ended
   maintenance queue remains. #44 Owner real-book trial safety model is closed after one successful
-  owner-approved CREATE trial and manual Desktop verification. #45 remains the CREATE-only operating-mode
-  tracker after owner-verified generated CREATE-only test-copy sessions. #46 is the separate future
-  owner-only PATCH app-created transaction trial boundary. PATCH remains unauthorized until fresh
-  same-context owner/PM approval; DELETE, batch, release, and public write beta remain forbidden.
+  owner-approved CREATE trial and manual Desktop verification. #45 and #46 record owner-verified CREATE-only
+  and PATCH app-created metadata-only test-copy evidence. #47 is the separate future owner-only CREATE +
+  PATCH app-created metadata-only operating-mode boundary. CREATE/PATCH remain unauthorized until fresh
+  same-context owner/PM approval with exact counts; DELETE, batch, release, and public write beta remain
+  forbidden.
 - #22 compatibility fixtures: closed narrowly for isolated Desktop-generated synthetic SQLite read-only
   evidence only; future Desktop/backend/version fixture expansion remains separate work.
 - #28 Markdown readability: closed after terminal-readability/status guard cleanup.

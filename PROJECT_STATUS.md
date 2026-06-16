@@ -21,15 +21,18 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   `CLOSE_36_AS_MAINTENANCE_BOUNDARY`; no open-ended controlled-write maintenance queue remains.
   [#44](https://github.com/valentusys/gnucash-web-companion/issues/44) completed the first owner
   real-book CREATE trial and is closed as successful-trial evidence, not ongoing mutation approval.
-  Current CREATE-only tracker is [#45](https://github.com/valentusys/gnucash-web-companion/issues/45),
-  Owner real-book CREATE-only operating mode. #45 generated CREATE-only test-copy sessions are sufficiently
-  validated for CREATE-only on the test copy after owner Desktop verification, but #45 is not PATCH
-  approval, DELETE approval, release approval, or public write beta approval. New issue
-  [#46](https://github.com/valentusys/gnucash-web-companion/issues/46) tracks the separate owner-only
-  PATCH app-created transaction trial boundary.
+  Current evidence trackers are [#45](https://github.com/valentusys/gnucash-web-companion/issues/45),
+  Owner real-book CREATE-only operating mode, and [#46](https://github.com/valentusys/gnucash-web-companion/issues/46),
+  Owner real-book PATCH app-created transaction trial. #45 CREATE-only and #46 PATCH app-created
+  metadata-only test-copy sessions are sufficiently validated after owner Desktop verification. New issue
+  [#47](https://github.com/valentusys/gnucash-web-companion/issues/47) tracks the separate owner-only
+  CREATE + PATCH app-created metadata-only operating-mode boundary. None of these issues are DELETE
+  approval, release approval, or public write beta approval.
   [#22](https://github.com/valentusys/gnucash-web-companion/issues/22) and
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) are closed.
-- Latest handoffs/docs: `docs/handoff/issue45-to-patch-app-created-transition.md`,
+- Latest handoffs/docs: `docs/handoff/issue46-to-create-patch-app-created-transition.md`,
+  `docs/write-alpha/owner-real-book-create-patch-app-created-operating-mode.md`,
+  `docs/handoff/issue45-to-patch-app-created-transition.md`,
   `docs/handoff/issue45-create-only-operating-policy-v1.md`,
   `docs/write-alpha/owner-real-book-create-only-operating-mode.md`,
   `docs/handoff/issue45-next-create-only-operating-session-report.md`,
@@ -73,9 +76,10 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   successful CREATE, redacted route-backup/read-back/audit/reset/probe evidence, and owner manual
   Desktop verification; #44 is closed and is not ongoing mutation approval, release approval, or public
   write beta approval. #45 remains the CREATE-only operating-mode tracker after sufficiently validated
-  generated CREATE-only test-copy sessions; #46 is the separate PATCH app-created transaction trial
-  boundary. Neither issue is release approval or public write beta approval. No release was published;
-  `NO_RELEASE` remains current.
+  generated CREATE-only test-copy sessions; #46 remains the PATCH app-created metadata-only evidence
+  tracker after first 5/5 and expanded 20/20 owner-verified PATCH trials; #47 is the separate CREATE +
+  PATCH app-created metadata-only operating-mode boundary. None of these issues are release approval or
+  public write beta approval. No release was published; `NO_RELEASE` remains current.
 - Current #36 docs reconciliation: owner-writebeta remains maintenance-only and unreleased until
   explicit owner approval. The guard state still requires default `GNUCASH_WRITES_ENABLED=false`,
   enabled write-alpha/writebeta `APP_ENV=test` gating, no public write beta, no real/private/original/
@@ -88,9 +92,13 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   CREATE, read-back, redacted audit, default-disabled reset, disabled probes, and owner Desktop
   verification; PATCH/DELETE/batch, unattended mutation, dogfood loops, public write beta, release
   publication, and production/stable/security-audited claims remain forbidden. After generated CREATE-only
-  test-copy sessions were owner-verified, #46 was opened for a future owner-only PATCH app-created
-  transaction trial limited to metadata/description/memo-only PATCH and requiring fresh same-context
-  owner/PM approval before any mutation. The 2026-06-10 PM/Owner
+  test-copy sessions were owner-verified, #46 was opened for owner-only PATCH app-created transaction
+  trials limited to metadata/description/memo-only PATCH and requiring fresh same-context owner/PM
+  approval before any mutation. After #46 first 5/5 and expanded 20/20 PATCH trials were owner-verified,
+  #47 was opened for future bounded CREATE + PATCH app-created metadata-only operating sessions with
+  exact counts, app-created identity proof, backup/read-back/audit/reset/probes, Syncthing conflict checks
+  when applicable, correct private Telegram verification tables, and redacted-only GitHub/tracked reporting.
+  The 2026-06-10 PM/Owner
   packet closes #36 as a
   maintenance boundary while preserving `NO_RELEASE`, no public write beta, no real/private/original/
   working/only-copy mutation, and unpublished `v0.4.0-owner-writebeta`. The r8 release/no-release documentation
