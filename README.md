@@ -68,8 +68,9 @@ the current write-alpha publication baseline remains Phase 261.
   closed and is not ongoing mutation approval.
 - **Current active issues:** #45 remains the CREATE-only tracker. #46 remains the PATCH app-created
   metadata-only boundary/evidence tracker. #47 is the active mixed CREATE + PATCH app-created metadata-only
-  operating-mode tracker after an owner-verified first mixed session. None are mutation approval by
-  themselves, DELETE/batch approval, release approval, or public write beta approval.
+  operating-mode tracker after an owner-verified first mixed session. #48 is the non-mutating owner transaction-entry
+  workflow tracker for compact input, private preview, and exact CREATE count approval. None are mutation
+  approval by themselves, DELETE/batch approval, release approval, or public write beta approval.
 - **Recently closed:** #22 compatibility fixtures, #28 Markdown readability, #13, #41, #42, and #43.
 - **Issue #22 closure:** accepted narrowly for one isolated GnuCash 5.14
   Desktop-generated synthetic SQLite fixture only. It is not a broad Desktop-version, SQL-backend,
@@ -84,9 +85,11 @@ the current write-alpha publication baseline remains Phase 261.
   maintenance queue remains. #44 Owner real-book trial safety model is closed after one successful
   owner-approved CREATE trial and manual Desktop verification. #45 and #46 record owner-verified CREATE-only
   and PATCH app-created metadata-only test-copy evidence. #47 is the active owner-only mixed CREATE + PATCH
-  app-created metadata-only operating-mode tracker after the owner-verified first mixed session. CREATE/PATCH
-  remain unauthorized until fresh same-context owner/PM approval with exact counts; DELETE, batch, amount/
-  account/split/date/currency/balance-affecting changes, release, and public write beta remain forbidden.
+  app-created metadata-only operating-mode tracker after the owner-verified first mixed session. #48 tracks the
+  owner-only transaction-entry workflow from compact text/table/CSV-like input through private preview and exact
+  CREATE count approval. CREATE/PATCH remain unauthorized until fresh same-context owner/PM approval with exact
+  counts; DELETE, batch, amount/account/split/date/currency/balance-affecting changes, release, and public write
+  beta remain forbidden.
 - #22 compatibility fixtures: closed narrowly for isolated Desktop-generated synthetic SQLite read-only
   evidence only; future Desktop/backend/version fixture expansion remains separate work.
 - #28 Markdown readability: closed after terminal-readability/status guard cleanup.
