@@ -26,15 +26,17 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   Owner real-book PATCH app-created transaction trial,
   [#47](https://github.com/valentusys/gnucash-web-companion/issues/47), Owner real-book CREATE + PATCH
   app-created metadata-only operating mode, and
-  [#48](https://github.com/valentusys/gnucash-web-companion/issues/48), Owner transaction-entry workflow for
+  [#48](https://github.com/valentusys/gnucash-web-companion/issues/48), Owner web transaction-entry UI for
   CREATE + optional PATCH app-created metadata. #45 remains the CREATE-only
   tracker, #46 remains the PATCH app-created metadata-only boundary/evidence tracker, #47 remains the active
   mixed CREATE + PATCH app-created metadata-only operating-mode tracker after the owner-verified first mixed
-  session, and #48 is the non-mutating product-workflow tracker for safe owner transaction input and preview.
+  session, and #48 is the non-mutating product-workflow tracker for owner web transaction-entry UI with
+  browser/mobile form, private preview, and confirmation.
   None of these issues are DELETE approval, release approval, or public write beta approval.
   [#22](https://github.com/valentusys/gnucash-web-companion/issues/22) and
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) are closed.
-- Latest handoffs/docs: `docs/handoff/issue47-to-transaction-entry-workflow-transition.md`,
+- Latest handoffs/docs: `docs/handoff/issue48-rescope-to-web-transaction-entry-ui.md`,
+  `docs/handoff/issue47-to-transaction-entry-workflow-transition.md`,
   `docs/write-alpha/owner-transaction-entry-workflow.md`,
   `docs/handoff/issue47-first-mixed-session-transition.md`,
   `docs/handoff/issue46-to-create-patch-app-created-transition.md`,
@@ -87,9 +89,11 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   tracker after first 5/5 and expanded 20/20 owner-verified PATCH trials; #47 is the active mixed CREATE +
   PATCH app-created metadata-only operating-mode tracker after the owner-verified first mixed session
   (CREATE 10/10, PATCH 5/5, DELETE 0, batch 0). #48 is the non-mutating product-workflow tracker for
-  owner-only compact transaction input, private preview, target preflight, exact CREATE count approval, and
-  optional app-created description/memo-only PATCH planning. None of these issues are DELETE/batch approval,
-  release approval, or public write beta approval. No release was published; `NO_RELEASE` remains current.
+  owner-only browser/mobile transaction-entry UI, backend validate/preview, explicit UI confirmation, exact
+  CREATE count of 1 per form submit unless future scope expands it, and optional app-created description/memo-only
+  PATCH planning. Telegram/agent compact input is development/test harness only, not the main product workflow.
+  None of these issues are DELETE/batch approval, release approval, or public write beta approval. No release
+  was published; `NO_RELEASE` remains current.
 - Current #36 docs reconciliation: owner-writebeta remains maintenance-only and unreleased until
   explicit owner approval. The guard state still requires default `GNUCASH_WRITES_ENABLED=false`,
   enabled write-alpha/writebeta `APP_ENV=test` gating, no public write beta, no real/private/original/
@@ -113,10 +117,11 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   must be app-created only, PATCH scope remains description/memo metadata-only, DELETE/batch and amount/
   account/split/date/currency/balance-affecting changes remain forbidden, and private verification tables
   must keep Date/GUID/Accounts/Description/Amounts columns unambiguous or fall back to numbered plain text.
-  On 2026-06-17, #48 was opened to transition from #47 mixed-session evidence into a product task for
-  owner-only transaction entry from compact text/table/CSV-like input with target preflight, private preview,
-  exact CREATE count approval, and optional app-created description/memo-only PATCH boundaries. This transition
-  performed no mutation and does not authorize CREATE/PATCH/DELETE by itself. The 2026-06-10 PM/Owner
+  On 2026-06-17, #48 was opened and then re-scoped from compact agent/text input to the product direction:
+  owner-only web transaction-entry UI over the GnuCash companion app, with browser/mobile form, backend
+  validate/preview, explicit UI confirmation, exact CREATE count of 1 per form submit unless future scope expands
+  it, optional app-created description/memo-only PATCH, and compact text/CSV only as optional local/debug helper.
+  This transition performed no mutation and does not authorize CREATE/PATCH/DELETE by itself. The 2026-06-10 PM/Owner
   packet closes #36 as a
   maintenance boundary while preserving `NO_RELEASE`, no public write beta, no real/private/original/
   working/only-copy mutation, and unpublished `v0.4.0-owner-writebeta`. The r8 release/no-release documentation

@@ -1,114 +1,147 @@
-# Owner transaction-entry workflow for CREATE + optional PATCH app-created metadata
+# Owner web transaction-entry UI for CREATE + optional PATCH app-created metadata
 
-Issue: [#48 Owner transaction-entry workflow for CREATE + optional PATCH app-created metadata](https://github.com/valentusys/gnucash-web-companion/issues/48)
-Status: **PLANNING_SCOPE_ONLY_NO_MUTATION**. This document does not authorize mutation by itself.
+Issue: [#48 Owner web transaction-entry UI for CREATE + optional PATCH app-created metadata](https://github.com/valentusys/gnucash-web-companion/issues/48)
+Status: **WEB_UI_PRODUCT_SCOPE_NO_MUTATION**. This document does not authorize mutation by itself.
 
-## Purpose
+## Product framing
 
-#47 validated the first mixed CREATE + PATCH app-created metadata-only session and documented policy v1.
-The next product task is convenience: the owner should not need to write long prompts or manually compose
-fields for 10+ real operations. #48 defines a safe owner-only workflow for entering operations as a compact
-list/table/CSV-like text, seeing a private preview, and approving the exact CREATE count before any future
-mutation.
+`gnucash-web-companion` is a browser/mobile companion application for existing GnuCash books. The product goal
+for #48 is therefore **not** a Telegram/agent bookkeeping workflow. The agent may be used as a developer/tester
+and may help with local/debug harnesses, but the main user-facing transaction-entry interface must be the web
+application.
+
+#47 validated the first mixed CREATE + PATCH app-created metadata-only session and documented policy v1. #48
+re-scopes the next step from prompt-heavy operator evidence into an owner-only web UI workflow for creating
+transactions from a browser/mobile form, previewing them, and confirming before CREATE.
 
 ## Strict scope
 
-#48 is limited to owner-only transaction-entry workflow planning and/or implementation.
+#48 is limited to owner-only web transaction-entry workflow planning and/or implementation.
 
-Allowed future target classes, only after fresh same-context owner approval:
+Allowed future target classes, only after fresh same-context owner approval for a mutating run:
 
 - test copy;
 - owner-selected real-book target.
 
-Allowed future operation classes, only after fresh same-context owner approval:
+Allowed future operation classes, only after fresh same-context owner approval for a mutating run:
 
-- CREATE after parser/validator success, target preflight, private preview, and exact CREATE count approval;
-- optional PATCH only for app-created transactions;
+- CREATE through the app UI after backend validation, preview, and explicit UI confirmation;
+- optional PATCH through the app UI only for app-created transactions;
 - optional PATCH scope only description/memo metadata-only.
+
+Writes remain disabled by default. Opening or documenting #48 is not mutation approval.
+
+## Desired implementation direction
+
+### Backend
+
+- Add or refine a validate/preview endpoint for a single transaction create payload.
+- Preserve existing write disabled-by-default gates and `APP_ENV=test` write gating.
+- Keep the preview endpoint non-mutating.
+- Preserve target preflight before any future mutation.
+- Keep exact CREATE count at **1 per form submit** unless a future issue explicitly expands this.
+- Validate date, debit/source account, credit/destination account, amount, currency, description, and optional
+  memo before preview/confirmation.
+- Reject ambiguous account matches unless the owner resolves them in the UI.
+- Reject missing/invalid amount, currency, or date.
+
+### Frontend
+
+- Add a browser/mobile transaction-entry form in the app UI.
+- Include these fields:
+  - date;
+  - debit/source account selector or autocomplete;
+  - credit/destination account selector or autocomplete;
+  - amount field using string/Decimal semantics;
+  - currency field;
+  - description field;
+  - optional memo field.
+- Show a preview/confirmation step before CREATE.
+- Make the layout mobile-friendly and accessible.
+- Keep private transaction details in the local app UI/runtime only, not in GitHub/tracked reports.
+
+### Optional PATCH UI
+
+If implemented under #48, PATCH must remain #47-compatible:
+
+- only app-created transactions;
+- exact app-created identity proof before PATCH;
+- description/memo metadata-only;
+- no historical/manual transaction mutation;
+- no amount/account/split/date/currency/balance-affecting changes;
+- read-back after PATCH must prove unchanged financial fields.
 
 ## Forbidden operations and claims
 
 #48 forbids:
 
-- CREATE without explicit same-context owner approval;
+- CREATE without explicit UI confirmation and future same-context owner approval for a mutating run;
 - PATCH of historical/manual transactions;
 - PATCH amount/account/split/date/currency changes;
 - PATCH of any balance-affecting field;
 - DELETE;
-- batch mutation unless a future issue explicitly authorizes batch semantics;
+- batch mutation;
 - unattended mutation;
-- dogfood loops;
+- dogfood against a private book without explicit future approval;
 - public write beta;
 - release/tag/package/image publication;
 - production, stable, or security-audited claims;
 - committing or posting raw private paths, account names, descriptions, memos, amounts, GUIDs, books,
   backups, screenshots, tokens, keys, certs, or `.env` content.
 
-## Safe owner input format
+## Web preview-before-mutation workflow
 
-The owner input format should be compact, explicit, and easy to paste from Telegram or a local text editor.
-The recommended planning format is pipe-separated text with a header row:
+The intended future product flow is:
+
+1. Owner opens the transaction-entry form in the web app.
+2. Owner selects or confirms the target book context in the app.
+3. Owner enters one transaction.
+4. Backend validates the payload and returns a non-mutating preview.
+5. UI shows the preview locally in the browser/mobile app.
+6. Owner explicitly confirms the preview.
+7. Only then may the app execute one routed CREATE operation, subject to enabled write gates and session scope.
+8. App reads back the result, records audit evidence, and shows local/private result details.
+
+The preview must include enough private detail for the owner to verify the plan, but those private details must
+not be copied to GitHub issues, commits, tracked reports, or CI logs.
+
+## Input field validation rules
+
+The web form and backend preview must validate:
+
+1. **Date** — required; prefer explicit `YYYY-MM-DD`; reject missing, invalid, or ambiguous dates.
+2. **Debit/source account** — required; select by stable app account identity where possible; reject missing,
+   placeholder, inaccessible, or ambiguous account matches.
+3. **Credit/destination account** — required; same rules as debit/source account.
+4. **Amount** — required decimal string; reject missing, zero if not explicitly supported, invalid decimal,
+   float-derived, range-invalid, or locale-ambiguous values.
+5. **Currency** — required; reject missing, unsupported, or account-incompatible currency values; do not fake
+   conversion.
+6. **Description** — required unless a future issue explicitly permits blank descriptions; preview exactly what
+   will be written.
+7. **Memo** — optional metadata only; if present, preserve it as text and include it in local/private preview.
+
+Account selection should prefer explicit selectors/autocomplete over free-text matching. If free-text matching is
+used anywhere, it must fail closed on ambiguous matches and require owner resolution before preview can become
+confirmable.
+
+## Optional local/debug/import-helper input
+
+Pipe-separated or CSV-like compact text may remain useful as a **developer/local/debug/import-helper**, but it is
+not the primary user-facing product workflow for #48.
+
+If such a helper is kept or added, it must remain local/test scoped and produce the same single-transaction web
+payload semantics before preview. It must not become an unattended batch importer under #48.
+
+Example helper-only format:
 
 ```text
 date | debit | credit | amount | currency | description | memo
 YYYY-MM-DD | <source account alias/name> | <destination account alias/name> | <decimal amount> | <ISO code> | <text> | <optional text>
 ```
 
-CSV-like input may be accepted later if the same field semantics and validation rules are preserved. The
-parser must not infer missing financial fields from descriptions or prior rows.
-
-## Parser and validator requirements
-
-The parser/validator must produce either a rejected plan or a normalized private preview. It must validate:
-
-1. **Date** — required; parse only an explicit date format selected by the implementation plan, preferably
-   `YYYY-MM-DD`; reject missing, invalid, or ambiguous dates.
-2. **Debit/source account** — required; resolve against the selected target's account list; reject missing,
-   placeholder, inaccessible, or ambiguous matches unless the owner resolves them.
-3. **Credit/destination account** — required; resolve with the same rules as debit/source account.
-4. **Amount** — required decimal string; reject missing, zero if not explicitly supported, invalid decimal,
-   float-derived, range-invalid, or locale-ambiguous values.
-5. **Currency** — required; reject missing, unsupported, or account-incompatible currency values; do not fake
-   conversion.
-6. **Description** — required unless a future issue explicitly permits blank descriptions; reject values that
-   cannot be safely previewed or audited.
-7. **Memo** — optional metadata only; if present, preserve it as text and include it in private preview.
-
-Account matching must be fail-closed. If two or more candidate accounts can match the owner-provided text, the
-workflow must stop and ask the owner to resolve the exact account before any mutation.
-
-## Preview-before-mutation workflow
-
-The intended future flow is:
-
-1. Owner selects target class and target handle in the same context.
-2. Tool runs target preflight and records only redacted readiness in tracked/GitHub output.
-3. Owner provides compact transaction input.
-4. Parser validates every row and account resolution.
-5. System returns a private preview in Telegram/local UI only.
-6. Owner approves in the same context with the exact CREATE count.
-7. Only then may a future approved task execute individual CREATE operations, one at a time.
-
-The preview must include enough private detail for the owner to verify the plan, but those private details must
-not be copied to GitHub issues, commits, tracked reports, or CI logs.
-
-## Exact CREATE count approval
-
-A future mutating task must require approval wording that includes the exact CREATE count derived from the
-preview, for example: `approve CREATE count N for this target and this preview`. Approval for `N` rows must not
-be reused if parsing changes, rows are added/removed, account resolution changes, or target preflight is rerun
-against a different target.
-
-## Optional PATCH boundary
-
-Optional PATCH remains #47-compatible:
-
-- only app-created transactions;
-- exact app-created identity proof before every PATCH;
-- only description/memo metadata-only;
-- no historical/manual transaction mutation;
-- no amount/account/split/date/currency/balance-affecting changes;
-- read-back after PATCH must prove unchanged financial fields.
+CSV-like helper input may be accepted only if the same validation, preview, redaction, and no-batch boundaries
+are preserved.
 
 ## Preserve #47 policy
 
@@ -121,14 +154,15 @@ Every future #48 mutating session must preserve #47 policy:
 - disabled-write probes for validate/preflight, CREATE, PATCH, and DELETE route families when available;
 - Syncthing conflict-copy checks before/after if the target is under Syncthing;
 - redacted-only GitHub/tracked reports;
-- private details only in Telegram/local UI.
+- private details only in local app UI/runtime, Telegram, or other private owner context.
 
-## Private Telegram verification-list rule
+## Private verification-list rule
 
 Private verification lists must use correct human-readable columns and must not swap Date, GUID, Accounts,
 Description, Memo, or Amounts.
 
-For owner verification, prefer compact numbered plain text if a Markdown table may wrap or shift columns:
+For owner verification outside the app UI, prefer compact numbered plain text if a Markdown table may wrap or
+shift columns:
 
 ```text
 1. Date: <date>; GUID: <guid>; Debit: <account>; Credit: <account>; Amount: <amount currency>;
@@ -139,20 +173,24 @@ GitHub/tracked reports must remain redacted-only and must not include those priv
 
 ## Acceptance checklist
 
-- [ ] Safe owner input format defined.
-- [ ] Parser/validator or planning docs cover date, debit/source account, credit/destination account, amount,
-      currency, description, and optional memo.
-- [ ] Preview step exists before mutation.
-- [ ] Preview is private Telegram/local UI only, not GitHub/tracked output.
+- [ ] Product scope states web UI, not Telegram/agent-driven bookkeeping.
+- [ ] Browser/mobile transaction-entry form is planned or implemented.
+- [ ] Backend validate/preview endpoint is planned or implemented and is non-mutating.
+- [ ] Form covers date, debit/source account, credit/destination account, amount, currency, description, and
+      optional memo.
+- [ ] Preview/confirmation step exists before CREATE.
+- [ ] CREATE count remains 1 per form submit unless a future issue expands scope.
+- [ ] Preview is private local app UI/runtime only, not GitHub/tracked output.
 - [ ] Ambiguous account matches are rejected unless owner resolves them.
 - [ ] Missing/invalid amount, currency, or date is rejected.
-- [ ] Exact CREATE count approval is required.
-- [ ] Target preflight is required.
+- [ ] Target preflight and existing write gates are preserved.
+- [ ] Optional PATCH remains app-created description/memo metadata-only.
+- [ ] DELETE, batch mutation, and balance-affecting PATCH edits remain forbidden.
 - [ ] #47 backup/read-back/audit/reset/probes and Syncthing conflict-copy rules are preserved.
 - [ ] Redacted-only GitHub/tracked reports are preserved.
-- [ ] Private verification-list column rule and numbered plain-text fallback are documented.
+- [ ] Compact text/CSV remains optional local/debug/import-helper only, not the main user-facing workflow.
 
 ## Current non-mutating state
 
-This document is a transition/planning artifact. No CREATE, PATCH, DELETE, dogfood loop, release, tag,
-package, image publication, public write beta, or production/stable/security-audited claim is made here.
+This document is a re-scope/planning artifact. No CREATE, PATCH, DELETE, dogfood loop, release, tag, package,
+image publication, public write beta, or production/stable/security-audited claim is made here.

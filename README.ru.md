@@ -49,9 +49,10 @@ release docs и handoff-файлах, чтобы этот файл не стан
   CREATE trial и manual Desktop verification; это не ongoing mutation approval.
 - Current active issues: #45 remains the CREATE-only tracker. #46 remains the PATCH app-created
   metadata-only boundary/evidence tracker. #47 is the active mixed CREATE + PATCH app-created metadata-only
-  operating-mode tracker after an owner-verified first mixed session. #48 is the non-mutating owner
-  transaction-entry workflow tracker for compact input, private preview, and exact CREATE count approval. None
-  are mutation approval by themselves, DELETE/batch approval, release approval, or public write beta approval.
+  operating-mode tracker after an owner-verified first mixed session. #48 is the non-mutating owner web
+  transaction-entry UI tracker for browser/mobile form, private preview, explicit UI confirmation, and exact
+  CREATE count of 1 per form submit unless future scope expands it. None are mutation approval by themselves,
+  DELETE/batch approval, release approval, or public write beta approval.
 - Недавно закрытые очереди: #22 compatibility fixtures, #28 markdown readability, #13, #41, #42, #43.
 
 ## Карта открытых очередей
@@ -61,10 +62,11 @@ release docs и handoff-файлах, чтобы этот файл не стан
   owner-approved CREATE trial и manual Desktop verification. #45 and #46 record owner-verified CREATE-only
   and PATCH app-created metadata-only test-copy evidence. #47 is the active owner-only mixed CREATE + PATCH
   app-created metadata-only operating-mode tracker after the owner-verified first mixed session. #48 tracks the
-  owner-only transaction-entry workflow from compact text/table/CSV-like input through private preview and exact
-  CREATE count approval. CREATE/PATCH remain unauthorized until fresh same-context owner/PM approval with exact
-  counts; DELETE, batch, amount/account/split/date/currency/balance-affecting changes, release, and public write
-  beta remain forbidden.
+  owner-only web transaction-entry UI workflow: browser/mobile form, backend validate/preview, private preview,
+  and explicit UI confirmation. Compact text/CSV-like input is local/debug-helper only, not the main user-facing
+  product workflow. CREATE/PATCH remain unauthorized until fresh same-context owner/PM approval with exact counts;
+  DELETE, batch, amount/account/split/date/currency/balance-affecting changes, release, and public write beta
+  remain forbidden.
 - #22: compatibility fixtures закрыта narrowly for isolated Desktop-generated synthetic SQLite fixture
   read-only evidence only; future Desktop/backend/version fixture expansion остаётся separate work.
 - #28: raw Markdown readability закрыта после terminal-readability/status guard cleanup без whole-repo reflow.
