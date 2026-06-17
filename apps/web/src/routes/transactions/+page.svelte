@@ -174,6 +174,13 @@
 			{#if data.activeBook}
 				<a
 					class="inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2 text-center text-sm font-semibold"
+					style="background: var(--app-accent); color: white;"
+					href="/transactions/new"
+					>Preview new transaction</a
+				>
+				<p class="max-w-xs text-xs" style="color: var(--app-muted);">Preview only; no CREATE/PATCH/DELETE action is available.</p>
+				<a
+					class="inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2 text-center text-sm font-semibold"
 					style="background: var(--app-panel); color: var(--app-text); border: 1px solid var(--app-border);"
 					href={exportCsvUrl}
 					aria-describedby="csv-export-status csv-export-reliability-status"
@@ -187,7 +194,7 @@
 					<p class="text-xs font-semibold" style="color: #b45309;">
 						Experimental post-MVP write mode is enabled. MVP v0.1 remains read-only by default; continue only in APP_ENV=test with an ignored disposable copy, backups, audit, and lock-release evidence.
 					</p>
-					<a class="inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold text-white" style="background: var(--app-accent);" href="/transactions/new">New transaction</a>
+					<a class="inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold text-white" style="background: var(--app-accent);" href="/transactions/new">Preview transaction form</a>
 				</div>
 			{/if}
 		</div>

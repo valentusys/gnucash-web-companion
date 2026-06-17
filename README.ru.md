@@ -51,7 +51,8 @@ release docs и handoff-файлах, чтобы этот файл не стан
   metadata-only boundary/evidence tracker. #47 is the active mixed CREATE + PATCH app-created metadata-only
   operating-mode tracker after an owner-verified first mixed session. #48 is the non-mutating owner web
   transaction-entry UI tracker for browser/mobile form, private preview, explicit UI confirmation, and exact
-  CREATE count of 1 per form submit unless future scope expands it. None are mutation approval by themselves,
+  CREATE count of 1 per form submit unless future scope expands it. The first slice is preview-only and does not
+  expose an enabled CREATE action. None are mutation approval by themselves,
   DELETE/batch approval, release approval, or public write beta approval.
 - Недавно закрытые очереди: #22 compatibility fixtures, #28 markdown readability, #13, #41, #42, #43.
 

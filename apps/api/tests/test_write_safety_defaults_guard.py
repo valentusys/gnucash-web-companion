@@ -37,6 +37,25 @@ def test_write_safety_defaults_guard_passes_on_committed_config() -> None:
     assert proc.stderr == ""
 
 
+def test_write_safety_defaults_guard_excludes_non_mutating_create_preview_route() -> None:
+    tree = write_safety_guard.ast.parse(
+        """
+from fastapi import APIRouter
+router = APIRouter()
+
+@router.post('/books/{book_id}/transactions/create-preview')
+async def preview_book_transaction_create():
+    pass
+
+@router.post('/books/{book_id}/transactions')
+async def create_book_transaction():
+    pass
+"""
+    )
+
+    assert write_safety_guard._decorated_transaction_write_route_functions(tree) == {"create_book_transaction"}
+
+
 def test_owner_writebeta_operating_guide_preserves_future_copied_book_authorization_format() -> None:
     guide = (ROOT / "docs/write-alpha/owner-writebeta-operating-guide.md").read_text(encoding="utf-8")
 

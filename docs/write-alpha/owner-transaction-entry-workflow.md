@@ -190,6 +190,27 @@ GitHub/tracked reports must remain redacted-only and must not include those priv
 - [ ] Redacted-only GitHub/tracked reports are preserved.
 - [ ] Compact text/CSV remains optional local/debug/import-helper only, not the main user-facing workflow.
 
+## Preview-only implementation slice
+
+The first #48 implementation slice adds a **preview-only** web transaction-entry path. It does not authorize or
+execute CREATE, PATCH, DELETE, or batch mutation.
+
+Implemented direction:
+
+- backend `POST /books/{book_id}/transactions/create-preview` validates one transaction create payload and returns
+  a normalized private preview with `preview_only=true` and `create_count=1`;
+- the endpoint works with `GNUCASH_WRITES_ENABLED=false`;
+- the endpoint opens the selected book read-only to resolve account display paths and never constructs the write
+  service, lock, backup, audit, or mutation path;
+- `/transactions/new` is a browser/mobile preview form with date, debit/source account, credit/destination account,
+  amount, currency, description, and optional memo fields;
+- the UI shows preview-only/no-write messaging and a normalized local preview panel;
+- Create/Submit mutation remains disabled/absent for this slice.
+
+Future CREATE remains blocked until fresh same-context owner approval states exact CREATE count and #47-compatible
+backup/read-back/audit/reset/probe requirements. DELETE, batch mutation, historical/manual mutation, and
+amount/account/split/date/currency PATCH edits remain forbidden.
+
 ## Current non-mutating state
 
 This document is a re-scope/planning artifact. No CREATE, PATCH, DELETE, dogfood loop, release, tag, package,

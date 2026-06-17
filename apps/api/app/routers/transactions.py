@@ -35,8 +35,12 @@ from app.schemas.gnucash import (
     TransactionListItemDTO,
 )
 from app.schemas.gnucash_writes import (
+    TransactionCreatePreviewAccountDTO,
+    TransactionCreatePreviewDTO,
+    TransactionCreatePreviewRequestDTO,
     TransactionCreateRequestDTO,
     TransactionPatchRequestDTO,
+    TransactionSplitWriteDTO,
     TransactionValidationResultDTO,
     TransactionWriteResultDTO,
     WriteAlphaAuditSummaryDTO,
@@ -519,6 +523,149 @@ def _require_book_edit_access(book: Book, user: User, session: Session) -> None:
         ) from exc
 
 
+def _require_book_owner_access(book: Book, user: User, session: Session) -> None:
+    """Require owner access for controlled owner-only preview workflows."""
+    role = BookAccessService(session).get_role(user, book)
+    if role != "owner":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Book owner access required",
+        )
+
+
+def _build_transaction_create_preview(
+    request: TransactionCreatePreviewRequestDTO,
+    accounts: list[Any],
+) -> TransactionCreatePreviewDTO:
+    """Build a normalized single-CREATE preview using read-only account data."""
+    _parse_preview_date(request.date)
+    amount = _parse_preview_amount(request.amount)
+    currency = request.currency.upper()
+    description = request.description.strip()
+    memo = request.memo.strip()
+    if not description:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="description is required",
+        )
+    if request.debit_account_id == request.credit_account_id:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="debit and credit accounts must be different",
+        )
+
+    by_id = {account.id: account for account in accounts}
+    debit_account = _preview_account_by_id(by_id, request.debit_account_id, "debit_account_id")
+    credit_account = _preview_account_by_id(by_id, request.credit_account_id, "credit_account_id")
+    _validate_preview_account_currency(debit_account, currency, "debit account")
+    _validate_preview_account_currency(credit_account, currency, "credit account")
+
+    amount_text = str(amount)
+    debit_amount = f"-{amount_text}"
+    credit_amount = amount_text
+    return TransactionCreatePreviewDTO(
+        preview_only=True,
+        writes_enabled_required_for_create=True,
+        create_count=1,
+        date=request.date,
+        amount=amount_text,
+        currency=currency,
+        description=description,
+        memo=memo,
+        debit_account=_preview_account_dto(debit_account),
+        credit_account=_preview_account_dto(credit_account),
+        splits=[
+            TransactionSplitWriteDTO(
+                account_id=debit_account.id,
+                amount=debit_amount,
+                currency=currency,
+                memo=memo,
+            ),
+            TransactionSplitWriteDTO(
+                account_id=credit_account.id,
+                amount=credit_amount,
+                currency=currency,
+                memo=memo,
+            ),
+        ],
+        warnings=["Preview only: no GnuCash write was executed."],
+    )
+
+
+def _parse_preview_date(value: str) -> date:
+    if not value or not value.strip():
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="date is required",
+        )
+    try:
+        return date.fromisoformat(value)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="date must use YYYY-MM-DD format",
+        ) from exc
+
+
+def _parse_preview_amount(value: str) -> Decimal:
+    if not value or not value.strip():
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="amount is required",
+        )
+    try:
+        amount = Decimal(value)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="amount must be a decimal string",
+        ) from exc
+    if amount <= Decimal("0"):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="amount must be greater than zero",
+        )
+    return amount
+
+
+def _preview_account_by_id(accounts_by_id: dict[str, Any], account_id: str, field_name: str) -> Any:
+    if not account_id or not account_id.strip():
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"{field_name} is required",
+        )
+    account = accounts_by_id.get(account_id)
+    if account is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"{field_name} was not found",
+        )
+    if getattr(account, "placeholder", False) or getattr(account, "hidden", False):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"{field_name} must reference a selectable account",
+        )
+    return account
+
+
+def _validate_preview_account_currency(account: Any, currency: str, label: str) -> None:
+    account_currency = str(getattr(account, "currency", "") or "").upper()
+    if account_currency and account_currency != "XXX" and account_currency != currency:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"{label} currency does not match requested currency",
+        )
+
+
+def _preview_account_dto(account: Any) -> TransactionCreatePreviewAccountDTO:
+    return TransactionCreatePreviewAccountDTO(
+        id=account.id,
+        name=account.name,
+        full_name=account.full_name,
+        currency=account.currency,
+    )
+
+
 def _write_service_for(book: Book) -> GnuCashWriteService:
     """Create the write-capable GnuCash service for a book."""
     return GnuCashWriteService(book)
@@ -943,6 +1090,30 @@ async def get_write_alpha_audit_summary(
             "Backup paths, private file paths, raw filenames, raw payloads, account names, memos, and amounts are not exposed.",
         ],
     )
+
+
+@router.post(
+    "/books/{book_id}/transactions/create-preview",
+    response_model=TransactionCreatePreviewDTO,
+)
+async def preview_book_transaction_create(
+    book_id: int,
+    request: TransactionCreatePreviewRequestDTO,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+) -> TransactionCreatePreviewDTO:
+    """Validate and preview one owner web-UI transaction CREATE without writing.
+
+    This endpoint intentionally works while GNUCASH_WRITES_ENABLED=false. It opens
+    the selected book read-only to resolve exact account IDs for a private UI
+    preview and never constructs the write service, lock, backup, audit, or
+    mutation path.
+    """
+    book = _resolve_readonly_data_book(book_id, user, session)
+    _require_book_owner_access(book, user, session)
+    service = transaction_service_for(book)
+    accounts = service.list_accounts()
+    return _build_transaction_create_preview(request, accounts)
 
 
 @router.post(

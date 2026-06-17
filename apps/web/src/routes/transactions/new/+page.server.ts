@@ -1,24 +1,17 @@
 import { env } from '$env/dynamic/private';
 import { redirect, type Actions } from '@sveltejs/kit';
 import { apiFetch, getActiveBookContext, getAuthToken } from '$lib/api/server';
-import type {
-	Account,
-	TransactionValidationResult,
-	TransactionWriteResult
-} from '$lib/api/types';
+import type { Account, TransactionCreatePreview } from '$lib/api/types';
 import type { PageServerLoad } from './$types';
 
-type SplitPayload = {
-	account_id: string;
+type CreatePreviewPayload = {
+	date: string;
+	debit_account_id: string;
+	credit_account_id: string;
 	amount: string;
 	currency: string;
-	memo: string;
-};
-
-type CreatePayload = {
-	date: string;
 	description: string;
-	splits: SplitPayload[];
+	memo: string;
 };
 
 type ApiPostResult<T> = {
@@ -43,7 +36,7 @@ async function apiPost<T>(fetchFn: typeof fetch, path: string, token: string, pa
 	return { ok: response.ok, status: response.status, body };
 }
 
-function detailMessage(body: unknown, fallback = 'Write-alpha request failed safely. Check local operator logs and redacted audit/backup/lock evidence before retrying.'): string {
+function detailMessage(body: unknown, fallback = 'Preview validation failed safely. No write was executed.'): string {
 	if (typeof body === 'object' && body !== null && 'detail' in body && typeof body.detail === 'string') {
 		const detail = body.detail.trim();
 		if (detail && detail.length <= 180 && !/[\\/]/.test(detail)) {
@@ -53,112 +46,54 @@ function detailMessage(body: unknown, fallback = 'Write-alpha request failed saf
 	return fallback;
 }
 
-function formToPayload(formData: FormData): CreatePayload {
-	const amount = String(formData.get('amount') ?? '').trim();
-	const currency = String(formData.get('currency') ?? 'SEK').trim().toUpperCase();
+function formToPreviewPayload(formData: FormData): CreatePreviewPayload {
 	return {
 		date: String(formData.get('date') ?? '').trim(),
+		debit_account_id: String(formData.get('debit_account_id') ?? '').trim(),
+		credit_account_id: String(formData.get('credit_account_id') ?? '').trim(),
+		amount: String(formData.get('amount') ?? '').trim(),
+		currency: String(formData.get('currency') ?? '').trim().toUpperCase(),
 		description: String(formData.get('description') ?? '').trim(),
-		splits: [
-			{
-				account_id: String(formData.get('from_account_id') ?? '').trim(),
-				amount: amount ? `-${amount.replace(/^-/, '')}` : '',
-				currency,
-				memo: String(formData.get('from_memo') ?? '')
-			},
-			{
-				account_id: String(formData.get('to_account_id') ?? '').trim(),
-				amount: amount ? amount.replace(/^-/, '') : '',
-				currency,
-				memo: String(formData.get('to_memo') ?? '')
-			}
-		]
+		memo: String(formData.get('memo') ?? '')
 	};
 }
 
-function hasWriteAcknowledgement(formData: FormData): boolean {
-	return String(formData.get('write_acknowledgement') ?? '') === 'experimental-write-mode-acknowledged';
-}
-
 export const load: PageServerLoad = async ({ cookies, fetch }) => {
-	if (env.GNUCASH_WRITES_ENABLED !== 'true') {
-		throw redirect(303, '/transactions');
-	}
 	const token = getAuthToken(cookies);
 	const { books, activeBook, bookPrefix } = await getActiveBookContext(fetch, cookies, token);
 	const accounts = activeBook ? await apiFetch<Account[]>(fetch, `${bookPrefix}/accounts`, token) : [];
 	return {
 		books,
 		accounts: accounts.filter((account) => !account.placeholder && !account.hidden),
-		activeBook
+		activeBook,
+		previewOnly: true
 	};
 };
 
 export const actions: Actions = {
-	validate: async ({ cookies, fetch, request }) => {
-		if (env.GNUCASH_WRITES_ENABLED !== 'true') {
-			return { error: 'GnuCash writes are disabled. MVP v0.1 is read-only by default.' };
-		}
+	preview: async ({ cookies, fetch, request }) => {
 		const token = getAuthToken(cookies);
 		const formData = await request.formData();
 		const bookId = String(formData.get('book_id') ?? '');
-		const payload = formToPayload(formData);
+		const payload = formToPreviewPayload(formData);
 		try {
-			const result = await apiPost<TransactionValidationResult>(
+			const result = await apiPost<TransactionCreatePreview>(
 				fetch,
-				`/books/${bookId}/transactions/validate`,
+				`/books/${bookId}/transactions/create-preview`,
 				token,
 				payload
 			);
 			if (!result.ok) {
-				return { error: detailMessage(result.body, 'Validation failed safely. Check the selected disposable copy and redacted operator logs before retrying.'), payload };
+				return {
+					error: detailMessage(result.body),
+					payload,
+					previewOnly: true
+				};
 			}
-			return { validation: result.body as TransactionValidationResult, payload };
+			return { preview: result.body as TransactionCreatePreview, payload, previewOnly: true };
 		} catch (err) {
 			if (typeof err === 'object' && err !== null && 'status' in err) throw err;
-			return { error: 'API service is unavailable.', payload };
-		}
-	},
-	create: async ({ cookies, fetch, request }) => {
-		if (env.GNUCASH_WRITES_ENABLED !== 'true') {
-			return { error: 'GnuCash writes are disabled. MVP v0.1 is read-only by default.' };
-		}
-		const token = getAuthToken(cookies);
-		const formData = await request.formData();
-		const bookId = String(formData.get('book_id') ?? '');
-		const payload = formToPayload(formData);
-		if (!hasWriteAcknowledgement(formData)) {
-			return {
-				error:
-					'Explicit acknowledgement is required before creating one experimental controlled-write test transaction. Use only an outside-git copied/restorable test book with the original untouched, independent backup, restore plan, audit, app backup, and lock-release checks. This is not for production use.',
-				payload
-			};
-		}
-		try {
-			const validationResult = await apiPost<TransactionValidationResult>(
-				fetch,
-				`/books/${bookId}/transactions/validate`,
-				token,
-				payload
-			);
-			if (!validationResult.ok) {
-				return { error: detailMessage(validationResult.body, 'Validation failed safely. Check the selected disposable copy and redacted operator logs before retrying.'), payload };
-			}
-			const validation = validationResult.body as TransactionValidationResult;
-			if (!validation.valid) return { validation, payload };
-
-			const createResult = await apiPost<TransactionWriteResult>(
-				fetch,
-				`/books/${bookId}/transactions`,
-				token,
-				payload
-			);
-			if (!createResult.ok) return { error: detailMessage(createResult.body), validation, payload };
-			const result = createResult.body as TransactionWriteResult;
-			throw redirect(303, `/transactions/${encodeURIComponent(result.transaction_id)}`);
-		} catch (err) {
-			if (typeof err === 'object' && err !== null && 'status' in err) throw err;
-			return { error: 'API service is unavailable.', payload };
+			return { error: 'API service is unavailable. No write was executed.', payload, previewOnly: true };
 		}
 	}
 };

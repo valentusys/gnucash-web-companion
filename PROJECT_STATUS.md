@@ -35,7 +35,8 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   None of these issues are DELETE approval, release approval, or public write beta approval.
   [#22](https://github.com/valentusys/gnucash-web-companion/issues/22) and
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) are closed.
-- Latest handoffs/docs: `docs/handoff/issue48-rescope-to-web-transaction-entry-ui.md`,
+- Latest handoffs/docs: `docs/handoff/issue48-web-transaction-entry-preview-slice.md`,
+  `docs/handoff/issue48-rescope-to-web-transaction-entry-ui.md`,
   `docs/handoff/issue47-to-transaction-entry-workflow-transition.md`,
   `docs/write-alpha/owner-transaction-entry-workflow.md`,
   `docs/handoff/issue47-first-mixed-session-transition.md`,
@@ -91,8 +92,10 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   (CREATE 10/10, PATCH 5/5, DELETE 0, batch 0). #48 is the non-mutating product-workflow tracker for
   owner-only browser/mobile transaction-entry UI, backend validate/preview, explicit UI confirmation, exact
   CREATE count of 1 per form submit unless future scope expands it, and optional app-created description/memo-only
-  PATCH planning. Telegram/agent compact input is development/test harness only, not the main product workflow.
-  None of these issues are DELETE/batch approval, release approval, or public write beta approval. No release
+  PATCH planning. Telegram/agent compact input is development/test harness only, not the main product workflow. The first #48
+  implementation slice is preview-only: backend `create-preview` plus `/transactions/new` web form, with CREATE
+  disabled and no write path called. None of these issues are DELETE/batch approval, release approval, or public
+  write beta approval. No release
   was published; `NO_RELEASE` remains current.
 - Current #36 docs reconciliation: owner-writebeta remains maintenance-only and unreleased until
   explicit owner approval. The guard state still requires default `GNUCASH_WRITES_ENABLED=false`,
@@ -121,7 +124,8 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   owner-only web transaction-entry UI over the GnuCash companion app, with browser/mobile form, backend
   validate/preview, explicit UI confirmation, exact CREATE count of 1 per form submit unless future scope expands
   it, optional app-created description/memo-only PATCH, and compact text/CSV only as optional local/debug helper.
-  This transition performed no mutation and does not authorize CREATE/PATCH/DELETE by itself. The 2026-06-10 PM/Owner
+  The first #48 implementation slice added a non-mutating backend create-preview endpoint and preview-only web form;
+  it performed no mutation and does not authorize CREATE/PATCH/DELETE by itself. The 2026-06-10 PM/Owner
   packet closes #36 as a
   maintenance boundary while preserving `NO_RELEASE`, no public write beta, no real/private/original/
   working/only-copy mutation, and unpublished `v0.4.0-owner-writebeta`. The r8 release/no-release documentation

@@ -5,45 +5,32 @@
 	let { data, form } = $props();
 	let locale = $derived<Locale>(data.locale ?? DEFAULT_LOCALE);
 
-	type SplitPayload = {
-		account_id?: string;
-		amount?: string;
-		currency?: string;
-		memo?: string;
-	};
 	type PreviousPayload = {
 		date?: string;
+		debit_account_id?: string;
+		credit_account_id?: string;
+		amount?: string;
+		currency?: string;
 		description?: string;
-		splits?: SplitPayload[];
+		memo?: string;
 	};
 
 	const today = new Date().toISOString().slice(0, 10);
-	let confirmed = $state(false);
-
 	const previous = $derived((form?.payload ?? {}) as PreviousPayload);
-	const validation = $derived(form?.validation);
-	const hasBlockingErrors = $derived(Boolean(validation && !validation.valid));
-	let writeAcknowledged = $state(false);
-
-	function confirmSubmit() {
-		if (hasBlockingErrors) return false;
-		if (!writeAcknowledged) return true;
-		confirmed = window.confirm(t(locale, 'writeMode.finalConfirm'));
-		return confirmed;
-	}
+	const preview = $derived((form as any)?.preview);
 </script>
 
 <svelte:head>
-	<title>New transaction — GnuCash Web Companion</title>
+	<title>Preview transaction — GnuCash Web Companion</title>
 </svelte:head>
 
-<main class="mx-auto max-w-3xl px-4 py-8">
+<main class="mx-auto max-w-4xl px-4 py-8">
 	<div class="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
 		<div>
 			<p class="text-sm font-medium uppercase tracking-wide" style="color: var(--app-accent);">{t(locale, 'writeMode.kicker')}</p>
-			<h1 class="mt-1 text-3xl font-bold" style="color: var(--app-text);">{t(locale, 'writeMode.newTransactionTitle')}</h1>
+			<h1 class="mt-1 text-3xl font-bold" style="color: var(--app-text);">Transaction entry preview</h1>
 			<p class="mt-2 text-sm" style="color: var(--app-muted);">
-				{t(locale, 'writeMode.newTransactionHelp')}
+				Owner-only browser/mobile form for validating one future CREATE. This slice is preview only; no write is executed.
 			</p>
 		</div>
 		<a class="rounded-xl px-4 py-2 text-sm font-semibold" style="border: 1px solid var(--app-border); color: var(--app-text);" href="/transactions">Back</a>
@@ -51,33 +38,23 @@
 
 	{#if form?.error}
 		<div class="mb-4 rounded-2xl p-4 text-sm" role="alert" style="border: 1px solid #fecaca; background: #fef2f2; color: #991b1b;">
-			{form.error}
+			<p class="font-semibold">Preview validation failed</p>
+			<p class="mt-1">{form.error}</p>
+			<p class="mt-1">No CREATE, PATCH, DELETE, or batch operation was executed.</p>
 		</div>
 	{/if}
 
-	<div class="mb-4">
-		<WriteModeWarning {locale} />
+	<div class="mb-4 rounded-2xl p-4 text-sm" role="status" style="border: 1px solid #93c5fd; background: #eff6ff; color: #1e3a8a;">
+		<p class="font-semibold">Preview only / no write executed</p>
+		<p class="mt-1">
+			This page calls a non-mutating backend validate/preview endpoint. A future CREATE still requires fresh owner approval,
+			exact CREATE count, enabled write gates, backup/read-back/audit/reset/probes, and private verification.
+		</p>
 	</div>
 
-	{#if validation}
-		<div class="mb-4 rounded-2xl p-4 text-sm" role="status" style="border: 1px solid var(--app-border); background: var(--app-panel); color: var(--app-text);">
-			<p class="font-semibold">Validation: {validation.valid ? 'passed' : 'failed'}</p>
-			{#if validation.errors.length}
-				<ul class="mt-2 list-disc pl-5" style="color: #b91c1c;">
-					{#each validation.errors as error}
-						<li>{error}</li>
-					{/each}
-				</ul>
-			{/if}
-			{#if validation.warnings.length}
-				<ul class="mt-2 list-disc pl-5" style="color: #b45309;">
-					{#each validation.warnings as warning}
-						<li>{warning}</li>
-					{/each}
-				</ul>
-			{/if}
-		</div>
-	{/if}
+	<div class="mb-4">
+		<WriteModeWarning {locale} compact />
+	</div>
 
 	<form method="POST" class="space-y-5 rounded-2xl p-5" style="background: var(--app-panel); border: 1px solid var(--app-border); box-shadow: 0 1px 3px var(--app-panel-shadow);">
 		<label class="block text-sm font-medium" style="color: var(--app-text);">
@@ -96,7 +73,7 @@
 			</label>
 			<label class="block text-sm font-medium" style="color: var(--app-text);">
 				Currency
-				<input name="currency" maxlength="3" required value={previous.splits?.[0]?.currency ?? data.activeBook?.base_currency ?? 'SEK'} class="mt-1 w-full rounded-xl px-3 py-2 uppercase" style="background: var(--app-bg); color: var(--app-text); border: 1px solid var(--app-border);" />
+				<input name="currency" maxlength="3" required value={previous.currency ?? data.activeBook?.base_currency ?? 'SEK'} class="mt-1 w-full rounded-xl px-3 py-2 uppercase" style="background: var(--app-bg); color: var(--app-text); border: 1px solid var(--app-border);" />
 			</label>
 		</div>
 
@@ -105,60 +82,74 @@
 			<input name="description" required value={previous.description ?? ''} class="mt-1 w-full rounded-xl px-3 py-2" style="background: var(--app-bg); color: var(--app-text); border: 1px solid var(--app-border);" />
 		</label>
 
-		<label class="block text-sm font-medium" style="color: var(--app-text);">
-			Amount
-			<input name="amount" inputmode="decimal" required placeholder="320.00" value={previous.splits?.[1]?.amount ?? ''} class="mt-1 w-full rounded-xl px-3 py-2" style="background: var(--app-bg); color: var(--app-text); border: 1px solid var(--app-border);" />
-		</label>
+		<div class="grid gap-4 md:grid-cols-2">
+			<label class="block text-sm font-medium" style="color: var(--app-text);">
+				Amount
+				<input name="amount" inputmode="decimal" required placeholder="320.00" value={previous.amount ?? ''} class="mt-1 w-full rounded-xl px-3 py-2" style="background: var(--app-bg); color: var(--app-text); border: 1px solid var(--app-border);" />
+			</label>
+			<label class="block text-sm font-medium" style="color: var(--app-text);">
+				Memo (optional)
+				<input name="memo" placeholder="Optional metadata only" value={previous.memo ?? ''} class="mt-1 w-full rounded-xl px-3 py-2" style="background: var(--app-bg); color: var(--app-text); border: 1px solid var(--app-border);" />
+			</label>
+		</div>
 
 		<div class="grid gap-4 md:grid-cols-2">
 			<label class="block text-sm font-medium" style="color: var(--app-text);">
-				From account
-				<select name="from_account_id" required class="mt-1 w-full rounded-xl px-3 py-2" style="background: var(--app-bg); color: var(--app-text); border: 1px solid var(--app-border);">
+				Debit/source account
+				<select name="debit_account_id" required class="mt-1 w-full rounded-xl px-3 py-2" style="background: var(--app-bg); color: var(--app-text); border: 1px solid var(--app-border);">
 					<option value="">Select source</option>
 					{#each data.accounts as account}
-						<option value={account.id} selected={account.id === previous.splits?.[0]?.account_id}>{account.full_name}</option>
+						<option value={account.id} selected={account.id === previous.debit_account_id}>{account.full_name}</option>
 					{/each}
 				</select>
-				<input name="from_memo" placeholder="Memo" value={previous.splits?.[0]?.memo ?? ''} class="mt-2 w-full rounded-xl px-3 py-2" style="background: var(--app-bg); color: var(--app-text); border: 1px solid var(--app-border);" />
 			</label>
 
 			<label class="block text-sm font-medium" style="color: var(--app-text);">
-				To account
-				<select name="to_account_id" required class="mt-1 w-full rounded-xl px-3 py-2" style="background: var(--app-bg); color: var(--app-text); border: 1px solid var(--app-border);">
+				Credit/destination account
+				<select name="credit_account_id" required class="mt-1 w-full rounded-xl px-3 py-2" style="background: var(--app-bg); color: var(--app-text); border: 1px solid var(--app-border);">
 					<option value="">Select destination</option>
 					{#each data.accounts as account}
-						<option value={account.id} selected={account.id === previous.splits?.[1]?.account_id}>{account.full_name}</option>
+						<option value={account.id} selected={account.id === previous.credit_account_id}>{account.full_name}</option>
 					{/each}
 				</select>
-				<input name="to_memo" placeholder="Memo" value={previous.splits?.[1]?.memo ?? ''} class="mt-2 w-full rounded-xl px-3 py-2" style="background: var(--app-bg); color: var(--app-text); border: 1px solid var(--app-border);" />
 			</label>
 		</div>
 
-		<label class="flex gap-3 rounded-2xl p-4 text-sm" style="border: 1px solid #f59e0b; background: #fffbeb; color: #78350f;">
-			<input
-				name="write_acknowledgement"
-				type="checkbox"
-				value="experimental-write-mode-acknowledged"
-				bind:checked={writeAcknowledged}
-				class="mt-1 h-4 w-4"
-				required
-			/>
-			<span>{t(locale, 'writeMode.acknowledgement')}</span>
-		</label>
-
-		<div class="flex flex-col gap-3 md:flex-row md:justify-end">
-			<button formaction="?/validate" formnovalidate class="rounded-xl px-4 py-2 font-semibold" style="border: 1px solid var(--app-border); color: var(--app-text);" type="submit">Validate</button>
-			<button
-				formaction="?/create"
-				onclick={(event) => {
-					if (!confirmSubmit()) event.preventDefault();
-				}}
-				class="rounded-xl px-4 py-2 font-semibold text-white"
-				style="background: var(--app-accent);"
-				type="submit"
-			>
-				Create transaction
-			</button>
+		<div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+			<p class="text-sm" style="color: var(--app-muted);">Create/Submit mutation action is intentionally disabled in this preview slice.</p>
+			<div class="flex flex-col gap-3 sm:flex-row">
+				<button formaction="?/preview" formnovalidate class="rounded-xl px-4 py-2 font-semibold" style="border: 1px solid var(--app-border); color: var(--app-text);" type="submit">Preview transaction</button>
+				<button class="cursor-not-allowed rounded-xl px-4 py-2 font-semibold text-white opacity-60" style="background: #6b7280;" type="button" disabled>Create disabled</button>
+			</div>
 		</div>
 	</form>
+
+	{#if preview}
+		<section class="mt-6 rounded-2xl p-5" aria-label="Transaction preview" style="background: var(--app-panel); border: 1px solid var(--app-border);">
+			<div class="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+				<div>
+					<h2 class="text-xl font-semibold" style="color: var(--app-text);">Normalized preview</h2>
+					<p class="mt-1 text-sm" style="color: var(--app-muted);">Preview only / no write executed. CREATE count represented: {preview.create_count}.</p>
+				</div>
+				<span class="rounded-full px-3 py-1 text-xs font-semibold" style="background: #dcfce7; color: #166534;">no mutation</span>
+			</div>
+
+			<dl class="mt-4 grid gap-3 md:grid-cols-2">
+				<div><dt class="text-xs uppercase" style="color: var(--app-muted);">Date</dt><dd style="color: var(--app-text);">{preview.date}</dd></div>
+				<div><dt class="text-xs uppercase" style="color: var(--app-muted);">Amount</dt><dd style="color: var(--app-text);">{preview.amount} {preview.currency}</dd></div>
+				<div><dt class="text-xs uppercase" style="color: var(--app-muted);">Debit/source</dt><dd style="color: var(--app-text);">{preview.debit_account.full_name}</dd></div>
+				<div><dt class="text-xs uppercase" style="color: var(--app-muted);">Credit/destination</dt><dd style="color: var(--app-text);">{preview.credit_account.full_name}</dd></div>
+				<div><dt class="text-xs uppercase" style="color: var(--app-muted);">Description</dt><dd style="color: var(--app-text);">{preview.description}</dd></div>
+				<div><dt class="text-xs uppercase" style="color: var(--app-muted);">Memo</dt><dd style="color: var(--app-text);">{preview.memo || '—'}</dd></div>
+			</dl>
+
+			{#if preview.warnings?.length}
+				<ul class="mt-4 list-disc pl-5 text-sm" style="color: #92400e;">
+					{#each preview.warnings as warning}
+						<li>{warning}</li>
+					{/each}
+				</ul>
+			{/if}
+		</section>
+	{/if}
 </main>

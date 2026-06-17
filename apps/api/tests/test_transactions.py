@@ -250,6 +250,186 @@ def fake_book_with_transactions(tmp_path, monkeypatch, fake_transaction_data):
     return book_path
 
 
+
+
+# ---------------------------------------------------------------------------
+# Tests: POST /books/{book_id}/transactions/create-preview (non-mutating #48)
+# ---------------------------------------------------------------------------
+
+
+def _preview_payload(**overrides):
+    payload = {
+        "date": "2026-05-20",
+        "debit_account_id": "checking-guid",
+        "credit_account_id": "food-guid",
+        "amount": "123.4500",
+        "currency": "SEK",
+        "description": "Preview only transaction",
+        "memo": "optional memo",
+    }
+    payload.update(overrides)
+    return payload
+
+
+class TestTransactionCreatePreview:
+    def _set_fake_book(self, session_factory, sample_book, fake_book_with_transactions):
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(fake_book_with_transactions)
+            session.commit()
+
+    def post_preview(self, client, auth_headers, sample_book, payload):
+        return client.post(
+            f"/books/{sample_book}/transactions/create-preview",
+            headers=auth_headers,
+            json=payload,
+        )
+
+    def test_valid_preview_returns_normalized_private_preview_and_create_count_one(
+        self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory
+    ):
+        self._set_fake_book(session_factory, sample_book, fake_book_with_transactions)
+
+        response = self.post_preview(client, auth_headers, sample_book, _preview_payload())
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["preview_only"] is True
+        assert data["create_count"] == 1
+        assert data["date"] == "2026-05-20"
+        assert data["amount"] == "123.4500"
+        assert data["currency"] == "SEK"
+        assert data["description"] == "Preview only transaction"
+        assert data["memo"] == "optional memo"
+        assert data["debit_account"]["id"] == "checking-guid"
+        assert data["debit_account"]["full_name"] == "Assets:Bank:Checking"
+        assert data["credit_account"]["id"] == "food-guid"
+        assert data["splits"][0]["amount"] == "-123.4500"
+        assert data["splits"][1]["amount"] == "123.4500"
+        assert "no GnuCash write was executed" in data["warnings"][0]
+
+    def test_missing_date_rejected(
+        self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory
+    ):
+        self._set_fake_book(session_factory, sample_book, fake_book_with_transactions)
+        response = self.post_preview(client, auth_headers, sample_book, _preview_payload(date=""))
+        assert response.status_code == 422
+        assert response.json()["detail"] == "date is required"
+
+    def test_invalid_date_rejected(
+        self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory
+    ):
+        self._set_fake_book(session_factory, sample_book, fake_book_with_transactions)
+        response = self.post_preview(client, auth_headers, sample_book, _preview_payload(date="05/20/2026"))
+        assert response.status_code == 422
+        assert response.json()["detail"] == "date must use YYYY-MM-DD format"
+
+    def test_missing_debit_account_rejected(
+        self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory
+    ):
+        self._set_fake_book(session_factory, sample_book, fake_book_with_transactions)
+        response = self.post_preview(client, auth_headers, sample_book, _preview_payload(debit_account_id=""))
+        assert response.status_code == 422
+        assert response.json()["detail"] == "debit_account_id is required"
+
+    def test_missing_credit_account_rejected(
+        self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory
+    ):
+        self._set_fake_book(session_factory, sample_book, fake_book_with_transactions)
+        response = self.post_preview(client, auth_headers, sample_book, _preview_payload(credit_account_id=""))
+        assert response.status_code == 422
+        assert response.json()["detail"] == "credit_account_id is required"
+
+    def test_same_debit_and_credit_account_rejected(
+        self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory
+    ):
+        self._set_fake_book(session_factory, sample_book, fake_book_with_transactions)
+        response = self.post_preview(
+            client,
+            auth_headers,
+            sample_book,
+            _preview_payload(credit_account_id="checking-guid"),
+        )
+        assert response.status_code == 422
+        assert response.json()["detail"] == "debit and credit accounts must be different"
+
+    def test_missing_amount_rejected(
+        self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory
+    ):
+        self._set_fake_book(session_factory, sample_book, fake_book_with_transactions)
+        response = self.post_preview(client, auth_headers, sample_book, _preview_payload(amount=""))
+        assert response.status_code == 422
+
+    def test_invalid_amount_rejected(
+        self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory
+    ):
+        self._set_fake_book(session_factory, sample_book, fake_book_with_transactions)
+        response = self.post_preview(client, auth_headers, sample_book, _preview_payload(amount="12.3.4"))
+        assert response.status_code == 422
+
+    def test_zero_amount_rejected(
+        self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory
+    ):
+        self._set_fake_book(session_factory, sample_book, fake_book_with_transactions)
+        response = self.post_preview(client, auth_headers, sample_book, _preview_payload(amount="0"))
+        assert response.status_code == 422
+        assert response.json()["detail"] == "amount must be greater than zero"
+
+    def test_amount_is_not_converted_through_float(
+        self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory
+    ):
+        self._set_fake_book(session_factory, sample_book, fake_book_with_transactions)
+        response = self.post_preview(client, auth_headers, sample_book, _preview_payload(amount="0.100000000000000001"))
+        assert response.status_code == 200
+        data = response.json()
+        assert data["amount"] == "0.100000000000000001"
+        assert data["splits"][1]["amount"] == "0.100000000000000001"
+
+    def test_missing_currency_rejected(
+        self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory
+    ):
+        self._set_fake_book(session_factory, sample_book, fake_book_with_transactions)
+        response = self.post_preview(client, auth_headers, sample_book, _preview_payload(currency=""))
+        assert response.status_code == 422
+
+    def test_unsupported_currency_rejected(
+        self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory
+    ):
+        self._set_fake_book(session_factory, sample_book, fake_book_with_transactions)
+        response = self.post_preview(client, auth_headers, sample_book, _preview_payload(currency="USD"))
+        assert response.status_code == 422
+        assert response.json()["detail"] == "debit account currency does not match requested currency"
+
+    def test_missing_description_rejected(
+        self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory
+    ):
+        self._set_fake_book(session_factory, sample_book, fake_book_with_transactions)
+        response = self.post_preview(client, auth_headers, sample_book, _preview_payload(description="   "))
+        assert response.status_code == 422
+        assert response.json()["detail"] == "description is required"
+
+    def test_preview_endpoint_does_not_call_mutation_write_path(
+        self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory, monkeypatch
+    ):
+        self._set_fake_book(session_factory, sample_book, fake_book_with_transactions)
+        import app.routers.transactions as transactions_router
+
+        def fail_if_called(book):
+            raise AssertionError("write service must not be constructed for preview")
+
+        monkeypatch.setattr(transactions_router, "_write_service_for", fail_if_called)
+        response = self.post_preview(client, auth_headers, sample_book, _preview_payload())
+        assert response.status_code == 200
+
+    def test_preview_works_with_writes_disabled_by_default(
+        self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory
+    ):
+        self._set_fake_book(session_factory, sample_book, fake_book_with_transactions)
+        assert TEST_SETTINGS.gnucash_writes_enabled is False
+        response = self.post_preview(client, auth_headers, sample_book, _preview_payload())
+        assert response.status_code == 200
+
+
 # ---------------------------------------------------------------------------
 # Tests: GET /transactions (MVP alias)
 # ---------------------------------------------------------------------------

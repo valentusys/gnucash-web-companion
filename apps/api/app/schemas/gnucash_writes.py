@@ -44,6 +44,59 @@ class TransactionCreateRequestDTO(BaseModel):
     )
 
 
+
+
+class TransactionCreatePreviewRequestDTO(BaseModel):
+    """Non-mutating owner web-UI preview request for one future CREATE."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    date: str = Field(..., description="Transaction date as YYYY-MM-DD")
+    debit_account_id: str = Field(..., description="Source/debit account GUID")
+    credit_account_id: str = Field(..., description="Destination/credit account GUID")
+    amount: str = Field(
+        ...,
+        pattern=DECIMAL_STRING_PATTERN,
+        description="Positive amount as decimal string, e.g. '320.00'",
+    )
+    currency: str = Field(..., pattern=CURRENCY_CODE_PATTERN, description="ISO 4217 currency code")
+    description: str = Field(..., description="Transaction description")
+    memo: str = Field("", description="Optional split memo metadata")
+
+    @field_validator("currency")
+    @classmethod
+    def normalize_currency(cls, value: str) -> str:
+        return value.upper()
+
+
+class TransactionCreatePreviewAccountDTO(BaseModel):
+    """Resolved account display data for a non-mutating create preview."""
+
+    id: str
+    name: str
+    full_name: str
+    currency: str
+
+
+class TransactionCreatePreviewDTO(BaseModel):
+    """Private, normalized preview for one future transaction CREATE."""
+
+    preview_only: bool = Field(True, description="Always true; no write was executed")
+    writes_enabled_required_for_create: bool = Field(
+        True, description="Future CREATE still requires enabled write gates"
+    )
+    create_count: int = Field(1, description="Exact future CREATE count represented by this preview")
+    date: str
+    amount: str
+    currency: str
+    description: str
+    memo: str
+    debit_account: TransactionCreatePreviewAccountDTO
+    credit_account: TransactionCreatePreviewAccountDTO
+    splits: list[TransactionSplitWriteDTO]
+    warnings: list[str] = Field(default_factory=list)
+
+
 class TransactionPatchRequestDTO(BaseModel):
     """Request body for patching an existing transaction.
 

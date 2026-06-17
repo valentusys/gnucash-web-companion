@@ -159,6 +159,36 @@ export type CashflowPeriod = {
 	net: string;
 };
 
+export type TransactionCreatePreview = {
+	preview_only: boolean;
+	writes_enabled_required_for_create: boolean;
+	create_count: number;
+	date: string;
+	amount: string;
+	currency: string;
+	description: string;
+	memo: string;
+	debit_account: {
+		id: string;
+		name: string;
+		full_name: string;
+		currency: string;
+	};
+	credit_account: {
+		id: string;
+		name: string;
+		full_name: string;
+		currency: string;
+	};
+	splits: Array<{
+		account_id: string;
+		amount: string;
+		currency: string;
+		memo: string;
+	}>;
+	warnings: string[];
+};
+
 export type TransactionValidationResult = {
 	valid: boolean;
 	errors: string[];

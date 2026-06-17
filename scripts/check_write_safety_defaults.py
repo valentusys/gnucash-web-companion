@@ -311,7 +311,7 @@ def _decorated_transaction_write_route_functions(tree: ast.Module) -> set[str]:
                 continue
             path_arg = decorator.args[0]
             if isinstance(path_arg, ast.Constant) and isinstance(path_arg.value, str):
-                if "/transactions" in path_arg.value:
+                if "/transactions" in path_arg.value and "create-preview" not in path_arg.value:
                     route_functions.add(node.name)
     return route_functions
 
