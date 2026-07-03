@@ -35,7 +35,8 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   None of these issues are DELETE approval, release approval, or public write beta approval.
   [#22](https://github.com/valentusys/gnucash-web-companion/issues/22) and
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) are closed.
-- Latest handoffs/docs: `docs/handoff/issue48-web-transaction-entry-preview-ux-hardening.md`,
+- Latest handoffs/docs: `docs/handoff/issue48-transaction-entry-preview-accessibility-mobile-smoke.md`,
+  `docs/handoff/issue48-web-transaction-entry-preview-ux-hardening.md`,
   `docs/handoff/issue48-web-transaction-entry-preview-slice.md`,
   `docs/handoff/issue48-rescope-to-web-transaction-entry-ui.md`,
   `docs/handoff/issue47-to-transaction-entry-workflow-transition.md`,
@@ -97,7 +98,9 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   implementation slice is preview-only: backend `create-preview` plus `/transactions/new` web form, with CREATE
   disabled and no write path called. The follow-up UX/error hardening slice keeps the same preview-only boundary
   while adding account search/filter selectors, same-account prevention, safer field-level preview errors, and
-  explicit preview metadata in the panel. None of these issues are DELETE/batch approval, release approval, or public
+  explicit preview metadata in the panel. The accessibility/mobile smoke hardening slice keeps the same no-write
+  boundary while adding explicit labels/ARIA linkages, clearer amount/date/currency hints, narrow-screen wrapping,
+  and a redacted browser smoke checklist. None of these issues are DELETE/batch approval, release approval, or public
   write beta approval. No release
   was published; `NO_RELEASE` remains current.
 - Current #36 docs reconciliation: owner-writebeta remains maintenance-only and unreleased until

@@ -230,6 +230,26 @@ This hardening does not add a CREATE action, PATCH action, DELETE action, batch 
 public write beta, or production/stable/security-audited claim. Future CREATE still requires fresh same-context
 owner approval and an exact CREATE count.
 
+## Preview-only accessibility/mobile smoke hardening slice
+
+The accessibility/mobile smoke hardening slice keeps `/transactions/new` preview-only while improving product UI
+quality:
+
+- every key form field has an explicit label/id pairing: book, date, debit/source search and selector,
+  credit/destination search and selector, amount, currency, description, and memo;
+- field hints, field-level errors, the preview-only/no-write warning, and disabled Create explanation are linked
+  with `aria-describedby` where rendered;
+- the error summary remains safe, top-of-form, and repeats `No CREATE/PATCH/DELETE/batch executed`;
+- amount/date/currency inputs are clearer while backend preview validation remains authoritative;
+- narrow/mobile layout keeps sections stacked, constrains controls, and wraps long account/preview text;
+- a redacted manual/browser smoke checklist is tracked at
+  `docs/handoff/issue48-transaction-entry-preview-accessibility-mobile-smoke.md`.
+
+This slice still does not approve or execute CREATE, PATCH, DELETE, batch mutation, private-book dogfood,
+release/tag/package/image publication, public write beta, or production/stable/security-audited claims. Future
+CREATE still requires fresh same-context owner approval and an exact CREATE count. DELETE, batch, and
+amount/account/split/date/currency edits remain forbidden.
+
 ## Current non-mutating state
 
 This document is a re-scope/planning artifact. No CREATE, PATCH, DELETE, dogfood loop, release, tag, package,

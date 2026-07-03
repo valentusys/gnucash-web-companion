@@ -39,10 +39,16 @@
 	const dateError = $derived(fieldErrors.date ?? '');
 	const amountError = $derived(fieldErrors.amount ?? '');
 	const currencyError = $derived(fieldErrors.currency ?? '');
+	const bookError = $derived(fieldErrors.book_id ?? '');
 	const descriptionError = $derived(fieldErrors.description ?? '');
 	const memoError = $derived(fieldErrors.memo ?? '');
 	const selectedDebitAccount = $derived(selectableAccounts.find((account) => account.id === currentDebitAccountId));
 	const selectedCreditAccount = $derived(selectableAccounts.find((account) => account.id === currentCreditAccountId));
+
+	function describedBy(...ids: Array<string | false | null | undefined>): string | undefined {
+		const value = ids.filter(Boolean).join(' ');
+		return value || undefined;
+	}
 
 	function normalizeAccountSearch(value: string): string {
 		return value.trim().toLowerCase();
@@ -96,9 +102,9 @@
 	<title>Preview transaction — GnuCash Web Companion</title>
 </svelte:head>
 
-<main class="mx-auto max-w-4xl px-4 py-8">
+<main class="mx-auto max-w-5xl min-w-0 px-4 py-8">
 	<div class="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-		<div>
+		<div class="min-w-0">
 			<p class="text-sm font-medium uppercase tracking-wide" style="color: var(--app-accent);">{t(locale, 'writeMode.kicker')}</p>
 			<h1 class="mt-1 text-3xl font-bold" style="color: var(--app-text);">Transaction entry preview</h1>
 			<p class="mt-2 text-sm" style="color: var(--app-muted);">
@@ -109,16 +115,16 @@
 	</div>
 
 	{#if form?.error}
-		<div class="mb-4 rounded-2xl p-4 text-sm" role="alert" aria-live="assertive" style="border: 1px solid #fecaca; background: #fef2f2; color: #991b1b;">
-			<p class="font-semibold">Preview validation failed safely</p>
+		<div id="preview-error-summary" class="mb-4 rounded-2xl p-4 text-sm" role="alert" aria-live="assertive" aria-labelledby="preview-error-summary-title" style="border: 1px solid #fecaca; background: #fef2f2; color: #991b1b;">
+			<p id="preview-error-summary-title" class="font-semibold">Preview validation failed safely</p>
 			<p class="mt-1">{form.error}</p>
 			<p class="mt-1 font-semibold">No CREATE/PATCH/DELETE/batch executed.</p>
 			<p class="mt-1">Review the highlighted fields below. Raw private paths, secrets, and runtime internals are not shown.</p>
 		</div>
 	{/if}
 
-	<div class="mb-4 rounded-2xl p-4 text-sm" role="status" style="border: 1px solid #93c5fd; background: #eff6ff; color: #1e3a8a;">
-		<p class="font-semibold">Preview only / no write executed</p>
+	<div id="preview-no-write-warning" class="mb-4 rounded-2xl p-4 text-sm" role="status" aria-labelledby="preview-no-write-title" style="border: 1px solid #93c5fd; background: #eff6ff; color: #1e3a8a;">
+		<p id="preview-no-write-title" class="font-semibold">Preview only / no write executed</p>
 		<p class="mt-1">
 			This page calls only POST /books/&lbrace;book_id&rbrace;/transactions/create-preview, a non-mutating backend preview endpoint.
 			No CREATE, PATCH, DELETE, or batch operation is executed. A future CREATE still requires fresh owner approval,
@@ -130,96 +136,107 @@
 		<WriteModeWarning {locale} compact />
 	</div>
 
-	<form method="POST" onsubmit={handlePreviewSubmit} class="space-y-5 rounded-2xl p-5" style="background: var(--app-panel); border: 1px solid var(--app-border); box-shadow: 0 1px 3px var(--app-panel-shadow);">
-		<label class="block text-sm font-medium" style="color: var(--app-text);">
-			Book
-			<select name="book_id" class="mt-1 w-full rounded-xl px-3 py-2" style="background: var(--app-bg); color: var(--app-text); border: 1px solid var(--app-border);">
+	<form method="POST" onsubmit={handlePreviewSubmit} aria-describedby={describedBy('preview-no-write-warning', 'preview-create-disabled-explanation', form?.error && 'preview-error-summary')} class="min-w-0 space-y-5 rounded-2xl p-5" style="background: var(--app-panel); border: 1px solid var(--app-border); box-shadow: 0 1px 3px var(--app-panel-shadow);">
+		<div class="min-w-0 text-sm font-medium" style="color: var(--app-text);">
+			<label for="preview-book">Book</label>
+			<select id="preview-book" name="book_id" aria-invalid={bookError ? 'true' : undefined} aria-describedby={describedBy('book-help', 'preview-no-write-warning', bookError && 'preview-book-error')} class="mt-1 w-full min-w-0 rounded-xl px-3 py-2" style="background: var(--app-bg); color: var(--app-text); border: 1px solid var(--app-border);">
 				{#each data.books as book}
 					<option value={book.id} selected={book.id === data.activeBook?.id}>{book.name}</option>
 				{/each}
 			</select>
-		</label>
+			<p id="book-help" class="mt-1 text-xs" style="color: var(--app-muted);">Select the book context for this non-mutating preview only.</p>
+			{#if bookError}
+				<p id="preview-book-error" class="mt-1 text-xs" style="color: #dc2626;">{bookError}</p>
+			{/if}
+		</div>
 
 		<div class="grid gap-4 md:grid-cols-2">
-			<label class="block text-sm font-medium" style="color: var(--app-text);">
-				Date
-				<input name="date" type="date" required value={previous.date ?? today} aria-invalid={dateError ? 'true' : undefined} aria-describedby={dateError ? 'preview-date-error' : undefined} class="mt-1 w-full rounded-xl px-3 py-2" style="background: var(--app-bg); color: var(--app-text); border: 1px solid var(--app-border);" />
+			<div class="min-w-0 text-sm font-medium" style="color: var(--app-text);">
+				<label for="preview-date">Date</label>
+				<input id="preview-date" name="date" type="date" required value={previous.date ?? today} aria-invalid={dateError ? 'true' : undefined} aria-describedby={describedBy('date-help', dateError && 'preview-date-error')} class="mt-1 w-full min-w-0 rounded-xl px-3 py-2" style="background: var(--app-bg); color: var(--app-text); border: 1px solid var(--app-border);" />
+				<p id="date-help" class="mt-1 text-xs" style="color: var(--app-muted);">Use an explicit calendar date; the preview validates the submitted date before any future approval step.</p>
 				{#if dateError}
 					<p id="preview-date-error" class="mt-1 text-xs" style="color: #dc2626;">{dateError}</p>
 				{/if}
-			</label>
-			<label class="block text-sm font-medium" style="color: var(--app-text);">
-				Currency
-				<input name="currency" maxlength="3" required value={previous.currency ?? data.activeBook?.base_currency ?? 'SEK'} aria-invalid={currencyError ? 'true' : undefined} aria-describedby={currencyError ? 'preview-currency-error' : undefined} class="mt-1 w-full rounded-xl px-3 py-2 uppercase" style="background: var(--app-bg); color: var(--app-text); border: 1px solid var(--app-border);" />
+			</div>
+			<div class="min-w-0 text-sm font-medium" style="color: var(--app-text);">
+				<label for="preview-currency">Currency</label>
+				<input id="preview-currency" name="currency" maxlength="3" pattern="[A-Za-z]{3}" autocomplete="off" spellcheck="false" required value={previous.currency ?? data.activeBook?.base_currency ?? 'SEK'} aria-invalid={currencyError ? 'true' : undefined} aria-describedby={describedBy('currency-help', currencyError && 'preview-currency-error')} class="mt-1 w-full min-w-0 rounded-xl px-3 py-2 uppercase" style="background: var(--app-bg); color: var(--app-text); border: 1px solid var(--app-border);" />
+				<p id="currency-help" class="mt-1 text-xs" style="color: var(--app-muted);">Use a three-letter currency code; no currency conversion is performed.</p>
 				{#if currencyError}
 					<p id="preview-currency-error" class="mt-1 text-xs" style="color: #dc2626;">{currencyError}</p>
 				{/if}
-			</label>
+			</div>
 		</div>
 
-		<label class="block text-sm font-medium" style="color: var(--app-text);">
-			Description
-			<input name="description" required value={previous.description ?? ''} aria-invalid={descriptionError ? 'true' : undefined} aria-describedby={descriptionError ? 'preview-description-error' : undefined} class="mt-1 w-full rounded-xl px-3 py-2" style="background: var(--app-bg); color: var(--app-text); border: 1px solid var(--app-border);" />
+		<div class="min-w-0 text-sm font-medium" style="color: var(--app-text);">
+			<label for="preview-description">Description</label>
+			<input id="preview-description" name="description" required value={previous.description ?? ''} aria-invalid={descriptionError ? 'true' : undefined} aria-describedby={describedBy('description-help', descriptionError && 'preview-description-error')} class="mt-1 w-full min-w-0 rounded-xl px-3 py-2" style="background: var(--app-bg); color: var(--app-text); border: 1px solid var(--app-border);" />
+			<p id="description-help" class="mt-1 text-xs" style="color: var(--app-muted);">Required local description for the normalized preview; tracked/GitHub reports must remain redacted.</p>
 			{#if descriptionError}
 				<p id="preview-description-error" class="mt-1 text-xs" style="color: #dc2626;">{descriptionError}</p>
 			{/if}
-		</label>
+		</div>
 
 		<div class="grid gap-4 md:grid-cols-2">
-			<label class="block text-sm font-medium" style="color: var(--app-text);">
-				Amount
-				<input name="amount" inputmode="decimal" required placeholder="320.00" value={previous.amount ?? ''} aria-invalid={amountError ? 'true' : undefined} aria-describedby={amountError ? 'preview-amount-error' : undefined} class="mt-1 w-full rounded-xl px-3 py-2" style="background: var(--app-bg); color: var(--app-text); border: 1px solid var(--app-border);" />
+			<div class="min-w-0 text-sm font-medium" style="color: var(--app-text);">
+				<label for="preview-amount">Amount</label>
+				<input id="preview-amount" name="amount" type="text" inputmode="decimal" pattern="[0-9]+(\.[0-9]+)?" required placeholder="320.00" value={previous.amount ?? ''} aria-invalid={amountError ? 'true' : undefined} aria-describedby={describedBy('amount-help', amountError && 'preview-amount-error')} class="mt-1 w-full min-w-0 rounded-xl px-3 py-2" style="background: var(--app-bg); color: var(--app-text); border: 1px solid var(--app-border);" />
+				<p id="amount-help" class="mt-1 text-xs" style="color: var(--app-muted);">Use a positive decimal string such as 320.00; zero is rejected by preview validation.</p>
 				{#if amountError}
 					<p id="preview-amount-error" class="mt-1 text-xs" style="color: #dc2626;">{amountError}</p>
 				{/if}
-			</label>
-			<label class="block text-sm font-medium" style="color: var(--app-text);">
-				Memo (optional)
-				<input name="memo" placeholder="Optional metadata only" value={previous.memo ?? ''} aria-invalid={memoError ? 'true' : undefined} aria-describedby={memoError ? 'preview-memo-error' : undefined} class="mt-1 w-full rounded-xl px-3 py-2" style="background: var(--app-bg); color: var(--app-text); border: 1px solid var(--app-border);" />
+			</div>
+			<div class="min-w-0 text-sm font-medium" style="color: var(--app-text);">
+				<label for="preview-memo">Memo (optional)</label>
+				<input id="preview-memo" name="memo" placeholder="Optional metadata only" value={previous.memo ?? ''} aria-invalid={memoError ? 'true' : undefined} aria-describedby={describedBy('memo-help', memoError && 'preview-memo-error')} class="mt-1 w-full min-w-0 rounded-xl px-3 py-2" style="background: var(--app-bg); color: var(--app-text); border: 1px solid var(--app-border);" />
+				<p id="memo-help" class="mt-1 text-xs" style="color: var(--app-muted);">Optional metadata shown in preview only; this slice does not write it.</p>
 				{#if memoError}
 					<p id="preview-memo-error" class="mt-1 text-xs" style="color: #dc2626;">{memoError}</p>
 				{/if}
-			</label>
+			</div>
 		</div>
 
-		<section class="rounded-2xl border p-4" aria-labelledby="account-selector-title" style="border-color: var(--app-border); background: var(--app-bg);">
+		<section class="min-w-0 rounded-2xl border p-4" aria-labelledby="account-selector-title" aria-describedby="account-selector-help preview-no-write-warning" style="border-color: var(--app-border); background: var(--app-bg);">
 			<div class="mb-4">
 				<h2 id="account-selector-title" class="text-base font-semibold" style="color: var(--app-text);">Account selectors</h2>
-				<p class="mt-1 text-xs" style="color: var(--app-muted);">
+				<p id="account-selector-help" class="mt-1 text-xs" style="color: var(--app-muted);">
 					Search filters the account list by full account path, account name, type, or currency. The submitted value remains the selected account id; free-text is never submitted as the final account reference. Placeholder/hidden accounts are excluded.
 				</p>
 			</div>
 
-			<div class="grid gap-4 md:grid-cols-2">
-				<div>
+			<div class="grid min-w-0 gap-4 md:grid-cols-2">
+				<div class="min-w-0">
 					<label class="block text-sm font-medium" style="color: var(--app-text);" for="debit-account-search">Search source account</label>
-					<input id="debit-account-search" data-account-filter="debit" type="search" bind:value={debitAccountQuery} autocomplete="off" placeholder="Filter by full account path" class="mt-1 w-full rounded-xl px-3 py-2" style="background: var(--app-panel); color: var(--app-text); border: 1px solid var(--app-border);" />
+					<input id="debit-account-search" data-account-filter="debit" type="search" bind:value={debitAccountQuery} autocomplete="off" aria-describedby="debit-account-search-help account-selector-help" placeholder="Filter by full account path" class="mt-1 w-full min-w-0 rounded-xl px-3 py-2" style="background: var(--app-panel); color: var(--app-text); border: 1px solid var(--app-border);" />
+					<p id="debit-account-search-help" class="mt-1 text-xs" style="color: var(--app-muted);">Filters visible source accounts only; it is not submitted as account text.</p>
 					<label class="mt-3 block text-sm font-medium" style="color: var(--app-text);" for="debit-account-select">Debit/source account</label>
-					<select id="debit-account-select" name="debit_account_id" required value={currentDebitAccountId} onchange={handleDebitAccountChange} aria-invalid={debitAccountError ? 'true' : undefined} aria-describedby="debit-account-help debit-account-selected debit-account-error" class="mt-1 w-full rounded-xl px-3 py-2" style="background: var(--app-panel); color: var(--app-text); border: 1px solid var(--app-border);">
+					<select id="debit-account-select" name="debit_account_id" required value={currentDebitAccountId} onchange={handleDebitAccountChange} aria-invalid={debitAccountError ? 'true' : undefined} aria-describedby={describedBy('debit-account-help', 'debit-account-selected', 'preview-no-write-warning', debitAccountError && 'debit-account-error')} class="mt-1 w-full min-w-0 max-w-full rounded-xl px-3 py-2" style="background: var(--app-panel); color: var(--app-text); border: 1px solid var(--app-border);">
 						<option value="">Select source account</option>
 						{#each debitAccountOptions as account (account.id)}
 							<option value={account.id} selected={account.id === currentDebitAccountId} disabled={Boolean(currentCreditAccountId && account.id === currentCreditAccountId && account.id !== currentDebitAccountId)}>{account.full_name} · {account.currency}</option>
 						{/each}
 					</select>
 					<p id="debit-account-help" class="mt-1 text-xs" style="color: var(--app-muted);">Source must be a selectable account and cannot match destination.</p>
-					<p id="debit-account-selected" class="mt-1 text-xs" style="color: var(--app-muted);">Selected source: {selectedDebitAccount?.full_name ?? 'none'}</p>
+					<p id="debit-account-selected" class="mt-1 break-words text-xs" style="color: var(--app-muted);">Selected source: {selectedDebitAccount?.full_name ?? 'none'}</p>
 					{#if debitAccountError}
 						<p id="debit-account-error" class="mt-1 text-xs" style="color: #dc2626;">{debitAccountError}</p>
 					{/if}
 				</div>
 
-				<div>
+				<div class="min-w-0">
 					<label class="block text-sm font-medium" style="color: var(--app-text);" for="credit-account-search">Search destination account</label>
-					<input id="credit-account-search" data-account-filter="credit" type="search" bind:value={creditAccountQuery} autocomplete="off" placeholder="Filter by full account path" class="mt-1 w-full rounded-xl px-3 py-2" style="background: var(--app-panel); color: var(--app-text); border: 1px solid var(--app-border);" />
+					<input id="credit-account-search" data-account-filter="credit" type="search" bind:value={creditAccountQuery} autocomplete="off" aria-describedby="credit-account-search-help account-selector-help" placeholder="Filter by full account path" class="mt-1 w-full min-w-0 rounded-xl px-3 py-2" style="background: var(--app-panel); color: var(--app-text); border: 1px solid var(--app-border);" />
+					<p id="credit-account-search-help" class="mt-1 text-xs" style="color: var(--app-muted);">Filters visible destination accounts only; it is not submitted as account text.</p>
 					<label class="mt-3 block text-sm font-medium" style="color: var(--app-text);" for="credit-account-select">Credit/destination account</label>
-					<select id="credit-account-select" name="credit_account_id" required value={currentCreditAccountId} onchange={handleCreditAccountChange} aria-invalid={creditAccountError ? 'true' : undefined} aria-describedby="credit-account-help credit-account-selected credit-account-error" class="mt-1 w-full rounded-xl px-3 py-2" style="background: var(--app-panel); color: var(--app-text); border: 1px solid var(--app-border);">
+					<select id="credit-account-select" name="credit_account_id" required value={currentCreditAccountId} onchange={handleCreditAccountChange} aria-invalid={creditAccountError ? 'true' : undefined} aria-describedby={describedBy('credit-account-help', 'credit-account-selected', 'preview-no-write-warning', creditAccountError && 'credit-account-error')} class="mt-1 w-full min-w-0 max-w-full rounded-xl px-3 py-2" style="background: var(--app-panel); color: var(--app-text); border: 1px solid var(--app-border);">
 						<option value="">Select destination account</option>
 						{#each creditAccountOptions as account (account.id)}
 							<option value={account.id} selected={account.id === currentCreditAccountId} disabled={Boolean(currentDebitAccountId && account.id === currentDebitAccountId && account.id !== currentCreditAccountId)}>{account.full_name} · {account.currency}</option>
 						{/each}
 					</select>
 					<p id="credit-account-help" class="mt-1 text-xs" style="color: var(--app-muted);">Destination must be a selectable account and cannot match source.</p>
-					<p id="credit-account-selected" class="mt-1 text-xs" style="color: var(--app-muted);">Selected destination: {selectedCreditAccount?.full_name ?? 'none'}</p>
+					<p id="credit-account-selected" class="mt-1 break-words text-xs" style="color: var(--app-muted);">Selected destination: {selectedCreditAccount?.full_name ?? 'none'}</p>
 					{#if creditAccountError}
 						<p id="credit-account-error" class="mt-1 text-xs" style="color: #dc2626;">{creditAccountError}</p>
 					{/if}
@@ -227,34 +244,34 @@
 			</div>
 		</section>
 
-		<div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-			<p class="text-sm" style="color: var(--app-muted);">Create/Submit mutation action is intentionally disabled in this preview slice.</p>
-			<div class="flex flex-col gap-3 sm:flex-row">
+		<div class="flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:justify-between">
+			<p id="preview-create-disabled-explanation" class="text-sm" style="color: var(--app-muted);">Create/Submit mutation action is intentionally disabled in this preview slice; only the preview action is available.</p>
+			<div class="flex min-w-0 flex-col gap-3 sm:flex-row">
 				<button formaction="?/preview" formnovalidate class="rounded-xl px-4 py-2 font-semibold" style="border: 1px solid var(--app-border); color: var(--app-text);" type="submit">Preview transaction</button>
-				<button class="cursor-not-allowed rounded-xl px-4 py-2 font-semibold text-white opacity-60" style="background: #6b7280;" type="button" disabled>Create disabled</button>
+				<button class="cursor-not-allowed rounded-xl px-4 py-2 font-semibold text-white opacity-60" style="background: #6b7280;" type="button" disabled aria-describedby="preview-create-disabled-explanation preview-no-write-warning">Create disabled</button>
 			</div>
 		</div>
 	</form>
 
 	{#if preview}
-		<section class="mt-6 rounded-2xl p-5" aria-label="Transaction preview" style="background: var(--app-panel); border: 1px solid var(--app-border);">
-			<div class="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-				<div>
+		<section class="mt-6 min-w-0 rounded-2xl p-5" aria-label="Transaction preview" aria-describedby="preview-create-disabled-explanation preview-no-write-warning" style="background: var(--app-panel); border: 1px solid var(--app-border);">
+			<div class="flex min-w-0 flex-col gap-2 md:flex-row md:items-start md:justify-between">
+				<div class="min-w-0">
 					<h2 class="text-xl font-semibold" style="color: var(--app-text);">Normalized preview</h2>
 					<p class="mt-1 text-sm" style="color: var(--app-muted);">Preview only / no write executed. Create remains disabled in this slice.</p>
 				</div>
 				<span class="rounded-full px-3 py-1 text-xs font-semibold" style="background: #dcfce7; color: #166534;">no mutation</span>
 			</div>
 
-			<dl class="mt-4 grid gap-3 md:grid-cols-2">
-				<div><dt class="text-xs uppercase" style="color: var(--app-muted);">preview_only</dt><dd style="color: var(--app-text);">{String(preview.preview_only)}</dd></div>
-				<div><dt class="text-xs uppercase" style="color: var(--app-muted);">create_count</dt><dd style="color: var(--app-text);">{preview.create_count}</dd></div>
-				<div><dt class="text-xs uppercase" style="color: var(--app-muted);">Date</dt><dd style="color: var(--app-text);">{preview.date}</dd></div>
-				<div><dt class="text-xs uppercase" style="color: var(--app-muted);">Amount + currency</dt><dd style="color: var(--app-text);">{preview.amount} {preview.currency}</dd></div>
-				<div><dt class="text-xs uppercase" style="color: var(--app-muted);">Source/debit account</dt><dd style="color: var(--app-text);">{preview.debit_account.full_name}</dd></div>
-				<div><dt class="text-xs uppercase" style="color: var(--app-muted);">Destination/credit account</dt><dd style="color: var(--app-text);">{preview.credit_account.full_name}</dd></div>
-				<div><dt class="text-xs uppercase" style="color: var(--app-muted);">Description</dt><dd style="color: var(--app-text);">{preview.description}</dd></div>
-				<div><dt class="text-xs uppercase" style="color: var(--app-muted);">Memo</dt><dd style="color: var(--app-text);">{preview.memo || '—'}</dd></div>
+			<dl class="mt-4 grid min-w-0 gap-3 md:grid-cols-2">
+				<div class="min-w-0"><dt class="text-xs uppercase" style="color: var(--app-muted);">preview_only</dt><dd class="break-words" style="color: var(--app-text);">{String(preview.preview_only)}</dd></div>
+				<div class="min-w-0"><dt class="text-xs uppercase" style="color: var(--app-muted);">create_count</dt><dd class="break-words" style="color: var(--app-text);">{preview.create_count}</dd></div>
+				<div class="min-w-0"><dt class="text-xs uppercase" style="color: var(--app-muted);">Date</dt><dd class="break-words" style="color: var(--app-text);">{preview.date}</dd></div>
+				<div class="min-w-0"><dt class="text-xs uppercase" style="color: var(--app-muted);">Amount + currency</dt><dd class="break-words" style="color: var(--app-text);">{preview.amount} {preview.currency}</dd></div>
+				<div class="min-w-0"><dt class="text-xs uppercase" style="color: var(--app-muted);">Source/debit account</dt><dd class="break-words" style="color: var(--app-text);">{preview.debit_account.full_name}</dd></div>
+				<div class="min-w-0"><dt class="text-xs uppercase" style="color: var(--app-muted);">Destination/credit account</dt><dd class="break-words" style="color: var(--app-text);">{preview.credit_account.full_name}</dd></div>
+				<div class="min-w-0"><dt class="text-xs uppercase" style="color: var(--app-muted);">Description</dt><dd class="break-words" style="color: var(--app-text);">{preview.description}</dd></div>
+				<div class="min-w-0"><dt class="text-xs uppercase" style="color: var(--app-muted);">Memo</dt><dd class="break-words" style="color: var(--app-text);">{preview.memo || '—'}</dd></div>
 			</dl>
 			<p class="mt-4 text-sm font-semibold" style="color: #92400e;">Create remains disabled in this slice.</p>
 

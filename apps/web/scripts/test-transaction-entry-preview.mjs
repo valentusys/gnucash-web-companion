@@ -41,13 +41,35 @@ for (const field of [
 	assert.match(page, new RegExp(`name="${field}"`), `transaction-entry page must expose field: ${field}`);
 }
 
+for (const { id, label, name } of [
+	{ id: 'preview-book', label: 'Book', name: 'book_id' },
+	{ id: 'preview-date', label: 'Date', name: 'date' },
+	{ id: 'debit-account-search', label: 'Search source account' },
+	{ id: 'debit-account-select', label: 'Debit/source account', name: 'debit_account_id' },
+	{ id: 'credit-account-search', label: 'Search destination account' },
+	{ id: 'credit-account-select', label: 'Credit/destination account', name: 'credit_account_id' },
+	{ id: 'preview-amount', label: 'Amount', name: 'amount' },
+	{ id: 'preview-currency', label: 'Currency', name: 'currency' },
+	{ id: 'preview-description', label: 'Description', name: 'description' },
+	{ id: 'preview-memo', label: 'Memo (optional)', name: 'memo' }
+]) {
+	assert.match(page, new RegExp(`<label[^>]*for="${id}"[^>]*>\\s*${label.replace(/[()]/g, '\\$&')}\\s*</label>`), `${label} must have an explicit label bound to ${id}`);
+	assert.match(page, new RegExp(`id="${id}"[\\s\\S]{0,360}aria-describedby=`), `${label} must expose aria-describedby linkage`);
+	if (name) {
+		assert.match(page, new RegExp(`id="${id}"[\\s\\S]{0,180}name="${name}"|name="${name}"[\\s\\S]{0,180}id="${id}"`), `${label} must keep the expected submitted field name`);
+	}
+}
+
 for (const requiredPageFragment of [
 	'Transaction entry preview',
 	'Preview only / no write executed',
+	'preview-no-write-warning',
 	'POST /books/&lbrace;book_id&rbrace;/transactions/create-preview',
 	'No CREATE, PATCH, DELETE, or batch operation is executed',
 	'Preview transaction',
 	'Create disabled',
+	'preview-create-disabled-explanation',
+	'only the preview action is available',
 	'type="button" disabled',
 	'Normalized preview',
 	'preview_only',
@@ -57,10 +79,29 @@ for (const requiredPageFragment of [
 	'Amount + currency',
 	'Create remains disabled in this slice',
 	'no mutation',
-	'md:grid-cols-2'
+	'md:grid-cols-2',
+	'min-w-0',
+	'break-words',
+	'max-w-full'
 ]) {
 	assert.ok(page.includes(requiredPageFragment), `transaction-entry page missing required fragment: ${requiredPageFragment}`);
 }
+
+assert.match(page, /<form\b[\s\S]*aria-describedby=\{describedBy\('preview-no-write-warning', 'preview-create-disabled-explanation'/s, 'preview form must be described by no-write and disabled-create explanations');
+assert.match(page, /id="preview-error-summary"[\s\S]*role="alert"[\s\S]*No CREATE\/PATCH\/DELETE\/batch executed/s, 'error summary must be accessible and include no-write copy');
+assert.ok(
+	page.includes('id="preview-amount"') &&
+		page.includes('type="text" inputmode="decimal"') &&
+		page.includes('pattern="[0-9]+(\\.[0-9]+)?"'),
+	'amount input must use text+decimal inputmode with a decimal-string pattern marker'
+);
+assert.ok(
+	page.includes('id="preview-currency"') &&
+		page.includes('maxlength="3"') &&
+		page.includes('pattern="[A-Za-z]{3}"'),
+	'currency input must stay conservative and three-letter code oriented'
+);
+assert.match(page, /aria-describedby="preview-create-disabled-explanation preview-no-write-warning"/, 'disabled Create button must be linked to its explanation and no-write warning');
 
 assert.match(page, /<form\b[\s\S]*method="POST"[\s\S]*formaction="\?\/preview"[\s\S]*Preview transaction/s, 'preview form must submit through the preview action');
 assert.doesNotMatch(page, /formaction="\?\/create"|Create transaction<\/button>|type="submit"[^>]*>\s*Create\b/i, 'preview page must not expose an active Create submit control');
@@ -69,6 +110,7 @@ assert.doesNotMatch(page, /write_acknowledgement|experimental-write-mode-acknowl
 assert.match(page, /data-account-filter="debit"[\s\S]*type="search"|type="search"[\s\S]*data-account-filter="debit"/, 'source account selector must have a search/filter input');
 assert.match(page, /data-account-filter="credit"[\s\S]*type="search"|type="search"[\s\S]*data-account-filter="credit"/, 'destination account selector must have a search/filter input');
 assert.match(page, /free-text is never submitted as the final account reference/, 'account search text must not be represented as the submitted account value');
+assert.match(page, /debit-account-search-help[\s\S]*not submitted as account text[\s\S]*credit-account-search-help/s, 'account search inputs must explain that search text is not submitted');
 assert.match(page, /selectableAccounts[\s\S]*!account\.placeholder && !account\.hidden/, 'UI logic must exclude placeholder and hidden accounts from account selectors');
 assert.match(page, /Placeholder\/hidden accounts are excluded/, 'UI must explain placeholder/hidden account exclusion');
 assert.match(page, /Source and destination accounts must be different[\s\S]*handlePreviewSubmit/s, 'preview form must prevent same-account client submission');
@@ -77,7 +119,19 @@ assert.match(page, /disabled=\{Boolean\(currentDebitAccountId && account\.id ===
 assert.match(page, /account\.full_name[\s\S]*account\.currency/, 'account selector must show full account path and currency');
 
 assert.match(page, /Preview validation failed safely[\s\S]*No CREATE\/PATCH\/DELETE\/batch executed[\s\S]*Raw private paths, secrets, and runtime internals are not shown/s, 'preview errors must show a safe summary and no-write copy');
-assert.match(page, /fieldErrors[\s\S]*aria-invalid[\s\S]*preview-date-error[\s\S]*preview-amount-error/s, 'preview form must render field-level errors near fields');
+assert.match(page, /fieldErrors[\s\S]*aria-invalid/s, 'preview form must derive field-level errors and mark invalid fields');
+for (const fieldErrorId of [
+	'preview-book-error',
+	'preview-date-error',
+	'preview-amount-error',
+	'preview-currency-error',
+	'preview-description-error',
+	'preview-memo-error',
+	'debit-account-error',
+	'credit-account-error'
+]) {
+	assert.ok(page.includes(fieldErrorId), `preview form must render field-level error near field: ${fieldErrorId}`);
+}
 assert.ok(
 	server.includes('function previewErrorDetails') &&
 		server.includes('fieldErrors') &&
