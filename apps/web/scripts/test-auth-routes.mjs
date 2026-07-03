@@ -320,23 +320,23 @@ assert.match(
 const newTransactionServer = read('src/routes/transactions/new/+page.server.ts');
 assert.match(
 	newTransactionServer,
-	/env\.GNUCASH_WRITES_ENABLED !== 'true'[\s\S]*redirect\(303, '\/transactions'\)/,
-	'new transaction page must redirect when frontend writes are disabled'
-);
-assert.match(
-	newTransactionServer,
 	/getActiveBookContext\(fetch, cookies, token\)[\s\S]*apiFetch<Account\[\]>\(fetch, `\$\{bookPrefix\}\/accounts`, token\)/s,
-	'new transaction page must resolve accounts through the active accessible book context when writes are explicitly enabled'
+	'new transaction preview page must resolve books/accounts through the active accessible book context'
 );
 assert.match(
 	newTransactionServer,
-	/hasWriteAcknowledgement\(formData\)[\s\S]*experimental controlled-write test transaction[\s\S]*not for production use/,
-	'final create action must require explicit write acknowledgement'
+	/`\/books\/\$\{bookId\}\/transactions\/create-preview`/,
+	'new transaction preview page must call only the non-mutating create-preview endpoint'
 );
-assert.ok(
-	newTransactionServer.indexOf('hasWriteAcknowledgement(formData)') <
-		newTransactionServer.indexOf('`/books/${bookId}/transactions/validate`', newTransactionServer.indexOf('create:')),
-	'write acknowledgement must be checked before final create validation/write API calls'
+assert.match(
+	newTransactionServer,
+	/export const actions: Actions = \{\s*preview:\s*async/s,
+	'new transaction preview page must expose only a preview server action'
+);
+assert.doesNotMatch(
+	newTransactionServer,
+	/env\.GNUCASH_WRITES_ENABLED !== 'true'[\s\S]*redirect\(303, '\/transactions'\)|\/transactions\/validate|`\/books\/\$\{bookId\}\/transactions`|\b(?:create|validate)\s*:\s*async|hasWriteAcknowledgement/,
+	'new transaction preview route must stay reachable with writes disabled and must not retain create/validate/write action code'
 );
 
 const booksPageServer = read('src/routes/books/+page.server.ts');
@@ -689,8 +689,8 @@ assert.match(
 );
 assert.match(
 	transactionListPage,
-	/data\.writesEnabled[\s\S]*Experimental post-MVP write mode[\s\S]*APP_ENV=test[\s\S]*lock-release evidence[\s\S]*New transaction/,
-	'transactions page must show disposable APP_ENV/test and evidence warning text near the enabled write entry point'
+	/data\.writesEnabled[\s\S]*Experimental post-MVP write mode[\s\S]*APP_ENV=test[\s\S]*lock-release evidence[\s\S]*Preview transaction form/,
+	'transactions page must show disposable APP_ENV/test and evidence warning text without exposing an enabled write entry point'
 );
 
 const transactionDetailServer = read('src/routes/transactions/[id]/+page.server.ts');
@@ -871,35 +871,30 @@ assert.match(
 );
 assert.match(
 	newTransactionPage,
-	/name="write_acknowledgement"[\s\S]*experimental-write-mode-acknowledged[\s\S]*required/,
-	'new transaction final create form must include a required acknowledgement checkbox'
+	/Preview only \/ no write executed[\s\S]*POST \/books\/&lbrace;book_id&rbrace;\/transactions\/create-preview[\s\S]*No CREATE, PATCH, DELETE, or batch operation is executed/s,
+	'new transaction page must state preview-only/no-write behavior and the exact non-mutating endpoint'
 );
 
 assert.match(writeModeWarningComponent, /writeMode\.title[\s\S]*writeMode\.message[\s\S]*writeMode\.desktop[\s\S]*writeMode\.disposableOnly[\s\S]*writeMode\.createOnlyDogfood[\s\S]*writeMode\.evidence[\s\S]*writeMode\.staleLock[\s\S]*writeMode\.neverRealBook/s, 'write warning component must render localized warning keys');
 assert.match(
 	newTransactionPage,
-	/write_acknowledgement[\s\S]*writeMode\.acknowledgement/s,
-	'new transaction acknowledgement must pin disposable copy and evidence checks'
-);
-assert.match(
-	i18nMessages,
-	/writeMode\.newTransactionHelp[\s\S]*one simple two-split test transaction only for copied-book dogfood[\s\S]*not for production entries[\s\S]*одну простую two-split test transaction для copied-book dogfood/s,
-	'new transaction help must pin one-create copied-book dogfood copy in EN/RU'
-);
-assert.match(
-	i18nMessages,
-	/writeMode\.acknowledgement[\s\S]*outside-git copied\/restorable test book[\s\S]*original untouched[\s\S]*one CREATE test transaction[\s\S]*This is not for production use[\s\S]*original untouched[\s\S]*одну CREATE test transaction[\s\S]*Это не для production use/s,
-	'write acknowledgement must require copied/restorable target, original untouched, one CREATE, backup/restore, and no production use in EN/RU'
+	/formaction="\?\/preview"[\s\S]*Preview transaction/s,
+	'new transaction page must submit only through the preview action'
 );
 assert.match(
 	newTransactionPage,
-	/writeMode\.finalConfirm/s,
-	'new transaction browser confirmation must warn against source or only-copy writes'
+	/type="button" disabled[\s\S]*Create disabled|Create disabled[\s\S]*type="button" disabled/s,
+	'new transaction page may show only an inert disabled Create control'
+);
+assert.doesNotMatch(
+	newTransactionPage,
+	/write_acknowledgement|experimental-write-mode-acknowledged|writeMode\.acknowledgement|writeMode\.finalConfirm|formaction="\?\/create"|Create transaction<\/button>/,
+	'new transaction preview page must not retain final-write acknowledgement or active create controls'
 );
 assert.ok(
 	newTransactionServer.includes('detail.length <= 180 && !/[\\\\/]/.test(detail)') &&
-		newTransactionServer.includes('Write-alpha request failed safely'),
-	'new transaction server errors must avoid rendering raw path-like API details'
+		newTransactionServer.includes('Preview validation failed safely. No write was executed.'),
+	'new transaction preview server errors must avoid rendering raw path-like API details'
 );
 assert.ok(
 	transactionDetailServer.includes('detail.length <= 180 && !/[\\\\/]/.test(detail)') &&

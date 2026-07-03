@@ -95,6 +95,24 @@ npm run test:transaction-entry-preview
 It checks that the form exposes required fields, shows preview-only state, includes a disabled Create control,
 uses the preview endpoint, and does not include a create action/path.
 
+## 2026-07-04 reconciliation
+
+The implementation and static guards were reconciled against the preview-only #48 policy after review found
+stale write-enabled expectations in frontend guard coverage. The route remains reachable with
+`GNUCASH_WRITES_ENABLED=false`, loads books/accounts through read-only active-book context, and exposes only a
+`preview` form action backed by `POST /books/{book_id}/transactions/create-preview`.
+
+The static frontend guard now also checks:
+
+- `package.json` exposes `npm run test:transaction-entry-preview`;
+- `/transactions/new` route files exist;
+- the transactions list exposes `/transactions/new` outside the `writesEnabled` block;
+- the entry point and form are clearly labeled preview-only/no-write;
+- old `create`/`validate` actions, `/transactions/validate`, and bare `/transactions` mutation calls are absent.
+
+The broader auth/static route guard was synchronized so it no longer requires the obsolete write-enabled
+redirect/acknowledgement flow for `/transactions/new`.
+
 ## Safety summary
 
 This slice performed no CREATE, PATCH, DELETE, batch mutation, private-book dogfood, release, tag, package,

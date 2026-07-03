@@ -47,7 +47,8 @@
 	<div class="mb-4 rounded-2xl p-4 text-sm" role="status" style="border: 1px solid #93c5fd; background: #eff6ff; color: #1e3a8a;">
 		<p class="font-semibold">Preview only / no write executed</p>
 		<p class="mt-1">
-			This page calls a non-mutating backend validate/preview endpoint. A future CREATE still requires fresh owner approval,
+			This page calls only POST /books/&lbrace;book_id&rbrace;/transactions/create-preview, a non-mutating backend preview endpoint.
+			No CREATE, PATCH, DELETE, or batch operation is executed. A future CREATE still requires fresh owner approval,
 			exact CREATE count, enabled write gates, backup/read-back/audit/reset/probes, and private verification.
 		</p>
 	</div>

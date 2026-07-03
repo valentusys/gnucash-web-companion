@@ -414,10 +414,19 @@ class TestTransactionCreatePreview:
         self._set_fake_book(session_factory, sample_book, fake_book_with_transactions)
         import app.routers.transactions as transactions_router
 
-        def fail_if_called(book):
-            raise AssertionError("write service must not be constructed for preview")
+        def fail_if_called(*args, **kwargs):
+            raise AssertionError("mutation/write path must not be reached for preview")
 
-        monkeypatch.setattr(transactions_router, "_write_service_for", fail_if_called)
+        for guarded_name in (
+            "_ensure_writes_enabled",
+            "_ensure_write_alpha_test_scope",
+            "_write_service_for",
+            "_audit_log",
+            "_update_audit_log",
+            "_record_write_alpha_transaction_ownership",
+        ):
+            monkeypatch.setattr(transactions_router, guarded_name, fail_if_called)
+
         response = self.post_preview(client, auth_headers, sample_book, _preview_payload())
         assert response.status_code == 200
 

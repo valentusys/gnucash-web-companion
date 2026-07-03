@@ -176,9 +176,11 @@
 					class="inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2 text-center text-sm font-semibold"
 					style="background: var(--app-accent); color: white;"
 					href="/transactions/new"
-					>Preview new transaction</a
+					>Preview new transaction (no write)</a
 				>
-				<p class="max-w-xs text-xs" style="color: var(--app-muted);">Preview only; no CREATE/PATCH/DELETE action is available.</p>
+				<p class="max-w-xs text-xs" style="color: var(--app-muted);">
+					Available while writes are disabled; opens the preview-only form. No CREATE/PATCH/DELETE/batch action is available.
+				</p>
 				<a
 					class="inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2 text-center text-sm font-semibold"
 					style="background: var(--app-panel); color: var(--app-text); border: 1px solid var(--app-border);"

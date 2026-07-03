@@ -1,6 +1,6 @@
 # PROJECT_STATUS
 
-Last updated: 2026-06-17
+Last updated: 2026-07-04
 
 ## Quick navigation
 
@@ -125,7 +125,10 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   validate/preview, explicit UI confirmation, exact CREATE count of 1 per form submit unless future scope expands
   it, optional app-created description/memo-only PATCH, and compact text/CSV only as optional local/debug helper.
   The first #48 implementation slice added a non-mutating backend create-preview endpoint and preview-only web form;
-  it performed no mutation and does not authorize CREATE/PATCH/DELETE by itself. The 2026-06-10 PM/Owner
+  it performed no mutation and does not authorize CREATE/PATCH/DELETE by itself. On 2026-07-04, the #48
+  implementation was reconciled so frontend static guards match preview-only policy: `/transactions/new`
+  remains reachable with writes disabled, exposes only the create-preview action, and the transactions list
+  labels the entry point as preview-only/no-write. The 2026-06-10 PM/Owner
   packet closes #36 as a
   maintenance boundary while preserving `NO_RELEASE`, no public write beta, no real/private/original/
   working/only-copy mutation, and unpublished `v0.4.0-owner-writebeta`. The r8 release/no-release documentation
