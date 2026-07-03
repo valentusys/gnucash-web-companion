@@ -211,6 +211,25 @@ Future CREATE remains blocked until fresh same-context owner approval states exa
 backup/read-back/audit/reset/probe requirements. DELETE, batch mutation, historical/manual mutation, and
 amount/account/split/date/currency PATCH edits remain forbidden.
 
+## Preview-only UX/error hardening slice
+
+The next non-mutating #48 hardening slice improves browser/mobile usability while preserving the same no-write
+boundary:
+
+- debit/source and credit/destination selectors include lightweight search/filter inputs;
+- the final submitted account values remain explicit account IDs from `<select>` controls, not ambiguous free text;
+- full account paths are shown in the selectors;
+- placeholder/hidden accounts are filtered out and documented in the UI;
+- the UI prevents selecting the same source and destination account before preview submit;
+- preview errors render a safe summary plus field-level hints where possible;
+- error rendering always states that no CREATE/PATCH/DELETE/batch was executed;
+- the preview panel explicitly shows `preview_only`, `create_count`, source/destination accounts, amount/currency,
+  date, description, memo, and that Create remains disabled in this slice.
+
+This hardening does not add a CREATE action, PATCH action, DELETE action, batch operation, release approval,
+public write beta, or production/stable/security-audited claim. Future CREATE still requires fresh same-context
+owner approval and an exact CREATE count.
+
 ## Current non-mutating state
 
 This document is a re-scope/planning artifact. No CREATE, PATCH, DELETE, dogfood loop, release, tag, package,

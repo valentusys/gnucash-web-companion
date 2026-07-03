@@ -50,6 +50,12 @@ for (const requiredPageFragment of [
 	'Create disabled',
 	'type="button" disabled',
 	'Normalized preview',
+	'preview_only',
+	'create_count',
+	'Source/debit account',
+	'Destination/credit account',
+	'Amount + currency',
+	'Create remains disabled in this slice',
 	'no mutation',
 	'md:grid-cols-2'
 ]) {
@@ -60,7 +66,29 @@ assert.match(page, /<form\b[\s\S]*method="POST"[\s\S]*formaction="\?\/preview"[\
 assert.doesNotMatch(page, /formaction="\?\/create"|Create transaction<\/button>|type="submit"[^>]*>\s*Create\b/i, 'preview page must not expose an active Create submit control');
 assert.doesNotMatch(page, /write_acknowledgement|experimental-write-mode-acknowledged|writeMode\.acknowledgement|writeMode\.finalConfirm/, 'preview page must not retain final-write acknowledgement UI');
 
+assert.match(page, /data-account-filter="debit"[\s\S]*type="search"|type="search"[\s\S]*data-account-filter="debit"/, 'source account selector must have a search/filter input');
+assert.match(page, /data-account-filter="credit"[\s\S]*type="search"|type="search"[\s\S]*data-account-filter="credit"/, 'destination account selector must have a search/filter input');
+assert.match(page, /free-text is never submitted as the final account reference/, 'account search text must not be represented as the submitted account value');
+assert.match(page, /selectableAccounts[\s\S]*!account\.placeholder && !account\.hidden/, 'UI logic must exclude placeholder and hidden accounts from account selectors');
+assert.match(page, /Placeholder\/hidden accounts are excluded/, 'UI must explain placeholder/hidden account exclusion');
+assert.match(page, /Source and destination accounts must be different[\s\S]*handlePreviewSubmit/s, 'preview form must prevent same-account client submission');
+assert.match(page, /disabled=\{Boolean\(currentCreditAccountId && account\.id === currentCreditAccountId && account\.id !== currentDebitAccountId\)\}/, 'source selector must disable the chosen destination account');
+assert.match(page, /disabled=\{Boolean\(currentDebitAccountId && account\.id === currentDebitAccountId && account\.id !== currentCreditAccountId\)\}/, 'destination selector must disable the chosen source account');
+assert.match(page, /account\.full_name[\s\S]*account\.currency/, 'account selector must show full account path and currency');
+
+assert.match(page, /Preview validation failed safely[\s\S]*No CREATE\/PATCH\/DELETE\/batch executed[\s\S]*Raw private paths, secrets, and runtime internals are not shown/s, 'preview errors must show a safe summary and no-write copy');
+assert.match(page, /fieldErrors[\s\S]*aria-invalid[\s\S]*preview-date-error[\s\S]*preview-amount-error/s, 'preview form must render field-level errors near fields');
+assert.ok(
+	server.includes('function previewErrorDetails') &&
+		server.includes('fieldErrors') &&
+		server.includes('function safeMessage') &&
+		server.includes('!/[\\\\/]/.test(detail)'),
+	'server action must derive field errors using safe redacted messages'
+);
+assert.match(server, /Preview validation failed safely\. Review the highlighted fields\. No write was executed\./, 'server action must provide a safe field-error summary fallback');
+
 assert.ok(server.includes('apiFetch<Account[]>(fetch, `${bookPrefix}/accounts`, token)'), '/transactions/new must load accounts read-only through the active book context');
+assert.ok(server.includes('accounts.filter((account) => !account.placeholder && !account.hidden)'), '/transactions/new must filter placeholder/hidden accounts server-side');
 assert.match(server, /export const actions: Actions = \{\s*preview:\s*async/s, '/transactions/new must expose only a preview action');
 for (const requiredServerFragment of [
 	'/transactions/create-preview',
@@ -72,6 +100,8 @@ for (const requiredServerFragment of [
 ]) {
 	assert.ok(server.includes(requiredServerFragment), `transaction-entry server action missing required fragment: ${requiredServerFragment}`);
 }
+const transactionSubmissionTargets = [...server.matchAll(/\/transactions(?:\/create-preview|\/validate)?/g)].map((match) => match[0]);
+assert.deepEqual([...new Set(transactionSubmissionTargets)], ['/transactions/create-preview'], 'create-preview must be the only transaction submission target in /transactions/new server code');
 assert.doesNotMatch(server, /\b(?:create|validate)\s*:\s*async/, '/transactions/new must not define active create or validate actions');
 assert.doesNotMatch(server, /\/transactions\/validate|`\/books\/\$\{bookId\}\/transactions`|hasWriteAcknowledgement/, '/transactions/new must not call validate/write API paths');
 assert.doesNotMatch(server, /GNUCASH_WRITES_ENABLED[\s\S]{0,160}redirect\(303, '\/transactions'\)/, '/transactions/new must remain reachable when writes are disabled');
