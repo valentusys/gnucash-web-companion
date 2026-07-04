@@ -35,7 +35,8 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   None of these issues are DELETE approval, release approval, or public write beta approval.
   [#22](https://github.com/valentusys/gnucash-web-companion/issues/22) and
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) are closed.
-- Latest handoffs/docs: `docs/handoff/issue48-browser-smoke-redacted-report.md`,
+- Latest handoffs/docs: `docs/handoff/issue48-preview-confirmation-shell-draft-safety.md`,
+  `docs/handoff/issue48-browser-smoke-redacted-report.md`,
   `docs/handoff/issue48-transaction-entry-preview-accessibility-mobile-smoke.md`,
   `docs/handoff/issue48-web-transaction-entry-preview-ux-hardening.md`,
   `docs/handoff/issue48-web-transaction-entry-preview-slice.md`,
@@ -103,6 +104,9 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   boundary while adding explicit labels/ARIA linkages, clearer amount/date/currency hints, narrow-screen wrapping,
   and a redacted browser smoke checklist. The follow-up browser smoke execution passed against a safe local/test
   context with writes disabled, using only the create-preview endpoint and no CREATE/PATCH/DELETE/batch route.
+  The confirmation-shell/draft-safety slice keeps the same preview-only boundary while adding a disabled future
+  confirmation shell, local reviewed-state UI, stale-preview warning after draft changes, clear-preview/start-over,
+  and account selector count/type summaries.
   None of these issues are DELETE/batch approval, release approval, or public
   write beta approval. No release
   was published; `NO_RELEASE` remains current.

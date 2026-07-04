@@ -66,6 +66,10 @@ for (const requiredPageFragment of [
 	'preview-no-write-warning',
 	'POST /books/&lbrace;book_id&rbrace;/transactions/create-preview',
 	'No CREATE, PATCH, DELETE, or batch operation is executed',
+	'debit-account-count',
+	'credit-account-count',
+	'visible selectable accounts',
+	'account type',
 	'Preview transaction',
 	'Create disabled',
 	'preview-create-disabled-explanation',
@@ -78,6 +82,14 @@ for (const requiredPageFragment of [
 	'Destination/credit account',
 	'Amount + currency',
 	'Create remains disabled in this slice',
+	'preview-confirmation-shell',
+	'Future confirmation shell',
+	'Ready for future owner-approved CREATE',
+	'I reviewed this local preview',
+	'Future Create disabled',
+	'preview-stale-warning',
+	'Draft changed after preview',
+	'Clear preview / start over',
 	'no mutation',
 	'md:grid-cols-2',
 	'min-w-0',
@@ -102,6 +114,12 @@ assert.ok(
 	'currency input must stay conservative and three-letter code oriented'
 );
 assert.match(page, /aria-describedby="preview-create-disabled-explanation preview-no-write-warning"/, 'disabled Create button must be linked to its explanation and no-write warning');
+assert.match(page, /let draftChangedAfterPreview = \$state\(false\)/, 'preview page must track local draft changes after a successful preview');
+assert.match(page, /function handleDraftChange\(\)[\s\S]*draftChangedAfterPreview = true[\s\S]*previewReviewed = false/s, 'draft changes after preview must mark the current preview stale and reset local review state');
+assert.match(page, /id="preview-reviewed-confirmation"[\s\S]*type="checkbox"[\s\S]*bind:checked=\{previewReviewed\}/s, 'confirmation shell must expose a local-only preview-reviewed checkbox');
+assert.match(page, /id="future-create-disabled"[\s\S]*type="button"[\s\S]*disabled/s, 'future create control in the confirmation shell must remain disabled and non-submitting');
+assert.match(page, /href="\/transactions\/new"[\s\S]*Clear preview \/ start over/s, 'preview panel must expose a clear-preview/start-over action without local persistence');
+assert.doesNotMatch(page, /localStorage|sessionStorage/, 'preview draft safety must not persist private transaction details in browser storage');
 
 assert.match(page, /<form\b[\s\S]*method="POST"[\s\S]*formaction="\?\/preview"[\s\S]*Preview transaction/s, 'preview form must submit through the preview action');
 assert.doesNotMatch(page, /formaction="\?\/create"|Create transaction<\/button>|type="submit"[^>]*>\s*Create\b/i, 'preview page must not expose an active Create submit control');
@@ -117,6 +135,8 @@ assert.match(page, /Source and destination accounts must be different[\s\S]*hand
 assert.match(page, /disabled=\{Boolean\(currentCreditAccountId && account\.id === currentCreditAccountId && account\.id !== currentDebitAccountId\)\}/, 'source selector must disable the chosen destination account');
 assert.match(page, /disabled=\{Boolean\(currentDebitAccountId && account\.id === currentDebitAccountId && account\.id !== currentCreditAccountId\)\}/, 'destination selector must disable the chosen source account');
 assert.match(page, /account\.full_name[\s\S]*account\.currency/, 'account selector must show full account path and currency');
+assert.match(page, /debitAccountOptions\.length[\s\S]*selectableAccounts\.length[\s\S]*creditAccountOptions\.length/s, 'account selector helpers must show filtered option counts for source and destination');
+assert.match(page, /selectedDebitAccount\?\.type[\s\S]*selectedCreditAccount\?\.type/s, 'selected account summaries must include account type as well as path/currency');
 
 assert.match(page, /Preview validation failed safely[\s\S]*No CREATE\/PATCH\/DELETE\/batch executed[\s\S]*Raw private paths, secrets, and runtime internals are not shown/s, 'preview errors must show a safe summary and no-write copy');
 assert.match(page, /fieldErrors[\s\S]*aria-invalid/s, 'preview form must derive field-level errors and mark invalid fields');

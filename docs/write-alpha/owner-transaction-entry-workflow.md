@@ -250,6 +250,26 @@ release/tag/package/image publication, public write beta, or production/stable/s
 CREATE still requires fresh same-context owner approval and an exact CREATE count. DELETE, batch, and
 amount/account/split/date/currency edits remain forbidden.
 
+## Preview-only confirmation shell and draft-safety slice
+
+The confirmation-shell/draft-safety slice keeps `/transactions/new` preview-only while making the future product
+workflow clearer:
+
+- a post-preview confirmation shell shows the future owner-approved CREATE review shape without enabling writes;
+- the local-only preview-reviewed checkbox has no submitted field name and cannot enable CREATE;
+- Future Create remains a disabled `type="button"` control;
+- changing any form field after a successful preview marks the preview stale and tells the owner to run Preview
+  again before any future approval step;
+- Clear preview / start over reloads `/transactions/new` instead of storing private transaction details;
+- account filter counts and selected-account type/currency summaries make account selection easier to verify on
+  browser/mobile layouts;
+- static guards prove the confirmation shell, stale-preview warning, no browser storage persistence, and disabled
+  future-create control remain in place.
+
+This slice still does not add a CREATE action, PATCH action, DELETE action, batch operation, private-book dogfood,
+release/tag/package/image publication, public write beta, or production/stable/security-audited claim. Future
+CREATE still requires fresh same-context owner approval and an exact CREATE count.
+
 ## Current non-mutating state
 
 This document is a re-scope/planning artifact. No CREATE, PATCH, DELETE, dogfood loop, release, tag, package,

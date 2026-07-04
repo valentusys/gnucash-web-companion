@@ -27,8 +27,11 @@
 	let selectedDebitAccountId = $state('');
 	let selectedCreditAccountId = $state('');
 	let clientAccountError = $state('');
+	let draftChangedAfterPreview = $state(false);
+	let previewReviewed = $state(false);
 	const currentDebitAccountId = $derived(selectedDebitAccountId || previous.debit_account_id || '');
 	const currentCreditAccountId = $derived(selectedCreditAccountId || previous.credit_account_id || '');
+	const previewIsStale = $derived(Boolean(preview) && draftChangedAfterPreview);
 	const sameAccountError = $derived(
 		currentDebitAccountId && currentCreditAccountId && currentDebitAccountId === currentCreditAccountId
 			? 'Source and destination accounts must be different. No write was executed.'
@@ -84,6 +87,12 @@
 		clientAccountError = '';
 	}
 
+	function handleDraftChange() {
+		if (!preview) return;
+		draftChangedAfterPreview = true;
+		previewReviewed = false;
+	}
+
 	function handlePreviewSubmit(event: SubmitEvent) {
 		const formElement = event.currentTarget as HTMLFormElement;
 		const formData = new FormData(formElement);
@@ -92,9 +101,12 @@
 		if (debitAccountId && creditAccountId && debitAccountId === creditAccountId) {
 			event.preventDefault();
 			clientAccountError = 'Source and destination accounts must be different. No write was executed.';
+			handleDraftChange();
 			return;
 		}
 		clientAccountError = '';
+		draftChangedAfterPreview = false;
+		previewReviewed = false;
 	}
 </script>
 
@@ -136,7 +148,7 @@
 		<WriteModeWarning {locale} compact />
 	</div>
 
-	<form method="POST" onsubmit={handlePreviewSubmit} aria-describedby={describedBy('preview-no-write-warning', 'preview-create-disabled-explanation', form?.error && 'preview-error-summary')} class="min-w-0 space-y-5 rounded-2xl p-5" style="background: var(--app-panel); border: 1px solid var(--app-border); box-shadow: 0 1px 3px var(--app-panel-shadow);">
+	<form method="POST" onsubmit={handlePreviewSubmit} oninput={handleDraftChange} onchange={handleDraftChange} aria-describedby={describedBy('preview-no-write-warning', 'preview-create-disabled-explanation', form?.error && 'preview-error-summary')} class="min-w-0 space-y-5 rounded-2xl p-5" style="background: var(--app-panel); border: 1px solid var(--app-border); box-shadow: 0 1px 3px var(--app-panel-shadow);">
 		<div class="min-w-0 text-sm font-medium" style="color: var(--app-text);">
 			<label for="preview-book">Book</label>
 			<select id="preview-book" name="book_id" aria-invalid={bookError ? 'true' : undefined} aria-describedby={describedBy('book-help', 'preview-no-write-warning', bookError && 'preview-book-error')} class="mt-1 w-full min-w-0 rounded-xl px-3 py-2" style="background: var(--app-bg); color: var(--app-text); border: 1px solid var(--app-border);">
@@ -208,17 +220,20 @@
 			<div class="grid min-w-0 gap-4 md:grid-cols-2">
 				<div class="min-w-0">
 					<label class="block text-sm font-medium" style="color: var(--app-text);" for="debit-account-search">Search source account</label>
-					<input id="debit-account-search" data-account-filter="debit" type="search" bind:value={debitAccountQuery} autocomplete="off" aria-describedby="debit-account-search-help account-selector-help" placeholder="Filter by full account path" class="mt-1 w-full min-w-0 rounded-xl px-3 py-2" style="background: var(--app-panel); color: var(--app-text); border: 1px solid var(--app-border);" />
+					<input id="debit-account-search" data-account-filter="debit" type="search" bind:value={debitAccountQuery} autocomplete="off" aria-describedby="debit-account-search-help debit-account-count account-selector-help" placeholder="Filter by full account path" class="mt-1 w-full min-w-0 rounded-xl px-3 py-2" style="background: var(--app-panel); color: var(--app-text); border: 1px solid var(--app-border);" />
 					<p id="debit-account-search-help" class="mt-1 text-xs" style="color: var(--app-muted);">Filters visible source accounts only; it is not submitted as account text.</p>
+					<p id="debit-account-count" class="mt-1 text-xs" style="color: var(--app-muted);">Showing {debitAccountOptions.length} of {selectableAccounts.length} visible selectable accounts.</p>
 					<label class="mt-3 block text-sm font-medium" style="color: var(--app-text);" for="debit-account-select">Debit/source account</label>
-					<select id="debit-account-select" name="debit_account_id" required value={currentDebitAccountId} onchange={handleDebitAccountChange} aria-invalid={debitAccountError ? 'true' : undefined} aria-describedby={describedBy('debit-account-help', 'debit-account-selected', 'preview-no-write-warning', debitAccountError && 'debit-account-error')} class="mt-1 w-full min-w-0 max-w-full rounded-xl px-3 py-2" style="background: var(--app-panel); color: var(--app-text); border: 1px solid var(--app-border);">
+					<select id="debit-account-select" name="debit_account_id" required value={currentDebitAccountId} onchange={handleDebitAccountChange} aria-invalid={debitAccountError ? 'true' : undefined} aria-describedby={describedBy('debit-account-help', 'debit-account-count', 'debit-account-selected', 'preview-no-write-warning', debitAccountError && 'debit-account-error')} class="mt-1 w-full min-w-0 max-w-full rounded-xl px-3 py-2" style="background: var(--app-panel); color: var(--app-text); border: 1px solid var(--app-border);">
 						<option value="">Select source account</option>
 						{#each debitAccountOptions as account (account.id)}
 							<option value={account.id} selected={account.id === currentDebitAccountId} disabled={Boolean(currentCreditAccountId && account.id === currentCreditAccountId && account.id !== currentDebitAccountId)}>{account.full_name} · {account.currency}</option>
 						{/each}
 					</select>
 					<p id="debit-account-help" class="mt-1 text-xs" style="color: var(--app-muted);">Source must be a selectable account and cannot match destination.</p>
-					<p id="debit-account-selected" class="mt-1 break-words text-xs" style="color: var(--app-muted);">Selected source: {selectedDebitAccount?.full_name ?? 'none'}</p>
+					<p id="debit-account-selected" class="mt-1 break-words text-xs" style="color: var(--app-muted);">
+						Selected source: {selectedDebitAccount?.full_name ?? 'none'}{#if selectedDebitAccount} · account type {selectedDebitAccount?.type} · {selectedDebitAccount?.currency}{/if}
+					</p>
 					{#if debitAccountError}
 						<p id="debit-account-error" class="mt-1 text-xs" style="color: #dc2626;">{debitAccountError}</p>
 					{/if}
@@ -226,17 +241,20 @@
 
 				<div class="min-w-0">
 					<label class="block text-sm font-medium" style="color: var(--app-text);" for="credit-account-search">Search destination account</label>
-					<input id="credit-account-search" data-account-filter="credit" type="search" bind:value={creditAccountQuery} autocomplete="off" aria-describedby="credit-account-search-help account-selector-help" placeholder="Filter by full account path" class="mt-1 w-full min-w-0 rounded-xl px-3 py-2" style="background: var(--app-panel); color: var(--app-text); border: 1px solid var(--app-border);" />
+					<input id="credit-account-search" data-account-filter="credit" type="search" bind:value={creditAccountQuery} autocomplete="off" aria-describedby="credit-account-search-help credit-account-count account-selector-help" placeholder="Filter by full account path" class="mt-1 w-full min-w-0 rounded-xl px-3 py-2" style="background: var(--app-panel); color: var(--app-text); border: 1px solid var(--app-border);" />
 					<p id="credit-account-search-help" class="mt-1 text-xs" style="color: var(--app-muted);">Filters visible destination accounts only; it is not submitted as account text.</p>
+					<p id="credit-account-count" class="mt-1 text-xs" style="color: var(--app-muted);">Showing {creditAccountOptions.length} of {selectableAccounts.length} visible selectable accounts.</p>
 					<label class="mt-3 block text-sm font-medium" style="color: var(--app-text);" for="credit-account-select">Credit/destination account</label>
-					<select id="credit-account-select" name="credit_account_id" required value={currentCreditAccountId} onchange={handleCreditAccountChange} aria-invalid={creditAccountError ? 'true' : undefined} aria-describedby={describedBy('credit-account-help', 'credit-account-selected', 'preview-no-write-warning', creditAccountError && 'credit-account-error')} class="mt-1 w-full min-w-0 max-w-full rounded-xl px-3 py-2" style="background: var(--app-panel); color: var(--app-text); border: 1px solid var(--app-border);">
+					<select id="credit-account-select" name="credit_account_id" required value={currentCreditAccountId} onchange={handleCreditAccountChange} aria-invalid={creditAccountError ? 'true' : undefined} aria-describedby={describedBy('credit-account-help', 'credit-account-count', 'credit-account-selected', 'preview-no-write-warning', creditAccountError && 'credit-account-error')} class="mt-1 w-full min-w-0 max-w-full rounded-xl px-3 py-2" style="background: var(--app-panel); color: var(--app-text); border: 1px solid var(--app-border);">
 						<option value="">Select destination account</option>
 						{#each creditAccountOptions as account (account.id)}
 							<option value={account.id} selected={account.id === currentCreditAccountId} disabled={Boolean(currentDebitAccountId && account.id === currentDebitAccountId && account.id !== currentCreditAccountId)}>{account.full_name} · {account.currency}</option>
 						{/each}
 					</select>
 					<p id="credit-account-help" class="mt-1 text-xs" style="color: var(--app-muted);">Destination must be a selectable account and cannot match source.</p>
-					<p id="credit-account-selected" class="mt-1 break-words text-xs" style="color: var(--app-muted);">Selected destination: {selectedCreditAccount?.full_name ?? 'none'}</p>
+					<p id="credit-account-selected" class="mt-1 break-words text-xs" style="color: var(--app-muted);">
+						Selected destination: {selectedCreditAccount?.full_name ?? 'none'}{#if selectedCreditAccount} · account type {selectedCreditAccount?.type} · {selectedCreditAccount?.currency}{/if}
+					</p>
 					{#if creditAccountError}
 						<p id="credit-account-error" class="mt-1 text-xs" style="color: #dc2626;">{creditAccountError}</p>
 					{/if}
@@ -253,8 +271,18 @@
 		</div>
 	</form>
 
+	{#if previewIsStale}
+		<div id="preview-stale-warning" class="mt-6 rounded-2xl p-4 text-sm" role="status" aria-live="polite" style="border: 1px solid #f59e0b; background: #fffbeb; color: #92400e;">
+			<p class="font-semibold">Draft changed after preview</p>
+			<p class="mt-1">
+				Run Preview transaction again before any future approval step. The previous preview remains visible for comparison,
+				but it is stale and cannot support a future owner-approved CREATE. No write was executed.
+			</p>
+		</div>
+	{/if}
+
 	{#if preview}
-		<section class="mt-6 min-w-0 rounded-2xl p-5" aria-label="Transaction preview" aria-describedby="preview-create-disabled-explanation preview-no-write-warning" style="background: var(--app-panel); border: 1px solid var(--app-border);">
+		<section class="mt-6 min-w-0 rounded-2xl p-5" aria-label="Transaction preview" aria-describedby={describedBy('preview-create-disabled-explanation', 'preview-no-write-warning', previewIsStale && 'preview-stale-warning')} style="background: var(--app-panel); border: 1px solid var(--app-border);">
 			<div class="flex min-w-0 flex-col gap-2 md:flex-row md:items-start md:justify-between">
 				<div class="min-w-0">
 					<h2 class="text-xl font-semibold" style="color: var(--app-text);">Normalized preview</h2>
@@ -262,6 +290,35 @@
 				</div>
 				<span class="rounded-full px-3 py-1 text-xs font-semibold" style="background: #dcfce7; color: #166534;">no mutation</span>
 			</div>
+
+			<section id="preview-confirmation-shell" class="mt-4 min-w-0 rounded-2xl border p-4" aria-labelledby="preview-confirmation-shell-title" aria-describedby="preview-confirmation-shell-help preview-create-disabled-explanation" style="border-color: var(--app-border); background: var(--app-bg);">
+				<div class="flex min-w-0 flex-col gap-4 md:flex-row md:items-start md:justify-between">
+					<div class="min-w-0">
+						<h3 id="preview-confirmation-shell-title" class="text-base font-semibold" style="color: var(--app-text);">Future confirmation shell</h3>
+						<p id="preview-confirmation-shell-help" class="mt-1 text-sm" style="color: var(--app-muted);">
+							Ready for future owner-approved CREATE review after fresh same-context approval only. This shell is local and non-mutating;
+							the final Create control remains disabled in this slice.
+						</p>
+					</div>
+					<a id="clear-preview-link" class="rounded-xl px-4 py-2 text-sm font-semibold" style="border: 1px solid var(--app-border); color: var(--app-text);" href="/transactions/new">Clear preview / start over</a>
+				</div>
+				<div class="mt-4 flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:justify-between">
+					<label class="flex min-w-0 items-start gap-2 text-sm" style="color: var(--app-text);" for="preview-reviewed-confirmation">
+						<input id="preview-reviewed-confirmation" type="checkbox" bind:checked={previewReviewed} disabled={previewIsStale} aria-describedby="preview-reviewed-status preview-confirmation-shell-help" class="mt-1" />
+						<span>I reviewed this local preview; no write is available from this checkbox.</span>
+					</label>
+					<button id="future-create-disabled" class="cursor-not-allowed rounded-xl px-4 py-2 font-semibold text-white opacity-60" style="background: #6b7280;" type="button" disabled aria-describedby="preview-create-disabled-explanation preview-no-write-warning preview-reviewed-status">Future Create disabled</button>
+				</div>
+				<p id="preview-reviewed-status" class="mt-3 text-sm" style="color: var(--app-muted);">
+					{#if previewIsStale}
+						Preview is stale because the draft changed. Run Preview transaction again before any future approval step.
+					{:else if previewReviewed}
+						Preview reviewed locally. Future owner-approved CREATE still requires a fresh approval prompt, enabled write gates, exact count, backup/read-back/audit/reset/probes, and private verification.
+					{:else}
+						Review the normalized fields below. Future CREATE remains disabled and cannot be executed from this page state.
+					{/if}
+				</p>
+			</section>
 
 			<dl class="mt-4 grid min-w-0 gap-3 md:grid-cols-2">
 				<div class="min-w-0"><dt class="text-xs uppercase" style="color: var(--app-muted);">preview_only</dt><dd class="break-words" style="color: var(--app-text);">{String(preview.preview_only)}</dd></div>
