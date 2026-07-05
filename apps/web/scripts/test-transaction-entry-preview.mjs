@@ -203,6 +203,11 @@ assert.doesNotMatch(
 	/method:\s*['"`](?:PUT|PATCH|DELETE)['"`]|\/transactions\/(?:batch|import|delete|patch)|owner-writebeta|write-alpha/i,
 	'/transactions/new server action must not reference mutation HTTP methods, batch/import routes, or write-beta routes'
 );
+assert.match(
+	server,
+	/fetchFn\(`\$\{apiBase\}\$\{path\}`,[\s\S]*method:\s*'POST'[\s\S]*body:\s*JSON\.stringify\(payload\)/,
+	'/transactions/new server action must use the JSON POST helper only for the preview request'
+);
 const transactionSubmissionTargets = [...server.matchAll(/\/transactions(?:\/create-preview|\/validate)?/g)].map((match) => match[0]);
 assert.deepEqual([...new Set(transactionSubmissionTargets)], ['/transactions/create-preview'], 'create-preview must be the only transaction submission target in /transactions/new server code');
 assert.doesNotMatch(server, /\b(?:create|validate)\s*:\s*async/, '/transactions/new must not define active create or validate actions');

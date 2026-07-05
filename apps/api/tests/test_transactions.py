@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
+import inspect
 from pathlib import Path
 
 import pytest
@@ -290,6 +291,40 @@ class TestTransactionCreatePreview:
             assert session.query(AuditLog).count() == 0
             assert session.query(WriteAlphaTransactionOwnership).count() == 0
 
+    def guard_preview_mutation_helpers(
+        self,
+        monkeypatch,
+        message="mutation/write path must not be reached for preview",
+    ):
+        import app.routers.transactions as transactions_router
+        import app.services.gnucash_write as gnucash_write_module
+
+        def fail_if_called(*args, **kwargs):
+            raise AssertionError(message)
+
+        for guarded_name in (
+            "_ensure_writes_enabled",
+            "_ensure_write_alpha_test_scope",
+            "_write_service_for",
+            "_audit_log",
+            "_update_audit_log",
+            "_record_write_alpha_transaction_ownership",
+            "_require_write_alpha_transaction_ownership",
+            "_mark_write_alpha_transaction_mutated",
+            "_backup_audit_fields",
+            "_write_lock_detail",
+        ):
+            monkeypatch.setattr(transactions_router, guarded_name, fail_if_called)
+
+        monkeypatch.setattr(gnucash_write_module, "create_book_backup", fail_if_called)
+        monkeypatch.setattr(gnucash_write_module.write_lock_service, "lock", fail_if_called)
+        monkeypatch.setattr(gnucash_write_module.write_lock_service, "acquire", fail_if_called)
+        monkeypatch.setattr(
+            gnucash_write_module.GnuCashWriteService,
+            "_open_piecash_book_for_write",
+            fail_if_called,
+        )
+
     def test_valid_preview_returns_normalized_private_preview_and_create_count_one(
         self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory
     ):
@@ -505,27 +540,46 @@ class TestTransactionCreatePreview:
         self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory, monkeypatch
     ):
         self._set_fake_book(session_factory, sample_book, fake_book_with_transactions)
+        self.guard_preview_mutation_helpers(monkeypatch)
+
+        response = self.post_preview(client, auth_headers, sample_book, _preview_payload())
+        assert response.status_code == 200
+
+    def test_preview_route_source_stays_readonly_create_preview_only(self):
         import app.routers.transactions as transactions_router
 
-        def fail_if_called(*args, **kwargs):
-            raise AssertionError("mutation/write path must not be reached for preview")
+        source = inspect.getsource(transactions_router.preview_book_transaction_create)
+        for required in (
+            '"/books/{book_id}/transactions/create-preview"',
+            "_resolve_readonly_data_book",
+            "_require_book_owner_access",
+            "transaction_service_for(book)",
+            "service.list_accounts()",
+            "_build_transaction_create_preview(request, accounts)",
+        ):
+            assert required in source
 
-        for guarded_name in (
+        for forbidden in (
             "_ensure_writes_enabled",
             "_ensure_write_alpha_test_scope",
+            "_resolve_viewable_book",
+            "_require_book_edit_access",
             "_write_service_for",
+            "GnuCashWriteService",
+            "create_transaction",
+            "patch_transaction",
+            "delete_transaction",
             "_audit_log",
             "_update_audit_log",
             "_record_write_alpha_transaction_ownership",
             "_require_write_alpha_transaction_ownership",
             "_mark_write_alpha_transaction_mutated",
             "_backup_audit_fields",
-            "_write_lock_detail",
+            "write_lock_service",
+            "create_book_backup",
+            "require_owner_writebeta_if_active",
         ):
-            monkeypatch.setattr(transactions_router, guarded_name, fail_if_called)
-
-        response = self.post_preview(client, auth_headers, sample_book, _preview_payload())
-        assert response.status_code == 200
+            assert forbidden not in source
 
     def test_preview_works_with_writes_disabled_by_default(
         self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory
@@ -542,23 +596,15 @@ class TestTransactionCreatePreview:
         import app.routers.transactions as transactions_router
         from app.services.gnucash_exceptions import GnuCashReadError
 
-        def fail_if_called(*args, **kwargs):
-            raise AssertionError("mutation/write path must not be reached for preview read errors")
-
         class FailingReadService:
             def list_accounts(self):
                 raise GnuCashReadError("/synthetic/redacted/book/path account memo 123.45")
 
         monkeypatch.setattr(transactions_router, "transaction_service_for", lambda book: FailingReadService())
-        for guarded_name in (
-            "_write_service_for",
-            "_audit_log",
-            "_update_audit_log",
-            "_record_write_alpha_transaction_ownership",
-            "_require_write_alpha_transaction_ownership",
-            "_mark_write_alpha_transaction_mutated",
-        ):
-            monkeypatch.setattr(transactions_router, guarded_name, fail_if_called)
+        self.guard_preview_mutation_helpers(
+            monkeypatch,
+            message="mutation/write path must not be reached for preview read errors",
+        )
 
         response = self.post_preview(client, auth_headers, sample_book, _preview_payload())
 
