@@ -125,6 +125,7 @@ for (const requiredPageFragment of [
 	'Redacted audit evidence required',
 	'Writes reset to disabled required',
 	'Disabled CREATE probe required',
+	'Disabled validate/preflight probes required',
 	'Disabled PATCH/DELETE/batch probes required',
 	'Manual Desktop verification record required',
 	'Future Create remains disabled until backup/read-back/audit/reset/probes readiness is completed',
@@ -300,6 +301,7 @@ for (const requiredServerFragment of [
 	"id: 'redacted_audit_required'",
 	"id: 'writes_reset_required'",
 	"id: 'disabled_create_probe_required'",
+	"id: 'disabled_validate_preflight_probe_required'",
 	"id: 'disabled_patch_delete_batch_probes_required'",
 	"id: 'manual_desktop_verification_record_required'",
 	'executionReadiness: createExecutionReadiness()'

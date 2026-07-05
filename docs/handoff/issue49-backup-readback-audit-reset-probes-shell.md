@@ -34,7 +34,7 @@ The object is UI/status guidance only. It contains no raw private paths, account
 - `Execution readiness not checked`;
 - explicit `execution_readiness.*` redacted status fields;
 - default state copy: backup, read-back, audit, reset, and probe readiness are pending / not checked / not armed;
-- pending checklist items for backup plan, readable backup proof, post-CREATE read-back, redacted audit evidence, write reset, disabled CREATE probe, disabled PATCH/DELETE/batch probes, and manual Desktop verification.
+- pending checklist items for backup plan, readable backup proof, post-CREATE read-back, redacted audit evidence, write reset, disabled CREATE probe, disabled validate/preflight probes, disabled PATCH/DELETE/batch probes, and manual Desktop verification.
 
 Future Create remains disabled/inert. The preview-reviewed checkbox remains local-only and insufficient by itself.
 
@@ -44,7 +44,7 @@ Static and synthetic browser guards now assert:
 
 - the execution readiness panel exists;
 - readiness defaults to `not_checked` / `pending`;
-- backup/read-back/audit/reset/probes labels are present;
+- backup/read-back/audit/reset/probes labels are present, including disabled validate/preflight probe coverage;
 - no checked/passed/ready execution-readiness state exists by default;
 - no file/book/backup/lock/write helper is referenced by the `/transactions/new` server shell;
 - `create-preview` remains the only transaction-entry submission target;
@@ -55,7 +55,7 @@ Static and synthetic browser guards now assert:
 
 Any future real CREATE still requires fresh same-context owner/PM approval with exact target class and exact CREATE count. The first trial remains `CREATE 1 / PATCH 0 / DELETE 0 / batch 0`.
 
-A future approved session must still prove target preflight, use a reviewed current non-stale UI preview, create a backup before CREATE, read back after CREATE, produce redacted audit evidence, reset writes to disabled, run disabled-write probes, and complete manual Desktop verification.
+A future approved session must still prove target preflight, use a reviewed current non-stale UI preview, create a backup before CREATE, read back after CREATE, produce redacted audit evidence, reset writes to disabled, run disabled-write probes for validate/preflight/CREATE/PATCH/DELETE/batch route families when available, and complete manual Desktop verification.
 
 ## Safety summary for this slice
 

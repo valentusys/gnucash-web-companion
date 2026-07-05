@@ -152,7 +152,7 @@ Every future #48 mutating session must preserve #47 policy:
 - read-back after each CREATE/PATCH;
 - redacted audit evidence with opaque refs only;
 - default-disabled reset after session;
-- disabled-write probes for validate/preflight, CREATE, PATCH, and DELETE route families when available;
+- disabled-write probes for validate/preflight, CREATE, PATCH, DELETE, and batch route families when available;
 - Syncthing conflict-copy checks before/after if the target is under Syncthing;
 - redacted-only GitHub/tracked reports;
 - private details only in local app UI/runtime, Telegram, or other private owner context.

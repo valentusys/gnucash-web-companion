@@ -99,6 +99,7 @@
 			{ id: 'redacted_audit_required', label: 'Redacted audit evidence required', status: 'pending', note: 'Pending: no audit execution occurs in this shell.' },
 			{ id: 'writes_reset_required', label: 'Writes reset to disabled required', status: 'pending', note: 'Pending: reset proof is required after a future approved session.' },
 			{ id: 'disabled_create_probe_required', label: 'Disabled CREATE probe required', status: 'pending', note: 'Pending: prove CREATE is blocked again after reset.' },
+			{ id: 'disabled_validate_preflight_probe_required', label: 'Disabled validate/preflight probes required', status: 'pending', note: 'Pending: prove validate/preflight route families remain blocked or unavailable after reset.' },
 			{ id: 'disabled_patch_delete_batch_probes_required', label: 'Disabled PATCH/DELETE/batch probes required', status: 'pending', note: 'Pending: prove PATCH, DELETE, and batch remain blocked.' },
 			{ id: 'manual_desktop_verification_record_required', label: 'Manual Desktop verification record required', status: 'pending', note: 'Pending: owner verification remains private.' }
 		]
@@ -542,7 +543,7 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 					{#if previewIsStale}
 						Preview is stale because the draft changed. Run Preview transaction again before any future approval step.
 					{:else if previewReviewed}
-						Preview reviewed locally, but preview-reviewed checkbox alone is not enough. Future owner-approved CREATE still requires a fresh approval prompt, an armed write session, exact count, target preflight, backup/read-back/audit/reset/probes, and private verification.
+						Preview reviewed locally, but preview-reviewed checkbox alone is not enough. Future owner-approved CREATE still requires a fresh approval prompt, an armed write session, exact count, target preflight, backup/read-back/audit/reset/probes including disabled validate/preflight probes, and private verification.
 					{:else}
 						Review the normalized fields below. Future CREATE remains disabled and cannot be executed from this page state.
 					{/if}
@@ -579,7 +580,7 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 						<li>Write session must be armed and target class/preflight must pass before CREATE is reachable.</li>
 						<li>Preview must be current, reviewed, and not stale.</li>
 						<li>Write gates must be explicitly enabled only for an approved run; defaults stay disabled.</li>
-						<li>Backup, read-back, audit, reset, disabled-write probes, and manual Desktop verification are required for any future mutation.</li>
+						<li>Backup, read-back, audit, reset, disabled-write probes for validate/preflight/CREATE/PATCH/DELETE/batch, and manual Desktop verification are required for any future mutation.</li>
 						<li>DELETE, batch, and balance-affecting PATCH remain forbidden.</li>
 					</ul>
 				</div>

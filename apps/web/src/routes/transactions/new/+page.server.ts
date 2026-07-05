@@ -389,6 +389,12 @@ function createExecutionReadiness(): ExecutionReadiness {
 				note: 'Pending: future post-reset probe must prove CREATE is blocked again.'
 			},
 			{
+				id: 'disabled_validate_preflight_probe_required',
+				label: 'Disabled validate/preflight probes required',
+				status: 'pending',
+				note: 'Pending: future post-reset probes must prove validate/preflight route families remain blocked or unavailable.'
+			},
+			{
 				id: 'disabled_patch_delete_batch_probes_required',
 				label: 'Disabled PATCH/DELETE/batch probes required',
 				status: 'pending',
