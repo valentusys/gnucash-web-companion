@@ -372,6 +372,24 @@ class TestTransactionCreatePreview:
         assert response.status_code == 422
         assert response.json()["detail"] == "credit_account_id is required"
 
+    def test_unknown_debit_account_rejected(
+        self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory
+    ):
+        self._set_fake_book(session_factory, sample_book, fake_book_with_transactions)
+        response = self.post_preview(client, auth_headers, sample_book, _preview_payload(debit_account_id="unknown-debit-guid"))
+        assert response.status_code == 422
+        assert response.json()["detail"] == "debit_account_id was not found"
+        self.assert_no_preview_mutation_metadata(session_factory)
+
+    def test_unknown_credit_account_rejected(
+        self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory
+    ):
+        self._set_fake_book(session_factory, sample_book, fake_book_with_transactions)
+        response = self.post_preview(client, auth_headers, sample_book, _preview_payload(credit_account_id="unknown-credit-guid"))
+        assert response.status_code == 422
+        assert response.json()["detail"] == "credit_account_id was not found"
+        self.assert_no_preview_mutation_metadata(session_factory)
+
     def test_same_debit_and_credit_account_rejected(
         self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory
     ):
@@ -429,7 +447,21 @@ class TestTransactionCreatePreview:
         assert response.status_code == 200
         data = response.json()
         assert data["amount"] == "0.100000000000000001"
+        assert data["splits"][0]["amount"] == "-0.100000000000000001"
         assert data["splits"][1]["amount"] == "0.100000000000000001"
+        assert all(isinstance(split["amount"], str) for split in data["splits"])
+
+    def test_amount_preserves_large_decimal_string_and_trailing_zeros(
+        self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory
+    ):
+        self._set_fake_book(session_factory, sample_book, fake_book_with_transactions)
+        exact_amount = "999999999999999999.00000000000000000100"
+        response = self.post_preview(client, auth_headers, sample_book, _preview_payload(amount=exact_amount))
+        assert response.status_code == 200
+        data = response.json()
+        assert data["amount"] == exact_amount
+        assert data["splits"][0]["amount"] == f"-{exact_amount}"
+        assert data["splits"][1]["amount"] == exact_amount
 
     def test_missing_currency_rejected(
         self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory
@@ -502,6 +534,38 @@ class TestTransactionCreatePreview:
         assert TEST_SETTINGS.gnucash_writes_enabled is False
         response = self.post_preview(client, auth_headers, sample_book, _preview_payload())
         assert response.status_code == 200
+
+    def test_preview_read_error_returns_path_safe_503_without_mutation_helpers(
+        self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory, monkeypatch
+    ):
+        self._set_fake_book(session_factory, sample_book, fake_book_with_transactions)
+        import app.routers.transactions as transactions_router
+        from app.services.gnucash_exceptions import GnuCashReadError
+
+        def fail_if_called(*args, **kwargs):
+            raise AssertionError("mutation/write path must not be reached for preview read errors")
+
+        class FailingReadService:
+            def list_accounts(self):
+                raise GnuCashReadError("/synthetic/redacted/book/path account memo 123.45")
+
+        monkeypatch.setattr(transactions_router, "transaction_service_for", lambda book: FailingReadService())
+        for guarded_name in (
+            "_write_service_for",
+            "_audit_log",
+            "_update_audit_log",
+            "_record_write_alpha_transaction_ownership",
+            "_require_write_alpha_transaction_ownership",
+            "_mark_write_alpha_transaction_mutated",
+        ):
+            monkeypatch.setattr(transactions_router, guarded_name, fail_if_called)
+
+        response = self.post_preview(client, auth_headers, sample_book, _preview_payload())
+
+        assert response.status_code == 503
+        assert response.json()["detail"] == "GnuCash book cannot be read safely from this runtime."
+        assert "/synthetic/" not in str(response.json())
+        self.assert_no_preview_mutation_metadata(session_factory)
 
 
 # ---------------------------------------------------------------------------

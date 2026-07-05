@@ -30,7 +30,9 @@ Backend preview coverage now additionally checks:
 - missing book rejects safely before preview open or mutation metadata;
 - view-only users cannot use the owner-only preview path;
 - all-placeholder/no-selectable-account books fail with an explicit safe message;
-- credit-account currency mismatch is rejected;
+- unknown account IDs and credit-account currency mismatch are rejected;
+- high-precision decimal strings and trailing zeros are preserved as strings;
+- preview read errors return path-safe responses without exposing runtime internals;
 - preview success does not create audit rows or app-created ownership metadata;
 - preview does not call write gates, write service, audit helpers, ownership mutation helpers, backup/audit field
   helpers, or lock-detail helpers.

@@ -280,8 +280,9 @@ handoff explicit:
 - the copy action uses a redacted placeholder-only approval template and does not copy private preview values;
 - field-level validation copy is more user-oriented for missing book/account, no selectable accounts, same-account,
   amount, currency, date, description, and stale-preview cases;
-- backend preview tests guard missing book, owner-only access, no selectable accounts, credit currency mismatch,
-  disabled-write behavior, Decimal/string preservation, and absence of write/backup/lock/audit/ownership paths;
+- backend preview tests guard missing book, owner-only access, no selectable accounts, unknown accounts,
+  credit-currency mismatch, read-error redaction, disabled-write behavior, Decimal/string preservation, and absence
+  of write/backup/lock/audit/ownership paths;
 - static guards prove the approval packet remains no-write and `create-preview` remains the only transaction-entry
   submission target.
 

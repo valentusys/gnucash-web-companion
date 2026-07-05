@@ -1120,8 +1120,11 @@ async def preview_book_transaction_create(
     """
     book = _resolve_readonly_data_book(book_id, user, session)
     _require_book_owner_access(book, user, session)
-    service = transaction_service_for(book)
-    accounts = service.list_accounts()
+    try:
+        service = transaction_service_for(book)
+        accounts = service.list_accounts()
+    except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
+        handle_gnucash_error(exc)
     return _build_transaction_create_preview(request, accounts)
 
 
