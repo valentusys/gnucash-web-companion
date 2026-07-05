@@ -87,6 +87,7 @@ jobs:
           fi
           npm run check
           npm run test:auth-routes
+          npm run test:transaction-entry-preview
           npm run build
 
   backend:

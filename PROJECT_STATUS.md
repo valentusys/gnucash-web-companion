@@ -35,7 +35,8 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   None of these issues are DELETE approval, release approval, or public write beta approval.
   [#22](https://github.com/valentusys/gnucash-web-companion/issues/22) and
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) are closed.
-- Latest handoffs/docs: `docs/handoff/issue48-approval-packet-preview-hardening.md`,
+- Latest handoffs/docs: `docs/handoff/issue48-deterministic-browser-smoke-harness.md`,
+  `docs/handoff/issue48-approval-packet-preview-hardening.md`,
   `docs/handoff/issue48-preview-confirmation-shell-draft-safety.md`,
   `docs/handoff/issue48-browser-smoke-redacted-report.md`,
   `docs/handoff/issue48-transaction-entry-preview-accessibility-mobile-smoke.md`,
@@ -110,7 +111,9 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   and account selector count/type summaries. The approval-packet hardening slice keeps the preview-only boundary
   while adding a future owner-approval packet, placeholder-only redacted approval-template copy action, safer
   no-selectable-account/user validation copy, and backend/static guards proving preview does not call write,
-  backup, lock, audit, or ownership mutation helpers.
+  backup, lock, audit, or ownership mutation helpers. The deterministic synthetic browser smoke harness now drives
+  `/transactions/new` in headless Chromium against a synthetic local API stub with writes disabled, verifies the
+  approval packet and stale-preview flow, and fails on CREATE/PATCH/DELETE/batch transaction requests.
   None of these issues are DELETE/batch approval, release approval, or public
   write beta approval. No release
   was published; `NO_RELEASE` remains current.

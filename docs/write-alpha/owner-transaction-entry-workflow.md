@@ -290,6 +290,25 @@ This slice still does not add a CREATE action, PATCH action, DELETE action, batc
 release/tag/package/image publication, public write beta, or production/stable/security-audited claim. Future CREATE
 still requires fresh same-context owner approval and an exact CREATE count.
 
+## Deterministic synthetic browser smoke harness slice
+
+The deterministic smoke harness keeps `/transactions/new` preview-only while making the previous manual/redacted
+browser smoke reproducible:
+
+- `npm run test:transaction-entry-preview-browser` starts a synthetic local API stub and the SvelteKit dev server with
+  `APP_ENV=test` and `GNUCASH_WRITES_ENABLED=false`;
+- the harness drives headless Chromium through the Chrome DevTools Protocol instead of adding a new Playwright stack;
+- it uses synthetic fixture data only and no private, original, working, or only-copy GnuCash book;
+- it verifies the no-write warning, account filtering, account-ID submission, valid preview, approval packet,
+  exact future CREATE count of 1, disabled Future Create control, placeholder-only approval template, local reviewed
+  checkbox, stale-preview warning after draft changes, and Clear preview / start over;
+- it observes browser requests and synthetic API calls and fails on CREATE, PATCH, DELETE, or batch transaction routes;
+- detailed evidence is tracked in `docs/handoff/issue48-deterministic-browser-smoke-harness.md`.
+
+This slice still does not add a CREATE action, PATCH action, DELETE action, batch operation, private-book dogfood,
+release/tag/package/image publication, public write beta, or production/stable/security-audited claim. Future CREATE
+still requires fresh same-context owner approval and an exact CREATE count.
+
 ## Current non-mutating state
 
 This document is a re-scope/planning artifact. No CREATE, PATCH, DELETE, dogfood loop, release, tag, package,

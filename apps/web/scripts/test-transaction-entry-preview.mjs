@@ -27,6 +27,11 @@ assert.equal(
 	'node scripts/test-transaction-entry-preview.mjs',
 	'package.json must expose npm run test:transaction-entry-preview'
 );
+assert.equal(
+	packageJson.scripts?.['test:transaction-entry-preview-browser'],
+	'node scripts/test-transaction-entry-preview-browser.mjs',
+	'package.json must expose npm run test:transaction-entry-preview-browser'
+);
 
 for (const field of [
 	'book_id',
@@ -191,6 +196,13 @@ for (const requiredServerFragment of [
 ]) {
 	assert.ok(server.includes(requiredServerFragment), `transaction-entry server action missing required fragment: ${requiredServerFragment}`);
 }
+const formActionTargets = [...page.matchAll(/formaction="([^"]+)"/g)].map((match) => match[1]);
+assert.deepEqual([...new Set(formActionTargets)], ['?/preview'], 'preview page form actions must be limited to the preview action');
+assert.doesNotMatch(
+	server,
+	/method:\s*['"`](?:PUT|PATCH|DELETE)['"`]|\/transactions\/(?:batch|import|delete|patch)|owner-writebeta|write-alpha/i,
+	'/transactions/new server action must not reference mutation HTTP methods, batch/import routes, or write-beta routes'
+);
 const transactionSubmissionTargets = [...server.matchAll(/\/transactions(?:\/create-preview|\/validate)?/g)].map((match) => match[0]);
 assert.deepEqual([...new Set(transactionSubmissionTargets)], ['/transactions/create-preview'], 'create-preview must be the only transaction submission target in /transactions/new server code');
 assert.doesNotMatch(server, /\b(?:create|validate)\s*:\s*async/, '/transactions/new must not define active create or validate actions');
