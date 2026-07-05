@@ -272,6 +272,130 @@ def _preview_payload(**overrides):
     return payload
 
 
+class TestTransactionCreateReadinessStatus:
+    def guard_readiness_side_effect_helpers(self, monkeypatch):
+        import app.routers.transactions as transactions_router
+        import app.services.gnucash_write as gnucash_write_module
+
+        def fail_if_called(*args, **kwargs):
+            raise AssertionError("readiness status must remain read-only and fail-closed")
+
+        for guarded_name in (
+            "transaction_service_for",
+            "_ensure_writes_enabled",
+            "_ensure_write_alpha_test_scope",
+            "_write_service_for",
+            "_audit_log",
+            "_update_audit_log",
+            "_record_write_alpha_transaction_ownership",
+            "_require_write_alpha_transaction_ownership",
+            "_mark_write_alpha_transaction_mutated",
+            "_backup_audit_fields",
+            "_write_lock_detail",
+        ):
+            monkeypatch.setattr(transactions_router, guarded_name, fail_if_called)
+
+        monkeypatch.setattr(gnucash_write_module, "create_book_backup", fail_if_called)
+        monkeypatch.setattr(gnucash_write_module.write_lock_service, "lock", fail_if_called)
+        monkeypatch.setattr(gnucash_write_module.write_lock_service, "acquire", fail_if_called)
+        monkeypatch.setattr(
+            gnucash_write_module.GnuCashWriteService,
+            "_open_piecash_book_for_write",
+            fail_if_called,
+        )
+
+    def get_status(self, client, auth_headers, sample_book):
+        return client.get(
+            f"/books/{sample_book}/transactions/create-readiness-status",
+            headers=auth_headers,
+        )
+
+    def test_default_status_is_redacted_disabled_and_does_not_probe_or_write(
+        self, client, auth_headers, sample_book, session_factory, monkeypatch
+    ):
+        self.guard_readiness_side_effect_helpers(monkeypatch)
+
+        response = self.get_status(client, auth_headers, sample_book)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["preview_only"] is True
+        assert data["status"] == "disabled"
+        assert data["writes_enabled"] is False
+        assert data["session_armed"] is False
+        assert data["create_execution_allowed"] is False
+        assert data["create_execution_reason"] == "GNUCASH_WRITES_ENABLED=false; write session not armed."
+        assert data["allowed_create_count"] == 0
+        assert data["target_class"] is None
+        assert data["readiness_required"] is True
+        assert data["readiness_status"] == "not_checked"
+        assert data["checks"]
+        assert {check["status"] for check in data["checks"]} == {"pending"}
+        assert "No private target probing" in data["limitations"][1]
+        serialized = str(data)
+        assert "/data/books" not in serialized
+        assert "test.gnucash" not in serialized
+        with session_factory() as session:
+            assert session.query(AuditLog).count() == 0
+            assert session.query(WriteAlphaTransactionOwnership).count() == 0
+
+    def test_status_remains_blocked_when_writes_enabled_setting_is_true(
+        self, client, auth_headers, sample_book, monkeypatch
+    ):
+        enabled_settings = TEST_SETTINGS.model_copy(update={"gnucash_writes_enabled": True})
+        app.dependency_overrides[get_settings] = lambda: enabled_settings
+        self.guard_readiness_side_effect_helpers(monkeypatch)
+
+        response = self.get_status(client, auth_headers, sample_book)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["writes_enabled"] is True
+        assert data["session_armed"] is False
+        assert data["create_execution_allowed"] is False
+        assert data["allowed_create_count"] == 0
+        assert data["target_class"] is None
+        assert data["readiness_status"] == "not_checked"
+
+    def test_viewer_cannot_read_owner_create_readiness_status(
+        self, client, viewer_headers, viewer_user, sample_book, session_factory
+    ):
+        with session_factory() as session:
+            session.add(UserBookAccess(user_id=viewer_user, book_id=sample_book, role="viewer"))
+            session.commit()
+
+        response = client.get(
+            f"/books/{sample_book}/transactions/create-readiness-status",
+            headers=viewer_headers,
+        )
+
+        assert response.status_code == 403
+        assert response.json()["detail"] == "Book owner access required"
+
+    def test_create_readiness_source_shape_stays_read_only(self):
+        import app.routers.transactions as transactions_router
+
+        source = inspect.getsource(transactions_router.get_book_transaction_create_readiness_status)
+        assert '"/books/{book_id}/transactions/create-readiness-status"' in source
+        assert "_resolve_viewable_book" in source
+        assert "_require_book_owner_access" in source
+        assert "_build_create_readiness_status(settings)" in source
+        for forbidden in (
+            "transaction_service_for",
+            "_write_service_for",
+            "GnuCashWriteService",
+            "create_transaction",
+            "patch_transaction",
+            "delete_transaction",
+            "_audit_log",
+            "_update_audit_log",
+            "create_book_backup",
+            "write_lock_service",
+            "_open_piecash_book_for_write",
+        ):
+            assert forbidden not in source
+
+
 class TestTransactionCreatePreview:
     def _set_fake_book(self, session_factory, sample_book, fake_book_with_transactions):
         with session_factory() as session:

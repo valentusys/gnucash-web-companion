@@ -242,6 +242,24 @@ async def export_book_transactions_csv(
     )
 
 
+@router.get("/books/{book_id}/transactions/create-readiness-status")
+async def get_book_transaction_create_readiness_status(
+    book_id: int,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> dict[str, Any]:
+    """Return redacted fail-closed readiness status for the future web UI CREATE flow.
+
+    This endpoint is intentionally read-only: it resolves only app metadata/access,
+    never opens the GnuCash book, and never calls write, backup, lock, audit,
+    reset, or probe helpers.
+    """
+    book = _resolve_viewable_book(book_id, user, session)
+    _require_book_owner_access(book, user, session)
+    return _build_create_readiness_status(settings)
+
+
 @router.get("/books/{book_id}/transactions/{transaction_id}")
 async def get_book_transaction(
     book_id: int,
@@ -531,6 +549,60 @@ def _require_book_owner_access(book: Book, user: User, session: Session) -> None
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Book owner access required",
         )
+
+
+CREATE_READINESS_STATUS_CHECKS = (
+    {
+        "id": "write_session_armed",
+        "label": "Write session armed",
+        "status": "pending",
+        "note": "Pending: no owner-approved web UI CREATE session is armed.",
+    },
+    {
+        "id": "target_class_selected",
+        "label": "Target class selected",
+        "status": "pending",
+        "note": "Pending: target class remains redacted and unset.",
+    },
+    {
+        "id": "reviewed_non_stale_preview",
+        "label": "Reviewed non-stale preview",
+        "status": "pending",
+        "note": "Pending: preview review is local UI state only and does not arm CREATE.",
+    },
+    {
+        "id": "backup_read_back_audit_reset_probes",
+        "label": "Backup/read-back/audit/reset/probes",
+        "status": "pending",
+        "note": "Pending: no backup, read-back, audit, reset, or probe runs in this read-only status endpoint.",
+    },
+)
+
+
+def _build_create_readiness_status(settings: Settings) -> dict[str, Any]:
+    writes_enabled = settings.gnucash_writes_enabled
+    return {
+        "preview_only": True,
+        "status": "disabled",
+        "writes_enabled": writes_enabled,
+        "session_armed": False,
+        "create_execution_allowed": False,
+        "create_execution_reason": (
+            "Write gates may be enabled, but no owner-approved web UI CREATE session is armed."
+            if writes_enabled
+            else "GNUCASH_WRITES_ENABLED=false; write session not armed."
+        ),
+        "allowed_create_count": 0,
+        "target_class": None,
+        "readiness_required": True,
+        "readiness_status": "not_checked",
+        "checks": [dict(check) for check in CREATE_READINESS_STATUS_CHECKS],
+        "limitations": [
+            "Read-only redacted status only; no CREATE/PATCH/DELETE/batch route is called.",
+            "No private target probing, GnuCash book opening, backup, lock, audit, reset, or write service helper runs.",
+            "Fresh same-context owner approval with exact target class and exact CREATE count is still required before any future mutation.",
+        ],
+    }
 
 
 def _build_transaction_create_preview(
