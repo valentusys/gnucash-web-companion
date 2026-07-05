@@ -67,6 +67,8 @@ for (const { id, label, name } of [
 
 for (const requiredPageFragment of [
 	'Transaction entry preview',
+	'Back to transactions list',
+	'aria-label="Back to transactions list; no draft is saved"',
 	'Preview only / no write executed',
 	'preview-no-write-warning',
 	'write-session-gate',

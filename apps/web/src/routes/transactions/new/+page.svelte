@@ -240,7 +240,7 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 				Owner-only browser/mobile form for validating one future CREATE. This slice is preview only; no write is executed.
 			</p>
 		</div>
-		<a class="rounded-xl px-4 py-2 text-sm font-semibold" style="border: 1px solid var(--app-border); color: var(--app-text);" href="/transactions">Back</a>
+		<a class="rounded-xl px-4 py-2 text-sm font-semibold" style="border: 1px solid var(--app-border); color: var(--app-text);" href="/transactions" aria-label="Back to transactions list; no draft is saved">Back to transactions list</a>
 	</div>
 
 	{#if form?.error}
