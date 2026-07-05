@@ -49,6 +49,29 @@ OWNER_WRITEBETA_NO_RELEASE_DECISION_DOC = Path("docs/release/v0.4-owner-writebet
 API_CONFIG_FILE = Path("apps/api/app/config.py")
 WRITE_ROUTES_FILE = Path("apps/api/app/routers/transactions.py")
 OWNER_WRITEBETA_ROUTES_FILE = Path("apps/api/app/routers/owner_writebeta.py")
+CREATE_READINESS_STATUS_ROUTE = "/books/{book_id}/transactions/create-readiness-status"
+CREATE_READINESS_STATUS_FUNCTION = "get_book_transaction_create_readiness_status"
+CREATE_READINESS_STATUS_HELPER = "_build_create_readiness_status"
+CREATE_READINESS_FORBIDDEN_CALLS = (
+    "transaction_service_for",
+    "_resolve_readonly_data_book",
+    "_ensure_writes_enabled",
+    "_ensure_write_alpha_test_scope",
+    "_write_service_for",
+    "_audit_log",
+    "_update_audit_log",
+    "_record_write_alpha_transaction_ownership",
+    "_require_write_alpha_transaction_ownership",
+    "_mark_write_alpha_transaction_mutated",
+    "_backup_audit_fields",
+    "_write_lock_detail",
+    "create_book_backup",
+    "write_lock_service",
+    "GnuCashWriteService",
+    "create_transaction",
+    "patch_transaction",
+    "delete_transaction",
+)
 WRITE_ROUTE_FUNCTIONS = (
     "validate_book_transaction",
     "create_book_transaction",
@@ -191,15 +214,38 @@ def _top_level_call_name(statement: ast.stmt) -> str | None:
 
 def _direct_executable_statement_call_names(node: ast.FunctionDef | ast.AsyncFunctionDef) -> list[str | None]:
     """Return direct call statement names after skipping an optional function docstring."""
-    body = node.body
-    if (
-        body
-        and isinstance(body[0], ast.Expr)
-        and isinstance(body[0].value, ast.Constant)
-        and isinstance(body[0].value.value, str)
-    ):
-        body = body[1:]
-    return [_top_level_call_name(statement) for statement in body]
+    return [_top_level_call_name(statement) for statement in _executable_body(node)]
+
+
+def _direct_executable_statement_root_call_names(node: ast.FunctionDef | ast.AsyncFunctionDef) -> list[str | None]:
+    """Return direct root call names for Expr, Assign, AnnAssign, and Return statements.
+
+    This intentionally ignores nested calls so guards can require a route shape like
+    ``book = _resolve_viewable_book(...)`` followed by an owner-access check and a
+    direct return of the inert readiness builder. Nested side-effect calls are still
+    checked separately through ``_call_lines``.
+    """
+    names: list[str | None] = []
+    for statement in _executable_body(node):
+        value: ast.AST | None = None
+        if isinstance(statement, ast.Expr):
+            value = statement.value
+        elif isinstance(statement, ast.Assign):
+            value = statement.value
+        elif isinstance(statement, ast.AnnAssign):
+            value = statement.value
+        elif isinstance(statement, ast.Return):
+            value = statement.value
+        if isinstance(value, ast.Call):
+            func = value.func
+            if isinstance(func, ast.Name):
+                names.append(func.id)
+                continue
+            if isinstance(func, ast.Attribute):
+                names.append(func.attr)
+                continue
+        names.append(None)
+    return names
 
 
 def _is_settings_app_env_lower_call(node: ast.AST) -> bool:
@@ -314,6 +360,125 @@ def _decorated_transaction_write_route_functions(tree: ast.Module) -> set[str]:
                 if "/transactions" in path_arg.value and "create-preview" not in path_arg.value:
                     route_functions.add(node.name)
     return route_functions
+
+
+def _decorated_route_methods(tree: ast.Module, function_name: str, route_path: str) -> list[str]:
+    """Return router method decorators for one exact route path."""
+    methods: list[str] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) or node.name != function_name:
+            continue
+        for decorator in node.decorator_list:
+            if not isinstance(decorator, ast.Call):
+                continue
+            func = decorator.func
+            if not isinstance(func, ast.Attribute):
+                continue
+            if func.attr not in {"get", "post", "put", "patch", "delete"}:
+                continue
+            if not decorator.args:
+                continue
+            path_arg = decorator.args[0]
+            if isinstance(path_arg, ast.Constant) and path_arg.value == route_path:
+                methods.append(func.attr)
+    return methods
+
+
+def _dict_literal_value_for_key(node: ast.Dict, key_name: str) -> ast.AST | None:
+    for key, value in zip(node.keys, node.values, strict=True):
+        if isinstance(key, ast.Constant) and key.value == key_name:
+            return value
+    return None
+
+
+def _return_dict_literal(node: ast.FunctionDef | ast.AsyncFunctionDef) -> ast.Dict | None:
+    for statement in _executable_body(node):
+        if isinstance(statement, ast.Return) and isinstance(statement.value, ast.Dict):
+            return statement.value
+    return None
+
+
+def _is_constant(node: ast.AST | None, value: object) -> bool:
+    return isinstance(node, ast.Constant) and node.value == value
+
+
+def _check_create_readiness_status_shell(routes_path: Path = REPO_ROOT / WRITE_ROUTES_FILE) -> list[str]:
+    """Guard the future-CREATE readiness endpoint as an inert read-only shell.
+
+    This static guard is deliberately stricter than runtime tests: it requires the
+    endpoint to stay a GET-only owner-visible status route whose only direct steps
+    are metadata access resolution, owner-access check, and returning the inert
+    builder. If someone later wires target checks, backups, locks, audit, or write
+    service calls into the shell, the guard fails closed.
+    """
+    failures: list[str] = []
+    text = _read(routes_path)
+    tree = _parse_python(routes_path)
+    functions = {node.name: node for node in ast.walk(tree) if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
+    methods = _decorated_route_methods(tree, CREATE_READINESS_STATUS_FUNCTION, CREATE_READINESS_STATUS_ROUTE)
+    if methods != ["get"]:
+        failures.append("create-readiness status route must remain a GET-only exact status endpoint")
+
+    endpoint = functions.get(CREATE_READINESS_STATUS_FUNCTION)
+    if endpoint is None:
+        failures.append("create-readiness status endpoint function must exist")
+    else:
+        direct_root_calls = _direct_executable_statement_root_call_names(endpoint)
+        if direct_root_calls != ["_resolve_viewable_book", "_require_book_owner_access", CREATE_READINESS_STATUS_HELPER]:
+            failures.append(
+                "create-readiness status endpoint must only resolve viewable metadata, require owner access, and return the inert builder"
+            )
+        call_lines = _call_lines(endpoint)
+        for forbidden_call in CREATE_READINESS_FORBIDDEN_CALLS:
+            if forbidden_call in call_lines:
+                failures.append(f"create-readiness status endpoint must not call active helper {forbidden_call}")
+
+    builder = functions.get(CREATE_READINESS_STATUS_HELPER)
+    if builder is None:
+        failures.append("create-readiness status inert builder must exist")
+    else:
+        call_lines = _call_lines(builder)
+        for forbidden_call in CREATE_READINESS_FORBIDDEN_CALLS:
+            if forbidden_call in call_lines:
+                failures.append(f"create-readiness status builder must not call active helper {forbidden_call}")
+        return_dict = _return_dict_literal(builder)
+        if return_dict is None:
+            failures.append("create-readiness status builder must return a literal redacted status dictionary")
+        else:
+            required_constants = {
+                "preview_only": True,
+                "status": "disabled",
+                "session_armed": False,
+                "create_execution_allowed": False,
+                "allowed_create_count": 0,
+                "target_class": None,
+                "readiness_required": True,
+                "readiness_status": "not_checked",
+            }
+            for key, expected in required_constants.items():
+                if not _is_constant(_dict_literal_value_for_key(return_dict, key), expected):
+                    failures.append(f"create-readiness status builder must hard-code {key}={expected!r}")
+
+    required_fragments = (
+        '"checks": [dict(check) for check in CREATE_READINESS_STATUS_CHECKS]',
+        '"No private target probing, GnuCash book opening, backup, lock, audit, reset, or write service helper runs."',
+        '"Fresh same-context owner approval with exact target class and exact CREATE count is still required before any future mutation."',
+        '"status": "pending"',
+        '"note": "Pending:',
+    )
+    for fragment in required_fragments:
+        if fragment not in text:
+            failures.append(f"create-readiness status shell must preserve fragment: {fragment}")
+    for forbidden_fragment in (
+        '"create_execution_allowed": writes_enabled',
+        '"allowed_create_count": 1',
+        '"readiness_status": "checked"',
+        '"readiness_status": "passed"',
+        '"readiness_status": "ready"',
+    ):
+        if forbidden_fragment in text:
+            failures.append(f"create-readiness status shell must not contain active fragment: {forbidden_fragment}")
+    return failures
 
 
 def _is_name(node: ast.AST, name: str) -> bool:
@@ -1117,6 +1282,7 @@ def _check(env_example: Path, compose: Path, gate_doc: Path, checklist_doc: Path
     failures.extend(_check_api_write_defaults())
     failures.extend(_check_api_app_env_defaults())
     failures.extend(_check_write_route_test_gates())
+    failures.extend(_check_create_readiness_status_shell())
     failures.extend(_check_owner_writebeta_status_gates())
     failures.extend(_check_write_compatibility_docs(WRITE_COMPATIBILITY_DOCS))
     failures.extend(_check_issue_36_remaining_gates(ISSUE_36_REMAINING_GATES_DOC))

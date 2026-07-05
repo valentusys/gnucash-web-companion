@@ -56,6 +56,56 @@ async def create_book_transaction():
     assert write_safety_guard._decorated_transaction_write_route_functions(tree) == {"create_book_transaction"}
 
 
+def test_create_readiness_status_static_guard_passes_on_committed_router() -> None:
+    failures = write_safety_guard._check_create_readiness_status_shell()
+
+    assert failures == []
+
+
+def test_create_readiness_status_static_guard_rejects_active_execution_shape(tmp_path: Path) -> None:
+    router_source = tmp_path / "transactions.py"
+    router_source.write_text(
+        """
+from fastapi import APIRouter
+router = APIRouter()
+
+@router.post('/books/{book_id}/transactions/create-readiness-status')
+async def get_book_transaction_create_readiness_status(book_id, user, session, settings):
+    book = _resolve_viewable_book(book_id, user, session)
+    _require_book_owner_access(book, user, session)
+    _ensure_writes_enabled(settings)
+    return _build_create_readiness_status(settings)
+
+def _build_create_readiness_status(settings):
+    return {
+        "preview_only": True,
+        "status": "ready",
+        "writes_enabled": settings.gnucash_writes_enabled,
+        "session_armed": False,
+        "create_execution_allowed": settings.gnucash_writes_enabled,
+        "allowed_create_count": 1,
+        "target_class": "owner-selected",
+        "readiness_required": True,
+        "readiness_status": "ready",
+        "checks": [{"id": "active", "status": "passed", "note": "Ready"}],
+        "limitations": [],
+    }
+""",
+        encoding="utf-8",
+    )
+
+    failures = write_safety_guard._check_create_readiness_status_shell(router_source)
+    failure_text = "; ".join(failures)
+
+    assert "GET-only exact status endpoint" in failure_text
+    assert "must not call active helper _ensure_writes_enabled" in failure_text
+    assert "hard-code create_execution_allowed=False" in failure_text
+    assert "hard-code allowed_create_count=0" in failure_text
+    assert "hard-code target_class=None" in failure_text
+    assert "hard-code readiness_status='not_checked'" in failure_text
+    assert str(tmp_path) not in failure_text
+
+
 def test_owner_writebeta_operating_guide_preserves_future_copied_book_authorization_format() -> None:
     guide = (ROOT / "docs/write-alpha/owner-writebeta-operating-guide.md").read_text(encoding="utf-8")
 
