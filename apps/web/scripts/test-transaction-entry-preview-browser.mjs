@@ -130,10 +130,16 @@ function assertSourceSafety() {
 	assert.match(page, /id="armed-session-requirements"[\s\S]*Target class required[\s\S]*Exact CREATE count required[\s\S]*preview-reviewed checkbox alone is not enough/s, 'armed-session requirements panel must remain disabled placeholder guidance');
 	assert.match(page, /id="target-preflight-readiness"[\s\S]*Target preflight required[\s\S]*Target readiness not checked[\s\S]*Default state: all target readiness checks are pending \/ not checked \/ not armed/s, 'target preflight shell must default to not checked/pending');
 	assert.match(page, /id="target-preflight-checklist"/, 'target preflight checklist must be rendered');
+	assert.match(page, /id="execution-readiness-shell"[\s\S]*Backup\/read-back\/audit\/reset\/probes required[\s\S]*Execution readiness not checked[\s\S]*Default state: backup, read-back, audit, reset, and probe readiness are pending \/ not checked \/ not armed/s, 'execution readiness shell must default to not checked/pending');
+	assert.match(page, /execution_readiness.required:[\s\S]*execution_readiness.status:[\s\S]*backup_state:[\s\S]*read_back_state:[\s\S]*audit_state:[\s\S]*reset_state:[\s\S]*probe_state:/s, 'execution readiness shell must expose safe redacted status fields');
 	for (const targetPreflightLabel of ['Target file exists/readable', 'Target is outside repo', 'GnuCash Desktop closed', 'No .LCK/.LNK lock', 'Manual Desktop verification required']) {
 		assert.ok(page.includes(targetPreflightLabel), `target preflight checklist missing label: ${targetPreflightLabel}`);
 	}
+	for (const executionReadinessLabel of ['Independent backup plan required', 'Backup readable copy proof required', 'Post-CREATE read-back required', 'Redacted audit evidence required', 'Writes reset to disabled required', 'Disabled CREATE probe required', 'Disabled PATCH/DELETE/batch probes required', 'Manual Desktop verification record required']) {
+		assert.ok(page.includes(executionReadinessLabel), `execution readiness checklist missing label: ${executionReadinessLabel}`);
+	}
 	assert.doesNotMatch(page, /data-preflight-status="(?:checked|passed|ready|ok)"/, 'target preflight shell must not mark checks passed by default');
+	assert.doesNotMatch(page, /data-execution-readiness-status="(?:checked|passed|ready|ok)"/, 'execution readiness shell must not mark checks passed by default');
 	assert.match(page, /id="approval-packet"[\s\S]*Future Create remains disabled/s, 'approval packet must stay visible and no-write');
 	assert.match(page, /id="preview-stale-warning"[\s\S]*stale and cannot support a future owner-approved CREATE/s, 'stale-preview warning must remain present');
 	assert.match(page, /id="future-create-disabled"[\s\S]*type="button"[\s\S]*disabled/s, 'Future Create must remain disabled and non-submitting');
@@ -150,6 +156,7 @@ function assertSourceSafety() {
 	assert.doesNotMatch(server, /\/transactions\/validate|`\/books\/\$\{bookId\}\/transactions`|hasWriteAcknowledgement/, '/transactions/new must not call validate/write API paths');
 	assert.match(server, /function createWriteSessionGate\(\)[\s\S]*const sessionArmed = false[\s\S]*const allowedCreateCount = 0[\s\S]*create_execution_allowed: false/s, 'server write-session gate must default to unarmed and CREATE-disabled');
 	assert.match(server, /function createTargetPreflight\(\)[\s\S]*required: true[\s\S]*status: 'not_checked'[\s\S]*target_class: targetClass[\s\S]*status: 'pending'/s, 'server target preflight must default to required/not_checked/pending');
+	assert.match(server, /function createExecutionReadiness\(\)[\s\S]*required: true[\s\S]*status: 'not_checked'[\s\S]*backup_state: 'pending'[\s\S]*read_back_state: 'pending'[\s\S]*audit_state: 'pending'[\s\S]*reset_state: 'pending'[\s\S]*probe_state: 'pending'[\s\S]*status: 'pending'/s, 'server execution readiness must default to required/not_checked/pending');
 	assert.doesNotMatch(server, /from ['"]node:fs|existsSync|readFileSync|statSync|accessSync|create_book_backup|write_lock_service|_open_piecash_book_for_write|GnuCashWriteService/, 'target preflight shell must not probe files/books or call backup/lock/write helpers');
 }
 
@@ -520,6 +527,9 @@ async function runSmoke() {
 		await waitForExpression(cdp, `document.querySelector('#target-preflight-readiness')?.innerText.includes('target_preflight.status: not_checked') && document.querySelector('#target-preflight-readiness')?.innerText.includes('target_preflight.target_class: pending')`, 'target preflight default status');
 		await waitForExpression(cdp, `document.querySelector('#target-preflight-readiness')?.innerText.includes('Target file exists/readable') && document.querySelector('#target-preflight-readiness')?.innerText.includes('No .LCK/.LNK lock') && document.querySelector('#target-preflight-readiness')?.innerText.includes('Manual Desktop verification required')`, 'target preflight checklist');
 		await waitForExpression(cdp, `Array.from(document.querySelectorAll('[data-preflight-status]')).length >= 13 && Array.from(document.querySelectorAll('[data-preflight-status]')).every((item) => item.getAttribute('data-preflight-status') === 'pending')`, 'target preflight pending checks');
+		await waitForExpression(cdp, `document.querySelector('#execution-readiness-shell')?.innerText.includes('Execution readiness not checked') && document.querySelector('#execution-readiness-shell')?.innerText.includes('execution_readiness.status: not_checked')`, 'execution readiness default status');
+		await waitForExpression(cdp, `document.querySelector('#execution-readiness-shell')?.innerText.includes('Independent backup plan required') && document.querySelector('#execution-readiness-shell')?.innerText.includes('Post-CREATE read-back required') && document.querySelector('#execution-readiness-shell')?.innerText.includes('Disabled PATCH/DELETE/batch probes required')`, 'execution readiness checklist');
+		await waitForExpression(cdp, `Array.from(document.querySelectorAll('[data-execution-readiness-status]')).length >= 8 && Array.from(document.querySelectorAll('[data-execution-readiness-status]')).every((item) => item.getAttribute('data-execution-readiness-status') === 'pending')`, 'execution readiness pending checks');
 		await waitForExpression(cdp, `Boolean(document.querySelector('#debit-account-select') && document.querySelector('#credit-account-select'))`, 'account selectors');
 
 		await setInput(cdp, '#debit-account-search', 'Source');

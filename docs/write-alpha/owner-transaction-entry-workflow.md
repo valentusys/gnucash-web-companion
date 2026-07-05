@@ -392,6 +392,31 @@ This slice executed no CREATE, PATCH, DELETE, batch mutation, private target pre
 only-copy book use, release publication, or public write beta. Future CREATE still requires fresh same-context
 owner/PM approval; the first trial remains `CREATE 1 / PATCH 0 / DELETE 0 / batch 0`.
 
+## #49 backup/read-back/audit/reset/probes readiness shell slice
+
+The next #49 implementation slice adds execution-readiness shell only. It prepares the UI/server representation for
+future backup/read-back/audit/reset/probes evidence without executing any of those actions, probing targets, opening
+books, creating backups, or wiring CREATE.
+
+Implemented non-mutating pieces:
+
+- `/transactions/new` server load returns a redacted `executionReadiness` object with `required=true`,
+  `status=not_checked`, and backup/read-back/audit/reset/probe states all `pending`;
+- the page shows a `Backup/read-back/audit/reset/probes required` / `Execution readiness not checked` panel;
+- the pending checklist covers independent backup plan, readable backup proof, post-CREATE read-back, redacted
+  audit evidence, write reset, disabled CREATE probe, disabled PATCH/DELETE/batch probes, and manual Desktop
+  verification record;
+- no checked/passed/ready execution-readiness state exists in default mode;
+- Future Create remains disabled/inert, and preview-reviewed checkbox alone remains insufficient;
+- static and synthetic browser smoke guards prove `create-preview` remains the only transaction-entry submission
+  target, no file/book/backup/lock/write helper is referenced by the shell, and no active CREATE path is reachable
+  in default mode.
+
+This slice executed no CREATE, PATCH, DELETE, batch mutation, backup creation, read-back, audit execution,
+reset/probes, private target preflight, private/original/working/only-copy book use, release publication, or public
+write beta. Future CREATE still requires fresh same-context owner/PM approval; the first trial remains
+`CREATE 1 / PATCH 0 / DELETE 0 / batch 0`.
+
 ## Current non-mutating state
 
 This document is a re-scope/planning artifact. No CREATE, PATCH, DELETE, dogfood loop, release, tag, package,

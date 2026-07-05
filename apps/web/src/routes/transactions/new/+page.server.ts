@@ -53,6 +53,24 @@ type TargetPreflight = {
 	checks: TargetPreflightCheck[];
 };
 
+type ExecutionReadinessCheck = {
+	id: string;
+	label: string;
+	status: 'pending';
+	note: string;
+};
+
+type ExecutionReadiness = {
+	required: true;
+	status: 'not_checked';
+	backup_state: 'pending';
+	read_back_state: 'pending';
+	audit_state: 'pending';
+	reset_state: 'pending';
+	probe_state: 'pending';
+	checks: ExecutionReadinessCheck[];
+};
+
 const PREVIEW_ERROR_FALLBACK = 'Preview validation failed safely. No write was executed.';
 
 const FIELD_LABELS: Record<PreviewFieldName, string> = {
@@ -324,6 +342,68 @@ function createTargetPreflight(): TargetPreflight {
 	};
 }
 
+function createExecutionReadiness(): ExecutionReadiness {
+	return {
+		required: true,
+		status: 'not_checked',
+		backup_state: 'pending',
+		read_back_state: 'pending',
+		audit_state: 'pending',
+		reset_state: 'pending',
+		probe_state: 'pending',
+		checks: [
+			{
+				id: 'backup_plan_required',
+				label: 'Independent backup plan required',
+				status: 'pending',
+				note: 'Pending: this shell does not create, locate, or validate a backup.'
+			},
+			{
+				id: 'backup_readable_copy_required',
+				label: 'Backup readable copy proof required',
+				status: 'pending',
+				note: 'Pending: no backup path or copied book is opened in this slice.'
+			},
+			{
+				id: 'post_create_read_back_required',
+				label: 'Post-CREATE read-back required',
+				status: 'pending',
+				note: 'Pending: future read-back must compare the created transaction privately after an approved CREATE.'
+			},
+			{
+				id: 'redacted_audit_required',
+				label: 'Redacted audit evidence required',
+				status: 'pending',
+				note: 'Pending: no audit route or audit write is called by this shell.'
+			},
+			{
+				id: 'writes_reset_required',
+				label: 'Writes reset to disabled required',
+				status: 'pending',
+				note: 'Pending: future session must reset GNUCASH_WRITES_ENABLED=false after the bounded run.'
+			},
+			{
+				id: 'disabled_create_probe_required',
+				label: 'Disabled CREATE probe required',
+				status: 'pending',
+				note: 'Pending: future post-reset probe must prove CREATE is blocked again.'
+			},
+			{
+				id: 'disabled_patch_delete_batch_probes_required',
+				label: 'Disabled PATCH/DELETE/batch probes required',
+				status: 'pending',
+				note: 'Pending: future post-reset probes must prove PATCH, DELETE, and batch routes remain blocked.'
+			},
+			{
+				id: 'manual_desktop_verification_record_required',
+				label: 'Manual Desktop verification record required',
+				status: 'pending',
+				note: 'Pending: owner must verify in Desktop in a private context after any approved CREATE.'
+			}
+		]
+	};
+}
+
 export const load: PageServerLoad = async ({ cookies, fetch }) => {
 	const token = getAuthToken(cookies);
 	const { books, activeBook, bookPrefix } = await getActiveBookContext(fetch, cookies, token);
@@ -334,7 +414,8 @@ export const load: PageServerLoad = async ({ cookies, fetch }) => {
 		activeBook,
 		previewOnly: true,
 		writeSessionGate: createWriteSessionGate(),
-		targetPreflight: createTargetPreflight()
+		targetPreflight: createTargetPreflight(),
+		executionReadiness: createExecutionReadiness()
 	};
 };
 
