@@ -1,6 +1,6 @@
 # PROJECT_STATUS
 
-Last updated: 2026-07-04
+Last updated: 2026-07-05
 
 ## Quick navigation
 
@@ -25,17 +25,20 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   Owner real-book CREATE-only operating mode, [#46](https://github.com/valentusys/gnucash-web-companion/issues/46),
   Owner real-book PATCH app-created transaction trial,
   [#47](https://github.com/valentusys/gnucash-web-companion/issues/47), Owner real-book CREATE + PATCH
-  app-created metadata-only operating mode, and
+  app-created metadata-only operating mode,
   [#48](https://github.com/valentusys/gnucash-web-companion/issues/48), Owner web transaction-entry UI for
-  CREATE + optional PATCH app-created metadata. #45 remains the CREATE-only
-  tracker, #46 remains the PATCH app-created metadata-only boundary/evidence tracker, #47 remains the active
-  mixed CREATE + PATCH app-created metadata-only operating-mode tracker after the owner-verified first mixed
-  session, and #48 is the non-mutating product-workflow tracker for owner web transaction-entry UI with
-  browser/mobile form, private preview, and confirmation.
-  None of these issues are DELETE approval, release approval, or public write beta approval.
+  CREATE + optional PATCH app-created metadata, and
+  [#49](https://github.com/valentusys/gnucash-web-companion/issues/49), Owner web UI CREATE execution trial.
+  #45 remains the CREATE-only tracker, #46 remains the PATCH app-created metadata-only boundary/evidence
+  tracker, #47 remains the active mixed CREATE + PATCH app-created metadata-only operating-mode tracker after
+  the owner-verified first mixed session, #48 remains open as the sufficiently validated non-mutating
+  preview-only owner web transaction-entry UI evidence tracker, and #49 is the next strictly scoped
+  owner-approved web UI CREATE trial tracker. None of these issues are DELETE approval, release approval, or
+  public write beta approval.
   [#22](https://github.com/valentusys/gnucash-web-companion/issues/22) and
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) are closed.
-- Latest handoffs/docs: `docs/handoff/issue48-deterministic-browser-smoke-harness.md`,
+- Latest handoffs/docs: `docs/handoff/issue48-to-web-ui-create-trial-transition.md`,
+  `docs/handoff/issue48-deterministic-browser-smoke-harness.md`,
   `docs/handoff/issue48-approval-packet-preview-hardening.md`,
   `docs/handoff/issue48-preview-confirmation-shell-draft-safety.md`,
   `docs/handoff/issue48-browser-smoke-redacted-report.md`,
@@ -95,28 +98,20 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   generated CREATE-only test-copy sessions; #46 remains the PATCH app-created metadata-only boundary/evidence
   tracker after first 5/5 and expanded 20/20 owner-verified PATCH trials; #47 is the active mixed CREATE +
   PATCH app-created metadata-only operating-mode tracker after the owner-verified first mixed session
-  (CREATE 10/10, PATCH 5/5, DELETE 0, batch 0). #48 is the non-mutating product-workflow tracker for
-  owner-only browser/mobile transaction-entry UI, backend validate/preview, explicit UI confirmation, exact
-  CREATE count of 1 per form submit unless future scope expands it, and optional app-created description/memo-only
-  PATCH planning. Telegram/agent compact input is development/test harness only, not the main product workflow. The first #48
-  implementation slice is preview-only: backend `create-preview` plus `/transactions/new` web form, with CREATE
-  disabled and no write path called. The follow-up UX/error hardening slice keeps the same preview-only boundary
-  while adding account search/filter selectors, same-account prevention, safer field-level preview errors, and
-  explicit preview metadata in the panel. The accessibility/mobile smoke hardening slice keeps the same no-write
-  boundary while adding explicit labels/ARIA linkages, clearer amount/date/currency hints, narrow-screen wrapping,
-  and a redacted browser smoke checklist. The follow-up browser smoke execution passed against a safe local/test
-  context with writes disabled, using only the create-preview endpoint and no CREATE/PATCH/DELETE/batch route.
-  The confirmation-shell/draft-safety slice keeps the same preview-only boundary while adding a disabled future
-  confirmation shell, local reviewed-state UI, stale-preview warning after draft changes, clear-preview/start-over,
-  and account selector count/type summaries. The approval-packet hardening slice keeps the preview-only boundary
-  while adding a future owner-approval packet, placeholder-only redacted approval-template copy action, safer
-  no-selectable-account/user validation copy, and backend/static guards proving preview does not call write,
-  backup, lock, audit, or ownership mutation helpers. The deterministic synthetic browser smoke harness now drives
-  `/transactions/new` in headless Chromium against a synthetic local API stub with writes disabled, verifies the
-  approval packet and stale-preview flow, and fails on CREATE/PATCH/DELETE/batch transaction requests.
-  None of these issues are DELETE/batch approval, release approval, or public
-  write beta approval. No release
-  was published; `NO_RELEASE` remains current.
+  (CREATE 10/10, PATCH 5/5, DELETE 0, batch 0). #48 remains open as the sufficiently validated
+  non-mutating preview-only owner web transaction-entry UI evidence tracker: backend `create-preview`,
+  `/transactions/new` preview UI, disabled Future Create, approval packet, stale-preview warning,
+  account selector UX, accessibility/mobile polish, manual browser smoke, deterministic synthetic browser
+  smoke, and static/backend guards all passed without CREATE/PATCH/DELETE/batch. Further #48 preview-only
+  polishing should pause unless bugs are found. #49 is the next strictly scoped owner web UI CREATE
+  execution-trial tracker for a future bounded owner-approved CREATE through the web UI on a test copy or
+  owner-selected target. #49 requires fresh same-context owner/PM approval, exact target class, exact
+  CREATE count, first-trial default `CREATE 1 / PATCH 0 / DELETE 0 / batch 0`, target preflight,
+  reviewed non-stale UI preview, backup before CREATE, read-back, redacted audit evidence,
+  `GNUCASH_WRITES_ENABLED=false` reset, disabled-write probes, and manual Desktop verification. Telegram/agent
+  compact input is development/test harness only, not the main product workflow. None of these issues are
+  DELETE/batch approval, release approval, public write beta approval, or production/stable/security-audited
+  claims. No release was published; `NO_RELEASE` remains current.
 - Current #36 docs reconciliation: owner-writebeta remains maintenance-only and unreleased until
   explicit owner approval. The guard state still requires default `GNUCASH_WRITES_ENABLED=false`,
   enabled write-alpha/writebeta `APP_ENV=test` gating, no public write beta, no real/private/original/
@@ -148,7 +143,11 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   it performed no mutation and does not authorize CREATE/PATCH/DELETE by itself. On 2026-07-04, the #48
   implementation was reconciled so frontend static guards match preview-only policy: `/transactions/new`
   remains reachable with writes disabled, exposes only the create-preview action, and the transactions list
-  labels the entry point as preview-only/no-write. The 2026-06-10 PM/Owner
+  labels the entry point as preview-only/no-write. On 2026-07-05, #48 transitioned to sufficiently validated
+  preview-only evidence after manual and deterministic synthetic browser smokes plus static/backend guard
+  hardening; #49 was opened as the separate owner web UI CREATE execution-trial tracker. #49 requires fresh
+  same-context owner/PM approval, target preflight, exact first-trial default `CREATE 1 / PATCH 0 / DELETE 0 /
+  batch 0`, backup/read-back/audit/reset/probes, and manual Desktop verification before any future CREATE.
   packet closes #36 as a
   maintenance boundary while preserving `NO_RELEASE`, no public write beta, no real/private/original/
   working/only-copy mutation, and unpublished `v0.4.0-owner-writebeta`. The r8 release/no-release documentation

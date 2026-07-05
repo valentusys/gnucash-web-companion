@@ -1,7 +1,8 @@
 # Owner web transaction-entry UI for CREATE + optional PATCH app-created metadata
 
 Issue: [#48 Owner web transaction-entry UI for CREATE + optional PATCH app-created metadata](https://github.com/valentusys/gnucash-web-companion/issues/48)
-Status: **WEB_UI_PRODUCT_SCOPE_NO_MUTATION**. This document does not authorize mutation by itself.
+Transition issue: [#49 Owner web UI CREATE execution trial](https://github.com/valentusys/gnucash-web-companion/issues/49)
+Status: **WEB_UI_PREVIEW_ONLY_SUFFICIENTLY_VALIDATED**. This document does not authorize mutation by itself.
 
 ## Product framing
 
@@ -308,6 +309,38 @@ browser smoke reproducible:
 This slice still does not add a CREATE action, PATCH action, DELETE action, batch operation, private-book dogfood,
 release/tag/package/image publication, public write beta, or production/stable/security-audited claim. Future CREATE
 still requires fresh same-context owner approval and an exact CREATE count.
+
+## Transition to #49 owner-approved web UI CREATE trial
+
+#48 is sufficiently validated for preview-only owner web transaction-entry UI. It may remain open as a
+non-mutating preview/UI evidence tracker, but further #48 polishing should pause unless bugs are found.
+
+The next product value is [#49 Owner web UI CREATE execution trial](https://github.com/valentusys/gnucash-web-companion/issues/49):
+a bounded, owner-approved CREATE through the web UI on a test copy or owner-selected target.
+
+Creating #49 does not authorize mutation. Any future CREATE requires fresh same-context owner/PM approval with:
+
+- exact target class;
+- exact CREATE count;
+- first trial default `CREATE 1 / PATCH 0 / DELETE 0 / batch 0` unless explicitly expanded later;
+- write gates enabled only for the bounded session;
+- `GNUCASH_WRITES_ENABLED=false` reset after the session.
+
+Before any #49 CREATE, target preflight must prove the exact target exists/readable, is outside the repo,
+GnuCash Desktop is closed, no concurrent writer/lock is present, no `.LCK`/`.LNK` is present, no Syncthing
+conflict copy exists before/after if applicable, an independent backup exists, and restore proof is available.
+
+The #49 Create button may become active only when writes are enabled, the bounded session is owner-approved, the
+preview is valid and non-stale, the preview-reviewed checkbox is checked, exact CREATE count is 1, and target
+preflight passed. No active create path should be reachable in default read-only mode; default state remains
+disabled/inert.
+
+A future #49 trial must use UI preview before CREATE, CREATE only from reviewed current preview, backup before
+CREATE, read-back after CREATE, redacted audit evidence, disabled-write probes after reset for validate/preflight,
+CREATE, PATCH, and DELETE, and manual Desktop verification for the first UI CREATE trial.
+
+GitHub/tracked reporting stays redacted-only. Private paths, account names, descriptions, memos, amounts, GUIDs,
+book names, backups, screenshots, tokens, keys, certs, and `.env` content remain private-only.
 
 ## Current non-mutating state
 
