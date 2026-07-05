@@ -90,6 +90,15 @@ for (const requiredPageFragment of [
 	'preview-stale-warning',
 	'Draft changed after preview',
 	'Clear preview / start over',
+	'approval-packet',
+	'Approval packet (no-write)',
+	'Target book',
+	'Future CREATE count',
+	'Safety checklist before any future CREATE',
+	'approval-packet-safety-checklist',
+	'Copy redacted approval template',
+	'Redacted placeholder template copied',
+	'The copy button uses placeholders only',
 	'no mutation',
 	'md:grid-cols-2',
 	'min-w-0',
@@ -118,6 +127,10 @@ assert.match(page, /let draftChangedAfterPreview = \$state\(false\)/, 'preview p
 assert.match(page, /function handleDraftChange\(\)[\s\S]*draftChangedAfterPreview = true[\s\S]*previewReviewed = false/s, 'draft changes after preview must mark the current preview stale and reset local review state');
 assert.match(page, /id="preview-reviewed-confirmation"[\s\S]*type="checkbox"[\s\S]*bind:checked=\{previewReviewed\}/s, 'confirmation shell must expose a local-only preview-reviewed checkbox');
 assert.match(page, /id="future-create-disabled"[\s\S]*type="button"[\s\S]*disabled/s, 'future create control in the confirmation shell must remain disabled and non-submitting');
+assert.match(page, /id="approval-packet"[\s\S]*no approval is recorded[\s\S]*Future Create remains disabled/s, 'approval packet must stay no-write and cannot record approval');
+assert.match(page, /safeApprovalTemplate = `[\s\S]*Target book: <selected book in web UI>[\s\S]*Source\/debit account: <selected source account>[\s\S]*Description: <description>/s, 'approval template must be placeholder-only and redacted');
+assert.match(page, /navigator\.clipboard\.writeText\(safeApprovalTemplate\)/, 'copy button must copy only the safe redacted approval template');
+assert.doesNotMatch(page, /clipboard\.writeText\([^)]*preview\./, 'approval template copy must not write private preview values to clipboard');
 assert.match(page, /href="\/transactions\/new"[\s\S]*Clear preview \/ start over/s, 'preview panel must expose a clear-preview/start-over action without local persistence');
 assert.doesNotMatch(page, /localStorage|sessionStorage/, 'preview draft safety must not persist private transaction details in browser storage');
 
@@ -140,6 +153,7 @@ assert.match(page, /selectedDebitAccount\?\.type[\s\S]*selectedCreditAccount\?\.
 
 assert.match(page, /Preview validation failed safely[\s\S]*No CREATE\/PATCH\/DELETE\/batch executed[\s\S]*Raw private paths, secrets, and runtime internals are not shown/s, 'preview errors must show a safe summary and no-write copy');
 assert.match(page, /fieldErrors[\s\S]*aria-invalid/s, 'preview form must derive field-level errors and mark invalid fields');
+assert.match(page, /noSelectableAccounts[\s\S]*No selectable accounts are available for this book/s, 'preview form must explain the no-selectable-accounts case without implying writes');
 for (const fieldErrorId of [
 	'preview-book-error',
 	'preview-date-error',
@@ -156,8 +170,11 @@ assert.ok(
 	server.includes('function previewErrorDetails') &&
 		server.includes('fieldErrors') &&
 		server.includes('function safeMessage') &&
+		server.includes('function friendlyFieldMessage') &&
+		server.includes('No selectable accounts are available for this book') &&
+		server.includes('Use a supported three-letter currency') &&
 		server.includes('!/[\\\\/]/.test(detail)'),
-	'server action must derive field errors using safe redacted messages'
+	'server action must derive user-friendly field errors using safe redacted messages'
 );
 assert.match(server, /Preview validation failed safely\. Review the highlighted fields\. No write was executed\./, 'server action must provide a safe field-error summary fallback');
 

@@ -270,6 +270,25 @@ This slice still does not add a CREATE action, PATCH action, DELETE action, batc
 release/tag/package/image publication, public write beta, or production/stable/security-audited claim. Future
 CREATE still requires fresh same-context owner approval and an exact CREATE count.
 
+## Preview-only approval-packet and validation hardening slice
+
+The approval-packet hardening slice keeps `/transactions/new` preview-only while making the future owner-approval
+handoff explicit:
+
+- a post-preview approval packet summarizes the future target book, `create_count = 1`, source/debit account,
+  destination/credit account, amount/currency, date, description, memo, and safety checklist;
+- the copy action uses a redacted placeholder-only approval template and does not copy private preview values;
+- field-level validation copy is more user-oriented for missing book/account, no selectable accounts, same-account,
+  amount, currency, date, description, and stale-preview cases;
+- backend preview tests guard missing book, owner-only access, no selectable accounts, credit currency mismatch,
+  disabled-write behavior, Decimal/string preservation, and absence of write/backup/lock/audit/ownership paths;
+- static guards prove the approval packet remains no-write and `create-preview` remains the only transaction-entry
+  submission target.
+
+This slice still does not add a CREATE action, PATCH action, DELETE action, batch operation, private-book dogfood,
+release/tag/package/image publication, public write beta, or production/stable/security-audited claim. Future CREATE
+still requires fresh same-context owner approval and an exact CREATE count.
+
 ## Current non-mutating state
 
 This document is a re-scope/planning artifact. No CREATE, PATCH, DELETE, dogfood loop, release, tag, package,

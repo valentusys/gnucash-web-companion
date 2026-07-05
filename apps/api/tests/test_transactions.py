@@ -16,7 +16,7 @@ from sqlalchemy.pool import StaticPool
 from app.config import Settings, get_settings
 from app.database import Base
 from app.main import app
-from app.models import User, Book, UserBookAccess, WriteAlphaTransactionOwnership
+from app.models import User, Book, UserBookAccess, AuditLog, WriteAlphaTransactionOwnership
 from app.routers.auth import get_db
 from app.services.auth import hash_password
 
@@ -285,6 +285,11 @@ class TestTransactionCreatePreview:
             json=payload,
         )
 
+    def assert_no_preview_mutation_metadata(self, session_factory):
+        with session_factory() as session:
+            assert session.query(AuditLog).count() == 0
+            assert session.query(WriteAlphaTransactionOwnership).count() == 0
+
     def test_valid_preview_returns_normalized_private_preview_and_create_count_one(
         self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory
     ):
@@ -307,6 +312,33 @@ class TestTransactionCreatePreview:
         assert data["splits"][0]["amount"] == "-123.4500"
         assert data["splits"][1]["amount"] == "123.4500"
         assert "no GnuCash write was executed" in data["warnings"][0]
+        self.assert_no_preview_mutation_metadata(session_factory)
+
+    def test_missing_book_rejected_before_preview_open_or_mutation(
+        self, client, auth_headers, session_factory
+    ):
+        response = client.post(
+            "/books/999999/transactions/create-preview",
+            headers=auth_headers,
+            json=_preview_payload(),
+        )
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Book not found"
+        self.assert_no_preview_mutation_metadata(session_factory)
+
+    def test_viewer_cannot_use_owner_preview_even_with_view_access(
+        self, client, viewer_headers, viewer_user, sample_book, fake_book_with_transactions, session_factory
+    ):
+        self._set_fake_book(session_factory, sample_book, fake_book_with_transactions)
+        with session_factory() as session:
+            session.add(UserBookAccess(user_id=viewer_user, book_id=sample_book, role="viewer"))
+            session.commit()
+
+        response = self.post_preview(client, viewer_headers, sample_book, _preview_payload())
+
+        assert response.status_code == 403
+        assert response.json()["detail"] == "Book owner access required"
+        self.assert_no_preview_mutation_metadata(session_factory)
 
     def test_missing_date_rejected(
         self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory
@@ -352,6 +384,20 @@ class TestTransactionCreatePreview:
         )
         assert response.status_code == 422
         assert response.json()["detail"] == "debit and credit accounts must be different"
+
+    def test_no_selectable_accounts_rejected_before_preview_values_are_built(
+        self, client, auth_headers, sample_book, fake_book_with_transactions, fake_transaction_data, session_factory
+    ):
+        accounts, _transactions = fake_transaction_data
+        for account in accounts:
+            account.placeholder = True
+        self._set_fake_book(session_factory, sample_book, fake_book_with_transactions)
+
+        response = self.post_preview(client, auth_headers, sample_book, _preview_payload())
+
+        assert response.status_code == 422
+        assert response.json()["detail"] == "no selectable accounts are available for preview"
+        self.assert_no_preview_mutation_metadata(session_factory)
 
     def test_missing_amount_rejected(
         self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory
@@ -400,6 +446,21 @@ class TestTransactionCreatePreview:
         assert response.status_code == 422
         assert response.json()["detail"] == "debit account currency does not match requested currency"
 
+    def test_credit_account_currency_mismatch_rejected(
+        self, client, auth_headers, sample_book, fake_book_with_transactions, fake_transaction_data, session_factory
+    ):
+        accounts, _transactions = fake_transaction_data
+        for account in accounts:
+            if account.guid == "food-guid":
+                account.commodity = FakeCommodity("USD")
+        self._set_fake_book(session_factory, sample_book, fake_book_with_transactions)
+
+        response = self.post_preview(client, auth_headers, sample_book, _preview_payload(currency="SEK"))
+
+        assert response.status_code == 422
+        assert response.json()["detail"] == "credit account currency does not match requested currency"
+        self.assert_no_preview_mutation_metadata(session_factory)
+
     def test_missing_description_rejected(
         self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory
     ):
@@ -424,6 +485,10 @@ class TestTransactionCreatePreview:
             "_audit_log",
             "_update_audit_log",
             "_record_write_alpha_transaction_ownership",
+            "_require_write_alpha_transaction_ownership",
+            "_mark_write_alpha_transaction_mutated",
+            "_backup_audit_fields",
+            "_write_lock_detail",
         ):
             monkeypatch.setattr(transactions_router, guarded_name, fail_if_called)
 

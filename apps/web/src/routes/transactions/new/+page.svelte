@@ -1,12 +1,13 @@
 <script lang="ts">
 	import WriteModeWarning from '$lib/components/WriteModeWarning.svelte';
-	import type { Account } from '$lib/api/types';
+	import type { Account, Book } from '$lib/api/types';
 	import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 
 	let { data, form } = $props();
 	let locale = $derived<Locale>(data.locale ?? DEFAULT_LOCALE);
 
 	type PreviousPayload = {
+		book_id?: string;
 		date?: string;
 		debit_account_id?: string;
 		credit_account_id?: string;
@@ -21,6 +22,8 @@
 	const previous = $derived((form?.payload ?? {}) as PreviousPayload);
 	const preview = $derived((form as any)?.preview);
 	const fieldErrors = $derived(((form as any)?.fieldErrors ?? {}) as PreviewFieldErrors);
+	const currentBookId = $derived(previous.book_id || String(data.activeBook?.id ?? ''));
+	const selectedBook = $derived((data.books as Book[]).find((book) => String(book.id) === currentBookId) ?? data.activeBook);
 	const selectableAccounts = $derived((data.accounts as Account[]).filter((account) => !account.placeholder && !account.hidden));
 	let debitAccountQuery = $state('');
 	let creditAccountQuery = $state('');
@@ -29,6 +32,17 @@
 	let clientAccountError = $state('');
 	let draftChangedAfterPreview = $state(false);
 	let previewReviewed = $state(false);
+	let approvalTemplateCopied = $state(false);
+	const safeApprovalTemplate = `Owner approval request (redacted template)
+Target book: <selected book in web UI>
+CREATE count: 1
+Source/debit account: <selected source account>
+Destination/credit account: <selected destination account>
+Amount/currency: <amount and currency>
+Date: <YYYY-MM-DD>
+Description: <description>
+Memo: <memo or empty>
+Safety checklist: preview reviewed; no stale preview; writes explicitly approved in same context with exact count; backup/read-back/audit/reset/probes required; no DELETE or batch.`;
 	const currentDebitAccountId = $derived(selectedDebitAccountId || previous.debit_account_id || '');
 	const currentCreditAccountId = $derived(selectedCreditAccountId || previous.credit_account_id || '');
 	const previewIsStale = $derived(Boolean(preview) && draftChangedAfterPreview);
@@ -47,6 +61,7 @@
 	const memoError = $derived(fieldErrors.memo ?? '');
 	const selectedDebitAccount = $derived(selectableAccounts.find((account) => account.id === currentDebitAccountId));
 	const selectedCreditAccount = $derived(selectableAccounts.find((account) => account.id === currentCreditAccountId));
+	const noSelectableAccounts = $derived(selectableAccounts.length === 0);
 
 	function describedBy(...ids: Array<string | false | null | undefined>): string | undefined {
 		const value = ids.filter(Boolean).join(' ');
@@ -91,6 +106,20 @@
 		if (!preview) return;
 		draftChangedAfterPreview = true;
 		previewReviewed = false;
+		approvalTemplateCopied = false;
+	}
+
+	async function copySafeApprovalTemplate() {
+		if (typeof navigator === 'undefined' || !navigator.clipboard) {
+			approvalTemplateCopied = false;
+			return;
+		}
+		try {
+			await navigator.clipboard.writeText(safeApprovalTemplate);
+			approvalTemplateCopied = true;
+		} catch {
+			approvalTemplateCopied = false;
+		}
 	}
 
 	function handlePreviewSubmit(event: SubmitEvent) {
@@ -107,6 +136,7 @@
 		clientAccountError = '';
 		draftChangedAfterPreview = false;
 		previewReviewed = false;
+		approvalTemplateCopied = false;
 	}
 </script>
 
@@ -153,7 +183,7 @@
 			<label for="preview-book">Book</label>
 			<select id="preview-book" name="book_id" aria-invalid={bookError ? 'true' : undefined} aria-describedby={describedBy('book-help', 'preview-no-write-warning', bookError && 'preview-book-error')} class="mt-1 w-full min-w-0 rounded-xl px-3 py-2" style="background: var(--app-bg); color: var(--app-text); border: 1px solid var(--app-border);">
 				{#each data.books as book}
-					<option value={book.id} selected={book.id === data.activeBook?.id}>{book.name}</option>
+					<option value={book.id} selected={String(book.id) === currentBookId}>{book.name}</option>
 				{/each}
 			</select>
 			<p id="book-help" class="mt-1 text-xs" style="color: var(--app-muted);">Select the book context for this non-mutating preview only.</p>
@@ -215,6 +245,11 @@
 				<p id="account-selector-help" class="mt-1 text-xs" style="color: var(--app-muted);">
 					Search filters the account list by full account path, account name, type, or currency. The submitted value remains the selected account id; free-text is never submitted as the final account reference. Placeholder/hidden accounts are excluded.
 				</p>
+				{#if noSelectableAccounts}
+					<p id="no-selectable-accounts-warning" class="mt-2 rounded-xl p-3 text-xs" role="status" style="border: 1px solid #fde68a; background: #fffbeb; color: #92400e;">
+						No selectable accounts are available for this book. Choose another book or add non-placeholder accounts in GnuCash Desktop, then run preview again. No write was executed.
+					</p>
+				{/if}
 			</div>
 
 			<div class="grid min-w-0 gap-4 md:grid-cols-2">
@@ -318,6 +353,49 @@
 						Review the normalized fields below. Future CREATE remains disabled and cannot be executed from this page state.
 					{/if}
 				</p>
+			</section>
+
+			<section id="approval-packet" class="mt-4 min-w-0 rounded-2xl border p-4" aria-labelledby="approval-packet-title" aria-describedby="approval-packet-help approval-packet-copy-note preview-create-disabled-explanation" style="border-color: var(--app-border); background: var(--app-bg);">
+				<div class="flex min-w-0 flex-col gap-3 md:flex-row md:items-start md:justify-between">
+					<div class="min-w-0">
+						<h3 id="approval-packet-title" class="text-base font-semibold" style="color: var(--app-text);">Approval packet (no-write)</h3>
+						<p id="approval-packet-help" class="mt-1 text-sm" style="color: var(--app-muted);">
+							This panel shows exactly what a future same-context owner-approved CREATE would need. It is review-only;
+							no approval is recorded, no write path exists here, and Future Create remains disabled.
+						</p>
+					</div>
+					<button id="copy-approval-template" class="rounded-xl px-4 py-2 text-sm font-semibold" style="border: 1px solid var(--app-border); color: var(--app-text);" type="button" onclick={copySafeApprovalTemplate} aria-describedby="approval-packet-copy-note">
+						Copy redacted approval template
+					</button>
+				</div>
+				<dl class="mt-4 grid min-w-0 gap-3 md:grid-cols-2">
+					<div class="min-w-0"><dt class="text-xs uppercase" style="color: var(--app-muted);">Target book</dt><dd class="break-words" style="color: var(--app-text);">{selectedBook?.name ?? 'selected book'}</dd></div>
+					<div class="min-w-0"><dt class="text-xs uppercase" style="color: var(--app-muted);">Future CREATE count</dt><dd class="break-words" style="color: var(--app-text);">1</dd></div>
+					<div class="min-w-0"><dt class="text-xs uppercase" style="color: var(--app-muted);">Source/debit account</dt><dd class="break-words" style="color: var(--app-text);">{preview.debit_account.full_name}</dd></div>
+					<div class="min-w-0"><dt class="text-xs uppercase" style="color: var(--app-muted);">Destination/credit account</dt><dd class="break-words" style="color: var(--app-text);">{preview.credit_account.full_name}</dd></div>
+					<div class="min-w-0"><dt class="text-xs uppercase" style="color: var(--app-muted);">Amount/currency</dt><dd class="break-words" style="color: var(--app-text);">{preview.amount} {preview.currency}</dd></div>
+					<div class="min-w-0"><dt class="text-xs uppercase" style="color: var(--app-muted);">Date</dt><dd class="break-words" style="color: var(--app-text);">{preview.date}</dd></div>
+					<div class="min-w-0"><dt class="text-xs uppercase" style="color: var(--app-muted);">Description</dt><dd class="break-words" style="color: var(--app-text);">{preview.description}</dd></div>
+					<div class="min-w-0"><dt class="text-xs uppercase" style="color: var(--app-muted);">Memo</dt><dd class="break-words" style="color: var(--app-text);">{preview.memo || '—'}</dd></div>
+				</dl>
+				<div class="mt-4 rounded-xl p-3 text-sm" style="border: 1px solid #fde68a; background: #fffbeb; color: #92400e;">
+					<p class="font-semibold">Safety checklist before any future CREATE</p>
+					<ul id="approval-packet-safety-checklist" class="mt-2 list-disc pl-5">
+						<li>Fresh same-context owner approval with exact CREATE count = 1.</li>
+						<li>Preview must be current, reviewed, and not stale.</li>
+						<li>Write gates must be explicitly enabled only for an approved run; defaults stay disabled.</li>
+						<li>Backup, read-back, audit, reset, and disabled-write probes are required for any future mutation.</li>
+						<li>DELETE, batch, and balance-affecting PATCH remain forbidden.</li>
+					</ul>
+				</div>
+				<p id="approval-packet-copy-note" class="mt-3 text-sm" style="color: var(--app-muted);">
+					{#if approvalTemplateCopied}
+						Redacted placeholder template copied. Fill private details only in an owner-private context, not GitHub or tracked reports.
+					{:else}
+						The copy button uses placeholders only; it does not copy account names, description, memo, amount, GUIDs, book paths, screenshots, or secrets.
+					{/if}
+				</p>
+				<pre class="mt-3 max-w-full overflow-x-auto whitespace-pre-wrap rounded-xl p-3 text-xs" style="background: var(--app-panel); color: var(--app-muted); border: 1px solid var(--app-border);">{safeApprovalTemplate}</pre>
 			</section>
 
 			<dl class="mt-4 grid min-w-0 gap-3 md:grid-cols-2">

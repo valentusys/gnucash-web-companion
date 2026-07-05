@@ -554,6 +554,15 @@ def _build_transaction_create_preview(
             detail="debit and credit accounts must be different",
         )
 
+    if not any(
+        not getattr(account, "placeholder", False) and not getattr(account, "hidden", False)
+        for account in accounts
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="no selectable accounts are available for preview",
+        )
+
     by_id = {account.id: account for account in accounts}
     debit_account = _preview_account_by_id(by_id, request.debit_account_id, "debit_account_id")
     credit_account = _preview_account_by_id(by_id, request.credit_account_id, "credit_account_id")
