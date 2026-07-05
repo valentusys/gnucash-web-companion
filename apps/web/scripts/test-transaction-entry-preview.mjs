@@ -69,6 +69,20 @@ for (const requiredPageFragment of [
 	'Transaction entry preview',
 	'Preview only / no write executed',
 	'preview-no-write-warning',
+	'write-session-gate',
+	'Preview mode',
+	'Write session not armed',
+	'CREATE execution unavailable without fresh owner approval',
+	'writes_enabled:',
+	'session_armed:',
+	'create_execution_allowed:',
+	'allowed_create_count:',
+	'target_class:',
+	'armed-session-requirements',
+	'Armed-session requirements panel (disabled placeholder)',
+	'Target class required: test copy or owner-selected target only',
+	'preview-reviewed checkbox alone is not enough',
+	'Manual Desktop verification required for the first UI CREATE trial',
 	'POST /books/&lbrace;book_id&rbrace;/transactions/create-preview',
 	'No CREATE, PATCH, DELETE, or batch operation is executed',
 	'debit-account-count',
@@ -92,6 +106,10 @@ for (const requiredPageFragment of [
 	'Ready for future owner-approved CREATE',
 	'I reviewed this local preview',
 	'Future Create disabled',
+	'future-create-readiness-list',
+	'CREATE readiness gate: blocked',
+	'Allowed CREATE count',
+	'Preview-reviewed checkbox alone is not enough',
 	'preview-stale-warning',
 	'Draft changed after preview',
 	'Clear preview / start over',
@@ -113,7 +131,7 @@ for (const requiredPageFragment of [
 	assert.ok(page.includes(requiredPageFragment), `transaction-entry page missing required fragment: ${requiredPageFragment}`);
 }
 
-assert.match(page, /<form\b[\s\S]*aria-describedby=\{describedBy\('preview-no-write-warning', 'preview-create-disabled-explanation'/s, 'preview form must be described by no-write and disabled-create explanations');
+assert.match(page, /<form\b[\s\S]*aria-describedby=\{describedBy\('preview-no-write-warning', 'write-session-gate', 'preview-create-disabled-explanation'/s, 'preview form must be described by no-write, write-session gate, and disabled-create explanations');
 assert.match(page, /id="preview-error-summary"[\s\S]*role="alert"[\s\S]*No CREATE\/PATCH\/DELETE\/batch executed/s, 'error summary must be accessible and include no-write copy');
 assert.ok(
 	page.includes('id="preview-amount"') &&
@@ -127,7 +145,7 @@ assert.ok(
 		page.includes('pattern="[A-Za-z]{3}"'),
 	'currency input must stay conservative and three-letter code oriented'
 );
-assert.match(page, /aria-describedby="preview-create-disabled-explanation preview-no-write-warning"/, 'disabled Create button must be linked to its explanation and no-write warning');
+assert.match(page, /aria-describedby="preview-create-disabled-explanation preview-no-write-warning write-session-gate"/, 'disabled Create button must be linked to its explanation, no-write warning, and write-session gate');
 assert.match(page, /let draftChangedAfterPreview = \$state\(false\)/, 'preview page must track local draft changes after a successful preview');
 assert.match(page, /function handleDraftChange\(\)[\s\S]*draftChangedAfterPreview = true[\s\S]*previewReviewed = false/s, 'draft changes after preview must mark the current preview stale and reset local review state');
 assert.match(page, /id="preview-reviewed-confirmation"[\s\S]*type="checkbox"[\s\S]*bind:checked=\{previewReviewed\}/s, 'confirmation shell must expose a local-only preview-reviewed checkbox');
@@ -192,7 +210,14 @@ for (const requiredServerFragment of [
 	'debit_account_id',
 	'credit_account_id',
 	'No write was executed',
-	'previewOnly: true'
+	'previewOnly: true',
+	'type WriteSessionGate',
+	'function createWriteSessionGate',
+	'const sessionArmed = false',
+	'const allowedCreateCount = 0',
+	'const targetClass = null',
+	'create_execution_allowed: false',
+	'writeSessionGate: createWriteSessionGate()'
 ]) {
 	assert.ok(server.includes(requiredServerFragment), `transaction-entry server action missing required fragment: ${requiredServerFragment}`);
 }

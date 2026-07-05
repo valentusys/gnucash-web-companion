@@ -28,6 +28,15 @@ type ApiPostResult<T> = {
 	body: T | ApiErrorBody;
 };
 
+type WriteSessionGate = {
+	writes_enabled: boolean;
+	session_armed: boolean;
+	create_execution_allowed: boolean;
+	create_execution_reason: string;
+	allowed_create_count: number;
+	target_class: 'test_copy' | 'owner_selected_target' | null;
+};
+
 const PREVIEW_ERROR_FALLBACK = 'Preview validation failed safely. No write was executed.';
 
 const FIELD_LABELS: Record<PreviewFieldName, string> = {
@@ -189,6 +198,27 @@ function formToPreviewPayload(formData: FormData): CreatePreviewPayload {
 	};
 }
 
+function truthyEnv(value: string | undefined): boolean {
+	return ['1', 'true', 'yes', 'on'].includes(String(value ?? '').trim().toLowerCase());
+}
+
+function createWriteSessionGate(): WriteSessionGate {
+	const writesEnabled = truthyEnv(env.GNUCASH_WRITES_ENABLED);
+	const sessionArmed = false;
+	const allowedCreateCount = 0;
+	const targetClass = null;
+	return {
+		writes_enabled: writesEnabled,
+		session_armed: sessionArmed,
+		create_execution_allowed: false,
+		create_execution_reason: writesEnabled
+			? 'Write gates may be enabled, but no owner-approved web UI CREATE session is armed.'
+			: 'GNUCASH_WRITES_ENABLED=false; write session not armed.',
+		allowed_create_count: allowedCreateCount,
+		target_class: targetClass
+	};
+}
+
 export const load: PageServerLoad = async ({ cookies, fetch }) => {
 	const token = getAuthToken(cookies);
 	const { books, activeBook, bookPrefix } = await getActiveBookContext(fetch, cookies, token);
@@ -197,7 +227,8 @@ export const load: PageServerLoad = async ({ cookies, fetch }) => {
 		books,
 		accounts: accounts.filter((account) => !account.placeholder && !account.hidden),
 		activeBook,
-		previewOnly: true
+		previewOnly: true,
+		writeSessionGate: createWriteSessionGate()
 	};
 };
 

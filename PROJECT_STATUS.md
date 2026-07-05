@@ -37,7 +37,8 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   public write beta approval.
   [#22](https://github.com/valentusys/gnucash-web-companion/issues/22) and
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) are closed.
-- Latest handoffs/docs: `docs/handoff/issue48-to-web-ui-create-trial-transition.md`,
+- Latest handoffs/docs: `docs/handoff/issue49-create-execution-gate-shell.md`,
+  `docs/handoff/issue48-to-web-ui-create-trial-transition.md`,
   `docs/handoff/issue48-deterministic-browser-smoke-harness.md`,
   `docs/handoff/issue48-approval-packet-preview-hardening.md`,
   `docs/handoff/issue48-preview-confirmation-shell-draft-safety.md`,
@@ -105,10 +106,14 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   smoke, and static/backend guards all passed without CREATE/PATCH/DELETE/batch. Further #48 preview-only
   polishing should pause unless bugs are found. #49 is the next strictly scoped owner web UI CREATE
   execution-trial tracker for a future bounded owner-approved CREATE through the web UI on a test copy or
-  owner-selected target. #49 requires fresh same-context owner/PM approval, exact target class, exact
-  CREATE count, first-trial default `CREATE 1 / PATCH 0 / DELETE 0 / batch 0`, target preflight,
-  reviewed non-stale UI preview, backup before CREATE, read-back, redacted audit evidence,
-  `GNUCASH_WRITES_ENABLED=false` reset, disabled-write probes, and manual Desktop verification. Telegram/agent
+  owner-selected target. The first #49 implementation slice is non-mutating gate/shell work: `/transactions/new`
+  now renders a server-provided write-session-not-armed state, `create_execution_allowed=false`,
+  `allowed_create_count=0`, required target-class/create-count/preflight/backup/read-back/audit/reset/probe/
+  Desktop-verification guidance, and a still-disabled Future Create button without wiring active CREATE. #49
+  requires fresh same-context owner/PM approval, exact target class, exact CREATE count, first-trial default
+  `CREATE 1 / PATCH 0 / DELETE 0 / batch 0`, target preflight, reviewed non-stale UI preview, backup before
+  CREATE, read-back, redacted audit evidence, `GNUCASH_WRITES_ENABLED=false` reset, disabled-write probes, and
+  manual Desktop verification. Telegram/agent
   compact input is development/test harness only, not the main product workflow. None of these issues are
   DELETE/batch approval, release approval, public write beta approval, or production/stable/security-audited
   claims. No release was published; `NO_RELEASE` remains current.
@@ -145,9 +150,12 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   remains reachable with writes disabled, exposes only the create-preview action, and the transactions list
   labels the entry point as preview-only/no-write. On 2026-07-05, #48 transitioned to sufficiently validated
   preview-only evidence after manual and deterministic synthetic browser smokes plus static/backend guard
-  hardening; #49 was opened as the separate owner web UI CREATE execution-trial tracker. #49 requires fresh
-  same-context owner/PM approval, target preflight, exact first-trial default `CREATE 1 / PATCH 0 / DELETE 0 /
-  batch 0`, backup/read-back/audit/reset/probes, and manual Desktop verification before any future CREATE.
+  hardening; #49 was opened as the separate owner web UI CREATE execution-trial tracker. The first #49
+  implementation slice added only the write-session-not-armed gate/shell and guards: no active CREATE path was
+  wired, `create_execution_allowed=false`, `allowed_create_count=0`, and Future Create remains disabled. #49
+  requires fresh same-context owner/PM approval, target preflight, exact first-trial default `CREATE 1 / PATCH 0 /
+  DELETE 0 / batch 0`, backup/read-back/audit/reset/probes, and manual Desktop verification before any future
+  CREATE.
   packet closes #36 as a
   maintenance boundary while preserving `NO_RELEASE`, no public write beta, no real/private/original/
   working/only-copy mutation, and unpublished `v0.4.0-owner-writebeta`. The r8 release/no-release documentation

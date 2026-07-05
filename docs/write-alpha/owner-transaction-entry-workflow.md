@@ -342,6 +342,31 @@ CREATE, PATCH, and DELETE, and manual Desktop verification for the first UI CREA
 GitHub/tracked reporting stays redacted-only. Private paths, account names, descriptions, memos, amounts, GUIDs,
 book names, backups, screenshots, tokens, keys, certs, and `.env` content remain private-only.
 
+## #49 CREATE execution gate / armed-session shell slice
+
+The first #49 implementation slice is gate/shell only. It prepares the UI/server representation for a future
+owner-approved web UI CREATE trial without wiring or executing CREATE.
+
+Implemented non-mutating pieces:
+
+- `/transactions/new` server load returns a redacted write-session gate object with `writes_enabled`,
+  `session_armed`, `create_execution_allowed`, `create_execution_reason`, `allowed_create_count`, and
+  `target_class`;
+- defaults are safe/off: `session_armed=false`, `create_execution_allowed=false`, `allowed_create_count=0`, and
+  `target_class=null`;
+- with default `GNUCASH_WRITES_ENABLED=false`, the UI states `Preview mode`, `Write session not armed`, and
+  `CREATE execution unavailable without fresh owner approval`;
+- the page shows a disabled armed-session requirements panel for target class, exact CREATE count, reviewed
+  non-stale preview, backup/read-back/audit/reset/probes, and manual Desktop verification;
+- the Future Create control remains a disabled `type="button"`;
+- the preview-reviewed checkbox remains local-only and is explicitly insufficient by itself;
+- static and synthetic browser smoke guards prove create-preview remains the only transaction-entry submission
+  target and no active CREATE path is reachable in default mode.
+
+This slice executed no CREATE, PATCH, DELETE, or batch mutation, did not touch a private/original/working/only-copy
+book, did not publish a release, and does not authorize a future CREATE. Future CREATE still requires fresh
+same-context owner/PM approval; the first trial remains `CREATE 1 / PATCH 0 / DELETE 0 / batch 0`.
+
 ## Current non-mutating state
 
 This document is a re-scope/planning artifact. No CREATE, PATCH, DELETE, dogfood loop, release, tag, package,

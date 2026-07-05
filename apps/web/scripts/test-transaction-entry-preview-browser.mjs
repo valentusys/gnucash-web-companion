@@ -125,6 +125,9 @@ function assertSourceSafety() {
 		'node scripts/test-transaction-entry-preview-browser.mjs',
 		'package.json must expose npm run test:transaction-entry-preview-browser'
 	);
+	assert.match(page, /id="write-session-gate"[\s\S]*Preview mode[\s\S]*Write session not armed[\s\S]*CREATE execution unavailable without fresh owner approval/s, 'write-session gate must default to preview mode and not armed');
+	assert.match(page, /writes_enabled:[\s\S]*session_armed:[\s\S]*create_execution_allowed:[\s\S]*allowed_create_count:[\s\S]*target_class:/s, 'write-session gate must expose safe redacted status fields');
+	assert.match(page, /id="armed-session-requirements"[\s\S]*Target class required[\s\S]*Exact CREATE count required[\s\S]*preview-reviewed checkbox alone is not enough/s, 'armed-session requirements panel must remain disabled placeholder guidance');
 	assert.match(page, /id="approval-packet"[\s\S]*Future Create remains disabled/s, 'approval packet must stay visible and no-write');
 	assert.match(page, /id="preview-stale-warning"[\s\S]*stale and cannot support a future owner-approved CREATE/s, 'stale-preview warning must remain present');
 	assert.match(page, /id="future-create-disabled"[\s\S]*type="button"[\s\S]*disabled/s, 'Future Create must remain disabled and non-submitting');
@@ -139,6 +142,7 @@ function assertSourceSafety() {
 	);
 	assert.doesNotMatch(server, /\b(?:create|validate)\s*:\s*async/, '/transactions/new must not define active create or validate actions');
 	assert.doesNotMatch(server, /\/transactions\/validate|`\/books\/\$\{bookId\}\/transactions`|hasWriteAcknowledgement/, '/transactions/new must not call validate/write API paths');
+	assert.match(server, /function createWriteSessionGate\(\)[\s\S]*const sessionArmed = false[\s\S]*const allowedCreateCount = 0[\s\S]*create_execution_allowed: false/s, 'server write-session gate must default to unarmed and CREATE-disabled');
 }
 
 function jsonResponse(res, status, body) {
@@ -501,6 +505,8 @@ async function runSmoke() {
 		});
 		await cdp.send('Page.navigate', { url: `${webBase}/transactions/new` });
 		await waitForExpression(cdp, `document.body && document.body.innerText.includes('Preview only / no write executed')`, 'no-write warning');
+		await waitForExpression(cdp, `document.body && document.body.innerText.includes('Write session not armed') && document.body.innerText.includes('CREATE execution unavailable without fresh owner approval')`, 'write-session gate');
+		await waitForExpression(cdp, `document.body && document.body.innerText.includes('allowed_create_count: 0') && document.body.innerText.includes('target_class: required')`, 'write-session default status');
 		await waitForExpression(cdp, `Boolean(document.querySelector('#debit-account-select') && document.querySelector('#credit-account-select'))`, 'account selectors');
 
 		await setInput(cdp, '#debit-account-search', 'Source');
@@ -546,7 +552,12 @@ async function runSmoke() {
 
 		const approvalText = await evaluate(cdp, `document.querySelector('#approval-packet')?.innerText ?? ''`);
 		assert.match(approvalText, /Fresh same-context owner approval with exact CREATE count = 1/, 'approval packet must require fresh owner approval and exact count');
+		assert.match(approvalText, /Write session must be armed and target class\/preflight must pass/, 'approval packet must require armed session and target preflight');
 		assert.match(approvalText, /Future CREATE count\s+1/i, 'approval packet must show future CREATE count 1');
+		const readinessText = await evaluate(cdp, `document.querySelector('#future-create-readiness-list')?.innerText ?? ''`);
+		assert.match(readinessText, /session_armed = false/, 'future create readiness must report unarmed session');
+		assert.match(readinessText, /CREATE execution allowed: false/, 'future create readiness must report create execution blocked');
+		assert.match(readinessText, /Preview-reviewed checkbox alone is not enough/, 'future create readiness must state reviewed checkbox alone is insufficient');
 		assert.equal(await evaluate(cdp, `document.querySelector('#future-create-disabled')?.disabled === true`), true, 'Future Create must remain disabled');
 
 		const renderedTemplate = await evaluate(cdp, `document.querySelector('#approval-packet pre')?.innerText ?? ''`);
