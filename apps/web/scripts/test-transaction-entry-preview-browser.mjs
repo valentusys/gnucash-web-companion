@@ -526,11 +526,18 @@ async function runSmoke() {
 		await waitForExpression(cdp, `document.querySelector('#target-preflight-readiness')?.innerText.includes('Target readiness not checked')`, 'target preflight not checked status');
 		await waitForExpression(cdp, `document.querySelector('#target-preflight-readiness')?.innerText.includes('target_preflight.status: not_checked') && document.querySelector('#target-preflight-readiness')?.innerText.includes('target_preflight.target_class: pending')`, 'target preflight default status');
 		await waitForExpression(cdp, `document.querySelector('#target-preflight-readiness')?.innerText.includes('Target file exists/readable') && document.querySelector('#target-preflight-readiness')?.innerText.includes('No .LCK/.LNK lock') && document.querySelector('#target-preflight-readiness')?.innerText.includes('Manual Desktop verification required')`, 'target preflight checklist');
-		await waitForExpression(cdp, `Array.from(document.querySelectorAll('[data-preflight-status]')).length >= 13 && Array.from(document.querySelectorAll('[data-preflight-status]')).every((item) => item.getAttribute('data-preflight-status') === 'pending')`, 'target preflight pending checks');
+		await waitForExpression(cdp, `Array.from(document.querySelectorAll('[data-preflight-status]')).length === 13 && Array.from(document.querySelectorAll('[data-preflight-status]')).every((item) => item.getAttribute('data-preflight-status') === 'pending')`, 'target preflight pending checks');
+		await waitForExpression(cdp, `Array.from(document.querySelectorAll('[data-preflight-check]')).map((item) => item.getAttribute('data-preflight-check')).join('|') === 'target_class_selected|target_file_exists_readable|target_outside_repo|desktop_closed|no_concurrent_writer_lock|no_lck_lnk|no_syncthing_conflict_before|independent_backup_exists|restore_proof_available|reviewed_non_stale_preview|exact_create_count_one|reset_disabled_probes_required|manual_desktop_verification_required'`, 'target preflight exact shell checklist');
 		await waitForExpression(cdp, `document.querySelector('#execution-readiness-shell')?.innerText.includes('Execution readiness not checked') && document.querySelector('#execution-readiness-shell')?.innerText.includes('execution_readiness.status: not_checked')`, 'execution readiness default status');
 		await waitForExpression(cdp, `document.querySelector('#execution-readiness-shell')?.innerText.includes('Independent backup plan required') && document.querySelector('#execution-readiness-shell')?.innerText.includes('Post-CREATE read-back required') && document.querySelector('#execution-readiness-shell')?.innerText.includes('Disabled PATCH/DELETE/batch probes required')`, 'execution readiness checklist');
-		await waitForExpression(cdp, `Array.from(document.querySelectorAll('[data-execution-readiness-status]')).length >= 8 && Array.from(document.querySelectorAll('[data-execution-readiness-status]')).every((item) => item.getAttribute('data-execution-readiness-status') === 'pending')`, 'execution readiness pending checks');
+		await waitForExpression(cdp, `Array.from(document.querySelectorAll('[data-execution-readiness-status]')).length === 8 && Array.from(document.querySelectorAll('[data-execution-readiness-status]')).every((item) => item.getAttribute('data-execution-readiness-status') === 'pending')`, 'execution readiness pending checks');
+		await waitForExpression(cdp, `Array.from(document.querySelectorAll('[data-execution-readiness-check]')).map((item) => item.getAttribute('data-execution-readiness-check')).join('|') === 'backup_plan_required|backup_readable_copy_required|post_create_read_back_required|redacted_audit_required|writes_reset_required|disabled_create_probe_required|disabled_patch_delete_batch_probes_required|manual_desktop_verification_record_required'`, 'execution readiness exact shell checklist');
 		await waitForExpression(cdp, `Boolean(document.querySelector('#debit-account-select') && document.querySelector('#credit-account-select'))`, 'account selectors');
+		assert.deepEqual(
+			await evaluate(cdp, `Array.from(document.querySelectorAll('#debit-account-select option, #credit-account-select option')).map((option) => option.value).filter(Boolean).sort()`),
+			['smoke-destination', 'smoke-destination', 'smoke-source', 'smoke-source'],
+			'browser selectors must expose only selectable synthetic account IDs'
+		);
 
 		await setInput(cdp, '#debit-account-search', 'Source');
 		await waitForExpression(cdp, `document.querySelector('#debit-account-count')?.innerText.includes('Showing 1 of 2')`, 'source account filter count');
@@ -545,6 +552,23 @@ async function runSmoke() {
 		await setInput(cdp, '#preview-amount', syntheticAmount);
 		await setInput(cdp, '#preview-memo', syntheticMemo);
 		await setSelect(cdp, '#debit-account-select', 'smoke-source');
+		await setSelect(cdp, '#credit-account-select', 'smoke-source');
+
+		const sameAccountBrowserPostsBefore = browserRequests.filter((request) => request.method === 'POST' && new URL(request.url).pathname === '/transactions/new').length;
+		const sameAccountApiPreviewBefore = api.requests.filter((request) => request.method === 'POST' && request.path === '/books/1/transactions/create-preview').length;
+		await click(cdp, 'button[formaction="?/preview"]');
+		await waitForExpression(cdp, `document.body && document.body.innerText.includes('Source and destination accounts must be different')`, 'same-account client block');
+		await evaluate(cdp, `new Promise((resolve) => setTimeout(resolve, 500))`, { awaitPromise: true });
+		assert.equal(
+			browserRequests.filter((request) => request.method === 'POST' && new URL(request.url).pathname === '/transactions/new').length,
+			sameAccountBrowserPostsBefore,
+			'same-account client block must not submit the preview action'
+		);
+		assert.equal(
+			api.requests.filter((request) => request.method === 'POST' && request.path === '/books/1/transactions/create-preview').length,
+			sameAccountApiPreviewBefore,
+			'same-account client block must not reach create-preview'
+		);
 		await setSelect(cdp, '#credit-account-select', 'smoke-destination');
 
 		const formSnapshot = await evaluate(cdp, `(() => Object.fromEntries(new FormData(document.querySelector('button[formaction="?/preview"]').closest('form')).entries()))()`);
@@ -583,6 +607,11 @@ async function runSmoke() {
 		assert.match(readinessText, /Target preflight status: not_checked/, 'future create readiness must report target preflight not checked');
 		assert.match(readinessText, /Preview-reviewed checkbox alone is not enough/, 'future create readiness must state reviewed checkbox alone is insufficient');
 		assert.equal(await evaluate(cdp, `document.querySelector('#future-create-disabled')?.disabled === true`), true, 'Future Create must remain disabled');
+		assert.equal(await evaluate(cdp, `document.querySelector('#future-create-disabled')?.type === 'button'`), true, 'Future Create must stay a non-submit button');
+		const futureCreateClickRequestsBefore = browserRequests.length;
+		await click(cdp, '#future-create-disabled');
+		await evaluate(cdp, `new Promise((resolve) => setTimeout(resolve, 250))`, { awaitPromise: true });
+		assert.equal(browserRequests.length, futureCreateClickRequestsBefore, 'clicking disabled Future Create must not issue any browser request');
 
 		const renderedTemplate = await evaluate(cdp, `document.querySelector('#approval-packet pre')?.innerText ?? ''`);
 		for (const privateValue of ['Synthetic Source', 'Synthetic Destination', syntheticDescription, syntheticMemo, syntheticAmount]) {
