@@ -28,13 +28,29 @@ type ApiPostResult<T> = {
 	body: T | ApiErrorBody;
 };
 
+type TargetClass = 'test_copy' | 'owner_selected_target';
+
 type WriteSessionGate = {
 	writes_enabled: boolean;
 	session_armed: boolean;
 	create_execution_allowed: boolean;
 	create_execution_reason: string;
 	allowed_create_count: number;
-	target_class: 'test_copy' | 'owner_selected_target' | null;
+	target_class: TargetClass | null;
+};
+
+type TargetPreflightCheck = {
+	id: string;
+	label: string;
+	status: 'pending';
+	note: string;
+};
+
+type TargetPreflight = {
+	required: true;
+	status: 'not_checked';
+	target_class: TargetClass | null;
+	checks: TargetPreflightCheck[];
 };
 
 const PREVIEW_ERROR_FALLBACK = 'Preview validation failed safely. No write was executed.';
@@ -219,6 +235,95 @@ function createWriteSessionGate(): WriteSessionGate {
 	};
 }
 
+function createTargetPreflight(): TargetPreflight {
+	const targetClass = null;
+	return {
+		required: true,
+		status: 'not_checked',
+		target_class: targetClass,
+		checks: [
+			{
+				id: 'target_class_selected',
+				label: 'Target class selected',
+				status: 'pending',
+				note: 'Pending: choose test copy or owner-selected target only after fresh owner approval.'
+			},
+			{
+				id: 'target_file_exists_readable',
+				label: 'Target file exists/readable',
+				status: 'pending',
+				note: 'Pending: this shell does not probe private files or book targets.'
+			},
+			{
+				id: 'target_outside_repo',
+				label: 'Target is outside repo',
+				status: 'pending',
+				note: 'Pending: must be proven before any bounded write session.'
+			},
+			{
+				id: 'desktop_closed',
+				label: 'GnuCash Desktop closed',
+				status: 'pending',
+				note: 'Pending: owner must close Desktop before a future CREATE session.'
+			},
+			{
+				id: 'no_concurrent_writer_lock',
+				label: 'No concurrent writer/lock',
+				status: 'pending',
+				note: 'Pending: no writer or lock proof is collected in this shell.'
+			},
+			{
+				id: 'no_lck_lnk',
+				label: 'No .LCK/.LNK lock',
+				status: 'pending',
+				note: 'Pending: lock-file checks must run only on an approved target.'
+			},
+			{
+				id: 'no_syncthing_conflict_before',
+				label: 'No Syncthing conflict copy before session if applicable',
+				status: 'pending',
+				note: 'Pending: applicable only when the approved target is under Syncthing.'
+			},
+			{
+				id: 'independent_backup_exists',
+				label: 'Independent backup exists',
+				status: 'pending',
+				note: 'Pending: backup evidence is required before any CREATE.'
+			},
+			{
+				id: 'restore_proof_available',
+				label: 'Restore proof available',
+				status: 'pending',
+				note: 'Pending: restore proof must be available before mutation.'
+			},
+			{
+				id: 'reviewed_non_stale_preview',
+				label: 'Reviewed non-stale preview',
+				status: 'pending',
+				note: 'Pending: owner must review the current preview in the same context.'
+			},
+			{
+				id: 'exact_create_count_one',
+				label: 'Exact CREATE count = 1',
+				status: 'pending',
+				note: 'Pending: first trial remains exactly one CREATE unless owner explicitly expands later.'
+			},
+			{
+				id: 'reset_disabled_probes_required',
+				label: 'Writes reset/disabled probes required after session',
+				status: 'pending',
+				note: 'Pending: reset plus validate/preflight/CREATE/PATCH/DELETE blocked probes are required after a future session.'
+			},
+			{
+				id: 'manual_desktop_verification_required',
+				label: 'Manual Desktop verification required',
+				status: 'pending',
+				note: 'Pending: first UI CREATE trial requires owner Desktop verification.'
+			}
+		]
+	};
+}
+
 export const load: PageServerLoad = async ({ cookies, fetch }) => {
 	const token = getAuthToken(cookies);
 	const { books, activeBook, bookPrefix } = await getActiveBookContext(fetch, cookies, token);
@@ -228,7 +333,8 @@ export const load: PageServerLoad = async ({ cookies, fetch }) => {
 		accounts: accounts.filter((account) => !account.placeholder && !account.hidden),
 		activeBook,
 		previewOnly: true,
-		writeSessionGate: createWriteSessionGate()
+		writeSessionGate: createWriteSessionGate(),
+		targetPreflight: createTargetPreflight()
 	};
 };
 

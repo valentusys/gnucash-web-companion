@@ -16,13 +16,26 @@
 		description?: string;
 		memo?: string;
 	};
+	type TargetClass = 'test_copy' | 'owner_selected_target';
 	type WriteSessionGate = {
 		writes_enabled: boolean;
 		session_armed: boolean;
 		create_execution_allowed: boolean;
 		create_execution_reason: string;
 		allowed_create_count: number;
-		target_class: 'test_copy' | 'owner_selected_target' | null;
+		target_class: TargetClass | null;
+	};
+	type TargetPreflightCheck = {
+		id: string;
+		label: string;
+		status: 'pending';
+		note: string;
+	};
+	type TargetPreflight = {
+		required: true;
+		status: 'not_checked';
+		target_class: TargetClass | null;
+		checks: TargetPreflightCheck[];
 	};
 	type PreviewFieldErrors = Partial<Record<keyof PreviousPayload | 'book_id', string>>;
 
@@ -35,9 +48,30 @@
 		allowed_create_count: 0,
 		target_class: null
 	};
+	const defaultTargetPreflight: TargetPreflight = {
+		required: true,
+		status: 'not_checked',
+		target_class: null,
+		checks: [
+			{ id: 'target_class_selected', label: 'Target class selected', status: 'pending', note: 'Pending: target class is not selected.' },
+			{ id: 'target_file_exists_readable', label: 'Target file exists/readable', status: 'pending', note: 'Pending: no private file probe was executed.' },
+			{ id: 'target_outside_repo', label: 'Target is outside repo', status: 'pending', note: 'Pending: outside-repo proof is required.' },
+			{ id: 'desktop_closed', label: 'GnuCash Desktop closed', status: 'pending', note: 'Pending: owner must close Desktop before mutation.' },
+			{ id: 'no_concurrent_writer_lock', label: 'No concurrent writer/lock', status: 'pending', note: 'Pending: no writer/lock probe was executed.' },
+			{ id: 'no_lck_lnk', label: 'No .LCK/.LNK lock', status: 'pending', note: 'Pending: lock-file probe was not run.' },
+			{ id: 'no_syncthing_conflict_before', label: 'No Syncthing conflict copy before session if applicable', status: 'pending', note: 'Pending: Syncthing conflict check was not run.' },
+			{ id: 'independent_backup_exists', label: 'Independent backup exists', status: 'pending', note: 'Pending: backup evidence is required before CREATE.' },
+			{ id: 'restore_proof_available', label: 'Restore proof available', status: 'pending', note: 'Pending: restore proof is required before CREATE.' },
+			{ id: 'reviewed_non_stale_preview', label: 'Reviewed non-stale preview', status: 'pending', note: 'Pending: current preview must be reviewed.' },
+			{ id: 'exact_create_count_one', label: 'Exact CREATE count = 1', status: 'pending', note: 'Pending: first trial remains exactly one CREATE.' },
+			{ id: 'reset_disabled_probes_required', label: 'Writes reset/disabled probes required after session', status: 'pending', note: 'Pending: post-session reset/probes are required.' },
+			{ id: 'manual_desktop_verification_required', label: 'Manual Desktop verification required', status: 'pending', note: 'Pending: owner Desktop verification is required.' }
+		]
+	};
 	const previous = $derived((form?.payload ?? {}) as PreviousPayload);
 	const preview = $derived((form as any)?.preview);
 	const writeSessionGate = $derived(((data.writeSessionGate ?? defaultWriteSessionGate) as WriteSessionGate));
+	const targetPreflight = $derived(((data.targetPreflight ?? defaultTargetPreflight) as TargetPreflight));
 	const fieldErrors = $derived(((form as any)?.fieldErrors ?? {}) as PreviewFieldErrors);
 	const currentBookId = $derived(previous.book_id || String(data.activeBook?.id ?? ''));
 	const selectedBook = $derived((data.books as Book[]).find((book) => String(book.id) === currentBookId) ?? data.activeBook);
@@ -59,7 +93,7 @@ Amount/currency: <amount and currency>
 Date: <YYYY-MM-DD>
 Description: <description>
 Memo: <memo or empty>
-Safety checklist: preview reviewed; no stale preview; write session armed only after fresh same-context approval; target class and exact CREATE count approved; backup/read-back/audit/reset/probes required; manual Desktop verification required; no PATCH, DELETE, or batch.`;
+Safety checklist: preview reviewed; no stale preview; write session armed only after fresh same-context approval; target class and exact CREATE count approved; target preflight passed; backup/read-back/audit/reset/probes required; manual Desktop verification required; no PATCH, DELETE, or batch.`;
 	const currentDebitAccountId = $derived(selectedDebitAccountId || previous.debit_account_id || '');
 	const currentCreditAccountId = $derived(selectedCreditAccountId || previous.credit_account_id || '');
 	const previewIsStale = $derived(Boolean(preview) && draftChangedAfterPreview);
@@ -222,11 +256,41 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 		</div>
 	</section>
 
+	<section id="target-preflight-readiness" class="mb-4 rounded-2xl p-4 text-sm" role="status" aria-labelledby="target-preflight-title" aria-describedby="target-preflight-summary target-preflight-default-state target-preflight-checklist" style="border: 1px solid #c4b5fd; background: #f5f3ff; color: #4c1d95;">
+		<div class="flex min-w-0 flex-col gap-3 md:flex-row md:items-start md:justify-between">
+			<div class="min-w-0">
+				<p class="text-xs font-semibold uppercase tracking-wide">Target preflight required</p>
+				<h2 id="target-preflight-title" class="mt-1 text-base font-semibold">Target readiness not checked</h2>
+				<p id="target-preflight-summary" class="mt-1">
+					This is a UI/status shell only. No private target preflight, file probe, book open, backup, lock check, or write helper runs in this slice.
+				</p>
+			</div>
+			<div class="grid min-w-0 gap-2 text-xs sm:grid-cols-2">
+				<span class="rounded-full px-3 py-1 font-semibold" style="background: #ede9fe; color: #5b21b6;">target_preflight.required: {String(targetPreflight.required)}</span>
+				<span class="rounded-full px-3 py-1 font-semibold" style="background: #ede9fe; color: #5b21b6;">target_preflight.status: {targetPreflight.status}</span>
+				<span class="rounded-full px-3 py-1 font-semibold sm:col-span-2" style="background: #ede9fe; color: #5b21b6;">target_preflight.target_class: {targetPreflight.target_class ?? 'pending'}</span>
+			</div>
+		</div>
+		<p id="target-preflight-default-state" class="mt-3 font-semibold">Default state: all target readiness checks are pending / not checked / not armed.</p>
+		<ul id="target-preflight-checklist" class="mt-3 grid min-w-0 gap-2 md:grid-cols-2" aria-label="Future target preflight checklist">
+			{#each targetPreflight.checks as check (check.id)}
+				<li class="min-w-0 rounded-xl p-3" data-preflight-check={check.id} data-preflight-status={check.status} style="border: 1px solid #ddd6fe; background: #faf5ff;">
+					<div class="flex min-w-0 items-start justify-between gap-3">
+						<span class="font-semibold">{check.label}</span>
+						<span class="shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold" style="background: #fffbeb; color: #92400e;">{check.status}</span>
+					</div>
+					<p class="mt-1 text-xs">{check.note}</p>
+				</li>
+			{/each}
+		</ul>
+		<p class="mt-3 font-semibold">Future Create remains disabled until target preflight is passed in a fresh owner-approved bounded session.</p>
+	</section>
+
 	<div class="mb-4">
 		<WriteModeWarning {locale} compact />
 	</div>
 
-	<form method="POST" onsubmit={handlePreviewSubmit} oninput={handleDraftChange} onchange={handleDraftChange} aria-describedby={describedBy('preview-no-write-warning', 'write-session-gate', 'preview-create-disabled-explanation', form?.error && 'preview-error-summary')} class="min-w-0 space-y-5 rounded-2xl p-5" style="background: var(--app-panel); border: 1px solid var(--app-border); box-shadow: 0 1px 3px var(--app-panel-shadow);">
+	<form method="POST" onsubmit={handlePreviewSubmit} oninput={handleDraftChange} onchange={handleDraftChange} aria-describedby={describedBy('preview-no-write-warning', 'write-session-gate', 'target-preflight-readiness', 'preview-create-disabled-explanation', form?.error && 'preview-error-summary')} class="min-w-0 space-y-5 rounded-2xl p-5" style="background: var(--app-panel); border: 1px solid var(--app-border); box-shadow: 0 1px 3px var(--app-panel-shadow);">
 		<div class="min-w-0 text-sm font-medium" style="color: var(--app-text);">
 			<label for="preview-book">Book</label>
 			<select id="preview-book" name="book_id" aria-invalid={bookError ? 'true' : undefined} aria-describedby={describedBy('book-help', 'preview-no-write-warning', bookError && 'preview-book-error')} class="mt-1 w-full min-w-0 rounded-xl px-3 py-2" style="background: var(--app-bg); color: var(--app-text); border: 1px solid var(--app-border);">
@@ -346,10 +410,10 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 		</section>
 
 		<div class="flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:justify-between">
-			<p id="preview-create-disabled-explanation" class="text-sm" style="color: var(--app-muted);">Create/Submit mutation action is intentionally disabled: preview mode is active, write session is not armed, and CREATE execution is unavailable without fresh owner approval; only the preview action is available.</p>
+			<p id="preview-create-disabled-explanation" class="text-sm" style="color: var(--app-muted);">Create/Submit mutation action is intentionally disabled: preview mode is active, write session is not armed, target readiness is not checked, and CREATE execution is unavailable without fresh owner approval; only the preview action is available.</p>
 			<div class="flex min-w-0 flex-col gap-3 sm:flex-row">
 				<button formaction="?/preview" formnovalidate class="rounded-xl px-4 py-2 font-semibold" style="border: 1px solid var(--app-border); color: var(--app-text);" type="submit">Preview transaction</button>
-				<button class="cursor-not-allowed rounded-xl px-4 py-2 font-semibold text-white opacity-60" style="background: #6b7280;" type="button" disabled aria-describedby="preview-create-disabled-explanation preview-no-write-warning write-session-gate">Create disabled</button>
+				<button class="cursor-not-allowed rounded-xl px-4 py-2 font-semibold text-white opacity-60" style="background: #6b7280;" type="button" disabled aria-describedby="preview-create-disabled-explanation preview-no-write-warning write-session-gate target-preflight-readiness">Create disabled</button>
 			</div>
 		</div>
 	</form>
@@ -365,7 +429,7 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 	{/if}
 
 	{#if preview}
-		<section class="mt-6 min-w-0 rounded-2xl p-5" aria-label="Transaction preview" aria-describedby={describedBy('preview-create-disabled-explanation', 'preview-no-write-warning', 'write-session-gate', previewIsStale && 'preview-stale-warning')} style="background: var(--app-panel); border: 1px solid var(--app-border);">
+		<section class="mt-6 min-w-0 rounded-2xl p-5" aria-label="Transaction preview" aria-describedby={describedBy('preview-create-disabled-explanation', 'preview-no-write-warning', 'write-session-gate', 'target-preflight-readiness', previewIsStale && 'preview-stale-warning')} style="background: var(--app-panel); border: 1px solid var(--app-border);">
 			<div class="flex min-w-0 flex-col gap-2 md:flex-row md:items-start md:justify-between">
 				<div class="min-w-0">
 					<h2 class="text-xl font-semibold" style="color: var(--app-text);">Normalized preview</h2>
@@ -392,7 +456,8 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 						<li>CREATE execution allowed: {String(writeSessionGate.create_execution_allowed)}.</li>
 						<li>Allowed CREATE count: {writeSessionGate.allowed_create_count}; first approved trial must be exactly 1.</li>
 						<li>Target class is required before any future CREATE.</li>
-						<li>Preview-reviewed checkbox alone is not enough; the preview must also be current, non-stale, owner-approved, backed up, read back, audited, reset, probed, and manually verified in Desktop.</li>
+						<li>Target preflight status: {targetPreflight.status}; every target check is pending by default.</li>
+						<li>Preview-reviewed checkbox alone is not enough; the preview must also be current, non-stale, owner-approved, target-preflight-passed, backed up, read back, audited, reset, probed, and manually verified in Desktop.</li>
 					</ul>
 				</div>
 				<div class="mt-4 flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -400,7 +465,7 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 						<input id="preview-reviewed-confirmation" type="checkbox" bind:checked={previewReviewed} disabled={previewIsStale} aria-describedby="preview-reviewed-status preview-confirmation-shell-help" class="mt-1" />
 						<span>I reviewed this local preview; no write is available from this checkbox.</span>
 					</label>
-					<button id="future-create-disabled" class="cursor-not-allowed rounded-xl px-4 py-2 font-semibold text-white opacity-60" style="background: #6b7280;" type="button" disabled aria-describedby="preview-create-disabled-explanation preview-no-write-warning write-session-gate preview-reviewed-status">Future Create disabled</button>
+					<button id="future-create-disabled" class="cursor-not-allowed rounded-xl px-4 py-2 font-semibold text-white opacity-60" style="background: #6b7280;" type="button" disabled aria-describedby="preview-create-disabled-explanation preview-no-write-warning write-session-gate target-preflight-readiness preview-reviewed-status">Future Create disabled</button>
 				</div>
 				<p id="preview-reviewed-status" class="mt-3 text-sm" style="color: var(--app-muted);">
 					{#if previewIsStale}

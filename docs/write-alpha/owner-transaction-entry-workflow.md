@@ -367,6 +367,31 @@ This slice executed no CREATE, PATCH, DELETE, or batch mutation, did not touch a
 book, did not publish a release, and does not authorize a future CREATE. Future CREATE still requires fresh
 same-context owner/PM approval; the first trial remains `CREATE 1 / PATCH 0 / DELETE 0 / batch 0`.
 
+## #49 target preflight/readiness UI shell slice
+
+The next #49 implementation slice adds target readiness shell only. It prepares the UI/server representation for a
+future target preflight without executing any private preflight, probing files, opening books, creating backups,
+checking locks, calling write helpers, or executing CREATE.
+
+Implemented non-mutating pieces:
+
+- `/transactions/new` server load returns a redacted `targetPreflight` object with `required=true`,
+  `status=not_checked`, `target_class=null`, and all checks `pending`;
+- the page shows a `Target preflight required` / `Target readiness not checked` panel;
+- the pending checklist covers target class selection, target file exists/readable, outside-repo proof, GnuCash
+  Desktop closed, no concurrent writer/lock, no `.LCK`/`.LNK`, Syncthing conflict-copy check if applicable,
+  independent backup, restore proof, reviewed non-stale preview, exact `CREATE count = 1`, reset/disabled probes,
+  and manual Desktop verification;
+- no checked/passed/ready target readiness state exists in default mode;
+- Future Create remains disabled/inert, and preview-reviewed checkbox alone remains insufficient;
+- static and synthetic browser smoke guards prove `create-preview` remains the only transaction-entry submission
+  target, no file/book/backup/lock/write helper is referenced by the target shell, and no active CREATE path is
+  reachable in default mode.
+
+This slice executed no CREATE, PATCH, DELETE, batch mutation, private target preflight, private/original/working/
+only-copy book use, release publication, or public write beta. Future CREATE still requires fresh same-context
+owner/PM approval; the first trial remains `CREATE 1 / PATCH 0 / DELETE 0 / batch 0`.
+
 ## Current non-mutating state
 
 This document is a re-scope/planning artifact. No CREATE, PATCH, DELETE, dogfood loop, release, tag, package,

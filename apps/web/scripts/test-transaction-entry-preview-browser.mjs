@@ -128,6 +128,12 @@ function assertSourceSafety() {
 	assert.match(page, /id="write-session-gate"[\s\S]*Preview mode[\s\S]*Write session not armed[\s\S]*CREATE execution unavailable without fresh owner approval/s, 'write-session gate must default to preview mode and not armed');
 	assert.match(page, /writes_enabled:[\s\S]*session_armed:[\s\S]*create_execution_allowed:[\s\S]*allowed_create_count:[\s\S]*target_class:/s, 'write-session gate must expose safe redacted status fields');
 	assert.match(page, /id="armed-session-requirements"[\s\S]*Target class required[\s\S]*Exact CREATE count required[\s\S]*preview-reviewed checkbox alone is not enough/s, 'armed-session requirements panel must remain disabled placeholder guidance');
+	assert.match(page, /id="target-preflight-readiness"[\s\S]*Target preflight required[\s\S]*Target readiness not checked[\s\S]*Default state: all target readiness checks are pending \/ not checked \/ not armed/s, 'target preflight shell must default to not checked/pending');
+	assert.match(page, /id="target-preflight-checklist"/, 'target preflight checklist must be rendered');
+	for (const targetPreflightLabel of ['Target file exists/readable', 'Target is outside repo', 'GnuCash Desktop closed', 'No .LCK/.LNK lock', 'Manual Desktop verification required']) {
+		assert.ok(page.includes(targetPreflightLabel), `target preflight checklist missing label: ${targetPreflightLabel}`);
+	}
+	assert.doesNotMatch(page, /data-preflight-status="(?:checked|passed|ready|ok)"/, 'target preflight shell must not mark checks passed by default');
 	assert.match(page, /id="approval-packet"[\s\S]*Future Create remains disabled/s, 'approval packet must stay visible and no-write');
 	assert.match(page, /id="preview-stale-warning"[\s\S]*stale and cannot support a future owner-approved CREATE/s, 'stale-preview warning must remain present');
 	assert.match(page, /id="future-create-disabled"[\s\S]*type="button"[\s\S]*disabled/s, 'Future Create must remain disabled and non-submitting');
@@ -143,6 +149,8 @@ function assertSourceSafety() {
 	assert.doesNotMatch(server, /\b(?:create|validate)\s*:\s*async/, '/transactions/new must not define active create or validate actions');
 	assert.doesNotMatch(server, /\/transactions\/validate|`\/books\/\$\{bookId\}\/transactions`|hasWriteAcknowledgement/, '/transactions/new must not call validate/write API paths');
 	assert.match(server, /function createWriteSessionGate\(\)[\s\S]*const sessionArmed = false[\s\S]*const allowedCreateCount = 0[\s\S]*create_execution_allowed: false/s, 'server write-session gate must default to unarmed and CREATE-disabled');
+	assert.match(server, /function createTargetPreflight\(\)[\s\S]*required: true[\s\S]*status: 'not_checked'[\s\S]*target_class: targetClass[\s\S]*status: 'pending'/s, 'server target preflight must default to required/not_checked/pending');
+	assert.doesNotMatch(server, /from ['"]node:fs|existsSync|readFileSync|statSync|accessSync|create_book_backup|write_lock_service|_open_piecash_book_for_write|GnuCashWriteService/, 'target preflight shell must not probe files/books or call backup/lock/write helpers');
 }
 
 function jsonResponse(res, status, body) {
@@ -507,6 +515,11 @@ async function runSmoke() {
 		await waitForExpression(cdp, `document.body && document.body.innerText.includes('Preview only / no write executed')`, 'no-write warning');
 		await waitForExpression(cdp, `document.body && document.body.innerText.includes('Write session not armed') && document.body.innerText.includes('CREATE execution unavailable without fresh owner approval')`, 'write-session gate');
 		await waitForExpression(cdp, `document.body && document.body.innerText.includes('allowed_create_count: 0') && document.body.innerText.includes('target_class: required')`, 'write-session default status');
+		await waitForExpression(cdp, `Boolean(document.querySelector('#target-preflight-readiness'))`, 'target preflight panel');
+		await waitForExpression(cdp, `document.querySelector('#target-preflight-readiness')?.innerText.includes('Target readiness not checked')`, 'target preflight not checked status');
+		await waitForExpression(cdp, `document.querySelector('#target-preflight-readiness')?.innerText.includes('target_preflight.status: not_checked') && document.querySelector('#target-preflight-readiness')?.innerText.includes('target_preflight.target_class: pending')`, 'target preflight default status');
+		await waitForExpression(cdp, `document.querySelector('#target-preflight-readiness')?.innerText.includes('Target file exists/readable') && document.querySelector('#target-preflight-readiness')?.innerText.includes('No .LCK/.LNK lock') && document.querySelector('#target-preflight-readiness')?.innerText.includes('Manual Desktop verification required')`, 'target preflight checklist');
+		await waitForExpression(cdp, `Array.from(document.querySelectorAll('[data-preflight-status]')).length >= 13 && Array.from(document.querySelectorAll('[data-preflight-status]')).every((item) => item.getAttribute('data-preflight-status') === 'pending')`, 'target preflight pending checks');
 		await waitForExpression(cdp, `Boolean(document.querySelector('#debit-account-select') && document.querySelector('#credit-account-select'))`, 'account selectors');
 
 		await setInput(cdp, '#debit-account-search', 'Source');
@@ -557,6 +570,7 @@ async function runSmoke() {
 		const readinessText = await evaluate(cdp, `document.querySelector('#future-create-readiness-list')?.innerText ?? ''`);
 		assert.match(readinessText, /session_armed = false/, 'future create readiness must report unarmed session');
 		assert.match(readinessText, /CREATE execution allowed: false/, 'future create readiness must report create execution blocked');
+		assert.match(readinessText, /Target preflight status: not_checked/, 'future create readiness must report target preflight not checked');
 		assert.match(readinessText, /Preview-reviewed checkbox alone is not enough/, 'future create readiness must state reviewed checkbox alone is insufficient');
 		assert.equal(await evaluate(cdp, `document.querySelector('#future-create-disabled')?.disabled === true`), true, 'Future Create must remain disabled');
 

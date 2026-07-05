@@ -81,6 +81,29 @@ for (const requiredPageFragment of [
 	'armed-session-requirements',
 	'Armed-session requirements panel (disabled placeholder)',
 	'Target class required: test copy or owner-selected target only',
+	'target-preflight-readiness',
+	'Target preflight required',
+	'Target readiness not checked',
+	'UI/status shell only',
+	'target_preflight.required:',
+	'target_preflight.status:',
+	'target_preflight.target_class:',
+	'target-preflight-checklist',
+	'Default state: all target readiness checks are pending / not checked / not armed',
+	'Target class selected',
+	'Target file exists/readable',
+	'Target is outside repo',
+	'GnuCash Desktop closed',
+	'No concurrent writer/lock',
+	'No .LCK/.LNK lock',
+	'No Syncthing conflict copy before session if applicable',
+	'Independent backup exists',
+	'Restore proof available',
+	'Reviewed non-stale preview',
+	'Exact CREATE count = 1',
+	'Writes reset/disabled probes required after session',
+	'Manual Desktop verification required',
+	'Future Create remains disabled until target preflight is passed',
 	'preview-reviewed checkbox alone is not enough',
 	'Manual Desktop verification required for the first UI CREATE trial',
 	'POST /books/&lbrace;book_id&rbrace;/transactions/create-preview',
@@ -131,7 +154,7 @@ for (const requiredPageFragment of [
 	assert.ok(page.includes(requiredPageFragment), `transaction-entry page missing required fragment: ${requiredPageFragment}`);
 }
 
-assert.match(page, /<form\b[\s\S]*aria-describedby=\{describedBy\('preview-no-write-warning', 'write-session-gate', 'preview-create-disabled-explanation'/s, 'preview form must be described by no-write, write-session gate, and disabled-create explanations');
+assert.match(page, /<form\b[\s\S]*aria-describedby=\{describedBy\('preview-no-write-warning', 'write-session-gate', 'target-preflight-readiness', 'preview-create-disabled-explanation'/s, 'preview form must be described by no-write, write-session gate, target preflight, and disabled-create explanations');
 assert.match(page, /id="preview-error-summary"[\s\S]*role="alert"[\s\S]*No CREATE\/PATCH\/DELETE\/batch executed/s, 'error summary must be accessible and include no-write copy');
 assert.ok(
 	page.includes('id="preview-amount"') &&
@@ -145,7 +168,7 @@ assert.ok(
 		page.includes('pattern="[A-Za-z]{3}"'),
 	'currency input must stay conservative and three-letter code oriented'
 );
-assert.match(page, /aria-describedby="preview-create-disabled-explanation preview-no-write-warning write-session-gate"/, 'disabled Create button must be linked to its explanation, no-write warning, and write-session gate');
+assert.match(page, /aria-describedby="preview-create-disabled-explanation preview-no-write-warning write-session-gate target-preflight-readiness"/, 'disabled Create button must be linked to its explanation, no-write warning, write-session gate, and target preflight');
 assert.match(page, /let draftChangedAfterPreview = \$state\(false\)/, 'preview page must track local draft changes after a successful preview');
 assert.match(page, /function handleDraftChange\(\)[\s\S]*draftChangedAfterPreview = true[\s\S]*previewReviewed = false/s, 'draft changes after preview must mark the current preview stale and reset local review state');
 assert.match(page, /id="preview-reviewed-confirmation"[\s\S]*type="checkbox"[\s\S]*bind:checked=\{previewReviewed\}/s, 'confirmation shell must expose a local-only preview-reviewed checkbox');
@@ -200,6 +223,10 @@ assert.ok(
 	'server action must derive user-friendly field errors using safe redacted messages'
 );
 assert.match(server, /Preview validation failed safely\. Review the highlighted fields\. No write was executed\./, 'server action must provide a safe field-error summary fallback');
+assert.match(server, /function createTargetPreflight\(\)[\s\S]*required: true[\s\S]*status: 'not_checked'[\s\S]*target_class: targetClass[\s\S]*status: 'pending'/s, 'server target preflight shell must default to required/not_checked/pending');
+assert.doesNotMatch(page, /data-preflight-status="(?:checked|passed|ready|ok)"/, 'target preflight UI must not mark any default check as checked/passed/ready');
+assert.doesNotMatch(server, /status:\s*['"](?:checked|passed|ready|ok)['"]/, 'server target preflight shell must not produce passed readiness by default');
+assert.doesNotMatch(server, /from ['"]node:fs|existsSync|readFileSync|statSync|accessSync|create_book_backup|write_lock_service|_open_piecash_book_for_write|GnuCashWriteService/, 'target preflight shell must not probe files/books or call backup/lock/write helpers');
 
 assert.ok(server.includes('apiFetch<Account[]>(fetch, `${bookPrefix}/accounts`, token)'), '/transactions/new must load accounts read-only through the active book context');
 assert.ok(server.includes('accounts.filter((account) => !account.placeholder && !account.hidden)'), '/transactions/new must filter placeholder/hidden accounts server-side');
@@ -217,7 +244,24 @@ for (const requiredServerFragment of [
 	'const allowedCreateCount = 0',
 	'const targetClass = null',
 	'create_execution_allowed: false',
-	'writeSessionGate: createWriteSessionGate()'
+	'writeSessionGate: createWriteSessionGate()',
+	'type TargetPreflight',
+	'function createTargetPreflight',
+	"required: true",
+	"status: 'not_checked'",
+	"id: 'target_file_exists_readable'",
+	"id: 'target_outside_repo'",
+	"id: 'desktop_closed'",
+	"id: 'no_concurrent_writer_lock'",
+	"id: 'no_lck_lnk'",
+	"id: 'no_syncthing_conflict_before'",
+	"id: 'independent_backup_exists'",
+	"id: 'restore_proof_available'",
+	"id: 'reviewed_non_stale_preview'",
+	"id: 'exact_create_count_one'",
+	"id: 'reset_disabled_probes_required'",
+	"id: 'manual_desktop_verification_required'",
+	'targetPreflight: createTargetPreflight()'
 ]) {
 	assert.ok(server.includes(requiredServerFragment), `transaction-entry server action missing required fragment: ${requiredServerFragment}`);
 }
