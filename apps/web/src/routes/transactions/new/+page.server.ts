@@ -28,6 +28,33 @@ type ApiPostResult<T> = {
 	body: T | ApiErrorBody;
 };
 
+type RedactedReadinessStatus<T extends string> = {
+	status: T;
+	redacted: true;
+};
+
+type CreateReadinessStatus = {
+	preview_only: true;
+	status: 'disabled';
+	writes_enabled: boolean;
+	session_armed: false;
+	create_execution_allowed: false;
+	create_execution_reason: string;
+	allowed_create_count: 0;
+	target_class: null;
+	readiness_required: true;
+	readiness_status: 'not_checked';
+	readiness_state: {
+		writes_enabled: RedactedReadinessStatus<'disabled' | 'enabled_but_blocked'> & { enabled: boolean };
+		session_armed: RedactedReadinessStatus<'not_armed'> & { armed: false };
+		allowed_create_count: RedactedReadinessStatus<'blocked'> & { count: 0 };
+		target: RedactedReadinessStatus<'not_selected'> & { target_class: null; private_target_probed: false };
+		preflight: RedactedReadinessStatus<'not_checked'> & { required: true; private_target_probed: false };
+		backup: RedactedReadinessStatus<'not_checked'> & { required: true; backup_helper_called: false };
+		allowed_execution: RedactedReadinessStatus<'blocked'> & { allowed: false; reason: string };
+	};
+};
+
 type TargetClass = 'test_copy' | 'owner_selected_target';
 
 type WriteSessionGate = {
@@ -83,6 +110,46 @@ const FIELD_LABELS: Record<PreviewFieldName, string> = {
 	description: 'description',
 	memo: 'memo'
 };
+
+function createDefaultReadinessStatus(writesEnabled = truthyEnv(env.GNUCASH_WRITES_ENABLED)): CreateReadinessStatus {
+	const createExecutionReason = writesEnabled
+		? 'Write gates may be enabled, but no owner-approved web UI CREATE session is armed.'
+		: 'GNUCASH_WRITES_ENABLED=false; write session not armed.';
+	return {
+		preview_only: true,
+		status: 'disabled',
+		writes_enabled: writesEnabled,
+		session_armed: false,
+		create_execution_allowed: false,
+		create_execution_reason: createExecutionReason,
+		allowed_create_count: 0,
+		target_class: null,
+		readiness_required: true,
+		readiness_status: 'not_checked',
+		readiness_state: {
+			writes_enabled: { enabled: writesEnabled, status: writesEnabled ? 'enabled_but_blocked' : 'disabled', redacted: true },
+			session_armed: { armed: false, status: 'not_armed', redacted: true },
+			allowed_create_count: { count: 0, status: 'blocked', redacted: true },
+			target: { target_class: null, status: 'not_selected', private_target_probed: false, redacted: true },
+			preflight: { required: true, status: 'not_checked', private_target_probed: false, redacted: true },
+			backup: { required: true, status: 'not_checked', backup_helper_called: false, redacted: true },
+			allowed_execution: { allowed: false, status: 'blocked', reason: createExecutionReason, redacted: true }
+		}
+	};
+}
+
+async function apiGetOptional<T>(fetchFn: typeof fetch, path: string, token: string, fallback: T): Promise<T> {
+	const apiBase = env.API_INTERNAL_URL ?? 'http://localhost:8000';
+	try {
+		const response = await fetchFn(`${apiBase}${path}`, {
+			headers: { authorization: `Bearer ${token}` }
+		});
+		if (!response.ok) return fallback;
+		return (await response.json()) as T;
+	} catch {
+		return fallback;
+	}
+}
 
 async function apiPost<T>(fetchFn: typeof fetch, path: string, token: string, payload: unknown): Promise<ApiPostResult<T>> {
 	const apiBase = env.API_INTERNAL_URL ?? 'http://localhost:8000';
@@ -236,18 +303,16 @@ function truthyEnv(value: string | undefined): boolean {
 	return ['1', 'true', 'yes', 'on'].includes(String(value ?? '').trim().toLowerCase());
 }
 
-function createWriteSessionGate(): WriteSessionGate {
-	const writesEnabled = truthyEnv(env.GNUCASH_WRITES_ENABLED);
-	const sessionArmed = false;
-	const allowedCreateCount = 0;
-	const targetClass = null;
+function createWriteSessionGate(status = createDefaultReadinessStatus()): WriteSessionGate {
+	const writesEnabled = status.readiness_state.writes_enabled.enabled;
+	const sessionArmed = status.readiness_state.session_armed.armed;
+	const allowedCreateCount = status.readiness_state.allowed_create_count.count;
+	const targetClass = status.readiness_state.target.target_class;
 	return {
 		writes_enabled: writesEnabled,
 		session_armed: sessionArmed,
-		create_execution_allowed: false,
-		create_execution_reason: writesEnabled
-			? 'Write gates may be enabled, but no owner-approved web UI CREATE session is armed.'
-			: 'GNUCASH_WRITES_ENABLED=false; write session not armed.',
+		create_execution_allowed: status.readiness_state.allowed_execution.allowed,
+		create_execution_reason: status.readiness_state.allowed_execution.reason,
 		allowed_create_count: allowedCreateCount,
 		target_class: targetClass
 	};
@@ -414,12 +479,22 @@ export const load: PageServerLoad = async ({ cookies, fetch }) => {
 	const token = getAuthToken(cookies);
 	const { books, activeBook, bookPrefix } = await getActiveBookContext(fetch, cookies, token);
 	const accounts = activeBook ? await apiFetch<Account[]>(fetch, `${bookPrefix}/accounts`, token) : [];
+	const defaultReadinessStatus = createDefaultReadinessStatus();
+	const createReadinessStatus = activeBook
+		? await apiGetOptional<CreateReadinessStatus>(
+			fetch,
+			`${bookPrefix}/transactions/create-readiness-status`,
+			token,
+			defaultReadinessStatus
+		)
+		: defaultReadinessStatus;
 	return {
 		books,
 		accounts: accounts.filter((account) => !account.placeholder && !account.hidden),
 		activeBook,
 		previewOnly: true,
-		writeSessionGate: createWriteSessionGate(),
+		createReadinessStatus,
+		writeSessionGate: createWriteSessionGate(createReadinessStatus),
 		targetPreflight: createTargetPreflight(),
 		executionReadiness: createExecutionReadiness()
 	};

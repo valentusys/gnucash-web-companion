@@ -127,6 +127,7 @@ function assertSourceSafety() {
 	);
 	assert.match(page, /id="write-session-gate"[\s\S]*Preview mode[\s\S]*Write session not armed[\s\S]*CREATE execution unavailable without fresh owner approval/s, 'write-session gate must default to preview mode and not armed');
 	assert.match(page, /writes_enabled:[\s\S]*session_armed:[\s\S]*create_execution_allowed:[\s\S]*allowed_create_count:[\s\S]*target_class:/s, 'write-session gate must expose safe redacted status fields');
+	assert.match(page, /id="redacted-create-readiness-state"[\s\S]*Redacted read-only readiness state[\s\S]*writes_enabled status[\s\S]*allowed execution status/s, 'page must expose the redacted read-only readiness object fields');
 	assert.match(page, /id="armed-session-requirements"[\s\S]*Target class required[\s\S]*Exact CREATE count required[\s\S]*preview-reviewed checkbox alone is not enough/s, 'armed-session requirements panel must remain disabled placeholder guidance');
 	assert.match(page, /id="target-preflight-readiness"[\s\S]*Target preflight required[\s\S]*Target readiness not checked[\s\S]*Default state: all target readiness checks are pending \/ not checked \/ not armed/s, 'target preflight shell must default to not checked/pending');
 	assert.match(page, /id="target-preflight-checklist"/, 'target preflight checklist must be rendered');
@@ -148,13 +149,13 @@ function assertSourceSafety() {
 	assert.doesNotMatch(page, /localStorage|sessionStorage/, 'preview smoke requires no browser storage persistence');
 	assert.match(server, /export const actions: Actions = \{\s*preview:\s*async/s, '/transactions/new must expose only the preview action');
 	assert.deepEqual(
-		[...new Set([...server.matchAll(/\/transactions(?:\/create-preview|\/validate)?/g)].map((match) => match[0]))],
-		['/transactions/create-preview'],
-		'create-preview must remain the only transaction submission target in /transactions/new server code'
+		[...new Set([...server.matchAll(/\/transactions(?:\/create-readiness-status|\/create-preview|\/validate)?/g)].map((match) => match[0]))],
+		['/transactions/create-readiness-status', '/transactions/create-preview'],
+		'read-only create-readiness-status and create-preview must remain the only transaction targets in /transactions/new server code'
 	);
 	assert.doesNotMatch(server, /\b(?:create|validate)\s*:\s*async/, '/transactions/new must not define active create or validate actions');
 	assert.doesNotMatch(server, /\/transactions\/validate|`\/books\/\$\{bookId\}\/transactions`|hasWriteAcknowledgement/, '/transactions/new must not call validate/write API paths');
-	assert.match(server, /function createWriteSessionGate\(\)[\s\S]*const sessionArmed = false[\s\S]*const allowedCreateCount = 0[\s\S]*create_execution_allowed: false/s, 'server write-session gate must default to unarmed and CREATE-disabled');
+	assert.match(server, /function createWriteSessionGate\(status = createDefaultReadinessStatus\(\)\)[\s\S]*status\.readiness_state\.session_armed\.armed[\s\S]*status\.readiness_state\.allowed_create_count\.count[\s\S]*create_execution_allowed: status\.readiness_state\.allowed_execution\.allowed/s, 'server write-session gate must derive from redacted readiness status and stay CREATE-disabled');
 	assert.match(server, /function createTargetPreflight\(\)[\s\S]*required: true[\s\S]*status: 'not_checked'[\s\S]*target_class: targetClass[\s\S]*status: 'pending'/s, 'server target preflight must default to required/not_checked/pending');
 	assert.match(server, /function createExecutionReadiness\(\)[\s\S]*required: true[\s\S]*status: 'not_checked'[\s\S]*backup_state: 'pending'[\s\S]*read_back_state: 'pending'[\s\S]*audit_state: 'pending'[\s\S]*reset_state: 'pending'[\s\S]*probe_state: 'pending'[\s\S]*status: 'pending'/s, 'server execution readiness must default to required/not_checked/pending');
 	assert.doesNotMatch(server, /from ['"]node:fs|existsSync|readFileSync|statSync|accessSync|create_book_backup|write_lock_service|_open_piecash_book_for_write|GnuCashWriteService/, 'target preflight shell must not probe files/books or call backup/lock/write helpers');
@@ -214,6 +215,29 @@ async function startSyntheticApi() {
 			}
 			if (req.method === 'GET' && url.pathname === '/books/1/accounts') {
 				return jsonResponse(res, 200, syntheticAccounts);
+			}
+			if (req.method === 'GET' && url.pathname === '/books/1/transactions/create-readiness-status') {
+				return jsonResponse(res, 200, {
+					preview_only: true,
+					status: 'disabled',
+					writes_enabled: false,
+					session_armed: false,
+					create_execution_allowed: false,
+					create_execution_reason: 'GNUCASH_WRITES_ENABLED=false; write session not armed.',
+					allowed_create_count: 0,
+					target_class: null,
+					readiness_required: true,
+					readiness_status: 'not_checked',
+					readiness_state: {
+						writes_enabled: { enabled: false, status: 'disabled', redacted: true },
+						session_armed: { armed: false, status: 'not_armed', redacted: true },
+						allowed_create_count: { count: 0, status: 'blocked', redacted: true },
+						target: { target_class: null, status: 'not_selected', private_target_probed: false, redacted: true },
+						preflight: { required: true, status: 'not_checked', private_target_probed: false, redacted: true },
+						backup: { required: true, status: 'not_checked', backup_helper_called: false, redacted: true },
+						allowed_execution: { allowed: false, status: 'blocked', reason: 'GNUCASH_WRITES_ENABLED=false; write session not armed.', redacted: true }
+					}
+				});
 			}
 			if (req.method === 'POST' && url.pathname === '/books/1/transactions/create-preview') {
 				const payload = await readBody(req);

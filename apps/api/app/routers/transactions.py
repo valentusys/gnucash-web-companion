@@ -581,21 +581,64 @@ CREATE_READINESS_STATUS_CHECKS = (
 
 def _build_create_readiness_status(settings: Settings) -> dict[str, Any]:
     writes_enabled = settings.gnucash_writes_enabled
+    create_execution_reason = (
+        "Write gates may be enabled, but no owner-approved web UI CREATE session is armed."
+        if writes_enabled
+        else "GNUCASH_WRITES_ENABLED=false; write session not armed."
+    )
+    readiness_state = {
+        "writes_enabled": {
+            "enabled": writes_enabled,
+            "status": "enabled_but_blocked" if writes_enabled else "disabled",
+            "redacted": True,
+        },
+        "session_armed": {
+            "armed": False,
+            "status": "not_armed",
+            "redacted": True,
+        },
+        "allowed_create_count": {
+            "count": 0,
+            "status": "blocked",
+            "redacted": True,
+        },
+        "target": {
+            "target_class": None,
+            "status": "not_selected",
+            "private_target_probed": False,
+            "redacted": True,
+        },
+        "preflight": {
+            "required": True,
+            "status": "not_checked",
+            "private_target_probed": False,
+            "redacted": True,
+        },
+        "backup": {
+            "required": True,
+            "status": "not_checked",
+            "backup_helper_called": False,
+            "redacted": True,
+        },
+        "allowed_execution": {
+            "allowed": False,
+            "status": "blocked",
+            "reason": create_execution_reason,
+            "redacted": True,
+        },
+    }
     return {
         "preview_only": True,
         "status": "disabled",
         "writes_enabled": writes_enabled,
         "session_armed": False,
         "create_execution_allowed": False,
-        "create_execution_reason": (
-            "Write gates may be enabled, but no owner-approved web UI CREATE session is armed."
-            if writes_enabled
-            else "GNUCASH_WRITES_ENABLED=false; write session not armed."
-        ),
+        "create_execution_reason": create_execution_reason,
         "allowed_create_count": 0,
         "target_class": None,
         "readiness_required": True,
         "readiness_status": "not_checked",
+        "readiness_state": readiness_state,
         "checks": [dict(check) for check in CREATE_READINESS_STATUS_CHECKS],
         "limitations": [
             "Read-only redacted status only; no CREATE/PATCH/DELETE/batch route is called.",

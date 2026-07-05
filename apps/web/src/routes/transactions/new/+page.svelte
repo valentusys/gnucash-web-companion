@@ -53,6 +53,17 @@
 		probe_state: 'pending';
 		checks: ExecutionReadinessCheck[];
 	};
+	type CreateReadinessStatus = {
+		readiness_state: {
+			writes_enabled: { enabled: boolean; status: 'disabled' | 'enabled_but_blocked'; redacted: true };
+			session_armed: { armed: false; status: 'not_armed'; redacted: true };
+			allowed_create_count: { count: 0; status: 'blocked'; redacted: true };
+			target: { target_class: TargetClass | null; status: 'not_selected'; private_target_probed: false; redacted: true };
+			preflight: { required: true; status: 'not_checked'; private_target_probed: false; redacted: true };
+			backup: { required: true; status: 'not_checked'; backup_helper_called: false; redacted: true };
+			allowed_execution: { allowed: false; status: 'blocked'; reason: string; redacted: true };
+		};
+	};
 	type PreviewFieldErrors = Partial<Record<keyof PreviousPayload | 'book_id', string>>;
 
 	const today = new Date().toISOString().slice(0, 10);
@@ -84,6 +95,17 @@
 			{ id: 'manual_desktop_verification_required', label: 'Manual Desktop verification required', status: 'pending', note: 'Pending: owner Desktop verification is required.' }
 		]
 	};
+	const defaultCreateReadinessStatus: CreateReadinessStatus = {
+		readiness_state: {
+			writes_enabled: { enabled: false, status: 'disabled', redacted: true },
+			session_armed: { armed: false, status: 'not_armed', redacted: true },
+			allowed_create_count: { count: 0, status: 'blocked', redacted: true },
+			target: { target_class: null, status: 'not_selected', private_target_probed: false, redacted: true },
+			preflight: { required: true, status: 'not_checked', private_target_probed: false, redacted: true },
+			backup: { required: true, status: 'not_checked', backup_helper_called: false, redacted: true },
+			allowed_execution: { allowed: false, status: 'blocked', reason: 'GNUCASH_WRITES_ENABLED=false; write session not armed.', redacted: true }
+		}
+	};
 	const defaultExecutionReadiness: ExecutionReadiness = {
 		required: true,
 		status: 'not_checked',
@@ -109,6 +131,8 @@
 	const writeSessionGate = $derived(((data.writeSessionGate ?? defaultWriteSessionGate) as WriteSessionGate));
 	const targetPreflight = $derived(((data.targetPreflight ?? defaultTargetPreflight) as TargetPreflight));
 	const executionReadiness = $derived(((data.executionReadiness ?? defaultExecutionReadiness) as ExecutionReadiness));
+	const createReadinessStatus = $derived(((data.createReadinessStatus ?? defaultCreateReadinessStatus) as CreateReadinessStatus));
+	const readinessState = $derived(createReadinessStatus.readiness_state);
 	const fieldErrors = $derived(((form as any)?.fieldErrors ?? {}) as PreviewFieldErrors);
 	const currentBookId = $derived(previous.book_id || String(data.activeBook?.id ?? ''));
 	const selectedBook = $derived((data.books as Book[]).find((book) => String(book.id) === currentBookId) ?? data.activeBook);
@@ -290,6 +314,19 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 				<li>Manual Desktop verification required for the first UI CREATE trial.</li>
 			</ul>
 			<p class="mt-2 font-semibold">PATCH 0 / DELETE 0 / batch 0. Default state remains disabled/inert.</p>
+		</div>
+		<div id="redacted-create-readiness-state" class="mt-4 rounded-xl p-3" aria-label="Redacted read-only CREATE readiness state" style="border: 1px solid #fbbf24; background: #fff7ed;">
+			<p class="font-semibold">Redacted read-only readiness state</p>
+			<p class="mt-1 text-xs">Loaded from the read-only status endpoint when owner access allows it; otherwise safe defaults are used. No private target, backup path, account name, amount, memo, or transaction data is shown.</p>
+			<dl class="mt-3 grid min-w-0 gap-2 text-xs md:grid-cols-2">
+				<div class="rounded-lg px-3 py-2" style="background: #fffbeb;"><dt class="font-semibold">writes_enabled status</dt><dd>{readinessState.writes_enabled.status}</dd></div>
+				<div class="rounded-lg px-3 py-2" style="background: #fffbeb;"><dt class="font-semibold">session_armed status</dt><dd>{readinessState.session_armed.status}</dd></div>
+				<div class="rounded-lg px-3 py-2" style="background: #fffbeb;"><dt class="font-semibold">allowed_create_count status</dt><dd>{readinessState.allowed_create_count.status}; count {readinessState.allowed_create_count.count}</dd></div>
+				<div class="rounded-lg px-3 py-2" style="background: #fffbeb;"><dt class="font-semibold">target status</dt><dd>{readinessState.target.status}; class {readinessState.target.target_class ?? 'redacted/unset'}</dd></div>
+				<div class="rounded-lg px-3 py-2" style="background: #fffbeb;"><dt class="font-semibold">preflight status</dt><dd>{readinessState.preflight.status}; private probe {String(readinessState.preflight.private_target_probed)}</dd></div>
+				<div class="rounded-lg px-3 py-2" style="background: #fffbeb;"><dt class="font-semibold">backup status</dt><dd>{readinessState.backup.status}; helper called {String(readinessState.backup.backup_helper_called)}</dd></div>
+				<div class="rounded-lg px-3 py-2 md:col-span-2" style="background: #fffbeb;"><dt class="font-semibold">allowed execution status</dt><dd>{readinessState.allowed_execution.status}; allowed {String(readinessState.allowed_execution.allowed)}</dd></div>
+			</dl>
 		</div>
 	</section>
 

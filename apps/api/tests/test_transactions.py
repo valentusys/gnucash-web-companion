@@ -329,6 +329,35 @@ class TestTransactionCreateReadinessStatus:
         assert data["target_class"] is None
         assert data["readiness_required"] is True
         assert data["readiness_status"] == "not_checked"
+        assert data["readiness_state"] == {
+            "writes_enabled": {"enabled": False, "status": "disabled", "redacted": True},
+            "session_armed": {"armed": False, "status": "not_armed", "redacted": True},
+            "allowed_create_count": {"count": 0, "status": "blocked", "redacted": True},
+            "target": {
+                "target_class": None,
+                "status": "not_selected",
+                "private_target_probed": False,
+                "redacted": True,
+            },
+            "preflight": {
+                "required": True,
+                "status": "not_checked",
+                "private_target_probed": False,
+                "redacted": True,
+            },
+            "backup": {
+                "required": True,
+                "status": "not_checked",
+                "backup_helper_called": False,
+                "redacted": True,
+            },
+            "allowed_execution": {
+                "allowed": False,
+                "status": "blocked",
+                "reason": "GNUCASH_WRITES_ENABLED=false; write session not armed.",
+                "redacted": True,
+            },
+        }
         assert data["checks"]
         assert {check["status"] for check in data["checks"]} == {"pending"}
         assert "No private target probing" in data["limitations"][1]
@@ -356,6 +385,17 @@ class TestTransactionCreateReadinessStatus:
         assert data["allowed_create_count"] == 0
         assert data["target_class"] is None
         assert data["readiness_status"] == "not_checked"
+        assert data["readiness_state"]["writes_enabled"] == {
+            "enabled": True,
+            "status": "enabled_but_blocked",
+            "redacted": True,
+        }
+        assert data["readiness_state"]["allowed_execution"] == {
+            "allowed": False,
+            "status": "blocked",
+            "reason": "Write gates may be enabled, but no owner-approved web UI CREATE session is armed.",
+            "redacted": True,
+        }
 
     def test_viewer_cannot_read_owner_create_readiness_status(
         self, client, viewer_headers, viewer_user, sample_book, session_factory
