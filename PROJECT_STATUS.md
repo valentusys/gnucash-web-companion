@@ -135,7 +135,7 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   `create_result_state=blocked`, success/failure states `pending`, rollback state `not_run`, and redacted success,
   failure, rollback-decision, and post-result disabled-probe checklist steps without executing or claiming any
   mutation result. Final synthetic write gates passed on 2026-07-08 with the exact task commands: backend
-  pytest passed 1003 tests; frontend check/build/static preview/auth route/synthetic browser preview gates passed;
+  pytest passed 1018 tests; frontend check/build/static preview/auth route/synthetic browser preview gates passed;
   Docker Compose config, public-status, write-defaults, markdown-readability, tracked-hygiene, and diff
   whitespace gates passed. #49
   requires fresh same-context owner/PM approval, exact target class, exact CREATE count, first-trial default
