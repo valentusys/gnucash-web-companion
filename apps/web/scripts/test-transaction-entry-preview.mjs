@@ -230,6 +230,12 @@ assert.match(page, /let draftChangedAfterPreview = \$state\(false\)/, 'preview p
 assert.match(page, /function handleDraftChange\(\)[\s\S]*draftChangedAfterPreview = true[\s\S]*previewReviewed = false/s, 'draft changes after preview must mark the current preview stale and reset local review state');
 assert.match(page, /id="preview-reviewed-confirmation"[\s\S]*type="checkbox"[\s\S]*bind:checked=\{previewReviewed\}/s, 'confirmation shell must expose a local-only preview-reviewed checkbox');
 assert.match(page, /id="future-create-disabled"[\s\S]*type="button"[\s\S]*disabled/s, 'future create control in the confirmation shell must remain disabled and non-submitting');
+const previewFormEndIndex = page.indexOf('</form>');
+const futureCreateIndex = page.indexOf('id="future-create-disabled"');
+assert.ok(previewFormEndIndex > 0 && futureCreateIndex > previewFormEndIndex, 'Future Create disabled control must remain outside the preview submission form');
+const futureCreateButton = page.match(/<button\b(?=[^>]*id="future-create-disabled")(?=[^>]*type="button")(?=[^>]*disabled)[^>]*>/s)?.[0] ?? '';
+assert.ok(futureCreateButton, 'Future Create disabled button must be statically present');
+assert.doesNotMatch(futureCreateButton, /\b(?:formaction|name|value)=/, 'Future Create disabled button must not define submitted attributes');
 assert.match(page, /id="approval-packet"[\s\S]*no approval is recorded[\s\S]*Future Create remains disabled/s, 'approval packet must stay no-write and cannot record approval');
 assert.match(page, /safeApprovalTemplate = `[\s\S]*Target book: <selected book in web UI>[\s\S]*Source\/debit account: <selected source account>[\s\S]*Description: <description>/s, 'approval template must be placeholder-only and redacted');
 assert.match(page, /navigator\.clipboard\.writeText\(safeApprovalTemplate\)/, 'copy button must copy only the safe redacted approval template');
@@ -347,6 +353,11 @@ for (const requiredServerFragment of [
 }
 const formActionTargets = [...page.matchAll(/formaction="([^"]+)"/g)].map((match) => match[1]);
 assert.deepEqual([...new Set(formActionTargets)], ['?/preview'], 'preview page form actions must be limited to the preview action');
+const submitButtons = [...page.matchAll(/<button\b(?=[^>]*type="submit")([^>]*)>([\s\S]*?)<\/button>/g)].map((match) => ({
+	attrs: match[1],
+	label: match[2].replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim()
+}));
+assert.deepEqual(submitButtons, [{ attrs: ' formaction="?/preview" formnovalidate class="rounded-xl px-4 py-2 font-semibold" style="border: 1px solid var(--app-border); color: var(--app-text);" type="submit"', label: 'Preview transaction' }], 'the preview submit button must be the only submit control and must target ?/preview');
 assert.doesNotMatch(
 	server,
 	/method:\s*['"`](?:PUT|PATCH|DELETE)['"`]|\/transactions\/(?:batch|import|delete|patch)|owner-writebeta|write-alpha/i,
@@ -359,6 +370,12 @@ assert.match(
 );
 const transactionSubmissionTargets = [...server.matchAll(/\/transactions(?:\/create-readiness-status|\/create-preview|\/validate)?/g)].map((match) => match[0]);
 assert.deepEqual([...new Set(transactionSubmissionTargets)], ['/transactions/create-readiness-status', '/transactions/create-preview'], 'read-only create-readiness-status and create-preview must be the only transaction targets in /transactions/new server code');
+const actionsBlock = server.match(/export const actions: Actions = \{([\s\S]*?)\n\};/)?.[1] ?? '';
+assert.ok(actionsBlock, '/transactions/new server route must define a bounded actions object');
+assert.deepEqual([...actionsBlock.matchAll(/^\s*([A-Za-z0-9_]+):\s*async/gm)].map((match) => match[1]), ['preview'], '/transactions/new must expose preview as its only server action');
+const apiPostTargets = [...server.matchAll(/(?:^|\n)\s*const\s+\w+\s*=\s*await\s+apiPost<[\s\S]*?>\(\s*fetch,\s*`([^`]+)`/g)].map((match) => match[1]);
+assert.deepEqual(apiPostTargets, ['/books/${bookId}/transactions/create-preview'], 'create-preview must be the only server-side POST target reachable from the transaction-entry action');
+assert.equal([...server.matchAll(/method:\s*['"`]POST['"`]/g)].length, 1, '/transactions/new server code must keep POST centralized in the preview JSON helper only');
 assert.match(
 	server,
 	/function sanitizeCreateReadinessStatus\(value: unknown, fallback = createDefaultReadinessStatus\(\)\)[\s\S]*writesEnabledFromReadinessStatus\(value\)[\s\S]*return createDefaultReadinessStatus\(writesEnabled\)/,

@@ -479,6 +479,7 @@ class TestTransactionCreatePreview:
         monkeypatch,
         message="mutation/write path must not be reached for preview",
     ):
+        import app.routers.owner_writebeta as owner_writebeta_router
         import app.routers.transactions as transactions_router
         import app.services.gnucash_write as gnucash_write_module
 
@@ -499,6 +500,7 @@ class TestTransactionCreatePreview:
         ):
             monkeypatch.setattr(transactions_router, guarded_name, fail_if_called)
 
+        monkeypatch.setattr(owner_writebeta_router, "require_owner_writebeta_if_active", fail_if_called)
         monkeypatch.setattr(gnucash_write_module, "create_book_backup", fail_if_called)
         monkeypatch.setattr(gnucash_write_module.write_lock_service, "lock", fail_if_called)
         monkeypatch.setattr(gnucash_write_module.write_lock_service, "acquire", fail_if_called)
@@ -750,6 +752,7 @@ class TestTransactionCreatePreview:
             "_write_service_for",
             "GnuCashWriteService",
             "create_transaction",
+            "validate_transaction_create",
             "patch_transaction",
             "delete_transaction",
             "_audit_log",
@@ -758,8 +761,11 @@ class TestTransactionCreatePreview:
             "_require_write_alpha_transaction_ownership",
             "_mark_write_alpha_transaction_mutated",
             "_backup_audit_fields",
+            "_write_lock_detail",
             "write_lock_service",
+            "_open_piecash_book_for_write",
             "create_book_backup",
+            "create-readiness-status",
             "require_owner_writebeta_if_active",
         ):
             assert forbidden not in source

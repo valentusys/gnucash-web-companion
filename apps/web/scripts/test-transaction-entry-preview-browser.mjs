@@ -144,6 +144,12 @@ function assertSourceSafety() {
 	assert.match(page, /id="approval-packet"[\s\S]*Future Create remains disabled/s, 'approval packet must stay visible and no-write');
 	assert.match(page, /id="preview-stale-warning"[\s\S]*stale and cannot support a future owner-approved CREATE/s, 'stale-preview warning must remain present');
 	assert.match(page, /id="future-create-disabled"[\s\S]*type="button"[\s\S]*disabled/s, 'Future Create must remain disabled and non-submitting');
+	const previewFormEndIndex = page.indexOf('</form>');
+	const futureCreateIndex = page.indexOf('id="future-create-disabled"');
+	assert.ok(previewFormEndIndex > 0 && futureCreateIndex > previewFormEndIndex, 'Future Create disabled control must remain outside the preview submission form');
+	const futureCreateButton = page.match(/<button\b(?=[^>]*id="future-create-disabled")(?=[^>]*type="button")(?=[^>]*disabled)[^>]*>/s)?.[0] ?? '';
+	assert.ok(futureCreateButton, 'Future Create disabled button must be statically present');
+	assert.doesNotMatch(futureCreateButton, /\b(?:formaction|name|value)=/, 'Future Create disabled button must not define submitted attributes');
 	assert.match(page, /navigator\.clipboard\.writeText\(safeApprovalTemplate\)/, 'copy button must use the static placeholder-only approval template');
 	assert.doesNotMatch(page, /clipboard\.writeText\([^)]*preview\./, 'copy button must not copy private preview values');
 	assert.doesNotMatch(page, /localStorage|sessionStorage/, 'preview smoke requires no browser storage persistence');
@@ -700,6 +706,11 @@ async function runSmoke() {
 		assert.match(readinessText, /Preview-reviewed checkbox alone is not enough/, 'future create readiness must state reviewed checkbox alone is insufficient');
 		assert.equal(await evaluate(cdp, `document.querySelector('#future-create-disabled')?.disabled === true`), true, 'Future Create must remain disabled');
 		assert.equal(await evaluate(cdp, `document.querySelector('#future-create-disabled')?.type === 'button'`), true, 'Future Create must stay a non-submit button');
+		assert.equal(await evaluate(cdp, `document.querySelector('#future-create-disabled')?.closest('form') === null`), true, 'Future Create must remain outside the preview submission form');
+		assert.equal(await evaluate(cdp, `(() => {
+			const button = document.querySelector('#future-create-disabled');
+			return Boolean(button && !button.hasAttribute('formaction') && !button.hasAttribute('name') && !button.hasAttribute('value'));
+		})()`), true, 'Future Create must not define submitted attributes');
 		await assertDisabledButtonInert(cdp, '#future-create-disabled', 'Future Create disabled', browserRequests, 'post-preview Future Create');
 
 		const renderedTemplate = await evaluate(cdp, `document.querySelector('#approval-packet pre')?.innerText ?? ''`);
@@ -743,7 +754,15 @@ async function runSmoke() {
 		assert.ok(createReadinessStatusCalls.length >= 1, 'browser smoke must load create-readiness-status as read-only status');
 		const createPreviewCalls = api.requests.filter((request) => request.method === 'POST' && request.path === '/books/1/transactions/create-preview');
 		assert.equal(createPreviewCalls.length, 1, 'browser smoke must call create-preview exactly once through the server action');
-		assert.ok(browserRequests.some((request) => request.method === 'POST' && new URL(request.url).pathname === '/transactions/new'), 'browser must submit only the /transactions/new preview action');
+		const transactionEntryAppSubmissions = browserRequests.filter((request) => {
+			const url = new URL(request.url);
+			return request.method === 'POST' && url.pathname === '/transactions/new';
+		});
+		assert.deepEqual(
+			transactionEntryAppSubmissions.map((request) => new URL(request.url).search),
+			['?/preview'],
+			'browser must submit the transaction-entry form exactly once and only to the preview action'
+		);
 	} catch (error) {
 		if (webProcess) console.error(`web-server-output-tail:\n${webProcess.outputTail()}`);
 		if (chromiumProcess) console.error(`chromium-output-tail:\n${chromiumProcess.outputTail()}`);
