@@ -416,7 +416,11 @@ for (const requiredListFragment of [
 	'Preview new transaction (no write)',
 	'Available while writes are disabled',
 	'preview-only form',
-	'No CREATE/PATCH/DELETE/batch action is available.'
+	'No CREATE/PATCH/DELETE/batch action is available.',
+	'transactions-empty-preview-link',
+	'Preview transaction entry (no write)',
+	'transactions-empty-preview-note',
+	'Opens the same preview-only form from the toolbar'
 ]) {
 	assert.ok(transactionsList.includes(requiredListFragment), `transactions list missing preview-only entry copy: ${requiredListFragment}`);
 }

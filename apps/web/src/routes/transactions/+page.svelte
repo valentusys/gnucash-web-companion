@@ -267,6 +267,20 @@
 					>
 						Review books
 					</a>
+					{#if data.activeBook}
+						<a
+							id="transactions-empty-preview-link"
+							href="/transactions/new"
+							aria-describedby="transactions-empty-preview-note"
+							class="inline-flex min-h-11 items-center justify-center rounded-xl border px-4 py-2 text-sm font-semibold"
+							style="border-color: var(--app-border); color: var(--app-text);"
+						>
+							Preview transaction entry (no write)
+						</a>
+						<p id="transactions-empty-preview-note" class="max-w-xs text-xs" style="color: var(--app-muted);">
+							Opens the same preview-only form from the toolbar; no CREATE/PATCH/DELETE/batch action is available.
+						</p>
+					{/if}
 				</EmptyState>
 			{/if}
 		</div>
