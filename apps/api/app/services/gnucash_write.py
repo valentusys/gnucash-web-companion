@@ -71,10 +71,11 @@ class GnuCashWriteService(GnuCashBookService):
         Checks:
         - At least two splits
         - Sum of splits equals zero per currency
+        - Single-currency CREATE only; no synthetic conversion is attempted
         - All accounts exist
         - Amounts are valid decimal strings
-        - Placeholder accounts are warned/blocked
-        - Currency is valid
+        - Placeholder/hidden accounts are blocked
+        - Currency is valid and matches each account
         """
         errors: list[str] = []
         warnings: list[str] = []
@@ -111,8 +112,13 @@ class GnuCashWriteService(GnuCashBookService):
                 errors.append(
                     f"Splits do not balance to zero for currency {currency}: sum is {total}"
                 )
+        if len(totals_by_currency) > 1:
+            errors.append(
+                "Multiple split currencies are not supported by write-alpha CREATE; "
+                "submit one currency per synthetic request"
+            )
 
-        # Check accounts exist and are not placeholder
+        # Check accounts exist and are selectable for postings.
         try:
             uri_or_path = self._validate_configured_book()
             book = self._open_piecash_book(uri_or_path)
@@ -125,8 +131,14 @@ class GnuCashWriteService(GnuCashBookService):
                         errors.append(
                             f"Account {split.account_id} is a placeholder account and cannot receive postings"
                         )
+                    elif bool(getattr(account, "hidden", False)):
+                        errors.append(
+                            f"Account {split.account_id} is hidden and cannot receive postings"
+                        )
                     else:
-                        account_currency = str(getattr(getattr(account, "commodity", None), "mnemonic", split.currency))
+                        account_currency = str(
+                            getattr(getattr(account, "commodity", None), "mnemonic", split.currency)
+                        ).upper()
                         if account_currency and account_currency != split.currency.upper():
                             errors.append(
                                 f"Currency {split.currency} does not match account {split.account_id} currency {account_currency}"

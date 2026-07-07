@@ -968,6 +968,40 @@ class TestWriteServiceValidationRules:
         assert result.summary["split_count"] == 3
         assert result.summary["currencies"] == ["SEK"]
 
+    def test_validation_balances_plain_decimal_strings_exactly(self, fake_accounts):
+        service = self._service_with_fake_accounts(fake_accounts)
+
+        result = service.validate_transaction_create(
+            TransactionCreateRequestDTO(
+                date="2026-05-16",
+                description="Float-sensitive decimal validation probe",
+                splits=[
+                    TransactionSplitWriteDTO(
+                        account_id="bank-guid",
+                        amount="-0.30",
+                        currency="SEK",
+                        memo="source",
+                    ),
+                    TransactionSplitWriteDTO(
+                        account_id="food-guid",
+                        amount="0.10",
+                        currency="SEK",
+                        memo="first decimal",
+                    ),
+                    TransactionSplitWriteDTO(
+                        account_id="income-guid",
+                        amount="0.20",
+                        currency="SEK",
+                        memo="second decimal",
+                    ),
+                ],
+            )
+        )
+
+        assert result.valid is True
+        assert result.errors == []
+        assert result.summary["currencies"] == ["SEK"]
+
     def test_validation_rejects_missing_account_even_when_splits_balance(self, fake_accounts):
         service = self._service_with_fake_accounts(fake_accounts)
 
@@ -1030,6 +1064,42 @@ class TestWriteServiceValidationRules:
             "Account placeholder-guid is a placeholder account and cannot receive postings"
         ]
 
+    def test_validation_rejects_hidden_account_even_when_splits_balance_before_write_execution(
+        self, fake_accounts, monkeypatch
+    ):
+        hidden = FakeAccount(
+            guid="hidden-guid",
+            name="Synthetic Hidden Account",
+            type="ASSET",
+            hidden=True,
+        )
+        service = self._service_with_fake_accounts([*fake_accounts, hidden])
+        request = TransactionCreateRequestDTO(
+            date="2026-05-16",
+            description="Balanced hidden account validation probe",
+            splits=[
+                TransactionSplitWriteDTO(
+                    account_id="hidden-guid",
+                    amount="-12.34",
+                    currency="SEK",
+                    memo="hidden",
+                ),
+                TransactionSplitWriteDTO(
+                    account_id="food-guid",
+                    amount="12.34",
+                    currency="SEK",
+                    memo="posting",
+                ),
+            ],
+        )
+
+        self._assert_create_request_rejected_before_execution(
+            service,
+            request,
+            monkeypatch,
+            ["Account hidden-guid is hidden and cannot receive postings"],
+        )
+
     def test_validation_rejects_split_currency_that_differs_from_account_currency(self, fake_accounts):
         usd_account = FakeAccount(
             guid="usd-guid",
@@ -1064,6 +1134,60 @@ class TestWriteServiceValidationRules:
         assert result.errors == [
             "Currency SEK does not match account usd-guid currency USD"
         ]
+
+    def test_validation_rejects_mixed_currency_create_before_write_execution(
+        self, fake_accounts, monkeypatch
+    ):
+        usd_cash = FakeAccount(
+            guid="usd-cash-guid",
+            name="USD Cash",
+            type="BANK",
+            commodity=FakeCommodity("USD"),
+        )
+        usd_income = FakeAccount(
+            guid="usd-income-guid",
+            name="USD Income",
+            type="INCOME",
+            commodity=FakeCommodity("USD"),
+        )
+        service = self._service_with_fake_accounts([*fake_accounts, usd_cash, usd_income])
+        request = TransactionCreateRequestDTO(
+            date="2026-05-16",
+            description="Mixed currency validation probe",
+            splits=[
+                TransactionSplitWriteDTO(
+                    account_id="bank-guid",
+                    amount="-10.00",
+                    currency="SEK",
+                    memo="sek source",
+                ),
+                TransactionSplitWriteDTO(
+                    account_id="food-guid",
+                    amount="10.00",
+                    currency="SEK",
+                    memo="sek target",
+                ),
+                TransactionSplitWriteDTO(
+                    account_id="usd-cash-guid",
+                    amount="-5.00",
+                    currency="USD",
+                    memo="usd source",
+                ),
+                TransactionSplitWriteDTO(
+                    account_id="usd-income-guid",
+                    amount="5.00",
+                    currency="USD",
+                    memo="usd target",
+                ),
+            ],
+        )
+
+        self._assert_create_request_rejected_before_execution(
+            service,
+            request,
+            monkeypatch,
+            ["Multiple split currencies are not supported by write-alpha CREATE"],
+        )
 
     def _assert_create_request_rejected_before_execution(
         self,
