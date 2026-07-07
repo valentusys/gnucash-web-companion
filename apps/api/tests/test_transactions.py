@@ -412,6 +412,65 @@ class TestTransactionCreateReadinessStatus:
             "redacted": True,
         }
 
+    def test_status_ignores_owner_writebeta_confirmation_and_stays_web_ui_blocked(
+        self, client, auth_headers, sample_book, monkeypatch
+    ):
+        from app.routers.owner_writebeta import _SESSIONS
+
+        enabled_settings = TEST_SETTINGS.model_copy(update={"gnucash_writes_enabled": True})
+        app.dependency_overrides[get_settings] = lambda: enabled_settings
+        _SESSIONS.clear()
+        try:
+            preflight = client.post(f"/books/{sample_book}/owner-writebeta/preflight", headers=auth_headers)
+            assert preflight.status_code == 200
+            preview = client.post(
+                f"/books/{sample_book}/owner-writebeta/preview",
+                headers=auth_headers,
+                json={
+                    "operation": "CREATE",
+                    "payload_shape": {"splits": [{"amount": "opaque"}]},
+                    "count": 1,
+                },
+            )
+            assert preview.status_code == 200
+            confirm = client.post(
+                f"/books/{sample_book}/owner-writebeta/confirm",
+                headers=auth_headers,
+                json={
+                    "preview_hash": preview.json()["preview_hash"],
+                    "backup_ref": "bkp-readiness-boundary",
+                    "restore_readiness_ref": "rr-readiness-boundary",
+                },
+            )
+            assert confirm.status_code == 200
+            owner_status = client.get(f"/books/{sample_book}/owner-writebeta/status", headers=auth_headers)
+            assert owner_status.status_code == 200
+            assert owner_status.json()["state"] == "confirmation"
+            assert "preview_confirmed_armed" in owner_status.json()["pass_reasons"]
+
+            self.guard_readiness_side_effect_helpers(monkeypatch)
+
+            response = self.get_status(client, auth_headers, sample_book)
+
+            assert response.status_code == 200
+            data = response.json()
+            assert data["writes_enabled"] is True
+            assert data["session_armed"] is False
+            assert data["create_execution_allowed"] is False
+            assert data["create_execution_reason"] == (
+                "Write gates may be enabled, but no owner-approved web UI CREATE session is armed."
+            )
+            assert data["allowed_create_count"] == 0
+            assert data["target_class"] is None
+            assert data["readiness_status"] == "not_checked"
+            serialized = str(data)
+            assert "owb-prev-" not in serialized
+            assert "owb-conf-" not in serialized
+            assert "bkp-readiness-boundary" not in serialized
+            assert "rr-readiness-boundary" not in serialized
+        finally:
+            _SESSIONS.clear()
+
     def test_viewer_cannot_read_owner_create_readiness_status(
         self, client, viewer_headers, viewer_user, sample_book, session_factory
     ):
