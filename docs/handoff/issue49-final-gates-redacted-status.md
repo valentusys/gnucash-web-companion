@@ -1,22 +1,22 @@
-# Issue #49 final gates redacted status
+# Issue #49 final synthetic gates redacted status
 
-Date: 2026-07-07
+Date: 2026-07-08
 Issue: [#49 Owner web UI CREATE execution trial](https://github.com/valentusys/gnucash-web-companion/issues/49)
 
 ## Verdict
 
-LOCAL GATES PASSED: the completed #49 tracked implementation state remains non-mutating and redacted-only.
+LOCAL FINAL GATES PASSED: the completed #49 tracked implementation state remains non-mutating and redacted-only.
 
-No remaining safe scoped product/code change was identified for this r2 final-gates task. This update refreshes
-redacted gate evidence only. Continue #49 only if a future task is non-mutating and still useful, or if fresh
+No remaining safe scoped product/code change was identified for this final-gates task. This update refreshes
+redacted final synthetic gate evidence only. Continue #49 only if a future task is non-mutating and still useful, or if fresh
 same-context owner/PM approval explicitly authorizes a bounded CREATE trial with exact target class, exact count,
 backup/read-back/audit/reset/probes, and manual Desktop verification.
 
-## Latest verification run (r2)
+## Latest verification run (final-synthetic-write-gates)
 
 Commands were run from the repository root in separate isolated shells.
 
-- `cd apps/api && pytest -q` — passed: 955 passed, 51 warnings.
+- `cd apps/api && pytest -q` — passed: 979 passed, 51 warnings.
 - `cd apps/web && npm run check` — passed: 0 errors, 0 warnings.
 - `cd apps/web && npm run build` — passed.
 - `cd apps/web && npm run test:transaction-entry-preview` — passed: `transaction-entry-preview-static: ok`.
@@ -27,7 +27,7 @@ Commands were run from the repository root in separate isolated shells.
 - `python3 scripts/check_public_status.py` — passed: `public-status-guard: ok`.
 - `python3 scripts/check_write_safety_defaults.py` — passed: default-disabled/write-gate guard ok.
 - `python3 scripts/check_markdown_readability.py` — passed: 27 docs checked.
-- `python3 scripts/check_tracked_hygiene.py` — passed: 1950 tracked paths inspected.
+- `python3 scripts/check_tracked_hygiene.py` — passed: 1956 tracked paths inspected.
 - `git diff --check` — passed.
 
 ## Safety status
