@@ -1676,6 +1676,113 @@ class TestWriteAlphaCreateRouteDisposableFixture:
         assert disposable_write_lock.acquire(lock_key) is True
         disposable_write_lock.release(lock_key)
 
+    def test_enabled_create_route_three_split_reopens_with_exact_fields_and_balance_deltas(
+        self,
+        client,
+        auth_headers,
+        disposable_sample_book,
+        disposable_fixture_book,
+        disposable_write_lock,
+    ):
+        source_guid = "c73e8aa01e6345288662b556f2f866f3"
+        food_guid = "388a85676d4a4643ae6cd28166c34e79"
+        transport_guid = "50b7cedabc8b46238dc15284637733d6"
+        tracked_guids = {source_guid, food_guid, transport_guid}
+        payload = {
+            "date": "2026-06-03",
+            "description": "Route create three split exact coverage",
+            "splits": [
+                {
+                    "account_id": source_guid,
+                    "amount": "-63.33",
+                    "currency": "SEK",
+                    "memo": "source checking for split purchase",
+                },
+                {
+                    "account_id": food_guid,
+                    "amount": "40.00",
+                    "currency": "SEK",
+                    "memo": "destination food portion",
+                },
+                {
+                    "account_id": transport_guid,
+                    "amount": "23.33",
+                    "currency": "SEK",
+                    "memo": "destination transport portion",
+                },
+            ],
+        }
+        txs_before = _read_written_transactions(disposable_fixture_book)
+        before_balances = _read_account_balances(disposable_fixture_book, tracked_guids)
+        assert set(before_balances) == tracked_guids
+
+        response = client.post(
+            f"/books/{disposable_sample_book}/transactions",
+            json=payload,
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 201
+        data = response.json()
+        transaction_id = data["transaction_id"]
+        assert data["readback_verified"] is True
+        assert data["readback_transaction_id"] == transaction_id
+
+        detail_response = client.get(
+            f"/books/{disposable_sample_book}/transactions/{transaction_id}",
+            headers=auth_headers,
+        )
+        assert detail_response.status_code == 200
+        detail = detail_response.json()
+        assert detail["id"] == transaction_id
+        assert detail["date"] == payload["date"]
+        assert detail["description"] == payload["description"]
+        assert detail["currency"] == "SEK"
+        assert detail["is_write_alpha_owned"] is True
+        assert len(detail["splits"]) == 3
+        detail_splits = {split["account_id"]: split for split in detail["splits"]}
+        assert set(detail_splits) == tracked_guids
+        assert detail_splits[source_guid]["amount"] == "-63.33"
+        assert detail_splits[source_guid]["currency"] == "SEK"
+        assert detail_splits[source_guid]["memo"] == "source checking for split purchase"
+        assert detail_splits[food_guid]["amount"] == "40.00"
+        assert detail_splits[food_guid]["currency"] == "SEK"
+        assert detail_splits[food_guid]["memo"] == "destination food portion"
+        assert detail_splits[transport_guid]["amount"] == "23.33"
+        assert detail_splits[transport_guid]["currency"] == "SEK"
+        assert detail_splits[transport_guid]["memo"] == "destination transport portion"
+
+        reopened_txs = _read_written_transactions(disposable_fixture_book)
+        assert len(reopened_txs) == len(txs_before) + 1
+        created = next(tx for tx in reopened_txs if tx["guid"] == transaction_id)
+        assert created["description"] == payload["description"]
+        assert created["post_date"] == date(2026, 6, 3)
+        assert created["currency"] == "SEK"
+        assert len(created["splits"]) == 3
+        reopened_splits = {split["account_guid"]: split for split in created["splits"]}
+        assert set(reopened_splits) == tracked_guids
+        assert reopened_splits[source_guid]["account_name"] == "Checking"
+        assert reopened_splits[source_guid]["value"] == Decimal("-63.33")
+        assert reopened_splits[source_guid]["memo"] == "source checking for split purchase"
+        assert reopened_splits[food_guid]["account_name"] == "Food"
+        assert reopened_splits[food_guid]["value"] == Decimal("40.00")
+        assert reopened_splits[food_guid]["memo"] == "destination food portion"
+        assert reopened_splits[transport_guid]["account_name"] == "Transport"
+        assert reopened_splits[transport_guid]["value"] == Decimal("23.33")
+        assert reopened_splits[transport_guid]["memo"] == "destination transport portion"
+        assert sum(split["value"] for split in created["splits"]) == Decimal("0.00")
+
+        reopened_balances = _read_account_balances(disposable_fixture_book, tracked_guids)
+        assert reopened_balances[source_guid] == before_balances[source_guid] - Decimal("63.33")
+        assert reopened_balances[food_guid] == before_balances[food_guid] + Decimal("40.00")
+        assert reopened_balances[transport_guid] == before_balances[transport_guid] + Decimal("23.33")
+        total_delta = sum(reopened_balances[guid] - before_balances[guid] for guid in tracked_guids)
+        assert total_delta == Decimal("0.00")
+
+        lock_key = str(disposable_fixture_book)
+        assert disposable_write_lock.acquire(lock_key) is True
+        disposable_write_lock.release(lock_key)
+
     def test_enabled_create_readback_failure_returns_503_audits_failure_and_skips_ownership(
         self,
         client,
