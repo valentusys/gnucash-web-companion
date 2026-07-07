@@ -280,7 +280,9 @@ for (const requiredServerFragment of [
 	'status.readiness_state.target.target_class',
 	'create_execution_allowed: status.readiness_state.allowed_execution.allowed',
 	'createReadinessStatus',
-	'apiGetOptional<CreateReadinessStatus>',
+	'apiGetOptional<unknown>',
+	'function sanitizeCreateReadinessStatus',
+	'sanitizeCreateReadinessStatus(rawCreateReadinessStatus, defaultReadinessStatus)',
 	'/transactions/create-readiness-status',
 	'writeSessionGate: createWriteSessionGate(createReadinessStatus)',
 	'type TargetPreflight',
@@ -334,6 +336,16 @@ assert.match(
 );
 const transactionSubmissionTargets = [...server.matchAll(/\/transactions(?:\/create-readiness-status|\/create-preview|\/validate)?/g)].map((match) => match[0]);
 assert.deepEqual([...new Set(transactionSubmissionTargets)], ['/transactions/create-readiness-status', '/transactions/create-preview'], 'read-only create-readiness-status and create-preview must be the only transaction targets in /transactions/new server code');
+assert.match(
+	server,
+	/function sanitizeCreateReadinessStatus\(value: unknown, fallback = createDefaultReadinessStatus\(\)\)[\s\S]*writesEnabledFromReadinessStatus\(value\)[\s\S]*return createDefaultReadinessStatus\(writesEnabled\)/,
+	'/transactions/new must fail-close the displayed readiness status instead of trusting active execution fields from the status endpoint'
+);
+assert.doesNotMatch(
+	server,
+	/status\.session_armed|status\.create_execution_allowed|status\.allowed_create_count|status\.target_class/,
+	'/transactions/new must derive armed/readiness UI from redacted nested safe defaults, not top-level active execution fields'
+);
 assert.doesNotMatch(server, /\b(?:create|validate)\s*:\s*async/, '/transactions/new must not define active create or validate actions');
 assert.doesNotMatch(server, /\/transactions\/validate|`\/books\/\$\{bookId\}\/transactions`|hasWriteAcknowledgement/, '/transactions/new must not call validate/write API paths');
 assert.doesNotMatch(server, /GNUCASH_WRITES_ENABLED[\s\S]{0,160}redirect\(303, '\/transactions'\)/, '/transactions/new must remain reachable when writes are disabled');

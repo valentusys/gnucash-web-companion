@@ -138,6 +138,25 @@ function createDefaultReadinessStatus(writesEnabled = truthyEnv(env.GNUCASH_WRIT
 	};
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null;
+}
+
+function writesEnabledFromReadinessStatus(value: unknown): boolean | null {
+	if (!isRecord(value)) return null;
+	if (typeof value.writes_enabled === 'boolean') return value.writes_enabled;
+	const readinessState = value.readiness_state;
+	if (!isRecord(readinessState)) return null;
+	const writesEnabledState = readinessState.writes_enabled;
+	if (!isRecord(writesEnabledState)) return null;
+	return typeof writesEnabledState.enabled === 'boolean' ? writesEnabledState.enabled : null;
+}
+
+function sanitizeCreateReadinessStatus(value: unknown, fallback = createDefaultReadinessStatus()): CreateReadinessStatus {
+	const writesEnabled = writesEnabledFromReadinessStatus(value) ?? fallback.writes_enabled;
+	return createDefaultReadinessStatus(writesEnabled);
+}
+
 async function apiGetOptional<T>(fetchFn: typeof fetch, path: string, token: string, fallback: T): Promise<T> {
 	const apiBase = env.API_INTERNAL_URL ?? 'http://localhost:8000';
 	try {
@@ -480,14 +499,15 @@ export const load: PageServerLoad = async ({ cookies, fetch }) => {
 	const { books, activeBook, bookPrefix } = await getActiveBookContext(fetch, cookies, token);
 	const accounts = activeBook ? await apiFetch<Account[]>(fetch, `${bookPrefix}/accounts`, token) : [];
 	const defaultReadinessStatus = createDefaultReadinessStatus();
-	const createReadinessStatus = activeBook
-		? await apiGetOptional<CreateReadinessStatus>(
+	const rawCreateReadinessStatus = activeBook
+		? await apiGetOptional<unknown>(
 			fetch,
 			`${bookPrefix}/transactions/create-readiness-status`,
 			token,
 			defaultReadinessStatus
 		)
 		: defaultReadinessStatus;
+	const createReadinessStatus = sanitizeCreateReadinessStatus(rawCreateReadinessStatus, defaultReadinessStatus);
 	return {
 		books,
 		accounts: accounts.filter((account) => !account.placeholder && !account.hidden),

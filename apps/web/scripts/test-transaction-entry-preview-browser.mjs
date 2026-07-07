@@ -156,6 +156,8 @@ function assertSourceSafety() {
 	assert.doesNotMatch(server, /\b(?:create|validate)\s*:\s*async/, '/transactions/new must not define active create or validate actions');
 	assert.doesNotMatch(server, /\/transactions\/validate|`\/books\/\$\{bookId\}\/transactions`|hasWriteAcknowledgement/, '/transactions/new must not call validate/write API paths');
 	assert.match(server, /function createWriteSessionGate\(status = createDefaultReadinessStatus\(\)\)[\s\S]*status\.readiness_state\.session_armed\.armed[\s\S]*status\.readiness_state\.allowed_create_count\.count[\s\S]*create_execution_allowed: status\.readiness_state\.allowed_execution\.allowed/s, 'server write-session gate must derive from redacted readiness status and stay CREATE-disabled');
+	assert.match(server, /function sanitizeCreateReadinessStatus\(value: unknown, fallback = createDefaultReadinessStatus\(\)\)[\s\S]*return createDefaultReadinessStatus\(writesEnabled\)/s, 'server load must clamp any endpoint readiness status into fail-closed defaults before rendering');
+	assert.match(server, /apiGetOptional<unknown>[\s\S]*sanitizeCreateReadinessStatus\(rawCreateReadinessStatus, defaultReadinessStatus\)/s, 'server load must fetch readiness as unknown and sanitize it before UI use');
 	assert.match(server, /function createTargetPreflight\(\)[\s\S]*required: true[\s\S]*status: 'not_checked'[\s\S]*target_class: targetClass[\s\S]*status: 'pending'/s, 'server target preflight must default to required/not_checked/pending');
 	assert.match(server, /function createExecutionReadiness\(\)[\s\S]*required: true[\s\S]*status: 'not_checked'[\s\S]*backup_state: 'pending'[\s\S]*read_back_state: 'pending'[\s\S]*audit_state: 'pending'[\s\S]*reset_state: 'pending'[\s\S]*probe_state: 'pending'[\s\S]*status: 'pending'/s, 'server execution readiness must default to required/not_checked/pending');
 	assert.doesNotMatch(server, /from ['"]node:fs|existsSync|readFileSync|statSync|accessSync|create_book_backup|write_lock_service|_open_piecash_book_for_write|GnuCashWriteService/, 'target preflight shell must not probe files/books or call backup/lock/write helpers');
@@ -219,23 +221,23 @@ async function startSyntheticApi() {
 			if (req.method === 'GET' && url.pathname === '/books/1/transactions/create-readiness-status') {
 				return jsonResponse(res, 200, {
 					preview_only: true,
-					status: 'disabled',
-					writes_enabled: false,
-					session_armed: false,
-					create_execution_allowed: false,
-					create_execution_reason: 'GNUCASH_WRITES_ENABLED=false; write session not armed.',
-					allowed_create_count: 0,
-					target_class: null,
+					status: 'ready',
+					writes_enabled: true,
+					session_armed: true,
+					create_execution_allowed: true,
+					create_execution_reason: 'Synthetic unsafe status should be clamped by the web route.',
+					allowed_create_count: 99,
+					target_class: 'owner_selected_target',
 					readiness_required: true,
-					readiness_status: 'not_checked',
+					readiness_status: 'ready',
 					readiness_state: {
-						writes_enabled: { enabled: false, status: 'disabled', redacted: true },
-						session_armed: { armed: false, status: 'not_armed', redacted: true },
-						allowed_create_count: { count: 0, status: 'blocked', redacted: true },
-						target: { target_class: null, status: 'not_selected', private_target_probed: false, redacted: true },
-						preflight: { required: true, status: 'not_checked', private_target_probed: false, redacted: true },
-						backup: { required: true, status: 'not_checked', backup_helper_called: false, redacted: true },
-						allowed_execution: { allowed: false, status: 'blocked', reason: 'GNUCASH_WRITES_ENABLED=false; write session not armed.', redacted: true }
+						writes_enabled: { enabled: true, status: 'enabled_but_blocked', redacted: true },
+						session_armed: { armed: true, status: 'armed', redacted: true },
+						allowed_create_count: { count: 99, status: 'ready', redacted: true },
+						target: { target_class: 'owner_selected_target', status: 'selected', private_target_probed: true, redacted: true },
+						preflight: { required: true, status: 'ready', private_target_probed: true, redacted: true },
+						backup: { required: true, status: 'ready', backup_helper_called: true, redacted: true },
+						allowed_execution: { allowed: true, status: 'ready', reason: 'Synthetic unsafe status should be clamped by the web route.', redacted: true }
 					}
 				});
 			}
@@ -546,6 +548,8 @@ async function runSmoke() {
 		await waitForExpression(cdp, `document.body && document.body.innerText.includes('Preview only / no write executed')`, 'no-write warning');
 		await waitForExpression(cdp, `document.body && document.body.innerText.includes('Write session not armed') && document.body.innerText.includes('CREATE execution unavailable without fresh owner approval')`, 'write-session gate');
 		await waitForExpression(cdp, `document.body && document.body.innerText.includes('allowed_create_count: 0') && document.body.innerText.includes('target_class: required')`, 'write-session default status');
+		await waitForExpression(cdp, `document.querySelector('#redacted-create-readiness-state')?.innerText.includes('session_armed status') && document.querySelector('#redacted-create-readiness-state')?.innerText.includes('not_armed') && document.querySelector('#redacted-create-readiness-state')?.innerText.includes('allowed execution status') && document.querySelector('#redacted-create-readiness-state')?.innerText.includes('allowed false')`, 'unsafe readiness endpoint response clamped to blocked UI status');
+		await waitForExpression(cdp, `!document.body.innerText.includes('Synthetic unsafe status should be clamped by the web route.') && !document.body.innerText.includes('count 99') && !document.body.innerText.includes('ready; allowed true')`, 'unsafe readiness endpoint details not rendered');
 		await waitForExpression(cdp, `Boolean(document.querySelector('#target-preflight-readiness'))`, 'target preflight panel');
 		await waitForExpression(cdp, `document.querySelector('#target-preflight-readiness')?.innerText.includes('Target readiness not checked')`, 'target preflight not checked status');
 		await waitForExpression(cdp, `document.querySelector('#target-preflight-readiness')?.innerText.includes('target_preflight.status: not_checked') && document.querySelector('#target-preflight-readiness')?.innerText.includes('target_preflight.target_class: pending')`, 'target preflight default status');
