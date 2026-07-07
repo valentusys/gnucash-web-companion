@@ -165,6 +165,9 @@ for (const requiredPageFragment of [
 	'Manual Desktop verification required for the first UI CREATE trial',
 	'POST /books/&lbrace;book_id&rbrace;/transactions/create-preview',
 	'No CREATE, PATCH, DELETE, or batch operation is executed',
+	'preview-error-jump-list',
+	'Preview field errors',
+	'Jump to fields to fix:',
 	'debit-account-count',
 	'credit-account-count',
 	'visible selectable accounts',
@@ -222,6 +225,8 @@ for (const requiredPageFragment of [
 
 assert.match(page, /<form\b[\s\S]*aria-describedby=\{describedBy\('preview-no-write-warning', 'write-session-gate', 'target-preflight-readiness', 'execution-readiness-shell', 'preview-create-disabled-explanation'/s, 'preview form must be described by no-write, write-session gate, target preflight, execution readiness, and disabled-create explanations');
 assert.match(page, /id="preview-error-summary"[\s\S]*role="alert"[\s\S]*No CREATE\/PATCH\/DELETE\/batch executed/s, 'error summary must be accessible and include no-write copy');
+assert.match(page, /const fieldErrorLinks = \$derived[\s\S]*field: 'credit_account_id'[\s\S]*href: '#credit-account-select'[\s\S]*field: 'amount'[\s\S]*href: '#preview-amount'/s, 'preview field errors must build safe in-page jump links for mobile correction');
+assert.match(page, /id="preview-error-jump-list"[\s\S]*aria-label="Preview field errors"[\s\S]*Jump to fields to fix:[\s\S]*href=\{item.href\}/s, 'preview error summary must render a field-level jump list without adding submission targets');
 assert.ok(
 	page.includes('id="preview-amount"') &&
 		page.includes('type="text" inputmode="decimal"') &&

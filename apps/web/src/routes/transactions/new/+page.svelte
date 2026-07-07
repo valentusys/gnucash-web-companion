@@ -134,6 +134,20 @@
 	const createReadinessStatus = $derived(((data.createReadinessStatus ?? defaultCreateReadinessStatus) as CreateReadinessStatus));
 	const readinessState = $derived(createReadinessStatus.readiness_state);
 	const fieldErrors = $derived(((form as any)?.fieldErrors ?? {}) as PreviewFieldErrors);
+	const fieldErrorLinks = $derived(
+		([
+			{ field: 'book_id', label: 'Book', href: '#preview-book' },
+			{ field: 'date', label: 'Date', href: '#preview-date' },
+			{ field: 'debit_account_id', label: 'Source account', href: '#debit-account-select' },
+			{ field: 'credit_account_id', label: 'Destination account', href: '#credit-account-select' },
+			{ field: 'amount', label: 'Amount', href: '#preview-amount' },
+			{ field: 'currency', label: 'Currency', href: '#preview-currency' },
+			{ field: 'description', label: 'Description', href: '#preview-description' },
+			{ field: 'memo', label: 'Memo', href: '#preview-memo' }
+		] as const)
+			.filter((item) => Boolean(fieldErrors[item.field]))
+			.map((item) => ({ ...item, message: fieldErrors[item.field] ?? '' }))
+	);
 	const currentBookId = $derived(previous.book_id || String(data.activeBook?.id ?? ''));
 	const selectedBook = $derived((data.books as Book[]).find((book) => String(book.id) === currentBookId) ?? data.activeBook);
 	const selectableAccounts = $derived((data.accounts as Account[]).filter((account) => !account.placeholder && !account.hidden));
@@ -286,6 +300,16 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 			<p id="preview-error-summary-title" class="font-semibold">Preview validation failed safely</p>
 			<p class="mt-1">{form.error}</p>
 			<p class="mt-1 font-semibold">No CREATE/PATCH/DELETE/batch executed.</p>
+			{#if fieldErrorLinks.length}
+				<nav id="preview-error-jump-list" class="mt-3 rounded-xl p-3" aria-label="Preview field errors" style="border: 1px solid #fecaca; background: #fff7f7;">
+					<p class="font-semibold">Jump to fields to fix:</p>
+					<ul class="mt-2 space-y-1">
+						{#each fieldErrorLinks as item (item.field)}
+							<li><a class="break-words underline" href={item.href}>{item.label}: {item.message}</a></li>
+						{/each}
+					</ul>
+				</nav>
+			{/if}
 			<p class="mt-1">Review the highlighted fields below. Raw private paths, secrets, and runtime internals are not shown.</p>
 		</div>
 	{/if}
