@@ -417,6 +417,23 @@ reset/probes, private target preflight, private/original/working/only-copy book 
 write beta. Future CREATE still requires fresh same-context owner/PM approval; the first trial remains
 `CREATE 1 / PATCH 0 / DELETE 0 / batch 0`.
 
+## #49 disabled-probe matrix refinement
+
+The r2 backup/read-back/audit/reset/probes shell refinement keeps `/transactions/new` non-mutating while making the
+future post-reset disabled probes explicit:
+
+- server load now returns `executionReadiness.disabled_probe_plan` with six pending entries for validate,
+  preflight, CREATE, PATCH, DELETE, and batch route families;
+- the page renders a `disabled-probe-readiness-matrix` with `status=pending` and expected result
+  `blocked_or_unavailable` for every future probe;
+- the matrix is UI/status guidance only and does not run reset or probes;
+- static and synthetic browser guards prove the matrix remains pending, Future Create remains disabled, and
+  `create-preview` remains the only transaction-entry submission target.
+
+This refinement executed no CREATE, PATCH, DELETE, batch mutation, target probing, backup creation, read-back,
+audit execution, reset/probes, private/original/working/only-copy book use, release publication, public write beta,
+or production/stable/security-audited claim.
+
 ## #49 final local gates status
 
 On 2026-07-07, the final local gates for the completed non-mutating #49 shell slices passed with the exact task

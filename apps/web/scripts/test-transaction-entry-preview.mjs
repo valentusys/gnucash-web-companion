@@ -41,6 +41,8 @@ for (const requiredBrowserSmokeFragment of [
 	'reviewed Future Create',
 	'stale Future Create',
 	'function assertReadinessShellsRemainPending',
+	'disabledProbeStatuses',
+	'disabled-probe-readiness-matrix',
 	'function assertApprovalPacketAbsent',
 	'function assertApprovalPacketControls',
 	'function isForbiddenBrowserBoundaryRequest',
@@ -159,6 +161,17 @@ for (const requiredPageFragment of [
 	'Disabled CREATE probe required',
 	'Disabled validate/preflight probes required',
 	'Disabled PATCH/DELETE/batch probes required',
+	'disabled-probe-readiness-matrix',
+	'Disabled-write probe matrix (pending)',
+	'Default state: validate/preflight/CREATE/PATCH/DELETE/batch probes are pending and not executed',
+	'disabled-probe-readiness-list',
+	'Validate probe after reset',
+	'Preflight probe after reset',
+	'CREATE probe after reset',
+	'PATCH probe after reset',
+	'DELETE probe after reset',
+	'Batch probe after reset',
+	'blocked_or_unavailable',
 	'Manual Desktop verification record required',
 	'Future Create remains disabled until backup/read-back/audit/reset/probes readiness is completed',
 	'preview-reviewed checkbox alone is not enough',
@@ -301,8 +314,11 @@ assert.ok(
 );
 assert.match(server, /Preview validation failed safely\. Review the highlighted fields\. No write was executed\./, 'server action must provide a safe field-error summary fallback');
 assert.match(server, /function createTargetPreflight\(\)[\s\S]*required: true[\s\S]*status: 'not_checked'[\s\S]*target_class: targetClass[\s\S]*status: 'pending'/s, 'server target preflight shell must default to required/not_checked/pending');
+assert.match(server, /function createExecutionReadiness\(\)[\s\S]*required: true[\s\S]*status: 'not_checked'[\s\S]*backup_state: 'pending'[\s\S]*read_back_state: 'pending'[\s\S]*audit_state: 'pending'[\s\S]*reset_state: 'pending'[\s\S]*probe_state: 'pending'[\s\S]*status: 'pending'/s, 'server execution readiness must default to required/not_checked/pending');
+assert.match(server, /function createExecutionReadiness\(\)[\s\S]*disabled_probe_plan: \[[\s\S]*id: 'validate_probe_after_reset'[\s\S]*id: 'preflight_probe_after_reset'[\s\S]*id: 'create_probe_after_reset'[\s\S]*id: 'patch_probe_after_reset'[\s\S]*id: 'delete_probe_after_reset'[\s\S]*id: 'batch_probe_after_reset'/s, 'server execution readiness must include an explicit pending disabled-probe plan');
 assert.doesNotMatch(page, /data-preflight-status="(?:checked|passed|ready|ok)"/, 'target preflight UI must not mark any default check as checked/passed/ready');
 assert.doesNotMatch(page, /data-execution-readiness-status="(?:checked|passed|ready|ok)"/, 'execution readiness shell must not mark any default check as checked/passed/ready');
+assert.doesNotMatch(page, /data-disabled-probe-status="(?:checked|passed|ready|ok)"/, 'disabled-probe matrix must not mark any default probe as checked/passed/ready');
 assert.doesNotMatch(server, /status:\s*['"](?:checked|passed|ready|ok)['"]/, 'server target preflight/readiness shells must not produce passed readiness by default');
 assert.doesNotMatch(server, /from ['"]node:fs|existsSync|readFileSync|statSync|accessSync|create_book_backup|write_lock_service|_open_piecash_book_for_write|GnuCashWriteService/, 'target preflight shell must not probe files/books or call backup/lock/write helpers');
 
@@ -346,6 +362,8 @@ for (const requiredServerFragment of [
 	"id: 'manual_desktop_verification_required'",
 	'targetPreflight: createTargetPreflight()',
 	'type ExecutionReadiness',
+	'type DisabledProbePlanCheck',
+	'disabled_probe_plan: DisabledProbePlanCheck[]',
 	'function createExecutionReadiness',
 	"backup_state: 'pending'",
 	"read_back_state: 'pending'",
@@ -361,6 +379,13 @@ for (const requiredServerFragment of [
 	"id: 'disabled_validate_preflight_probe_required'",
 	"id: 'disabled_patch_delete_batch_probes_required'",
 	"id: 'manual_desktop_verification_record_required'",
+	'disabled_probe_plan: [',
+	"id: 'validate_probe_after_reset'",
+	"id: 'preflight_probe_after_reset'",
+	"id: 'create_probe_after_reset'",
+	"id: 'patch_probe_after_reset'",
+	"id: 'delete_probe_after_reset'",
+	"id: 'batch_probe_after_reset'",
 	'executionReadiness: createExecutionReadiness()'
 ]) {
 	assert.ok(server.includes(requiredServerFragment), `transaction-entry server action missing required fragment: ${requiredServerFragment}`);

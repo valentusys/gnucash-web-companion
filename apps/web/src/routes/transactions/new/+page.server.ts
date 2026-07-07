@@ -87,6 +87,16 @@ type ExecutionReadinessCheck = {
 	note: string;
 };
 
+type DisabledProbePlanCheck = {
+	id: string;
+	label: string;
+	http_verb: 'POST' | 'PATCH' | 'DELETE';
+	route_family: 'validate' | 'preflight' | 'create' | 'patch' | 'delete' | 'batch';
+	status: 'pending';
+	expected_disabled_result: 'blocked_or_unavailable';
+	note: string;
+};
+
 type ExecutionReadiness = {
 	required: true;
 	status: 'not_checked';
@@ -96,6 +106,7 @@ type ExecutionReadiness = {
 	reset_state: 'pending';
 	probe_state: 'pending';
 	checks: ExecutionReadinessCheck[];
+	disabled_probe_plan: DisabledProbePlanCheck[];
 };
 
 const PREVIEW_ERROR_FALLBACK = 'Preview validation failed safely. No write was executed.';
@@ -489,6 +500,62 @@ function createExecutionReadiness(): ExecutionReadiness {
 				label: 'Manual Desktop verification record required',
 				status: 'pending',
 				note: 'Pending: owner must verify in Desktop in a private context after any approved CREATE.'
+			}
+		],
+		disabled_probe_plan: [
+			{
+				id: 'validate_probe_after_reset',
+				label: 'Validate probe after reset',
+				http_verb: 'POST',
+				route_family: 'validate',
+				status: 'pending',
+				expected_disabled_result: 'blocked_or_unavailable',
+				note: 'Pending: future post-reset check must prove validate cannot arm or mutate.'
+			},
+			{
+				id: 'preflight_probe_after_reset',
+				label: 'Preflight probe after reset',
+				http_verb: 'POST',
+				route_family: 'preflight',
+				status: 'pending',
+				expected_disabled_result: 'blocked_or_unavailable',
+				note: 'Pending: future post-reset check must prove target preflight cannot enable CREATE.'
+			},
+			{
+				id: 'create_probe_after_reset',
+				label: 'CREATE probe after reset',
+				http_verb: 'POST',
+				route_family: 'create',
+				status: 'pending',
+				expected_disabled_result: 'blocked_or_unavailable',
+				note: 'Pending: future post-reset check must prove CREATE is blocked again.'
+			},
+			{
+				id: 'patch_probe_after_reset',
+				label: 'PATCH probe after reset',
+				http_verb: 'PATCH',
+				route_family: 'patch',
+				status: 'pending',
+				expected_disabled_result: 'blocked_or_unavailable',
+				note: 'Pending: future post-reset check must prove PATCH remains blocked.'
+			},
+			{
+				id: 'delete_probe_after_reset',
+				label: 'DELETE probe after reset',
+				http_verb: 'DELETE',
+				route_family: 'delete',
+				status: 'pending',
+				expected_disabled_result: 'blocked_or_unavailable',
+				note: 'Pending: future post-reset check must prove DELETE remains blocked.'
+			},
+			{
+				id: 'batch_probe_after_reset',
+				label: 'Batch probe after reset',
+				http_verb: 'POST',
+				route_family: 'batch',
+				status: 'pending',
+				expected_disabled_result: 'blocked_or_unavailable',
+				note: 'Pending: future post-reset check must prove batch mutation remains blocked.'
 			}
 		]
 	};

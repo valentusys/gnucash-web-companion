@@ -37,7 +37,8 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   public write beta approval.
   [#22](https://github.com/valentusys/gnucash-web-companion/issues/22) and
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) are closed.
-- Latest handoffs/docs: `docs/handoff/issue49-final-gates-redacted-status.md`,
+- Latest handoffs/docs: `docs/handoff/issue49-backup-readback-audit-reset-probes-shell-r2.md`,
+  `docs/handoff/issue49-final-gates-redacted-status.md`,
   `docs/handoff/issue49-backup-readback-audit-reset-probes-shell.md`,
   `docs/handoff/issue49-target-preflight-shell.md`,
   `docs/handoff/issue49-create-execution-gate-shell.md`,
@@ -121,7 +122,10 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   non-mutating: `/transactions/new` now renders a redacted `executionReadiness` object with `required=true`,
   `status=not_checked`, backup/read-back/audit/reset/probe states all `pending`, and a UI shell covering future
   backup plan, readable backup proof, post-CREATE read-back, redacted audit evidence, write reset, disabled
-  CREATE/PATCH/DELETE/batch probes, and manual Desktop verification without executing any of those actions. Final
+  CREATE/PATCH/DELETE/batch probes, and manual Desktop verification without executing any of those actions. The
+  r2 refinement adds `executionReadiness.disabled_probe_plan` and a disabled-probe matrix for validate, preflight,
+  CREATE, PATCH, DELETE, and batch route families; every entry stays `pending` with expected
+  `blocked_or_unavailable`, and no reset/probe is executed. Final
   local #49 gates passed on 2026-07-07 with the exact task commands: backend pytest passed 955 tests;
   frontend check/build/static preview/auth route/synthetic browser preview gates passed; compose, public-status,
   write-defaults, markdown readability, tracked-hygiene, and diff whitespace gates passed. #49
@@ -173,7 +177,9 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   and no file/book/backup/lock/write helper in the shell. The latest #49 backup/read-back/audit/reset/probes
   readiness slice added only a default-pending `executionReadiness` shell: `required=true`,
   `status=not_checked`, backup/read-back/audit/reset/probe states all pending, no backup creation, no read-back,
-  no audit execution, no reset/probes, and no GnuCash book opening. #49
+  no audit execution, no reset/probes, and no GnuCash book opening. Its r2 refinement adds a pending-only
+  disabled-probe matrix for validate, preflight, CREATE, PATCH, DELETE, and batch route families without running
+  those probes. #49
   requires fresh same-context owner/PM approval, target preflight, exact first-trial default `CREATE 1 / PATCH 0 /
   DELETE 0 / batch 0`, backup/read-back/audit/reset/probes, and manual Desktop verification before any future
   CREATE.
