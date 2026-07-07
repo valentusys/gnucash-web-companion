@@ -97,6 +97,17 @@ type DisabledProbePlanCheck = {
 	note: string;
 };
 
+type ExecutionEvidencePacketStep = {
+	id: string;
+	order: number;
+	label: string;
+	phase: 'before_create' | 'after_create' | 'after_reset' | 'owner_verification';
+	status: 'pending';
+	required: true;
+	evidence_scope: 'redacted_only';
+	note: string;
+};
+
 type ExecutionReadiness = {
 	required: true;
 	status: 'not_checked';
@@ -106,6 +117,7 @@ type ExecutionReadiness = {
 	reset_state: 'pending';
 	probe_state: 'pending';
 	checks: ExecutionReadinessCheck[];
+	evidence_packet_plan: ExecutionEvidencePacketStep[];
 	disabled_probe_plan: DisabledProbePlanCheck[];
 };
 
@@ -500,6 +512,68 @@ function createExecutionReadiness(): ExecutionReadiness {
 				label: 'Manual Desktop verification record required',
 				status: 'pending',
 				note: 'Pending: owner must verify in Desktop in a private context after any approved CREATE.'
+			}
+		],
+		evidence_packet_plan: [
+			{
+				id: 'backup_before_create_evidence',
+				order: 1,
+				label: 'Backup evidence captured before CREATE',
+				phase: 'before_create',
+				status: 'pending',
+				required: true,
+				evidence_scope: 'redacted_only',
+				note: 'Pending: future approved session must capture only an opaque backup reference before CREATE; this shell creates no backup.'
+			},
+			{
+				id: 'read_back_after_create_evidence',
+				order: 2,
+				label: 'Read-back evidence captured after CREATE',
+				phase: 'after_create',
+				status: 'pending',
+				required: true,
+				evidence_scope: 'redacted_only',
+				note: 'Pending: future read-back evidence must stay private or redacted; this shell opens no book and reads back nothing.'
+			},
+			{
+				id: 'audit_after_create_evidence',
+				order: 3,
+				label: 'Redacted audit evidence captured after CREATE',
+				phase: 'after_create',
+				status: 'pending',
+				required: true,
+				evidence_scope: 'redacted_only',
+				note: 'Pending: future audit proof must use redacted refs only; this shell performs no audit write or audit lookup.'
+			},
+			{
+				id: 'reset_disabled_evidence',
+				order: 4,
+				label: 'Write-disable reset evidence captured',
+				phase: 'after_reset',
+				status: 'pending',
+				required: true,
+				evidence_scope: 'redacted_only',
+				note: 'Pending: future session must prove GNUCASH_WRITES_ENABLED=false after the bounded run; this shell changes no environment.'
+			},
+			{
+				id: 'disabled_probes_after_reset_evidence',
+				order: 5,
+				label: 'Disabled-probe evidence captured after reset',
+				phase: 'after_reset',
+				status: 'pending',
+				required: true,
+				evidence_scope: 'redacted_only',
+				note: 'Pending: future probes must prove validate/preflight/CREATE/PATCH/DELETE/batch are blocked or unavailable; this shell runs no probes.'
+			},
+			{
+				id: 'desktop_verification_evidence',
+				order: 6,
+				label: 'Manual Desktop verification evidence captured',
+				phase: 'owner_verification',
+				status: 'pending',
+				required: true,
+				evidence_scope: 'redacted_only',
+				note: 'Pending: owner Desktop verification remains private; tracked reports may include only a redacted confirmation.'
 			}
 		],
 		disabled_probe_plan: [

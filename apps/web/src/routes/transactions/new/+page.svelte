@@ -52,6 +52,16 @@
 		expected_disabled_result: 'blocked_or_unavailable';
 		note: string;
 	};
+	type ExecutionEvidencePacketStep = {
+		id: string;
+		order: number;
+		label: string;
+		phase: 'before_create' | 'after_create' | 'after_reset' | 'owner_verification';
+		status: 'pending';
+		required: true;
+		evidence_scope: 'redacted_only';
+		note: string;
+	};
 	type ExecutionReadiness = {
 		required: true;
 		status: 'not_checked';
@@ -61,6 +71,7 @@
 		reset_state: 'pending';
 		probe_state: 'pending';
 		checks: ExecutionReadinessCheck[];
+		evidence_packet_plan: ExecutionEvidencePacketStep[];
 		disabled_probe_plan: DisabledProbePlanCheck[];
 	};
 	type CreateReadinessStatus = {
@@ -134,6 +145,14 @@
 			{ id: 'disabled_validate_preflight_probe_required', label: 'Disabled validate/preflight probes required', status: 'pending', note: 'Pending: prove validate/preflight route families remain blocked or unavailable after reset.' },
 			{ id: 'disabled_patch_delete_batch_probes_required', label: 'Disabled PATCH/DELETE/batch probes required', status: 'pending', note: 'Pending: prove PATCH, DELETE, and batch remain blocked.' },
 			{ id: 'manual_desktop_verification_record_required', label: 'Manual Desktop verification record required', status: 'pending', note: 'Pending: owner verification remains private.' }
+		],
+		evidence_packet_plan: [
+			{ id: 'backup_before_create_evidence', order: 1, label: 'Backup evidence captured before CREATE', phase: 'before_create', status: 'pending', required: true, evidence_scope: 'redacted_only', note: 'Pending: future approved session must capture an opaque backup reference before CREATE; this shell creates no backup.' },
+			{ id: 'read_back_after_create_evidence', order: 2, label: 'Read-back evidence captured after CREATE', phase: 'after_create', status: 'pending', required: true, evidence_scope: 'redacted_only', note: 'Pending: future read-back evidence stays private or redacted; this shell opens no book.' },
+			{ id: 'audit_after_create_evidence', order: 3, label: 'Redacted audit evidence captured after CREATE', phase: 'after_create', status: 'pending', required: true, evidence_scope: 'redacted_only', note: 'Pending: future audit proof uses redacted refs only; this shell executes no audit.' },
+			{ id: 'reset_disabled_evidence', order: 4, label: 'Write-disable reset evidence captured', phase: 'after_reset', status: 'pending', required: true, evidence_scope: 'redacted_only', note: 'Pending: future session must prove GNUCASH_WRITES_ENABLED=false after the run.' },
+			{ id: 'disabled_probes_after_reset_evidence', order: 5, label: 'Disabled-probe evidence captured after reset', phase: 'after_reset', status: 'pending', required: true, evidence_scope: 'redacted_only', note: 'Pending: future validate/preflight/CREATE/PATCH/DELETE/batch probes must stay blocked or unavailable.' },
+			{ id: 'desktop_verification_evidence', order: 6, label: 'Manual Desktop verification evidence captured', phase: 'owner_verification', status: 'pending', required: true, evidence_scope: 'redacted_only', note: 'Pending: owner Desktop verification remains private; tracked reports stay redacted.' }
 		],
 		disabled_probe_plan: [
 			{ id: 'validate_probe_after_reset', label: 'Validate probe after reset', http_verb: 'POST', route_family: 'validate', status: 'pending', expected_disabled_result: 'blocked_or_unavailable', note: 'Pending: future post-reset check must prove validate cannot arm or mutate.' },
@@ -417,7 +436,7 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 		<p class="mt-3 font-semibold">Future Create remains disabled until target preflight is passed in a fresh owner-approved bounded session.</p>
 	</section>
 
-	<section id="execution-readiness-shell" class="mb-4 rounded-2xl p-4 text-sm" role="status" aria-labelledby="execution-readiness-title" aria-describedby="execution-readiness-summary execution-readiness-default-state execution-readiness-checklist" style="border: 1px solid #99f6e4; background: #f0fdfa; color: #134e4a;">
+	<section id="execution-readiness-shell" class="mb-4 rounded-2xl p-4 text-sm" role="status" aria-labelledby="execution-readiness-title" aria-describedby="execution-readiness-summary execution-readiness-default-state execution-readiness-checklist execution-evidence-packet-plan" style="border: 1px solid #99f6e4; background: #f0fdfa; color: #134e4a;">
 		<div class="flex min-w-0 flex-col gap-3 md:flex-row md:items-start md:justify-between">
 			<div class="min-w-0">
 				<p class="text-xs font-semibold uppercase tracking-wide">Backup/read-back/audit/reset/probes required</p>
@@ -448,6 +467,22 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 				</li>
 			{/each}
 		</ul>
+		<div id="execution-evidence-packet-plan" class="mt-4 rounded-xl p-3" aria-label="Future execution evidence packet plan" style="border: 1px solid #99f6e4; background: #ecfeff;">
+			<p class="font-semibold">Future evidence packet plan (pending)</p>
+			<p class="mt-1 text-xs">Default state: route backup, read-back, audit, reset, disabled-probe, and Desktop-verification evidence are pending and not collected.</p>
+			<ol id="execution-evidence-packet-list" class="mt-3 grid min-w-0 gap-2 md:grid-cols-2">
+				{#each executionReadiness.evidence_packet_plan as step (step.id)}
+					<li class="min-w-0 rounded-lg p-3" data-execution-evidence-step={step.id} data-execution-evidence-status={step.status} style="border: 1px solid #5eead4; background: #f0fdfa;">
+						<div class="flex min-w-0 items-start justify-between gap-3">
+							<span class="font-semibold">{step.order}. {step.label}</span>
+							<span class="shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold" style="background: #fffbeb; color: #92400e;">{step.status}</span>
+						</div>
+						<p class="mt-1 text-xs">phase {step.phase}; required {String(step.required)}; scope {step.evidence_scope}</p>
+						<p class="mt-1 text-xs">{step.note}</p>
+					</li>
+				{/each}
+			</ol>
+		</div>
 		<div id="disabled-probe-readiness-matrix" class="mt-4 rounded-xl p-3" aria-label="Future disabled-write probe matrix" style="border: 1px solid #99f6e4; background: #ecfeff;">
 			<p class="font-semibold">Disabled-write probe matrix (pending)</p>
 			<p class="mt-1 text-xs">Default state: validate/preflight/CREATE/PATCH/DELETE/batch probes are pending and not executed.</p>

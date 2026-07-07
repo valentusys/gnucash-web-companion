@@ -434,6 +434,25 @@ This refinement executed no CREATE, PATCH, DELETE, batch mutation, target probin
 audit execution, reset/probes, private/original/working/only-copy book use, release publication, public write beta,
 or production/stable/security-audited claim.
 
+## #49 execution evidence packet plan refinement
+
+The r3 backup/read-back/audit/reset/probes shell refinement keeps `/transactions/new` non-mutating while making the
+future evidence packet sequence explicit:
+
+- server load now returns `executionReadiness.evidence_packet_plan` with six pending, redacted-only steps for
+  backup-before-CREATE, post-CREATE read-back, redacted audit evidence, write-disable reset, disabled-probe
+  evidence, and manual Desktop verification;
+- the page renders an `execution-evidence-packet-plan` with `status=pending` for every step and states that evidence
+  is pending and not collected;
+- the plan is UI/status guidance only and does not create backups, open books, read back transactions, write audit
+  records, reset the environment, or run probes;
+- static and synthetic browser guards prove the plan remains pending, Future Create remains disabled, and
+  `create-preview` remains the only transaction-entry submission target.
+
+This refinement executed no CREATE, PATCH, DELETE, batch mutation, target probing, backup creation, read-back,
+audit execution, reset/probes, private/original/working/only-copy book use, release publication, public write beta,
+or production/stable/security-audited claim.
+
 ## #49 final local gates status
 
 On 2026-07-07, the final local gates for the completed non-mutating #49 shell slices passed with the exact task

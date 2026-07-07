@@ -133,6 +133,7 @@ function assertSourceSafety() {
 	assert.match(page, /id="target-preflight-checklist"/, 'target preflight checklist must be rendered');
 	assert.match(page, /id="execution-readiness-shell"[\s\S]*Backup\/read-back\/audit\/reset\/probes required[\s\S]*Execution readiness not checked[\s\S]*Default state: backup, read-back, audit, reset, and probe readiness are pending \/ not checked \/ not armed/s, 'execution readiness shell must default to not checked/pending');
 	assert.match(page, /execution_readiness.required:[\s\S]*execution_readiness.status:[\s\S]*backup_state:[\s\S]*read_back_state:[\s\S]*audit_state:[\s\S]*reset_state:[\s\S]*probe_state:/s, 'execution readiness shell must expose safe redacted status fields');
+	assert.match(page, /id="execution-evidence-packet-plan"[\s\S]*Future evidence packet plan \(pending\)[\s\S]*Default state: route backup, read-back, audit, reset, disabled-probe, and Desktop-verification evidence are pending and not collected/s, 'execution evidence packet plan must default to pending/not collected');
 	assert.match(page, /id="disabled-probe-readiness-matrix"[\s\S]*Disabled-write probe matrix \(pending\)[\s\S]*Default state: validate\/preflight\/CREATE\/PATCH\/DELETE\/batch probes are pending and not executed/s, 'disabled-probe matrix must default to pending/not executed');
 	for (const targetPreflightLabel of ['Target file exists/readable', 'Target is outside repo', 'GnuCash Desktop closed', 'No .LCK/.LNK lock', 'Manual Desktop verification required']) {
 		assert.ok(page.includes(targetPreflightLabel), `target preflight checklist missing label: ${targetPreflightLabel}`);
@@ -140,11 +141,15 @@ function assertSourceSafety() {
 	for (const executionReadinessLabel of ['Independent backup plan required', 'Backup readable copy proof required', 'Post-CREATE read-back required', 'Redacted audit evidence required', 'Writes reset to disabled required', 'Disabled CREATE probe required', 'Disabled validate/preflight probes required', 'Disabled PATCH/DELETE/batch probes required', 'Manual Desktop verification record required']) {
 		assert.ok(page.includes(executionReadinessLabel), `execution readiness checklist missing label: ${executionReadinessLabel}`);
 	}
+	for (const evidencePacketLabel of ['Backup evidence captured before CREATE', 'Read-back evidence captured after CREATE', 'Redacted audit evidence captured after CREATE', 'Write-disable reset evidence captured', 'Disabled-probe evidence captured after reset', 'Manual Desktop verification evidence captured']) {
+		assert.ok(page.includes(evidencePacketLabel), `execution evidence packet plan missing label: ${evidencePacketLabel}`);
+	}
 	for (const disabledProbeLabel of ['Validate probe after reset', 'Preflight probe after reset', 'CREATE probe after reset', 'PATCH probe after reset', 'DELETE probe after reset', 'Batch probe after reset']) {
 		assert.ok(page.includes(disabledProbeLabel), `disabled-probe matrix missing label: ${disabledProbeLabel}`);
 	}
 	assert.doesNotMatch(page, /data-preflight-status="(?:checked|passed|ready|ok)"/, 'target preflight shell must not mark checks passed by default');
 	assert.doesNotMatch(page, /data-execution-readiness-status="(?:checked|passed|ready|ok)"/, 'execution readiness shell must not mark checks passed by default');
+	assert.doesNotMatch(page, /data-execution-evidence-status="(?:checked|passed|ready|ok)"/, 'execution evidence packet plan must not mark evidence passed by default');
 	assert.doesNotMatch(page, /data-disabled-probe-status="(?:checked|passed|ready|ok)"/, 'disabled-probe matrix must not mark probes passed by default');
 	assert.match(page, /id="approval-packet"[\s\S]*Future Create remains disabled/s, 'approval packet must stay visible and no-write');
 	assert.match(page, /id="preview-stale-warning"[\s\S]*stale and cannot support a future owner-approved CREATE/s, 'stale-preview warning must remain present');
@@ -189,6 +194,7 @@ function assertSourceSafety() {
 	assert.match(server, /apiGetOptional<unknown>[\s\S]*sanitizeCreateReadinessStatus\(rawCreateReadinessStatus, defaultReadinessStatus\)/s, 'server load must fetch readiness as unknown and sanitize it before UI use');
 	assert.match(server, /function createTargetPreflight\(\)[\s\S]*required: true[\s\S]*status: 'not_checked'[\s\S]*target_class: targetClass[\s\S]*status: 'pending'/s, 'server target preflight must default to required/not_checked/pending');
 	assert.match(server, /function createExecutionReadiness\(\)[\s\S]*required: true[\s\S]*status: 'not_checked'[\s\S]*backup_state: 'pending'[\s\S]*read_back_state: 'pending'[\s\S]*audit_state: 'pending'[\s\S]*reset_state: 'pending'[\s\S]*probe_state: 'pending'[\s\S]*status: 'pending'/s, 'server execution readiness must default to required/not_checked/pending');
+	assert.match(server, /function createExecutionReadiness\(\)[\s\S]*evidence_packet_plan: \[[\s\S]*id: 'backup_before_create_evidence'[\s\S]*id: 'read_back_after_create_evidence'[\s\S]*id: 'audit_after_create_evidence'[\s\S]*id: 'reset_disabled_evidence'[\s\S]*id: 'disabled_probes_after_reset_evidence'[\s\S]*id: 'desktop_verification_evidence'/s, 'server execution readiness must include an explicit pending evidence packet plan');
 	assert.match(server, /function createExecutionReadiness\(\)[\s\S]*disabled_probe_plan: \[[\s\S]*id: 'validate_probe_after_reset'[\s\S]*id: 'preflight_probe_after_reset'[\s\S]*id: 'create_probe_after_reset'[\s\S]*id: 'patch_probe_after_reset'[\s\S]*id: 'delete_probe_after_reset'[\s\S]*id: 'batch_probe_after_reset'/s, 'server execution readiness must include an explicit pending disabled-probe plan');
 	assert.doesNotMatch(server, /from ['"]node:fs|existsSync|readFileSync|statSync|accessSync|create_book_backup|write_lock_service|_open_piecash_book_for_write|GnuCashWriteService/, 'target preflight shell must not probe files/books or call backup/lock/write helpers');
 }
@@ -550,6 +556,8 @@ async function assertReadinessShellsRemainPending(cdp, label) {
 			readinessText: text('#redacted-create-readiness-state'),
 			preflightStatuses: Array.from(document.querySelectorAll('[data-preflight-status]')).map((item) => item.getAttribute('data-preflight-status')),
 			executionStatuses: Array.from(document.querySelectorAll('[data-execution-readiness-status]')).map((item) => item.getAttribute('data-execution-readiness-status')),
+			evidenceText: text('#execution-evidence-packet-plan'),
+			evidencePacketStatuses: Array.from(document.querySelectorAll('[data-execution-evidence-status]')).map((item) => item.getAttribute('data-execution-evidence-status')),
 			disabledProbeText: text('#disabled-probe-readiness-matrix'),
 			disabledProbeStatuses: Array.from(document.querySelectorAll('[data-disabled-probe-status]')).map((item) => item.getAttribute('data-disabled-probe-status'))
 		};
@@ -561,6 +569,9 @@ async function assertReadinessShellsRemainPending(cdp, label) {
 	assert.match(shellState.executionText, /backup_state: pending/, `${label}: backup readiness must stay pending`);
 	assert.match(shellState.executionText, /probe_state: pending/, `${label}: probe readiness must stay pending`);
 	assert.deepEqual(shellState.executionStatuses, Array(9).fill('pending'), `${label}: execution readiness checks must stay pending`);
+	assert.match(shellState.evidenceText, /Future evidence packet plan \(pending\)/, `${label}: execution evidence packet plan must remain visible`);
+	assert.match(shellState.evidenceText, /evidence are pending and not collected/, `${label}: execution evidence packet plan must stay not collected`);
+	assert.deepEqual(shellState.evidencePacketStatuses, Array(6).fill('pending'), `${label}: execution evidence packet steps must stay pending`);
 	assert.match(shellState.disabledProbeText, /Disabled-write probe matrix \(pending\)/, `${label}: disabled-probe matrix must remain visible`);
 	assert.match(shellState.disabledProbeText, /validate\/preflight\/CREATE\/PATCH\/DELETE\/batch probes are pending and not executed/, `${label}: disabled-probe matrix must stay not executed`);
 	assert.deepEqual(shellState.disabledProbeStatuses, Array(6).fill('pending'), `${label}: disabled-probe matrix entries must stay pending`);
@@ -794,6 +805,9 @@ async function runSmoke() {
 		await waitForExpression(cdp, `document.querySelector('#execution-readiness-shell')?.innerText.includes('Independent backup plan required') && document.querySelector('#execution-readiness-shell')?.innerText.includes('Post-CREATE read-back required') && document.querySelector('#execution-readiness-shell')?.innerText.includes('Disabled PATCH/DELETE/batch probes required')`, 'execution readiness checklist');
 		await waitForExpression(cdp, `Array.from(document.querySelectorAll('[data-execution-readiness-status]')).length === 9 && Array.from(document.querySelectorAll('[data-execution-readiness-status]')).every((item) => item.getAttribute('data-execution-readiness-status') === 'pending')`, 'execution readiness pending checks');
 		await waitForExpression(cdp, `Array.from(document.querySelectorAll('[data-execution-readiness-check]')).map((item) => item.getAttribute('data-execution-readiness-check')).join('|') === 'backup_plan_required|backup_readable_copy_required|post_create_read_back_required|redacted_audit_required|writes_reset_required|disabled_create_probe_required|disabled_validate_preflight_probe_required|disabled_patch_delete_batch_probes_required|manual_desktop_verification_record_required'`, 'execution readiness exact shell checklist');
+		await waitForExpression(cdp, `document.querySelector('#execution-evidence-packet-plan')?.innerText.includes('Future evidence packet plan (pending)') && document.querySelector('#execution-evidence-packet-plan')?.innerText.includes('evidence are pending and not collected')`, 'execution evidence packet plan default status');
+		await waitForExpression(cdp, `Array.from(document.querySelectorAll('[data-execution-evidence-status]')).length === 6 && Array.from(document.querySelectorAll('[data-execution-evidence-status]')).every((item) => item.getAttribute('data-execution-evidence-status') === 'pending')`, 'execution evidence packet pending checks');
+		await waitForExpression(cdp, `Array.from(document.querySelectorAll('[data-execution-evidence-step]')).map((item) => item.getAttribute('data-execution-evidence-step')).join('|') === 'backup_before_create_evidence|read_back_after_create_evidence|audit_after_create_evidence|reset_disabled_evidence|disabled_probes_after_reset_evidence|desktop_verification_evidence'`, 'execution evidence packet exact shell checklist');
 		await waitForExpression(cdp, `document.querySelector('#disabled-probe-readiness-matrix')?.innerText.includes('Disabled-write probe matrix (pending)') && document.querySelector('#disabled-probe-readiness-matrix')?.innerText.includes('blocked_or_unavailable')`, 'disabled-probe matrix default status');
 		await waitForExpression(cdp, `Array.from(document.querySelectorAll('[data-disabled-probe-status]')).length === 6 && Array.from(document.querySelectorAll('[data-disabled-probe-status]')).every((item) => item.getAttribute('data-disabled-probe-status') === 'pending')`, 'disabled-probe matrix pending checks');
 		await waitForExpression(cdp, `Array.from(document.querySelectorAll('[data-disabled-probe]')).map((item) => item.getAttribute('data-disabled-probe')).join('|') === 'validate_probe_after_reset|preflight_probe_after_reset|create_probe_after_reset|patch_probe_after_reset|delete_probe_after_reset|batch_probe_after_reset'`, 'disabled-probe exact shell checklist');
@@ -964,6 +978,7 @@ async function runSmoke() {
 			'writeSessionGate',
 			'targetPreflight',
 			'executionReadiness',
+			'evidence_packet_plan',
 			'disabled_probe_plan',
 			'create_execution_allowed',
 			'allowed_create_count'

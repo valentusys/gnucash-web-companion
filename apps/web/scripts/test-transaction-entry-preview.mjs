@@ -43,6 +43,8 @@ for (const requiredBrowserSmokeFragment of [
 	'reviewed Future Create',
 	'stale Future Create',
 	'function assertReadinessShellsRemainPending',
+	'evidencePacketStatuses',
+	'execution-evidence-packet-plan',
 	'disabledProbeStatuses',
 	'disabled-probe-readiness-matrix',
 	'function assertApprovalPacketAbsent',
@@ -173,6 +175,16 @@ for (const requiredPageFragment of [
 	'Disabled CREATE probe required',
 	'Disabled validate/preflight probes required',
 	'Disabled PATCH/DELETE/batch probes required',
+	'execution-evidence-packet-plan',
+	'Future evidence packet plan (pending)',
+	'Default state: route backup, read-back, audit, reset, disabled-probe, and Desktop-verification evidence are pending and not collected',
+	'execution-evidence-packet-list',
+	'Backup evidence captured before CREATE',
+	'Read-back evidence captured after CREATE',
+	'Redacted audit evidence captured after CREATE',
+	'Write-disable reset evidence captured',
+	'Disabled-probe evidence captured after reset',
+	'Manual Desktop verification evidence captured',
 	'disabled-probe-readiness-matrix',
 	'Disabled-write probe matrix (pending)',
 	'Default state: validate/preflight/CREATE/PATCH/DELETE/batch probes are pending and not executed',
@@ -300,6 +312,7 @@ for (const forbiddenFormField of [
 	'writeSessionGate',
 	'targetPreflight',
 	'executionReadiness',
+	'evidence_packet_plan',
 	'disabled_probe_plan',
 	'create_execution_allowed',
 	'allowed_create_count',
@@ -371,9 +384,11 @@ assert.ok(
 assert.match(server, /Preview validation failed safely\. Review the highlighted fields\. No write was executed\./, 'server action must provide a safe field-error summary fallback');
 assert.match(server, /function createTargetPreflight\(\)[\s\S]*required: true[\s\S]*status: 'not_checked'[\s\S]*target_class: targetClass[\s\S]*status: 'pending'/s, 'server target preflight shell must default to required/not_checked/pending');
 assert.match(server, /function createExecutionReadiness\(\)[\s\S]*required: true[\s\S]*status: 'not_checked'[\s\S]*backup_state: 'pending'[\s\S]*read_back_state: 'pending'[\s\S]*audit_state: 'pending'[\s\S]*reset_state: 'pending'[\s\S]*probe_state: 'pending'[\s\S]*status: 'pending'/s, 'server execution readiness must default to required/not_checked/pending');
+assert.match(server, /function createExecutionReadiness\(\)[\s\S]*evidence_packet_plan: \[[\s\S]*id: 'backup_before_create_evidence'[\s\S]*id: 'read_back_after_create_evidence'[\s\S]*id: 'audit_after_create_evidence'[\s\S]*id: 'reset_disabled_evidence'[\s\S]*id: 'disabled_probes_after_reset_evidence'[\s\S]*id: 'desktop_verification_evidence'/s, 'server execution readiness must include an explicit pending evidence packet plan');
 assert.match(server, /function createExecutionReadiness\(\)[\s\S]*disabled_probe_plan: \[[\s\S]*id: 'validate_probe_after_reset'[\s\S]*id: 'preflight_probe_after_reset'[\s\S]*id: 'create_probe_after_reset'[\s\S]*id: 'patch_probe_after_reset'[\s\S]*id: 'delete_probe_after_reset'[\s\S]*id: 'batch_probe_after_reset'/s, 'server execution readiness must include an explicit pending disabled-probe plan');
 assert.doesNotMatch(page, /data-preflight-status="(?:checked|passed|ready|ok)"/, 'target preflight UI must not mark any default check as checked/passed/ready');
 assert.doesNotMatch(page, /data-execution-readiness-status="(?:checked|passed|ready|ok)"/, 'execution readiness shell must not mark any default check as checked/passed/ready');
+assert.doesNotMatch(page, /data-execution-evidence-status="(?:checked|passed|ready|ok)"/, 'execution evidence packet plan must not mark any default evidence step as checked/passed/ready');
 assert.doesNotMatch(page, /data-disabled-probe-status="(?:checked|passed|ready|ok)"/, 'disabled-probe matrix must not mark any default probe as checked/passed/ready');
 assert.doesNotMatch(server, /status:\s*['"](?:checked|passed|ready|ok)['"]/, 'server target preflight/readiness shells must not produce passed readiness by default');
 assert.doesNotMatch(server, /from ['"]node:fs|existsSync|readFileSync|statSync|accessSync|create_book_backup|write_lock_service|_open_piecash_book_for_write|GnuCashWriteService/, 'target preflight shell must not probe files/books or call backup/lock/write helpers');
@@ -418,7 +433,9 @@ for (const requiredServerFragment of [
 	"id: 'manual_desktop_verification_required'",
 	'targetPreflight: createTargetPreflight()',
 	'type ExecutionReadiness',
+	'type ExecutionEvidencePacketStep',
 	'type DisabledProbePlanCheck',
+	'evidence_packet_plan: ExecutionEvidencePacketStep[]',
 	'disabled_probe_plan: DisabledProbePlanCheck[]',
 	'function createExecutionReadiness',
 	"backup_state: 'pending'",
@@ -435,6 +452,13 @@ for (const requiredServerFragment of [
 	"id: 'disabled_validate_preflight_probe_required'",
 	"id: 'disabled_patch_delete_batch_probes_required'",
 	"id: 'manual_desktop_verification_record_required'",
+	'evidence_packet_plan: [',
+	"id: 'backup_before_create_evidence'",
+	"id: 'read_back_after_create_evidence'",
+	"id: 'audit_after_create_evidence'",
+	"id: 'reset_disabled_evidence'",
+	"id: 'disabled_probes_after_reset_evidence'",
+	"id: 'desktop_verification_evidence'",
 	'disabled_probe_plan: [',
 	"id: 'validate_probe_after_reset'",
 	"id: 'preflight_probe_after_reset'",
