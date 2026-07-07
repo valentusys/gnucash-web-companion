@@ -2074,6 +2074,8 @@ class TestPatchTransaction:
         ("field_name", "immutable_payload"),
         [
             ("amount", {"amount": "-999.00"}),
+            ("value", {"value": "-999.00"}),
+            ("quantity", {"quantity": "-999.00"}),
             ("account_id", {"account_id": "other-account-guid"}),
             (
                 "splits",
@@ -2090,6 +2092,7 @@ class TestPatchTransaction:
             ),
             ("currency", {"currency": "USD"}),
             ("date", {"date": "2026-12-25"}),
+            ("post_date", {"post_date": "2026-12-25"}),
         ],
     )
     def test_patch_rejects_immutable_financial_fields(
@@ -2200,10 +2203,112 @@ class TestWriteAlphaPatchRouteDisposableFixture:
             assert ownership is not None
             assert ownership.last_mutated_at > datetime(2026, 5, 20)
 
+    def test_enabled_patch_route_allows_description_only_metadata_edit(
+        self,
+        client,
+        auth_headers,
+        disposable_sample_book,
+        disposable_fixture_book,
+        disposable_write_lock,
+        session_factory,
+    ):
+        tx_before = self._first_fixture_transaction(disposable_fixture_book)
+        self._mark_owned(session_factory, disposable_sample_book, tx_before["guid"])
+
+        response = client.patch(
+            f"/books/{disposable_sample_book}/transactions/{tx_before['guid']}",
+            json={"description": "Route write-alpha description-only patch"},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["transaction_id"] == tx_before["guid"]
+        assert Path(data["backup_path"]).exists()
+
+        txs_after = _read_written_transactions(disposable_fixture_book)
+        patched = next(tx for tx in txs_after if tx["guid"] == tx_before["guid"])
+        assert patched["description"] == "Route write-alpha description-only patch"
+        assert patched["post_date"] == tx_before["post_date"]
+        assert patched["currency"] == tx_before["currency"]
+        assert patched["splits"] == tx_before["splits"]
+
+        lock_key = str(disposable_fixture_book)
+        assert disposable_write_lock.acquire(lock_key) is True
+        disposable_write_lock.release(lock_key)
+
+        with session_factory() as session:
+            audit_log = session.get(AuditLog, data["audit_log_id"])
+            assert audit_log is not None
+            payload = json.loads(audit_log.payload_json)
+            assert payload["result"] == "success"
+            assert payload["request_summary"]["fields_updated"] == ["description"]
+            assert payload["fields_updated"] == {
+                "description": "Route write-alpha description-only patch"
+            }
+
+    def test_enabled_patch_route_allows_split_memos_only_metadata_edit(
+        self,
+        client,
+        auth_headers,
+        disposable_sample_book,
+        disposable_fixture_book,
+        disposable_write_lock,
+        session_factory,
+    ):
+        tx_before = self._first_fixture_transaction(disposable_fixture_book)
+        self._mark_owned(session_factory, disposable_sample_book, tx_before["guid"])
+        assert len(tx_before["splits"]) >= 2
+        memo_updates = {
+            split["guid"]: f"route write-alpha memo-only patch {idx}"
+            for idx, split in enumerate(tx_before["splits"], start=1)
+        }
+
+        response = client.patch(
+            f"/books/{disposable_sample_book}/transactions/{tx_before['guid']}",
+            json={"split_memos": memo_updates},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["transaction_id"] == tx_before["guid"]
+        assert Path(data["backup_path"]).exists()
+
+        txs_after = _read_written_transactions(disposable_fixture_book)
+        patched = next(tx for tx in txs_after if tx["guid"] == tx_before["guid"])
+        assert patched["description"] == tx_before["description"]
+        assert patched["post_date"] == tx_before["post_date"]
+        assert patched["currency"] == tx_before["currency"]
+        assert [split["guid"] for split in patched["splits"]] == [
+            split["guid"] for split in tx_before["splits"]
+        ]
+        assert [split["account_guid"] for split in patched["splits"]] == [
+            split["account_guid"] for split in tx_before["splits"]
+        ]
+        assert [split["value"] for split in patched["splits"]] == [
+            split["value"] for split in tx_before["splits"]
+        ]
+        assert {split["guid"]: split["memo"] for split in patched["splits"]} == memo_updates
+
+        lock_key = str(disposable_fixture_book)
+        assert disposable_write_lock.acquire(lock_key) is True
+        disposable_write_lock.release(lock_key)
+
+        with session_factory() as session:
+            audit_log = session.get(AuditLog, data["audit_log_id"])
+            assert audit_log is not None
+            payload = json.loads(audit_log.payload_json)
+            assert payload["result"] == "success"
+            assert payload["request_summary"]["fields_updated"] == ["split_memos"]
+            assert payload["fields_updated"] == {"split_memos": memo_updates}
+
     @pytest.mark.parametrize(
         ("field_name", "immutable_payload"),
         [
             ("amount", {"amount": "-999.00"}),
+            ("value", {"value": "-999.00"}),
+            ("quantity", {"quantity": "-999.00"}),
             ("account_id", {"account_id": "c3e2c3289f6745d6a226599207ef1157"}),
             (
                 "splits",
@@ -2226,6 +2331,7 @@ class TestWriteAlphaPatchRouteDisposableFixture:
             ),
             ("currency", {"currency": "USD"}),
             ("date", {"date": "2026-05-18"}),
+            ("post_date", {"post_date": "2026-05-18"}),
         ],
     )
     def test_enabled_patch_route_rejects_immutable_financial_fields_without_mutation(
@@ -2251,6 +2357,47 @@ class TestWriteAlphaPatchRouteDisposableFixture:
 
         assert response.status_code == 422
         assert field_name in json.dumps(response.json())
+        assert _read_written_transactions(disposable_fixture_book) == txs_before
+        backups_root = disposable_fixture_book.parent.parent / "backups"
+        assert not backups_root.exists()
+        lock_key = str(disposable_fixture_book)
+        assert disposable_write_lock.acquire(lock_key) is True
+        disposable_write_lock.release(lock_key)
+
+        with session_factory() as session:
+            logs = session.query(AuditLog).filter_by(action="transaction.patch").all()
+            assert logs == []
+
+    def test_enabled_patch_route_rejects_nested_split_memo_financial_object_without_mutation(
+        self,
+        client,
+        auth_headers,
+        disposable_sample_book,
+        disposable_fixture_book,
+        disposable_write_lock,
+        session_factory,
+    ):
+        tx_before = self._first_fixture_transaction(disposable_fixture_book)
+        self._mark_owned(session_factory, disposable_sample_book, tx_before["guid"])
+        txs_before = _read_written_transactions(disposable_fixture_book)
+        split_guid = tx_before["splits"][0]["guid"]
+
+        response = client.patch(
+            f"/books/{disposable_sample_book}/transactions/{tx_before['guid']}",
+            json={
+                "split_memos": {
+                    split_guid: {
+                        "memo": "attempted nested metadata edit",
+                        "amount": "999.00",
+                        "account_id": "c3e2c3289f6745d6a226599207ef1157",
+                    }
+                }
+            },
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 422
+        assert "split_memos" in json.dumps(response.json())
         assert _read_written_transactions(disposable_fixture_book) == txs_before
         backups_root = disposable_fixture_book.parent.parent / "backups"
         assert not backups_root.exists()
