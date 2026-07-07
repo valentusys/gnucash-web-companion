@@ -356,6 +356,20 @@ def _read_written_transactions(book_path: Path) -> list[dict]:
         book.close()
 
 
+def _read_account_balances(book_path: Path, account_guids: set[str]) -> dict[str, Decimal]:
+    """Reopen a disposable fixture read-only and return exact account balances."""
+    book = piecash.open_book(str(book_path), readonly=True)
+    try:
+        balances: dict[str, Decimal] = {}
+        for account in book.accounts:
+            account_guid = str(account.guid)
+            if account_guid in account_guids:
+                balances[account_guid] = Decimal(str(account.get_balance()))
+        return balances
+    finally:
+        book.close()
+
+
 def _make_mock_piecash(fake_book, fake_accounts):
     """Create a mock piecash module for write tests."""
     mock_piecash = MagicMock()
@@ -1242,6 +1256,46 @@ class TestWriteAlphaCreateRouteDisposableFixture:
             assert ownership.created_by_write_alpha is True
             assert ownership.created_at is not None
             assert ownership.last_mutated_at is not None
+
+    def test_enabled_create_route_reopens_fixture_and_updates_balances(
+        self,
+        client,
+        auth_headers,
+        disposable_sample_book,
+        disposable_fixture_book,
+        disposable_write_lock,
+    ):
+        checking_guid = "c73e8aa01e6345288662b556f2f866f3"
+        food_guid = "388a85676d4a4643ae6cd28166c34e79"
+        tracked_guids = {checking_guid, food_guid}
+        before_balances = _read_account_balances(disposable_fixture_book, tracked_guids)
+        assert set(before_balances) == tracked_guids
+
+        response = client.post(
+            f"/books/{disposable_sample_book}/transactions",
+            json=self._fixture_create_payload("Route write-alpha balance read-back"),
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 201
+        data = response.json()
+        assert data["readback_verified"] is True
+        assert data["readback_transaction_id"] == data["transaction_id"]
+
+        reopened_balances = _read_account_balances(disposable_fixture_book, tracked_guids)
+        assert set(reopened_balances) == tracked_guids
+        assert reopened_balances[checking_guid] == before_balances[checking_guid] - Decimal("42.00")
+        assert reopened_balances[food_guid] == before_balances[food_guid] + Decimal("42.00")
+        total_delta = sum(reopened_balances[guid] - before_balances[guid] for guid in tracked_guids)
+        assert total_delta == Decimal("0.00")
+
+        reopened_txs = _read_written_transactions(disposable_fixture_book)
+        created = next(tx for tx in reopened_txs if tx["guid"] == data["transaction_id"])
+        assert sum(split["value"] for split in created["splits"]) == Decimal("0")
+
+        lock_key = str(disposable_fixture_book)
+        assert disposable_write_lock.acquire(lock_key) is True
+        disposable_write_lock.release(lock_key)
 
     def test_enabled_create_readback_failure_returns_503_audits_failure_and_skips_ownership(
         self,
