@@ -93,9 +93,9 @@ def auth_headers(auth_token):
 def sample_book(session_factory):
     with session_factory() as session:
         book = Book(
-            name="Test Book",
+            name="Synthetic Disposable Export Fixture",
             storage_type="sqlite",
-            uri_or_path="/data/books/test.gnucash.sqlite",
+            uri_or_path="/data/books/synthetic-disposable-export.gnucash.sqlite",
             is_default=True,
         )
         session.add(book)
@@ -187,44 +187,44 @@ class FakeBookForExport:
 
 @pytest.fixture
 def fake_export_data():
-    root = FakeAccount(guid="root-guid", name="Assets", type="ROOT")
-    bank = FakeAccount(guid="bank-guid", name="Bank", type="ASSET", parent=root)
+    root = FakeAccount(guid="root-guid", name="Synthetic Assets", type="ROOT")
+    bank = FakeAccount(guid="bank-guid", name="Synthetic Bank", type="ASSET", parent=root)
     checking = FakeAccount(
         guid="checking-guid",
-        name="Checking",
+        name="Synthetic Checking",
         type="BANK",
         parent=bank,
         balance=Decimal("12345.67"),
     )
-    food = FakeAccount(guid="food-guid", name="Food", type="EXPENSE")
-    tax = FakeAccount(guid="tax-guid", name="Tax", type="EXPENSE")
+    food = FakeAccount(guid="food-guid", name="Synthetic Groceries", type="EXPENSE")
+    tax = FakeAccount(guid="tax-guid", name="Synthetic Tax", type="EXPENSE")
 
     tx1 = FakeTransaction(
         guid="tx-1",
         post_date=date(2026, 5, 16),
-        description="ICA",
+        description="Synthetic grocery marker",
         splits=[
             FakeSplit(account=checking, value=Decimal("-320"), reconcile_state="c"),
-            FakeSplit(account=food, value=Decimal("320"), memo="groceries", reconcile_state="c"),
+            FakeSplit(account=food, value=Decimal("320"), memo="synthetic groceries", reconcile_state="c"),
         ],
     )
 
     tx2 = FakeTransaction(
         guid="tx-2",
         post_date=date(2026, 5, 17),
-        description="Split transaction test",
+        description="Synthetic split transaction test",
         splits=[
             FakeSplit(account=checking, value=Decimal("-50")),
             FakeSplit(account=tax, value=Decimal("10")),
             FakeSplit(account=food, value=Decimal("40")),
         ],
-        notes="Utility bill follow-up",
+        notes="Synthetic utility follow-up",
     )
 
     tx3 = FakeTransaction(
         guid="tx-3",
         post_date=date(2026, 5, 18),
-        description="Salary",
+        description="Synthetic salary marker",
         splits=[
             FakeSplit(account=checking, value=Decimal("5000"), reconcile_state="y"),
             FakeSplit(account=food, value=Decimal("-5000"), reconcile_state="y"),
@@ -238,7 +238,7 @@ def fake_export_data():
 
 @pytest.fixture
 def fake_book_for_export(tmp_path, monkeypatch, fake_export_data):
-    book_path = tmp_path / "test.gnucash"
+    book_path = tmp_path / "synthetic-disposable-export.gnucash"
     book_path.write_text("fake")
     accounts, transactions = fake_export_data
 
@@ -382,14 +382,14 @@ class TestExportTransactionsCSV:
             session.commit()
 
         response = client.get(
-            f"/books/{sample_book}/transactions/export?query=ica",
+            f"/books/{sample_book}/transactions/export?query=grocery",
             headers=auth_headers,
         )
         assert response.status_code == 200
         rows = _parse_csv_response(response)
         # header + 1 match
         assert len(rows) == 2
-        assert rows[1][2] == "ICA"
+        assert rows[1][2] == "Synthetic grocery marker"
 
     def test_export_query_filter_matches_split_memo(
         self, client, auth_headers, sample_book, fake_book_for_export, session_factory
@@ -400,7 +400,7 @@ class TestExportTransactionsCSV:
             session.commit()
 
         response = client.get(
-            f"/books/{sample_book}/transactions/export?query=GROCERIES",
+            f"/books/{sample_book}/transactions/export?query=SYNTHETIC%20GROCERIES",
             headers=auth_headers,
         )
 
@@ -408,7 +408,7 @@ class TestExportTransactionsCSV:
         rows = _parse_csv_response(response)
         assert len(rows) == 2
         assert rows[1][0] == "tx-1"
-        assert rows[1][2] == "ICA"
+        assert rows[1][2] == "Synthetic grocery marker"
         assert response.headers["X-CSV-Export-Total"] == "1"
 
     def test_export_query_filter_matches_transaction_notes_like_list_view(
@@ -428,7 +428,7 @@ class TestExportTransactionsCSV:
         rows = _parse_csv_response(response)
         assert len(rows) == 2
         assert rows[1][0] == "tx-2"
-        assert rows[1][2] == "Split transaction test"
+        assert rows[1][2] == "Synthetic split transaction test"
         assert response.headers["X-CSV-Export-Total"] == "1"
 
     def test_empty_account_scoped_export_is_header_only_and_preserves_metadata(
@@ -495,7 +495,7 @@ class TestExportTransactionsCSV:
         rows = _parse_csv_response(response)
         assert len(rows) == 2
         assert rows[1][0] == "tx-2"
-        assert rows[1][2] == "Split transaction test"
+        assert rows[1][2] == "Synthetic split transaction test"
         assert rows[1][3] == "-50.00"
 
     def test_export_rejects_inverted_amount_range(
@@ -569,6 +569,7 @@ class TestExportTransactionsCSV:
     ):
         with session_factory() as session:
             book = session.query(Book).filter(Book.id == sample_book).first()
+            book.name = "Synthetic Disposable Export Fixture, redacted label"
             book.uri_or_path = str(fake_book_for_export)
             session.commit()
 
@@ -580,6 +581,9 @@ class TestExportTransactionsCSV:
         disposition = response.headers["Content-Disposition"]
         assert disposition.startswith("attachment;")
         assert f'transactions-book{sample_book}.csv' in disposition
+        assert "Synthetic Disposable Export Fixture" not in disposition
+        assert str(fake_book_for_export) not in disposition
+        assert Path(fake_book_for_export).name not in disposition
 
     def test_export_reports_cap_and_truncation_headers(
         self,
@@ -694,9 +698,9 @@ class TestExportTransactionsCSV:
         session_factory,
         monkeypatch,
     ):
-        root = FakeAccount(guid="root-guid", name="Assets", type="ROOT")
-        checking = FakeAccount(guid="checking-guid", name="Checking", type="BANK", parent=root)
-        food = FakeAccount(guid="food-guid", name="Food", type="EXPENSE", parent=root)
+        root = FakeAccount(guid="root-guid", name="Synthetic Assets", type="ROOT")
+        checking = FakeAccount(guid="checking-guid", name="Synthetic Checking", type="BANK", parent=root)
+        food = FakeAccount(guid="food-guid", name="Synthetic Groceries", type="EXPENSE", parent=root)
         transactions = [
             FakeTransaction(
                 guid=f"tx-{index:03d}",
