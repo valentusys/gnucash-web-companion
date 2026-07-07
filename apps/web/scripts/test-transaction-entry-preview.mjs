@@ -21,6 +21,7 @@ const packageJson = JSON.parse(read('package.json'));
 const page = read('src', 'routes', 'transactions', 'new', '+page.svelte');
 const server = read('src', 'routes', 'transactions', 'new', '+page.server.ts');
 const transactionsList = read('src', 'routes', 'transactions', '+page.svelte');
+const browserSmoke = read('scripts', 'test-transaction-entry-preview-browser.mjs');
 
 assert.equal(
 	packageJson.scripts?.['test:transaction-entry-preview'],
@@ -32,6 +33,20 @@ assert.equal(
 	'node scripts/test-transaction-entry-preview-browser.mjs',
 	'package.json must expose npm run test:transaction-entry-preview-browser'
 );
+
+for (const requiredBrowserSmokeFragment of [
+	'function assertDisabledButtonInert',
+	'form button[type="button"][disabled]',
+	'post-preview Future Create',
+	'reviewed Future Create',
+	'function assertReadinessShellsRemainPending',
+	'createReadinessStatusCalls.length >= 1',
+	'synthetic API stub must observe zero validate/preflight/backup/audit/write-beta boundary requests'
+]) {
+	assert.ok(browserSmoke.includes(requiredBrowserSmokeFragment), `browser smoke missing required coverage marker: ${requiredBrowserSmokeFragment}`);
+}
+assert.match(browserSmoke, /\(\?:backups\?\|audit\|write-alpha\|owner-writebeta\)/, 'browser smoke must treat backup/audit/write-beta requests as forbidden boundary calls');
+assert.match(browserSmoke, /forbiddenBrowserMutationRequests[\s\S]*validate[\s\S]*preflight[\s\S]*batch/, 'browser smoke must reject browser-observed validate/preflight/batch transaction boundaries');
 
 for (const field of [
 	'book_id',
