@@ -95,15 +95,18 @@ def test_confirmation_cannot_be_reused_after_successful_reset_to_disabled():
     assert session.restore_readiness_ref is None
     assert session.operation is None
     assert session.operation_count == 0
-    # Disabled/no active writebeta session falls through to the old write gates;
-    # it must not resurrect the old confirmation or move back to MUTATING.
-    require_owner_writebeta_if_active(
-        book_id=36_200,
-        preview_hash=preview_hash,
-        confirmation_token=raw_token,
-        operation="CREATE",
-        count=1,
-    )
+    # Stale headers after reset must not fall through as an unarmed write, and
+    # must not resurrect the old confirmation or move back to MUTATING.
+    with pytest.raises(HTTPException) as excinfo:
+        require_owner_writebeta_if_active(
+            book_id=36_200,
+            preview_hash=preview_hash,
+            confirmation_token=raw_token,
+            operation="CREATE",
+            count=1,
+        )
+    assert excinfo.value.status_code == 403
+    assert "active armed owner-writebeta session" in str(excinfo.value.detail)
     assert session.state == OwnerWritebetaState.DISABLED
 
 

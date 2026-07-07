@@ -109,7 +109,13 @@ def require_owner_writebeta_if_active(
 ) -> None:
     """Fail closed for mutation when an owner-writebeta session is armed."""
     session_state = _SESSIONS.get(book_id)
+    headers_present = bool(preview_hash or confirmation_token)
     if session_state is None or session_state.state == OwnerWritebetaState.DISABLED:
+        if headers_present:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Owner-writebeta mutation headers require an active armed owner-writebeta session.",
+            )
         return
     if session_state.state != OwnerWritebetaState.CONFIRMATION:
         raise HTTPException(

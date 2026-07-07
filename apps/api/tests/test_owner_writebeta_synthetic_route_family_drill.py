@@ -284,6 +284,27 @@ def test_synthetic_create_patch_delete_route_family_requires_fresh_confirmed_gat
     assert [name for name, _ in fake_write_calls] == ["create", "patch", "delete"]
 
 
+def test_synthetic_route_family_stale_owner_writebeta_headers_do_not_fall_through_to_write(
+    client,
+    auth_headers,
+    synthetic_book,
+    fake_write_calls,
+):
+    response = client.post(
+        f"/books/{synthetic_book}/transactions",
+        headers={
+            **auth_headers,
+            "X-Owner-Writebeta-Preview-Hash": "owb-prev-stale",
+            "X-Owner-Writebeta-Confirmation-Token": "stale-token",
+        },
+        json=_synthetic_create_payload(),
+    )
+
+    assert response.status_code == 403
+    assert "active armed owner-writebeta session" in response.json()["detail"]
+    assert fake_write_calls == []
+
+
 def test_synthetic_route_family_fails_closed_for_unowned_patch_delete_previews(client, auth_headers, synthetic_book):
     client.post(f"/books/{synthetic_book}/owner-writebeta/preflight", headers=auth_headers)
     patch_preview = client.post(

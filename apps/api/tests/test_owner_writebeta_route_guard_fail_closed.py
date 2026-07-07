@@ -46,7 +46,7 @@ def _armed_session(*, restore_readiness_ref: str | None = "rr-route-guard") -> t
 
 
 def test_owner_writebeta_guard_allows_inactive_or_disabled_session_without_arming():
-    """No active owner-writebeta session should not change old default-disabled gates."""
+    """No active owner-writebeta session should not change old no-header write-alpha gates."""
     require_owner_writebeta_if_active(
         book_id=1,
         preview_hash=None,
@@ -59,12 +59,37 @@ def test_owner_writebeta_guard_allows_inactive_or_disabled_session_without_armin
     _SESSIONS[2] = session
     require_owner_writebeta_if_active(
         book_id=2,
-        preview_hash="owb-prev-unused",
-        confirmation_token="unused-token",
+        preview_hash=None,
+        confirmation_token=None,
         operation="CREATE",
         count=1,
     )
     assert session.state == OwnerWritebetaState.DISABLED
+
+
+def test_owner_writebeta_guard_blocks_stale_headers_without_active_armed_session():
+    """Supplying owner-writebeta headers must never fall through as an unarmed write."""
+    stale_cases = [
+        (36_001, "owb-prev-stale", "stale-token", None),
+        (36_002, "owb-prev-stale", None, None),
+        (36_003, None, "stale-token", None),
+        (36_004, "owb-prev-stale", "stale-token", OwnerWritebetaSession()),
+    ]
+    for book_id, preview_hash, raw_token, session in stale_cases:
+        if session is not None:
+            _SESSIONS[book_id] = session
+        with pytest.raises(HTTPException) as excinfo:
+            require_owner_writebeta_if_active(
+                book_id=book_id,
+                preview_hash=preview_hash,
+                confirmation_token=raw_token,
+                operation="CREATE",
+                count=1,
+            )
+        assert excinfo.value.status_code == 403
+        assert "active armed owner-writebeta session" in str(excinfo.value.detail)
+        if session is not None:
+            assert session.state == OwnerWritebetaState.DISABLED
 
 
 @pytest.mark.parametrize(
