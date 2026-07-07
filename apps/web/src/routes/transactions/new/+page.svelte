@@ -536,9 +536,19 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 				{/each}
 			</ul>
 		</div>
-		<div id="execution-result-shell" class="mt-4 rounded-xl p-3" aria-label="Future execution result, success, failure, and rollback shell" style="border: 1px solid #99f6e4; background: #ecfeff;">
-			<p class="font-semibold">Execution-result UX shell (not run)</p>
+		<div id="execution-result-shell" class="mt-4 rounded-xl p-3" aria-labelledby="execution-result-title" aria-describedby="execution-result-summary execution-result-outcome-legend" style="border: 1px solid #99f6e4; background: #ecfeff;">
+			<p id="execution-result-title" class="font-semibold">Execution-result UX shell (not run)</p>
 			<p id="execution-result-summary" class="mt-1 text-xs">Default state: no execution result exists, no success or failure result is claimed, and rollback/restore is not run.</p>
+			<div id="execution-result-outcome-legend" class="mt-3 rounded-lg p-3 text-xs" role="note" aria-label="Disabled execution result outcome legend" style="border: 1px solid #5eead4; background: #f0fdfa;">
+				<p class="font-semibold">Result outcome legend (disabled)</p>
+				<p class="mt-1 font-semibold">Do not infer success from preview or approval copy. No execution result exists in this page state.</p>
+				<ul id="execution-result-outcome-legend-list" class="mt-2 list-disc pl-5">
+					<li>Not executed: current state; no CREATE result reference exists.</li>
+					<li>Success: allowed only after redacted CREATE reference, private read-back, audit, reset, disabled probes, and Desktop verification.</li>
+					<li>Failure: safe error translated and no success claim emitted.</li>
+					<li>Rollback/restore: owner-approved recovery path only; never started by this preview page.</li>
+				</ul>
+			</div>
 			<dl class="mt-3 grid min-w-0 gap-2 text-xs md:grid-cols-2">
 				<div class="rounded-lg px-3 py-2" style="background: #f0fdfa;"><dt class="font-semibold">execution_result.status</dt><dd>{executionResult.status}</dd></div>
 				<div class="rounded-lg px-3 py-2" style="background: #f0fdfa;"><dt class="font-semibold">create_result_state</dt><dd>{executionResult.create_result_state}</dd></div>
