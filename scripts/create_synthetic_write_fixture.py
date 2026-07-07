@@ -369,7 +369,20 @@ def account_snapshot(path: str | Path) -> list[dict[str, Any]]:
 def account_lookup(path: str | Path) -> dict[str, str]:
     """Return account full-name to GUID mapping for generated test payloads."""
 
-    return {item["full_name"]: item["guid"] for item in account_snapshot(path)}
+    lookup: dict[str, str] = {}
+    duplicate_paths: set[str] = set()
+    for item in account_snapshot(path):
+        full_name = str(item["full_name"])
+        if full_name in lookup:
+            duplicate_paths.add(full_name)
+            continue
+        lookup[full_name] = str(item["guid"])
+    if duplicate_paths:
+        raise ValueError(
+            "generated fixture has duplicate synthetic account path(s): "
+            + ", ".join(sorted(duplicate_paths))
+        )
+    return lookup
 
 
 def account_balance_snapshot(path: str | Path) -> dict[str, str]:

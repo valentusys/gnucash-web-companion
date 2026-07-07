@@ -216,6 +216,27 @@ def test_account_lookup_helpers_return_required_guids_and_clear_missing_paths(
     assert str(generated_fixture_path.parent) not in str(excinfo.value)
 
 
+def test_account_lookup_fails_closed_on_duplicate_account_paths(
+    generated_fixture_path: Path,
+    generator: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    safe_rows = [
+        {"full_name": "Assets:Checking", "guid": "guid-a"},
+        {"full_name": "Assets:Checking", "guid": "guid-b"},
+        {"full_name": "Expenses:Groceries", "guid": "guid-c"},
+    ]
+    monkeypatch.setattr(generator, "account_snapshot", lambda path: safe_rows)
+
+    with pytest.raises(ValueError, match="duplicate synthetic account path") as excinfo:
+        generator.account_lookup(generated_fixture_path)
+
+    assert "Assets:Checking" in str(excinfo.value)
+    assert "guid-a" not in str(excinfo.value)
+    assert "guid-b" not in str(excinfo.value)
+    assert str(generated_fixture_path.parent) not in str(excinfo.value)
+
+
 def test_expected_balance_helpers_are_derived_and_report_drift(
     generated_fixture_path: Path,
     generator: ModuleType,
