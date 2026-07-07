@@ -60,6 +60,46 @@ Dry-run previews render at most one pass through safe generated policy tasks and
 
 Live mode may cycle safe policy templates until minimums are met or the hard budget expires. A repeated generated task is not a request to invent new work: if no safe, scoped improvement remains, the worker should run the relevant gates it can safely run, report a no-op checkpoint or clean completion, and avoid broadening scope.
 
+## Issue #49 safe sustained run recipe
+
+Use this recipe only after issue #49 product/code/test slices have made progress
+and the finite queue would otherwise stop before the requested runtime. It does
+not replace product work. It only keeps the supervisor supplied with bounded,
+non-mutating follow-up tasks when safe work remains.
+
+Dry-run first from the repository root:
+
+```bash
+python3 scripts/autonomy/supervisor.py \
+  --budget-hours 6 \
+  --min-runtime-hours 5.5 \
+  --min-tasks 15 \
+  --queue docs/autonomy/queues/issue49-long-run.md \
+  --on-empty generate-from-policy \
+  --backlog-policy docs/autonomy/backlog-policies/issue49-web-ui-create-trial-safe-nonmutating.md \
+  --mode dry-run
+```
+
+Review the rendered prompts before switching to live mode:
+
+- every generated task must keep its own allowed scope as a ceiling;
+- the `issue49-autonomy-workflow-improvement` task must stay limited to
+  `docs/autonomy/**`, `scripts/autonomy/**`,
+  `apps/api/tests/test_autonomy_supervisor.py`, and `docs/handoff/**`;
+- no generated task may authorize CREATE, PATCH, DELETE, batch operations,
+  target probing, product dogfood, releases, public write beta claims, or write
+  default changes;
+- repeated generated tasks may end as explicit no-op checkpoints when no useful
+  scoped change remains;
+- runtime prompts and reports must stay under ignored `.hermes/autonomy/`
+  unless the owner explicitly requests a tracked handoff.
+
+For live mode, reuse the reviewed switches with `--mode live` only after
+`AUTONOMY_AGENT_COMMAND` has been tested against stdin and the repository is
+clean. Do not treat repeated `issue49-autonomy-workflow-improvement` prompts as
+permission to broaden into product code, private data inspection, or release
+work.
+
 ## Live execution
 
 Only after reviewing the rendered prompts and choosing a command interface:

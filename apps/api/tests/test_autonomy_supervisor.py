@@ -1021,6 +1021,53 @@ def test_discovered_safe_quality_policy_task_remains_bounded_and_guarded():
     assert "no remaining safe scoped change" in prompt
 
 
+def test_issue49_autonomy_workflow_policy_and_runbook_stay_bounded():
+    policy = REPO_ROOT / "docs/autonomy/backlog-policies/issue49-web-ui-create-trial-safe-nonmutating.md"
+    runbook = (REPO_ROOT / "docs/autonomy/operator-runbook.md").read_text(encoding="utf-8")
+
+    tasks = supervisor.load_safe_policy_tasks(policy)
+    task = next(task for task in tasks if task.task_id == "issue49-autonomy-workflow-improvement")
+    prompt = supervisor.render_prompt(task)
+
+    assert task.allowed_scope == (
+        "docs/autonomy/**, scripts/autonomy/**, apps/api/tests/test_autonomy_supervisor.py, docs/handoff/**"
+    )
+    assert "CREATE; PATCH; DELETE; batch" in task.non_goals
+    assert "live target probing" in task.non_goals
+    assert "release publication" in task.non_goals
+    assert "public write beta claims" in task.non_goals
+    assert "changing tool safety defaults" in task.non_goals
+    assert "generated-safe" in task.safety_flags
+    assert "no-private-data" in task.safety_flags
+    assert "no-release" in task.safety_flags
+    assert "autonomy-docs" in task.safety_flags
+    assert "preserve-write-defaults" in task.safety_flags
+    assert "no-dogfood" in task.safety_flags
+    assert task.verification_commands == [
+        "cd apps/api && pytest tests/test_autonomy_supervisor.py -q",
+        "python3 scripts/check_markdown_readability.py",
+        "python3 scripts/check_tracked_hygiene.py",
+        "git diff --check",
+    ]
+    assert "Treat the allowed scope as a ceiling" in prompt
+    assert "If a generated or repeated task has no remaining safe scoped change" in prompt
+    assert "Do not spawn nested Hermes/Codex/tmux/cron workers" in prompt
+    assert "Run each verification command from the repository root in an isolated shell" in prompt
+
+    required_runbook_patterns = [
+        "Issue #49 safe sustained run recipe",
+        "docs/autonomy/queues/issue49-long-run.md",
+        "docs/autonomy/backlog-policies/issue49-web-ui-create-trial-safe-nonmutating.md",
+        "does\nnot replace product work",
+        "`issue49-autonomy-workflow-improvement` task must stay limited",
+        "CREATE, PATCH, DELETE, batch operations",
+        "repeated generated tasks may end as explicit no-op checkpoints",
+        "Do not treat repeated `issue49-autonomy-workflow-improvement` prompts as",
+    ]
+    for pattern in required_runbook_patterns:
+        assert pattern in runbook
+
+
 def test_prompt_paths_sanitize_generated_task_ids(tmp_path):
     queue = write_queue(
         tmp_path,
