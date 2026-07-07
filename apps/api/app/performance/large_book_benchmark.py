@@ -1,8 +1,9 @@
-"""Phase 87/88 large-book and many-splits read-only benchmark helper.
+"""Phase 87/88 large-book, many-splits, and create-preview benchmark helper.
 
 The helper intentionally generates only synthetic/disposable GnuCash SQLite books
-and exercises read-only API paths. It must never require or commit private books,
-CSV exports, screenshots, app DBs, `.env`, or secrets.
+and exercises non-mutating read plus write-preview validation API paths. It must
+never require or commit private books, CSV exports, screenshots, app DBs, `.env`,
+or secrets, and it does not make production performance claims.
 """
 
 from __future__ import annotations
@@ -51,6 +52,7 @@ class BenchmarkCase:
     method: str
     path_template: str
     read_only: bool = True
+    request_json: str | None = None
 
 
 BENCHMARK_CASES: list[BenchmarkCase] = [
@@ -90,6 +92,12 @@ BENCHMARK_CASES: list[BenchmarkCase] = [
         "many_splits_transaction_detail",
         "GET",
         "/books/{book_id}/transactions/{many_split_transaction_id}",
+    ),
+    BenchmarkCase(
+        "transaction_create_preview_validation",
+        "POST",
+        "/books/{book_id}/transactions/create-preview",
+        request_json="synthetic_create_preview",
     ),
     BenchmarkCase("dashboard_summary", "GET", "/books/{book_id}/reports/summary?as_of_date=2026-12-31"),
     BenchmarkCase(
@@ -391,24 +399,67 @@ def _build_client(book_path: Path) -> tuple[TestClient, int, dict[str, str], Cal
     return client, book_id, headers, cleanup
 
 
-def _select_account_id(client: TestClient, book_id: int, headers: dict[str, str]) -> str:
+def _load_account_tree(client: TestClient, book_id: int, headers: dict[str, str]) -> list[dict[str, Any]]:
     response = client.get(f"/books/{book_id}/accounts/tree", headers=headers)
     response.raise_for_status()
+    return response.json()
 
-    def walk(nodes: list[dict[str, Any]], preferred_types: set[str]) -> str | None:
-        for node in nodes:
-            if node.get("type") in preferred_types and node.get("id"):
+
+def _iter_account_tree(nodes: list[dict[str, Any]]):
+    for node in nodes:
+        yield node
+        children = node.get("children") or []
+        if isinstance(children, list):
+            yield from _iter_account_tree(children)
+
+
+def _select_account_id_from_tree(tree: list[dict[str, Any]]) -> str:
+    for preferred_types in ({"BANK"}, {"ASSET"}):
+        for node in _iter_account_tree(tree):
+            if (
+                node.get("type") in preferred_types
+                and node.get("id")
+                and not node.get("placeholder", False)
+                and not node.get("hidden", False)
+            ):
                 return str(node["id"])
-            found = walk(node.get("children") or [], preferred_types)
-            if found:
-                return found
+    raise RuntimeError("benchmark fixture did not expose a usable account id")
+
+
+def _select_account_id(client: TestClient, book_id: int, headers: dict[str, str]) -> str:
+    return _select_account_id_from_tree(_load_account_tree(client, book_id, headers))
+
+
+def _select_preview_account_ids(client: TestClient, book_id: int, headers: dict[str, str]) -> tuple[str, str]:
+    tree = _load_account_tree(client, book_id, headers)
+    candidates = [
+        node
+        for node in _iter_account_tree(tree)
+        if node.get("id")
+        and node.get("type") != "ROOT"
+        and str(node.get("currency") or "").upper() in {BASE_CURRENCY, "XXX"}
+        and not node.get("placeholder", False)
+        and not node.get("hidden", False)
+    ]
+    if len(candidates) < 2:
+        raise RuntimeError("benchmark fixture did not expose two selectable preview accounts")
+
+    def pick(types: set[str], *, exclude: str | None = None) -> str | None:
+        for candidate in candidates:
+            account_id = str(candidate["id"])
+            if account_id != exclude and candidate.get("type") in types:
+                return account_id
         return None
 
-    tree = response.json()
-    account_id = walk(tree, {"BANK"}) or walk(tree, {"ASSET"})
-    if not account_id:
-        raise RuntimeError("benchmark fixture did not expose a usable account id")
-    return account_id
+    debit_account_id = pick({"BANK"}) or pick({"ASSET"}) or str(candidates[0]["id"])
+    credit_account_id = (
+        pick({"EXPENSE"}, exclude=debit_account_id)
+        or pick({"INCOME", "LIABILITY", "CREDIT"}, exclude=debit_account_id)
+        or pick({"BANK", "ASSET"}, exclude=debit_account_id)
+    )
+    if credit_account_id is None:
+        raise RuntimeError("benchmark fixture did not expose a distinct preview credit account")
+    return debit_account_id, credit_account_id
 
 
 def _select_many_split_transaction_id(book_path: Path) -> str:
@@ -420,6 +471,29 @@ def _select_many_split_transaction_id(book_path: Path) -> str:
     if row is None:
         raise RuntimeError("benchmark fixture did not expose a many-splits transaction id")
     return str(row[0])
+
+
+def _build_case_request_json(
+    case: BenchmarkCase,
+    *,
+    debit_account_id: str,
+    credit_account_id: str,
+) -> dict[str, Any] | None:
+    if case.request_json is None:
+        return None
+    if case.request_json != "synthetic_create_preview":
+        raise ValueError(f"unsupported benchmark request_json: {case.request_json}")
+    if debit_account_id == credit_account_id:
+        raise ValueError("synthetic create-preview benchmark requires distinct account IDs")
+    return {
+        "date": "2026-06-15",
+        "debit_account_id": debit_account_id,
+        "credit_account_id": credit_account_id,
+        "amount": "123.4500",
+        "currency": BASE_CURRENCY,
+        "description": "Synthetic benchmark create preview only",
+        "memo": "Synthetic local performance preview; no write executed",
+    }
 
 
 def _summarize_response(
@@ -466,6 +540,7 @@ def run_benchmark(
     client, book_id, headers, cleanup = _build_client(Path(book_path))
     try:
         account_id = _select_account_id(client, book_id, headers)
+        preview_debit_account_id, preview_credit_account_id = _select_preview_account_ids(client, book_id, headers)
         many_split_transaction_id = _select_many_split_transaction_id(Path(book_path))
         results: list[BenchmarkResult] = []
         for case in BENCHMARK_CASES:
@@ -476,9 +551,17 @@ def run_benchmark(
             )
             durations: list[float] = []
             last_response = None
+            request_json = _build_case_request_json(
+                case,
+                debit_account_id=preview_debit_account_id,
+                credit_account_id=preview_credit_account_id,
+            )
+            request_kwargs: dict[str, Any] = {"headers": headers}
+            if request_json is not None:
+                request_kwargs["json"] = request_json
             for _ in range(repeats):
                 start = time.perf_counter()
-                response = client.request(case.method, path, headers=headers)
+                response = client.request(case.method, path, **request_kwargs)
                 durations.append((time.perf_counter() - start) * 1000)
                 response.raise_for_status()
                 last_response = response
@@ -514,9 +597,13 @@ def write_results_json(path: str | Path, metadata: FixtureMetadata, results: lis
         "results": [asdict(result) for result in results],
         "scope": {
             "synthetic_generated_data_only": True,
-            "read_only_api_paths_only": True,
+            "local_synthetic_measurements_only": True,
+            "non_mutating_read_and_preview_paths_only": True,
+            "read_only_api_paths_only": False,
+            "includes_write_preview_validation_path": True,
             "contains_private_book": False,
             "writes_enabled": False,
+            "production_performance_claim": False,
         },
     }
     output.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -524,7 +611,9 @@ def write_results_json(path: str | Path, metadata: FixtureMetadata, results: lis
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Run Phase 87/88 large-book and many-splits read-only benchmark")
+    parser = argparse.ArgumentParser(
+        description="Run local synthetic large-book, many-splits, and create-preview benchmark"
+    )
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT_PATH)
     parser.add_argument("--transactions", type=int, default=BenchmarkConfig.transaction_count)
     parser.add_argument("--expense-accounts", type=int, default=BenchmarkConfig.expense_account_count)
@@ -545,7 +634,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     results = run_benchmark(metadata.path, repeats=args.repeats)
 
-    print("Phase 87/88 large-book and many-splits read-only benchmark")
+    print("Local synthetic large-book, many-splits, and create-preview benchmark")
     print(f"Synthetic fixture: {metadata.path}")
     print(f"Transactions: {metadata.transaction_count}")
     print(f"Expense accounts: {metadata.expense_account_count}")
@@ -553,7 +642,8 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Synthetic hierarchy depth: {metadata.account_depth}")
     print(f"Synthetic account count: {metadata.synthetic_account_count}")
     print(f"Many-splits transaction splits: {metadata.many_split_count}")
-    print("No private book data used; read-only API paths only.")
+    print("Scope: local synthetic fixture only; non-mutating read and create-preview validation paths only.")
+    print("No private book data used; no writes executed; no production performance claim.")
     for result in results:
         extra = ""
         if result.item_count is not None:

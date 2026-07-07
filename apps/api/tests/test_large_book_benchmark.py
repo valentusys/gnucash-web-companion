@@ -11,6 +11,7 @@ from app.performance.large_book_benchmark import (
     BenchmarkConfig,
     BenchmarkResult,
     FixtureMetadata,
+    _build_case_request_json,
     _summarize_response,
     benchmark_plan,
     create_large_synthetic_book,
@@ -32,6 +33,7 @@ def test_benchmark_plan_covers_phase_87_read_only_scope() -> None:
         "account_detail_transactions_filtered",
         "account_detail_csv_export",
         "many_splits_transaction_detail",
+        "transaction_create_preview_validation",
         "dashboard_summary",
         "dashboard_cashflow_monthly",
         "dashboard_expenses_by_account_month",
@@ -40,6 +42,35 @@ def test_benchmark_plan_covers_phase_87_read_only_scope() -> None:
     ]
     assert plan == BENCHMARK_CASES
     assert all(case.read_only for case in plan)
+    preview_case = next(case for case in plan if case.name == "transaction_create_preview_validation")
+    assert preview_case.method == "POST"
+    assert preview_case.path_template == "/books/{book_id}/transactions/create-preview"
+    assert preview_case.request_json == "synthetic_create_preview"
+
+
+def test_synthetic_create_preview_benchmark_payload_is_local_disposable_only() -> None:
+    case = BenchmarkCase(
+        "transaction_create_preview_validation",
+        "POST",
+        "/books/{book_id}/transactions/create-preview",
+        request_json="synthetic_create_preview",
+    )
+
+    payload = _build_case_request_json(case, debit_account_id="checking-guid", credit_account_id="expense-guid")
+
+    assert payload == {
+        "date": "2026-06-15",
+        "debit_account_id": "checking-guid",
+        "credit_account_id": "expense-guid",
+        "amount": "123.4500",
+        "currency": "SEK",
+        "description": "Synthetic benchmark create preview only",
+        "memo": "Synthetic local performance preview; no write executed",
+    }
+    serialized = str(payload)
+    assert "/" not in serialized
+    assert "private" not in serialized.lower()
+    assert "real" not in serialized.lower()
 
 
 def test_create_large_synthetic_book_uses_only_disposable_data(tmp_path: Path) -> None:
@@ -225,3 +256,7 @@ def test_benchmark_json_records_csv_body_row_consistency(tmp_path: Path) -> None
     content = output.read_text(encoding="utf-8")
     assert '"csv_expected_body_rows": 1000' in content
     assert '"csv_body_matches_expected": true' in content
+    assert '"local_synthetic_measurements_only": true' in content
+    assert '"non_mutating_read_and_preview_paths_only": true' in content
+    assert '"includes_write_preview_validation_path": true' in content
+    assert '"production_performance_claim": false' in content
