@@ -114,15 +114,16 @@ FORBIDDEN_VERIFICATION_COMMAND_PATTERNS = (
 
 SAFETY_RULES = """Repository safety rules:
 1. Never touch original/private/working/only-copy GnuCash books.
-2. Never commit GnuCash books, SQLite books, app DBs, backups, CSV exports, screenshots, .env, tokens, keys, certs, private paths, account names, transaction descriptions, memos, amounts, or raw private evidence.
-3. Do not run product dogfood or GnuCash mutations unless the task explicitly authorizes a copied/disposable test fixture and the verification scope says so.
-4. Do not publish releases, tags, packages, or images.
-5. Do not change default write posture.
-6. Preserve GNUCASH_WRITES_ENABLED=false in defaults and rendered Compose.
-7. Preserve APP_ENV=test gates for enabled writes.
-8. No public write beta, stable, production-ready, security-audited, broad compatibility, or only-copy safety claim is authorized.
-9. Keep runtime prompts/reports under ignored .hermes/autonomy/ unless explicitly asked to create a tracked handoff.
-10. If blocked, checkpoint honestly; do not fabricate success.
+2. Never commit GnuCash books, SQLite books, app DBs, backups, CSV exports, screenshots, .env, tokens, keys, certs, private paths, or raw private evidence.
+3. Synthetic fixture account names, descriptions, memos, and amounts may be committed only when the task explicitly scopes them to disposable test data.
+4. Do not run product dogfood or GnuCash mutations unless the task explicitly authorizes a copied/disposable test fixture and the verification scope says so.
+5. Do not publish releases, tags, packages, or images.
+6. Do not change default write posture.
+7. Preserve GNUCASH_WRITES_ENABLED=false in defaults and rendered Compose.
+8. Preserve APP_ENV=test gates for enabled writes.
+9. No public write beta, stable, production-ready, security-audited, broad compatibility, or only-copy safety claim is authorized.
+10. Keep runtime prompts/reports under ignored .hermes/autonomy/ unless explicitly asked to create a tracked handoff.
+11. If blocked, checkpoint honestly; do not fabricate success.
 """
 
 GATE_PRESETS: dict[str, list[str]] = {
