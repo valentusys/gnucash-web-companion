@@ -149,12 +149,30 @@ function assertSourceSafety() {
 	assert.match(page, /id="approval-packet"[\s\S]*Future Create remains disabled/s, 'approval packet must stay visible and no-write');
 	assert.match(page, /id="preview-stale-warning"[\s\S]*stale and cannot support a future owner-approved CREATE/s, 'stale-preview warning must remain present');
 	assert.match(page, /id="future-create-disabled"[\s\S]*type="button"[\s\S]*disabled/s, 'Future Create must remain disabled and non-submitting');
+	const previewFormStartIndex = page.indexOf('<form id="transaction-preview-form"');
 	const previewFormEndIndex = page.indexOf('</form>');
+	assert.notEqual(previewFormStartIndex, -1, 'transaction preview form must have a stable source block');
+	assert.ok(previewFormEndIndex > previewFormStartIndex, 'transaction preview form must have a bounded source block');
+	const previewFormSource = page.slice(previewFormStartIndex, previewFormEndIndex + '</form>'.length);
+	const pageOutsidePreviewForm = page.slice(0, previewFormStartIndex) + page.slice(previewFormEndIndex + '</form>'.length);
+	const formTags = [...page.matchAll(/<form\b[^>]*>/g)].map((match) => match[0]);
+	assert.equal(formTags.length, 1, 'transaction-entry page must keep exactly one form: the preview form');
+	assert.match(formTags[0], /id="transaction-preview-form"/, 'the only form must be the transaction preview form');
+	assert.match(formTags[0], /method="POST"/, 'the preview form must be the only POSTing form');
+	assert.doesNotMatch(formTags[0], /\baction=/, 'the preview form must not set a page-level action target');
+	assert.deepEqual([...new Set([...previewFormSource.matchAll(/formaction="([^"]+)"/g)].map((match) => match[1]))], ['?/preview'], 'preview form actions must stay limited to ?/preview');
+	assert.doesNotMatch(pageOutsidePreviewForm, /<(?:input|select|textarea|button)\b[^>]*\bname="/s, 'controls outside the preview form must not submit named values');
+	assert.doesNotMatch(pageOutsidePreviewForm, /<(?:button|input)\b[^>]*\b(?:form|formaction)="/s, 'controls outside the preview form must not attach to or target a form');
+	assert.deepEqual(
+		[...new Set([...previewFormSource.matchAll(/\bname="([^"]+)"/g)].map((match) => match[1]))].sort(),
+		['amount', 'book_id', 'credit_account_id', 'currency', 'date', 'debit_account_id', 'description', 'memo'].sort(),
+		'preview form must submit only the bounded create-preview payload fields plus book_id'
+	);
 	const futureCreateIndex = page.indexOf('id="future-create-disabled"');
 	assert.ok(previewFormEndIndex > 0 && futureCreateIndex > previewFormEndIndex, 'Future Create disabled control must remain outside the preview submission form');
 	const futureCreateButton = page.match(/<button\b(?=[^>]*id="future-create-disabled")(?=[^>]*type="button")(?=[^>]*disabled)[^>]*>/s)?.[0] ?? '';
 	assert.ok(futureCreateButton, 'Future Create disabled button must be statically present');
-	assert.doesNotMatch(futureCreateButton, /\b(?:formaction|name|value)=/, 'Future Create disabled button must not define submitted attributes');
+	assert.doesNotMatch(futureCreateButton, /\b(?:form|formaction|name|value)=/, 'Future Create disabled button must not define submitted attributes or attach to a form');
 	assert.match(page, /navigator\.clipboard\.writeText\(safeApprovalTemplate\)/, 'copy button must use the static placeholder-only approval template');
 	assert.doesNotMatch(page, /clipboard\.writeText\([^)]*preview\./, 'copy button must not copy private preview values');
 	assert.doesNotMatch(page, /localStorage|sessionStorage/, 'preview smoke requires no browser storage persistence');
@@ -491,6 +509,7 @@ async function assertDisabledButtonInert(cdp, selector, expectedText, browserReq
 			disabled: button.disabled,
 			type: button.type,
 			text: button.textContent.replace(/\\s+/g, ' ').trim(),
+			formAttribute: button.getAttribute('form'),
 			formaction: button.getAttribute('formaction'),
 			name: button.getAttribute('name'),
 			valueAttribute: button.getAttribute('value'),
@@ -500,6 +519,7 @@ async function assertDisabledButtonInert(cdp, selector, expectedText, browserReq
 	assert.ok(state, `${label} disabled button must be rendered`);
 	assert.equal(state.disabled, true, `${label} disabled button must stay disabled`);
 	assert.equal(state.type, 'button', `${label} disabled button must stay non-submitting`);
+	assert.equal(state.formAttribute, null, `${label} disabled button must not attach to a form by attribute`);
 	assert.equal(state.formaction, null, `${label} disabled button must not expose a form action`);
 	assert.equal(state.name, null, `${label} disabled button must not expose a submitted name`);
 	assert.equal(state.valueAttribute, null, `${label} disabled button must not expose a submitted value`);
@@ -572,15 +592,18 @@ async function assertApprovalPacketControls(cdp, label, { reviewedDisabled = fal
 		return {
 			approvalText: approval?.innerText ?? '',
 			copyType: copy?.type ?? null,
+			copyFormAttribute: copy?.getAttribute('form'),
 			copyFormAction: copy?.getAttribute('formaction'),
 			copyName: copy?.getAttribute('name'),
 			copyValue: copy?.getAttribute('value'),
 			reviewedType: reviewed?.type ?? null,
+			reviewedFormAttribute: reviewed?.getAttribute('form'),
 			reviewedName: reviewed?.getAttribute('name'),
 			reviewedDisabled: Boolean(reviewed?.disabled),
 			reviewedFormId: reviewed?.form?.id ?? null,
 			futureDisabled: Boolean(future?.disabled),
 			futureType: future?.type ?? null,
+			futureFormAttribute: future?.getAttribute('form'),
 			futureFormId: future?.form?.id ?? null,
 			futureName: future?.getAttribute('name'),
 			futureValue: future?.getAttribute('value'),
@@ -591,15 +614,18 @@ async function assertApprovalPacketControls(cdp, label, { reviewedDisabled = fal
 	assert.match(state.approvalText, /Future Create remains disabled/, `${label}: approval packet must keep Future Create disabled`);
 	assert.match(state.approvalText, /Future CREATE count\s+1/i, `${label}: approval packet must keep exact future CREATE count visible`);
 	assert.equal(state.copyType, 'button', `${label}: copy approval template control must be a non-submit button`);
+	assert.equal(state.copyFormAttribute, null, `${label}: copy approval template control must not attach to a form by attribute`);
 	assert.equal(state.copyFormAction, null, `${label}: copy approval template control must not expose a form action`);
 	assert.equal(state.copyName, null, `${label}: copy approval template control must not expose a submitted name`);
 	assert.equal(state.copyValue, null, `${label}: copy approval template control must not expose a submitted value`);
 	assert.equal(state.reviewedType, 'checkbox', `${label}: preview-reviewed control must be a checkbox`);
+	assert.equal(state.reviewedFormAttribute, null, `${label}: preview-reviewed checkbox must not attach to a form by attribute`);
 	assert.equal(state.reviewedName, null, `${label}: preview-reviewed checkbox must be local-only and unnamed`);
 	assert.equal(state.reviewedFormId, null, `${label}: preview-reviewed checkbox must remain outside the preview form`);
 	assert.equal(state.reviewedDisabled, reviewedDisabled, `${label}: preview-reviewed disabled state must match preview freshness`);
 	assert.equal(state.futureDisabled, true, `${label}: Future Create must stay disabled`);
 	assert.equal(state.futureType, 'button', `${label}: Future Create must stay non-submitting`);
+	assert.equal(state.futureFormAttribute, null, `${label}: Future Create must not attach to a form by attribute`);
 	assert.equal(state.futureFormId, null, `${label}: Future Create must remain outside the preview form`);
 	assert.equal(state.futureName, null, `${label}: Future Create must not expose a submitted name`);
 	assert.equal(state.futureValue, null, `${label}: Future Create must not expose a submitted value`);

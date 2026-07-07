@@ -36,6 +36,8 @@ assert.equal(
 
 for (const requiredBrowserSmokeFragment of [
 	'function assertDisabledButtonInert',
+	'formAttribute',
+	'controls outside the preview form must not attach to or target a form',
 	'form button[type="button"][disabled]',
 	'post-preview Future Create',
 	'reviewed Future Create',
@@ -257,12 +259,46 @@ assert.match(page, /let draftChangedAfterPreview = \$state\(false\)/, 'preview p
 assert.match(page, /function handleDraftChange\(\)[\s\S]*draftChangedAfterPreview = true[\s\S]*previewReviewed = false/s, 'draft changes after preview must mark the current preview stale and reset local review state');
 assert.match(page, /id="preview-reviewed-confirmation"[\s\S]*type="checkbox"[\s\S]*bind:checked=\{previewReviewed\}/s, 'confirmation shell must expose a local-only preview-reviewed checkbox');
 assert.match(page, /id="future-create-disabled"[\s\S]*type="button"[\s\S]*disabled/s, 'future create control in the confirmation shell must remain disabled and non-submitting');
+const previewFormStartIndex = page.indexOf('<form id="transaction-preview-form"');
 const previewFormEndIndex = page.indexOf('</form>');
+assert.notEqual(previewFormStartIndex, -1, 'transaction preview form must have the expected stable id');
+assert.ok(previewFormEndIndex > previewFormStartIndex, 'transaction preview form must have a bounded source block');
+const previewFormSource = page.slice(previewFormStartIndex, previewFormEndIndex + '</form>'.length);
+const pageOutsidePreviewForm = page.slice(0, previewFormStartIndex) + page.slice(previewFormEndIndex + '</form>'.length);
+const formTags = [...page.matchAll(/<form\b[^>]*>/g)].map((match) => match[0]);
+assert.equal(formTags.length, 1, 'transaction-entry page must keep exactly one form: the preview form');
+assert.match(formTags[0], /id="transaction-preview-form"/, 'the only form must be the transaction preview form');
+assert.match(formTags[0], /method="POST"/, 'the preview form must be the only POSTing form');
+assert.doesNotMatch(formTags[0], /\baction=/, 'the preview form must not set a page-level action target');
+assert.doesNotMatch(formTags[0], /\bformaction=/, 'form-level source must not smuggle a secondary submission target');
+assert.doesNotMatch(pageOutsidePreviewForm, /<(?:input|select|textarea|button)\b[^>]*\bname="/s, 'controls outside the preview form must not submit named values');
+assert.doesNotMatch(pageOutsidePreviewForm, /<(?:button|input)\b[^>]*\b(?:form|formaction)="/s, 'controls outside the preview form must not attach to or target a form');
+const submittedFieldNames = [...previewFormSource.matchAll(/\bname="([^"]+)"/g)].map((match) => match[1]);
+assert.deepEqual(
+	[...new Set(submittedFieldNames)].sort(),
+	['amount', 'book_id', 'credit_account_id', 'currency', 'date', 'debit_account_id', 'description', 'memo'].sort(),
+	'preview form must submit only the bounded create-preview payload fields plus book_id'
+);
+for (const forbiddenFormField of [
+	'previewReviewed',
+	'approvalTemplateCopied',
+	'writeSessionGate',
+	'targetPreflight',
+	'executionReadiness',
+	'disabled_probe_plan',
+	'create_execution_allowed',
+	'allowed_create_count',
+	'target_class',
+	'session_armed',
+	'write_acknowledgement'
+]) {
+	assert.ok(!submittedFieldNames.includes(forbiddenFormField), `preview form must not submit local-only/future-create field: ${forbiddenFormField}`);
+}
 const futureCreateIndex = page.indexOf('id="future-create-disabled"');
 assert.ok(previewFormEndIndex > 0 && futureCreateIndex > previewFormEndIndex, 'Future Create disabled control must remain outside the preview submission form');
 const futureCreateButton = page.match(/<button\b(?=[^>]*id="future-create-disabled")(?=[^>]*type="button")(?=[^>]*disabled)[^>]*>/s)?.[0] ?? '';
 assert.ok(futureCreateButton, 'Future Create disabled button must be statically present');
-assert.doesNotMatch(futureCreateButton, /\b(?:formaction|name|value)=/, 'Future Create disabled button must not define submitted attributes');
+assert.doesNotMatch(futureCreateButton, /\b(?:form|formaction|name|value)=/, 'Future Create disabled button must not define submitted attributes or attach to a form');
 assert.match(page, /id="approval-packet"[\s\S]*no approval is recorded[\s\S]*Future Create remains disabled/s, 'approval packet must stay no-write and cannot record approval');
 assert.match(page, /safeApprovalTemplate = `[\s\S]*Target book: <selected book in web UI>[\s\S]*Source\/debit account: <selected source account>[\s\S]*Description: <description>/s, 'approval template must be placeholder-only and redacted');
 assert.match(page, /navigator\.clipboard\.writeText\(safeApprovalTemplate\)/, 'copy button must copy only the safe redacted approval template');
@@ -390,13 +426,14 @@ for (const requiredServerFragment of [
 ]) {
 	assert.ok(server.includes(requiredServerFragment), `transaction-entry server action missing required fragment: ${requiredServerFragment}`);
 }
-const formActionTargets = [...page.matchAll(/formaction="([^"]+)"/g)].map((match) => match[1]);
+const formActionTargets = [...previewFormSource.matchAll(/formaction="([^"]+)"/g)].map((match) => match[1]);
 assert.deepEqual([...new Set(formActionTargets)], ['?/preview'], 'preview page form actions must be limited to the preview action');
-const submitButtons = [...page.matchAll(/<button\b(?=[^>]*type="submit")([^>]*)>([\s\S]*?)<\/button>/g)].map((match) => ({
+const submitButtons = [...previewFormSource.matchAll(/<button\b(?=[^>]*type="submit")([^>]*)>([\s\S]*?)<\/button>/g)].map((match) => ({
 	attrs: match[1],
 	label: match[2].replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim()
 }));
 assert.deepEqual(submitButtons, [{ attrs: ' formaction="?/preview" formnovalidate class="rounded-xl px-4 py-2 font-semibold" style="border: 1px solid var(--app-border); color: var(--app-text);" type="submit"', label: 'Preview transaction' }], 'the preview submit button must be the only submit control and must target ?/preview');
+assert.doesNotMatch(pageOutsidePreviewForm, /<button\b(?=[^>]*type="submit")/s, 'no submit controls may exist outside the preview form');
 assert.doesNotMatch(
 	server,
 	/method:\s*['"`](?:PUT|PATCH|DELETE)['"`]|\/transactions\/(?:batch|import|delete|patch)|owner-writebeta|write-alpha/i,
