@@ -362,8 +362,19 @@ class TestTransactionCreateReadinessStatus:
                 "redacted": True,
             },
         }
-        assert data["checks"]
+        assert [check["id"] for check in data["checks"]] == [
+            "writes_enabled_state",
+            "write_session_armed",
+            "allowed_create_count_zero",
+            "target_class_selected",
+            "target_preflight_not_checked",
+            "backup_readiness_not_checked",
+            "allowed_execution_blocked",
+            "reviewed_non_stale_preview",
+            "backup_read_back_audit_reset_probes",
+        ]
         assert {check["status"] for check in data["checks"]} == {"pending"}
+        assert {check["redacted"] for check in data["checks"]} == {True}
         assert "No private target probing" in data["limitations"][1]
         serialized = str(data)
         assert "/data/books" not in serialized

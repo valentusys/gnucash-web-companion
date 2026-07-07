@@ -553,28 +553,67 @@ def _require_book_owner_access(book: Book, user: User, session: Session) -> None
 
 CREATE_READINESS_STATUS_CHECKS = (
     {
+        "id": "writes_enabled_state",
+        "label": "Writes-enabled state",
+        "status": "pending",
+        "note": "Pending: display-only status; enabled write gates alone do not arm web UI CREATE.",
+        "redacted": True,
+    },
+    {
         "id": "write_session_armed",
         "label": "Write session armed",
         "status": "pending",
         "note": "Pending: no owner-approved web UI CREATE session is armed.",
+        "redacted": True,
+    },
+    {
+        "id": "allowed_create_count_zero",
+        "label": "Allowed CREATE count",
+        "status": "pending",
+        "note": "Pending: allowed CREATE count is redacted to zero until a fresh bounded owner session exists.",
+        "redacted": True,
     },
     {
         "id": "target_class_selected",
         "label": "Target class selected",
         "status": "pending",
         "note": "Pending: target class remains redacted and unset.",
+        "redacted": True,
+    },
+    {
+        "id": "target_preflight_not_checked",
+        "label": "Target preflight",
+        "status": "pending",
+        "note": "Pending: no private target preflight or book/file probe runs in this read-only status endpoint.",
+        "redacted": True,
+    },
+    {
+        "id": "backup_readiness_not_checked",
+        "label": "Backup readiness",
+        "status": "pending",
+        "note": "Pending: no backup helper, backup path lookup, or restore proof check runs in this endpoint.",
+        "redacted": True,
+    },
+    {
+        "id": "allowed_execution_blocked",
+        "label": "Allowed execution",
+        "status": "pending",
+        "note": "Pending: CREATE execution remains blocked without fresh owner approval and an armed session.",
+        "redacted": True,
     },
     {
         "id": "reviewed_non_stale_preview",
         "label": "Reviewed non-stale preview",
         "status": "pending",
         "note": "Pending: preview review is local UI state only and does not arm CREATE.",
+        "redacted": True,
     },
     {
         "id": "backup_read_back_audit_reset_probes",
         "label": "Backup/read-back/audit/reset/probes",
         "status": "pending",
         "note": "Pending: no backup, read-back, audit, reset, or probe runs in this read-only status endpoint.",
+        "redacted": True,
     },
 )
 
