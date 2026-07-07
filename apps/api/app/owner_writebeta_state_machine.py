@@ -242,7 +242,7 @@ def arm_confirmed_preview(
         raise OwnerWritebetaTransitionError("confirmation token ttl outside safe bounds")
     raw_token = secrets.token_urlsafe(24)
     token_ref = confirmation_token_ref(raw_token)
-    session.expires_at = datetime.now(timezone.utc) + timedelta(seconds=ttl_seconds)
+    expires_at = datetime.now(timezone.utc) + timedelta(seconds=ttl_seconds)
     session.transition(
         OwnerWritebetaState.CONFIRMATION,
         operation_ref=preview_hash,
@@ -250,6 +250,7 @@ def arm_confirmed_preview(
         confirmation_token_ref=token_ref,
         restore_readiness_ref=restore_readiness_ref,
     )
+    session.expires_at = expires_at
     return session, raw_token
 
 

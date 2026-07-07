@@ -86,6 +86,32 @@ def test_owner_writebeta_preview_confirm_token_and_match_required():
     session.transition(OwnerWritebetaState.MUTATING)
 
 
+def test_owner_writebeta_failed_confirm_does_not_leave_active_arm_material():
+    """Failed preview confirmation must remain atomic and not leave stale arm state."""
+    from app.owner_writebeta_state_machine import arm_confirmed_preview, prepare_preview
+
+    session = OwnerWritebetaSession()
+    session.transition(OwnerWritebetaState.PREFLIGHT)
+    prepare_preview(session, "CREATE", {"splits": [{"amount": "type"}]}, count=1)
+
+    with pytest.raises(OwnerWritebetaTransitionError, match="opaque reference"):
+        arm_confirmed_preview(
+            session,
+            preview_hash=session.preview_hash or "",
+            backup_ref="bkp-safe-ref",
+            restore_readiness_ref="rr/not-opaque",
+        )
+
+    assert session.state == OwnerWritebetaState.PREVIEW
+    assert session.operation == "CREATE"
+    assert session.operation_count == 1
+    assert session.backup_ref is None
+    assert session.restore_readiness_ref is None
+    assert session.confirmation_token_ref is None
+    assert session.expires_at is None
+    assert session.writes_blocked is True
+
+
 def test_owner_writebeta_post_mutation_checks_hard_stop_on_missing_reset_proof():
     from app.owner_writebeta_state_machine import arm_confirmed_preview, mark_post_mutation_checks, prepare_preview
 
