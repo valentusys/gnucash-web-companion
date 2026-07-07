@@ -48,6 +48,9 @@ for (const requiredBrowserSmokeFragment of [
 	'function assertNoMutationRequestsObserved',
 	'evidencePacketStatuses',
 	'execution-evidence-packet-plan',
+	'executionResultStatuses',
+	'execution-result-shell',
+	'function assertExecutionResultShellRemainsPending',
 	'disabledProbeStatuses',
 	'disabled-probe-readiness-matrix',
 	'function assertApprovalPacketAbsent',
@@ -209,7 +212,23 @@ for (const requiredPageFragment of [
 	'Batch probe after reset',
 	'blocked_or_unavailable',
 	'Manual Desktop verification record required',
-	'Future Create remains disabled until backup/read-back/audit/reset/probes readiness is completed',
+	'execution-result-shell',
+	'Execution-result UX shell (not run)',
+	'Default state: no execution result exists, no success or failure result is claimed, and rollback/restore is not run',
+	'execution_result.status',
+	'create_result_state',
+	'success_state',
+	'failure_state',
+	'rollback_state',
+	'execution-result-step-list',
+	'Success result: CREATE reference recorded',
+	'Success result: read-back verified',
+	'Failure result: safe error translated',
+	'Failure result: no success claim emitted',
+	'Rollback result: restore decision recorded',
+	'Post-result disabled probes verified',
+	'Rollback is a future owner-approved recovery path only',
+	'Future Create remains disabled until backup/read-back/audit/reset/probes readiness and execution-result reporting are completed',
 	'preview-reviewed checkbox alone is not enough',
 	'Manual Desktop verification required for the first UI CREATE trial',
 	'POST /books/&lbrace;book_id&rbrace;/transactions/create-preview',
@@ -277,7 +296,7 @@ for (const requiredPageFragment of [
 	assert.ok(page.includes(requiredPageFragment), `transaction-entry page missing required fragment: ${requiredPageFragment}`);
 }
 
-assert.match(page, /<form\b[\s\S]*aria-describedby=\{describedBy\('preview-no-write-warning', 'write-session-gate', 'target-preflight-readiness', 'execution-readiness-shell', 'preview-create-disabled-explanation'/s, 'preview form must be described by no-write, write-session gate, target preflight, execution readiness, and disabled-create explanations');
+assert.match(page, /<form\b[\s\S]*aria-describedby=\{describedBy\('preview-no-write-warning', 'write-session-gate', 'target-preflight-readiness', 'execution-readiness-shell', 'execution-result-shell', 'preview-create-disabled-explanation'/s, 'preview form must be described by no-write, write-session gate, target preflight, execution readiness, execution result, and disabled-create explanations');
 assert.match(page, /id="preview-error-summary"[\s\S]*role="alert"[\s\S]*No CREATE\/PATCH\/DELETE\/batch executed/s, 'error summary must be accessible and include no-write copy');
 assert.match(page, /const fieldErrorLinks = \$derived[\s\S]*field: 'credit_account_id'[\s\S]*href: '#credit-account-select'[\s\S]*field: 'amount'[\s\S]*href: '#preview-amount'/s, 'preview field errors must build safe in-page jump links for mobile correction');
 assert.match(page, /id="preview-error-jump-list"[\s\S]*aria-label="Preview field errors"[\s\S]*Jump to fields to fix:[\s\S]*href=\{item.href\}/s, 'preview error summary must render a field-level jump list without adding submission targets');
@@ -293,7 +312,7 @@ assert.ok(
 		page.includes('pattern="[A-Za-z]{3}"'),
 	'currency input must stay conservative and three-letter code oriented'
 );
-assert.match(page, /aria-describedby="preview-create-disabled-explanation preview-no-write-warning write-session-gate target-preflight-readiness execution-readiness-shell"/, 'disabled Create button must be linked to its explanation, no-write warning, write-session gate, target preflight, and execution readiness');
+assert.match(page, /aria-describedby="preview-create-disabled-explanation preview-no-write-warning write-session-gate target-preflight-readiness execution-readiness-shell execution-result-shell"/, 'disabled Create button must be linked to its explanation, no-write warning, write-session gate, target preflight, execution readiness, and execution result');
 assert.match(page, /let draftChangedAfterPreview = \$state\(false\)/, 'preview page must track local draft changes after a successful preview');
 assert.match(page, /function handleDraftChange\(\)[\s\S]*draftChangedAfterPreview = true[\s\S]*previewReviewed = false/s, 'draft changes after preview must mark the current preview stale and reset local review state');
 assert.match(page, /id="preview-reviewed-confirmation"[\s\S]*type="checkbox"[\s\S]*bind:checked=\{previewReviewed\}/s, 'confirmation shell must expose a local-only preview-reviewed checkbox');
@@ -327,6 +346,7 @@ for (const forbiddenFormField of [
 	'writeSessionGate',
 	'targetPreflight',
 	'executionReadiness',
+	'executionResult',
 	'evidence_packet_plan',
 	'disabled_probe_plan',
 	'create_execution_allowed',
@@ -402,10 +422,13 @@ assert.match(server, /function createTargetPreflight\(\)[\s\S]*required: true[\s
 assert.match(server, /function createExecutionReadiness\(\)[\s\S]*required: true[\s\S]*status: 'not_checked'[\s\S]*backup_state: 'pending'[\s\S]*read_back_state: 'pending'[\s\S]*audit_state: 'pending'[\s\S]*reset_state: 'pending'[\s\S]*probe_state: 'pending'[\s\S]*status: 'pending'/s, 'server execution readiness must default to required/not_checked/pending');
 assert.match(server, /function createExecutionReadiness\(\)[\s\S]*evidence_packet_plan: \[[\s\S]*id: 'backup_before_create_evidence'[\s\S]*id: 'read_back_after_create_evidence'[\s\S]*id: 'audit_after_create_evidence'[\s\S]*id: 'reset_disabled_evidence'[\s\S]*id: 'disabled_probes_after_reset_evidence'[\s\S]*id: 'desktop_verification_evidence'/s, 'server execution readiness must include an explicit pending evidence packet plan');
 assert.match(server, /function createExecutionReadiness\(\)[\s\S]*disabled_probe_plan: \[[\s\S]*id: 'validate_probe_after_reset'[\s\S]*id: 'preflight_probe_after_reset'[\s\S]*id: 'create_probe_after_reset'[\s\S]*id: 'patch_probe_after_reset'[\s\S]*id: 'delete_probe_after_reset'[\s\S]*id: 'batch_probe_after_reset'/s, 'server execution readiness must include an explicit pending disabled-probe plan');
+assert.match(server, /function createExecutionResult\(\)[\s\S]*status: 'not_executed'[\s\S]*create_result_state: 'blocked'[\s\S]*success_state: 'pending'[\s\S]*failure_state: 'pending'[\s\S]*rollback_state: 'not_run'/s, 'server execution result shell must default to not_executed/blocked/pending/not_run');
+assert.match(server, /function createExecutionResult\(\)[\s\S]*id: 'success_create_ref_recorded'[\s\S]*id: 'success_read_back_verified'[\s\S]*id: 'failure_error_translated'[\s\S]*id: 'failure_no_success_claim'[\s\S]*id: 'rollback_decision_recorded'[\s\S]*id: 'post_result_disabled_probes_verified'/s, 'server execution result shell must include pending success, failure, rollback, and post-result steps');
 assert.doesNotMatch(page, /data-preflight-status="(?:checked|passed|ready|ok)"/, 'target preflight UI must not mark any default check as checked/passed/ready');
 assert.doesNotMatch(page, /data-execution-readiness-status="(?:checked|passed|ready|ok)"/, 'execution readiness shell must not mark any default check as checked/passed/ready');
 assert.doesNotMatch(page, /data-execution-evidence-status="(?:checked|passed|ready|ok)"/, 'execution evidence packet plan must not mark any default evidence step as checked/passed/ready');
 assert.doesNotMatch(page, /data-disabled-probe-status="(?:checked|passed|ready|ok)"/, 'disabled-probe matrix must not mark any default probe as checked/passed/ready');
+assert.doesNotMatch(page, /data-execution-result-status="(?:checked|passed|ready|ok|success|failed|rolled_back)"/, 'execution-result shell must not mark any default result step as checked/passed/ready/success/failed/rolled_back');
 assert.doesNotMatch(server, /status:\s*['"](?:checked|passed|ready|ok)['"]/, 'server target preflight/readiness shells must not produce passed readiness by default');
 assert.doesNotMatch(server, /from ['"]node:fs|existsSync|readFileSync|statSync|accessSync|create_book_backup|write_lock_service|_open_piecash_book_for_write|GnuCashWriteService/, 'target preflight shell must not probe files/books or call backup/lock/write helpers');
 
@@ -482,7 +505,22 @@ for (const requiredServerFragment of [
 	"id: 'patch_probe_after_reset'",
 	"id: 'delete_probe_after_reset'",
 	"id: 'batch_probe_after_reset'",
-	'executionReadiness: createExecutionReadiness()'
+	'executionReadiness: createExecutionReadiness()',
+	'type ExecutionResult',
+	'type ExecutionResultStep',
+	'function createExecutionResult',
+	"status: 'not_executed'",
+	"create_result_state: 'blocked'",
+	"success_state: 'pending'",
+	"failure_state: 'pending'",
+	"rollback_state: 'not_run'",
+	"id: 'success_create_ref_recorded'",
+	"id: 'success_read_back_verified'",
+	"id: 'failure_error_translated'",
+	"id: 'failure_no_success_claim'",
+	"id: 'rollback_decision_recorded'",
+	"id: 'post_result_disabled_probes_verified'",
+	'executionResult: createExecutionResult()'
 ]) {
 	assert.ok(server.includes(requiredServerFragment), `transaction-entry server action missing required fragment: ${requiredServerFragment}`);
 }

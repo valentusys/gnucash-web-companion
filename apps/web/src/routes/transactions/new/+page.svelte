@@ -74,6 +74,25 @@
 		evidence_packet_plan: ExecutionEvidencePacketStep[];
 		disabled_probe_plan: DisabledProbePlanCheck[];
 	};
+	type ExecutionResultStep = {
+		id: string;
+		label: string;
+		phase: 'success' | 'failure' | 'rollback' | 'post_result';
+		status: 'pending';
+		required: true;
+		evidence_scope: 'redacted_only';
+		note: string;
+	};
+	type ExecutionResult = {
+		required: true;
+		status: 'not_executed';
+		create_result_state: 'blocked';
+		success_state: 'pending';
+		failure_state: 'pending';
+		rollback_state: 'not_run';
+		user_message: string;
+		steps: ExecutionResultStep[];
+	};
 	type CreateReadinessStatus = {
 		readiness_state: {
 			writes_enabled: { enabled: boolean; status: 'disabled' | 'enabled_but_blocked'; redacted: true };
@@ -163,11 +182,29 @@
 			{ id: 'batch_probe_after_reset', label: 'Batch probe after reset', http_verb: 'POST', route_family: 'batch', status: 'pending', expected_disabled_result: 'blocked_or_unavailable', note: 'Pending: future post-reset check must prove batch mutation remains blocked.' }
 		]
 	};
+	const defaultExecutionResult: ExecutionResult = {
+		required: true,
+		status: 'not_executed',
+		create_result_state: 'blocked',
+		success_state: 'pending',
+		failure_state: 'pending',
+		rollback_state: 'not_run',
+		user_message: 'No execution result exists because CREATE execution is disabled in this preview-only slice.',
+		steps: [
+			{ id: 'success_create_ref_recorded', label: 'Success result: CREATE reference recorded', phase: 'success', status: 'pending', required: true, evidence_scope: 'redacted_only', note: 'Pending: future approved execution must record only redacted create refs after a successful CREATE.' },
+			{ id: 'success_read_back_verified', label: 'Success result: read-back verified', phase: 'success', status: 'pending', required: true, evidence_scope: 'redacted_only', note: 'Pending: future read-back must prove the created transaction privately before any success claim.' },
+			{ id: 'failure_error_translated', label: 'Failure result: safe error translated', phase: 'failure', status: 'pending', required: true, evidence_scope: 'redacted_only', note: 'Pending: future failures must show safe redacted messages without raw paths, traces, or secrets.' },
+			{ id: 'failure_no_success_claim', label: 'Failure result: no success claim emitted', phase: 'failure', status: 'pending', required: true, evidence_scope: 'redacted_only', note: 'Pending: failed/unknown execution must stay explicit and cannot imply a committed transaction.' },
+			{ id: 'rollback_decision_recorded', label: 'Rollback result: restore decision recorded', phase: 'rollback', status: 'pending', required: true, evidence_scope: 'redacted_only', note: 'Pending: rollback/restore is not run in this shell; a future failed session must record a redacted restore decision.' },
+			{ id: 'post_result_disabled_probes_verified', label: 'Post-result disabled probes verified', phase: 'post_result', status: 'pending', required: true, evidence_scope: 'redacted_only', note: 'Pending: future post-result checks must prove writes are disabled and validate/preflight/CREATE/PATCH/DELETE/batch are blocked or unavailable.' }
+		]
+	};
 	const previous = $derived((form?.payload ?? {}) as PreviousPayload);
 	const preview = $derived((form as any)?.preview);
 	const writeSessionGate = $derived(((data.writeSessionGate ?? defaultWriteSessionGate) as WriteSessionGate));
 	const targetPreflight = $derived(((data.targetPreflight ?? defaultTargetPreflight) as TargetPreflight));
 	const executionReadiness = $derived(((data.executionReadiness ?? defaultExecutionReadiness) as ExecutionReadiness));
+	const executionResult = $derived(((data.executionResult ?? defaultExecutionResult) as ExecutionResult));
 	const createReadinessStatus = $derived(((data.createReadinessStatus ?? defaultCreateReadinessStatus) as CreateReadinessStatus));
 	const readinessState = $derived(createReadinessStatus.readiness_state);
 	const fieldErrors = $derived(((form as any)?.fieldErrors ?? {}) as PreviewFieldErrors);
@@ -499,14 +536,39 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 				{/each}
 			</ul>
 		</div>
-		<p class="mt-3 font-semibold">Future Create remains disabled until backup/read-back/audit/reset/probes readiness is completed in a fresh owner-approved bounded session.</p>
+		<div id="execution-result-shell" class="mt-4 rounded-xl p-3" aria-label="Future execution result, success, failure, and rollback shell" style="border: 1px solid #99f6e4; background: #ecfeff;">
+			<p class="font-semibold">Execution-result UX shell (not run)</p>
+			<p id="execution-result-summary" class="mt-1 text-xs">Default state: no execution result exists, no success or failure result is claimed, and rollback/restore is not run.</p>
+			<dl class="mt-3 grid min-w-0 gap-2 text-xs md:grid-cols-2">
+				<div class="rounded-lg px-3 py-2" style="background: #f0fdfa;"><dt class="font-semibold">execution_result.status</dt><dd>{executionResult.status}</dd></div>
+				<div class="rounded-lg px-3 py-2" style="background: #f0fdfa;"><dt class="font-semibold">create_result_state</dt><dd>{executionResult.create_result_state}</dd></div>
+				<div class="rounded-lg px-3 py-2" style="background: #f0fdfa;"><dt class="font-semibold">success_state</dt><dd>{executionResult.success_state}</dd></div>
+				<div class="rounded-lg px-3 py-2" style="background: #f0fdfa;"><dt class="font-semibold">failure_state</dt><dd>{executionResult.failure_state}</dd></div>
+				<div class="rounded-lg px-3 py-2" style="background: #f0fdfa;"><dt class="font-semibold">rollback_state</dt><dd>{executionResult.rollback_state}</dd></div>
+				<div class="rounded-lg px-3 py-2 md:col-span-2" style="background: #f0fdfa;"><dt class="font-semibold">safe user message</dt><dd>{executionResult.user_message}</dd></div>
+			</dl>
+			<ul id="execution-result-step-list" class="mt-3 grid min-w-0 gap-2 md:grid-cols-2" aria-label="Future execution result status checklist">
+				{#each executionResult.steps as step (step.id)}
+					<li class="min-w-0 rounded-lg p-3" data-execution-result-step={step.id} data-execution-result-status={step.status} style="border: 1px solid #5eead4; background: #f0fdfa;">
+						<div class="flex min-w-0 items-start justify-between gap-3">
+							<span class="font-semibold">{step.label}</span>
+							<span class="shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold" style="background: #fffbeb; color: #92400e;">{step.status}</span>
+						</div>
+						<p class="mt-1 text-xs">phase {step.phase}; required {String(step.required)}; scope {step.evidence_scope}</p>
+						<p class="mt-1 text-xs">{step.note}</p>
+					</li>
+				{/each}
+			</ul>
+			<p class="mt-3 font-semibold">Rollback is a future owner-approved recovery path only; this preview shell performs no restore and emits no success claim.</p>
+		</div>
+		<p class="mt-3 font-semibold">Future Create remains disabled until backup/read-back/audit/reset/probes readiness and execution-result reporting are completed in a fresh owner-approved bounded session.</p>
 	</section>
 
 	<div class="mb-4">
 		<WriteModeWarning {locale} compact />
 	</div>
 
-	<form id="transaction-preview-form" method="POST" onsubmit={handlePreviewSubmit} oninput={handleDraftChange} onchange={handleDraftChange} aria-describedby={describedBy('preview-no-write-warning', 'write-session-gate', 'target-preflight-readiness', 'execution-readiness-shell', 'preview-create-disabled-explanation', form?.error && 'preview-error-summary')} class="min-w-0 space-y-5 rounded-2xl p-5" style="background: var(--app-panel); border: 1px solid var(--app-border); box-shadow: 0 1px 3px var(--app-panel-shadow);">
+	<form id="transaction-preview-form" method="POST" onsubmit={handlePreviewSubmit} oninput={handleDraftChange} onchange={handleDraftChange} aria-describedby={describedBy('preview-no-write-warning', 'write-session-gate', 'target-preflight-readiness', 'execution-readiness-shell', 'execution-result-shell', 'preview-create-disabled-explanation', form?.error && 'preview-error-summary')} class="min-w-0 space-y-5 rounded-2xl p-5" style="background: var(--app-panel); border: 1px solid var(--app-border); box-shadow: 0 1px 3px var(--app-panel-shadow);">
 		<div class="min-w-0 text-sm font-medium" style="color: var(--app-text);">
 			<label for="preview-book">Book</label>
 			<select id="preview-book" name="book_id" aria-invalid={bookError ? 'true' : undefined} aria-describedby={describedBy('book-help', 'preview-no-write-warning', bookError && 'preview-book-error')} class="mt-1 w-full min-w-0 rounded-xl px-3 py-2" style="background: var(--app-bg); color: var(--app-text); border: 1px solid var(--app-border);">
@@ -636,10 +698,10 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 		</section>
 
 		<div class="flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:justify-between">
-			<p id="preview-create-disabled-explanation" class="text-sm" style="color: var(--app-muted);">Create/Submit mutation action is intentionally disabled: preview mode is active, write session is not armed, target readiness is not checked, backup/read-back/audit/reset/probes readiness is not checked, and CREATE execution is unavailable without fresh owner approval; only the preview action is available.</p>
+			<p id="preview-create-disabled-explanation" class="text-sm" style="color: var(--app-muted);">Create/Submit mutation action is intentionally disabled: preview mode is active, write session is not armed, target readiness is not checked, backup/read-back/audit/reset/probes readiness is not checked, execution-result status is not executed, and CREATE execution is unavailable without fresh owner approval; only the preview action is available.</p>
 			<div class="flex min-w-0 flex-col gap-3 sm:flex-row">
 				<button formaction="?/preview" formnovalidate class="rounded-xl px-4 py-2 font-semibold" style="border: 1px solid var(--app-border); color: var(--app-text);" type="submit">Preview transaction</button>
-				<button class="cursor-not-allowed rounded-xl px-4 py-2 font-semibold text-white opacity-60" style="background: #6b7280;" type="button" disabled aria-describedby="preview-create-disabled-explanation preview-no-write-warning write-session-gate target-preflight-readiness execution-readiness-shell">Create disabled</button>
+				<button class="cursor-not-allowed rounded-xl px-4 py-2 font-semibold text-white opacity-60" style="background: #6b7280;" type="button" disabled aria-describedby="preview-create-disabled-explanation preview-no-write-warning write-session-gate target-preflight-readiness execution-readiness-shell execution-result-shell">Create disabled</button>
 			</div>
 		</div>
 	</form>
@@ -655,7 +717,7 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 	{/if}
 
 	{#if preview}
-		<section id="normalized-preview" class="mt-6 min-w-0 rounded-2xl p-5" aria-label="Transaction preview" aria-describedby={describedBy('preview-create-disabled-explanation', 'preview-no-write-warning', 'write-session-gate', 'target-preflight-readiness', 'execution-readiness-shell', previewIsStale && 'preview-stale-warning')} style="background: var(--app-panel); border: 1px solid var(--app-border);">
+		<section id="normalized-preview" class="mt-6 min-w-0 rounded-2xl p-5" aria-label="Transaction preview" aria-describedby={describedBy('preview-create-disabled-explanation', 'preview-no-write-warning', 'write-session-gate', 'target-preflight-readiness', 'execution-readiness-shell', 'execution-result-shell', previewIsStale && 'preview-stale-warning')} style="background: var(--app-panel); border: 1px solid var(--app-border);">
 			<div class="flex min-w-0 flex-col gap-2 md:flex-row md:items-start md:justify-between">
 				<div class="min-w-0">
 					<h2 class="text-xl font-semibold" style="color: var(--app-text);">Normalized preview</h2>
@@ -684,7 +746,8 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 						<li>Target class is required before any future CREATE.</li>
 						<li>Target preflight status: {targetPreflight.status}; every target check is pending by default.</li>
 						<li>Execution readiness status: {executionReadiness.status}; backup/read-back/audit/reset/probes states remain {executionReadiness.backup_state}/{executionReadiness.read_back_state}/{executionReadiness.audit_state}/{executionReadiness.reset_state}/{executionReadiness.probe_state}.</li>
-						<li>Preview-reviewed checkbox alone is not enough; the preview must also be current, non-stale, owner-approved, target-preflight-passed, backed up, read back, audited, reset, probed, and manually verified in Desktop.</li>
+						<li>Execution result status: {executionResult.status}; success/failure results stay pending and rollback state is {executionResult.rollback_state}.</li>
+						<li>Preview-reviewed checkbox alone is not enough; the preview must also be current, non-stale, owner-approved, target-preflight-passed, backed up, read back, audited, reset, probed, result-reported, and manually verified in Desktop.</li>
 					</ul>
 				</div>
 				<div class="mt-4 flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -692,13 +755,13 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 						<input id="preview-reviewed-confirmation" type="checkbox" bind:checked={previewReviewed} disabled={previewIsStale} aria-describedby="preview-reviewed-status preview-confirmation-shell-help" class="mt-1" />
 						<span>I reviewed this local preview; no write is available from this checkbox.</span>
 					</label>
-					<button id="future-create-disabled" class="cursor-not-allowed rounded-xl px-4 py-2 font-semibold text-white opacity-60" style="background: #6b7280;" type="button" disabled aria-describedby="preview-create-disabled-explanation preview-no-write-warning write-session-gate target-preflight-readiness execution-readiness-shell preview-reviewed-status">Future Create disabled</button>
+					<button id="future-create-disabled" class="cursor-not-allowed rounded-xl px-4 py-2 font-semibold text-white opacity-60" style="background: #6b7280;" type="button" disabled aria-describedby="preview-create-disabled-explanation preview-no-write-warning write-session-gate target-preflight-readiness execution-readiness-shell execution-result-shell preview-reviewed-status">Future Create disabled</button>
 				</div>
 				<p id="preview-reviewed-status" class="mt-3 text-sm" style="color: var(--app-muted);">
 					{#if previewIsStale}
 						Preview is stale because the draft changed. Run Preview transaction again before any future approval step.
 					{:else if previewReviewed}
-						Preview reviewed locally, but preview-reviewed checkbox alone is not enough. Future owner-approved CREATE still requires a fresh approval prompt, an armed write session, exact count, target preflight, backup/read-back/audit/reset/probes including disabled validate/preflight probes, and private verification.
+						Preview reviewed locally, but preview-reviewed checkbox alone is not enough. Future owner-approved CREATE still requires a fresh approval prompt, an armed write session, exact count, target preflight, backup/read-back/audit/reset/probes including disabled validate/preflight probes, redacted execution-result reporting, rollback decision handling, and private verification.
 					{:else}
 						Review the normalized fields below. Future CREATE remains disabled and cannot be executed from this page state.
 					{/if}
@@ -735,7 +798,7 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 						<li>Write session must be armed and target class/preflight must pass before CREATE is reachable.</li>
 						<li>Preview must be current, reviewed, and not stale.</li>
 						<li>Write gates must be explicitly enabled only for an approved run; defaults stay disabled.</li>
-						<li>Backup, read-back, audit, reset, disabled-write probes for validate/preflight/CREATE/PATCH/DELETE/batch, and manual Desktop verification are required for any future mutation.</li>
+						<li>Backup, read-back, audit, reset, disabled-write probes for validate/preflight/CREATE/PATCH/DELETE/batch, redacted execution-result reporting, rollback decision handling, and manual Desktop verification are required for any future mutation.</li>
 						<li>DELETE, batch, and balance-affecting PATCH remain forbidden.</li>
 					</ul>
 				</div>

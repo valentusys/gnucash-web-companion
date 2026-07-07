@@ -1,6 +1,6 @@
 # PROJECT_STATUS
 
-Last updated: 2026-07-07
+Last updated: 2026-07-08
 
 ## Quick navigation
 
@@ -37,7 +37,8 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   public write beta approval.
   [#22](https://github.com/valentusys/gnucash-web-companion/issues/22) and
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) are closed.
-- Latest handoffs/docs: `docs/handoff/issue49-backup-readback-audit-reset-probes-shell-r3.md`,
+- Latest handoffs/docs: `docs/handoff/issue49-execution-result-ux-shell.md`,
+  `docs/handoff/issue49-backup-readback-audit-reset-probes-shell-r3.md`,
   `docs/handoff/issue49-backup-readback-audit-reset-probes-shell-r2.md`,
   `docs/handoff/issue49-final-gates-redacted-status.md`,
   `docs/handoff/issue49-backup-readback-audit-reset-probes-shell.md`,
@@ -129,10 +130,13 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   `blocked_or_unavailable`, and no reset/probe is executed. The r3 refinement adds
   `executionReadiness.evidence_packet_plan`, an ordered pending-only evidence packet plan for backup-before-CREATE,
   read-back, redacted audit, write-disable reset, disabled-probe evidence, and manual Desktop verification; every
-  step stays `pending`/`redacted_only`, and no evidence is collected. Final
-  local #49 gates passed on 2026-07-07 with the exact task commands: backend pytest passed 955 tests;
-  frontend check/build/static preview/auth route/synthetic browser preview gates passed; compose, public-status,
-  write-defaults, markdown readability, tracked-hygiene, and diff whitespace gates passed. #49
+  step stays `pending`/`redacted_only`, and no evidence is collected. The browser write-workflow UX refinement adds
+  `executionResult`, a pending-only execution-result shell with `status=not_executed`,
+  `create_result_state=blocked`, success/failure states `pending`, rollback state `not_run`, and redacted success,
+  failure, rollback-decision, and post-result disabled-probe checklist steps without executing or claiming any
+  mutation result. Local browser-workflow task gates passed on 2026-07-08 with the exact task commands: backend
+  pytest passed 979 tests; frontend check/build/static preview/auth route/synthetic browser preview gates passed;
+  write-defaults, tracked-hygiene, and diff whitespace gates passed. #49
   requires fresh same-context owner/PM approval, exact target class, exact CREATE count, first-trial default
   `CREATE 1 / PATCH 0 / DELETE 0 / batch 0`, target preflight, reviewed non-stale UI preview, backup before
   CREATE, read-back, redacted audit evidence, `GNUCASH_WRITES_ENABLED=false` reset, disabled-write probes, and

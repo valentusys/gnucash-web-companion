@@ -135,6 +135,7 @@ function assertSourceSafety() {
 	assert.match(page, /execution_readiness.required:[\s\S]*execution_readiness.status:[\s\S]*backup_state:[\s\S]*read_back_state:[\s\S]*audit_state:[\s\S]*reset_state:[\s\S]*probe_state:/s, 'execution readiness shell must expose safe redacted status fields');
 	assert.match(page, /id="execution-evidence-packet-plan"[\s\S]*Future evidence packet plan \(pending\)[\s\S]*Default state: route backup, read-back, audit, reset, disabled-probe, and Desktop-verification evidence are pending and not collected/s, 'execution evidence packet plan must default to pending/not collected');
 	assert.match(page, /id="disabled-probe-readiness-matrix"[\s\S]*Disabled-write probe matrix \(pending\)[\s\S]*Default state: validate\/preflight\/CREATE\/PATCH\/DELETE\/batch probes are pending and not executed/s, 'disabled-probe matrix must default to pending/not executed');
+	assert.match(page, /id="execution-result-shell"[\s\S]*Execution-result UX shell \(not run\)[\s\S]*Default state: no execution result exists, no success or failure result is claimed, and rollback\/restore is not run/s, 'execution-result shell must default to not run/no success/no failure/no rollback');
 	for (const targetPreflightLabel of ['Target file exists/readable', 'Target is outside repo', 'GnuCash Desktop closed', 'No .LCK/.LNK lock', 'Manual Desktop verification required']) {
 		assert.ok(page.includes(targetPreflightLabel), `target preflight checklist missing label: ${targetPreflightLabel}`);
 	}
@@ -147,10 +148,14 @@ function assertSourceSafety() {
 	for (const disabledProbeLabel of ['Validate probe after reset', 'Preflight probe after reset', 'CREATE probe after reset', 'PATCH probe after reset', 'DELETE probe after reset', 'Batch probe after reset']) {
 		assert.ok(page.includes(disabledProbeLabel), `disabled-probe matrix missing label: ${disabledProbeLabel}`);
 	}
+	for (const executionResultLabel of ['Success result: CREATE reference recorded', 'Success result: read-back verified', 'Failure result: safe error translated', 'Failure result: no success claim emitted', 'Rollback result: restore decision recorded', 'Post-result disabled probes verified']) {
+		assert.ok(page.includes(executionResultLabel), `execution-result shell missing label: ${executionResultLabel}`);
+	}
 	assert.doesNotMatch(page, /data-preflight-status="(?:checked|passed|ready|ok)"/, 'target preflight shell must not mark checks passed by default');
 	assert.doesNotMatch(page, /data-execution-readiness-status="(?:checked|passed|ready|ok)"/, 'execution readiness shell must not mark checks passed by default');
 	assert.doesNotMatch(page, /data-execution-evidence-status="(?:checked|passed|ready|ok)"/, 'execution evidence packet plan must not mark evidence passed by default');
 	assert.doesNotMatch(page, /data-disabled-probe-status="(?:checked|passed|ready|ok)"/, 'disabled-probe matrix must not mark probes passed by default');
+	assert.doesNotMatch(page, /data-execution-result-status="(?:checked|passed|ready|ok|success|failed|rolled_back)"/, 'execution-result shell must not mark result steps passed by default');
 	assert.match(page, /id="approval-packet"[\s\S]*Future Create remains disabled/s, 'approval packet must stay visible and no-write');
 	assert.match(page, /id="preview-stale-warning"[\s\S]*stale and cannot support a future owner-approved CREATE/s, 'stale-preview warning must remain present');
 	assert.match(page, /id="future-create-disabled"[\s\S]*type="button"[\s\S]*disabled/s, 'Future Create must remain disabled and non-submitting');
@@ -197,6 +202,8 @@ function assertSourceSafety() {
 	assert.match(server, /function createExecutionReadiness\(\)[\s\S]*required: true[\s\S]*status: 'not_checked'[\s\S]*backup_state: 'pending'[\s\S]*read_back_state: 'pending'[\s\S]*audit_state: 'pending'[\s\S]*reset_state: 'pending'[\s\S]*probe_state: 'pending'[\s\S]*status: 'pending'/s, 'server execution readiness must default to required/not_checked/pending');
 	assert.match(server, /function createExecutionReadiness\(\)[\s\S]*evidence_packet_plan: \[[\s\S]*id: 'backup_before_create_evidence'[\s\S]*id: 'read_back_after_create_evidence'[\s\S]*id: 'audit_after_create_evidence'[\s\S]*id: 'reset_disabled_evidence'[\s\S]*id: 'disabled_probes_after_reset_evidence'[\s\S]*id: 'desktop_verification_evidence'/s, 'server execution readiness must include an explicit pending evidence packet plan');
 	assert.match(server, /function createExecutionReadiness\(\)[\s\S]*disabled_probe_plan: \[[\s\S]*id: 'validate_probe_after_reset'[\s\S]*id: 'preflight_probe_after_reset'[\s\S]*id: 'create_probe_after_reset'[\s\S]*id: 'patch_probe_after_reset'[\s\S]*id: 'delete_probe_after_reset'[\s\S]*id: 'batch_probe_after_reset'/s, 'server execution readiness must include an explicit pending disabled-probe plan');
+	assert.match(server, /function createExecutionResult\(\)[\s\S]*status: 'not_executed'[\s\S]*create_result_state: 'blocked'[\s\S]*success_state: 'pending'[\s\S]*failure_state: 'pending'[\s\S]*rollback_state: 'not_run'/s, 'server execution result shell must default to not_executed/blocked/pending/not_run');
+	assert.match(server, /function createExecutionResult\(\)[\s\S]*id: 'success_create_ref_recorded'[\s\S]*id: 'success_read_back_verified'[\s\S]*id: 'failure_error_translated'[\s\S]*id: 'failure_no_success_claim'[\s\S]*id: 'rollback_decision_recorded'[\s\S]*id: 'post_result_disabled_probes_verified'/s, 'server execution result shell must include pending success/failure/rollback/post-result steps');
 	assert.doesNotMatch(server, /from ['"]node:fs|existsSync|readFileSync|statSync|accessSync|create_book_backup|write_lock_service|_open_piecash_book_for_write|GnuCashWriteService/, 'target preflight shell must not probe files/books or call backup/lock/write helpers');
 }
 
@@ -541,6 +548,7 @@ async function assertDisabledButtonInert(cdp, selector, expectedText, browserReq
 	assert.match(state.ariaDescribedBy, /write-session-gate/, `${label} disabled button must reference the write-session gate`);
 	assert.match(state.ariaDescribedBy, /target-preflight-readiness/, `${label} disabled button must reference the target preflight shell`);
 	assert.match(state.ariaDescribedBy, /execution-readiness-shell/, `${label} disabled button must reference the execution readiness shell`);
+	assert.match(state.ariaDescribedBy, /execution-result-shell/, `${label} disabled button must reference the execution result shell`);
 
 	const previewPostCountBefore = browserRequests.filter((request) => request.method === 'POST' && new URL(request.url).pathname === '/transactions/new').length;
 	const forbiddenCountBefore = forbiddenBrowserMutationRequests(browserRequests).length;
@@ -642,6 +650,32 @@ async function assertReadinessShellsRemainPending(cdp, label) {
 	assert.ok(!/target_preflight\.status:\s*(?:ready|passed|ok)/i.test(shellState.targetText), `${label}: target readiness must not render ready/passed status`);
 	assert.ok(!/execution_readiness\.status:\s*(?:ready|passed|ok)/i.test(shellState.executionText), `${label}: execution readiness must not render ready/passed status`);
 	assert.ok(!/private probe true|helper called true|allowed true|session_armed status\s+armed|allowed execution status\s+ready/i.test(shellState.readinessText), `${label}: unsafe active readiness details must stay clamped out of the UI`);
+}
+
+async function assertExecutionResultShellRemainsPending(cdp, label) {
+	const executionResultState = await evaluate(cdp, `(() => {
+		const text = (selector) => document.querySelector(selector)?.innerText ?? '';
+		return {
+			executionResultText: text('#execution-result-shell'),
+			executionResultStatuses: Array.from(document.querySelectorAll('[data-execution-result-status]')).map((item) => item.getAttribute('data-execution-result-status')),
+			executionResultSteps: Array.from(document.querySelectorAll('[data-execution-result-step]')).map((item) => item.getAttribute('data-execution-result-step'))
+		};
+	})()`);
+	assert.match(executionResultState.executionResultText, /Execution-result UX shell \(not run\)/, `${label}: execution-result shell must remain visible`);
+	assert.match(executionResultState.executionResultText, /execution_result\.status\s+not_executed/, `${label}: execution-result status must stay not_executed`);
+	assert.match(executionResultState.executionResultText, /create_result_state\s+blocked/, `${label}: create result must stay blocked`);
+	assert.match(executionResultState.executionResultText, /success_state\s+pending/, `${label}: success state must stay pending`);
+	assert.match(executionResultState.executionResultText, /failure_state\s+pending/, `${label}: failure state must stay pending`);
+	assert.match(executionResultState.executionResultText, /rollback_state\s+not_run/, `${label}: rollback state must stay not_run`);
+	assert.match(executionResultState.executionResultText, /no success or failure result is claimed/, `${label}: no success/failure claim copy must stay visible`);
+	assert.match(executionResultState.executionResultText, /performs no restore and emits no success claim/, `${label}: rollback/no-success boundary must stay visible`);
+	assert.deepEqual(executionResultState.executionResultStatuses, Array(6).fill('pending'), `${label}: execution-result steps must stay pending`);
+	assert.deepEqual(
+		executionResultState.executionResultSteps,
+		['success_create_ref_recorded', 'success_read_back_verified', 'failure_error_translated', 'failure_no_success_claim', 'rollback_decision_recorded', 'post_result_disabled_probes_verified'],
+		`${label}: execution-result shell must keep exact success/failure/rollback/post-result step IDs`
+	);
+	assert.ok(!/execution_result\.status\s+(?:success|failed|rolled_back)|rollback_state\s+(?:run|complete)|success_state\s+(?:done|success)/i.test(executionResultState.executionResultText), `${label}: execution-result shell must not render completed result states`);
 }
 
 async function assertApprovalPacketAbsent(cdp, label) {
@@ -877,8 +911,12 @@ async function runSmoke() {
 		await waitForExpression(cdp, `document.querySelector('#disabled-probe-readiness-matrix')?.innerText.includes('Disabled-write probe matrix (pending)') && document.querySelector('#disabled-probe-readiness-matrix')?.innerText.includes('blocked_or_unavailable')`, 'disabled-probe matrix default status');
 		await waitForExpression(cdp, `Array.from(document.querySelectorAll('[data-disabled-probe-status]')).length === 6 && Array.from(document.querySelectorAll('[data-disabled-probe-status]')).every((item) => item.getAttribute('data-disabled-probe-status') === 'pending')`, 'disabled-probe matrix pending checks');
 		await waitForExpression(cdp, `Array.from(document.querySelectorAll('[data-disabled-probe]')).map((item) => item.getAttribute('data-disabled-probe')).join('|') === 'validate_probe_after_reset|preflight_probe_after_reset|create_probe_after_reset|patch_probe_after_reset|delete_probe_after_reset|batch_probe_after_reset'`, 'disabled-probe exact shell checklist');
+		await waitForExpression(cdp, `document.querySelector('#execution-result-shell')?.innerText.includes('Execution-result UX shell (not run)') && document.querySelector('#execution-result-shell')?.innerText.includes('rollback_state')`, 'execution result shell default status');
+		await waitForExpression(cdp, `Array.from(document.querySelectorAll('[data-execution-result-status]')).length === 6 && Array.from(document.querySelectorAll('[data-execution-result-status]')).every((item) => item.getAttribute('data-execution-result-status') === 'pending')`, 'execution result pending checks');
+		await waitForExpression(cdp, `Array.from(document.querySelectorAll('[data-execution-result-step]')).map((item) => item.getAttribute('data-execution-result-step')).join('|') === 'success_create_ref_recorded|success_read_back_verified|failure_error_translated|failure_no_success_claim|rollback_decision_recorded|post_result_disabled_probes_verified'`, 'execution result exact shell checklist');
 		await assertPreviewOnlyRuntimeTopology(cdp, 'initial page');
 		await assertReadinessShellsRemainPending(cdp, 'initial page');
+		await assertExecutionResultShellRemainsPending(cdp, 'initial page');
 		await assertApprovalPacketAbsent(cdp, 'initial page');
 		await assertDisabledButtonInert(cdp, 'form button[type="button"][disabled]', 'Create disabled', browserRequests, 'form Create disabled');
 		assertNoMutationRequestsObserved(api, browserRequests, 'initial disabled Create probe');
@@ -921,6 +959,7 @@ async function runSmoke() {
 		);
 		await assertPreviewOnlyRuntimeTopology(cdp, 'same-account client block');
 		await assertReadinessShellsRemainPending(cdp, 'same-account client block');
+		await assertExecutionResultShellRemainsPending(cdp, 'same-account client block');
 		await assertApprovalPacketAbsent(cdp, 'same-account client block');
 		assertNoMutationRequestsObserved(api, browserRequests, 'same-account client block');
 		await setSelect(cdp, '#credit-account-select', 'smoke-destination');
@@ -951,6 +990,7 @@ async function runSmoke() {
 		await waitForExpression(cdp, `Boolean(document.querySelector('#approval-packet'))`, 'approval packet');
 		await assertPreviewOnlyRuntimeTopology(cdp, 'post-preview');
 		await assertReadinessShellsRemainPending(cdp, 'post-preview');
+		await assertExecutionResultShellRemainsPending(cdp, 'post-preview');
 		await assertApprovalPacketControls(cdp, 'post-preview approval packet');
 		assertNoMutationRequestsObserved(api, browserRequests, 'post-preview');
 		await evaluate(cdp, `new Promise((resolve) => setTimeout(resolve, 1000))`, { awaitPromise: true });
@@ -963,6 +1003,9 @@ async function runSmoke() {
 		assert.match(readinessText, /session_armed = false/, 'future create readiness must report unarmed session');
 		assert.match(readinessText, /CREATE execution allowed: false/, 'future create readiness must report create execution blocked');
 		assert.match(readinessText, /Target preflight status: not_checked/, 'future create readiness must report target preflight not checked');
+		assert.match(readinessText, /Execution readiness status: not_checked/, 'future create readiness must report execution readiness not checked');
+		assert.match(readinessText, /Execution result status: not_executed/, 'future create readiness must report execution result not executed');
+		assert.match(readinessText, /rollback state is not_run/, 'future create readiness must report rollback not run');
 		assert.match(readinessText, /Preview-reviewed checkbox alone is not enough/, 'future create readiness must state reviewed checkbox alone is insufficient');
 		assert.equal(await evaluate(cdp, `document.querySelector('#future-create-disabled')?.disabled === true`), true, 'Future Create must remain disabled');
 		assert.equal(await evaluate(cdp, `document.querySelector('#future-create-disabled')?.type === 'button'`), true, 'Future Create must stay a non-submit button');
@@ -1011,6 +1054,7 @@ async function runSmoke() {
 		await assertApprovalPacketControls(cdp, 'reviewed approval packet');
 		await assertDisabledButtonInert(cdp, '#future-create-disabled', 'Future Create disabled', browserRequests, 'reviewed Future Create');
 		await assertReadinessShellsRemainPending(cdp, 'reviewed preview');
+		await assertExecutionResultShellRemainsPending(cdp, 'reviewed preview');
 		assertNoMutationRequestsObserved(api, browserRequests, 'reviewed preview');
 		await setInput(cdp, '#preview-description', 'Synthetic browser smoke changed draft');
 		await waitForExpression(cdp, `document.querySelector('#preview-stale-warning')?.innerText.includes('stale and cannot support a future owner-approved CREATE')`, 'stale warning after draft change');
@@ -1023,6 +1067,7 @@ async function runSmoke() {
 		await assertApprovalPacketControls(cdp, 'stale approval packet', { reviewedDisabled: true });
 		await assertDisabledButtonInert(cdp, '#future-create-disabled', 'Future Create disabled', browserRequests, 'stale Future Create');
 		await assertReadinessShellsRemainPending(cdp, 'stale preview');
+		await assertExecutionResultShellRemainsPending(cdp, 'stale preview');
 		assertNoMutationRequestsObserved(api, browserRequests, 'stale preview');
 
 		await click(cdp, '#clear-preview-link');
@@ -1030,6 +1075,7 @@ async function runSmoke() {
 		await assertPreviewOnlyRuntimeTopology(cdp, 'clear preview');
 		await assertApprovalPacketAbsent(cdp, 'clear preview');
 		await assertReadinessShellsRemainPending(cdp, 'clear preview');
+		await assertExecutionResultShellRemainsPending(cdp, 'clear preview');
 		assertNoMutationRequestsObserved(api, browserRequests, 'clear preview');
 
 		assertNoMutationRequestsObserved(api, browserRequests, 'final browser smoke');
@@ -1057,6 +1103,7 @@ async function runSmoke() {
 			'writeSessionGate',
 			'targetPreflight',
 			'executionReadiness',
+			'executionResult',
 			'evidence_packet_plan',
 			'disabled_probe_plan',
 			'create_execution_allowed',

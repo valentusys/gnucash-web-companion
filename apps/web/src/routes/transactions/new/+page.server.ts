@@ -121,6 +121,27 @@ type ExecutionReadiness = {
 	disabled_probe_plan: DisabledProbePlanCheck[];
 };
 
+type ExecutionResultStep = {
+	id: string;
+	label: string;
+	phase: 'success' | 'failure' | 'rollback' | 'post_result';
+	status: 'pending';
+	required: true;
+	evidence_scope: 'redacted_only';
+	note: string;
+};
+
+type ExecutionResult = {
+	required: true;
+	status: 'not_executed';
+	create_result_state: 'blocked';
+	success_state: 'pending';
+	failure_state: 'pending';
+	rollback_state: 'not_run';
+	user_message: string;
+	steps: ExecutionResultStep[];
+};
+
 const PREVIEW_ERROR_FALLBACK = 'Preview validation failed safely. No write was executed.';
 
 const FIELD_LABELS: Record<PreviewFieldName, string> = {
@@ -635,6 +656,74 @@ function createExecutionReadiness(): ExecutionReadiness {
 	};
 }
 
+function createExecutionResult(): ExecutionResult {
+	return {
+		required: true,
+		status: 'not_executed',
+		create_result_state: 'blocked',
+		success_state: 'pending',
+		failure_state: 'pending',
+		rollback_state: 'not_run',
+		user_message: 'No execution result exists because CREATE execution is disabled in this preview-only slice.',
+		steps: [
+			{
+				id: 'success_create_ref_recorded',
+				label: 'Success result: CREATE reference recorded',
+				phase: 'success',
+				status: 'pending',
+				required: true,
+				evidence_scope: 'redacted_only',
+				note: 'Pending: future approved execution must record only redacted create refs after a successful CREATE.'
+			},
+			{
+				id: 'success_read_back_verified',
+				label: 'Success result: read-back verified',
+				phase: 'success',
+				status: 'pending',
+				required: true,
+				evidence_scope: 'redacted_only',
+				note: 'Pending: future read-back must prove the created transaction privately before any success claim.'
+			},
+			{
+				id: 'failure_error_translated',
+				label: 'Failure result: safe error translated',
+				phase: 'failure',
+				status: 'pending',
+				required: true,
+				evidence_scope: 'redacted_only',
+				note: 'Pending: future failures must show safe redacted messages without raw paths, traces, or secrets.'
+			},
+			{
+				id: 'failure_no_success_claim',
+				label: 'Failure result: no success claim emitted',
+				phase: 'failure',
+				status: 'pending',
+				required: true,
+				evidence_scope: 'redacted_only',
+				note: 'Pending: failed/unknown execution must stay explicit and cannot imply a committed transaction.'
+			},
+			{
+				id: 'rollback_decision_recorded',
+				label: 'Rollback result: restore decision recorded',
+				phase: 'rollback',
+				status: 'pending',
+				required: true,
+				evidence_scope: 'redacted_only',
+				note: 'Pending: rollback/restore is not run in this shell; a future failed session must record a redacted restore decision.'
+			},
+			{
+				id: 'post_result_disabled_probes_verified',
+				label: 'Post-result disabled probes verified',
+				phase: 'post_result',
+				status: 'pending',
+				required: true,
+				evidence_scope: 'redacted_only',
+				note: 'Pending: future post-result checks must prove writes are disabled and validate/preflight/CREATE/PATCH/DELETE/batch are blocked or unavailable.'
+			}
+		]
+	};
+}
+
 export const load: PageServerLoad = async ({ cookies, fetch }) => {
 	const token = getAuthToken(cookies);
 	const { books, activeBook, bookPrefix } = await getActiveBookContext(fetch, cookies, token);
@@ -657,7 +746,8 @@ export const load: PageServerLoad = async ({ cookies, fetch }) => {
 		createReadinessStatus,
 		writeSessionGate: createWriteSessionGate(createReadinessStatus),
 		targetPreflight: createTargetPreflight(),
-		executionReadiness: createExecutionReadiness()
+		executionReadiness: createExecutionReadiness(),
+		executionResult: createExecutionResult()
 	};
 };
 

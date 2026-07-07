@@ -453,6 +453,24 @@ This refinement executed no CREATE, PATCH, DELETE, batch mutation, target probin
 audit execution, reset/probes, private/original/working/only-copy book use, release publication, public write beta,
 or production/stable/security-audited claim.
 
+## #49 execution-result UX shell refinement
+
+The browser write-workflow UX refinement keeps `/transactions/new` non-mutating while making the future execution
+result states explicit:
+
+- server load now returns `executionResult` with `status=not_executed`, `create_result_state=blocked`,
+  `success_state=pending`, `failure_state=pending`, and `rollback_state=not_run`;
+- the page renders an `execution-result-shell` covering future success create refs, success read-back, safe failure
+  errors, no success claim on failed/unknown execution, rollback decision, and post-result disabled probes;
+- every execution-result step is `pending` and `redacted_only` by default;
+- disabled Create/Future Create controls reference the result shell and remain inert;
+- static and synthetic browser guards prove no success/failure/rollback-complete state is emitted and
+  `create-preview` remains the only transaction-entry submission target.
+
+This refinement executed no CREATE, PATCH, DELETE, batch mutation, rollback/restore, target probing, backup
+creation, read-back, audit execution, reset/probes, private/original/working/only-copy book use, release publication,
+public write beta, or production/stable/security-audited claim.
+
 ## #49 final local gates status
 
 On 2026-07-07, the final local gates for the completed non-mutating #49 shell slices passed with the exact task
