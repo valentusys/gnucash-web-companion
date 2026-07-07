@@ -2,7 +2,7 @@
 
 These tests exercise the full write flow (create_transaction, patch_transaction_metadata)
 against actual piecash SQLite books (copies of the synthetic fixture), validating:
-- Happy paths: balanced create, multi-split create, patch description/date/memo
+- Happy paths: balanced create, multi-split create, patch description/memo
 - Validation rejections: unbalanced, single-split, invalid-account, placeholder
 - Backup creation, audit logging, lock lifecycle, lock contention
 - Original fixture immutability, read-back verification
@@ -21,6 +21,7 @@ from typing import Any
 
 import piecash
 import pytest
+from pydantic import ValidationError
 
 from app.schemas.gnucash_writes import (
     TransactionCreateRequestDTO,
@@ -76,9 +77,11 @@ def _read_transactions(book_path: Path) -> list[dict]:
                 "guid": tx.guid,
                 "description": tx.description,
                 "post_date": tx.post_date,
+                "currency": str(getattr(getattr(tx, "currency", None), "mnemonic", "")),
                 "splits": [
                     {
                         "guid": s.guid,
+                        "account_guid": s.account.guid,
                         "account_name": s.account.name,
                         "value": Decimal(str(s.value)),
                         "memo": s.memo,
@@ -606,20 +609,10 @@ class TestPatchTransactionMetadata:
         assert tx is not None
         assert tx["description"] == "Updated description"
 
-    def test_patch_date(self, service_and_path):
-        """Patch an existing transaction's post_date."""
-        svc, book_path = service_and_path
-        request = TransactionPatchRequestDTO(date="2026-12-25")
-        result = svc.patch_transaction_metadata(
-            FixtureTransactions.BUS_PASS, request, user_id=1, book_id=1
-        )
-        assert result.transaction_id == FixtureTransactions.BUS_PASS
-        txs = _read_transactions(book_path)
-        tx = next((t for t in txs if t["guid"] == FixtureTransactions.BUS_PASS), None)
-        assert tx is not None
-        from datetime import date
-
-        assert tx["post_date"] == date(2026, 12, 25)
+    def test_patch_date_is_rejected_by_request_schema(self):
+        """PATCH must not accept transaction date changes."""
+        with pytest.raises(ValidationError, match="date"):
+            TransactionPatchRequestDTO.model_validate({"date": "2026-12-25"})
 
     def test_patch_split_memo(self, service_and_path):
         """Patch a split memo on an existing transaction."""
@@ -643,23 +636,35 @@ class TestPatchTransactionMetadata:
         split = next(s for s in tx2["splits"] if s["guid"] == target_guid)
         assert split["memo"] == "Updated memo"
 
-    def test_patch_combined_description_and_date(self, service_and_path):
-        """Patch both description and date in one request."""
+    def test_patch_combined_description_and_memo_preserves_immutable_fields(self, service_and_path):
+        """Patch description and memo while preserving date, splits, accounts, amounts, and currency."""
         svc, book_path = service_and_path
+        txs_before = _read_transactions(book_path)
+        before = next(
+            t for t in txs_before if t["guid"] == FixtureTransactions.CREDIT_CARD_PAYMENT
+        )
+        target_guid = before["splits"][0]["guid"]
         request = TransactionPatchRequestDTO(
-            description="Combined update", date="2026-06-15"
+            description="Combined metadata update",
+            split_memos={target_guid: "Combined memo update"},
         )
         result = svc.patch_transaction_metadata(
             FixtureTransactions.CREDIT_CARD_PAYMENT, request, user_id=1, book_id=1
         )
+        assert result.transaction_id == FixtureTransactions.CREDIT_CARD_PAYMENT
+
         txs = _read_transactions(book_path)
         tx = next(
-            (t for t in txs if t["guid"] == FixtureTransactions.CREDIT_CARD_PAYMENT), None
+            t for t in txs if t["guid"] == FixtureTransactions.CREDIT_CARD_PAYMENT
         )
-        assert tx["description"] == "Combined update"
-        from datetime import date
-
-        assert tx["post_date"] == date(2026, 6, 15)
+        assert tx["description"] == "Combined metadata update"
+        assert tx["post_date"] == before["post_date"]
+        assert tx["currency"] == before["currency"]
+        assert [split["guid"] for split in tx["splits"]] == [split["guid"] for split in before["splits"]]
+        assert [split["account_guid"] for split in tx["splits"]] == [split["account_guid"] for split in before["splits"]]
+        assert [split["value"] for split in tx["splits"]] == [split["value"] for split in before["splits"]]
+        patched_split = next(split for split in tx["splits"] if split["guid"] == target_guid)
+        assert patched_split["memo"] == "Combined memo update"
 
 
 # ---------------------------------------------------------------------------
@@ -686,13 +691,32 @@ class TestPatchValidationRejections:
                 "nonexistent-tx-guid-1234567890abcdef", request, user_id=1, book_id=1
             )
 
-    def test_patch_rejects_invalid_date(self, service_and_path):
-        """Invalid date in patch must be rejected."""
-        svc, _ = service_and_path
-        request = TransactionPatchRequestDTO(date="not-a-date")
-        with pytest.raises(GnuCashWriteError, match="Validation failed"):
-            svc.patch_transaction_metadata(
-                FixtureTransactions.JANUARY_SALARY, request, user_id=1, book_id=1
+    @pytest.mark.parametrize(
+        ("field_name", "immutable_payload"),
+        [
+            ("amount", {"amount": "999.00"}),
+            ("account_id", {"account_id": FixtureAccounts.FOOD}),
+            (
+                "splits",
+                {
+                    "splits": [
+                        {
+                            "account_id": FixtureAccounts.CHECKING,
+                            "amount": "-10.00",
+                            "currency": "SEK",
+                        }
+                    ]
+                },
+            ),
+            ("currency", {"currency": "USD"}),
+            ("date", {"date": "2026-12-25"}),
+        ],
+    )
+    def test_patch_rejects_immutable_financial_fields_at_schema(self, field_name, immutable_payload):
+        """Patch DTO rejects amount, account, split, currency, and date changes."""
+        with pytest.raises(ValidationError, match=field_name):
+            TransactionPatchRequestDTO.model_validate(
+                {"description": "Allowed metadata change", **immutable_payload}
             )
 
 

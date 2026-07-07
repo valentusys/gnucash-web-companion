@@ -100,14 +100,13 @@ class TransactionCreatePreviewDTO(BaseModel):
 class TransactionPatchRequestDTO(BaseModel):
     """Request body for patching an existing transaction.
 
-    Only description, date, and split memos can be edited.
-    Split amounts and accounts cannot be changed.
+    Only description and split memos can be edited. Transaction dates,
+    split amounts, accounts, split structure, and currencies cannot be changed.
     """
 
     model_config = ConfigDict(extra="forbid")
 
     description: str | None = Field(None, description="New transaction description")
-    date: str | None = Field(None, description="New transaction date as YYYY-MM-DD")
     split_memos: dict[str, str] | None = Field(
         None,
         description="Map of split GUID to new memo text",

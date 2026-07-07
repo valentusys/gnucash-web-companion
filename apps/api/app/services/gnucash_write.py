@@ -291,19 +291,8 @@ class GnuCashWriteService(GnuCashBookService):
         warnings: list[str] = []
 
         # Require at least one allowed field to avoid no-op writes.
-        if (
-            request.description is None
-            and request.date is None
-            and request.split_memos is None
-        ):
+        if request.description is None and request.split_memos is None:
             errors.append("At least one editable field is required")
-
-        # Validate date format if provided
-        if request.date is not None:
-            try:
-                date.fromisoformat(request.date)
-            except (ValueError, TypeError):
-                errors.append(f"Invalid date format: {request.date}")
 
         # Check transaction exists
         try:
@@ -335,9 +324,10 @@ class GnuCashWriteService(GnuCashBookService):
         user_id: int,
         book_id: int,
     ) -> TransactionWriteResultDTO:
-        """Patch description, date, and/or split memos for an existing transaction.
+        """Patch description and/or split memos for an existing transaction.
 
-        Does NOT allow editing split amounts or accounts.
+        Does NOT allow editing dates, split amounts, accounts, split structure,
+        or currencies.
         """
         # Step 1: Validate. Missing transactions are reported as 404 by the
         # route and must be detected before acquiring a lock or creating a
@@ -418,8 +408,9 @@ class GnuCashWriteService(GnuCashBookService):
     ) -> Any:
         """Patch an existing transaction in an already-open writeable book.
 
-        This intentionally limits PATCH to transaction metadata and split memos;
-        split accounts and split amounts are not editable through write-alpha.
+        This intentionally limits PATCH to transaction description and split memos;
+        transaction dates, split accounts, split amounts, split structure, and
+        currencies are not editable through write-alpha.
         """
         transaction = self._find_transaction(book, transaction_id)
         if transaction is None:
@@ -427,8 +418,6 @@ class GnuCashWriteService(GnuCashBookService):
 
         if request.description is not None:
             transaction.description = request.description
-        if request.date is not None:
-            transaction.post_date = date.fromisoformat(request.date)
         if request.split_memos is not None:
             for split in transaction.splits:
                 split_guid = _guid(split)

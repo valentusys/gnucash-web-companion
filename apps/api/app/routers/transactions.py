@@ -1515,9 +1515,9 @@ async def patch_book_transaction(
     x_owner_writebeta_preview_hash: str | None = Header(None),
     x_owner_writebeta_confirmation_token: str | None = Header(None),
 ) -> TransactionWriteResultDTO:
-    """Patch description, date, and/or split memos for an existing transaction.
+    """Patch description and/or split memos for an existing transaction.
 
-    Does NOT allow editing split amounts or accounts.
+    Does NOT allow editing dates, split amounts, accounts, split structure, or currencies.
     """
     _ensure_writes_enabled(settings)
     _ensure_write_alpha_test_scope(settings)
@@ -1544,7 +1544,6 @@ async def patch_book_transaction(
         k: v
         for k, v in {
             "description": request.description,
-            "date": request.date,
             "split_memos": request.split_memos,
         }.items()
         if v is not None

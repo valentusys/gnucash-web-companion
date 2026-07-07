@@ -339,6 +339,7 @@ def _read_written_transactions(book_path: Path) -> list[dict]:
                 "guid": tx.guid,
                 "description": tx.description,
                 "post_date": tx.post_date,
+                "currency": str(getattr(getattr(tx, "currency", None), "mnemonic", "")),
                 "splits": [
                     {
                         "guid": _guid(split),
@@ -1794,22 +1795,46 @@ class TestPatchTransaction:
         )
         assert response.status_code in (403, 404, 422)
 
-    def test_patch_rejects_split_amount_edit(self, client, auth_headers, sample_book):
-        """PATCH must not allow editing split amounts or accounts."""
-        payload = {
-            "description": "Updated",
-            "splits": [
-                {"account_id": "bank-guid", "amount": "-999.00", "currency": "SEK", "memo": ""},
-            ],
-        }
+    @pytest.mark.parametrize(
+        ("field_name", "immutable_payload"),
+        [
+            ("amount", {"amount": "-999.00"}),
+            ("account_id", {"account_id": "other-account-guid"}),
+            (
+                "splits",
+                {
+                    "splits": [
+                        {
+                            "account_id": "bank-guid",
+                            "amount": "-999.00",
+                            "currency": "SEK",
+                            "memo": "attempted split replacement",
+                        },
+                    ]
+                },
+            ),
+            ("currency", {"currency": "USD"}),
+            ("date", {"date": "2026-12-25"}),
+        ],
+    )
+    def test_patch_rejects_immutable_financial_fields(
+        self,
+        client,
+        auth_headers,
+        sample_book,
+        field_name,
+        immutable_payload,
+    ):
+        """PATCH must reject amount, account, split, currency, and date changes."""
+        payload = {"description": "Updated", **immutable_payload}
         response = client.patch(
             f"/books/{sample_book}/transactions/some-tx-id",
             json=payload,
             headers=auth_headers,
         )
-        # Should reject with 422 if splits are provided
-        if response.status_code != 404:
-            assert response.status_code == 422
+
+        assert response.status_code == 422
+        assert field_name in json.dumps(response.json())
 
 
 class TestWriteAlphaPatchRouteDisposableFixture:
@@ -1854,7 +1879,6 @@ class TestWriteAlphaPatchRouteDisposableFixture:
             f"/books/{disposable_sample_book}/transactions/{tx_before['guid']}",
             json={
                 "description": "Route write-alpha patched",
-                "date": "2026-05-18",
                 "split_memos": {split_guid: "patched memo from route"},
             },
             headers=auth_headers,
@@ -1872,8 +1896,11 @@ class TestWriteAlphaPatchRouteDisposableFixture:
         txs_after = _read_written_transactions(disposable_fixture_book)
         patched = next(tx for tx in txs_after if tx["guid"] == tx_before["guid"])
         assert patched["description"] == "Route write-alpha patched"
-        assert patched["post_date"] == date(2026, 5, 18)
+        assert patched["post_date"] == tx_before["post_date"]
+        assert patched["currency"] == tx_before["currency"]
         assert any(split["memo"] == "patched memo from route" for split in patched["splits"])
+        assert [split["guid"] for split in patched["splits"]] == [split["guid"] for split in tx_before["splits"]]
+        assert [split["account_guid"] for split in patched["splits"]] == [split["account_guid"] for split in tx_before["splits"]]
         assert [split["value"] for split in patched["splits"]] == [split["value"] for split in tx_before["splits"]]
 
         backup_txs = _read_written_transactions(backup_path)
@@ -1893,10 +1920,72 @@ class TestWriteAlphaPatchRouteDisposableFixture:
             assert payload["result"] == "success"
             assert payload["transaction_id"] == tx_before["guid"]
             assert payload["backup_path"] == str(backup_path)
-            assert set(payload["request_summary"]["fields_updated"]) == {"description", "date", "split_memos"}
+            assert set(payload["request_summary"]["fields_updated"]) == {"description", "split_memos"}
             ownership = session.get(WriteAlphaTransactionOwnership, ownership_id)
             assert ownership is not None
             assert ownership.last_mutated_at > datetime(2026, 5, 20)
+
+    @pytest.mark.parametrize(
+        ("field_name", "immutable_payload"),
+        [
+            ("amount", {"amount": "-999.00"}),
+            ("account_id", {"account_id": "c3e2c3289f6745d6a226599207ef1157"}),
+            (
+                "splits",
+                {
+                    "splits": [
+                        {
+                            "account_id": "c73e8aa01e6345288662b556f2f866f3",
+                            "amount": "-999.00",
+                            "currency": "SEK",
+                            "memo": "attempted split replacement",
+                        },
+                        {
+                            "account_id": "388a85676d4a4643ae6cd28166c34e79",
+                            "amount": "999.00",
+                            "currency": "SEK",
+                            "memo": "attempted split replacement",
+                        },
+                    ]
+                },
+            ),
+            ("currency", {"currency": "USD"}),
+            ("date", {"date": "2026-05-18"}),
+        ],
+    )
+    def test_enabled_patch_route_rejects_immutable_financial_fields_without_mutation(
+        self,
+        client,
+        auth_headers,
+        disposable_sample_book,
+        disposable_fixture_book,
+        disposable_write_lock,
+        session_factory,
+        field_name,
+        immutable_payload,
+    ):
+        tx_before = self._first_fixture_transaction(disposable_fixture_book)
+        self._mark_owned(session_factory, disposable_sample_book, tx_before["guid"])
+        txs_before = _read_written_transactions(disposable_fixture_book)
+
+        response = client.patch(
+            f"/books/{disposable_sample_book}/transactions/{tx_before['guid']}",
+            json={"description": "should not partially patch", **immutable_payload},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 422
+        assert field_name in json.dumps(response.json())
+        assert _read_written_transactions(disposable_fixture_book) == txs_before
+        backups_root = disposable_fixture_book.parent.parent / "backups"
+        assert not backups_root.exists()
+        lock_key = str(disposable_fixture_book)
+        assert disposable_write_lock.acquire(lock_key) is True
+        disposable_write_lock.release(lock_key)
+
+        with session_factory() as session:
+            logs = session.query(AuditLog).filter_by(action="transaction.patch").all()
+            assert logs == []
 
     def test_non_owned_fixture_transaction_patch_is_rejected_before_write_service(
         self,
@@ -2037,7 +2126,7 @@ class TestWriteAlphaPatchRouteDisposableFixture:
 
         response = client.patch(
             f"/books/{disposable_sample_book}/transactions/{tx_before['guid']}",
-            json={"date": "not-a-date"},
+            json={},
             headers=auth_headers,
         )
 
@@ -2056,7 +2145,7 @@ class TestWriteAlphaPatchRouteDisposableFixture:
             payload = json.loads(logs[-1].payload_json)
             assert payload["result"] == "failed"
             assert payload["backup_path"] is None
-            assert "Invalid date format" in payload["error"]
+            assert "At least one editable field" in payload["error"]
 
     def test_failure_during_patch_write_releases_lock_audits_failure_and_keeps_backup(
         self,
