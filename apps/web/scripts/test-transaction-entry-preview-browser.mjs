@@ -208,6 +208,7 @@ function isForbiddenTransactionMutation(method, pathname) {
 async function startSyntheticApi() {
 	const requests = [];
 	const forbiddenRequests = [];
+	const previewPayloads = [];
 	const server = createServer(async (req, res) => {
 		const url = new URL(req.url ?? '/', 'http://127.0.0.1');
 		requests.push({ method: req.method, path: url.pathname });
@@ -251,6 +252,7 @@ async function startSyntheticApi() {
 			}
 			if (req.method === 'POST' && url.pathname === '/books/1/transactions/create-preview') {
 				const payload = await readBody(req);
+				previewPayloads.push(payload);
 				if (payload.debit_account_id === payload.credit_account_id) {
 					return jsonResponse(res, 422, { detail: 'debit and credit accounts must be different' });
 				}
@@ -297,6 +299,7 @@ async function startSyntheticApi() {
 		url: `http://127.0.0.1:${address.port}`,
 		requests,
 		forbiddenRequests,
+		previewPayloads,
 		close: () => new Promise((resolve) => server.close(resolve))
 	};
 }
@@ -483,6 +486,8 @@ async function assertDisabledButtonInert(cdp, selector, expectedText, browserReq
 			type: button.type,
 			text: button.textContent.replace(/\\s+/g, ' ').trim(),
 			formaction: button.getAttribute('formaction'),
+			name: button.getAttribute('name'),
+			valueAttribute: button.getAttribute('value'),
 			ariaDescribedBy: button.getAttribute('aria-describedby') ?? ''
 		};
 	})()`);
@@ -490,6 +495,8 @@ async function assertDisabledButtonInert(cdp, selector, expectedText, browserReq
 	assert.equal(state.disabled, true, `${label} disabled button must stay disabled`);
 	assert.equal(state.type, 'button', `${label} disabled button must stay non-submitting`);
 	assert.equal(state.formaction, null, `${label} disabled button must not expose a form action`);
+	assert.equal(state.name, null, `${label} disabled button must not expose a submitted name`);
+	assert.equal(state.valueAttribute, null, `${label} disabled button must not expose a submitted value`);
 	assert.equal(state.text, expectedText, `${label} disabled button label must remain explicit`);
 	assert.match(state.ariaDescribedBy, /preview-no-write-warning/, `${label} disabled button must reference the no-write boundary`);
 	assert.match(state.ariaDescribedBy, /write-session-gate/, `${label} disabled button must reference the write-session gate`);
@@ -531,17 +538,77 @@ async function assertReadinessShellsRemainPending(cdp, label) {
 	assert.ok(!shellState.readinessText.includes('count 99'), `${label}: unsafe readiness counts must not render`);
 }
 
+async function assertApprovalPacketAbsent(cdp, label) {
+	const state = await evaluate(cdp, `(() => ({
+		approvalPacket: Boolean(document.querySelector('#approval-packet')),
+		futureCreate: Boolean(document.querySelector('#future-create-disabled')),
+		previewReviewed: Boolean(document.querySelector('#preview-reviewed-confirmation')),
+		copyTemplate: Boolean(document.querySelector('#copy-approval-template'))
+	}))()`);
+	assert.deepEqual(
+		state,
+		{ approvalPacket: false, futureCreate: false, previewReviewed: false, copyTemplate: false },
+		`${label}: approval packet and future-create controls must be absent before a successful preview`
+	);
+}
+
+async function assertApprovalPacketControls(cdp, label, { reviewedDisabled = false } = {}) {
+	const state = await evaluate(cdp, `(() => {
+		const approval = document.querySelector('#approval-packet');
+		const copy = document.querySelector('#copy-approval-template');
+		const reviewed = document.querySelector('#preview-reviewed-confirmation');
+		const future = document.querySelector('#future-create-disabled');
+		return {
+			approvalText: approval?.innerText ?? '',
+			copyType: copy?.type ?? null,
+			copyFormAction: copy?.getAttribute('formaction'),
+			copyName: copy?.getAttribute('name'),
+			copyValue: copy?.getAttribute('value'),
+			reviewedType: reviewed?.type ?? null,
+			reviewedName: reviewed?.getAttribute('name'),
+			reviewedDisabled: Boolean(reviewed?.disabled),
+			reviewedFormId: reviewed?.form?.id ?? null,
+			futureDisabled: Boolean(future?.disabled),
+			futureType: future?.type ?? null,
+			futureFormId: future?.form?.id ?? null,
+			futureName: future?.getAttribute('name'),
+			futureValue: future?.getAttribute('value'),
+			futureFormAction: future?.getAttribute('formaction')
+		};
+	})()`);
+	assert.match(state.approvalText, /no approval is recorded/, `${label}: approval packet must not record approval`);
+	assert.match(state.approvalText, /Future Create remains disabled/, `${label}: approval packet must keep Future Create disabled`);
+	assert.match(state.approvalText, /Future CREATE count\s+1/i, `${label}: approval packet must keep exact future CREATE count visible`);
+	assert.equal(state.copyType, 'button', `${label}: copy approval template control must be a non-submit button`);
+	assert.equal(state.copyFormAction, null, `${label}: copy approval template control must not expose a form action`);
+	assert.equal(state.copyName, null, `${label}: copy approval template control must not expose a submitted name`);
+	assert.equal(state.copyValue, null, `${label}: copy approval template control must not expose a submitted value`);
+	assert.equal(state.reviewedType, 'checkbox', `${label}: preview-reviewed control must be a checkbox`);
+	assert.equal(state.reviewedName, null, `${label}: preview-reviewed checkbox must be local-only and unnamed`);
+	assert.equal(state.reviewedFormId, null, `${label}: preview-reviewed checkbox must remain outside the preview form`);
+	assert.equal(state.reviewedDisabled, reviewedDisabled, `${label}: preview-reviewed disabled state must match preview freshness`);
+	assert.equal(state.futureDisabled, true, `${label}: Future Create must stay disabled`);
+	assert.equal(state.futureType, 'button', `${label}: Future Create must stay non-submitting`);
+	assert.equal(state.futureFormId, null, `${label}: Future Create must remain outside the preview form`);
+	assert.equal(state.futureName, null, `${label}: Future Create must not expose a submitted name`);
+	assert.equal(state.futureValue, null, `${label}: Future Create must not expose a submitted value`);
+	assert.equal(state.futureFormAction, null, `${label}: Future Create must not expose a form action`);
+}
+
+function isForbiddenBrowserBoundaryRequest(request) {
+	const method = request.method.toUpperCase();
+	const url = new URL(request.url);
+	const actionTarget = `${url.pathname}${url.search}`;
+	if (method === 'POST' && url.pathname === '/transactions/new' && url.search.includes('/preview')) return false;
+	if (/(?:\/|%2F)(?:backups?|audit|write-alpha|owner-writebeta)(?:\/|$|[?&=])/i.test(actionTarget)) return true;
+	if (!url.pathname.includes('/transactions') && !url.search.includes('/transactions')) return false;
+	if (method === 'PATCH' || method === 'DELETE') return true;
+	if (method === 'POST') return true;
+	return /(?:\/|\?\/)(?:create|validate|preflight|batch|delete|patch)(?:\/|$|[?&=])/i.test(actionTarget);
+}
+
 function forbiddenBrowserMutationRequests(requests) {
-	return requests.filter((request) => {
-		const method = request.method.toUpperCase();
-		const url = new URL(request.url);
-		const actionTarget = `${url.pathname}${url.search}`;
-		if (!url.pathname.includes('/transactions') && !url.search.includes('/transactions')) return false;
-		if (method === 'POST' && url.pathname === '/transactions/new' && url.search.includes('/preview')) return false;
-		if (method === 'PATCH' || method === 'DELETE') return true;
-		if (method === 'POST') return true;
-		return /(?:\/|\?\/)(?:create|validate|preflight|batch|delete|patch)(?:\/|$|[?&=])/i.test(actionTarget);
-	});
+	return requests.filter(isForbiddenBrowserBoundaryRequest);
 }
 
 async function runSmoke() {
@@ -628,6 +695,7 @@ async function runSmoke() {
 		await waitForExpression(cdp, `Array.from(document.querySelectorAll('[data-execution-readiness-status]')).length === 9 && Array.from(document.querySelectorAll('[data-execution-readiness-status]')).every((item) => item.getAttribute('data-execution-readiness-status') === 'pending')`, 'execution readiness pending checks');
 		await waitForExpression(cdp, `Array.from(document.querySelectorAll('[data-execution-readiness-check]')).map((item) => item.getAttribute('data-execution-readiness-check')).join('|') === 'backup_plan_required|backup_readable_copy_required|post_create_read_back_required|redacted_audit_required|writes_reset_required|disabled_create_probe_required|disabled_validate_preflight_probe_required|disabled_patch_delete_batch_probes_required|manual_desktop_verification_record_required'`, 'execution readiness exact shell checklist');
 		await assertReadinessShellsRemainPending(cdp, 'initial page');
+		await assertApprovalPacketAbsent(cdp, 'initial page');
 		await assertDisabledButtonInert(cdp, 'form button[type="button"][disabled]', 'Create disabled', browserRequests, 'form Create disabled');
 		await waitForExpression(cdp, `Boolean(document.querySelector('#debit-account-select') && document.querySelector('#credit-account-select'))`, 'account selectors');
 		assert.deepEqual(
@@ -693,6 +761,7 @@ async function runSmoke() {
 		await waitForExpression(cdp, `document.body && document.body.innerText.includes('Normalized preview')`, 'normalized preview');
 		await waitForExpression(cdp, `Boolean(document.querySelector('#approval-packet'))`, 'approval packet');
 		await assertReadinessShellsRemainPending(cdp, 'post-preview');
+		await assertApprovalPacketControls(cdp, 'post-preview approval packet');
 		await evaluate(cdp, `new Promise((resolve) => setTimeout(resolve, 1000))`, { awaitPromise: true });
 
 		const approvalText = await evaluate(cdp, `document.querySelector('#approval-packet')?.innerText ?? ''`);
@@ -731,6 +800,7 @@ async function runSmoke() {
 		await click(cdp, '#preview-reviewed-confirmation');
 		await waitForExpression(cdp, `document.querySelector('#preview-reviewed-confirmation')?.checked === true`, 'preview-reviewed checkbox checked');
 		await waitForExpression(cdp, `document.querySelector('#preview-reviewed-status')?.innerText.includes('Preview reviewed locally') && document.querySelector('#preview-reviewed-status')?.innerText.includes('preview-reviewed checkbox alone is not enough')`, 'preview-reviewed still blocked status');
+		await assertApprovalPacketControls(cdp, 'reviewed approval packet');
 		await assertDisabledButtonInert(cdp, '#future-create-disabled', 'Future Create disabled', browserRequests, 'reviewed Future Create');
 		await assertReadinessShellsRemainPending(cdp, 'reviewed preview');
 		await setInput(cdp, '#preview-description', 'Synthetic browser smoke changed draft');
@@ -738,12 +808,15 @@ async function runSmoke() {
 		assert.equal(await evaluate(cdp, `document.querySelector('#preview-reviewed-confirmation')?.checked === false`), true, 'stale draft must reset local reviewed checkbox');
 		assert.equal(await evaluate(cdp, `document.querySelector('#preview-reviewed-confirmation')?.disabled === true`), true, 'stale preview must disable local reviewed checkbox');
 		assert.equal(await evaluate(cdp, `document.querySelector('#future-create-disabled')?.disabled === true`), true, 'Future Create must remain disabled after stale change');
+		await assertApprovalPacketControls(cdp, 'stale approval packet', { reviewedDisabled: true });
+		await assertDisabledButtonInert(cdp, '#future-create-disabled', 'Future Create disabled', browserRequests, 'stale Future Create');
 
 		await click(cdp, '#clear-preview-link');
 		await waitForExpression(cdp, `!document.querySelector('#approval-packet') && document.body.innerText.includes('Preview only / no write executed')`, 'clear preview start-over state');
+		await assertApprovalPacketAbsent(cdp, 'clear preview');
 
 		const unsafeBrowserRequests = forbiddenBrowserMutationRequests(browserRequests);
-		assert.deepEqual(unsafeBrowserRequests, [], 'browser must not issue CREATE/PATCH/DELETE/batch transaction requests');
+		assert.deepEqual(unsafeBrowserRequests, [], 'browser must not issue CREATE/PATCH/DELETE/batch/validate/preflight/backup/audit/write-beta boundary requests');
 		assert.deepEqual(api.forbiddenRequests, [], 'synthetic API stub must not receive mutation requests');
 		assert.deepEqual(
 			api.requests.filter((request) => isForbiddenTransactionMutation(request.method ?? 'GET', request.path)),
@@ -754,6 +827,31 @@ async function runSmoke() {
 		assert.ok(createReadinessStatusCalls.length >= 1, 'browser smoke must load create-readiness-status as read-only status');
 		const createPreviewCalls = api.requests.filter((request) => request.method === 'POST' && request.path === '/books/1/transactions/create-preview');
 		assert.equal(createPreviewCalls.length, 1, 'browser smoke must call create-preview exactly once through the server action');
+		assert.equal(api.previewPayloads.length, 1, 'synthetic API stub must capture exactly one create-preview payload');
+		const previewPayload = api.previewPayloads[0];
+		assert.deepEqual(
+			Object.keys(previewPayload).sort(),
+			['amount', 'credit_account_id', 'currency', 'date', 'debit_account_id', 'description', 'memo'].sort(),
+			'create-preview payload must contain only preview API fields'
+		);
+		assert.equal(previewPayload.debit_account_id, 'smoke-source', 'create-preview payload must submit only the selected source account id');
+		assert.equal(previewPayload.credit_account_id, 'smoke-destination', 'create-preview payload must submit only the selected destination account id');
+		assert.equal(previewPayload.amount, syntheticAmount, 'create-preview payload must preserve the decimal amount string');
+		assert.equal(previewPayload.currency, 'SEK', 'create-preview payload must submit the selected currency code');
+		for (const forbiddenPayloadField of [
+			'book_id',
+			'debit-account-search',
+			'credit-account-search',
+			'previewReviewed',
+			'approvalTemplateCopied',
+			'writeSessionGate',
+			'targetPreflight',
+			'executionReadiness',
+			'create_execution_allowed',
+			'allowed_create_count'
+		]) {
+			assert.ok(!(forbiddenPayloadField in previewPayload), `create-preview payload must not submit local-only field: ${forbiddenPayloadField}`);
+		}
 		const transactionEntryAppSubmissions = browserRequests.filter((request) => {
 			const url = new URL(request.url);
 			return request.method === 'POST' && url.pathname === '/transactions/new';

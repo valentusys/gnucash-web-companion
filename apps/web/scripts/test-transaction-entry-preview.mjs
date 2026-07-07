@@ -39,14 +39,23 @@ for (const requiredBrowserSmokeFragment of [
 	'form button[type="button"][disabled]',
 	'post-preview Future Create',
 	'reviewed Future Create',
+	'stale Future Create',
 	'function assertReadinessShellsRemainPending',
+	'function assertApprovalPacketAbsent',
+	'function assertApprovalPacketControls',
+	'function isForbiddenBrowserBoundaryRequest',
 	'createReadinessStatusCalls.length >= 1',
+	'previewPayloads',
+	'create-preview payload must contain only preview API fields',
+	'browser must not issue CREATE/PATCH/DELETE/batch/validate/preflight/backup/audit/write-beta boundary requests',
 	'synthetic API stub must observe zero validate/preflight/backup/audit/write-beta boundary requests'
 ]) {
 	assert.ok(browserSmoke.includes(requiredBrowserSmokeFragment), `browser smoke missing required coverage marker: ${requiredBrowserSmokeFragment}`);
 }
 assert.match(browserSmoke, /\(\?:backups\?\|audit\|write-alpha\|owner-writebeta\)/, 'browser smoke must treat backup/audit/write-beta requests as forbidden boundary calls');
-assert.match(browserSmoke, /forbiddenBrowserMutationRequests[\s\S]*validate[\s\S]*preflight[\s\S]*batch/, 'browser smoke must reject browser-observed validate/preflight/batch transaction boundaries');
+assert.match(browserSmoke, /isForbiddenBrowserBoundaryRequest[\s\S]*backups\?[\s\S]*audit[\s\S]*write-alpha[\s\S]*owner-writebeta/, 'browser smoke must reject browser-observed backup/audit/write-beta boundary requests');
+assert.match(browserSmoke, /forbiddenBrowserMutationRequests[\s\S]*isForbiddenBrowserBoundaryRequest/, 'browser smoke forbidden request collector must use the shared browser boundary predicate');
+assert.match(browserSmoke, /isForbiddenBrowserBoundaryRequest[\s\S]*validate[\s\S]*preflight[\s\S]*batch/, 'browser smoke must reject browser-observed validate/preflight/batch transaction boundaries');
 
 for (const field of [
 	'book_id',
