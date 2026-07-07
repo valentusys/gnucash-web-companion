@@ -268,6 +268,19 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 		<a class="rounded-xl px-4 py-2 text-sm font-semibold" style="border: 1px solid var(--app-border); color: var(--app-text);" href="/transactions" aria-label="Back to transactions list; no draft is saved">Back to transactions list</a>
 	</div>
 
+	<nav id="transaction-entry-workflow-nav" class="mb-4 rounded-2xl p-4 text-sm" aria-label="Transaction entry preview workflow" aria-describedby="transaction-entry-workflow-help" style="border: 1px solid var(--app-border); background: var(--app-panel); color: var(--app-text);">
+		<p class="font-semibold">Preview workflow</p>
+		<p id="transaction-entry-workflow-help" class="mt-1" style="color: var(--app-muted);">
+			Use these in-page jumps to keep the preview-only flow clear on mobile. Links only move within this page; they do not save a draft or execute a write.
+		</p>
+		<ol class="mt-3 grid min-w-0 gap-2 md:grid-cols-4">
+			<li><a class="block rounded-xl px-3 py-2 font-semibold" style="border: 1px solid var(--app-border); color: var(--app-accent);" href="#preview-no-write-warning">1. Confirm no-write boundary</a></li>
+			<li><a class="block rounded-xl px-3 py-2 font-semibold" style="border: 1px solid var(--app-border); color: var(--app-accent);" href="#transaction-preview-form">2. Enter details</a></li>
+			<li><a class="block rounded-xl px-3 py-2 font-semibold" style="border: 1px solid var(--app-border); color: var(--app-accent);" href="#transaction-preview-form">3. Run preview</a></li>
+			<li><a class="block rounded-xl px-3 py-2 font-semibold" style="border: 1px solid var(--app-border); color: var(--app-accent);" href="#normalized-preview">4. Review disabled Future Create</a></li>
+		</ol>
+	</nav>
+
 	{#if form?.error}
 		<div id="preview-error-summary" class="mb-4 rounded-2xl p-4 text-sm" role="alert" aria-live="assertive" aria-labelledby="preview-error-summary-title" style="border: 1px solid #fecaca; background: #fef2f2; color: #991b1b;">
 			<p id="preview-error-summary-title" class="font-semibold">Preview validation failed safely</p>
@@ -398,7 +411,7 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 		<WriteModeWarning {locale} compact />
 	</div>
 
-	<form method="POST" onsubmit={handlePreviewSubmit} oninput={handleDraftChange} onchange={handleDraftChange} aria-describedby={describedBy('preview-no-write-warning', 'write-session-gate', 'target-preflight-readiness', 'execution-readiness-shell', 'preview-create-disabled-explanation', form?.error && 'preview-error-summary')} class="min-w-0 space-y-5 rounded-2xl p-5" style="background: var(--app-panel); border: 1px solid var(--app-border); box-shadow: 0 1px 3px var(--app-panel-shadow);">
+	<form id="transaction-preview-form" method="POST" onsubmit={handlePreviewSubmit} oninput={handleDraftChange} onchange={handleDraftChange} aria-describedby={describedBy('preview-no-write-warning', 'write-session-gate', 'target-preflight-readiness', 'execution-readiness-shell', 'preview-create-disabled-explanation', form?.error && 'preview-error-summary')} class="min-w-0 space-y-5 rounded-2xl p-5" style="background: var(--app-panel); border: 1px solid var(--app-border); box-shadow: 0 1px 3px var(--app-panel-shadow);">
 		<div class="min-w-0 text-sm font-medium" style="color: var(--app-text);">
 			<label for="preview-book">Book</label>
 			<select id="preview-book" name="book_id" aria-invalid={bookError ? 'true' : undefined} aria-describedby={describedBy('book-help', 'preview-no-write-warning', bookError && 'preview-book-error')} class="mt-1 w-full min-w-0 rounded-xl px-3 py-2" style="background: var(--app-bg); color: var(--app-text); border: 1px solid var(--app-border);">
@@ -537,7 +550,7 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 	{/if}
 
 	{#if preview}
-		<section class="mt-6 min-w-0 rounded-2xl p-5" aria-label="Transaction preview" aria-describedby={describedBy('preview-create-disabled-explanation', 'preview-no-write-warning', 'write-session-gate', 'target-preflight-readiness', 'execution-readiness-shell', previewIsStale && 'preview-stale-warning')} style="background: var(--app-panel); border: 1px solid var(--app-border);">
+		<section id="normalized-preview" class="mt-6 min-w-0 rounded-2xl p-5" aria-label="Transaction preview" aria-describedby={describedBy('preview-create-disabled-explanation', 'preview-no-write-warning', 'write-session-gate', 'target-preflight-readiness', 'execution-readiness-shell', previewIsStale && 'preview-stale-warning')} style="background: var(--app-panel); border: 1px solid var(--app-border);">
 			<div class="flex min-w-0 flex-col gap-2 md:flex-row md:items-start md:justify-between">
 				<div class="min-w-0">
 					<h2 class="text-xl font-semibold" style="color: var(--app-text);">Normalized preview</h2>
