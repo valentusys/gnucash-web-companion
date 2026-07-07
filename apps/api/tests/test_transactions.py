@@ -804,6 +804,58 @@ class TestTransactionCreatePreview:
         response = self.post_preview(client, auth_headers, sample_book, _preview_payload())
         assert response.status_code == 200
 
+    def test_preview_endpoint_does_not_consume_armed_owner_writebeta_headers(
+        self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory, monkeypatch
+    ):
+        from app.owner_writebeta_state_machine import (
+            OwnerWritebetaSession,
+            OwnerWritebetaState,
+            arm_confirmed_preview,
+            prepare_preview,
+        )
+        from app.routers.owner_writebeta import _SESSIONS
+
+        self._set_fake_book(session_factory, sample_book, fake_book_with_transactions)
+        owner_session = OwnerWritebetaSession()
+        owner_session.transition(OwnerWritebetaState.PREFLIGHT)
+        prepare_preview(owner_session, "CREATE", {"splits": [{"amount": "opaque"}]}, count=1)
+        armed_preview_hash = owner_session.preview_hash or ""
+        _, raw_token = arm_confirmed_preview(
+            owner_session,
+            preview_hash=armed_preview_hash,
+            backup_ref="bkp-create-preview-boundary",
+            restore_readiness_ref="rr-create-preview-boundary",
+        )
+        _SESSIONS[sample_book] = owner_session
+        self.guard_preview_mutation_helpers(
+            monkeypatch,
+            message="create-preview must not consume owner-writebeta armed execution headers",
+        )
+
+        try:
+            response = client.post(
+                f"/books/{sample_book}/transactions/create-preview",
+                headers={
+                    **auth_headers,
+                    "X-Owner-Writebeta-Preview-Hash": armed_preview_hash,
+                    "X-Owner-Writebeta-Confirmation-Token": raw_token,
+                },
+                json=_preview_payload(),
+            )
+
+            assert response.status_code == 200
+            data = response.json()
+            assert data["preview_only"] is True
+            assert data["create_count"] == 1
+            assert "preview_hash" not in data
+            assert "confirmation_token" not in data
+            assert "create_execution_allowed" not in data
+            assert _SESSIONS[sample_book].state == OwnerWritebetaState.CONFIRMATION
+            assert _SESSIONS[sample_book].preview_hash == armed_preview_hash
+            self.assert_no_preview_mutation_metadata(session_factory)
+        finally:
+            _SESSIONS.clear()
+
     def test_preview_route_source_stays_readonly_create_preview_only(self):
         import app.routers.transactions as transactions_router
 
