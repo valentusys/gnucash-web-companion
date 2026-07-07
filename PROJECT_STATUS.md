@@ -1,6 +1,6 @@
 # PROJECT_STATUS
 
-Last updated: 2026-07-05
+Last updated: 2026-07-07
 
 ## Quick navigation
 
@@ -122,9 +122,9 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   `status=not_checked`, backup/read-back/audit/reset/probe states all `pending`, and a UI shell covering future
   backup plan, readable backup proof, post-CREATE read-back, redacted audit evidence, write reset, disabled
   CREATE/PATCH/DELETE/batch probes, and manual Desktop verification without executing any of those actions. Final
-  local #49 gates passed with one environment note: plain `pytest` was not on PATH, so the backend suite was run via
-  `uv run pytest` in `apps/api` and passed 952 tests; frontend, compose, public-status, write-defaults, markdown,
-  tracked-hygiene, and diff whitespace gates passed. #49
+  local #49 gates passed on 2026-07-07 with the exact task commands: backend pytest passed 954 tests;
+  frontend check/build/static preview/auth route/synthetic browser preview gates passed; compose, public-status,
+  write-defaults, markdown readability, tracked-hygiene, and diff whitespace gates passed. #49
   requires fresh same-context owner/PM approval, exact target class, exact CREATE count, first-trial default
   `CREATE 1 / PATCH 0 / DELETE 0 / batch 0`, target preflight, reviewed non-stale UI preview, backup before
   CREATE, read-back, redacted audit evidence, `GNUCASH_WRITES_ENABLED=false` reset, disabled-write probes, and
