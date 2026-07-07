@@ -174,6 +174,76 @@ def _build_create_readiness_status(settings):
     assert str(tmp_path) not in failure_text
 
 
+def test_create_readiness_status_static_guard_rejects_active_check_items(tmp_path: Path) -> None:
+    router_source = tmp_path / "transactions.py"
+    router_source.write_text(
+        """
+from fastapi import APIRouter
+router = APIRouter()
+CREATE_READINESS_STATUS_CHECKS = (
+    {
+        "id": "write_session_armed",
+        "label": "Write session armed",
+        "status": "pending",
+        "note": "Pending: no owner-approved web UI CREATE session is armed.",
+    },
+    {
+        "id": "active_execution",
+        "label": "Active execution",
+        "status": "ready",
+        "note": "Ready to create",
+    },
+)
+
+@router.get("/books/{book_id}/transactions/create-readiness-status")
+async def get_book_transaction_create_readiness_status(book_id, user, session, settings):
+    book = _resolve_viewable_book(book_id, user, session)
+    _require_book_owner_access(book, user, session)
+    return _build_create_readiness_status(settings)
+
+def _build_create_readiness_status(settings):
+    writes_enabled = settings.gnucash_writes_enabled
+    create_execution_reason = "safe top-level status with unsafe checklist item"
+    readiness_state = {
+        "writes_enabled": {"enabled": writes_enabled, "status": "enabled_but_blocked" if writes_enabled else "disabled", "redacted": True},
+        "session_armed": {"armed": False, "status": "not_armed", "redacted": True},
+        "allowed_create_count": {"count": 0, "status": "blocked", "redacted": True},
+        "target": {"target_class": None, "status": "not_selected", "private_target_probed": False, "redacted": True},
+        "preflight": {"required": True, "status": "not_checked", "private_target_probed": False, "redacted": True},
+        "backup": {"required": True, "status": "not_checked", "backup_helper_called": False, "redacted": True},
+        "allowed_execution": {"allowed": False, "status": "blocked", "reason": create_execution_reason, "redacted": True},
+    }
+    return {
+        "preview_only": True,
+        "status": "disabled",
+        "writes_enabled": writes_enabled,
+        "session_armed": False,
+        "create_execution_allowed": False,
+        "create_execution_reason": create_execution_reason,
+        "allowed_create_count": 0,
+        "target_class": None,
+        "readiness_required": True,
+        "readiness_status": "not_checked",
+        "readiness_state": readiness_state,
+        "checks": [dict(check) for check in CREATE_READINESS_STATUS_CHECKS],
+        "limitations": [
+            "Read-only redacted status only; no CREATE/PATCH/DELETE/batch route is called.",
+            "No private target probing, GnuCash book opening, backup, lock, audit, reset, or write service helper runs.",
+            "Fresh same-context owner approval with exact target class and exact CREATE count is still required before any future mutation.",
+        ],
+    }
+""",
+        encoding="utf-8",
+    )
+
+    failures = write_safety_guard._check_create_readiness_status_shell(router_source)
+    failure_text = "; ".join(failures)
+
+    assert "CREATE_READINESS_STATUS_CHECKS[1].status='pending'" in failure_text
+    assert "CREATE_READINESS_STATUS_CHECKS[1].note must start with Pending:" in failure_text
+    assert str(tmp_path) not in failure_text
+
+
 def test_owner_writebeta_operating_guide_preserves_future_copied_book_authorization_format() -> None:
     guide = (ROOT / "docs/write-alpha/owner-writebeta-operating-guide.md").read_text(encoding="utf-8")
 

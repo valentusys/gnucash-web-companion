@@ -426,6 +426,44 @@ def _dict_value_for_path(node: ast.Dict, path: tuple[str, ...]) -> ast.AST | Non
     return current
 
 
+def _module_collection_assignment(tree: ast.Module, name: str) -> ast.List | ast.Tuple | None:
+    """Return a module-level literal list/tuple assignment by name, if present."""
+    for statement in tree.body:
+        value: ast.AST | None = None
+        if isinstance(statement, ast.Assign):
+            if any(isinstance(target, ast.Name) and target.id == name for target in statement.targets):
+                value = statement.value
+        elif isinstance(statement, ast.AnnAssign):
+            if isinstance(statement.target, ast.Name) and statement.target.id == name:
+                value = statement.value
+        if isinstance(value, (ast.List, ast.Tuple)):
+            return value
+    return None
+
+
+def _check_create_readiness_status_checks(tree: ast.Module) -> list[str]:
+    """Ensure readiness checklist rows remain pending-only guidance."""
+    checks = _module_collection_assignment(tree, "CREATE_READINESS_STATUS_CHECKS")
+    if checks is None:
+        return ["CREATE_READINESS_STATUS_CHECKS must be a literal tuple/list of pending checks"]
+    if not checks.elts:
+        return ["CREATE_READINESS_STATUS_CHECKS must contain pending checks"]
+
+    failures: list[str] = []
+    for index, item in enumerate(checks.elts):
+        if not isinstance(item, ast.Dict):
+            failures.append(f"CREATE_READINESS_STATUS_CHECKS[{index}] must be a literal check dictionary")
+            continue
+        if not _is_constant(_dict_literal_value_for_key(item, "status"), "pending"):
+            failures.append(
+                f"CREATE_READINESS_STATUS_CHECKS[{index}].status='pending' must be hard-coded"
+            )
+        note = _dict_literal_value_for_key(item, "note")
+        if not (isinstance(note, ast.Constant) and isinstance(note.value, str) and note.value.startswith("Pending:")):
+            failures.append(f"CREATE_READINESS_STATUS_CHECKS[{index}].note must start with Pending:")
+    return failures
+
+
 def _create_readiness_state_dict(
     builder: ast.FunctionDef | ast.AsyncFunctionDef,
     return_dict: ast.Dict,
@@ -498,6 +536,7 @@ def _check_create_readiness_status_shell(routes_path: Path = REPO_ROOT / WRITE_R
     failures: list[str] = []
     text = _read(routes_path)
     tree = _parse_python(routes_path)
+    failures.extend(_check_create_readiness_status_checks(tree))
     functions = {node.name: node for node in ast.walk(tree) if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
     methods = _decorated_route_methods(tree, CREATE_READINESS_STATUS_FUNCTION, CREATE_READINESS_STATUS_ROUTE)
     if methods != ["get"]:
