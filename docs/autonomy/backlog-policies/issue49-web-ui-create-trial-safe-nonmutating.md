@@ -14,6 +14,9 @@ Policy invariants:
 - Runtime prompts and reports stay under ignored `.hermes/autonomy/`.
 - Generated workers must treat each task's allowed scope as a ceiling.
 - Repeated generated tasks may be no-ops when no safe scoped improvement remains.
+- Repeated tasks must not create cosmetic edits solely to avoid a no-op.
+- A no-op worker should report exact gates run, clean/dirty status, and mutation
+  counters (`CREATE 0 / PATCH 0 / DELETE 0 / batch 0`).
 - Do not use tracked docs or issue comments to publish raw private evidence.
 
 ## Task: issue49-backup-readback-audit-reset-probes-shell

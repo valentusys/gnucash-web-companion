@@ -100,6 +100,25 @@ clean. Do not treat repeated `issue49-autonomy-workflow-improvement` prompts as
 permission to broaden into product code, private data inspection, or release
 work.
 
+### Repeated generated task checkpoint format
+
+Use this when a generated task recurs and there is no remaining safe change
+inside that task's allowed scope. A no-change worker should report:
+
+- the repeated task id and the exact allowed scope reviewed;
+- `No safe scoped change remains` instead of inventing a cosmetic edit;
+- gates actually run, with concise pass/fail summaries;
+- final git status: clean, or dirty with exact tracked files and blocker;
+- safety counters: `CREATE 0 / PATCH 0 / DELETE 0 / batch 0`;
+- confirmation that no private book, app DB, backup, export, screenshot,
+  `.env`, token, key, cert, private path, account name, description, memo,
+  amount, or raw evidence was created, opened, reviewed, or committed.
+
+If a safe tracked change is made, commit only scoped tracked files after the
+task gates pass. Never commit ignored `.hermes` runtime files. If an out-of-scope
+or private/runtime artifact appears, stop with the exact dirty tracked files and
+blocker instead of broadening scope.
+
 ## Live execution
 
 Only after reviewing the rendered prompts and choosing a command interface:

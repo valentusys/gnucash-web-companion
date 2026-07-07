@@ -1023,7 +1023,9 @@ def test_discovered_safe_quality_policy_task_remains_bounded_and_guarded():
 
 def test_issue49_autonomy_workflow_policy_and_runbook_stay_bounded():
     policy = REPO_ROOT / "docs/autonomy/backlog-policies/issue49-web-ui-create-trial-safe-nonmutating.md"
+    policy_text = policy.read_text(encoding="utf-8")
     runbook = (REPO_ROOT / "docs/autonomy/operator-runbook.md").read_text(encoding="utf-8")
+    report_template = (REPO_ROOT / "docs/autonomy/report-template.md").read_text(encoding="utf-8")
 
     tasks = supervisor.load_safe_policy_tasks(policy)
     task = next(task for task in tasks if task.task_id == "issue49-autonomy-workflow-improvement")
@@ -1054,6 +1056,13 @@ def test_issue49_autonomy_workflow_policy_and_runbook_stay_bounded():
     assert "Do not spawn nested Hermes/Codex/tmux/cron workers" in prompt
     assert "Run each verification command from the repository root in an isolated shell" in prompt
 
+    required_policy_patterns = [
+        "Repeated tasks must not create cosmetic edits solely to avoid a no-op.",
+        "CREATE 0 / PATCH 0 / DELETE 0 / batch 0",
+    ]
+    for pattern in required_policy_patterns:
+        assert pattern in policy_text
+
     required_runbook_patterns = [
         "Issue #49 safe sustained run recipe",
         "docs/autonomy/queues/issue49-long-run.md",
@@ -1063,9 +1072,22 @@ def test_issue49_autonomy_workflow_policy_and_runbook_stay_bounded():
         "CREATE, PATCH, DELETE, batch operations",
         "repeated generated tasks may end as explicit no-op checkpoints",
         "Do not treat repeated `issue49-autonomy-workflow-improvement` prompts as",
+        "Repeated generated task checkpoint format",
+        "No safe scoped change remains",
+        "CREATE 0 / PATCH 0 / DELETE 0 / batch 0",
+        "Never commit ignored `.hermes` runtime files",
     ]
     for pattern in required_runbook_patterns:
         assert pattern in runbook
+
+    required_report_patterns = [
+        "Repeated-task / no-op checkpoints",
+        "No safe scoped change remains for the allowed scope.",
+        "No cosmetic edit was made solely to avoid a no-op.",
+        "Mutation counters: CREATE 0 / PATCH 0 / DELETE 0 / batch 0.",
+    ]
+    for pattern in required_report_patterns:
+        assert pattern in report_template
 
 
 def test_prompt_paths_sanitize_generated_task_ids(tmp_path):
