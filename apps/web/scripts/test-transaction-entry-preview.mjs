@@ -47,7 +47,15 @@ for (const requiredBrowserSmokeFragment of [
 	'disabled-probe-readiness-matrix',
 	'function assertApprovalPacketAbsent',
 	'function assertApprovalPacketControls',
+	'approval packet must remain outside the preview submission form',
+	'copy approval template click must not submit or call a POST endpoint',
+	'copy approval template click must not call a mutation boundary endpoint',
+	'unsafe active readiness details must stay clamped out of the UI',
 	'function isForbiddenBrowserBoundaryRequest',
+	'function assertMutationRequestPredicates',
+	'synthetic API boundary must block',
+	'browser boundary must block',
+	'next=%2Fbooks%2F1%2Ftransactions%2Fbatch',
 	'createReadinessStatusCalls.length >= 1',
 	'previewPayloads',
 	'create-preview payload must contain only preview API fields',
@@ -60,6 +68,8 @@ assert.match(browserSmoke, /\(\?:backups\?\|audit\|write-alpha\|owner-writebeta\
 assert.match(browserSmoke, /isForbiddenBrowserBoundaryRequest[\s\S]*backups\?[\s\S]*audit[\s\S]*write-alpha[\s\S]*owner-writebeta/, 'browser smoke must reject browser-observed backup/audit/write-beta boundary requests');
 assert.match(browserSmoke, /forbiddenBrowserMutationRequests[\s\S]*isForbiddenBrowserBoundaryRequest/, 'browser smoke forbidden request collector must use the shared browser boundary predicate');
 assert.match(browserSmoke, /isForbiddenBrowserBoundaryRequest[\s\S]*validate[\s\S]*preflight[\s\S]*batch/, 'browser smoke must reject browser-observed validate/preflight/batch transaction boundaries');
+assert.match(browserSmoke, /mentionsTransactions[\s\S]*%2Ftransactions[\s\S]*next=%2Fbooks%2F1%2Ftransactions%2Fbatch/, 'browser smoke must reject encoded mutation route queries as boundary requests');
+assert.match(browserSmoke, /assertMutationRequestPredicates[\s\S]*POST[\s\S]*\/books\/1\/transactions[\s\S]*PATCH[\s\S]*DELETE[\s\S]*backups[\s\S]*audit[\s\S]*owner-writebeta/, 'browser smoke must unit-check synthetic API mutation blocking predicates');
 
 for (const field of [
 	'book_id',

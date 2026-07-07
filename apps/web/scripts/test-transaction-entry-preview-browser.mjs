@@ -567,6 +567,9 @@ async function assertReadinessShellsRemainPending(cdp, label) {
 	assert.match(shellState.readinessText, /session_armed status\s+not_armed/, `${label}: redacted readiness must stay unarmed`);
 	assert.match(shellState.readinessText, /allowed execution status\s+blocked; allowed false/, `${label}: redacted readiness must keep execution blocked`);
 	assert.ok(!shellState.readinessText.includes('count 99'), `${label}: unsafe readiness counts must not render`);
+	assert.ok(!/target_preflight\.status:\s*(?:ready|passed|ok)/i.test(shellState.targetText), `${label}: target readiness must not render ready/passed status`);
+	assert.ok(!/execution_readiness\.status:\s*(?:ready|passed|ok)/i.test(shellState.executionText), `${label}: execution readiness must not render ready/passed status`);
+	assert.ok(!/private probe true|helper called true|allowed true|session_armed status\s+armed|allowed execution status\s+ready/i.test(shellState.readinessText), `${label}: unsafe active readiness details must stay clamped out of the UI`);
 }
 
 async function assertApprovalPacketAbsent(cdp, label) {
@@ -591,6 +594,8 @@ async function assertApprovalPacketControls(cdp, label, { reviewedDisabled = fal
 		const future = document.querySelector('#future-create-disabled');
 		return {
 			approvalText: approval?.innerText ?? '',
+			approvalClosestFormId: approval?.closest('form')?.id ?? null,
+			safetyChecklistText: document.querySelector('#approval-packet-safety-checklist')?.innerText ?? '',
 			copyType: copy?.type ?? null,
 			copyFormAttribute: copy?.getAttribute('form'),
 			copyFormAction: copy?.getAttribute('formaction'),
@@ -613,6 +618,10 @@ async function assertApprovalPacketControls(cdp, label, { reviewedDisabled = fal
 	assert.match(state.approvalText, /no approval is recorded/, `${label}: approval packet must not record approval`);
 	assert.match(state.approvalText, /Future Create remains disabled/, `${label}: approval packet must keep Future Create disabled`);
 	assert.match(state.approvalText, /Future CREATE count\s+1/i, `${label}: approval packet must keep exact future CREATE count visible`);
+	assert.equal(state.approvalClosestFormId, null, `${label}: approval packet must remain outside the preview submission form`);
+	assert.match(state.safetyChecklistText, /Fresh same-context owner approval with exact CREATE count = 1/, `${label}: approval packet checklist must require fresh exact-count owner approval`);
+	assert.match(state.safetyChecklistText, /disabled-write probes for validate\/preflight\/CREATE\/PATCH\/DELETE\/batch/, `${label}: approval packet checklist must require disabled mutation probes`);
+	assert.match(state.safetyChecklistText, /DELETE, batch, and balance-affecting PATCH remain forbidden/, `${label}: approval packet checklist must preserve forbidden mutation families`);
 	assert.equal(state.copyType, 'button', `${label}: copy approval template control must be a non-submit button`);
 	assert.equal(state.copyFormAttribute, null, `${label}: copy approval template control must not attach to a form by attribute`);
 	assert.equal(state.copyFormAction, null, `${label}: copy approval template control must not expose a form action`);
@@ -638,18 +647,72 @@ function isForbiddenBrowserBoundaryRequest(request) {
 	const actionTarget = `${url.pathname}${url.search}`;
 	if (method === 'POST' && url.pathname === '/transactions/new' && url.search.includes('/preview')) return false;
 	if (/(?:\/|%2F)(?:backups?|audit|write-alpha|owner-writebeta)(?:\/|$|[?&=])/i.test(actionTarget)) return true;
-	if (!url.pathname.includes('/transactions') && !url.search.includes('/transactions')) return false;
+	const mentionsTransactions = url.pathname.includes('/transactions') || url.search.includes('/transactions') || /%2Ftransactions/i.test(url.search);
+	if (!mentionsTransactions) return false;
 	if (method === 'PATCH' || method === 'DELETE') return true;
 	if (method === 'POST') return true;
-	return /(?:\/|\?\/)(?:create|validate|preflight|batch|delete|patch)(?:\/|$|[?&=])/i.test(actionTarget);
+	return /(?:\/|%2F|\?\/)(?:create|validate|preflight|batch|delete|patch)(?:\/|%2F|$|[?&=])/i.test(actionTarget);
 }
 
 function forbiddenBrowserMutationRequests(requests) {
 	return requests.filter(isForbiddenBrowserBoundaryRequest);
 }
 
+function assertMutationRequestPredicates() {
+	const allowedApiRequests = [
+		['GET', '/health'],
+		['GET', '/books/1/transactions/create-readiness-status'],
+		['POST', '/books/1/transactions/create-preview']
+	];
+	for (const [method, path] of allowedApiRequests) {
+		assert.equal(isForbiddenTransactionMutation(method, path), false, `synthetic API boundary must allow ${method} ${path}`);
+	}
+
+	const forbiddenApiRequests = [
+		['POST', '/books/1/transactions'],
+		['POST', '/books/1/transactions/create'],
+		['POST', '/books/1/transactions/validate'],
+		['POST', '/books/1/transactions/preflight'],
+		['POST', '/books/1/transactions/batch'],
+		['PATCH', '/books/1/transactions/synthetic-id'],
+		['DELETE', '/books/1/transactions/synthetic-id'],
+		['POST', '/books/1/backups'],
+		['POST', '/books/1/audit'],
+		['POST', '/books/1/write-alpha/transactions'],
+		['POST', '/books/1/owner-writebeta/transactions']
+	];
+	for (const [method, path] of forbiddenApiRequests) {
+		assert.equal(isForbiddenTransactionMutation(method, path), true, `synthetic API boundary must block ${method} ${path}`);
+	}
+
+	const allowedBrowserRequests = [
+		{ method: 'GET', url: 'http://127.0.0.1:4173/transactions/new' },
+		{ method: 'POST', url: 'http://127.0.0.1:4173/transactions/new?/preview' }
+	];
+	for (const request of allowedBrowserRequests) {
+		assert.equal(isForbiddenBrowserBoundaryRequest(request), false, `browser boundary must allow ${request.method} ${new URL(request.url).pathname}${new URL(request.url).search}`);
+	}
+
+	const forbiddenBrowserRequests = [
+		{ method: 'POST', url: 'http://127.0.0.1:4173/transactions/new' },
+		{ method: 'POST', url: 'http://127.0.0.1:4173/transactions/new?/create' },
+		{ method: 'GET', url: 'http://127.0.0.1:4173/transactions/new?/validate' },
+		{ method: 'GET', url: 'http://127.0.0.1:4173/transactions/new?next=%2Fbooks%2F1%2Ftransactions%2Fbatch' },
+		{ method: 'PATCH', url: 'http://127.0.0.1:4173/transactions/synthetic-id' },
+		{ method: 'DELETE', url: 'http://127.0.0.1:4173/transactions/synthetic-id' },
+		{ method: 'POST', url: 'http://127.0.0.1:4173/books/1/backups' },
+		{ method: 'GET', url: 'http://127.0.0.1:4173/audit/transactions' },
+		{ method: 'GET', url: 'http://127.0.0.1:4173/write-alpha/transactions' },
+		{ method: 'GET', url: 'http://127.0.0.1:4173/owner-writebeta/transactions' }
+	];
+	for (const request of forbiddenBrowserRequests) {
+		assert.equal(isForbiddenBrowserBoundaryRequest(request), true, `browser boundary must block ${request.method} ${new URL(request.url).pathname}${new URL(request.url).search}`);
+	}
+}
+
 async function runSmoke() {
 	assertSourceSafety();
+	assertMutationRequestPredicates();
 	assert.ok(existsSync(viteBin), 'Vite must be installed before running the browser smoke');
 	assert.ok(existsSync(chromiumBin), `Chromium binary not found at ${chromiumBin}`);
 
@@ -827,8 +890,20 @@ async function runSmoke() {
 			assert.ok(!renderedTemplate.includes(privateValue), `rendered approval template must not include preview value: ${privateValue}`);
 		}
 		assert.match(renderedTemplate, /Target book: <selected book in web UI>/, 'rendered approval template must be placeholder-only');
+		const copyPostCountBefore = browserRequests.filter((request) => request.method === 'POST').length;
+		const copyForbiddenCountBefore = forbiddenBrowserMutationRequests(browserRequests).length;
 		await click(cdp, '#copy-approval-template');
 		await evaluate(cdp, `new Promise((resolve) => setTimeout(resolve, 250))`, { awaitPromise: true });
+		assert.equal(
+			browserRequests.filter((request) => request.method === 'POST').length,
+			copyPostCountBefore,
+			'copy approval template click must not submit or call a POST endpoint'
+		);
+		assert.equal(
+			forbiddenBrowserMutationRequests(browserRequests).length,
+			copyForbiddenCountBefore,
+			'copy approval template click must not call a mutation boundary endpoint'
+		);
 		const copiedTemplate = await evaluate(cdp, `window.__smokeClipboardWrites?.[0] ?? ''`);
 		if (copiedTemplate) {
 			for (const privateValue of ['Synthetic Source', 'Synthetic Destination', syntheticDescription, syntheticMemo, syntheticAmount]) {
@@ -850,10 +925,12 @@ async function runSmoke() {
 		assert.equal(await evaluate(cdp, `document.querySelector('#future-create-disabled')?.disabled === true`), true, 'Future Create must remain disabled after stale change');
 		await assertApprovalPacketControls(cdp, 'stale approval packet', { reviewedDisabled: true });
 		await assertDisabledButtonInert(cdp, '#future-create-disabled', 'Future Create disabled', browserRequests, 'stale Future Create');
+		await assertReadinessShellsRemainPending(cdp, 'stale preview');
 
 		await click(cdp, '#clear-preview-link');
 		await waitForExpression(cdp, `!document.querySelector('#approval-packet') && document.body.innerText.includes('Preview only / no write executed')`, 'clear preview start-over state');
 		await assertApprovalPacketAbsent(cdp, 'clear preview');
+		await assertReadinessShellsRemainPending(cdp, 'clear preview');
 
 		const unsafeBrowserRequests = forbiddenBrowserMutationRequests(browserRequests);
 		assert.deepEqual(unsafeBrowserRequests, [], 'browser must not issue CREATE/PATCH/DELETE/batch/validate/preflight/backup/audit/write-beta boundary requests');
