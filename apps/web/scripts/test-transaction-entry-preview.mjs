@@ -70,8 +70,10 @@ assert.match(browserSmoke, /\(\?:backups\?\|audit\|write-alpha\|owner-writebeta\
 assert.match(browserSmoke, /isForbiddenBrowserBoundaryRequest[\s\S]*backups\?[\s\S]*audit[\s\S]*write-alpha[\s\S]*owner-writebeta/, 'browser smoke must reject browser-observed backup/audit/write-beta boundary requests');
 assert.match(browserSmoke, /forbiddenBrowserMutationRequests[\s\S]*isForbiddenBrowserBoundaryRequest/, 'browser smoke forbidden request collector must use the shared browser boundary predicate');
 assert.match(browserSmoke, /isForbiddenBrowserBoundaryRequest[\s\S]*validate[\s\S]*preflight[\s\S]*batch/, 'browser smoke must reject browser-observed validate/preflight/batch transaction boundaries');
+assert.match(browserSmoke, /url\.search === '\?\/preview'/, 'browser smoke must allow only the exact ?/preview app submission target');
 assert.match(browserSmoke, /mentionsTransactions[\s\S]*%2Ftransactions[\s\S]*next=%2Fbooks%2F1%2Ftransactions%2Fbatch/, 'browser smoke must reject encoded mutation route queries as boundary requests');
 assert.match(browserSmoke, /assertMutationRequestPredicates[\s\S]*POST[\s\S]*\/books\/1\/transactions[\s\S]*PATCH[\s\S]*DELETE[\s\S]*backups[\s\S]*audit[\s\S]*owner-writebeta/, 'browser smoke must unit-check synthetic API mutation blocking predicates');
+assert.match(browserSmoke, /\?\/preview&next=%2Fbooks%2F1%2Ftransactions%2Fbatch/, 'browser smoke must reject smuggled mutation routes even when ?/preview appears in the query');
 
 for (const field of [
 	'book_id',
@@ -298,8 +300,11 @@ assert.match(formTags[0], /id="transaction-preview-form"/, 'the only form must b
 assert.match(formTags[0], /method="POST"/, 'the preview form must be the only POSTing form');
 assert.doesNotMatch(formTags[0], /\baction=/, 'the preview form must not set a page-level action target');
 assert.doesNotMatch(formTags[0], /\bformaction=/, 'form-level source must not smuggle a secondary submission target');
+const formActionAssignments = [...page.matchAll(/\bformaction\s*=\s*(?:"([^"]*)"|'([^']*)'|\{([^}]*)\})/g)].map((match) => match[1] ?? match[2] ?? `{${match[3]}}`);
+assert.deepEqual(formActionAssignments, ['?/preview'], 'the entire transaction-entry page must expose exactly one literal formaction target: ?/preview');
 assert.doesNotMatch(pageOutsidePreviewForm, /<(?:input|select|textarea|button)\b[^>]*\bname="/s, 'controls outside the preview form must not submit named values');
 assert.doesNotMatch(pageOutsidePreviewForm, /<(?:button|input)\b[^>]*\b(?:form|formaction)="/s, 'controls outside the preview form must not attach to or target a form');
+assert.doesNotMatch(pageOutsidePreviewForm, /\bformaction\s*=/, 'controls outside the preview form must not define any static or dynamic formaction target');
 const submittedFieldNames = [...previewFormSource.matchAll(/\bname="([^"]+)"/g)].map((match) => match[1]);
 assert.deepEqual(
 	[...new Set(submittedFieldNames)].sort(),
@@ -327,6 +332,7 @@ assert.ok(previewFormEndIndex > 0 && futureCreateIndex > previewFormEndIndex, 'F
 const futureCreateButton = page.match(/<button\b(?=[^>]*id="future-create-disabled")(?=[^>]*type="button")(?=[^>]*disabled)[^>]*>/s)?.[0] ?? '';
 assert.ok(futureCreateButton, 'Future Create disabled button must be statically present');
 assert.doesNotMatch(futureCreateButton, /\b(?:form|formaction|name|value)=/, 'Future Create disabled button must not define submitted attributes or attach to a form');
+assert.doesNotMatch(futureCreateButton, /\b(?:onclick|onsubmit|onmousedown|onmouseup|onkeydown|onkeyup|onpointerdown|onpointerup|on:click|on:submit)\s*=/, 'Future Create disabled button must not define event handlers');
 assert.match(page, /id="approval-packet"[\s\S]*no approval is recorded[\s\S]*Future Create remains disabled/s, 'approval packet must stay no-write and cannot record approval');
 assert.match(page, /safeApprovalTemplate = `[\s\S]*Target book: <selected book in web UI>[\s\S]*Source\/debit account: <selected source account>[\s\S]*Description: <description>/s, 'approval template must be placeholder-only and redacted');
 assert.match(page, /navigator\.clipboard\.writeText\(safeApprovalTemplate\)/, 'copy button must copy only the safe redacted approval template');

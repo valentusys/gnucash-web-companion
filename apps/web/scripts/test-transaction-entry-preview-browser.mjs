@@ -178,6 +178,7 @@ function assertSourceSafety() {
 	const futureCreateButton = page.match(/<button\b(?=[^>]*id="future-create-disabled")(?=[^>]*type="button")(?=[^>]*disabled)[^>]*>/s)?.[0] ?? '';
 	assert.ok(futureCreateButton, 'Future Create disabled button must be statically present');
 	assert.doesNotMatch(futureCreateButton, /\b(?:form|formaction|name|value)=/, 'Future Create disabled button must not define submitted attributes or attach to a form');
+	assert.doesNotMatch(futureCreateButton, /\b(?:onclick|onsubmit|onmousedown|onmouseup|onkeydown|onkeyup|onpointerdown|onpointerup|on:click|on:submit)\s*=/, 'Future Create disabled button must not define event handlers');
 	assert.match(page, /navigator\.clipboard\.writeText\(safeApprovalTemplate\)/, 'copy button must use the static placeholder-only approval template');
 	assert.doesNotMatch(page, /clipboard\.writeText\([^)]*preview\./, 'copy button must not copy private preview values');
 	assert.doesNotMatch(page, /localStorage|sessionStorage/, 'preview smoke requires no browser storage persistence');
@@ -656,7 +657,7 @@ function isForbiddenBrowserBoundaryRequest(request) {
 	const method = request.method.toUpperCase();
 	const url = new URL(request.url);
 	const actionTarget = `${url.pathname}${url.search}`;
-	if (method === 'POST' && url.pathname === '/transactions/new' && url.search.includes('/preview')) return false;
+	if (method === 'POST' && url.pathname === '/transactions/new' && url.search === '?/preview') return false;
 	if (/(?:\/|%2F)(?:backups?|audit|write-alpha|owner-writebeta)(?:\/|$|[?&=])/i.test(actionTarget)) return true;
 	const mentionsTransactions = url.pathname.includes('/transactions') || url.search.includes('/transactions') || /%2Ftransactions/i.test(url.search);
 	if (!mentionsTransactions) return false;
@@ -707,6 +708,7 @@ function assertMutationRequestPredicates() {
 	const forbiddenBrowserRequests = [
 		{ method: 'POST', url: 'http://127.0.0.1:4173/transactions/new' },
 		{ method: 'POST', url: 'http://127.0.0.1:4173/transactions/new?/create' },
+		{ method: 'POST', url: 'http://127.0.0.1:4173/transactions/new?/preview&next=%2Fbooks%2F1%2Ftransactions%2Fbatch' },
 		{ method: 'GET', url: 'http://127.0.0.1:4173/transactions/new?/validate' },
 		{ method: 'GET', url: 'http://127.0.0.1:4173/transactions/new?next=%2Fbooks%2F1%2Ftransactions%2Fbatch' },
 		{ method: 'PATCH', url: 'http://127.0.0.1:4173/transactions/synthetic-id' },
