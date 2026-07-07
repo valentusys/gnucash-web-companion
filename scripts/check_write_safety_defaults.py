@@ -55,6 +55,7 @@ CREATE_READINESS_STATUS_HELPER = "_build_create_readiness_status"
 CREATE_READINESS_FORBIDDEN_CALLS = (
     "transaction_service_for",
     "_resolve_readonly_data_book",
+    "_require_book_edit_access",
     "_ensure_writes_enabled",
     "_ensure_write_alpha_test_scope",
     "_write_service_for",
@@ -68,7 +69,9 @@ CREATE_READINESS_FORBIDDEN_CALLS = (
     "create_book_backup",
     "write_lock_service",
     "GnuCashWriteService",
+    "require_owner_writebeta_if_active",
     "create_transaction",
+    "validate_transaction_create",
     "patch_transaction",
     "delete_transaction",
 )
@@ -402,6 +405,87 @@ def _is_constant(node: ast.AST | None, value: object) -> bool:
     return isinstance(node, ast.Constant) and node.value == value
 
 
+def _assigned_dict_literal(node: ast.FunctionDef | ast.AsyncFunctionDef, name: str) -> ast.Dict | None:
+    """Return a direct function-body dictionary assignment by name, if present."""
+    for statement in _executable_body(node):
+        if isinstance(statement, ast.Assign):
+            if any(isinstance(target, ast.Name) and target.id == name for target in statement.targets):
+                return statement.value if isinstance(statement.value, ast.Dict) else None
+        elif isinstance(statement, ast.AnnAssign):
+            if isinstance(statement.target, ast.Name) and statement.target.id == name:
+                return statement.value if isinstance(statement.value, ast.Dict) else None
+    return None
+
+
+def _dict_value_for_path(node: ast.Dict, path: tuple[str, ...]) -> ast.AST | None:
+    current: ast.AST | None = node
+    for key_name in path:
+        if not isinstance(current, ast.Dict):
+            return None
+        current = _dict_literal_value_for_key(current, key_name)
+    return current
+
+
+def _create_readiness_state_dict(
+    builder: ast.FunctionDef | ast.AsyncFunctionDef,
+    return_dict: ast.Dict,
+) -> ast.Dict | None:
+    value = _dict_literal_value_for_key(return_dict, "readiness_state")
+    if isinstance(value, ast.Dict):
+        return value
+    if isinstance(value, ast.Name):
+        return _assigned_dict_literal(builder, value.id)
+    return None
+
+
+def _check_create_readiness_state_constants(
+    builder: ast.FunctionDef | ast.AsyncFunctionDef,
+    return_dict: ast.Dict,
+) -> list[str]:
+    """Ensure nested readiness_state cannot advertise active CREATE readiness.
+
+    The public/top-level status is already fail-closed. This guard also checks the
+    nested redacted status object because the web UI consumes it and must never be
+    able to inherit armed/preflight/backup/execution-ready fields by accident.
+    """
+    readiness_state = _create_readiness_state_dict(builder, return_dict)
+    if readiness_state is None:
+        return ["create-readiness status builder must define readiness_state as a literal redacted status dictionary"]
+
+    failures: list[str] = []
+    required_constants: dict[tuple[str, ...], object] = {
+        ("writes_enabled", "redacted"): True,
+        ("session_armed", "armed"): False,
+        ("session_armed", "status"): "not_armed",
+        ("session_armed", "redacted"): True,
+        ("allowed_create_count", "count"): 0,
+        ("allowed_create_count", "status"): "blocked",
+        ("allowed_create_count", "redacted"): True,
+        ("target", "target_class"): None,
+        ("target", "status"): "not_selected",
+        ("target", "private_target_probed"): False,
+        ("target", "redacted"): True,
+        ("preflight", "required"): True,
+        ("preflight", "status"): "not_checked",
+        ("preflight", "private_target_probed"): False,
+        ("preflight", "redacted"): True,
+        ("backup", "required"): True,
+        ("backup", "status"): "not_checked",
+        ("backup", "backup_helper_called"): False,
+        ("backup", "redacted"): True,
+        ("allowed_execution", "allowed"): False,
+        ("allowed_execution", "status"): "blocked",
+        ("allowed_execution", "redacted"): True,
+    }
+    for path, expected in required_constants.items():
+        if not _is_constant(_dict_value_for_path(readiness_state, path), expected):
+            failures.append(
+                "create-readiness status builder must hard-code "
+                f"readiness_state.{'.'.join(path)}={expected!r}"
+            )
+    return failures
+
+
 def _check_create_readiness_status_shell(routes_path: Path = REPO_ROOT / WRITE_ROUTES_FILE) -> list[str]:
     """Guard the future-CREATE readiness endpoint as an inert read-only shell.
 
@@ -458,6 +542,7 @@ def _check_create_readiness_status_shell(routes_path: Path = REPO_ROOT / WRITE_R
             for key, expected in required_constants.items():
                 if not _is_constant(_dict_literal_value_for_key(return_dict, key), expected):
                     failures.append(f"create-readiness status builder must hard-code {key}={expected!r}")
+            failures.extend(_check_create_readiness_state_constants(builder, return_dict))
 
     required_fragments = (
         '"checks": [dict(check) for check in CREATE_READINESS_STATUS_CHECKS]',

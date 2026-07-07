@@ -274,6 +274,7 @@ def _preview_payload(**overrides):
 
 class TestTransactionCreateReadinessStatus:
     def guard_readiness_side_effect_helpers(self, monkeypatch):
+        import app.routers.owner_writebeta as owner_writebeta_router
         import app.routers.transactions as transactions_router
         import app.services.gnucash_write as gnucash_write_module
 
@@ -282,6 +283,8 @@ class TestTransactionCreateReadinessStatus:
 
         for guarded_name in (
             "transaction_service_for",
+            "_resolve_readonly_data_book",
+            "_require_book_edit_access",
             "_ensure_writes_enabled",
             "_ensure_write_alpha_test_scope",
             "_write_service_for",
@@ -295,6 +298,7 @@ class TestTransactionCreateReadinessStatus:
         ):
             monkeypatch.setattr(transactions_router, guarded_name, fail_if_called)
 
+        monkeypatch.setattr(owner_writebeta_router, "require_owner_writebeta_if_active", fail_if_called)
         monkeypatch.setattr(gnucash_write_module, "create_book_backup", fail_if_called)
         monkeypatch.setattr(gnucash_write_module.write_lock_service, "lock", fail_if_called)
         monkeypatch.setattr(gnucash_write_module.write_lock_service, "acquire", fail_if_called)
@@ -422,9 +426,12 @@ class TestTransactionCreateReadinessStatus:
         assert "_build_create_readiness_status(settings)" in source
         for forbidden in (
             "transaction_service_for",
+            "_resolve_readonly_data_book",
+            "_require_book_edit_access",
             "_write_service_for",
             "GnuCashWriteService",
             "create_transaction",
+            "validate_transaction_create",
             "patch_transaction",
             "delete_transaction",
             "_audit_log",
@@ -432,6 +439,7 @@ class TestTransactionCreateReadinessStatus:
             "create_book_backup",
             "write_lock_service",
             "_open_piecash_book_for_write",
+            "require_owner_writebeta_if_active",
         ):
             assert forbidden not in source
 
