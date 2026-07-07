@@ -2952,6 +2952,45 @@ class TestWriteAlphaDeleteRouteDisposableFixture:
             assert payload["backup_path"] is None
             assert "missing-delete-write-alpha-tx" in payload["error"]
 
+    def test_corrupted_disposable_fixture_delete_fails_before_backup_or_lock_leak(
+        self,
+        client,
+        auth_headers,
+        disposable_sample_book,
+        disposable_fixture_book,
+        disposable_write_lock,
+        session_factory,
+    ):
+        tx_before = self._first_fixture_transaction(disposable_fixture_book)
+        self._mark_owned(session_factory, disposable_sample_book, tx_before["guid"])
+        disposable_fixture_book.write_bytes(b"not-a-gnucash-sqlite-fixture")
+
+        response = client.delete(
+            f"/books/{disposable_sample_book}/transactions/{tx_before['guid']}",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 422
+        detail = response.json()["detail"]
+        assert "GnuCash write failed" in detail
+        assert str(disposable_fixture_book) not in detail
+        assert "/" not in detail
+        backups_root = disposable_fixture_book.parent.parent / "backups"
+        assert not backups_root.exists()
+        lock_key = str(disposable_fixture_book)
+        assert disposable_write_lock.acquire(lock_key) is True
+        disposable_write_lock.release(lock_key)
+
+        with session_factory() as session:
+            logs = session.query(AuditLog).filter_by(action="transaction.delete").all()
+            assert logs
+            payload = json.loads(logs[-1].payload_json)
+            assert payload["result"] == "failed"
+            assert payload["backup_path"] is None
+            assert "GnuCash write failed" in payload["error"]
+            assert str(disposable_fixture_book) not in payload["error"]
+            assert "/" not in payload["error"]
+
     def test_failure_during_delete_write_releases_lock_audits_failure_and_keeps_backup(
         self,
         client,

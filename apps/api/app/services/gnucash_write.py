@@ -32,7 +32,12 @@ from app.schemas.gnucash_writes import (
 )
 from app.services.backup import BackupError, create_book_backup
 from app.services.gnucash_book import GnuCashBookService, _guid
-from app.services.gnucash_exceptions import EntityNotFoundError, GnuCashReadError
+from app.services.gnucash_exceptions import (
+    BookNotConfiguredError,
+    BookNotFoundError,
+    EntityNotFoundError,
+    GnuCashReadError,
+)
 from app.services.write_lock import WriteLockError, write_lock_service
 
 logger = logging.getLogger(__name__)
@@ -434,17 +439,30 @@ class GnuCashWriteService(GnuCashBookService):
     ) -> TransactionWriteResultDTO:
         """Delete an existing transaction following the write-alpha safety flow."""
         # Missing transactions are reported before lock/backup/mutation so a
-        # typo cannot create an unnecessary backup or lock contention.
-        uri_or_path = self._validate_configured_book()
-        read_book = self._open_piecash_book(uri_or_path)
+        # typo cannot create an unnecessary backup or lock contention. Corrupt
+        # or unavailable disposable fixtures must also fail before lock/backup
+        # with a path-safe write error instead of bubbling a raw piecash error.
         try:
-            transaction = self._find_transaction(read_book, transaction_id)
-            if transaction is None:
-                raise EntityNotFoundError("transaction", transaction_id)
-        finally:
-            close = getattr(read_book, "close", None)
-            if callable(close):
-                close()
+            uri_or_path = self._validate_configured_book()
+            read_book = self._open_piecash_book(uri_or_path)
+            try:
+                transaction = self._find_transaction(read_book, transaction_id)
+                if transaction is None:
+                    raise EntityNotFoundError("transaction", transaction_id)
+            finally:
+                close = getattr(read_book, "close", None)
+                if callable(close):
+                    close()
+        except EntityNotFoundError:
+            raise
+        except (BookNotConfiguredError, BookNotFoundError, GnuCashReadError) as exc:
+            raise GnuCashWriteError(
+                "GnuCash write failed; check the configured disposable test book and backup evidence."
+            ) from exc
+        except Exception as exc:
+            raise GnuCashWriteError(
+                "GnuCash write failed; check the configured disposable test book and backup evidence."
+            ) from exc
 
         book_key = str(self.uri_or_path or book_id)
         backup_path = None
