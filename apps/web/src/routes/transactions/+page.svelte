@@ -92,6 +92,10 @@
 					.replace('{filterLabel}', filterLabel)
 			: t(locale, 'transactions.listStatus.noFilters')
 	);
+	const writeAlphaOwnedVisibleCount = $derived(txs.items.filter((tx) => tx.is_write_alpha_owned).length);
+	const writeAlphaHistoryHint = $derived(
+		t(locale, 'transactions.listStatus.writeAlphaHint').replace('{count}', String(writeAlphaOwnedVisibleCount))
+	);
 	const hasActiveFilters = $derived(activeFilterCount > 0);
 	const emptyTitle = $derived(
 		hasActiveFilters ? 'No transactions match the current filters' : 'No transactions yet'
@@ -240,14 +244,17 @@
 				<div class="max-w-xl text-xs" style="color: var(--app-muted);">
 					<p>{filterParityStatus}</p>
 					<p class="mt-1">{t(locale, 'transactions.listStatus.exportParity')}</p>
+					{#if writeAlphaOwnedVisibleCount > 0}
+						<p id="write-alpha-history-hint" class="mt-1 font-semibold" style="color: #92400e;">{writeAlphaHistoryHint}</p>
+					{/if}
 				</div>
 			</div>
 		</section>
 
 		<div class="rounded-2xl p-4" style="background-color: var(--app-panel); box-shadow: 0 1px 3px var(--app-panel-shadow); border: 1px solid var(--app-border);">
 			{#if txs.items.length}
-				<TransactionTable transactions={txs.items} onSelect={handleSelect} />
-				<TransactionCard transactions={txs.items} onSelect={handleSelect} />
+				<TransactionTable transactions={txs.items} onSelect={handleSelect} {locale} />
+				<TransactionCard transactions={txs.items} onSelect={handleSelect} {locale} />
 				<Pagination {offset} {limit} {total} onChange={handlePageChange} />
 			{:else}
 				<EmptyState title={emptyTitle} message={emptyMessage} ariaLabel={emptyTitle} icon="🔎">

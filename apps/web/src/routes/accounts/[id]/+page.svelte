@@ -219,8 +219,8 @@
 				{locale}
 				onChange={handleFilter}
 			/>
-			<TransactionTable transactions={txs.items} onSelect={handleSelect} />
-			<TransactionCard transactions={txs.items} onSelect={handleSelect} />
+			<TransactionTable transactions={txs.items} onSelect={handleSelect} {locale} />
+			<TransactionCard transactions={txs.items} onSelect={handleSelect} {locale} />
 			<Pagination {offset} {limit} {total} onChange={handlePageChange} />
 		</div>
 	</section>

@@ -1236,6 +1236,31 @@ class TestListBookTransactions:
         assert data["total"] == 3
         assert len(data["items"]) == 3
 
+    def test_marks_write_alpha_owned_transactions_in_history_without_mutation(
+        self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory
+    ):
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(fake_book_with_transactions)
+            user = session.query(User).filter(User.username == "admin").one()
+            ownership = WriteAlphaTransactionOwnership()
+            ownership.book_id = sample_book
+            ownership.transaction_id = "tx-1"
+            ownership.created_by_user_id = user.id
+            ownership.created_by_write_alpha = True
+            session.add(ownership)
+            session.commit()
+
+        response = client.get(
+            f"/books/{sample_book}/transactions",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        ownership_by_id = {item["id"]: item["is_write_alpha_owned"] for item in data["items"]}
+        assert ownership_by_id == {"tx-3": False, "tx-2": False, "tx-1": True}
+
     def test_access_denied(
         self, client, viewer_headers, sample_book, fake_book_with_transactions, session_factory
     ):

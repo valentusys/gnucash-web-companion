@@ -1,13 +1,16 @@
 <script lang="ts">
 	import Money from '$lib/components/Money.svelte';
 	import type { TransactionListItem } from '$lib/api/types';
+	import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 
 	let {
 		transactions,
-		onSelect
+		onSelect,
+		locale = DEFAULT_LOCALE
 	}: {
 		transactions: TransactionListItem[];
 		onSelect: (id: string) => void;
+		locale?: Locale;
 	} = $props();
 </script>
 
@@ -34,7 +37,14 @@
 				>
 					<td class="w-28 px-4 py-3 whitespace-nowrap" style="color: var(--app-muted);">{tx.date}</td>
 					<td class="w-[32%] px-4 py-3" style="color: var(--app-text);">
-						<div class="truncate font-medium" title={tx.description || '—'}>{tx.description || '—'}</div>
+						<div class="min-w-0">
+							<div class="truncate font-medium" title={tx.description || '—'}>{tx.description || '—'}</div>
+							{#if tx.is_write_alpha_owned}
+								<span class="mt-1 inline-flex max-w-full items-center rounded-full px-2 py-0.5 text-xs font-semibold" style="background: #fffbeb; color: #92400e; border: 1px solid #fcd34d;" title={t(locale, 'transactions.writeAlphaHistoryTitle')}>
+									{t(locale, 'transactions.writeAlphaHistoryBadge')}
+								</span>
+							{/if}
+						</div>
 					</td>
 					<td class="w-[22%] px-4 py-3" style="color: var(--app-muted);">
 						<div class="truncate text-sm" title={tx.account_name}>{tx.account_name}</div>

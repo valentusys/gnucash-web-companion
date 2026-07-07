@@ -487,6 +487,7 @@ assert.doesNotMatch(
 );
 
 const transactionTable = read('src/lib/components/TransactionTable.svelte');
+const transactionCard = read('src/lib/components/TransactionCard.svelte');
 assert.match(
 	transactionTable,
 	/<div class="hidden overflow-x-hidden md:block">[\s\S]*<table class="w-full table-fixed text-left text-sm">/s,
@@ -508,6 +509,16 @@ assert.doesNotMatch(
 	transactionTable,
 	/min-w-full|overflow-x-auto/,
 	'transaction table must not force desktop horizontal shifting with min-width or overflow-x-auto'
+);
+assert.match(
+	transactionTable,
+	/tx\.is_write_alpha_owned[\s\S]*transactions\.writeAlphaHistoryTitle[\s\S]*transactions\.writeAlphaHistoryBadge/s,
+	'transaction table must mark write-alpha-created history rows with a bounded safe app-metadata badge'
+);
+assert.match(
+	transactionCard,
+	/tx\.is_write_alpha_owned[\s\S]*transactions\.writeAlphaHistoryTitle[\s\S]*transactions\.writeAlphaHistoryBadge/s,
+	'transaction mobile card must mark write-alpha-created history rows with the same safe app-metadata badge'
 );
 
 const accountTree = read('src/lib/components/AccountTree.svelte');
@@ -563,6 +574,21 @@ assert.match(
 const transactionListPage = read('src/routes/transactions/+page.svelte');
 assert.match(transactionListPage, /import EmptyState/, 'transactions page must reuse EmptyState for empty result sets');
 assert.match(transactionListPage, /hasActiveFilters[\s\S]*No transactions match the current filters[\s\S]*No transactions yet/s, 'transactions page must distinguish no data from filters with no matches');
+assert.match(
+	transactionListPage,
+	/writeAlphaOwnedVisibleCount[\s\S]*transactions\.listStatus\.writeAlphaHint[\s\S]*write-alpha-history-hint/s,
+	'transactions page must summarize visible write-alpha-created synthetic/disposable rows as a history hint only'
+);
+for (const historyCopyFragment of [
+	"'transactions.writeAlphaHistoryBadge': 'write-alpha-created'",
+	'Synthetic/disposable history hint only',
+	'Backend ownership guards remain authoritative',
+	'default writes stay disabled',
+	'{count} строк(и) на этой странице отмечены app metadata как write-alpha-created',
+	'writes по умолчанию отключены'
+]) {
+	assert.ok(i18nMessages.includes(historyCopyFragment), `transaction history write-alpha copy must include: ${historyCopyFragment}`);
+}
 assert.match(transactionListPage, /<EmptyState[\s\S]*href=\{data\.clearFiltersHref\}[\s\S]*Clear filters/s, 'filtered transaction empty state must offer a keyboard-focusable clear-filters action');
 for (const filterParam of ['query', 'date_from', 'date_to', 'account_id', 'min_amount', 'max_amount', 'transaction_state']) {
 	assert.ok(

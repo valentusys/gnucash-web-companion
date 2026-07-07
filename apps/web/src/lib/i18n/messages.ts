@@ -305,6 +305,9 @@ export type MessageKey =
 	| 'transactions.listStatus.filtersApplied'
 	| 'transactions.listStatus.noFilters'
 	| 'transactions.listStatus.exportParity'
+	| 'transactions.writeAlphaHistoryBadge'
+	| 'transactions.writeAlphaHistoryTitle'
+	| 'transactions.listStatus.writeAlphaHint'
 	| 'transactions.export.button'
 	| 'transactions.export.buttonWithFilters'
 	| 'transactions.export.statusFiltered'
@@ -697,6 +700,11 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'transactions.listStatus.filtersApplied': '{count} active {filterLabel}; the list, pagination, and CSV export use the same URL filters.',
 		'transactions.listStatus.noFilters': 'No transaction filters are active; CSV export uses the current unfiltered read-only view.',
 		'transactions.listStatus.exportParity': 'CSV export ignores page offset, starts from the first matching row, and is capped at 10,000 rows.',
+		'transactions.writeAlphaHistoryBadge': 'write-alpha-created',
+		'transactions.writeAlphaHistoryTitle':
+			'Created by write-alpha app metadata. Synthetic/disposable history hint only; backend ownership guards remain authoritative.',
+		'transactions.listStatus.writeAlphaHint':
+			'{count} transaction(s) on this page are marked write-alpha-created in app metadata; treat this only as a synthetic/disposable history hint. Backend ownership guards remain authoritative and default writes stay disabled.',
 		'transactions.export.button': 'Export CSV',
 		'transactions.export.buttonWithFilters': 'Export CSV ({count} {filterLabel})',
 		'transactions.export.statusFiltered':
@@ -1099,6 +1107,11 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'transactions.listStatus.filtersApplied': '{count} активных {filterLabel}; список, пагинация и CSV export используют те же URL-фильтры.',
 		'transactions.listStatus.noFilters': 'Активных фильтров транзакций нет; CSV export использует текущий нефильтрованный read-only вид.',
 		'transactions.listStatus.exportParity': 'CSV export игнорирует page offset, начинает с первой подходящей строки и ограничен 10 000 строк.',
+		'transactions.writeAlphaHistoryBadge': 'write-alpha-created',
+		'transactions.writeAlphaHistoryTitle':
+			'Создано по app metadata write-alpha. Это только synthetic/disposable подсказка истории; backend ownership guards остаются главным enforcement.',
+		'transactions.listStatus.writeAlphaHint':
+			'{count} строк(и) на этой странице отмечены app metadata как write-alpha-created; это только synthetic/disposable подсказка истории. Backend ownership guards остаются главным enforcement, а writes по умолчанию отключены.',
 		'transactions.export.button': 'Экспорт CSV',
 		'transactions.export.buttonWithFilters': 'Экспорт CSV ({count} {filterLabel})',
 		'transactions.export.statusFiltered':

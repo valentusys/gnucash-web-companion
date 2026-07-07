@@ -54,6 +54,10 @@ class TransactionListItemDTO(BaseModel):
     account_id: str = Field(..., description="The account this amount relates to")
     account_name: str = Field(..., description="Full name of the related account")
     counter_account_name: str = Field(..., description="Full name of the counter account or 'Split transaction'")
+    is_write_alpha_owned: bool = Field(
+        False,
+        description="Safe app-metadata hint that this row was created by write-alpha; never authorizes writes by itself",
+    )
 
 
 class TransactionDetailDTO(BaseModel):

@@ -32,6 +32,9 @@ export const safetyGlossaryTerms: SafetyGlossaryTerm[] = [
 			'writeMode.neverRealBook',
 			'writeMode.finalConfirm',
 			'writeMode.acknowledgement',
+			'transactions.writeAlphaHistoryBadge',
+			'transactions.writeAlphaHistoryTitle',
+			'transactions.listStatus.writeAlphaHint',
 			'transactionDetail.deleteHelper',
 			'transactionDetail.deleteAcknowledgement',
 			'transactionDetail.deleteConfirm'

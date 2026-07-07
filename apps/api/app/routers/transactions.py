@@ -71,8 +71,49 @@ CREATE_READBACK_FAILURE_DETAIL = (
 router = APIRouter(tags=["transactions"])
 
 
-def _serialize_transaction_list_item(item: TransactionListItemDTO) -> dict[str, Any]:
-    return item.model_dump()
+def _serialize_transaction_list_item(
+    item: TransactionListItemDTO,
+    *,
+    is_write_alpha_owned: bool | None = None,
+) -> dict[str, Any]:
+    payload = item.model_dump()
+    if is_write_alpha_owned is not None:
+        payload["is_write_alpha_owned"] = is_write_alpha_owned
+    return payload
+
+
+def _write_alpha_owned_transaction_ids(
+    session: Session,
+    book_id: int,
+    transaction_ids: list[str],
+) -> set[str]:
+    """Return write-alpha-created transaction ids for read-only history hints."""
+    candidate_ids = [transaction_id for transaction_id in transaction_ids if transaction_id]
+    if not candidate_ids:
+        return set()
+    rows = (
+        session.query(WriteAlphaTransactionOwnership.transaction_id)
+        .filter(
+            WriteAlphaTransactionOwnership.book_id == book_id,
+            WriteAlphaTransactionOwnership.transaction_id.in_(candidate_ids),
+            WriteAlphaTransactionOwnership.created_by_write_alpha == True,  # noqa: E712
+        )
+        .all()
+    )
+    return {str(row[0]) for row in rows}
+
+
+def _serialize_transaction_list_items(
+    items: list[TransactionListItemDTO],
+    *,
+    session: Session,
+    book_id: int,
+) -> list[dict[str, Any]]:
+    owned_ids = _write_alpha_owned_transaction_ids(session, book_id, [item.id for item in items])
+    return [
+        _serialize_transaction_list_item(item, is_write_alpha_owned=item.id in owned_ids)
+        for item in items
+    ]
 
 
 def _is_write_alpha_owned_transaction(session: Session, book_id: int, transaction_id: str) -> bool:
@@ -151,7 +192,7 @@ async def list_book_transactions(
     except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
         handle_gnucash_error(exc)
     return PaginatedResponse(
-        items=[_serialize_transaction_list_item(item) for item in items],
+        items=_serialize_transaction_list_items(items, session=session, book_id=book.id),
         limit=limit,
         offset=offset,
         total=total,
@@ -331,7 +372,7 @@ async def list_book_account_transactions(
     except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
         handle_gnucash_error(exc)
     return PaginatedResponse(
-        items=[_serialize_transaction_list_item(item) for item in items],
+        items=_serialize_transaction_list_items(items, session=session, book_id=book.id),
         limit=limit,
         offset=offset,
         total=total,
@@ -385,7 +426,7 @@ async def list_default_book_transactions(
     except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
         handle_gnucash_error(exc)
     return PaginatedResponse(
-        items=[_serialize_transaction_list_item(item) for item in items],
+        items=_serialize_transaction_list_items(items, session=session, book_id=book.id),
         limit=limit,
         offset=offset,
         total=total,
@@ -452,7 +493,7 @@ async def list_default_book_account_transactions(
     except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
         handle_gnucash_error(exc)
     return PaginatedResponse(
-        items=[_serialize_transaction_list_item(item) for item in items],
+        items=_serialize_transaction_list_items(items, session=session, book_id=book.id),
         limit=limit,
         offset=offset,
         total=total,

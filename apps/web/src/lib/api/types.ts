@@ -70,6 +70,7 @@ export type TransactionListItem = {
 	account_id: string;
 	account_name: string;
 	counter_account_name: string;
+	is_write_alpha_owned?: boolean;
 };
 
 export type TransactionDetail = {
