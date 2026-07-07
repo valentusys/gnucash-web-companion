@@ -43,6 +43,9 @@ for (const requiredBrowserSmokeFragment of [
 	'reviewed Future Create',
 	'stale Future Create',
 	'function assertReadinessShellsRemainPending',
+	'function assertPreviewOnlyRuntimeTopology',
+	'transaction preview form must be present',
+	'function assertNoMutationRequestsObserved',
 	'evidencePacketStatuses',
 	'execution-evidence-packet-plan',
 	'disabledProbeStatuses',
@@ -52,12 +55,16 @@ for (const requiredBrowserSmokeFragment of [
 	'approval packet must remain outside the preview submission form',
 	'copy approval template click must not submit or call a POST endpoint',
 	'copy approval template click must not call a mutation boundary endpoint',
+	'approval template clipboard shim must not write more than one placeholder template',
+	'stale resets approval copy status',
 	'unsafe active readiness details must stay clamped out of the UI',
+	'pathWithSearch',
 	'function isForbiddenBrowserBoundaryRequest',
 	'function assertMutationRequestPredicates',
 	'synthetic API boundary must block',
 	'browser boundary must block',
 	'next=%2Fbooks%2F1%2Ftransactions%2Fbatch',
+	"create-preview', '?next=%2Fbooks%2F1%2Ftransactions%2Fbatch",
 	'createReadinessStatusCalls.length >= 1',
 	'previewPayloads',
 	'create-preview payload must contain only preview API fields',
@@ -73,6 +80,9 @@ assert.match(browserSmoke, /isForbiddenBrowserBoundaryRequest[\s\S]*validate[\s\
 assert.match(browserSmoke, /url\.search === '\?\/preview'/, 'browser smoke must allow only the exact ?/preview app submission target');
 assert.match(browserSmoke, /mentionsTransactions[\s\S]*%2Ftransactions[\s\S]*next=%2Fbooks%2F1%2Ftransactions%2Fbatch/, 'browser smoke must reject encoded mutation route queries as boundary requests');
 assert.match(browserSmoke, /assertMutationRequestPredicates[\s\S]*POST[\s\S]*\/books\/1\/transactions[\s\S]*PATCH[\s\S]*DELETE[\s\S]*backups[\s\S]*audit[\s\S]*owner-writebeta/, 'browser smoke must unit-check synthetic API mutation blocking predicates');
+assert.match(browserSmoke, /isForbiddenTransactionMutation\(method, pathname, search = ''\)[\s\S]*querySmugglesMutationBoundary[\s\S]*transactions\(\?:\\\/\|%2F\)\(\?!create-preview/, 'synthetic API boundary must reject query-smuggled mutation routes while preserving exact create-preview');
+assert.match(browserSmoke, /assertNoMutationRequestsObserved[\s\S]*request\.search \?\? ''/, 'browser smoke repeated mutation-boundary checks must include synthetic API query strings');
+assert.match(browserSmoke, /create-preview', '\?next=%2Fbooks%2F1%2Ftransactions%2Fbatch/, 'browser smoke must unit-check query-smuggled API create-preview mutation boundaries');
 assert.match(browserSmoke, /\?\/preview&next=%2Fbooks%2F1%2Ftransactions%2Fbatch/, 'browser smoke must reject smuggled mutation routes even when ?/preview appears in the query');
 
 for (const field of [
