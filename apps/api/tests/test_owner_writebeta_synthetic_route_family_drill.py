@@ -18,6 +18,7 @@ from app.database import Base
 from app.main import app
 from app.models import Book, User, UserBookAccess
 from app.routers.auth import get_db
+from app.schemas.gnucash import TransactionDetailDTO, TransactionSplitDTO
 from app.schemas.gnucash_writes import TransactionValidationResultDTO, TransactionWriteResultDTO
 from app.services.auth import hash_password
 
@@ -80,7 +81,31 @@ def fake_write_calls(monkeypatch):
         assert str(book.uri_or_path).startswith("synthetic://")
         return FakeWriteService(calls)
 
+    class FakeReadService:
+        def get_transaction(self, transaction_id: str) -> TransactionDetailDTO:
+            create_requests = [payload for name, payload in calls if name == "create"]
+            assert create_requests, "read-back verification must follow a synthetic CREATE call"
+            request = create_requests[-1]
+            return TransactionDetailDTO(
+                id=transaction_id,
+                date=request.date,
+                description=request.description,
+                currency=request.splits[0].currency,
+                splits=[
+                    TransactionSplitDTO(
+                        account_id=split.account_id,
+                        account_name=split.account_id,
+                        memo=split.memo,
+                        reconcile_state="",
+                        amount=split.amount,
+                        currency=split.currency,
+                    )
+                    for split in request.splits
+                ],
+            )
+
     monkeypatch.setattr("app.routers.transactions._write_service_for", fake_write_service_for)
+    monkeypatch.setattr("app.routers.transactions.transaction_service_for", lambda book: FakeReadService())
     return calls
 
 

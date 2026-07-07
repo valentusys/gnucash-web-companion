@@ -50,6 +50,8 @@ def test_second_mutation_cannot_enter_while_synthetic_session_is_active():
         book_id=36_200,
         preview_hash=preview_hash,
         confirmation_token=raw_token,
+        operation="CREATE",
+        count=1,
     )
     assert session.state == OwnerWritebetaState.MUTATING
     assert session.writes_blocked is False
@@ -59,6 +61,8 @@ def test_second_mutation_cannot_enter_while_synthetic_session_is_active():
             book_id=36_200,
             preview_hash=preview_hash,
             confirmation_token=raw_token,
+            operation="CREATE",
+            count=1,
         )
     assert excinfo.value.status_code == 403
     assert "not armed" in str(excinfo.value.detail)
@@ -72,6 +76,8 @@ def test_confirmation_cannot_be_reused_after_successful_reset_to_disabled():
         book_id=36_200,
         preview_hash=preview_hash,
         confirmation_token=raw_token,
+        operation="CREATE",
+        count=1,
     )
     mark_post_mutation_checks(
         session,
@@ -87,12 +93,16 @@ def test_confirmation_cannot_be_reused_after_successful_reset_to_disabled():
     assert session.preview_hash is None
     assert session.confirmation_token_ref is None
     assert session.restore_readiness_ref is None
+    assert session.operation is None
+    assert session.operation_count == 0
     # Disabled/no active writebeta session falls through to the old write gates;
     # it must not resurrect the old confirmation or move back to MUTATING.
     require_owner_writebeta_if_active(
         book_id=36_200,
         preview_hash=preview_hash,
         confirmation_token=raw_token,
+        operation="CREATE",
+        count=1,
     )
     assert session.state == OwnerWritebetaState.DISABLED
 
@@ -106,6 +116,8 @@ def test_expired_confirmation_fails_closed_and_cannot_be_recovered_by_reusing_to
             book_id=36_200,
             preview_hash=preview_hash,
             confirmation_token=raw_token,
+            operation="CREATE",
+            count=1,
         )
     assert excinfo.value.status_code == 403
     assert "expired" in str(excinfo.value.detail)
@@ -117,6 +129,8 @@ def test_expired_confirmation_fails_closed_and_cannot_be_recovered_by_reusing_to
             book_id=36_200,
             preview_hash=preview_hash,
             confirmation_token=raw_token,
+            operation="CREATE",
+            count=1,
         )
     assert second.value.status_code == 403
     assert "not armed" in str(second.value.detail)
@@ -130,6 +144,8 @@ def test_synthetic_lock_hard_stop_blocks_stale_session_recovery_without_new_sess
         book_id=36_200,
         preview_hash=preview_hash,
         confirmation_token=raw_token,
+        operation="CREATE",
+        count=1,
     )
     mark_post_mutation_checks(
         session,
@@ -150,6 +166,8 @@ def test_synthetic_lock_hard_stop_blocks_stale_session_recovery_without_new_sess
                 book_id=36_200,
                 preview_hash=supplied_hash,
                 confirmation_token=supplied_token,
+                operation="CREATE",
+                count=1,
             )
         assert excinfo.value.status_code == 403
         assert "not armed" in str(excinfo.value.detail)
@@ -158,7 +176,13 @@ def test_synthetic_lock_hard_stop_blocks_stale_session_recovery_without_new_sess
 
 def test_fresh_synthetic_session_can_proceed_after_old_session_is_default_disabled():
     old_session, old_preview, old_token = _armed_session(book_id=36_201)
-    require_owner_writebeta_if_active(book_id=36_201, preview_hash=old_preview, confirmation_token=old_token)
+    require_owner_writebeta_if_active(
+        book_id=36_201,
+        preview_hash=old_preview,
+        confirmation_token=old_token,
+        operation="CREATE",
+        count=1,
+    )
     mark_post_mutation_checks(
         old_session,
         audit_ref="audit-old-lock",
@@ -170,7 +194,13 @@ def test_fresh_synthetic_session_can_proceed_after_old_session_is_default_disabl
     old_session.transition(OwnerWritebetaState.DISABLED)
 
     new_session, new_preview, new_token = _armed_session(book_id=36_201)
-    require_owner_writebeta_if_active(book_id=36_201, preview_hash=new_preview, confirmation_token=new_token)
+    require_owner_writebeta_if_active(
+        book_id=36_201,
+        preview_hash=new_preview,
+        confirmation_token=new_token,
+        operation="CREATE",
+        count=1,
+    )
 
     assert old_session.state == OwnerWritebetaState.DISABLED
     assert new_session.state == OwnerWritebetaState.MUTATING

@@ -104,6 +104,8 @@ def require_owner_writebeta_if_active(
     book_id: int,
     preview_hash: str | None,
     confirmation_token: str | None,
+    operation: str | None = None,
+    count: int | None = None,
 ) -> None:
     """Fail closed for mutation when an owner-writebeta session is armed."""
     session_state = _SESSIONS.get(book_id)
@@ -119,8 +121,19 @@ def require_owner_writebeta_if_active(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Owner-writebeta mutation requires matching preview hash and confirmation token.",
         )
+    if operation is None or count is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Owner-writebeta mutation requires matching operation and count.",
+        )
     try:
-        require_matching_confirmation(session_state, preview_hash=preview_hash, raw_token=confirmation_token)
+        require_matching_confirmation(
+            session_state,
+            preview_hash=preview_hash,
+            raw_token=confirmation_token,
+            operation=operation,
+            count=count,
+        )
         # The restore-readiness evidence must already be stored by /confirm.
         # If it is absent, the state machine transition below fails closed.
         session_state.transition(OwnerWritebetaState.MUTATING)

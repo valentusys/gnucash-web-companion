@@ -129,6 +129,62 @@ def test_owner_writebeta_preview_and_confirmation_use_opaque_refs(client, auth_h
     assert confirm.json()["confirmation_token_ref"].startswith("owb-conf-")
 
 
+def test_owner_writebeta_active_guard_requires_matching_operation_and_count(client, auth_headers, sample_book):
+    from fastapi import HTTPException
+
+    from app.routers.owner_writebeta import _SESSIONS, require_owner_writebeta_if_active
+
+    client.post(f"/books/{sample_book}/owner-writebeta/preflight", headers=auth_headers)
+    preview = client.post(
+        f"/books/{sample_book}/owner-writebeta/preview",
+        headers=auth_headers,
+        json={
+            "operation": "DELETE",
+            "payload_shape": {"id": "opaque"},
+            "count": 1,
+            "target_is_write_alpha_owned": True,
+        },
+    )
+    assert preview.status_code == 200
+    preview_hash = preview.json()["preview_hash"]
+    confirm = client.post(
+        f"/books/{sample_book}/owner-writebeta/confirm",
+        headers=auth_headers,
+        json={
+            "preview_hash": preview_hash,
+            "backup_ref": "bkp-delete-ref",
+            "restore_readiness_ref": "rr-delete-ref",
+        },
+    )
+    assert confirm.status_code == 200
+
+    with pytest.raises(HTTPException) as exc_info:
+        require_owner_writebeta_if_active(
+            book_id=sample_book,
+            preview_hash=preview_hash,
+            confirmation_token=confirm.json()["confirmation_token"],
+            operation="CREATE",
+            count=1,
+        )
+
+    assert exc_info.value.status_code == 403
+    assert "does not match armed owner-writebeta operation" in exc_info.value.detail
+    assert _SESSIONS[sample_book].state.value == "confirmation"
+
+    with pytest.raises(HTTPException) as count_exc:
+        require_owner_writebeta_if_active(
+            book_id=sample_book,
+            preview_hash=preview_hash,
+            confirmation_token=confirm.json()["confirmation_token"],
+            operation="DELETE",
+            count=2,
+        )
+
+    assert count_exc.value.status_code == 403
+    assert "does not match armed owner-writebeta operation" in count_exc.value.detail
+    assert _SESSIONS[sample_book].state.value == "confirmation"
+
+
 def test_owner_writebeta_confirm_stores_restore_readiness_ref_when_provided(client, auth_headers, sample_book):
     client.post(f"/books/{sample_book}/owner-writebeta/preflight", headers=auth_headers)
     preview = client.post(

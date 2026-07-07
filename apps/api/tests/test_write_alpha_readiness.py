@@ -132,7 +132,7 @@ def test_cli_json_output_is_redacted_and_uses_nonzero_for_not_ready(tmp_path, mo
     monkeypatch.setenv("APP_ADMIN_PASSWORD", "test-readiness-password")
 
     result = subprocess.run(
-        ["python3", str(SCRIPT_PATH), "--json"],
+        [sys.executable, str(SCRIPT_PATH), "--json"],
         cwd=REPO_ROOT,
         check=False,
         text=True,

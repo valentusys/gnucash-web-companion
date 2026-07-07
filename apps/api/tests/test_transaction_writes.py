@@ -27,6 +27,7 @@ from app.database import Base
 from app.main import app
 from app.models import User, Book, UserBookAccess, AuditLog, WriteAlphaTransactionOwnership
 from app.routers.auth import get_db
+from app.schemas.gnucash import TransactionDetailDTO, TransactionSplitDTO
 from app.schemas.gnucash_writes import TransactionCreateRequestDTO, TransactionSplitWriteDTO
 from app.services.auth import hash_password
 from app.services.backup import BackupError
@@ -379,6 +380,8 @@ def _make_mock_piecash(fake_book, fake_accounts):
             created_tx.description = kwargs["description"]
         if "post_date" in kwargs:
             created_tx.post_date = kwargs["post_date"]
+        if created_tx not in fake_book.transactions:
+            fake_book.transactions.append(created_tx)
         return created_tx
 
     mock_piecash.Transaction = fake_transaction_factory
@@ -409,6 +412,26 @@ def _balanced_transaction_payload():
             {"account_id": "food-guid", "amount": "100.00", "currency": "SEK", "memo": ""},
         ],
     }
+
+
+def _readback_detail_from_payload(transaction_id: str, payload: dict) -> TransactionDetailDTO:
+    return TransactionDetailDTO(
+        id=transaction_id,
+        date=payload["date"],
+        description=payload["description"],
+        currency=payload["splits"][0]["currency"],
+        splits=[
+            TransactionSplitDTO(
+                account_id=split["account_id"],
+                account_name=split["account_id"],
+                memo=split.get("memo", ""),
+                reconcile_state="",
+                amount=split["amount"],
+                currency=split["currency"],
+            )
+            for split in payload["splits"]
+        ],
+    )
 
 
 class TestWritesDisabledByDefault:
@@ -929,11 +952,20 @@ class TestCreateTransaction:
                     with patch.object(gb_module, "piecash", mock_piecash):
                         with patch("app.services.gnucash_write.create_book_backup", return_value=str(fake_book_path)):
                             with patch.object(GnuCashWriteService, "_validate_configured_book", return_value=str(fake_book_path)):
-                                response = client.post(
-                                    f"/books/{sample_book}/transactions",
-                                    json=payload,
-                                    headers=auth_headers,
-                                )
+                                with patch(
+                                    "app.routers.transactions.transaction_service_for",
+                                    return_value=MagicMock(
+                                        get_transaction=lambda transaction_id: _readback_detail_from_payload(
+                                            transaction_id,
+                                            payload,
+                                        )
+                                    ),
+                                ):
+                                    response = client.post(
+                                        f"/books/{sample_book}/transactions",
+                                        json=payload,
+                                        headers=auth_headers,
+                                    )
 
         assert response.status_code == 201
         data = response.json()
@@ -1166,6 +1198,8 @@ class TestWriteAlphaCreateRouteDisposableFixture:
         assert response.status_code == 201
         data = response.json()
         assert data["transaction_id"]
+        assert data["readback_verified"] is True
+        assert data["readback_transaction_id"] == data["transaction_id"]
         backup_path = Path(data["backup_path"])
         assert backup_path.exists()
         assert backup_path.is_file()
@@ -1194,6 +1228,9 @@ class TestWriteAlphaCreateRouteDisposableFixture:
             assert audit_log.action == "transaction.create"
             assert payload["result"] == "success"
             assert payload["transaction_id"] == data["transaction_id"]
+            assert payload["readback_verified"] is True
+            assert payload["readback_transaction_id"] == data["transaction_id"]
+            assert payload["readback_split_count"] == 2
             assert payload["backup_path"] == str(backup_path)
             assert payload["request_summary"]["split_count"] == 2
             ownership = (
@@ -1205,6 +1242,64 @@ class TestWriteAlphaCreateRouteDisposableFixture:
             assert ownership.created_by_write_alpha is True
             assert ownership.created_at is not None
             assert ownership.last_mutated_at is not None
+
+    def test_enabled_create_readback_failure_returns_503_audits_failure_and_skips_ownership(
+        self,
+        client,
+        auth_headers,
+        disposable_sample_book,
+        disposable_fixture_book,
+        disposable_write_lock,
+        session_factory,
+        monkeypatch,
+    ):
+        """A CREATE cannot report success until the created transaction is read back."""
+        from app.services.gnucash_exceptions import EntityNotFoundError
+
+        class MissingCreatedTransactionReadService:
+            def get_transaction(self, transaction_id):
+                raise EntityNotFoundError("transaction", transaction_id)
+
+        monkeypatch.setattr(
+            "app.routers.transactions.transaction_service_for",
+            lambda book: MissingCreatedTransactionReadService(),
+        )
+        txs_before = _read_written_transactions(disposable_fixture_book)
+
+        response = client.post(
+            f"/books/{disposable_sample_book}/transactions",
+            json=self._fixture_create_payload("Read-back failure create"),
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 503
+        detail = response.json()["detail"]
+        assert "read-back verification failed" in detail
+        assert str(disposable_fixture_book) not in detail
+
+        txs_after = _read_written_transactions(disposable_fixture_book)
+        assert len(txs_after) == len(txs_before) + 1
+        created = next(tx for tx in txs_after if tx["description"] == "Read-back failure create")
+
+        lock_key = str(disposable_fixture_book)
+        assert disposable_write_lock.acquire(lock_key) is True
+        disposable_write_lock.release(lock_key)
+
+        with session_factory() as session:
+            logs = session.query(AuditLog).filter_by(action="transaction.create").all()
+            assert logs
+            payload = json.loads(logs[-1].payload_json)
+            assert payload["result"] == "failed"
+            assert payload["transaction_id"] == created["guid"]
+            assert payload["readback_verified"] is False
+            assert "read-back verification failed" in payload["error"]
+            assert payload["backup_path"] is not None
+            assert (
+                session.query(WriteAlphaTransactionOwnership)
+                .filter_by(book_id=disposable_sample_book, transaction_id=created["guid"])
+                .one_or_none()
+                is None
+            )
 
     def test_enabled_create_validation_failure_is_audited_without_backup_or_lock_leak(
         self,

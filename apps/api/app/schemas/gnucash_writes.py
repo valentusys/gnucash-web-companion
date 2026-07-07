@@ -129,6 +129,14 @@ class TransactionWriteResultDTO(BaseModel):
     transaction_id: str = Field(..., description="GUID of the created/updated transaction")
     backup_path: str = Field(..., description="Path to the backup created before the write")
     audit_log_id: int | None = Field(None, description="ID of the audit log entry")
+    readback_verified: bool | None = Field(
+        None,
+        description="True when the route performed read-only verification after a CREATE write",
+    )
+    readback_transaction_id: str | None = Field(
+        None,
+        description="GUID observed by the post-write read-back verification",
+    )
 
 
 class WriteAlphaAuditSummaryItemDTO(BaseModel):

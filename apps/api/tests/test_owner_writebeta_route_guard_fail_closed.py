@@ -51,6 +51,8 @@ def test_owner_writebeta_guard_allows_inactive_or_disabled_session_without_armin
         book_id=1,
         preview_hash=None,
         confirmation_token=None,
+        operation="CREATE",
+        count=1,
     )
 
     session = OwnerWritebetaSession()
@@ -59,6 +61,8 @@ def test_owner_writebeta_guard_allows_inactive_or_disabled_session_without_armin
         book_id=2,
         preview_hash="owb-prev-unused",
         confirmation_token="unused-token",
+        operation="CREATE",
+        count=1,
     )
     assert session.state == OwnerWritebetaState.DISABLED
 
@@ -87,6 +91,8 @@ def test_owner_writebeta_guard_blocks_every_non_confirmation_active_state(state)
             book_id=book_id,
             preview_hash="owb-prev-synthetic",
             confirmation_token="synthetic-token",
+            operation="CREATE",
+            count=1,
         )
 
     assert excinfo.value.status_code == 403
@@ -110,9 +116,32 @@ def test_owner_writebeta_guard_blocks_confirmation_without_both_header_values():
                 book_id=book_id,
                 preview_hash=candidate_hash,
                 confirmation_token=candidate_token,
+                operation="CREATE",
+                count=1,
             )
         assert excinfo.value.status_code == 403
         assert "matching preview hash and confirmation token" in str(excinfo.value.detail)
+        assert _SESSIONS[book_id].state == OwnerWritebetaState.CONFIRMATION
+
+
+def test_owner_writebeta_guard_blocks_confirmation_without_operation_or_count():
+    book_id, preview_hash, raw_token = _armed_session()
+
+    missing_cases = [
+        (None, 1),
+        ("CREATE", None),
+    ]
+    for operation, count in missing_cases:
+        with pytest.raises(HTTPException) as excinfo:
+            require_owner_writebeta_if_active(
+                book_id=book_id,
+                preview_hash=preview_hash,
+                confirmation_token=raw_token,
+                operation=operation,
+                count=count,
+            )
+        assert excinfo.value.status_code == 403
+        assert "matching operation and count" in str(excinfo.value.detail)
         assert _SESSIONS[book_id].state == OwnerWritebetaState.CONFIRMATION
 
 
@@ -129,6 +158,8 @@ def test_owner_writebeta_guard_blocks_mismatched_preview_hash_and_token():
                 book_id=book_id,
                 preview_hash=candidate_hash,
                 confirmation_token=candidate_token,
+                operation="CREATE",
+                count=1,
             )
         assert excinfo.value.status_code == 403
         assert expected_detail in str(excinfo.value.detail)
@@ -144,6 +175,8 @@ def test_owner_writebeta_guard_blocks_expired_confirmation_without_mutating():
             book_id=book_id,
             preview_hash=preview_hash,
             confirmation_token=raw_token,
+            operation="CREATE",
+            count=1,
         )
 
     assert excinfo.value.status_code == 403
@@ -159,6 +192,8 @@ def test_owner_writebeta_guard_blocks_missing_restore_readiness_ref_without_muta
             book_id=book_id,
             preview_hash=preview_hash,
             confirmation_token=raw_token,
+            operation="CREATE",
+            count=1,
         )
 
     assert excinfo.value.status_code == 403
@@ -173,6 +208,8 @@ def test_owner_writebeta_guard_accepts_matching_unexpired_confirmation_once():
         book_id=book_id,
         preview_hash=preview_hash,
         confirmation_token=raw_token,
+        operation="CREATE",
+        count=1,
     )
 
     assert _SESSIONS[book_id].state == OwnerWritebetaState.MUTATING
@@ -183,6 +220,8 @@ def test_owner_writebeta_guard_accepts_matching_unexpired_confirmation_once():
             book_id=book_id,
             preview_hash=preview_hash,
             confirmation_token=raw_token,
+            operation="CREATE",
+            count=1,
         )
     assert excinfo.value.status_code == 403
     assert "not armed" in str(excinfo.value.detail)

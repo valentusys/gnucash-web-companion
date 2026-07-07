@@ -42,6 +42,7 @@ class OwnerWritebetaSession:
     restore_readiness_ref: str | None = None
     preview_hash: str | None = None
     confirmation_token_ref: str | None = None
+    operation: str | None = None
     operation_count: int = 0
     expires_at: datetime | None = None
     lock_released: bool = False
@@ -94,6 +95,8 @@ class OwnerWritebetaSession:
             self.preview_hash = None
             self.confirmation_token_ref = None
             self.restore_readiness_ref = None
+            self.operation = None
+            self.operation_count = 0
             self.expires_at = None
         if target in {OwnerWritebetaState.RESET_REQUIRED, OwnerWritebetaState.FAILED_HARD_STOP}:
             # Reset-required and failed-hard-stop are post-mutation states.
@@ -102,6 +105,8 @@ class OwnerWritebetaSession:
             self.preview_hash = None
             self.confirmation_token_ref = None
             self.restore_readiness_ref = None
+            self.operation = None
+            self.operation_count = 0
             self.expires_at = None
         self.updated_at = datetime.now(timezone.utc)
         return self
@@ -129,6 +134,7 @@ class OwnerWritebetaSession:
             "restore_readiness_ref": self.restore_readiness_ref,
             "preview_hash": self.preview_hash,
             "confirmation_token_ref": self.confirmation_token_ref,
+            "operation": self.operation,
             "operation_count": str(self.operation_count),
             "lock_released": self.lock_released,
             "defaults_reset": self.defaults_reset,
@@ -180,6 +186,13 @@ def _safe_shape(value: Any, _key_index: list[int] | None = None) -> Any:
     return type(value).__name__
 
 
+def _safe_operation(operation: str) -> str:
+    candidate = str(operation or "").upper()
+    if candidate not in {"CREATE", "PATCH", "DELETE"}:
+        raise OwnerWritebetaTransitionError("unsupported owner-writebeta operation")
+    return candidate
+
+
 def preview_operation_hash(operation: str, payload_shape: Mapping[str, Any] | None = None, *, count: int = 1) -> str:
     """Build an opaque preview hash from operation type/count and payload shape only.
 
@@ -187,8 +200,7 @@ def preview_operation_hash(operation: str, payload_shape: Mapping[str, Any] | No
     book paths, backup paths, and raw payload values so it is safe for committed
     evidence and audit docs.
     """
-    if operation not in {"CREATE", "PATCH", "DELETE"}:
-        raise OwnerWritebetaTransitionError("unsupported owner-writebeta operation")
+    operation = _safe_operation(operation)
     if count < 1 or count > 4:
         raise OwnerWritebetaTransitionError("owner-writebeta operation count outside authorized bounds")
     shape = _safe_shape(payload_shape or {})
@@ -204,8 +216,10 @@ def confirmation_token_ref(raw_token: str) -> str:
 
 def prepare_preview(session: OwnerWritebetaSession, operation: str, payload_shape: Mapping[str, Any] | None = None, *, count: int = 1) -> OwnerWritebetaSession:
     """Move PREFLIGHT -> PREVIEW with an exact, redacted operation preview hash."""
+    operation = _safe_operation(operation)
     preview_hash = preview_operation_hash(operation, payload_shape, count=count)
     session.operation_count = count
+    session.operation = operation
     return session.transition(OwnerWritebetaState.PREVIEW, preview_hash=preview_hash)
 
 
@@ -239,7 +253,14 @@ def arm_confirmed_preview(
     return session, raw_token
 
 
-def require_matching_confirmation(session: OwnerWritebetaSession, *, preview_hash: str, raw_token: str) -> None:
+def require_matching_confirmation(
+    session: OwnerWritebetaSession,
+    *,
+    preview_hash: str,
+    raw_token: str,
+    operation: str | None = None,
+    count: int | None = None,
+) -> None:
     """Fail closed unless the current confirmation matches the armed preview."""
     if session.state != OwnerWritebetaState.CONFIRMATION:
         raise OwnerWritebetaTransitionError("owner-writebeta session is not armed")
@@ -249,6 +270,10 @@ def require_matching_confirmation(session: OwnerWritebetaSession, *, preview_has
         raise OwnerWritebetaTransitionError("owner-writebeta confirmation token mismatch")
     if session.expires_at is not None and datetime.now(timezone.utc) > session.expires_at:
         raise OwnerWritebetaTransitionError("confirmed owner-writebeta preview expired")
+    if operation is not None:
+        expected_operation = _safe_operation(operation)
+        if session.operation != expected_operation or (count is not None and session.operation_count != count):
+            raise OwnerWritebetaTransitionError("request does not match armed owner-writebeta operation/count")
 
 
 def mark_post_mutation_checks(

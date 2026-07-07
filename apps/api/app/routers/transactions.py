@@ -59,6 +59,15 @@ from app.services.gnucash_book import SUPPORTED_TRANSACTION_STATES
 
 logger = logging.getLogger(__name__)
 
+
+class GnuCashCreateReadbackVerificationError(GnuCashWriteError):
+    """Raised when a CREATE write cannot be verified through the read-only path."""
+
+
+CREATE_READBACK_FAILURE_DETAIL = (
+    "GnuCash create read-back verification failed; check backup and operator evidence."
+)
+
 router = APIRouter(tags=["transactions"])
 
 
@@ -1096,6 +1105,77 @@ def _request_summary(request: TransactionCreateRequestDTO) -> dict[str, Any]:
     }
 
 
+def _verify_transaction_create_readback(
+    book: Book,
+    request: TransactionCreateRequestDTO,
+    result: TransactionWriteResultDTO,
+) -> dict[str, bool | str | int]:
+    """Read the newly created transaction through the read-only service before reporting success."""
+    try:
+        detail = transaction_service_for(book).get_transaction(result.transaction_id)
+    except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
+        raise GnuCashCreateReadbackVerificationError(
+            CREATE_READBACK_FAILURE_DETAIL,
+            backup_path=result.backup_path,
+        ) from exc
+
+    if detail.id != result.transaction_id:
+        raise GnuCashCreateReadbackVerificationError(
+            CREATE_READBACK_FAILURE_DETAIL,
+            backup_path=result.backup_path,
+        )
+    if detail.date != request.date:
+        raise GnuCashCreateReadbackVerificationError(
+            CREATE_READBACK_FAILURE_DETAIL,
+            backup_path=result.backup_path,
+        )
+    if detail.description != request.description:
+        raise GnuCashCreateReadbackVerificationError(
+            CREATE_READBACK_FAILURE_DETAIL,
+            backup_path=result.backup_path,
+        )
+    if len(detail.splits) != len(request.splits):
+        raise GnuCashCreateReadbackVerificationError(
+            CREATE_READBACK_FAILURE_DETAIL,
+            backup_path=result.backup_path,
+        )
+    if _readback_split_signatures(detail.splits) != _request_split_signatures(request.splits):
+        raise GnuCashCreateReadbackVerificationError(
+            CREATE_READBACK_FAILURE_DETAIL,
+            backup_path=result.backup_path,
+        )
+
+    return {
+        "readback_verified": True,
+        "readback_transaction_id": detail.id,
+        "readback_split_count": len(detail.splits),
+    }
+
+
+def _request_split_signatures(splits: list[TransactionSplitWriteDTO]) -> list[tuple[str, Decimal, str, str]]:
+    return sorted(
+        (
+            split.account_id,
+            Decimal(split.amount),
+            split.currency.upper(),
+            split.memo or "",
+        )
+        for split in splits
+    )
+
+
+def _readback_split_signatures(splits: list[Any]) -> list[tuple[str, Decimal, str, str]]:
+    return sorted(
+        (
+            str(getattr(split, "account_id", "")),
+            Decimal(str(getattr(split, "amount", "0"))),
+            str(getattr(split, "currency", "")).upper(),
+            str(getattr(split, "memo", "") or ""),
+        )
+        for split in splits
+    )
+
+
 def _ensure_writes_enabled(settings: Settings) -> None:
     """Keep the MVP read-only unless post-MVP writes are explicitly enabled."""
     if not settings.gnucash_writes_enabled:
@@ -1331,6 +1411,8 @@ async def create_book_transaction(
         book_id=book.id,
         preview_hash=x_owner_writebeta_preview_hash,
         confirmation_token=x_owner_writebeta_confirmation_token,
+        operation="CREATE",
+        count=1,
     )
 
     service = _write_service_for(book)
@@ -1341,22 +1423,46 @@ async def create_book_transaction(
         "request_summary": _request_summary(request),
         "backup_path": None,
         "backup_artifact_ref": None,
+        "readback_verified": False,
+        "readback_transaction_id": None,
+        "readback_split_count": None,
         "result": "started",
     }
     log = _audit_log(session, user.id, book.id, "transaction.create", audit_payload)
 
+    result: TransactionWriteResultDTO | None = None
+    readback_fields: dict[str, bool | str | int] = {}
     try:
         result = service.create_transaction(
             request=request,
             user_id=user.id,
             book_id=book.id,
         )
+        readback_fields = _verify_transaction_create_readback(book, request, result)
     except WriteLockError as exc:
         audit_payload.update({"result": "failed", "error": _write_lock_detail()})
         _update_audit_log(session, log, audit_payload)
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=_write_lock_detail(),
+        ) from exc
+    except GnuCashCreateReadbackVerificationError as exc:
+        safe_detail = _write_error_detail(exc)
+        audit_payload.update(
+            {
+                "result": "failed",
+                "transaction_id": result.transaction_id if result is not None else None,
+                "readback_verified": False,
+                "readback_transaction_id": None,
+                "readback_split_count": None,
+                "error": safe_detail,
+                **_backup_audit_fields(getattr(exc, "backup_path", None)),
+            }
+        )
+        _update_audit_log(session, log, audit_payload)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=safe_detail,
         ) from exc
     except GnuCashWriteError as exc:
         safe_detail = _write_error_detail(exc)
@@ -1377,6 +1483,7 @@ async def create_book_transaction(
         {
             "transaction_id": result.transaction_id,
             **_backup_audit_fields(result.backup_path),
+            **readback_fields,
             "result": "success",
         }
     )
@@ -1388,6 +1495,8 @@ async def create_book_transaction(
         user_id=user.id,
     )
     result.audit_log_id = log.id
+    result.readback_verified = True
+    result.readback_transaction_id = str(readback_fields["readback_transaction_id"])
 
     return result
 
@@ -1426,6 +1535,8 @@ async def patch_book_transaction(
         book_id=book.id,
         preview_hash=x_owner_writebeta_preview_hash,
         confirmation_token=x_owner_writebeta_confirmation_token,
+        operation="PATCH",
+        count=1,
     )
 
     service = _write_service_for(book)
@@ -1529,6 +1640,8 @@ async def delete_book_transaction(
         book_id=book.id,
         preview_hash=x_owner_writebeta_preview_hash,
         confirmation_token=x_owner_writebeta_confirmation_token,
+        operation="DELETE",
+        count=1,
     )
 
     service = _write_service_for(book)
