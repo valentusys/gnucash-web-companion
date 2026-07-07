@@ -16,7 +16,7 @@ backup/read-back/audit/reset/probes, and manual Desktop verification.
 
 Commands were run from the repository root in separate isolated shells.
 
-- `cd apps/api && pytest -q` — passed: 979 passed, 51 warnings.
+- `cd apps/api && pytest -q` — passed: 1003 passed, 53 warnings.
 - `cd apps/web && npm run check` — passed: 0 errors, 0 warnings.
 - `cd apps/web && npm run build` — passed.
 - `cd apps/web && npm run test:transaction-entry-preview` — passed: `transaction-entry-preview-static: ok`.
