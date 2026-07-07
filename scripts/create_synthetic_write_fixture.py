@@ -14,6 +14,7 @@ Safety posture:
 """
 
 import argparse
+from collections.abc import Iterable, Mapping
 import hashlib
 from dataclasses import dataclass
 from datetime import date
@@ -178,27 +179,68 @@ TRANSACTION_SPECS: tuple[TransactionSpec, ...] = (
     ),
 )
 
+BALANCE_CREDIT_ACCOUNT_TYPES = frozenset({"CREDIT", "EQUITY", "INCOME", "LIABILITY"})
+NEGATIVE_ZERO_ACCOUNT_TYPES = frozenset({"CREDIT", "LIABILITY"})
+
+
+def _format_money(value: Any) -> str:
+    if not isinstance(value, Decimal):
+        value = Decimal(str(value))
+    return str(value.quantize(MONEY_QUANT, rounding=ROUND_HALF_UP))
+
+
+def _validate_fixture_specs() -> None:
+    account_paths = {spec.full_name for spec in ACCOUNT_SPECS}
+    for spec in ACCOUNT_SPECS:
+        if spec.parent_full_name is not None and spec.parent_full_name not in account_paths:
+            raise ValueError(f"account parent is missing: {spec.full_name} -> {spec.parent_full_name}")
+
+    for spec in TRANSACTION_SPECS:
+        split_total = sum((split.amount for split in spec.splits), Decimal("0"))
+        if split_total != Decimal("0.00"):
+            raise ValueError(f"transaction does not balance: {spec.description}")
+        for split in spec.splits:
+            if split.account_full_name not in account_paths:
+                raise ValueError(
+                    f"transaction references unknown account: {spec.description} -> {split.account_full_name}"
+                )
+
+
+def _expected_display_balance(
+    full_name: str,
+    raw_amount: Decimal,
+    account_types: Mapping[str, str],
+) -> str:
+    account_type = account_types[full_name].upper()
+    display_amount = -raw_amount if account_type in BALANCE_CREDIT_ACCOUNT_TYPES else raw_amount
+    if display_amount == Decimal("0") and account_type in NEGATIVE_ZERO_ACCOUNT_TYPES:
+        display_amount = Decimal("-0.00")
+    return _format_money(display_amount)
+
+
+def _calculate_expected_balances() -> dict[str, str]:
+    _validate_fixture_specs()
+    account_types = {spec.full_name: spec.type for spec in ACCOUNT_SPECS}
+    parents = {spec.full_name: spec.parent_full_name for spec in ACCOUNT_SPECS}
+    balances = {spec.full_name: Decimal("0.00") for spec in ACCOUNT_SPECS}
+
+    for spec in TRANSACTION_SPECS:
+        for split in spec.splits:
+            current: str | None = split.account_full_name
+            while current is not None:
+                balances[current] += split.amount
+                current = parents[current]
+
+    return {
+        full_name: _expected_display_balance(full_name, balances[full_name], account_types)
+        for full_name in sorted(balances)
+    }
+
+
 EXPECTED_ACCOUNT_TYPES: dict[str, str] = {
     spec.full_name: spec.type for spec in sorted(ACCOUNT_SPECS, key=lambda item: item.full_name)
 }
-EXPECTED_BALANCES: dict[str, str] = {
-    "Assets": "3264.75",
-    "Assets:Checking": "2454.75",
-    "Assets:Savings": "810.00",
-    "Equity": "1500.00",
-    "Equity:Opening Balances": "1500.00",
-    "Expenses": "745.25",
-    "Expenses:Dining": "75.00",
-    "Expenses:Future Placeholder": "0.00",
-    "Expenses:Groceries": "200.25",
-    "Expenses:Transport": "100.00",
-    "Expenses:Utilities": "370.00",
-    "Income": "2510.00",
-    "Income:Interest": "10.00",
-    "Income:Salary": "2500.00",
-    "Liabilities": "-0.00",
-    "Liabilities:Credit Card": "-0.00",
-}
+EXPECTED_BALANCES: dict[str, str] = _calculate_expected_balances()
 
 
 def _is_relative_to(path: Path, parent: Path) -> bool:
@@ -217,12 +259,6 @@ def _validate_output_path(output_path: Path) -> None:
                 "refusing to write generated SQLite fixture inside tracked repository paths; "
                 "use apps/api/tests/generated-fixtures/ or an external temporary directory"
             )
-
-
-def _format_money(value: Any) -> str:
-    if not isinstance(value, Decimal):
-        value = Decimal(str(value))
-    return str(value.quantize(MONEY_QUANT, rounding=ROUND_HALF_UP))
 
 
 def _account_full_name(account: Any) -> str:
@@ -257,6 +293,7 @@ def _open_book_readonly(path: str | Path) -> Any:
 def create_fixture(output_path: str | Path = DEFAULT_OUTPUT_PATH) -> Path:
     """Create the disposable synthetic GnuCash SQLite fixture and return its path."""
 
+    _validate_fixture_specs()
     output = Path(output_path)
     _validate_output_path(output)
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -339,6 +376,78 @@ def account_balance_snapshot(path: str | Path) -> dict[str, str]:
     """Return account full-name to balance mapping for repeatability assertions."""
 
     return {item["full_name"]: item["balance"] for item in account_snapshot(path)}
+
+
+def expected_balance_snapshot() -> dict[str, str]:
+    """Return expected balances derived from the deterministic fixture specs."""
+
+    return dict(EXPECTED_BALANCES)
+
+
+def require_account_guids(path: str | Path, account_paths: Iterable[str]) -> dict[str, str]:
+    """Return GUIDs for required synthetic account paths or fail with safe context."""
+
+    lookup = account_lookup(path)
+    requested_paths = list(account_paths)
+    missing_paths = [account_path for account_path in requested_paths if account_path not in lookup]
+    if missing_paths:
+        raise KeyError(
+            "generated fixture missing synthetic account path(s): "
+            f"{', '.join(missing_paths)}; available synthetic account paths: "
+            f"{', '.join(sorted(lookup))}"
+        )
+    return {account_path: lookup[account_path] for account_path in requested_paths}
+
+
+def account_guid(path: str | Path, account_path: str) -> str:
+    """Return one synthetic account GUID by deterministic full account path."""
+
+    return require_account_guids(path, (account_path,))[account_path]
+
+
+def assert_expected_balances(
+    path: str | Path,
+    expected: Mapping[str, str] | None = None,
+) -> None:
+    """Assert fixture balances match expected synthetic balances with path-level drift."""
+
+    actual_balances = account_balance_snapshot(path)
+    expected_balances = dict(EXPECTED_BALANCES if expected is None else expected)
+    if actual_balances == expected_balances:
+        return
+
+    actual_paths = set(actual_balances)
+    expected_paths = set(expected_balances)
+    missing_paths = sorted(expected_paths - actual_paths)
+    unexpected_paths = sorted(actual_paths - expected_paths)
+    mismatched = [
+        (
+            account_path,
+            expected_balances[account_path],
+            actual_balances[account_path],
+        )
+        for account_path in sorted(actual_paths & expected_paths)
+        if actual_balances[account_path] != expected_balances[account_path]
+    ]
+
+    details: list[str] = []
+    if missing_paths:
+        details.append(f"missing accounts: {', '.join(missing_paths)}")
+    if unexpected_paths:
+        details.append(f"unexpected accounts: {', '.join(unexpected_paths)}")
+    if mismatched:
+        details.append(
+            "mismatched balances: "
+            + "; ".join(
+                f"{account_path} expected {expected_balance}, got {actual_balance}"
+                for account_path, expected_balance, actual_balance in mismatched
+            )
+        )
+
+    raise AssertionError(
+        "generated fixture balances differ from expected synthetic balances: "
+        + " | ".join(details)
+    )
 
 
 def transaction_descriptions(path: str | Path) -> list[str]:
@@ -433,8 +542,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     output = create_fixture(args.output)
     metadata = fixture_metadata(output)
-    if account_balance_snapshot(output) != EXPECTED_BALANCES:
-        raise RuntimeError("generated fixture balances do not match EXPECTED_BALANCES")
+    assert_expected_balances(output)
     if args.metadata_json:
         metadata_path = output.with_suffix(output.suffix + ".metadata.json")
         metadata_path.write_text(json.dumps(metadata, indent=2, sort_keys=True) + "\n", encoding="utf-8")

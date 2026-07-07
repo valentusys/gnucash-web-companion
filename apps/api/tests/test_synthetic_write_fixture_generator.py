@@ -194,6 +194,42 @@ def test_metadata_and_account_lookup_are_safe_for_test_payloads(
     assert str(generated_fixture_path.parent) not in str(metadata)
 
 
+def test_account_lookup_helpers_return_required_guids_and_clear_missing_paths(
+    generated_fixture_path: Path,
+    generator: ModuleType,
+) -> None:
+    required_paths = ("Assets:Checking", "Expenses:Groceries")
+
+    required_lookup = generator.require_account_guids(generated_fixture_path, required_paths)
+
+    assert list(required_lookup) == list(required_paths)
+    assert required_lookup["Assets:Checking"] == generator.account_guid(
+        generated_fixture_path, "Assets:Checking"
+    )
+    assert required_lookup["Expenses:Groceries"] == generator.account_guid(
+        generated_fixture_path, "Expenses:Groceries"
+    )
+
+    with pytest.raises(KeyError, match="Expenses:Missing") as excinfo:
+        generator.account_guid(generated_fixture_path, "Expenses:Missing")
+    assert "Assets:Checking" in str(excinfo.value)
+    assert str(generated_fixture_path.parent) not in str(excinfo.value)
+
+
+def test_expected_balance_helpers_are_derived_and_report_drift(
+    generated_fixture_path: Path,
+    generator: ModuleType,
+) -> None:
+    assert generator.expected_balance_snapshot() == EXPECTED_BALANCES
+    generator.assert_expected_balances(generated_fixture_path)
+
+    drifted = dict(EXPECTED_BALANCES)
+    drifted["Assets:Checking"] = "999.00"
+    with pytest.raises(AssertionError, match="Assets:Checking") as excinfo:
+        generator.assert_expected_balances(generated_fixture_path, expected=drifted)
+    assert "expected 999.00, got 2454.75" in str(excinfo.value)
+
+
 def test_generator_refuses_repo_tracked_fixture_paths(generator: ModuleType) -> None:
     tracked_fixture_dir = REPO_ROOT / "apps" / "api" / "tests" / "fixtures"
 
