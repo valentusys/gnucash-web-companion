@@ -933,6 +933,173 @@ class TestWriteServiceValidationRules:
         assert "Splits do not balance to zero for currency SEK" in joined_errors
         assert "placeholder account and cannot receive postings" in joined_errors
 
+    def test_validation_accepts_balanced_multi_split_decimal_strings(self, fake_accounts):
+        service = self._service_with_fake_accounts(fake_accounts)
+
+        result = service.validate_transaction_create(
+            TransactionCreateRequestDTO(
+                date="2026-05-16",
+                description="Balanced validation probe",
+                splits=[
+                    TransactionSplitWriteDTO(
+                        account_id="bank-guid",
+                        amount="-100.100000000000000001",
+                        currency="SEK",
+                        memo="source",
+                    ),
+                    TransactionSplitWriteDTO(
+                        account_id="food-guid",
+                        amount="70.050000000000000000",
+                        currency="SEK",
+                        memo="food",
+                    ),
+                    TransactionSplitWriteDTO(
+                        account_id="income-guid",
+                        amount="30.050000000000000001",
+                        currency="SEK",
+                        memo="offset",
+                    ),
+                ],
+            )
+        )
+
+        assert result.valid is True
+        assert result.errors == []
+        assert result.summary["split_count"] == 3
+        assert result.summary["currencies"] == ["SEK"]
+
+    def test_validation_rejects_missing_account_even_when_splits_balance(self, fake_accounts):
+        service = self._service_with_fake_accounts(fake_accounts)
+
+        result = service.validate_transaction_create(
+            TransactionCreateRequestDTO(
+                date="2026-05-16",
+                description="Missing account validation probe",
+                splits=[
+                    TransactionSplitWriteDTO(
+                        account_id="missing-guid",
+                        amount="-50.00",
+                        currency="SEK",
+                        memo="missing",
+                    ),
+                    TransactionSplitWriteDTO(
+                        account_id="food-guid",
+                        amount="50.00",
+                        currency="SEK",
+                        memo="known",
+                    ),
+                ],
+            )
+        )
+
+        assert result.valid is False
+        assert result.errors == ["Account not found: missing-guid"]
+
+    def test_validation_rejects_placeholder_account_even_when_splits_balance(self, fake_accounts):
+        placeholder = FakeAccount(
+            guid="placeholder-guid",
+            name="Synthetic Placeholder",
+            type="ASSET",
+            placeholder=True,
+        )
+        service = self._service_with_fake_accounts([*fake_accounts, placeholder])
+
+        result = service.validate_transaction_create(
+            TransactionCreateRequestDTO(
+                date="2026-05-16",
+                description="Balanced placeholder validation probe",
+                splits=[
+                    TransactionSplitWriteDTO(
+                        account_id="placeholder-guid",
+                        amount="-12.34",
+                        currency="SEK",
+                        memo="placeholder",
+                    ),
+                    TransactionSplitWriteDTO(
+                        account_id="food-guid",
+                        amount="12.34",
+                        currency="SEK",
+                        memo="posting",
+                    ),
+                ],
+            )
+        )
+
+        assert result.valid is False
+        assert result.errors == [
+            "Account placeholder-guid is a placeholder account and cannot receive postings"
+        ]
+
+    def test_validation_rejects_split_currency_that_differs_from_account_currency(self, fake_accounts):
+        usd_account = FakeAccount(
+            guid="usd-guid",
+            name="USD Synthetic Account",
+            type="BANK",
+            commodity=FakeCommodity("USD"),
+        )
+        service = self._service_with_fake_accounts([*fake_accounts, usd_account])
+
+        result = service.validate_transaction_create(
+            TransactionCreateRequestDTO(
+                date="2026-05-16",
+                description="Currency consistency validation probe",
+                splits=[
+                    TransactionSplitWriteDTO(
+                        account_id="usd-guid",
+                        amount="-25.00",
+                        currency="SEK",
+                        memo="wrong currency",
+                    ),
+                    TransactionSplitWriteDTO(
+                        account_id="food-guid",
+                        amount="25.00",
+                        currency="SEK",
+                        memo="known",
+                    ),
+                ],
+            )
+        )
+
+        assert result.valid is False
+        assert result.errors == [
+            "Currency SEK does not match account usd-guid currency USD"
+        ]
+
+    def test_validation_rejects_unbalanced_currency_before_write_execution(
+        self, fake_accounts, monkeypatch
+    ):
+        service = self._service_with_fake_accounts(fake_accounts)
+        execution_calls: list[str] = []
+
+        def fail_if_execution_reached(*args, **kwargs):
+            execution_calls.append("called")
+            raise AssertionError("invalid validation request must not execute writes")
+
+        monkeypatch.setattr(service, "_execute_write_transaction", fail_if_execution_reached)
+
+        request = TransactionCreateRequestDTO(
+            date="2026-05-16",
+            description="Unbalanced validation pre-execution probe",
+            splits=[
+                TransactionSplitWriteDTO(
+                    account_id="bank-guid",
+                    amount="-10.00",
+                    currency="SEK",
+                    memo="source",
+                ),
+                TransactionSplitWriteDTO(
+                    account_id="food-guid",
+                    amount="9.99",
+                    currency="SEK",
+                    memo="target",
+                ),
+            ],
+        )
+
+        with pytest.raises(GnuCashWriteError, match="Validation failed"):
+            service.create_transaction(request, user_id=1, book_id=1)
+        assert execution_calls == []
+
 
 # ---------------------------------------------------------------------------
 # Tests: POST /books/{book_id}/transactions

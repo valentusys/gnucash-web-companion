@@ -637,6 +637,21 @@ class TestTransactionCreatePreview:
         assert response.json()["detail"] == "no selectable accounts are available for preview"
         self.assert_no_preview_mutation_metadata(session_factory)
 
+    def test_selected_placeholder_account_rejected_while_other_accounts_remain_selectable(
+        self, client, auth_headers, sample_book, fake_book_with_transactions, fake_transaction_data, session_factory
+    ):
+        accounts, _transactions = fake_transaction_data
+        for account in accounts:
+            if account.guid == "food-guid":
+                account.placeholder = True
+        self._set_fake_book(session_factory, sample_book, fake_book_with_transactions)
+
+        response = self.post_preview(client, auth_headers, sample_book, _preview_payload())
+
+        assert response.status_code == 422
+        assert response.json()["detail"] == "credit_account_id must reference a selectable account"
+        self.assert_no_preview_mutation_metadata(session_factory)
+
     def test_missing_amount_rejected(
         self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory
     ):
