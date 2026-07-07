@@ -160,6 +160,28 @@ def test_desktop_fixture_metadata_stays_blocked_when_preflight_marker_missing() 
     assert "acceptance gate only" in row.support_claim
 
 
+def test_disposable_sqlite_report_row_stays_single_use_and_redacted() -> None:
+    row = build_matrix_row_from_metadata(
+        {
+            "backend": "SQLite",
+            "fixture_origin": "operator disposable fixture at /home/owner/book.gnucash.sqlite",
+            "fixture_scope": "disposable",
+            "versions": {"Gnucash": 3_000_000},
+            "table_counts": {"accounts": 2, "transactions": 1},
+        }
+    )
+
+    assert row.category == "tested_synthetic_fixture"
+    assert row.fixture_origin == "not recorded"
+    assert row.desktop_version_evidence == "not Desktop-version evidence"
+    assert "Disposable SQLite report evidence is single-use triage evidence" in row.support_claim
+    assert "not a reusable fixture row" in row.support_claim
+    assert "Disposable SQLite report only" in row.safe_copy
+    serialized = " ".join(str(value) for value in row.__dict__.values())
+    assert "/home" not in serialized
+    assert "book.gnucash.sqlite" not in serialized
+
+
 def test_non_sqlite_metadata_stays_unclaimed_backend() -> None:
     row = build_matrix_row_from_metadata(
         {
@@ -314,6 +336,7 @@ def test_compatibility_docs_define_fixture_scope_boundaries() -> None:
     assert "`unknown`" in doc
     assert "private row data remains forbidden" in doc
     assert "does not become a tested matrix row" in doc
+    assert "Disposable SQLite report metadata is single-use triage evidence" in doc
 
 
 def test_compatibility_docs_and_changelog_do_not_claim_broad_support() -> None:

@@ -187,6 +187,8 @@ The compatibility workflow uses narrow fixture-scope words so reports do not bec
 
 Keep these scope labels tied to the report and matrix rows above. They are not a compatibility guarantee and must not be used to imply all-version, all-backend, real-book, production, or security-audited support.
 
+Disposable SQLite report metadata is single-use triage evidence. It can document one redacted operator-created disposable run, but it is not a reusable fixture row, a Desktop-version expansion, or a backend support statement.
+
 ## Safe public compatibility feedback workflow
 
 For public read-only beta reports, share redacted metadata only: app tag/commit, OS/browser/Docker/GnuCash versions, backend type, fixture scope, and generic error class.

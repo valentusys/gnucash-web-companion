@@ -26,6 +26,10 @@ TESTED_SYNTHETIC_MESSAGE = (
     "Covered only by synthetic/disposable fixture evidence; not a broad real-book, "
     "all-version, or production compatibility guarantee."
 )
+TESTED_DISPOSABLE_MESSAGE = (
+    "Disposable SQLite report evidence is single-use triage evidence; not a reusable "
+    "fixture row, Desktop-version, backend, or real-book compatibility guarantee."
+)
 ACCEPTANCE_GATE_BLOCKED_MESSAGE = (
     "Desktop fixture candidate acceptance gate only; keep #22 blocked until isolated "
     "Desktop-generated synthetic evidence passes fail-closed preflight and default-read-only validation."
@@ -65,6 +69,15 @@ def _clean_string(value: Any, fallback: str) -> str:
     if isinstance(value, str) and value.strip():
         return value.strip()
     return fallback
+
+
+def _safe_display_string(value: Any, fallback: str) -> str:
+    """Return bounded display text without path/account/amount-like evidence."""
+
+    cleaned = _clean_string(value, fallback)
+    if PATH_RE.search(cleaned) or AMOUNT_RE.search(cleaned) or PRIVATE_LABEL_RE.search(cleaned):
+        return fallback
+    return cleaned
 
 
 def _int_dict(value: Any) -> dict[str, int]:
@@ -144,12 +157,13 @@ def build_matrix_row_from_metadata(
     is explicitly recorded by the caller.
     """
 
-    backend = _clean_string(metadata.get("backend"), "unknown")
-    fixture_origin = _clean_string(metadata.get("fixture_origin"), "not recorded")
+    backend = _safe_display_string(metadata.get("backend"), "unknown")
+    fixture_origin = _safe_display_string(metadata.get("fixture_origin"), "not recorded")
     versions = _int_dict(metadata.get("versions"))
     table_counts = _int_dict(metadata.get("table_counts"))
-    desktop_version = _clean_string(metadata.get("gnucash_desktop_version"), "not recorded")
+    desktop_version = _safe_display_string(metadata.get("gnucash_desktop_version"), "not recorded")
     desktop_generated = metadata.get("desktop_generated_synthetic_fixture") is True
+    fixture_scope = _clean_string(metadata.get("fixture_scope"), "not recorded")
 
     if backend != "SQLite":
         return CompatibilityMatrixRow(
@@ -190,6 +204,15 @@ def build_matrix_row_from_metadata(
             safe_copy="Acceptance gate only; not a tested Desktop-version support row.",
         )
 
+    tested_support_claim = TESTED_SYNTHETIC_MESSAGE
+    tested_safe_copy = "Tested synthetic fixture only; no broad backend/version/real-book guarantee."
+    if fixture_scope == "disposable" and not desktop_generated:
+        tested_support_claim = TESTED_DISPOSABLE_MESSAGE
+        tested_safe_copy = (
+            "Disposable SQLite report only; not a reusable fixture row or broad "
+            "backend/version/real-book guarantee."
+        )
+
     return CompatibilityMatrixRow(
         category="tested_synthetic_fixture",
         status="tested synthetic/disposable fixture evidence",
@@ -202,8 +225,8 @@ def build_matrix_row_from_metadata(
         ),
         schema_markers=versions,
         table_counts=table_counts,
-        support_claim=TESTED_SYNTHETIC_MESSAGE,
-        safe_copy="Tested synthetic fixture only; no broad backend/version/real-book guarantee.",
+        support_claim=tested_support_claim,
+        safe_copy=tested_safe_copy,
     )
 
 
