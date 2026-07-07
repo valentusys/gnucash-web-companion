@@ -13,7 +13,7 @@ with exact target class, exact count, backup/read-back/audit/reset/probes, and m
 
 ## Verification run
 
-- `cd apps/api && pytest -q` — passed: 954 passed, 51 warnings.
+- `cd apps/api && pytest -q` — passed: 955 passed, 51 warnings.
 - `cd apps/web && npm run check` — passed: 0 errors, 0 warnings.
 - `cd apps/web && npm run build` — passed.
 - `cd apps/web && npm run test:transaction-entry-preview` — passed: `transaction-entry-preview-static: ok`.

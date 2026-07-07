@@ -420,7 +420,7 @@ write beta. Future CREATE still requires fresh same-context owner/PM approval; t
 ## #49 final local gates status
 
 On 2026-07-07, the final local gates for the completed non-mutating #49 shell slices passed with the exact task
-commands: backend pytest passed 954 tests; web check/build/static preview/auth route/synthetic browser preview gates
+commands: backend pytest passed 955 tests; web check/build/static preview/auth route/synthetic browser preview gates
 passed; compose, public-status, write-safety defaults, markdown readability, tracked-hygiene, and diff whitespace
 gates passed.
 
