@@ -44,6 +44,8 @@ from app.services.write_lock import WriteLockError, write_lock_service
 
 logger = logging.getLogger(__name__)
 
+VALIDATION_ACCOUNT_READ_FAILURE_DETAIL = "Could not validate accounts from configured disposable test book"
+
 
 class GnuCashWriteError(Exception):
     """Raised when a write operation on the GnuCash book fails."""
@@ -133,8 +135,8 @@ class GnuCashWriteService(GnuCashBookService):
                 close = getattr(book, "close", None)
                 if callable(close):
                     close()
-        except Exception as exc:
-            errors.append(f"Could not validate accounts: {exc}")
+        except Exception:
+            errors.append(VALIDATION_ACCOUNT_READ_FAILURE_DETAIL)
 
         # Validate date format
         try:

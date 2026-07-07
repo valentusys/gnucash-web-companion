@@ -1203,6 +1203,48 @@ class TestWriteServiceValidationRules:
             ],
         )
 
+    def test_validation_read_failure_is_path_safe_and_rejected_before_write_execution(
+        self, fake_accounts, monkeypatch
+    ):
+        from app.services.gnucash_exceptions import GnuCashReadError
+
+        service = self._service_with_fake_accounts(fake_accounts)
+
+        def fail_open(uri_or_path):
+            raise GnuCashReadError("/private/source/book.gnucash.sqlite account memo 123.45")
+
+        service._open_piecash_book = fail_open
+        request = TransactionCreateRequestDTO(
+            date="2026-05-16",
+            description="Path-safe validation read failure probe",
+            splits=[
+                TransactionSplitWriteDTO(
+                    account_id="bank-guid",
+                    amount="-10.00",
+                    currency="SEK",
+                    memo="source",
+                ),
+                TransactionSplitWriteDTO(
+                    account_id="food-guid",
+                    amount="10.00",
+                    currency="SEK",
+                    memo="target",
+                ),
+            ],
+        )
+
+        self._assert_create_request_rejected_before_execution(
+            service,
+            request,
+            monkeypatch,
+            ["Could not validate accounts from configured disposable test book"],
+        )
+        validation = service.validate_transaction_create(request)
+        joined_errors = "\n".join(validation.errors)
+        assert "/private/source" not in joined_errors
+        assert "book.gnucash.sqlite" not in joined_errors
+        assert "account memo 123.45" not in joined_errors
+
 
 # ---------------------------------------------------------------------------
 # Tests: POST /books/{book_id}/transactions
