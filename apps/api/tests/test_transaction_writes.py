@@ -1375,6 +1375,155 @@ class TestWriteServiceValidationRules:
 # ---------------------------------------------------------------------------
 
 
+class TestCreateReadbackVerification:
+    """Focused CREATE read-back checks before route success is reported."""
+
+    def _request(self) -> TransactionCreateRequestDTO:
+        return TransactionCreateRequestDTO(
+            date="2026-06-04",
+            description="Synthetic read-back exact coverage",
+            splits=[
+                TransactionSplitWriteDTO(
+                    account_id="source-checking-guid",
+                    amount="-125.50",
+                    currency="SEK",
+                    memo="source memo exact",
+                ),
+                TransactionSplitWriteDTO(
+                    account_id="destination-food-guid",
+                    amount="100.00",
+                    currency="SEK",
+                    memo="destination food memo exact",
+                ),
+                TransactionSplitWriteDTO(
+                    account_id="destination-transport-guid",
+                    amount="25.50",
+                    currency="SEK",
+                    memo="destination transport memo exact",
+                ),
+            ],
+        )
+
+    def _detail_from_request(
+        self,
+        transaction_id: str,
+        request: TransactionCreateRequestDTO,
+    ) -> TransactionDetailDTO:
+        return TransactionDetailDTO(
+            id=transaction_id,
+            date=request.date,
+            description=request.description,
+            currency=request.splits[0].currency,
+            splits=[
+                TransactionSplitDTO(
+                    account_id=split.account_id,
+                    account_name=split.account_id,
+                    memo=split.memo,
+                    reconcile_state="",
+                    amount=split.amount,
+                    currency=split.currency,
+                )
+                for split in request.splits
+            ],
+        )
+
+    def _patch_read_service(self, monkeypatch, detail: TransactionDetailDTO) -> None:
+        import app.routers.transactions as transactions_router
+
+        class FakeReadService:
+            def get_transaction(self, transaction_id: str) -> TransactionDetailDTO:
+                assert transaction_id == "created-readback-tx"
+                return detail
+
+        monkeypatch.setattr(transactions_router, "transaction_service_for", lambda book: FakeReadService())
+
+    def test_create_readback_accepts_exact_source_destination_amount_currency_date_description_memo_and_splits(
+        self,
+        monkeypatch,
+    ):
+        import app.routers.transactions as transactions_router
+        from app.schemas.gnucash_writes import TransactionWriteResultDTO
+
+        request = self._request()
+        detail = self._detail_from_request("created-readback-tx", request)
+        self._patch_read_service(monkeypatch, detail)
+
+        readback = transactions_router._verify_transaction_create_readback(
+            Book(name="Synthetic read-back book", storage_type="sqlite", uri_or_path="synthetic://readback"),
+            request,
+            TransactionWriteResultDTO(
+                transaction_id="created-readback-tx",
+                backup_path="synthetic-backup-ref",
+            ),
+        )
+
+        assert readback == {
+            "readback_verified": True,
+            "readback_transaction_id": "created-readback-tx",
+            "readback_split_count": 3,
+        }
+
+    @pytest.mark.parametrize(
+        "mismatch",
+        [
+            "transaction_id",
+            "date",
+            "description",
+            "source_account",
+            "destination_account",
+            "amount",
+            "currency",
+            "memo",
+            "split_count",
+        ],
+    )
+    def test_create_readback_rejects_mismatched_source_destination_amount_currency_date_description_memo_and_splits(
+        self,
+        monkeypatch,
+        mismatch,
+    ):
+        import app.routers.transactions as transactions_router
+        from app.schemas.gnucash_writes import TransactionWriteResultDTO
+
+        request = self._request()
+        detail = self._detail_from_request("created-readback-tx", request)
+        if mismatch == "transaction_id":
+            detail.id = "different-readback-tx"
+        elif mismatch == "date":
+            detail.date = "2026-06-05"
+        elif mismatch == "description":
+            detail.description = "Different synthetic description"
+        elif mismatch == "source_account":
+            detail.splits[0].account_id = "different-source-guid"
+        elif mismatch == "destination_account":
+            detail.splits[1].account_id = "different-destination-guid"
+        elif mismatch == "amount":
+            detail.splits[2].amount = "25.51"
+        elif mismatch == "currency":
+            detail.splits[1].currency = "USD"
+        elif mismatch == "memo":
+            detail.splits[0].memo = "different source memo"
+        elif mismatch == "split_count":
+            detail.splits = detail.splits[:-1]
+        else:  # pragma: no cover - protects future parametrization edits
+            raise AssertionError(f"unhandled mismatch: {mismatch}")
+        self._patch_read_service(monkeypatch, detail)
+
+        result = TransactionWriteResultDTO(
+            transaction_id="created-readback-tx",
+            backup_path="synthetic-backup-ref",
+        )
+        with pytest.raises(transactions_router.GnuCashCreateReadbackVerificationError) as excinfo:
+            transactions_router._verify_transaction_create_readback(
+                Book(name="Synthetic read-back book", storage_type="sqlite", uri_or_path="synthetic://readback"),
+                request,
+                result,
+            )
+
+        assert excinfo.value.detail == transactions_router.CREATE_READBACK_FAILURE_DETAIL
+        assert excinfo.value.backup_path == "synthetic-backup-ref"
+
+
 class TestCreateTransaction:
     """TDD: create transaction endpoint must follow write flow."""
 
