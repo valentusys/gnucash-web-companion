@@ -1065,10 +1065,13 @@ class TestWriteServiceValidationRules:
             "Currency SEK does not match account usd-guid currency USD"
         ]
 
-    def test_validation_rejects_unbalanced_currency_before_write_execution(
-        self, fake_accounts, monkeypatch
-    ):
-        service = self._service_with_fake_accounts(fake_accounts)
+    def _assert_create_request_rejected_before_execution(
+        self,
+        service,
+        request: TransactionCreateRequestDTO,
+        monkeypatch,
+        expected_errors: list[str],
+    ) -> None:
         execution_calls: list[str] = []
 
         def fail_if_execution_reached(*args, **kwargs):
@@ -1077,6 +1080,20 @@ class TestWriteServiceValidationRules:
 
         monkeypatch.setattr(service, "_execute_write_transaction", fail_if_execution_reached)
 
+        validation = service.validate_transaction_create(request)
+        assert validation.valid is False
+        joined_errors = "\n".join(validation.errors)
+        for expected_error in expected_errors:
+            assert expected_error in joined_errors
+
+        with pytest.raises(GnuCashWriteError, match="Validation failed"):
+            service.create_transaction(request, user_id=1, book_id=1)
+        assert execution_calls == []
+
+    def test_validation_rejects_unbalanced_currency_before_write_execution(
+        self, fake_accounts, monkeypatch
+    ):
+        service = self._service_with_fake_accounts(fake_accounts)
         request = TransactionCreateRequestDTO(
             date="2026-05-16",
             description="Unbalanced validation pre-execution probe",
@@ -1096,9 +1113,95 @@ class TestWriteServiceValidationRules:
             ],
         )
 
-        with pytest.raises(GnuCashWriteError, match="Validation failed"):
-            service.create_transaction(request, user_id=1, book_id=1)
-        assert execution_calls == []
+        self._assert_create_request_rejected_before_execution(
+            service,
+            request,
+            monkeypatch,
+            ["Splits do not balance to zero for currency SEK"],
+        )
+
+    @pytest.mark.parametrize("bad_amount", ["-1E+1", "+10.00", "-010.00", "-10.", "-.10"])
+    def test_validation_rejects_non_plain_decimal_strings_before_write_execution(
+        self, fake_accounts, monkeypatch, bad_amount
+    ):
+        service = self._service_with_fake_accounts(fake_accounts)
+        request = TransactionCreateRequestDTO.model_construct(
+            date="2026-05-16",
+            description="Strict decimal-string validation probe",
+            splits=[
+                TransactionSplitWriteDTO.model_construct(
+                    account_id="bank-guid",
+                    amount=bad_amount,
+                    currency="SEK",
+                    memo="source",
+                ),
+                TransactionSplitWriteDTO.model_construct(
+                    account_id="food-guid",
+                    amount="10.00" if bad_amount != "-.10" else "0.10",
+                    currency="SEK",
+                    memo="target",
+                ),
+            ],
+        )
+
+        self._assert_create_request_rejected_before_execution(
+            service,
+            request,
+            monkeypatch,
+            [f"Invalid amount '{bad_amount}' for account bank-guid"],
+        )
+
+    def test_validation_rejects_account_and_currency_errors_before_write_execution(
+        self, fake_accounts, monkeypatch
+    ):
+        placeholder = FakeAccount(
+            guid="placeholder-guid",
+            name="Synthetic Placeholder",
+            type="ASSET",
+            placeholder=True,
+        )
+        usd_account = FakeAccount(
+            guid="usd-guid",
+            name="USD Synthetic Account",
+            type="BANK",
+            commodity=FakeCommodity("USD"),
+        )
+        service = self._service_with_fake_accounts([*fake_accounts, placeholder, usd_account])
+        request = TransactionCreateRequestDTO(
+            date="2026-05-16",
+            description="Account validation pre-execution probe",
+            splits=[
+                TransactionSplitWriteDTO(
+                    account_id="missing-guid",
+                    amount="-10.00",
+                    currency="SEK",
+                    memo="missing",
+                ),
+                TransactionSplitWriteDTO(
+                    account_id="placeholder-guid",
+                    amount="5.00",
+                    currency="SEK",
+                    memo="placeholder",
+                ),
+                TransactionSplitWriteDTO(
+                    account_id="usd-guid",
+                    amount="5.00",
+                    currency="SEK",
+                    memo="currency mismatch",
+                ),
+            ],
+        )
+
+        self._assert_create_request_rejected_before_execution(
+            service,
+            request,
+            monkeypatch,
+            [
+                "Account not found: missing-guid",
+                "Account placeholder-guid is a placeholder account and cannot receive postings",
+                "Currency SEK does not match account usd-guid currency USD",
+            ],
+        )
 
 
 # ---------------------------------------------------------------------------

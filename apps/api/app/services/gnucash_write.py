@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from datetime import date, datetime, timezone
 from decimal import Decimal, InvalidOperation
 from typing import Any
@@ -24,6 +25,7 @@ from typing import Any
 import piecash
 
 from app.schemas.gnucash_writes import (
+    DECIMAL_STRING_PATTERN,
     TransactionCreateRequestDTO,
     TransactionPatchRequestDTO,
     TransactionSplitWriteDTO,
@@ -82,13 +84,17 @@ class GnuCashWriteService(GnuCashBookService):
         # Validate amounts are valid finite decimals and sum to zero per currency.
         totals_by_currency: dict[str, Decimal] = {}
         for split in request.splits:
+            amount_text = str(split.amount)
+            if not re.fullmatch(DECIMAL_STRING_PATTERN, amount_text):
+                errors.append(f"Invalid amount '{amount_text}' for account {split.account_id}")
+                continue
             try:
-                amount = Decimal(split.amount)
+                amount = Decimal(amount_text)
             except (InvalidOperation, ValueError):
-                errors.append(f"Invalid amount '{split.amount}' for account {split.account_id}")
+                errors.append(f"Invalid amount '{amount_text}' for account {split.account_id}")
                 continue
             if not amount.is_finite():
-                errors.append(f"Invalid amount '{split.amount}' for account {split.account_id}")
+                errors.append(f"Invalid amount '{amount_text}' for account {split.account_id}")
                 continue
             currency = split.currency.upper()
             if len(currency) != 3 or not currency.isalpha():
