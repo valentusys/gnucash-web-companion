@@ -196,6 +196,11 @@ for (const requiredPageFragment of [
 	'debit-account-count',
 	'credit-account-count',
 	'visible selectable accounts',
+	'debit-account-empty-filter',
+	'No source accounts match this filter',
+	'credit-account-empty-filter',
+	'No destination accounts match this filter',
+	'the filter is local UI only and no write was executed',
 	'account type',
 	'Preview transaction',
 	'Create disabled',
@@ -324,6 +329,11 @@ assert.match(page, /data-account-filter="debit"[\s\S]*type="search"|type="search
 assert.match(page, /data-account-filter="credit"[\s\S]*type="search"|type="search"[\s\S]*data-account-filter="credit"/, 'destination account selector must have a search/filter input');
 assert.match(page, /free-text is never submitted as the final account reference/, 'account search text must not be represented as the submitted account value');
 assert.match(page, /debit-account-search-help[\s\S]*not submitted as account text[\s\S]*credit-account-search-help/s, 'account search inputs must explain that search text is not submitted');
+assert.match(page, /id="debit-account-search"[\s\S]{0,420}debitAccountSearchEmpty && 'debit-account-empty-filter'/s, 'source account search must announce an empty filtered result');
+assert.match(page, /id="credit-account-search"[\s\S]{0,420}creditAccountSearchEmpty && 'credit-account-empty-filter'/s, 'destination account search must announce an empty filtered result');
+assert.match(page, /debitAccountSearchEmpty[\s\S]*No source accounts match this filter[\s\S]*No destination accounts match this filter/s, 'empty account-filter copy must keep users oriented without implying writes');
+assert.match(page, /id="debit-account-select"[\s\S]{0,520}debitAccountSearchEmpty && 'debit-account-empty-filter'/s, 'source account select must be described by the local empty-filter status when shown');
+assert.match(page, /id="credit-account-select"[\s\S]{0,520}creditAccountSearchEmpty && 'credit-account-empty-filter'/s, 'destination account select must be described by the local empty-filter status when shown');
 assert.match(page, /selectableAccounts[\s\S]*!account\.placeholder && !account\.hidden/, 'UI logic must exclude placeholder and hidden accounts from account selectors');
 assert.match(page, /Placeholder\/hidden accounts are excluded/, 'UI must explain placeholder/hidden account exclusion');
 assert.match(page, /Source and destination accounts must be different[\s\S]*handlePreviewSubmit/s, 'preview form must prevent same-account client submission');

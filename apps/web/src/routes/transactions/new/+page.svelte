@@ -235,6 +235,8 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 
 	const debitAccountOptions = $derived(filteredAccounts(debitAccountQuery, currentDebitAccountId));
 	const creditAccountOptions = $derived(filteredAccounts(creditAccountQuery, currentCreditAccountId));
+	const debitAccountSearchEmpty = $derived(Boolean(debitAccountQuery.trim()) && debitAccountOptions.length === 0);
+	const creditAccountSearchEmpty = $derived(Boolean(creditAccountQuery.trim()) && creditAccountOptions.length === 0);
 
 	function handleDebitAccountChange(event: Event) {
 		selectedDebitAccountId = (event.currentTarget as HTMLSelectElement).value;
@@ -546,11 +548,16 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 			<div class="grid min-w-0 gap-4 md:grid-cols-2">
 				<div class="min-w-0">
 					<label class="block text-sm font-medium" style="color: var(--app-text);" for="debit-account-search">Search source account</label>
-					<input id="debit-account-search" data-account-filter="debit" type="search" bind:value={debitAccountQuery} autocomplete="off" aria-describedby="debit-account-search-help debit-account-count account-selector-help" placeholder="Filter by full account path" class="mt-1 w-full min-w-0 rounded-xl px-3 py-2" style="background: var(--app-panel); color: var(--app-text); border: 1px solid var(--app-border);" />
+					<input id="debit-account-search" data-account-filter="debit" type="search" bind:value={debitAccountQuery} autocomplete="off" aria-describedby={describedBy('debit-account-search-help', 'debit-account-count', 'account-selector-help', debitAccountSearchEmpty && 'debit-account-empty-filter')} placeholder="Filter by full account path" class="mt-1 w-full min-w-0 rounded-xl px-3 py-2" style="background: var(--app-panel); color: var(--app-text); border: 1px solid var(--app-border);" />
 					<p id="debit-account-search-help" class="mt-1 text-xs" style="color: var(--app-muted);">Filters visible source accounts only; it is not submitted as account text.</p>
 					<p id="debit-account-count" class="mt-1 text-xs" style="color: var(--app-muted);">Showing {debitAccountOptions.length} of {selectableAccounts.length} visible selectable accounts.</p>
+					{#if debitAccountSearchEmpty}
+						<p id="debit-account-empty-filter" class="mt-1 rounded-xl p-2 text-xs" role="status" style="border: 1px solid #fde68a; background: #fffbeb; color: #92400e;">
+							No source accounts match this filter. Clear the search or broaden it; the filter is local UI only and no write was executed.
+						</p>
+					{/if}
 					<label class="mt-3 block text-sm font-medium" style="color: var(--app-text);" for="debit-account-select">Debit/source account</label>
-					<select id="debit-account-select" name="debit_account_id" required value={currentDebitAccountId} onchange={handleDebitAccountChange} aria-invalid={debitAccountError ? 'true' : undefined} aria-describedby={describedBy('debit-account-help', 'debit-account-count', 'debit-account-selected', 'preview-no-write-warning', debitAccountError && 'debit-account-error')} class="mt-1 w-full min-w-0 max-w-full rounded-xl px-3 py-2" style="background: var(--app-panel); color: var(--app-text); border: 1px solid var(--app-border);">
+					<select id="debit-account-select" name="debit_account_id" required value={currentDebitAccountId} onchange={handleDebitAccountChange} aria-invalid={debitAccountError ? 'true' : undefined} aria-describedby={describedBy('debit-account-help', 'debit-account-count', 'debit-account-selected', 'preview-no-write-warning', debitAccountSearchEmpty && 'debit-account-empty-filter', debitAccountError && 'debit-account-error')} class="mt-1 w-full min-w-0 max-w-full rounded-xl px-3 py-2" style="background: var(--app-panel); color: var(--app-text); border: 1px solid var(--app-border);">
 						<option value="">Select source account</option>
 						{#each debitAccountOptions as account (account.id)}
 							<option value={account.id} selected={account.id === currentDebitAccountId} disabled={Boolean(currentCreditAccountId && account.id === currentCreditAccountId && account.id !== currentDebitAccountId)}>{account.full_name} · {account.currency}</option>
@@ -567,11 +574,16 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 
 				<div class="min-w-0">
 					<label class="block text-sm font-medium" style="color: var(--app-text);" for="credit-account-search">Search destination account</label>
-					<input id="credit-account-search" data-account-filter="credit" type="search" bind:value={creditAccountQuery} autocomplete="off" aria-describedby="credit-account-search-help credit-account-count account-selector-help" placeholder="Filter by full account path" class="mt-1 w-full min-w-0 rounded-xl px-3 py-2" style="background: var(--app-panel); color: var(--app-text); border: 1px solid var(--app-border);" />
+					<input id="credit-account-search" data-account-filter="credit" type="search" bind:value={creditAccountQuery} autocomplete="off" aria-describedby={describedBy('credit-account-search-help', 'credit-account-count', 'account-selector-help', creditAccountSearchEmpty && 'credit-account-empty-filter')} placeholder="Filter by full account path" class="mt-1 w-full min-w-0 rounded-xl px-3 py-2" style="background: var(--app-panel); color: var(--app-text); border: 1px solid var(--app-border);" />
 					<p id="credit-account-search-help" class="mt-1 text-xs" style="color: var(--app-muted);">Filters visible destination accounts only; it is not submitted as account text.</p>
 					<p id="credit-account-count" class="mt-1 text-xs" style="color: var(--app-muted);">Showing {creditAccountOptions.length} of {selectableAccounts.length} visible selectable accounts.</p>
+					{#if creditAccountSearchEmpty}
+						<p id="credit-account-empty-filter" class="mt-1 rounded-xl p-2 text-xs" role="status" style="border: 1px solid #fde68a; background: #fffbeb; color: #92400e;">
+							No destination accounts match this filter. Clear the search or broaden it; the filter is local UI only and no write was executed.
+						</p>
+					{/if}
 					<label class="mt-3 block text-sm font-medium" style="color: var(--app-text);" for="credit-account-select">Credit/destination account</label>
-					<select id="credit-account-select" name="credit_account_id" required value={currentCreditAccountId} onchange={handleCreditAccountChange} aria-invalid={creditAccountError ? 'true' : undefined} aria-describedby={describedBy('credit-account-help', 'credit-account-count', 'credit-account-selected', 'preview-no-write-warning', creditAccountError && 'credit-account-error')} class="mt-1 w-full min-w-0 max-w-full rounded-xl px-3 py-2" style="background: var(--app-panel); color: var(--app-text); border: 1px solid var(--app-border);">
+					<select id="credit-account-select" name="credit_account_id" required value={currentCreditAccountId} onchange={handleCreditAccountChange} aria-invalid={creditAccountError ? 'true' : undefined} aria-describedby={describedBy('credit-account-help', 'credit-account-count', 'credit-account-selected', 'preview-no-write-warning', creditAccountSearchEmpty && 'credit-account-empty-filter', creditAccountError && 'credit-account-error')} class="mt-1 w-full min-w-0 max-w-full rounded-xl px-3 py-2" style="background: var(--app-panel); color: var(--app-text); border: 1px solid var(--app-border);">
 						<option value="">Select destination account</option>
 						{#each creditAccountOptions as account (account.id)}
 							<option value={account.id} selected={account.id === currentCreditAccountId} disabled={Boolean(currentDebitAccountId && account.id === currentDebitAccountId && account.id !== currentCreditAccountId)}>{account.full_name} · {account.currency}</option>
