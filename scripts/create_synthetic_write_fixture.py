@@ -366,23 +366,32 @@ def account_snapshot(path: str | Path) -> list[dict[str, Any]]:
         book.close()
 
 
-def account_lookup(path: str | Path) -> dict[str, str]:
-    """Return account full-name to GUID mapping for generated test payloads."""
+def account_rows_by_path(path: str | Path) -> dict[str, dict[str, Any]]:
+    """Return account full-name to safe account metadata rows for generated test payloads."""
 
-    lookup: dict[str, str] = {}
+    rows_by_path: dict[str, dict[str, Any]] = {}
     duplicate_paths: set[str] = set()
     for item in account_snapshot(path):
         full_name = str(item["full_name"])
-        if full_name in lookup:
+        if full_name in rows_by_path:
             duplicate_paths.add(full_name)
             continue
-        lookup[full_name] = str(item["guid"])
+        rows_by_path[full_name] = dict(item)
     if duplicate_paths:
         raise ValueError(
             "generated fixture has duplicate synthetic account path(s): "
             + ", ".join(sorted(duplicate_paths))
         )
-    return lookup
+    return rows_by_path
+
+
+def account_lookup(path: str | Path) -> dict[str, str]:
+    """Return account full-name to GUID mapping for generated test payloads."""
+
+    return {
+        full_name: str(item["guid"])
+        for full_name, item in account_rows_by_path(path).items()
+    }
 
 
 def account_balance_snapshot(path: str | Path) -> dict[str, str]:
@@ -397,19 +406,35 @@ def expected_balance_snapshot() -> dict[str, str]:
     return dict(EXPECTED_BALANCES)
 
 
+def _format_missing_account_paths_message(
+    missing_paths: Iterable[str],
+    available_paths: Iterable[str],
+) -> str:
+    return (
+        "generated fixture missing synthetic account path(s): "
+        f"{', '.join(missing_paths)}; available synthetic account paths: "
+        f"{', '.join(sorted(available_paths))}"
+    )
+
+
+def require_account_rows(path: str | Path, account_paths: Iterable[str]) -> dict[str, dict[str, Any]]:
+    """Return metadata rows for required synthetic account paths or fail with safe context."""
+
+    rows_by_path = account_rows_by_path(path)
+    requested_paths = list(account_paths)
+    missing_paths = [account_path for account_path in requested_paths if account_path not in rows_by_path]
+    if missing_paths:
+        raise KeyError(_format_missing_account_paths_message(missing_paths, rows_by_path))
+    return {account_path: dict(rows_by_path[account_path]) for account_path in requested_paths}
+
+
 def require_account_guids(path: str | Path, account_paths: Iterable[str]) -> dict[str, str]:
     """Return GUIDs for required synthetic account paths or fail with safe context."""
 
-    lookup = account_lookup(path)
-    requested_paths = list(account_paths)
-    missing_paths = [account_path for account_path in requested_paths if account_path not in lookup]
-    if missing_paths:
-        raise KeyError(
-            "generated fixture missing synthetic account path(s): "
-            f"{', '.join(missing_paths)}; available synthetic account paths: "
-            f"{', '.join(sorted(lookup))}"
-        )
-    return {account_path: lookup[account_path] for account_path in requested_paths}
+    return {
+        account_path: str(row["guid"])
+        for account_path, row in require_account_rows(path, account_paths).items()
+    }
 
 
 def account_guid(path: str | Path, account_path: str) -> str:

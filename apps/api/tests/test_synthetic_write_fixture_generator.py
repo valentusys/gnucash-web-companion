@@ -194,21 +194,43 @@ def test_metadata_and_account_lookup_are_safe_for_test_payloads(
     assert str(generated_fixture_path.parent) not in str(metadata)
 
 
-def test_account_lookup_helpers_return_required_guids_and_clear_missing_paths(
+def test_account_lookup_helpers_return_required_rows_and_guids(
     generated_fixture_path: Path,
     generator: ModuleType,
 ) -> None:
     required_paths = ("Assets:Checking", "Expenses:Groceries")
 
+    required_rows = generator.require_account_rows(generated_fixture_path, required_paths)
     required_lookup = generator.require_account_guids(generated_fixture_path, required_paths)
 
+    assert list(required_rows) == list(required_paths)
     assert list(required_lookup) == list(required_paths)
+    assert required_rows["Assets:Checking"]["type"] == "BANK"
+    assert required_rows["Assets:Checking"]["balance"] == "2454.75"
+    assert required_rows["Expenses:Groceries"]["type"] == "EXPENSE"
+    assert required_rows["Expenses:Groceries"]["balance"] == "200.25"
+    assert required_lookup["Assets:Checking"] == required_rows["Assets:Checking"]["guid"]
     assert required_lookup["Assets:Checking"] == generator.account_guid(
         generated_fixture_path, "Assets:Checking"
     )
     assert required_lookup["Expenses:Groceries"] == generator.account_guid(
         generated_fixture_path, "Expenses:Groceries"
     )
+
+    required_rows["Assets:Checking"]["type"] = "MUTATED_BY_CALLER"
+    assert generator.require_account_rows(generated_fixture_path, ("Assets:Checking",))["Assets:Checking"][
+        "type"
+    ] == "BANK"
+
+
+def test_account_lookup_helpers_report_missing_paths_without_private_context(
+    generated_fixture_path: Path,
+    generator: ModuleType,
+) -> None:
+    with pytest.raises(KeyError, match="Expenses:Missing") as excinfo:
+        generator.require_account_rows(generated_fixture_path, ("Expenses:Missing",))
+    assert "Assets:Checking" in str(excinfo.value)
+    assert str(generated_fixture_path.parent) not in str(excinfo.value)
 
     with pytest.raises(KeyError, match="Expenses:Missing") as excinfo:
         generator.account_guid(generated_fixture_path, "Expenses:Missing")
