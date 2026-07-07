@@ -2861,6 +2861,63 @@ class TestWriteAlphaDeleteRouteDisposableFixture:
             logs = session.query(AuditLog).filter_by(action="transaction.delete").all()
             assert logs == []
 
+    def test_inert_ownership_marker_with_false_created_flag_rejects_delete_before_write_service(
+        self,
+        client,
+        auth_headers,
+        disposable_sample_book,
+        disposable_fixture_book,
+        disposable_write_lock,
+        session_factory,
+        monkeypatch,
+    ):
+        """DELETE requires a true write-alpha-created marker, not just any metadata row."""
+        calls = []
+
+        def forbidden_write_service(*args, **kwargs):
+            calls.append((args, kwargs))
+            raise AssertionError("write service must not be constructed for inert DELETE ownership markers")
+
+        monkeypatch.setattr("app.routers.transactions._write_service_for", forbidden_write_service)
+        tx_before = self._first_fixture_transaction(disposable_fixture_book)
+        txs_before = _read_written_transactions(disposable_fixture_book)
+        with session_factory() as session:
+            admin = session.query(User).filter(User.username == "admin").one()
+            marker = WriteAlphaTransactionOwnership()
+            marker.book_id = disposable_sample_book
+            marker.transaction_id = tx_before["guid"]
+            marker.created_by_user_id = admin.id
+            marker.created_by_write_alpha = False
+            marker.created_at = datetime(2026, 5, 20, tzinfo=timezone.utc)
+            marker.last_mutated_at = datetime(2026, 5, 20, tzinfo=timezone.utc)
+            session.add(marker)
+            session.commit()
+            marker_id = marker.id
+
+        response = client.delete(
+            f"/books/{disposable_sample_book}/transactions/{tx_before['guid']}",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 403
+        assert "Write-alpha DELETE" in response.json()["detail"]
+        assert "created by write-alpha" in response.json()["detail"]
+        assert calls == []
+        assert _read_written_transactions(disposable_fixture_book) == txs_before
+        backups_root = disposable_fixture_book.parent.parent / "backups"
+        assert not backups_root.exists()
+        lock_key = str(disposable_fixture_book)
+        assert disposable_write_lock.acquire(lock_key) is True
+        disposable_write_lock.release(lock_key)
+
+        with session_factory() as session:
+            logs = session.query(AuditLog).filter_by(action="transaction.delete").all()
+            assert logs == []
+            marker = session.get(WriteAlphaTransactionOwnership, marker_id)
+            assert marker is not None
+            assert marker.created_by_write_alpha is False
+            assert marker.last_mutated_at == datetime(2026, 5, 20)
+
     def test_owned_missing_transaction_returns_404_without_backup_or_lock_leak(
         self,
         client,
