@@ -241,12 +241,6 @@ def test_synthetic_create_patch_delete_route_family_requires_fresh_confirmed_gat
     _verify_and_reset(client, auth_headers, synthetic_book, "create")
 
     patch_headers = _preview_confirm_headers(client, auth_headers, synthetic_book, "PATCH", target_owned=True)
-    unsafe_patch = client.patch(
-        f"/books/{synthetic_book}/transactions/synthetic-created-tx",
-        headers=patch_headers,
-        json={"description": "metadata-only", "amount": "999.99"},
-    )
-    assert unsafe_patch.status_code == 422
     patch = client.patch(
         f"/books/{synthetic_book}/transactions/synthetic-created-tx",
         headers=patch_headers,
@@ -256,7 +250,8 @@ def test_synthetic_create_patch_delete_route_family_requires_fresh_confirmed_gat
     patched_request = [payload for name, payload in fake_write_calls if name == "patch"][-1]
     assert patched_request.description == "metadata-only"
     assert patched_request.split_memos == {"synthetic-split": "memo-only"}
-    assert not hasattr(patched_request, "amount")
+    for immutable_field in ("amount", "account_id", "splits", "currency", "date"):
+        assert not hasattr(patched_request, immutable_field)
     _verify_and_reset(client, auth_headers, synthetic_book, "patch")
 
     delete_headers = _preview_confirm_headers(client, auth_headers, synthetic_book, "DELETE", target_owned=True)
@@ -282,6 +277,68 @@ def test_synthetic_create_patch_delete_route_family_requires_fresh_confirmed_gat
     assert disabled_create.status_code == 403
     assert "read-only" in disabled_create.json()["detail"]
     assert [name for name, _ in fake_write_calls] == ["create", "patch", "delete"]
+
+
+@pytest.mark.parametrize(
+    ("field_name", "immutable_payload"),
+    [
+        ("amount", {"amount": "999.99"}),
+        ("account_id", {"account_id": "synthetic-other-account"}),
+        (
+            "splits",
+            {
+                "splits": [
+                    {
+                        "account_id": "synthetic-bank",
+                        "amount": "-999.99",
+                        "currency": "SEK",
+                        "memo": "immutable split replacement",
+                    },
+                    {
+                        "account_id": "synthetic-expense",
+                        "amount": "999.99",
+                        "currency": "SEK",
+                        "memo": "immutable split replacement",
+                    },
+                ]
+            },
+        ),
+        ("currency", {"currency": "USD"}),
+        ("date", {"date": "2026-12-31"}),
+    ],
+)
+def test_synthetic_patch_route_rejects_immutable_fields_without_calling_patch(
+    client,
+    auth_headers,
+    synthetic_book,
+    fake_write_calls,
+    field_name,
+    immutable_payload,
+):
+    create_headers = _preview_confirm_headers(client, auth_headers, synthetic_book, "CREATE")
+    create = client.post(
+        f"/books/{synthetic_book}/transactions",
+        headers=create_headers,
+        json=_synthetic_create_payload(),
+    )
+    assert create.status_code == 201
+    _verify_and_reset(client, auth_headers, synthetic_book, "create-for-rejected-patch")
+
+    patch_headers = _preview_confirm_headers(client, auth_headers, synthetic_book, "PATCH", target_owned=True)
+    baseline_calls = list(fake_write_calls)
+    response = client.patch(
+        f"/books/{synthetic_book}/transactions/synthetic-created-tx",
+        headers=patch_headers,
+        json={
+            "description": "metadata-only regression patch",
+            "split_memos": {"synthetic-split": "memo-only regression patch"},
+            **immutable_payload,
+        },
+    )
+
+    assert response.status_code == 422
+    assert field_name in str(response.json()["detail"])
+    assert fake_write_calls == baseline_calls
 
 
 def test_synthetic_route_family_stale_owner_writebeta_headers_do_not_fall_through_to_write(
