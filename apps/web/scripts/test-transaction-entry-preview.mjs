@@ -45,6 +45,9 @@ for (const requiredBrowserSmokeFragment of [
 	'function assertReadinessShellsRemainPending',
 	'function assertPreviewOnlyRuntimeTopology',
 	'transaction preview form must be present',
+	'function assertMobilePreviewUx',
+	'mobile viewport must not have obvious horizontal overflow',
+	'mobile confirmation status must keep Future Create disabled',
 	'function assertNoMutationRequestsObserved',
 	'evidencePacketStatuses',
 	'execution-evidence-packet-plan',
@@ -243,6 +246,13 @@ for (const requiredPageFragment of [
 	'preview-error-jump-list',
 	'Preview field errors',
 	'Jump to fields to fix:',
+	'mobile-preview-path-card',
+	'Mobile preview path',
+	'Tap Preview transaction; this is the only submitting action',
+	'The form stays preview-only and no-write on mobile',
+	'preview-mobile-action-bar',
+	'sticky bottom-0',
+	'w-full rounded-xl px-4 py-2 font-semibold sm:w-auto',
 	'debit-account-count',
 	'credit-account-count',
 	'visible selectable accounts',
@@ -260,6 +270,14 @@ for (const requiredPageFragment of [
 	'Normalized preview',
 	'preview_only',
 	'create_count',
+	'mobile-confirmation-status-card',
+	'Mobile confirmation status',
+	'Preview state',
+	'Current non-mutating preview response ready for local review',
+	'Future Create: disabled',
+	'Exact count 1 is informational only',
+	'Copy helper: placeholders only',
+	'Next safe action: review fields below',
 	'Source/debit account',
 	'Destination/credit account',
 	'Amount + currency',
@@ -537,7 +555,7 @@ const submitButtons = [...previewFormSource.matchAll(/<button\b(?=[^>]*type="sub
 	attrs: match[1],
 	label: match[2].replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim()
 }));
-assert.deepEqual(submitButtons, [{ attrs: ' formaction="?/preview" formnovalidate class="rounded-xl px-4 py-2 font-semibold" style="border: 1px solid var(--app-border); color: var(--app-text);" type="submit"', label: 'Preview transaction' }], 'the preview submit button must be the only submit control and must target ?/preview');
+assert.deepEqual(submitButtons, [{ attrs: ' formaction="?/preview" formnovalidate class="w-full rounded-xl px-4 py-2 font-semibold sm:w-auto" style="border: 1px solid var(--app-border); color: var(--app-text);" type="submit"', label: 'Preview transaction' }], 'the preview submit button must be the only submit control and must target ?/preview');
 assert.doesNotMatch(pageOutsidePreviewForm, /<button\b(?=[^>]*type="submit")/s, 'no submit controls may exist outside the preview form');
 assert.doesNotMatch(
 	server,

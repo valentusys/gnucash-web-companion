@@ -579,6 +579,16 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 	</div>
 
 	<form id="transaction-preview-form" method="POST" onsubmit={handlePreviewSubmit} oninput={handleDraftChange} onchange={handleDraftChange} aria-describedby={describedBy('preview-no-write-warning', 'write-session-gate', 'target-preflight-readiness', 'execution-readiness-shell', 'execution-result-shell', 'preview-create-disabled-explanation', form?.error && 'preview-error-summary')} class="min-w-0 space-y-5 rounded-2xl p-5" style="background: var(--app-panel); border: 1px solid var(--app-border); box-shadow: 0 1px 3px var(--app-panel-shadow);">
+		<div id="mobile-preview-path-card" class="min-w-0 rounded-2xl p-4 text-sm md:hidden" role="note" aria-labelledby="mobile-preview-path-title" aria-describedby="mobile-preview-path-copy preview-no-write-warning" style="border: 1px solid #bfdbfe; background: #eff6ff; color: #1e3a8a;">
+			<p id="mobile-preview-path-title" class="font-semibold">Mobile preview path</p>
+			<ol id="mobile-preview-path-copy" class="mt-2 list-decimal space-y-1 pl-5">
+				<li>Fill required details and choose selectable account IDs.</li>
+				<li>Tap Preview transaction; this is the only submitting action.</li>
+				<li>Review the normalized preview and disabled Future Create confirmation shell.</li>
+			</ol>
+			<p class="mt-2 font-semibold">The form stays preview-only and no-write on mobile; no CREATE/PATCH/DELETE/batch action is available.</p>
+		</div>
+
 		<div class="min-w-0 text-sm font-medium" style="color: var(--app-text);">
 			<label for="preview-book">Book</label>
 			<select id="preview-book" name="book_id" aria-invalid={bookError ? 'true' : undefined} aria-describedby={describedBy('book-help', 'preview-no-write-warning', bookError && 'preview-book-error')} class="mt-1 w-full min-w-0 rounded-xl px-3 py-2" style="background: var(--app-bg); color: var(--app-text); border: 1px solid var(--app-border);">
@@ -707,11 +717,11 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 			</div>
 		</section>
 
-		<div class="flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:justify-between">
+		<div id="preview-mobile-action-bar" class="sticky bottom-0 z-20 -mx-5 flex min-w-0 flex-col gap-3 rounded-b-2xl border-t p-4 md:static md:mx-0 md:flex-row md:items-center md:justify-between md:rounded-none md:border-t-0 md:p-0" style="background: var(--app-panel); border-color: var(--app-border);">
 			<p id="preview-create-disabled-explanation" class="text-sm" style="color: var(--app-muted);">Create/Submit mutation action is intentionally disabled: preview mode is active, write session is not armed, target readiness is not checked, backup/read-back/audit/reset/probes readiness is not checked, execution-result status is not executed, and CREATE execution is unavailable without fresh owner approval; only the preview action is available.</p>
 			<div class="flex min-w-0 flex-col gap-3 sm:flex-row">
-				<button formaction="?/preview" formnovalidate class="rounded-xl px-4 py-2 font-semibold" style="border: 1px solid var(--app-border); color: var(--app-text);" type="submit">Preview transaction</button>
-				<button class="cursor-not-allowed rounded-xl px-4 py-2 font-semibold text-white opacity-60" style="background: #6b7280;" type="button" disabled aria-describedby="preview-create-disabled-explanation preview-no-write-warning write-session-gate target-preflight-readiness execution-readiness-shell execution-result-shell">Create disabled</button>
+				<button formaction="?/preview" formnovalidate class="w-full rounded-xl px-4 py-2 font-semibold sm:w-auto" style="border: 1px solid var(--app-border); color: var(--app-text);" type="submit">Preview transaction</button>
+				<button class="w-full cursor-not-allowed rounded-xl px-4 py-2 font-semibold text-white opacity-60 sm:w-auto" style="background: #6b7280;" type="button" disabled aria-describedby="preview-create-disabled-explanation preview-no-write-warning write-session-gate target-preflight-readiness execution-readiness-shell execution-result-shell">Create disabled</button>
 			</div>
 		</div>
 	</form>
@@ -734,6 +744,25 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 					<p class="mt-1 text-sm" style="color: var(--app-muted);">Preview only / no write executed. Create remains disabled in this slice.</p>
 				</div>
 				<span class="rounded-full px-3 py-1 text-xs font-semibold" style="background: #dcfce7; color: #166534;">no mutation</span>
+			</div>
+
+			<div id="mobile-confirmation-status-card" class="mt-4 min-w-0 rounded-2xl p-4 text-sm md:hidden" role="status" aria-labelledby="mobile-confirmation-status-title" aria-describedby="mobile-confirmation-status-help preview-create-disabled-explanation" style="border: 1px solid #bfdbfe; background: #eff6ff; color: #1e3a8a;">
+				<p id="mobile-confirmation-status-title" class="font-semibold">Mobile confirmation status</p>
+				<dl class="mt-3 grid min-w-0 gap-2">
+					<div class="min-w-0 rounded-xl p-3" style="background: #dbeafe;">
+						<dt class="text-xs font-semibold uppercase tracking-wide">Preview state</dt>
+						<dd class="mt-1 break-words">{previewIsStale ? 'Stale — run Preview transaction again before any future approval step.' : 'Current non-mutating preview response ready for local review.'}</dd>
+					</div>
+					<div class="min-w-0 rounded-xl p-3" style="background: #dbeafe;">
+						<dt class="text-xs font-semibold uppercase tracking-wide">Future Create: disabled</dt>
+						<dd class="mt-1 break-words">Exact count 1 is informational only; no CREATE control is armed or submitted.</dd>
+					</div>
+					<div class="min-w-0 rounded-xl p-3" style="background: #dbeafe;">
+						<dt class="text-xs font-semibold uppercase tracking-wide">Copy helper: placeholders only</dt>
+						<dd class="mt-1 break-words">Use the approval template only as a redacted checklist; private preview values stay in this authenticated page.</dd>
+					</div>
+				</dl>
+				<p id="mobile-confirmation-status-help" class="mt-3 font-semibold">Next safe action: review fields below, or rerun Preview transaction if the draft changes. No write path is enabled.</p>
 			</div>
 
 			<section id="preview-confirmation-shell" class="mt-4 min-w-0 rounded-2xl border p-4" aria-labelledby="preview-confirmation-shell-title" aria-describedby="preview-confirmation-shell-help preview-create-disabled-explanation" style="border-color: var(--app-border); background: var(--app-bg);">

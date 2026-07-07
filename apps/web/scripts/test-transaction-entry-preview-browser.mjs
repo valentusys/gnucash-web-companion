@@ -127,6 +127,9 @@ function assertSourceSafety() {
 	);
 	assert.match(page, /id="write-session-gate"[\s\S]*Preview mode[\s\S]*Write session not armed[\s\S]*CREATE execution unavailable without fresh owner approval/s, 'write-session gate must default to preview mode and not armed');
 	assert.match(page, /writes_enabled:[\s\S]*session_armed:[\s\S]*create_execution_allowed:[\s\S]*allowed_create_count:[\s\S]*target_class:/s, 'write-session gate must expose safe redacted status fields');
+	assert.match(page, /id="mobile-preview-path-card"[\s\S]*Mobile preview path[\s\S]*Tap Preview transaction; this is the only submitting action[\s\S]*The form stays preview-only and no-write on mobile/s, 'mobile preview path card must guide the safe preview-only flow');
+	assert.match(page, /id="preview-mobile-action-bar"[\s\S]*sticky bottom-0[\s\S]*formaction="\?\/preview"[\s\S]*Preview transaction[\s\S]*Create disabled/s, 'mobile action bar must keep the preview submit target and disabled create control together');
+	assert.match(page, /id="mobile-confirmation-status-card"[\s\S]*Mobile confirmation status[\s\S]*Preview state[\s\S]*Future Create: disabled[\s\S]*Copy helper: placeholders only[\s\S]*No write path is enabled/s, 'mobile confirmation status card must summarize preview state without adding write controls');
 	assert.match(page, /id="redacted-create-readiness-state"[\s\S]*Redacted read-only readiness state[\s\S]*writes_enabled status[\s\S]*allowed execution status/s, 'page must expose the redacted read-only readiness object fields');
 	assert.match(page, /id="armed-session-requirements"[\s\S]*Target class required[\s\S]*Exact CREATE count required[\s\S]*preview-reviewed checkbox alone is not enough/s, 'armed-session requirements panel must remain disabled placeholder guidance');
 	assert.match(page, /id="target-preflight-readiness"[\s\S]*Target preflight required[\s\S]*Target readiness not checked[\s\S]*Default state: all target readiness checks are pending \/ not checked \/ not armed/s, 'target preflight shell must default to not checked/pending');
@@ -607,6 +610,49 @@ async function assertPreviewOnlyRuntimeTopology(cdp, label) {
 	}
 }
 
+async function assertMobilePreviewUx(cdp, label, { confirmation = false, stale = false } = {}) {
+	const state = await evaluate(cdp, `(() => {
+		const text = (selector) => document.querySelector(selector)?.innerText ?? '';
+		const visible = (selector) => {
+			const element = document.querySelector(selector);
+			return Boolean(element && getComputedStyle(element).display !== 'none');
+		};
+		return {
+			viewportWidth: document.documentElement.clientWidth,
+			scrollWidth: document.documentElement.scrollWidth,
+			pathText: text('#mobile-preview-path-card'),
+			pathVisible: visible('#mobile-preview-path-card'),
+			actionBarText: text('#preview-mobile-action-bar'),
+			actionBarClass: document.querySelector('#preview-mobile-action-bar')?.className ?? '',
+			confirmationPresent: Boolean(document.querySelector('#mobile-confirmation-status-card')),
+			confirmationVisible: visible('#mobile-confirmation-status-card'),
+			confirmationText: text('#mobile-confirmation-status-card')
+		};
+	})()`);
+	assert.ok(state.scrollWidth <= state.viewportWidth + 8, `${label}: mobile viewport must not have obvious horizontal overflow (${state.scrollWidth} > ${state.viewportWidth})`);
+	assert.equal(state.pathVisible, true, `${label}: mobile preview path card must be visible at narrow width`);
+	assert.match(state.pathText, /Mobile preview path/, `${label}: mobile path card title must render`);
+	assert.match(state.pathText, /Tap Preview transaction; this is the only submitting action/, `${label}: mobile path card must identify the only submit action`);
+	assert.match(state.pathText, /no CREATE\/PATCH\/DELETE\/batch action is available/, `${label}: mobile path card must repeat the no-write boundary`);
+	assert.match(state.actionBarClass, /sticky bottom-0/, `${label}: mobile action bar must keep sticky bottom classes`);
+	assert.match(state.actionBarText, /Preview transaction/, `${label}: mobile action bar must expose preview submit copy`);
+	assert.match(state.actionBarText, /Create disabled/, `${label}: mobile action bar must keep disabled create copy`);
+	if (!confirmation) {
+		assert.equal(state.confirmationPresent, false, `${label}: mobile confirmation status must be absent before successful preview`);
+		return;
+	}
+	assert.equal(state.confirmationVisible, true, `${label}: mobile confirmation status must be visible after successful preview`);
+	assert.match(state.confirmationText, /Mobile confirmation status/, `${label}: mobile confirmation status title must render`);
+	assert.match(state.confirmationText, /Future Create: disabled/i, `${label}: mobile confirmation status must keep Future Create disabled`);
+	assert.match(state.confirmationText, /Copy helper: placeholders only/i, `${label}: mobile confirmation status must keep copy helper redacted`);
+	assert.match(state.confirmationText, /No write path is enabled/, `${label}: mobile confirmation status must repeat no-write boundary`);
+	if (stale) {
+		assert.match(state.confirmationText, /Stale — run Preview transaction again/, `${label}: stale mobile confirmation must require re-preview`);
+	} else {
+		assert.match(state.confirmationText, /Current non-mutating preview response ready for local review/, `${label}: current mobile confirmation must identify the non-mutating preview`);
+	}
+}
+
 function assertNoMutationRequestsObserved(api, browserRequests, label) {
 	assert.deepEqual(forbiddenBrowserMutationRequests(browserRequests), [], `${label}: browser must not issue CREATE/PATCH/DELETE/batch/validate/preflight/backup/audit/write-beta boundary requests`);
 	assert.deepEqual(api.forbiddenRequests, [], `${label}: synthetic API boundary must not observe blocked mutation requests`);
@@ -919,6 +965,7 @@ async function runSmoke() {
 		await waitForExpression(cdp, `Array.from(document.querySelectorAll('[data-execution-result-status]')).length === 6 && Array.from(document.querySelectorAll('[data-execution-result-status]')).every((item) => item.getAttribute('data-execution-result-status') === 'pending')`, 'execution result pending checks');
 		await waitForExpression(cdp, `Array.from(document.querySelectorAll('[data-execution-result-step]')).map((item) => item.getAttribute('data-execution-result-step')).join('|') === 'success_create_ref_recorded|success_read_back_verified|failure_error_translated|failure_no_success_claim|rollback_decision_recorded|post_result_disabled_probes_verified'`, 'execution result exact shell checklist');
 		await assertPreviewOnlyRuntimeTopology(cdp, 'initial page');
+		await assertMobilePreviewUx(cdp, 'initial page');
 		await assertReadinessShellsRemainPending(cdp, 'initial page');
 		await assertExecutionResultShellRemainsPending(cdp, 'initial page');
 		await assertApprovalPacketAbsent(cdp, 'initial page');
@@ -962,6 +1009,7 @@ async function runSmoke() {
 			'same-account client block must not reach create-preview'
 		);
 		await assertPreviewOnlyRuntimeTopology(cdp, 'same-account client block');
+		await assertMobilePreviewUx(cdp, 'same-account client block');
 		await assertReadinessShellsRemainPending(cdp, 'same-account client block');
 		await assertExecutionResultShellRemainsPending(cdp, 'same-account client block');
 		await assertApprovalPacketAbsent(cdp, 'same-account client block');
@@ -993,6 +1041,7 @@ async function runSmoke() {
 		await waitForExpression(cdp, `document.body && document.body.innerText.includes('Normalized preview')`, 'normalized preview');
 		await waitForExpression(cdp, `Boolean(document.querySelector('#approval-packet'))`, 'approval packet');
 		await assertPreviewOnlyRuntimeTopology(cdp, 'post-preview');
+		await assertMobilePreviewUx(cdp, 'post-preview', { confirmation: true });
 		await assertReadinessShellsRemainPending(cdp, 'post-preview');
 		await assertExecutionResultShellRemainsPending(cdp, 'post-preview');
 		await assertApprovalPacketControls(cdp, 'post-preview approval packet');
@@ -1055,6 +1104,7 @@ async function runSmoke() {
 		await waitForExpression(cdp, `document.querySelector('#preview-reviewed-confirmation')?.checked === true`, 'preview-reviewed checkbox checked');
 		await waitForExpression(cdp, `document.querySelector('#preview-reviewed-status')?.innerText.includes('Preview reviewed locally') && document.querySelector('#preview-reviewed-status')?.innerText.includes('preview-reviewed checkbox alone is not enough')`, 'preview-reviewed still blocked status');
 		await assertPreviewOnlyRuntimeTopology(cdp, 'reviewed preview');
+		await assertMobilePreviewUx(cdp, 'reviewed preview', { confirmation: true });
 		await assertApprovalPacketControls(cdp, 'reviewed approval packet');
 		await assertDisabledButtonInert(cdp, '#future-create-disabled', 'Future Create disabled', browserRequests, 'reviewed Future Create');
 		await assertReadinessShellsRemainPending(cdp, 'reviewed preview');
@@ -1068,6 +1118,7 @@ async function runSmoke() {
 		assert.equal(await evaluate(cdp, `document.querySelector('#preview-reviewed-confirmation')?.disabled === true`), true, 'stale preview must disable local reviewed checkbox');
 		assert.equal(await evaluate(cdp, `document.querySelector('#future-create-disabled')?.disabled === true`), true, 'Future Create must remain disabled after stale change');
 		await assertPreviewOnlyRuntimeTopology(cdp, 'stale preview');
+		await assertMobilePreviewUx(cdp, 'stale preview', { confirmation: true, stale: true });
 		await assertApprovalPacketControls(cdp, 'stale approval packet', { reviewedDisabled: true });
 		await assertDisabledButtonInert(cdp, '#future-create-disabled', 'Future Create disabled', browserRequests, 'stale Future Create');
 		await assertReadinessShellsRemainPending(cdp, 'stale preview');
@@ -1077,6 +1128,7 @@ async function runSmoke() {
 		await click(cdp, '#clear-preview-link');
 		await waitForExpression(cdp, `!document.querySelector('#approval-packet') && document.body.innerText.includes('Preview only / no write executed')`, 'clear preview start-over state');
 		await assertPreviewOnlyRuntimeTopology(cdp, 'clear preview');
+		await assertMobilePreviewUx(cdp, 'clear preview');
 		await assertApprovalPacketAbsent(cdp, 'clear preview');
 		await assertReadinessShellsRemainPending(cdp, 'clear preview');
 		await assertExecutionResultShellRemainsPending(cdp, 'clear preview');
