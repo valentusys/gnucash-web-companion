@@ -2395,6 +2395,54 @@ class TestWriteAlphaCreateRouteDisposableFixture:
         backup_txs = _read_written_transactions(backup_path)
         assert backup_txs == txs_before
 
+    def test_failure_after_unsaved_create_can_reopen_original_and_backup_for_recovery(
+        self,
+        client,
+        auth_headers,
+        disposable_sample_book,
+        disposable_fixture_book,
+        disposable_write_lock,
+        session_factory,
+        monkeypatch,
+    ):
+        """If CREATE mutates the open book but fails before save, reopen must show no persisted tx."""
+        original_do_create = GnuCashWriteService._do_create_transaction
+        failure_description = "Synthetic unsaved create recovery probe"
+
+        def mutate_then_fail_before_save(self, book, request):
+            original_do_create(self, book, request)
+            raise GnuCashWriteError("synthetic create failure before save")
+
+        monkeypatch.setattr(GnuCashWriteService, "_do_create_transaction", mutate_then_fail_before_save)
+        txs_before = _read_written_transactions(disposable_fixture_book)
+
+        response = client.post(
+            f"/books/{disposable_sample_book}/transactions",
+            json=self._fixture_create_payload(failure_description),
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 422
+        assert "synthetic create failure before save" in response.json()["detail"]
+        reopened_txs = _read_written_transactions(disposable_fixture_book)
+        assert reopened_txs == txs_before
+        assert all(tx["description"] != failure_description for tx in reopened_txs)
+
+        lock_key = str(disposable_fixture_book)
+        assert disposable_write_lock.acquire(lock_key) is True
+        disposable_write_lock.release(lock_key)
+
+        with session_factory() as session:
+            logs = session.query(AuditLog).filter_by(action="transaction.create").all()
+            assert logs
+            payload = json.loads(logs[-1].payload_json)
+            assert payload["result"] == "failed"
+            assert "synthetic create failure before save" in payload["error"]
+            backup_path = Path(payload["backup_path"])
+
+        assert backup_path.exists()
+        assert _read_written_transactions(backup_path) == txs_before
+
     def test_create_backup_failure_fails_before_mutation_audits_and_releases_lock(
         self,
         client,
