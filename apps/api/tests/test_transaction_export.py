@@ -585,6 +585,53 @@ class TestExportTransactionsCSV:
         assert str(fake_book_for_export) not in disposition
         assert Path(fake_book_for_export).name not in disposition
 
+    def test_export_neutralizes_formula_like_text_cells(
+        self, client, auth_headers, sample_book, tmp_path, session_factory, monkeypatch
+    ):
+        root = FakeAccount(guid="root-guid", name="Root Account", type="ROOT")
+        checking = FakeAccount(guid="+checking-guid", name="+Synthetic Checking", type="BANK", parent=root)
+        counter = FakeAccount(guid="counter-guid", name="@Synthetic Counter", type="EXPENSE", parent=root)
+        transaction = FakeTransaction(
+            guid="=synthetic-guid",
+            post_date=date(2026, 6, 1),
+            description="=SUM(1,2)",
+            splits=[
+                FakeSplit(account=checking, value=Decimal("-12.34")),
+                FakeSplit(account=counter, value=Decimal("12.34")),
+            ],
+        )
+        book_path = tmp_path / "formula-like-export.gnucash"
+        book_path.write_text("fake")
+
+        def fake_open_book(path, readonly=False):
+            return FakeBookForExport(accounts=[root, checking, counter], transactions=[transaction])
+
+        import app.services.gnucash_book as gb_module
+
+        monkeypatch.setattr(gb_module.piecash, "open_book", fake_open_book)
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(book_path)
+            session.commit()
+
+        response = client.get(
+            f"/books/{sample_book}/transactions/export",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        rows = _parse_csv_response(response)
+        assert rows[1] == [
+            "'=synthetic-guid",
+            "2026-06-01",
+            "'=SUM(1,2)",
+            "-12.34",
+            "SEK",
+            "'+checking-guid",
+            "'+Synthetic Checking",
+            "'@Synthetic Counter",
+        ]
+
     def test_export_reports_cap_and_truncation_headers(
         self,
         client,

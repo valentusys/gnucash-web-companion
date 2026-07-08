@@ -204,6 +204,22 @@ async def list_book_transactions(
 # ---------------------------------------------------------------------------
 
 CSV_EXPORT_LIMIT = 10_000
+CSV_FORMULA_TEXT_PREFIXES = ("=", "+", "-", "@")
+CSV_FORMULA_LEADING_WHITESPACE = " \t\r\n"
+
+
+def _csv_safe_text_cell(value: Any) -> str:
+    """Neutralize spreadsheet formula-like text while preserving raw CSV shape.
+
+    The export keeps decimal amount strings untouched; all other text fields are
+    prefixed only when their first non-whitespace character could be interpreted
+    as a spreadsheet formula/operator.
+    """
+    text = "" if value is None else str(value)
+    stripped = text.lstrip(CSV_FORMULA_LEADING_WHITESPACE)
+    if stripped.startswith(CSV_FORMULA_TEXT_PREFIXES):
+        return f"'{text}"
+    return text
 
 
 @router.get("/books/{book_id}/transactions/export")
@@ -267,14 +283,14 @@ async def export_book_transactions_csv(
     writer.writerow(headers)
     for item in items:
         writer.writerow([
-            item.id,
-            item.date,
-            item.description,
+            _csv_safe_text_cell(item.id),
+            _csv_safe_text_cell(item.date),
+            _csv_safe_text_cell(item.description),
             item.amount,
-            item.currency,
-            item.account_id,
-            item.account_name,
-            item.counter_account_name,
+            _csv_safe_text_cell(item.currency),
+            _csv_safe_text_cell(item.account_id),
+            _csv_safe_text_cell(item.account_name),
+            _csv_safe_text_cell(item.counter_account_name),
         ])
 
     filename = f"transactions-book{book_id}.csv"
