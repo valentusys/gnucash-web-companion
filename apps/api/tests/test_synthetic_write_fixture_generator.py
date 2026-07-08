@@ -144,10 +144,18 @@ def test_generated_fixture_transactions_are_balanced_and_repeatable(
     first = generator.create_fixture(tmp_path / "first.gnucash.sqlite")
     second = generator.create_fixture(tmp_path / "second.gnucash.sqlite")
 
+    expected_transaction_snapshot = generator.expected_transaction_snapshot()
+
     assert generator.account_balance_snapshot(first) == EXPECTED_BALANCES
     assert generator.account_balance_snapshot(second) == EXPECTED_BALANCES
+    assert generator.transaction_snapshot(first) == expected_transaction_snapshot
+    assert generator.transaction_snapshot(second) == expected_transaction_snapshot
     assert set(generator.transaction_descriptions(first)) == EXPECTED_DESCRIPTIONS
     assert set(generator.transaction_descriptions(second)) == EXPECTED_DESCRIPTIONS
+    generator.assert_transactions_balanced(first)
+    generator.assert_transactions_balanced(second)
+    generator.assert_expected_transactions(first)
+    generator.assert_expected_transactions(second)
 
     service = GnuCashBookService({"uri_or_path": str(first), "base_currency": "SEK"})
     transactions = service.list_transactions(limit=100)
@@ -271,6 +279,33 @@ def test_expected_balance_helpers_are_derived_and_report_drift(
     with pytest.raises(AssertionError, match="Assets:Checking") as excinfo:
         generator.assert_expected_balances(generated_fixture_path, expected=drifted)
     assert "expected 999.00, got 2454.75" in str(excinfo.value)
+
+
+def test_expected_transaction_helpers_are_derived_and_report_drift(
+    generated_fixture_path: Path,
+    generator: ModuleType,
+) -> None:
+    expected = generator.expected_transaction_snapshot()
+    assert {item["description"] for item in expected} == EXPECTED_DESCRIPTIONS
+    generator.assert_transactions_balanced(generated_fixture_path)
+    generator.assert_expected_transactions(generated_fixture_path)
+
+    drifted = [
+        {**transaction, "splits": [dict(split) for split in transaction["splits"]]}
+        for transaction in expected
+    ]
+    opening = next(
+        transaction
+        for transaction in drifted
+        if transaction["description"] == "Synthetic fixture opening checking"
+    )
+    opening["splits"][0]["amount"] = "999.00"
+
+    with pytest.raises(AssertionError, match="Synthetic fixture opening checking") as excinfo:
+        generator.assert_expected_transactions(generated_fixture_path, expected=drifted)
+    message = str(excinfo.value)
+    assert "generated fixture transactions differ from expected synthetic transaction specs" in message
+    assert str(generated_fixture_path.parent) not in message
 
 
 def test_generator_refuses_repo_tracked_fixture_paths(generator: ModuleType) -> None:

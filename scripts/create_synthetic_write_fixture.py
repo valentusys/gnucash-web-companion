@@ -17,7 +17,7 @@ import argparse
 from collections.abc import Iterable, Mapping
 import hashlib
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal, ROUND_HALF_UP
 from importlib import metadata as importlib_metadata
 import json
@@ -290,6 +290,50 @@ def _open_book_readonly(path: str | Path) -> Any:
     return piecash.open_book(str(path), readonly=True)
 
 
+def _format_date(value: Any) -> str:
+    if isinstance(value, datetime):
+        return value.date().isoformat()
+    if isinstance(value, date):
+        return value.isoformat()
+    return str(value)
+
+
+def _split_currency(account: Any) -> str:
+    return str(getattr(getattr(account, "commodity", None), "mnemonic", BASE_CURRENCY))
+
+
+def _normalize_split_snapshot(split: Mapping[str, Any]) -> dict[str, str]:
+    return {
+        "account_path": str(split["account_path"]),
+        "amount": _format_money(split["amount"]),
+        "memo": str(split.get("memo", "") or ""),
+        "currency": str(split.get("currency", BASE_CURRENCY) or BASE_CURRENCY),
+    }
+
+
+def _normalize_transaction_snapshot(
+    transactions: Iterable[Mapping[str, Any]],
+) -> list[dict[str, Any]]:
+    normalized: list[dict[str, Any]] = []
+    for transaction in transactions:
+        splits = [_normalize_split_snapshot(split) for split in transaction["splits"]]
+        normalized.append(
+            {
+                "date": _format_date(transaction["date"]),
+                "description": str(transaction["description"]),
+                "splits": sorted(
+                    splits,
+                    key=lambda split: (
+                        split["account_path"],
+                        split["amount"],
+                        split["memo"],
+                    ),
+                ),
+            }
+        )
+    return sorted(normalized, key=lambda item: (item["date"], item["description"]))
+
+
 def create_fixture(output_path: str | Path = DEFAULT_OUTPUT_PATH) -> Path:
     """Create the disposable synthetic GnuCash SQLite fixture and return its path."""
 
@@ -400,6 +444,57 @@ def account_balance_snapshot(path: str | Path) -> dict[str, str]:
     return {item["full_name"]: item["balance"] for item in account_snapshot(path)}
 
 
+def expected_transaction_snapshot() -> list[dict[str, Any]]:
+    """Return deterministic transaction/split specs without generated GUIDs."""
+
+    return _normalize_transaction_snapshot(
+        {
+            "date": spec.post_date,
+            "description": spec.description,
+            "splits": [
+                {
+                    "account_path": split.account_full_name,
+                    "amount": split.amount,
+                    "memo": split.memo,
+                    "currency": BASE_CURRENCY,
+                }
+                for split in spec.splits
+            ],
+        }
+        for spec in TRANSACTION_SPECS
+    )
+
+
+def transaction_snapshot(path: str | Path) -> list[dict[str, Any]]:
+    """Return deterministic transaction/split rows from a generated fixture."""
+
+    book = _open_book_readonly(path)
+    try:
+        rows: list[dict[str, Any]] = []
+        for transaction in getattr(book, "transactions", []) or []:
+            splits = []
+            for split in getattr(transaction, "splits", []) or []:
+                account = getattr(split, "account", None)
+                splits.append(
+                    {
+                        "account_path": _account_full_name(account),
+                        "amount": _format_money(getattr(split, "value", "0")),
+                        "memo": str(getattr(split, "memo", "") or ""),
+                        "currency": _split_currency(account),
+                    }
+                )
+            rows.append(
+                {
+                    "date": _format_date(getattr(transaction, "post_date", "")),
+                    "description": str(getattr(transaction, "description", "")),
+                    "splits": splits,
+                }
+            )
+        return _normalize_transaction_snapshot(rows)
+    finally:
+        book.close()
+
+
 def expected_balance_snapshot() -> dict[str, str]:
     """Return expected balances derived from the deterministic fixture specs."""
 
@@ -488,6 +583,111 @@ def assert_expected_balances(
     )
 
 
+def _transaction_key(transaction: Mapping[str, Any]) -> tuple[str, str]:
+    return (str(transaction["date"]), str(transaction["description"]))
+
+
+def _format_transaction_key(key: tuple[str, str]) -> str:
+    return f"{key[0]} {key[1]}"
+
+
+def _transaction_map(
+    transactions: Iterable[Mapping[str, Any]],
+) -> dict[tuple[str, str], Mapping[str, Any]]:
+    by_key: dict[tuple[str, str], Mapping[str, Any]] = {}
+    duplicate_keys: set[tuple[str, str]] = set()
+    for transaction in transactions:
+        key = _transaction_key(transaction)
+        if key in by_key:
+            duplicate_keys.add(key)
+            continue
+        by_key[key] = transaction
+    if duplicate_keys:
+        raise AssertionError(
+            "generated fixture has duplicate synthetic transaction key(s): "
+            + ", ".join(_format_transaction_key(key) for key in sorted(duplicate_keys))
+        )
+    return by_key
+
+
+def _transaction_snapshot_diff(
+    expected: list[dict[str, Any]],
+    actual: list[dict[str, Any]],
+) -> list[str]:
+    expected_by_key = _transaction_map(expected)
+    actual_by_key = _transaction_map(actual)
+    expected_keys = set(expected_by_key)
+    actual_keys = set(actual_by_key)
+    missing = sorted(expected_keys - actual_keys)
+    unexpected = sorted(actual_keys - expected_keys)
+    mismatched = [
+        key
+        for key in sorted(expected_keys & actual_keys)
+        if expected_by_key[key]["splits"] != actual_by_key[key]["splits"]
+    ]
+
+    details: list[str] = []
+    if missing:
+        details.append(
+            "missing transactions: "
+            + ", ".join(_format_transaction_key(key) for key in missing)
+        )
+    if unexpected:
+        details.append(
+            "unexpected transactions: "
+            + ", ".join(_format_transaction_key(key) for key in unexpected)
+        )
+    if mismatched:
+        details.append(
+            "mismatched transaction splits: "
+            + "; ".join(
+                f"{_format_transaction_key(key)} expected "
+                f"{json.dumps(expected_by_key[key]['splits'], sort_keys=True)}, got "
+                f"{json.dumps(actual_by_key[key]['splits'], sort_keys=True)}"
+                for key in mismatched
+            )
+        )
+    return details
+
+
+def assert_transactions_balanced(path: str | Path) -> None:
+    """Assert every generated transaction has a zero-sum split total."""
+
+    unbalanced: list[str] = []
+    for transaction in transaction_snapshot(path):
+        total = sum(
+            (Decimal(split["amount"]) for split in transaction["splits"]),
+            Decimal("0.00"),
+        )
+        if total != Decimal("0.00"):
+            unbalanced.append(
+                f"{transaction['date']} {transaction['description']} total {_format_money(total)}"
+            )
+    if unbalanced:
+        raise AssertionError(
+            "generated fixture transaction splits are not zero-sum: " + "; ".join(unbalanced)
+        )
+
+
+def assert_expected_transactions(
+    path: str | Path,
+    expected: Iterable[Mapping[str, Any]] | None = None,
+) -> None:
+    """Assert fixture transactions match deterministic synthetic specs without GUIDs."""
+
+    actual_snapshot = transaction_snapshot(path)
+    expected_snapshot = expected_transaction_snapshot()
+    if expected is not None:
+        expected_snapshot = _normalize_transaction_snapshot(expected)
+    if actual_snapshot == expected_snapshot:
+        return
+    details = _transaction_snapshot_diff(expected_snapshot, actual_snapshot)
+    raise AssertionError(
+        "generated fixture transactions differ from expected synthetic transaction specs: "
+        + " | ".join(details)
+    )
+
+
 def transaction_descriptions(path: str | Path) -> list[str]:
     """Return generated transaction descriptions sorted by text."""
 
@@ -552,6 +752,7 @@ def fixture_metadata(path: str | Path) -> dict[str, Any]:
         "account_types": EXPECTED_ACCOUNT_TYPES,
         "expected_balances": EXPECTED_BALANCES,
         "transaction_descriptions": sorted(spec.description for spec in TRANSACTION_SPECS),
+        "expected_transactions": expected_transaction_snapshot(),
         "runtime_context": runtime_context(),
         "versions": read_versions(path),
         "sha256": sha256_file(path),
@@ -581,6 +782,8 @@ def main(argv: list[str] | None = None) -> int:
     output = create_fixture(args.output)
     metadata = fixture_metadata(output)
     assert_expected_balances(output)
+    assert_transactions_balanced(output)
+    assert_expected_transactions(output)
     if args.metadata_json:
         metadata_path = output.with_suffix(output.suffix + ".metadata.json")
         metadata_path.write_text(json.dumps(metadata, indent=2, sort_keys=True) + "\n", encoding="utf-8")
