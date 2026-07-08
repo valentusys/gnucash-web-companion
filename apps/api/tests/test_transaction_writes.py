@@ -1189,6 +1189,49 @@ class TestWriteServiceValidationRules:
             ["Multiple split currencies are not supported by write-alpha CREATE"],
         )
 
+    def test_validation_rejects_non_default_currency_before_write_execution(
+        self, fake_accounts, monkeypatch
+    ):
+        """Balanced account-matching splits must still match the book transaction currency."""
+        usd_cash = FakeAccount(
+            guid="usd-cash-guid",
+            name="USD Cash",
+            type="BANK",
+            commodity=FakeCommodity("USD"),
+        )
+        usd_income = FakeAccount(
+            guid="usd-income-guid",
+            name="USD Income",
+            type="INCOME",
+            commodity=FakeCommodity("USD"),
+        )
+        service = self._service_with_fake_accounts([*fake_accounts, usd_cash, usd_income])
+        request = TransactionCreateRequestDTO(
+            date="2026-05-16",
+            description="Book default currency validation probe",
+            splits=[
+                TransactionSplitWriteDTO(
+                    account_id="usd-cash-guid",
+                    amount="-5.00",
+                    currency="USD",
+                    memo="usd source",
+                ),
+                TransactionSplitWriteDTO(
+                    account_id="usd-income-guid",
+                    amount="5.00",
+                    currency="USD",
+                    memo="usd target",
+                ),
+            ],
+        )
+
+        self._assert_create_request_rejected_before_execution(
+            service,
+            request,
+            monkeypatch,
+            ["Currency USD does not match book default currency SEK"],
+        )
+
     def _assert_create_request_rejected_before_execution(
         self,
         service,

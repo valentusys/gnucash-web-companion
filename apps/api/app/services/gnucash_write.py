@@ -75,7 +75,7 @@ class GnuCashWriteService(GnuCashBookService):
         - All accounts exist
         - Amounts are valid decimal strings
         - Placeholder/hidden accounts are blocked
-        - Currency is valid and matches each account
+        - Currency is valid and matches each account and the book default currency
         """
         errors: list[str] = []
         warnings: list[str] = []
@@ -123,6 +123,22 @@ class GnuCashWriteService(GnuCashBookService):
             uri_or_path = self._validate_configured_book()
             book = self._open_piecash_book(uri_or_path)
             try:
+                default_commodity = getattr(book, "default_currency", None)
+                book_currency = str(
+                    getattr(default_commodity, "mnemonic", default_commodity) or ""
+                ).upper()
+                if len(totals_by_currency) == 1:
+                    split_currency = next(iter(totals_by_currency))
+                    if (
+                        book_currency
+                        and book_currency != "XXX"
+                        and split_currency != book_currency
+                    ):
+                        errors.append(
+                            f"Currency {split_currency} does not match book default currency "
+                            f"{book_currency}"
+                        )
+
                 for split in request.splits:
                     account = self._find_account(book, split.account_id)
                     if account is None:
