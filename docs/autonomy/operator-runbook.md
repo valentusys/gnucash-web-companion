@@ -100,6 +100,42 @@ clean. Do not treat repeated `issue49-autonomy-workflow-improvement` prompts as
 permission to broaden into product code, private data inspection, or release
 work.
 
+## Issue #50 disposable copied-book drill recipe
+
+Use this recipe for the strictly scoped disposable/synthetic CREATE drill. It
+authorizes routed write-alpha operations only against fixtures created inside
+test tempdirs or ignored runtime paths outside the repository. It does not
+authorize owner/private/original/working/Syncthing/only-copy book access, public
+write posture changes, or release work.
+
+Dry-run first from the repository root:
+
+```bash
+python3 scripts/autonomy/supervisor.py \
+  --budget-hours 5.75 \
+  --min-runtime-hours 4.75 \
+  --min-tasks 10 \
+  --queue docs/autonomy/queues/issue50-disposable-copied-book-create-drill.md \
+  --on-empty generate-from-policy \
+  --backlog-policy docs/autonomy/backlog-policies/issue50-disposable-copied-book-create-drill.md \
+  --mode dry-run
+```
+
+Review rendered prompts before live mode:
+
+- every task must keep disposable/synthetic target proof explicit;
+- any CREATE/PATCH/DELETE must route through the application write boundary;
+- default/user mode must remain disabled and `GNUCASH_WRITES_ENABLED=false` must
+  remain the committed/default posture;
+- tracked reports must be redacted and must separate owner/private counters
+  from synthetic/disposable counters;
+- repeated generated tasks may be no-op checkpoints when no safe scoped change
+  remains.
+
+For live mode, reuse the reviewed switches with `--mode live`,
+`--collect-github`, and a tested stdin worker command only after the tracked tree
+is clean.
+
 ### Repeated generated task checkpoint format
 
 Use this when a generated task recurs and there is no remaining safe change
