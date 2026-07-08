@@ -3503,6 +3503,66 @@ class TestWriteAlphaDeleteRouteDisposableFixture:
             assert marker.created_by_write_alpha is False
             assert marker.last_mutated_at == datetime(2026, 5, 20)
 
+    def test_active_owner_writebeta_delete_preview_blocks_legacy_delete_before_write_service(
+        self,
+        client,
+        auth_headers,
+        disposable_sample_book,
+        disposable_fixture_book,
+        disposable_write_lock,
+        session_factory,
+        monkeypatch,
+    ):
+        """An active owner-writebeta DELETE preview cannot be bypassed by legacy write-alpha DELETE."""
+        from app.owner_writebeta_state_machine import (
+            OwnerWritebetaSession,
+            OwnerWritebetaState,
+            prepare_preview,
+        )
+        from app.routers.owner_writebeta import _SESSIONS
+
+        calls = []
+
+        def forbidden_write_service(*args, **kwargs):
+            calls.append((args, kwargs))
+            raise AssertionError("write service must not be constructed for unarmed owner-writebeta DELETE")
+
+        monkeypatch.setattr("app.routers.transactions._write_service_for", forbidden_write_service)
+        tx_before = self._first_fixture_transaction(disposable_fixture_book)
+        self._mark_owned(session_factory, disposable_sample_book, tx_before["guid"])
+        txs_before = _read_written_transactions(disposable_fixture_book)
+
+        session_state = OwnerWritebetaSession()
+        session_state.transition(OwnerWritebetaState.PREFLIGHT)
+        prepare_preview(
+            session_state,
+            "DELETE",
+            {"transaction_id": "opaque-delete-target"},
+            count=1,
+        )
+        _SESSIONS[disposable_sample_book] = session_state
+        try:
+            response = client.delete(
+                f"/books/{disposable_sample_book}/transactions/{tx_before['guid']}",
+                headers=auth_headers,
+            )
+        finally:
+            _SESSIONS.clear()
+
+        assert response.status_code == 403
+        assert "not armed for mutation" in response.json()["detail"]
+        assert calls == []
+        assert _read_written_transactions(disposable_fixture_book) == txs_before
+        backups_root = disposable_fixture_book.parent.parent / "backups"
+        assert not backups_root.exists()
+        lock_key = str(disposable_fixture_book)
+        assert disposable_write_lock.acquire(lock_key) is True
+        disposable_write_lock.release(lock_key)
+
+        with session_factory() as session:
+            logs = session.query(AuditLog).filter_by(action="transaction.delete").all()
+            assert logs == []
+
     def test_owned_missing_transaction_returns_404_without_backup_or_lock_leak(
         self,
         client,
