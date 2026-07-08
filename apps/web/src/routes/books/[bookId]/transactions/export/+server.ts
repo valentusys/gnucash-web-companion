@@ -36,7 +36,8 @@ export const GET: RequestHandler = async ({ cookies, fetch, params, url }) => {
 	const responseHeaders: Record<string, string> = {
 		'content-type': response.headers.get('content-type') ?? 'text/csv; charset=utf-8',
 		'content-disposition':
-			response.headers.get('content-disposition') ?? `attachment; filename="book-${bookId}-transactions.csv"`
+			response.headers.get('content-disposition') ?? `attachment; filename="book-${bookId}-transactions.csv"`,
+		'x-content-type-options': response.headers.get('x-content-type-options') ?? 'nosniff'
 	};
 	for (const header of [
 		'x-csv-export-limit',

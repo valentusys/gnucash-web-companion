@@ -286,6 +286,7 @@ class TestExportTransactionsCSV:
         )
         assert response.status_code == 200
         assert response.headers["content-type"].startswith("text/csv")
+        assert response.headers["X-Content-Type-Options"] == "nosniff"
         assert "Content-Disposition" in response.headers
         assert f"book{sample_book}" in response.headers["Content-Disposition"]
 

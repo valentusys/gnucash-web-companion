@@ -715,7 +715,8 @@ for (const exportHeader of [
 	'x-csv-export-limit',
 	'x-csv-export-total',
 	'x-csv-export-truncated',
-	'x-csv-export-timeout-policy'
+	'x-csv-export-timeout-policy',
+	'x-content-type-options'
 ]) {
 	assert.ok(exportProxyRoute.includes(exportHeader), `CSV export proxy must forward ${exportHeader}`);
 }

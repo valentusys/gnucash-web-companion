@@ -300,6 +300,7 @@ async def export_book_transactions_csv(
         media_type="text/csv",
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',
+            "X-Content-Type-Options": "nosniff",
             "X-CSV-Export-Limit": str(CSV_EXPORT_LIMIT),
             "X-CSV-Export-Total": str(total),
             "X-CSV-Export-Truncated": "true" if truncated else "false",
