@@ -5,6 +5,7 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
+from app.schemas.gnucash import TransactionDetailDTO, TransactionSplitDTO
 from app.performance.large_book_benchmark import (
     BENCHMARK_CASES,
     BenchmarkCase,
@@ -12,6 +13,7 @@ from app.performance.large_book_benchmark import (
     BenchmarkResult,
     FixtureMetadata,
     _build_case_request_json,
+    _build_readback_request_from_detail,
     _summarize_response,
     benchmark_plan,
     create_large_synthetic_book,
@@ -34,6 +36,8 @@ def test_benchmark_plan_covers_phase_87_read_only_scope() -> None:
         "account_detail_csv_export",
         "many_splits_transaction_detail",
         "transaction_create_preview_validation",
+        "transaction_create_validation_service",
+        "transaction_create_readback_existing_synthetic",
         "dashboard_summary",
         "dashboard_cashflow_monthly",
         "dashboard_expenses_by_account_month",
@@ -46,6 +50,14 @@ def test_benchmark_plan_covers_phase_87_read_only_scope() -> None:
     assert preview_case.method == "POST"
     assert preview_case.path_template == "/books/{book_id}/transactions/create-preview"
     assert preview_case.request_json == "synthetic_create_preview"
+    validation_case = next(case for case in plan if case.name == "transaction_create_validation_service")
+    assert validation_case.method == "SERVICE"
+    assert validation_case.path_template == "GnuCashWriteService.validate_transaction_create"
+    assert validation_case.request_json == "synthetic_transaction_validation"
+    readback_case = next(case for case in plan if case.name == "transaction_create_readback_existing_synthetic")
+    assert readback_case.method == "SERVICE"
+    assert readback_case.path_template == "transactions._verify_transaction_create_readback"
+    assert readback_case.request_json == "synthetic_existing_transaction_readback"
 
 
 def test_synthetic_create_preview_benchmark_payload_is_local_disposable_only() -> None:
@@ -71,6 +83,78 @@ def test_synthetic_create_preview_benchmark_payload_is_local_disposable_only() -
     assert "/" not in serialized
     assert "private" not in serialized.lower()
     assert "real" not in serialized.lower()
+
+
+def test_synthetic_transaction_validation_benchmark_payload_is_local_disposable_only() -> None:
+    case = BenchmarkCase(
+        "transaction_create_validation_service",
+        "SERVICE",
+        "GnuCashWriteService.validate_transaction_create",
+        request_json="synthetic_transaction_validation",
+    )
+
+    payload = _build_case_request_json(case, debit_account_id="checking-guid", credit_account_id="expense-guid")
+
+    assert payload == {
+        "date": "2026-06-15",
+        "description": "Synthetic benchmark create validation only",
+        "splits": [
+            {
+                "account_id": "checking-guid",
+                "amount": "-123.4500",
+                "currency": "SEK",
+                "memo": "Synthetic local validation performance; no write executed",
+            },
+            {
+                "account_id": "expense-guid",
+                "amount": "123.4500",
+                "currency": "SEK",
+                "memo": "Synthetic local validation performance; no write executed",
+            },
+        ],
+    }
+    serialized = str(payload)
+    assert "/" not in serialized
+    assert "private" not in serialized.lower()
+    assert "real" not in serialized.lower()
+
+
+def test_readback_benchmark_request_reuses_existing_synthetic_detail_without_mutation() -> None:
+    detail = TransactionDetailDTO(
+        id="synthetic-existing-tx",
+        date="2026-06-16",
+        description="Synthetic benchmark transaction readback fixture",
+        currency="SEK",
+        splits=[
+            TransactionSplitDTO(
+                account_id="checking-guid",
+                account_name="Synthetic Checking",
+                memo="source memo",
+                reconcile_state="",
+                amount="-10.00",
+                currency="SEK",
+            ),
+            TransactionSplitDTO(
+                account_id="expense-guid",
+                account_name="Synthetic Expense",
+                memo="destination memo",
+                reconcile_state="",
+                amount="10.00",
+                currency="SEK",
+            ),
+        ],
+    )
+
+    request = _build_readback_request_from_detail(detail)
+
+    assert request.date == "2026-06-16"
+    assert request.description == "Synthetic benchmark transaction readback fixture"
+    assert [split.account_id for split in request.splits] == ["checking-guid", "expense-guid"]
+    assert [split.amount for split in request.splits] == ["-10.00", "10.00"]
+    assert [split.memo for split in request.splits] == ["source memo", "destination memo"]
+    serialized = request.model_dump_json()
+    assert "/" not in serialized
+    assert "private" not in serialized.lower()
 
 
 def test_create_large_synthetic_book_uses_only_disposable_data(tmp_path: Path) -> None:
@@ -258,5 +342,9 @@ def test_benchmark_json_records_csv_body_row_consistency(tmp_path: Path) -> None
     assert '"csv_body_matches_expected": true' in content
     assert '"local_synthetic_measurements_only": true' in content
     assert '"non_mutating_read_and_preview_paths_only": true' in content
+    assert '"non_mutating_read_preview_validation_readback_paths_only": true' in content
     assert '"includes_write_preview_validation_path": true' in content
+    assert '"includes_transaction_validation_service_path": true' in content
+    assert '"includes_existing_synthetic_readback_path": true' in content
+    assert '"write_alpha_mutation_routes_called": false' in content
     assert '"production_performance_claim": false' in content

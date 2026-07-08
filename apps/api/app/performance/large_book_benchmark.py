@@ -1,9 +1,9 @@
-"""Phase 87/88 large-book, many-splits, and create-preview benchmark helper.
+"""Phase 87/88 large-book, many-splits, and synthetic write-path benchmark helper.
 
 The helper intentionally generates only synthetic/disposable GnuCash SQLite books
-and exercises non-mutating read plus write-preview validation API paths. It must
-never require or commit private books, CSV exports, screenshots, app DBs, `.env`,
-or secrets, and it does not make production performance claims.
+and exercises non-mutating read, write-preview, validation, and read-back paths.
+It must never require or commit private books, CSV exports, screenshots, app DBs,
+`.env`, or secrets, and it does not make production performance claims.
 """
 
 from __future__ import annotations
@@ -34,7 +34,15 @@ from app.database import Base
 from app.main import app
 from app.models import Book, User, UserBookAccess
 from app.routers.auth import get_db
+from app.schemas.gnucash import TransactionDetailDTO
+from app.schemas.gnucash_writes import (
+    TransactionCreateRequestDTO,
+    TransactionSplitWriteDTO,
+    TransactionWriteResultDTO,
+)
 from app.services.auth import hash_password
+from app.services.gnucash_book import GnuCashBookService
+from app.services.gnucash_write import GnuCashWriteService
 
 BASE_CURRENCY = "SEK"
 CSV_EXPORT_LIMIT = 10_000
@@ -98,6 +106,18 @@ BENCHMARK_CASES: list[BenchmarkCase] = [
         "POST",
         "/books/{book_id}/transactions/create-preview",
         request_json="synthetic_create_preview",
+    ),
+    BenchmarkCase(
+        "transaction_create_validation_service",
+        "SERVICE",
+        "GnuCashWriteService.validate_transaction_create",
+        request_json="synthetic_transaction_validation",
+    ),
+    BenchmarkCase(
+        "transaction_create_readback_existing_synthetic",
+        "SERVICE",
+        "transactions._verify_transaction_create_readback",
+        request_json="synthetic_existing_transaction_readback",
     ),
     BenchmarkCase("dashboard_summary", "GET", "/books/{book_id}/reports/summary?as_of_date=2026-12-31"),
     BenchmarkCase(
@@ -170,7 +190,7 @@ class BenchmarkResult:
 
 
 def benchmark_plan() -> list[BenchmarkCase]:
-    """Return the conservative Phase 87 read-only benchmark plan."""
+    """Return the conservative synthetic read and non-mutating write-path benchmark plan."""
     return BENCHMARK_CASES
 
 
@@ -481,19 +501,61 @@ def _build_case_request_json(
 ) -> dict[str, Any] | None:
     if case.request_json is None:
         return None
-    if case.request_json != "synthetic_create_preview":
-        raise ValueError(f"unsupported benchmark request_json: {case.request_json}")
     if debit_account_id == credit_account_id:
-        raise ValueError("synthetic create-preview benchmark requires distinct account IDs")
-    return {
-        "date": "2026-06-15",
-        "debit_account_id": debit_account_id,
-        "credit_account_id": credit_account_id,
-        "amount": "123.4500",
-        "currency": BASE_CURRENCY,
-        "description": "Synthetic benchmark create preview only",
-        "memo": "Synthetic local performance preview; no write executed",
-    }
+        raise ValueError("synthetic write-path benchmark requires distinct account IDs")
+    if case.request_json == "synthetic_create_preview":
+        return {
+            "date": "2026-06-15",
+            "debit_account_id": debit_account_id,
+            "credit_account_id": credit_account_id,
+            "amount": "123.4500",
+            "currency": BASE_CURRENCY,
+            "description": "Synthetic benchmark create preview only",
+            "memo": "Synthetic local performance preview; no write executed",
+        }
+    if case.request_json == "synthetic_transaction_validation":
+        return {
+            "date": "2026-06-15",
+            "description": "Synthetic benchmark create validation only",
+            "splits": [
+                {
+                    "account_id": debit_account_id,
+                    "amount": "-123.4500",
+                    "currency": BASE_CURRENCY,
+                    "memo": "Synthetic local validation performance; no write executed",
+                },
+                {
+                    "account_id": credit_account_id,
+                    "amount": "123.4500",
+                    "currency": BASE_CURRENCY,
+                    "memo": "Synthetic local validation performance; no write executed",
+                },
+            ],
+        }
+    if case.request_json == "synthetic_existing_transaction_readback":
+        return None
+    raise ValueError(f"unsupported benchmark request_json: {case.request_json}")
+
+
+def _build_readback_request_from_detail(detail: TransactionDetailDTO) -> TransactionCreateRequestDTO:
+    """Build a synthetic read-back verification request from an existing fixture transaction."""
+    return TransactionCreateRequestDTO(
+        date=detail.date,
+        description=detail.description,
+        splits=[
+            TransactionSplitWriteDTO(
+                account_id=split.account_id,
+                amount=split.amount,
+                currency=split.currency,
+                memo=split.memo or "",
+            )
+            for split in detail.splits
+        ],
+    )
+
+
+def _json_response_size(payload: Any) -> int:
+    return len(json.dumps(payload, default=str, sort_keys=True).encode("utf-8"))
 
 
 def _summarize_response(
@@ -529,21 +591,108 @@ def _summarize_response(
     return item_count, None, None, None
 
 
+def _run_service_benchmark_case(
+    case: BenchmarkCase,
+    *,
+    book_path: Path,
+    debit_account_id: str,
+    credit_account_id: str,
+    many_split_transaction_id: str,
+    repeats: int,
+) -> BenchmarkResult:
+    """Run a non-mutating service/read-back benchmark case without enabling write routes."""
+    durations: list[float] = []
+    last_payload: dict[str, Any] | None = None
+    status_code = 200
+    item_count: int | None = None
+
+    if case.request_json == "synthetic_transaction_validation":
+        payload = _build_case_request_json(
+            case,
+            debit_account_id=debit_account_id,
+            credit_account_id=credit_account_id,
+        )
+        if payload is None:  # pragma: no cover - defensive guard for future edits
+            raise RuntimeError("validation benchmark requires a synthetic payload")
+        request = TransactionCreateRequestDTO(**payload)
+        service = GnuCashWriteService({"uri_or_path": str(book_path), "base_currency": BASE_CURRENCY})
+        for _ in range(repeats):
+            start = time.perf_counter()
+            validation = service.validate_transaction_create(request)
+            durations.append((time.perf_counter() - start) * 1000)
+            last_payload = validation.model_dump()
+        status_code = 200 if last_payload and last_payload.get("valid") is True else 422
+        summary = last_payload.get("summary", {}) if last_payload else {}
+        item_count = int(summary.get("split_count", 0)) if summary.get("split_count") is not None else None
+    elif case.request_json == "synthetic_existing_transaction_readback":
+        from app.routers.transactions import _verify_transaction_create_readback
+
+        detail = GnuCashBookService(
+            {"uri_or_path": str(book_path), "base_currency": BASE_CURRENCY}
+        ).get_transaction(many_split_transaction_id)
+        request = _build_readback_request_from_detail(detail)
+        synthetic_book = Book(
+            name="Synthetic benchmark read-back fixture",
+            storage_type="sqlite",
+            uri_or_path=str(book_path),
+            base_currency=BASE_CURRENCY,
+            is_default=True,
+        )
+        result = TransactionWriteResultDTO(
+            transaction_id=many_split_transaction_id,
+            backup_path="synthetic-readback-benchmark-ref",
+        )
+        for _ in range(repeats):
+            start = time.perf_counter()
+            last_payload = dict(_verify_transaction_create_readback(synthetic_book, request, result))
+            durations.append((time.perf_counter() - start) * 1000)
+        item_count = int(last_payload.get("readback_split_count", 0)) if last_payload else None
+    else:
+        raise ValueError(f"unsupported service benchmark case: {case.name}")
+
+    if last_payload is None:  # pragma: no cover - repeats validation prevents this
+        raise RuntimeError("service benchmark produced no result")
+    return BenchmarkResult(
+        name=case.name,
+        method=case.method,
+        path=case.path_template,
+        status_code=status_code,
+        duration_ms_min=round(min(durations), 2),
+        duration_ms_median=round(statistics.median(durations), 2),
+        duration_ms_max=round(max(durations), 2),
+        response_bytes=_json_response_size(last_payload),
+        item_count=item_count,
+    )
+
+
 def run_benchmark(
     book_path: str | Path,
     *,
     repeats: int = 3,
 ) -> list[BenchmarkResult]:
-    """Run Phase 87 read-only API benchmark cases against a synthetic book."""
+    """Run synthetic read plus non-mutating write-preview/validation/read-back checks."""
     if repeats < 1:
         raise ValueError("repeats must be at least 1")
-    client, book_id, headers, cleanup = _build_client(Path(book_path))
+    resolved_book_path = Path(book_path)
+    client, book_id, headers, cleanup = _build_client(resolved_book_path)
     try:
         account_id = _select_account_id(client, book_id, headers)
         preview_debit_account_id, preview_credit_account_id = _select_preview_account_ids(client, book_id, headers)
-        many_split_transaction_id = _select_many_split_transaction_id(Path(book_path))
+        many_split_transaction_id = _select_many_split_transaction_id(resolved_book_path)
         results: list[BenchmarkResult] = []
         for case in BENCHMARK_CASES:
+            if case.method == "SERVICE":
+                results.append(
+                    _run_service_benchmark_case(
+                        case,
+                        book_path=resolved_book_path,
+                        debit_account_id=preview_debit_account_id,
+                        credit_account_id=preview_credit_account_id,
+                        many_split_transaction_id=many_split_transaction_id,
+                        repeats=repeats,
+                    )
+                )
+                continue
             path = case.path_template.format(
                 book_id=book_id,
                 account_id=account_id,
@@ -599,8 +748,12 @@ def write_results_json(path: str | Path, metadata: FixtureMetadata, results: lis
             "synthetic_generated_data_only": True,
             "local_synthetic_measurements_only": True,
             "non_mutating_read_and_preview_paths_only": True,
+            "non_mutating_read_preview_validation_readback_paths_only": True,
             "read_only_api_paths_only": False,
             "includes_write_preview_validation_path": True,
+            "includes_transaction_validation_service_path": True,
+            "includes_existing_synthetic_readback_path": True,
+            "write_alpha_mutation_routes_called": False,
             "contains_private_book": False,
             "writes_enabled": False,
             "production_performance_claim": False,
@@ -612,7 +765,7 @@ def write_results_json(path: str | Path, metadata: FixtureMetadata, results: lis
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Run local synthetic large-book, many-splits, and create-preview benchmark"
+        description="Run local synthetic large-book, many-splits, write-preview, validation, and read-back benchmark"
     )
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT_PATH)
     parser.add_argument("--transactions", type=int, default=BenchmarkConfig.transaction_count)
@@ -634,7 +787,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     results = run_benchmark(metadata.path, repeats=args.repeats)
 
-    print("Local synthetic large-book, many-splits, and create-preview benchmark")
+    print("Local synthetic large-book, many-splits, write-preview, validation, and read-back benchmark")
     print(f"Synthetic fixture: {metadata.path}")
     print(f"Transactions: {metadata.transaction_count}")
     print(f"Expense accounts: {metadata.expense_account_count}")
@@ -642,7 +795,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Synthetic hierarchy depth: {metadata.account_depth}")
     print(f"Synthetic account count: {metadata.synthetic_account_count}")
     print(f"Many-splits transaction splits: {metadata.many_split_count}")
-    print("Scope: local synthetic fixture only; non-mutating read and create-preview validation paths only.")
+    print("Scope: local synthetic fixture only; non-mutating read, create-preview, validation, and read-back paths only.")
     print("No private book data used; no writes executed; no production performance claim.")
     for result in results:
         extra = ""
