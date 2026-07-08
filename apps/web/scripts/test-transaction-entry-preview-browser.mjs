@@ -29,6 +29,9 @@ const syntheticToken = 'synthetic-smoke-token';
 const syntheticDescription = 'Synthetic browser smoke preview';
 const syntheticMemo = 'Synthetic browser smoke memo';
 const syntheticAmount = '12.34';
+const explicitSyntheticCreateHarnessToken = 'issue50-explicit-synthetic-create-harness';
+const explicitSyntheticCreateHarnessSearch = '?explicit_test_mode=issue50';
+const explicitSyntheticCreateId = 'synthetic-explicit-create-1';
 
 const syntheticBook = {
 	id: 1,
@@ -257,19 +260,41 @@ function isForbiddenTransactionMutation(method, pathname, search = '') {
 	return !(pathname.endsWith('/transactions/create-preview') && search === '');
 }
 
+function isExplicitSyntheticCreateHarnessRequest(req, url) {
+	return req.method === 'POST'
+		&& url.pathname === '/books/1/transactions'
+		&& url.search === explicitSyntheticCreateHarnessSearch
+		&& req.headers['x-issue50-explicit-test-create'] === explicitSyntheticCreateHarnessToken
+		&& req.headers['x-app-env'] === 'test'
+		&& req.headers['x-gnucash-writes-enabled'] === 'true';
+}
+
 async function startSyntheticApi() {
 	const requests = [];
 	const forbiddenRequests = [];
 	const previewPayloads = [];
+	const explicitCreatePayloads = [];
 	const server = createServer(async (req, res) => {
 		const url = new URL(req.url ?? '/', 'http://127.0.0.1');
-		requests.push({ method: req.method, path: url.pathname, search: url.search, pathWithSearch: `${url.pathname}${url.search}` });
-		if (isForbiddenTransactionMutation(req.method ?? 'GET', url.pathname, url.search)) {
-			forbiddenRequests.push({ method: req.method, path: url.pathname, search: url.search, pathWithSearch: `${url.pathname}${url.search}` });
-			return jsonResponse(res, 409, { detail: 'Synthetic smoke blocked a mutation endpoint.' });
-		}
+		const explicitHarnessRequest = isExplicitSyntheticCreateHarnessRequest(req, url);
+		requests.push({ method: req.method, path: url.pathname, search: url.search, pathWithSearch: `${url.pathname}${url.search}`, explicitHarnessRequest });
 
 		try {
+			if (explicitHarnessRequest) {
+				const payload = await readBody(req);
+				explicitCreatePayloads.push(payload);
+				return jsonResponse(res, 201, {
+					transaction_id: explicitSyntheticCreateId,
+					backup_path: 'redacted-synthetic-backup-ref',
+					audit_log_id: 1,
+					readback_verified: true,
+					readback_transaction_id: explicitSyntheticCreateId
+				});
+			}
+			if (isForbiddenTransactionMutation(req.method ?? 'GET', url.pathname, url.search)) {
+				forbiddenRequests.push({ method: req.method, path: url.pathname, search: url.search, pathWithSearch: `${url.pathname}${url.search}` });
+				return jsonResponse(res, 409, { detail: 'Synthetic smoke blocked a mutation endpoint.' });
+			}
 			if (req.method === 'GET' && url.pathname === '/health') {
 				return jsonResponse(res, 200, { status: 'ok', first_run: null });
 			}
@@ -352,6 +377,7 @@ async function startSyntheticApi() {
 		requests,
 		forbiddenRequests,
 		previewPayloads,
+		explicitCreatePayloads,
 		close: () => new Promise((resolve) => server.close(resolve))
 	};
 }
@@ -904,6 +930,88 @@ function assertMutationRequestPredicates() {
 	}
 }
 
+function productCreatePayloadFromPreview(previewPayload) {
+	assert.deepEqual(
+		Object.keys(previewPayload).sort(),
+		['amount', 'credit_account_id', 'currency', 'date', 'debit_account_id', 'description', 'memo'].sort(),
+		'explicit synthetic CREATE harness must start from the preview action payload only'
+	);
+	assert.match(previewPayload.amount, /^[0-9]+(?:\.[0-9]+)?$/, 'explicit synthetic CREATE harness requires a positive decimal-string amount');
+	return {
+		date: previewPayload.date,
+		description: previewPayload.description,
+		splits: [
+			{
+				account_id: previewPayload.debit_account_id,
+				amount: `-${previewPayload.amount}`,
+				currency: previewPayload.currency,
+				memo: previewPayload.memo ?? ''
+			},
+			{
+				account_id: previewPayload.credit_account_id,
+				amount: previewPayload.amount,
+				currency: previewPayload.currency,
+				memo: previewPayload.memo ?? ''
+			}
+		]
+	};
+}
+
+async function runExplicitSyntheticCreateHarness(api, browserRequests, previewPayload) {
+	assert.equal(api.explicitCreatePayloads.length, 0, 'explicit synthetic CREATE harness must start with zero CREATE payloads');
+	assert.equal(
+		isForbiddenTransactionMutation('POST', '/books/1/transactions', ''),
+		true,
+		'product CREATE route remains forbidden without explicit synthetic test harness'
+	);
+	assert.equal(
+		isForbiddenTransactionMutation('POST', '/books/1/transactions', explicitSyntheticCreateHarnessSearch),
+		true,
+		'product CREATE route remains forbidden to the generic mutation predicate even when the explicit-test query is present'
+	);
+
+	const productCreatePayload = productCreatePayloadFromPreview(previewPayload);
+	assert.deepEqual(Object.keys(productCreatePayload).sort(), ['date', 'description', 'splits'].sort(), 'explicit synthetic CREATE harness must use the product CREATE payload shape');
+	assert.equal(productCreatePayload.splits.length, 2, 'explicit synthetic CREATE harness must remain a single two-split CREATE drill');
+	const browserRequestCountBefore = browserRequests.length;
+	const forbiddenRequestCountBefore = api.forbiddenRequests.length;
+
+	const response = await fetch(`${api.url}/books/1/transactions${explicitSyntheticCreateHarnessSearch}`, {
+		method: 'POST',
+		headers: {
+			'content-type': 'application/json',
+			authorization: `Bearer ${syntheticToken}`,
+			'x-issue50-explicit-test-create': explicitSyntheticCreateHarnessToken,
+			'x-app-env': 'test',
+			'x-gnucash-writes-enabled': 'true'
+		},
+		body: JSON.stringify(productCreatePayload)
+	});
+	assert.equal(response.status, 201, 'explicit synthetic CREATE harness must use product CREATE route and receive a synthetic created result');
+	assert.deepEqual(await response.json(), {
+		transaction_id: explicitSyntheticCreateId,
+		backup_path: 'redacted-synthetic-backup-ref',
+		audit_log_id: 1,
+		readback_verified: true,
+		readback_transaction_id: explicitSyntheticCreateId
+	});
+	assert.equal(browserRequests.length, browserRequestCountBefore, 'explicit harness must not be browser-driven or activate default UI');
+	assert.equal(api.forbiddenRequests.length, forbiddenRequestCountBefore, 'explicit harness must not be counted as a default/user-mode mutation boundary request');
+	assert.deepEqual(api.explicitCreatePayloads, [productCreatePayload], 'explicit synthetic CREATE harness must capture exactly one product CREATE payload');
+	assert.deepEqual(
+		api.requests
+			.filter((request) => request.explicitHarnessRequest)
+			.map(({ method, path, search, pathWithSearch }) => ({ method, path, search, pathWithSearch })),
+		[{ method: 'POST', path: '/books/1/transactions', search: explicitSyntheticCreateHarnessSearch, pathWithSearch: `/books/1/transactions${explicitSyntheticCreateHarnessSearch}` }],
+		'explicit synthetic CREATE harness must be the only accepted product CREATE route request'
+	);
+	assert.equal(
+		api.requests.filter((request) => request.path === '/books/1/transactions' && !request.explicitHarnessRequest).length,
+		0,
+		'default/user-mode product CREATE route must remain unused'
+	);
+}
+
 async function runSmoke() {
 	assertSourceSafety();
 	assertMutationRequestPredicates();
@@ -1210,6 +1318,7 @@ async function runSmoke() {
 			['?/preview'],
 			'browser must submit the transaction-entry form exactly once and only to the preview action'
 		);
+		await runExplicitSyntheticCreateHarness(api, browserRequests, previewPayload);
 	} catch (error) {
 		if (webProcess) console.error(`web-server-output-tail:\n${webProcess.outputTail()}`);
 		if (chromiumProcess) console.error(`chromium-output-tail:\n${chromiumProcess.outputTail()}`);
@@ -1224,4 +1333,4 @@ async function runSmoke() {
 }
 
 await runSmoke();
-console.log('transaction-entry-preview-browser: ok (synthetic, writes-disabled, no mutation requests)');
+console.log('transaction-entry-preview-browser: ok (synthetic browser preview writes-disabled; explicit test-mode CREATE harness)');
