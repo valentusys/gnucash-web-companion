@@ -310,6 +310,9 @@ export type MessageKey =
 	| 'transactions.writeAlphaHistoryBadge'
 	| 'transactions.writeAlphaHistoryTitle'
 	| 'transactions.listStatus.writeAlphaHint'
+	| 'transactions.listStatus.writeAlphaFollowupTitle'
+	| 'transactions.listStatus.writeAlphaFollowupHelp'
+	| 'transactions.listStatus.writeAlphaAuditLink'
 	| 'transactions.export.button'
 	| 'transactions.export.buttonWithFilters'
 	| 'transactions.export.statusFiltered'
@@ -710,6 +713,10 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 			'Created by write-alpha app metadata. Synthetic/disposable history hint only; backend ownership guards remain authoritative.',
 		'transactions.listStatus.writeAlphaHint':
 			'{count} transaction(s) on this page are marked write-alpha-created in app metadata; treat this only as a synthetic/disposable history hint. Backend ownership guards remain authoritative and default writes stay disabled.',
+		'transactions.listStatus.writeAlphaFollowupTitle': 'New synthetic CREATE follow-up',
+		'transactions.listStatus.writeAlphaFollowupHelp':
+			'After a synthetic/disposable CREATE is read back, the newly created synthetic/disposable transaction appears in the normal newest-first history only after the read-only API returns it and app metadata marks its GUID. It is not pinned above filters; if the badge is absent, clear filters or review redacted audit evidence. The badge is not a permission to write.',
+		'transactions.listStatus.writeAlphaAuditLink': 'Review redacted write-alpha audit evidence',
 		'transactions.export.button': 'Export CSV',
 		'transactions.export.buttonWithFilters': 'Export CSV ({count} {filterLabel})',
 		'transactions.export.statusFiltered':
@@ -1120,6 +1127,10 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 			'Создано по app metadata write-alpha. Это только synthetic/disposable подсказка истории; backend ownership guards остаются главным enforcement.',
 		'transactions.listStatus.writeAlphaHint':
 			'{count} строк(и) на этой странице отмечены app metadata как write-alpha-created; это только synthetic/disposable подсказка истории. Backend ownership guards остаются главным enforcement, а writes по умолчанию отключены.',
+		'transactions.listStatus.writeAlphaFollowupTitle': 'Новая synthetic CREATE follow-up',
+		'transactions.listStatus.writeAlphaFollowupHelp':
+			'После read-back synthetic/disposable CREATE новая synthetic/disposable транзакция появляется в обычной истории только когда read-only API вернул строку, а app metadata пометила GUID. Она не закрепляется поверх фильтров; если badge не виден, сбросьте фильтры или проверьте redacted audit evidence. Сам badge не даёт разрешение на запись.',
+		'transactions.listStatus.writeAlphaAuditLink': 'Открыть redacted write-alpha audit evidence',
 		'transactions.export.button': 'Экспорт CSV',
 		'transactions.export.buttonWithFilters': 'Экспорт CSV ({count} {filterLabel})',
 		'transactions.export.statusFiltered':

@@ -246,6 +246,18 @@
 					<p class="mt-1">{t(locale, 'transactions.listStatus.exportParity')}</p>
 					{#if writeAlphaOwnedVisibleCount > 0}
 						<p id="write-alpha-history-hint" class="mt-1 font-semibold" style="color: #92400e;">{writeAlphaHistoryHint}</p>
+						<section
+							id="write-alpha-history-followup"
+							class="mt-3 rounded-xl px-3 py-2"
+							style="background: #fffbeb; border: 1px solid #fcd34d; color: #92400e;"
+							aria-labelledby="write-alpha-history-followup-title"
+						>
+							<p id="write-alpha-history-followup-title" class="font-semibold">{t(locale, 'transactions.listStatus.writeAlphaFollowupTitle')}</p>
+							<p class="mt-1">{t(locale, 'transactions.listStatus.writeAlphaFollowupHelp')}</p>
+							<a class="mt-2 inline-flex min-h-11 items-center rounded-lg border px-3 py-2 font-semibold" style="border-color: #f59e0b; color: #92400e;" href="/books/write-alpha-audit">
+								{t(locale, 'transactions.listStatus.writeAlphaAuditLink')}
+							</a>
+						</section>
 					{/if}
 				</div>
 			</div>

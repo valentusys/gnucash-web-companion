@@ -579,13 +579,24 @@ assert.match(
 	/writeAlphaOwnedVisibleCount[\s\S]*transactions\.listStatus\.writeAlphaHint[\s\S]*write-alpha-history-hint/s,
 	'transactions page must summarize visible write-alpha-created synthetic/disposable rows as a history hint only'
 );
+assert.match(
+	transactionListPage,
+	/write-alpha-history-followup[\s\S]*transactions\.listStatus\.writeAlphaFollowupTitle[\s\S]*transactions\.listStatus\.writeAlphaFollowupHelp[\s\S]*href="\/books\/write-alpha-audit"[\s\S]*transactions\.listStatus\.writeAlphaAuditLink/s,
+	'transactions page must explain how newly created synthetic/disposable rows appear in normal history and link to redacted audit evidence'
+);
 for (const historyCopyFragment of [
 	"'transactions.writeAlphaHistoryBadge': 'write-alpha-created'",
 	'Synthetic/disposable history hint only',
 	'Backend ownership guards remain authoritative',
 	'default writes stay disabled',
+	'New synthetic CREATE follow-up',
+	'newly created synthetic/disposable transaction appears in the normal newest-first history only after the read-only API returns it and app metadata marks its GUID',
+	'badge is not a permission to write',
 	'{count} строк(и) на этой странице отмечены app metadata как write-alpha-created',
-	'writes по умолчанию отключены'
+	'writes по умолчанию отключены',
+	'Новая synthetic CREATE follow-up',
+	'только когда read-only API вернул строку, а app metadata пометила GUID',
+	'badge не даёт разрешение на запись'
 ]) {
 	assert.ok(i18nMessages.includes(historyCopyFragment), `transaction history write-alpha copy must include: ${historyCopyFragment}`);
 }
