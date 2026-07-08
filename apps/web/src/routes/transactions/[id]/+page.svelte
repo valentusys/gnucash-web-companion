@@ -8,6 +8,7 @@
 	const splitCountLabel = $derived(`${tx.splits.length} ${tx.splits.length === 1 ? t(locale, 'transactionDetail.splitSingular') : t(locale, 'transactionDetail.splitPlural')}`);
 	const canShowWriteAlphaControls = $derived(Boolean(data.writesEnabled && data.activeBook && tx.is_write_alpha_owned));
 	const showNonOwnedWriteAlphaCopy = $derived(Boolean(data.writesEnabled && data.activeBook && !tx.is_write_alpha_owned));
+	const showWriteAlphaHistoryProvenance = $derived(Boolean(tx.is_write_alpha_owned));
 </script>
 
 <svelte:head>
@@ -51,6 +52,24 @@
 				</div>
 			</div>
 		</div>
+
+		{#if showWriteAlphaHistoryProvenance}
+			<section
+				class="mt-6 rounded-2xl p-4"
+				aria-labelledby="transaction-write-alpha-history-heading"
+				style="background: #fffbeb; border: 1px solid #fcd34d;"
+			>
+				<p id="transaction-write-alpha-history-heading" class="text-sm font-semibold" style="color: #92400e;">
+					{t(locale, 'transactionDetail.writeAlphaHistoryTitle')}
+				</p>
+				<p class="mt-2 text-sm" style="color: #92400e;">
+					{t(locale, 'transactionDetail.writeAlphaHistoryHelper')}
+				</p>
+				<span class="mt-3 inline-flex max-w-full items-center rounded-full px-2 py-0.5 text-xs font-semibold" style="background: #fff7ed; color: #92400e; border: 1px solid #fdba74;" title={t(locale, 'transactions.writeAlphaHistoryTitle')}>
+					{t(locale, 'transactions.writeAlphaHistoryBadge')}
+				</span>
+			</section>
+		{/if}
 
 		<TransactionSplits splits={tx.splits} {locale} />
 

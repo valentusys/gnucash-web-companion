@@ -115,6 +115,8 @@ export type MessageKey =
 	| 'transactionDetail.id'
 	| 'transactionDetail.splitSingular'
 	| 'transactionDetail.splitPlural'
+	| 'transactionDetail.writeAlphaHistoryTitle'
+	| 'transactionDetail.writeAlphaHistoryHelper'
 	| 'transactionDetail.nonOwnedTitle'
 	| 'transactionDetail.nonOwnedHelper'
 	| 'transactionDetail.deleteTitle'
@@ -484,6 +486,9 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'transactionDetail.id': 'ID',
 		'transactionDetail.splitSingular': 'split',
 		'transactionDetail.splitPlural': 'splits',
+		'transactionDetail.writeAlphaHistoryTitle': 'Created through write-alpha app metadata',
+		'transactionDetail.writeAlphaHistoryHelper':
+			'This read-only history provenance means the transaction GUID matches a safe app-metadata marker from a write-alpha run. Synthetic/disposable history hint only; backend ownership guards remain authoritative and default writes remain disabled.',
 		'transactionDetail.nonOwnedTitle': 'Historical/manual transaction remains read-only',
 		'transactionDetail.nonOwnedHelper':
 			'Edit/delete controls are hidden because this transaction is not marked as write-alpha-owned in app metadata. Backend ownership guards remain authoritative. Experimental controls appear only for write-alpha-owned synthetic/disposable transactions when write mode is explicitly enabled in APP_ENV=test.',
@@ -891,6 +896,9 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'transactionDetail.id': 'ID',
 		'transactionDetail.splitSingular': 'split',
 		'transactionDetail.splitPlural': 'splits',
+		'transactionDetail.writeAlphaHistoryTitle': 'Создано через app metadata write-alpha',
+		'transactionDetail.writeAlphaHistoryHelper':
+			'Эта read-only provenance истории означает, что GUID транзакции совпадает с безопасным app-metadata marker из write-alpha запуска. Это только synthetic/disposable подсказка истории; backend ownership guards остаются главным enforcement, а writes по умолчанию отключены.',
 		'transactionDetail.nonOwnedTitle': 'Историческая/manual транзакция остаётся read-only',
 		'transactionDetail.nonOwnedHelper':
 			'Edit/delete controls скрыты, потому что эта транзакция не отмечена в app metadata как write-alpha-owned. Backend ownership guards остаются главным enforcement. Экспериментальные controls появляются только для write-alpha-owned synthetic/disposable транзакций при явном write mode в APP_ENV=test.',

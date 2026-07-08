@@ -757,6 +757,16 @@ assert.match(
 	'transaction detail page must show safe explanatory copy instead of edit/delete controls for non-owned transactions when write mode is enabled'
 );
 assert.match(
+	transactionDetailPage,
+	/showWriteAlphaHistoryProvenance[\s\S]*tx\.is_write_alpha_owned[\s\S]*transactionDetail\.writeAlphaHistoryTitle[\s\S]*transactionDetail\.writeAlphaHistoryHelper[\s\S]*transactions\.writeAlphaHistoryBadge/s,
+	'transaction detail page must show read-only write-alpha provenance for owned history rows without depending on enabled write controls'
+);
+assert.match(
+	i18nMessages,
+	/transactionDetail\.writeAlphaHistoryTitle[\s\S]*Created through write-alpha app metadata[\s\S]*transactionDetail\.writeAlphaHistoryHelper[\s\S]*read-only history provenance[\s\S]*Synthetic\/disposable[\s\S]*default writes remain disabled[\s\S]*Создано через app metadata write-alpha[\s\S]*read-only provenance/s,
+	'localized transaction detail provenance copy must frame write-alpha history as synthetic/disposable metadata only with default writes disabled'
+);
+assert.match(
 	i18nMessages,
 	/transactionDetail\.nonOwnedHelper[\s\S]*Backend ownership guards remain authoritative[\s\S]*write-alpha-owned synthetic\/disposable transactions[\s\S]*transactionDetail\.deleteHelper[\s\S]*write-alpha-owned in app metadata[\s\S]*APP_ENV=test[\s\S]*transactionDetail\.deleteAcknowledgement[\s\S]*backup, audit, and lock-release checks[\s\S]*Экспериментальное удаление транзакции[\s\S]*APP_ENV=test/s,
 	'localized delete write-alpha guardrails must mention ownership, backend authority, ignored disposable copies, APP_ENV=test, and backup/audit/lock-release checks'
