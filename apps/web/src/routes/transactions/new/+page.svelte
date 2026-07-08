@@ -559,6 +559,17 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 					<li>Post-result reset/probe state stays pending until GNUCASH_WRITES_ENABLED=false is verified.</li>
 				</ul>
 			</div>
+			<div id="failure-rollback-decision-ladder" class="mt-3 rounded-lg p-3 text-xs" role="note" aria-label="Disabled failure and rollback decision ladder" style="border: 1px solid #5eead4; background: #f0fdfa;">
+				<p class="font-semibold">Failure and rollback decision ladder (disabled)</p>
+				<p class="mt-1 font-semibold">Display-only guide for future result handling; this page does not execute CREATE, retry, restore, or rollback.</p>
+				<ol class="mt-2 list-decimal pl-5">
+					<li>Stop before CREATE: show failure, keep success blocked, no rollback needed.</li>
+					<li>Unknown after attempted CREATE: preserve target state and require owner recovery decision.</li>
+					<li>Confirmed failed/no mutation: safe redacted error only; no success claim.</li>
+					<li>Confirmed mutated but rejected by post-checks: owner-approved restore decision before retry.</li>
+					<li>After any result: reset writes disabled and run disabled probes before reporting completion.</li>
+				</ol>
+			</div>
 			<dl class="mt-3 grid min-w-0 gap-2 text-xs md:grid-cols-2">
 				<div class="rounded-lg px-3 py-2" style="background: #f0fdfa;"><dt class="font-semibold">execution_result.status</dt><dd>{executionResult.status}</dd></div>
 				<div class="rounded-lg px-3 py-2" style="background: #f0fdfa;"><dt class="font-semibold">create_result_state</dt><dd>{executionResult.create_result_state}</dd></div>
