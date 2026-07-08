@@ -815,6 +815,8 @@ class TestTransactionCreatePreview:
         )
         from app.routers.owner_writebeta import _SESSIONS
 
+        enabled_settings = TEST_SETTINGS.model_copy(update={"gnucash_writes_enabled": True})
+        app.dependency_overrides[get_settings] = lambda: enabled_settings
         self._set_fake_book(session_factory, sample_book, fake_book_with_transactions)
         owner_session = OwnerWritebetaSession()
         owner_session.transition(OwnerWritebetaState.PREFLIGHT)
@@ -846,10 +848,13 @@ class TestTransactionCreatePreview:
             assert response.status_code == 200
             data = response.json()
             assert data["preview_only"] is True
+            assert data["writes_enabled_required_for_create"] is True
             assert data["create_count"] == 1
             assert "preview_hash" not in data
             assert "confirmation_token" not in data
             assert "create_execution_allowed" not in data
+            assert "allowed_create_count" not in data
+            assert "session_armed" not in data
             assert _SESSIONS[sample_book].state == OwnerWritebetaState.CONFIRMATION
             assert _SESSIONS[sample_book].preview_hash == armed_preview_hash
             self.assert_no_preview_mutation_metadata(session_factory)
@@ -892,6 +897,9 @@ class TestTransactionCreatePreview:
             "_open_piecash_book_for_write",
             "create_book_backup",
             "create-readiness-status",
+            "Header(",
+            "x_owner_writebeta_preview_hash",
+            "x_owner_writebeta_confirmation_token",
             "require_owner_writebeta_if_active",
         ):
             assert forbidden not in source
