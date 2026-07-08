@@ -140,6 +140,7 @@ function assertSourceSafety() {
 	assert.match(page, /id="disabled-probe-readiness-matrix"[\s\S]*Disabled-write probe matrix \(pending\)[\s\S]*Default state: validate\/preflight\/CREATE\/PATCH\/DELETE\/batch probes are pending and not executed/s, 'disabled-probe matrix must default to pending/not executed');
 	assert.match(page, /id="execution-result-shell"[\s\S]*Execution-result UX shell \(not run\)[\s\S]*Default state: no execution result exists, no success or failure result is claimed, and rollback\/restore is not run/s, 'execution-result shell must default to not run/no success/no failure/no rollback');
 	assert.match(page, /id="execution-result-outcome-legend"[\s\S]*Result outcome legend \(disabled\)[\s\S]*Do not infer success from preview or approval copy[\s\S]*Rollback\/restore: owner-approved recovery path only/s, 'execution-result shell must explain disabled success/failure/rollback outcomes');
+	assert.match(page, /id="execution-result-triage-panel"[\s\S]*Disabled result triage[\s\S]*Current state: no CREATE execution attempted; preview data is not a success result[\s\S]*Success requires redacted CREATE reference and private read-back before any success copy[\s\S]*Failure state keeps success blocked until a safe error is translated[\s\S]*Rollback state remains owner-approved recovery only and is not run from this page[\s\S]*Post-result reset\/probe state stays pending until GNUCASH_WRITES_ENABLED=false is verified/s, 'execution-result triage panel must clarify disabled success/failure/rollback/reset outcomes');
 	for (const targetPreflightLabel of ['Target file exists/readable', 'Target is outside repo', 'GnuCash Desktop closed', 'No .LCK/.LNK lock', 'Manual Desktop verification required']) {
 		assert.ok(page.includes(targetPreflightLabel), `target preflight checklist missing label: ${targetPreflightLabel}`);
 	}
@@ -718,6 +719,12 @@ async function assertExecutionResultShellRemainsPending(cdp, label) {
 	assert.match(executionResultState.executionResultText, /Result outcome legend \(disabled\)/, `${label}: result outcome legend must stay visible`);
 	assert.match(executionResultState.executionResultText, /Do not infer success from preview or approval copy/, `${label}: result legend must prevent preview-as-success interpretation`);
 	assert.match(executionResultState.executionResultText, /Rollback\/restore: owner-approved recovery path only/, `${label}: rollback legend must stay owner-approved and non-mutating`);
+	assert.match(executionResultState.executionResultText, /Disabled result triage/, `${label}: execution-result triage panel must stay visible`);
+	assert.match(executionResultState.executionResultText, /Current state: no CREATE execution attempted; preview data is not a success result/, `${label}: triage panel must keep preview separate from success`);
+	assert.match(executionResultState.executionResultText, /Success requires redacted CREATE reference and private read-back before any success copy/, `${label}: triage panel must state success evidence requirements`);
+	assert.match(executionResultState.executionResultText, /Failure state keeps success blocked until a safe error is translated/, `${label}: triage panel must state failure/no-success boundary`);
+	assert.match(executionResultState.executionResultText, /Rollback state remains owner-approved recovery only and is not run from this page/, `${label}: triage panel must keep rollback disabled`);
+	assert.match(executionResultState.executionResultText, /Post-result reset\/probe state stays pending until GNUCASH_WRITES_ENABLED=false is verified/, `${label}: triage panel must require reset/probe evidence before result completion`);
 	assert.match(executionResultState.executionResultText, /performs no restore and emits no success claim/, `${label}: rollback/no-success boundary must stay visible`);
 	assert.deepEqual(executionResultState.executionResultStatuses, Array(6).fill('pending'), `${label}: execution-result steps must stay pending`);
 	assert.deepEqual(

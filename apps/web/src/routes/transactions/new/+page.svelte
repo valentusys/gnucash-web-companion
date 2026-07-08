@@ -536,7 +536,7 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 				{/each}
 			</ul>
 		</div>
-		<div id="execution-result-shell" class="mt-4 rounded-xl p-3" aria-labelledby="execution-result-title" aria-describedby="execution-result-summary execution-result-outcome-legend" style="border: 1px solid #99f6e4; background: #ecfeff;">
+		<div id="execution-result-shell" class="mt-4 rounded-xl p-3" aria-labelledby="execution-result-title" aria-describedby="execution-result-summary execution-result-outcome-legend execution-result-triage-panel" style="border: 1px solid #99f6e4; background: #ecfeff;">
 			<p id="execution-result-title" class="font-semibold">Execution-result UX shell (not run)</p>
 			<p id="execution-result-summary" class="mt-1 text-xs">Default state: no execution result exists, no success or failure result is claimed, and rollback/restore is not run.</p>
 			<div id="execution-result-outcome-legend" class="mt-3 rounded-lg p-3 text-xs" role="note" aria-label="Disabled execution result outcome legend" style="border: 1px solid #5eead4; background: #f0fdfa;">
@@ -547,6 +547,16 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 					<li>Success: allowed only after redacted CREATE reference, private read-back, audit, reset, disabled probes, and Desktop verification.</li>
 					<li>Failure: safe error translated and no success claim emitted.</li>
 					<li>Rollback/restore: owner-approved recovery path only; never started by this preview page.</li>
+				</ul>
+			</div>
+			<div id="execution-result-triage-panel" class="mt-3 rounded-lg p-3 text-xs" role="note" aria-label="Disabled execution result triage" style="border: 1px solid #5eead4; background: #f0fdfa;">
+				<p class="font-semibold">Disabled result triage</p>
+				<p class="mt-1 font-semibold">Current state: no CREATE execution attempted; preview data is not a success result.</p>
+				<ul class="mt-2 list-disc pl-5">
+					<li>Success requires redacted CREATE reference and private read-back before any success copy.</li>
+					<li>Failure state keeps success blocked until a safe error is translated.</li>
+					<li>Rollback state remains owner-approved recovery only and is not run from this page.</li>
+					<li>Post-result reset/probe state stays pending until GNUCASH_WRITES_ENABLED=false is verified.</li>
 				</ul>
 			</div>
 			<dl class="mt-3 grid min-w-0 gap-2 text-xs md:grid-cols-2">
