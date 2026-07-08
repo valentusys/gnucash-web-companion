@@ -183,12 +183,14 @@ def viewer_headers(viewer_token):
 
 
 @pytest.fixture
-def sample_book(session_factory):
+def sample_book(session_factory, tmp_path: Path):
+    target = tmp_path / "disposable-route-test-book.gnucash.sqlite"
+    target.write_bytes(b"SQLite format 3\x00")
     with session_factory() as session:
         book = Book(
             name="Test Book",
             storage_type="sqlite",
-            uri_or_path="/data/books/test.gnucash.sqlite",
+            uri_or_path=str(target),
             is_default=True,
         )
         session.add(book)

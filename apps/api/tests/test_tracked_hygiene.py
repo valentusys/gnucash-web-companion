@@ -672,7 +672,9 @@ def test_content_violations_allow_negative_safety_wording(tmp_path, monkeypatch)
         "Do not release public write beta.\n"
         "This prevents consent to\n"
         "ship owner-writebeta.\n"
-        "- forbidden implication: clean checks publish owner-writebeta.\n",
+        "- forbidden implication: clean checks publish owner-writebeta.\n"
+        "- non-goals: raw evidence; public write beta claims; "
+        "owner/private/original/working/Syncthing/only-copy book access.\n",
         encoding="utf-8",
     )
     monkeypatch.setattr(guard, "REPO_ROOT", tmp_path)

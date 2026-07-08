@@ -306,6 +306,8 @@ NEGATING_WORDING_MARKERS = (
     "unclaimed",
     "blocker",
     "forbidden",
+    "non-goal:",
+    "non-goals:",
     "prevents",
     "not published",
     "unpublished",

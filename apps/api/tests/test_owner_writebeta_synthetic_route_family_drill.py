@@ -6,6 +6,7 @@ No GnuCash book is opened or mutated.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -16,7 +17,7 @@ from sqlalchemy.pool import StaticPool
 from app.config import Settings, get_settings
 from app.database import Base
 from app.main import app
-from app.models import Book, User, UserBookAccess
+from app.models import AuditLog, Book, User, UserBookAccess
 from app.routers.auth import get_db
 from app.schemas.gnucash import TransactionDetailDTO, TransactionSplitDTO
 from app.schemas.gnucash_writes import TransactionValidationResultDTO, TransactionWriteResultDTO
@@ -30,6 +31,8 @@ TEST_SETTINGS = Settings(
     app_admin_password="testpassword123",
     gnucash_writes_enabled=True,
 )
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
 
 READ_ONLY_SETTINGS = Settings(
     app_env="test",
@@ -78,7 +81,11 @@ def fake_write_calls(monkeypatch):
     calls: list[tuple[str, object]] = []
 
     def fake_write_service_for(book):
-        assert str(book.uri_or_path).startswith("synthetic://")
+        target = Path(str(book.uri_or_path)).resolve()
+        assert target.is_file()
+        assert "disposable" in target.name
+        with pytest.raises(ValueError):
+            target.relative_to(REPO_ROOT)
         return FakeWriteService(calls)
 
     class FakeReadService:
@@ -144,13 +151,34 @@ def auth_headers(client):
 
 
 @pytest.fixture
-def synthetic_book(session_factory):
+def synthetic_book(session_factory, tmp_path: Path):
+    target = tmp_path / "owner-writebeta-disposable-route-family.gnucash.sqlite"
+    target.write_bytes(b"SQLite format 3\x00 synthetic route-family placeholder")
     with session_factory() as session:
         book = Book(
             name="Synthetic owner-writebeta route-family fixture",
             storage_type="sqlite",
-            uri_or_path="synthetic://owner-writebeta-route-family",
+            uri_or_path=str(target),
             is_default=True,
+        )
+        session.add(book)
+        session.flush()
+        admin = session.query(User).filter(User.username == "admin").one()
+        session.add(UserBookAccess(user_id=admin.id, book_id=book.id, role="owner"))
+        session.commit()
+        return book.id
+
+
+@pytest.fixture
+def external_unproven_book(session_factory, tmp_path: Path):
+    target = tmp_path / "owner-ledger.gnucash.sqlite"
+    target.write_bytes(b"SQLite format 3\x00 unproven route-family placeholder")
+    with session_factory() as session:
+        book = Book(
+            name="Unproven external route-family target",
+            storage_type="sqlite",
+            uri_or_path=str(target),
+            is_default=False,
         )
         session.add(book)
         session.flush()
@@ -277,6 +305,82 @@ def test_synthetic_create_patch_delete_route_family_requires_fresh_confirmed_gat
     assert disabled_create.status_code == 403
     assert "read-only" in disabled_create.json()["detail"]
     assert [name for name, _ in fake_write_calls] == ["create", "patch", "delete"]
+
+
+def test_synthetic_route_family_create_requires_disposable_target_preflight_before_write_service(
+    client,
+    auth_headers,
+    external_unproven_book,
+    fake_write_calls,
+    session_factory,
+):
+    create_headers = _preview_confirm_headers(client, auth_headers, external_unproven_book, "CREATE")
+
+    response = client.post(
+        f"/books/{external_unproven_book}/transactions",
+        headers=create_headers,
+        json=_synthetic_create_payload(),
+    )
+
+    assert response.status_code == 403
+    detail = response.json()["detail"]
+    assert "Disposable target preflight failed closed" in detail
+    assert "filename must mark it as copied/disposable/synthetic test data" in detail
+    assert "owner-ledger" not in detail
+    assert fake_write_calls == []
+    with session_factory() as session:
+        assert session.query(AuditLog).filter_by(action="transaction.create").count() == 0
+    from app.routers.owner_writebeta import _SESSIONS
+
+    assert _SESSIONS[external_unproven_book].state.value == "confirmation"
+
+
+def test_synthetic_route_family_create_requires_target_outside_repo_before_write_service(
+    client,
+    auth_headers,
+    fake_write_calls,
+    session_factory,
+    tmp_path: Path,
+    monkeypatch,
+):
+    target = tmp_path / "inside-repo-disposable-route-family.gnucash.sqlite"
+    target.write_bytes(b"SQLite format 3\x00 inside simulated repo placeholder")
+    with session_factory() as session:
+        book = Book(
+            name="Repo-contained disposable-looking route-family target",
+            storage_type="sqlite",
+            uri_or_path=str(target),
+            is_default=False,
+        )
+        session.add(book)
+        session.flush()
+        admin = session.query(User).filter(User.username == "admin").one()
+        session.add(UserBookAccess(user_id=admin.id, book_id=book.id, role="owner"))
+        session.commit()
+        book_id = book.id
+
+    create_headers = _preview_confirm_headers(client, auth_headers, book_id, "CREATE")
+    import app.routers.transactions as transactions_router
+
+    monkeypatch.setattr(transactions_router, "REPO_ROOT", tmp_path.parent)
+
+    response = client.post(
+        f"/books/{book_id}/transactions",
+        headers=create_headers,
+        json=_synthetic_create_payload(),
+    )
+
+    assert response.status_code == 403
+    detail = response.json()["detail"]
+    assert "Disposable target preflight failed closed" in detail
+    assert "outside the git working tree" in detail
+    assert str(target) not in detail
+    assert fake_write_calls == []
+    with session_factory() as session:
+        assert session.query(AuditLog).filter_by(action="transaction.create").count() == 0
+    from app.routers.owner_writebeta import _SESSIONS
+
+    assert _SESSIONS[book_id].state.value == "confirmation"
 
 
 @pytest.mark.parametrize(

@@ -11,9 +11,11 @@ import hashlib
 import io
 import json
 import logging
+import os
 import re
 from datetime import date, datetime, timezone
 from decimal import Decimal
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
@@ -69,6 +71,21 @@ CREATE_READBACK_FAILURE_DETAIL = (
 )
 
 router = APIRouter(tags=["transactions"])
+
+REPO_ROOT = Path(__file__).resolve().parents[4]
+DISPOSABLE_CREATE_TARGET_HINTS = frozenset(
+    {
+        "copy",
+        "copied",
+        "disposable",
+        "dogfood",
+        "scratch",
+        "synthetic",
+        "test",
+        "tmp",
+    }
+)
+SQLITE_BOOK_SUFFIXES = frozenset({".sqlite", ".sqlite3", ".db"})
 
 
 def _serialize_transaction_list_item(
@@ -1255,6 +1272,61 @@ def _ensure_write_alpha_test_scope(settings: Settings) -> None:
         )
 
 
+def _is_inside_path(child: Path, parent: Path) -> bool:
+    try:
+        child.resolve().relative_to(parent.resolve())
+    except ValueError:
+        return False
+    return True
+
+
+def _looks_like_sqlite_book(path: Path) -> bool:
+    suffixes = [suffix.lower() for suffix in path.suffixes]
+    return any(suffix in SQLITE_BOOK_SUFFIXES for suffix in suffixes)
+
+
+def _has_disposable_target_marker(path: Path) -> bool:
+    marker_text = path.name.lower()
+    return any(marker in marker_text for marker in DISPOSABLE_CREATE_TARGET_HINTS)
+
+
+def _disposable_create_target_blocker(book: Book) -> str | None:
+    """Return a path-safe blocker unless this CREATE target is a disposable SQLite file.
+
+    This is a metadata-only preflight. It never opens the GnuCash book, creates a
+    backup, acquires a lock, writes an audit row, or calls the write service.
+    """
+    raw_target = str(getattr(book, "uri_or_path", "") or "").strip()
+    if not raw_target:
+        return "book target path is not configured"
+    if "://" in raw_target:
+        return "book target must be a local SQLite fixture file, not a connection URI"
+
+    target = Path(raw_target).expanduser().resolve()
+    if not target.exists() or not target.is_file():
+        return "book target file is missing or not a regular file"
+    if _is_inside_path(target, REPO_ROOT):
+        return "book target must be outside the git working tree"
+    if not _looks_like_sqlite_book(target):
+        return "book target must be a SQLite fixture file"
+    if not os.access(target, os.R_OK | os.W_OK):
+        return "book target must be readable and writable"
+    if not _has_disposable_target_marker(target):
+        return (
+            "book target filename must mark it as copied/disposable/synthetic test data"
+        )
+    return None
+
+
+def _require_disposable_create_target(book: Book) -> None:
+    blocker = _disposable_create_target_blocker(book)
+    if blocker is not None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Disposable target preflight failed closed: {blocker}.",
+        )
+
+
 # ---------------------------------------------------------------------------
 # Phase 12: Controlled write endpoints
 # ---------------------------------------------------------------------------
@@ -1463,6 +1535,7 @@ async def create_book_transaction(
     _ensure_write_alpha_test_scope(settings)
     book = _resolve_viewable_book(book_id, user, session)
     _require_book_edit_access(book, user, session)
+    _require_disposable_create_target(book)
     from app.routers.owner_writebeta import require_owner_writebeta_if_active
 
     require_owner_writebeta_if_active(
