@@ -16,7 +16,7 @@ backup/read-back/audit/reset/probes, and manual Desktop verification.
 
 Commands were run from the repository root in separate isolated shells.
 
-- `cd apps/api && pytest -q` — passed: 1018 passed, 53 warnings.
+- `cd apps/api && pytest -q` — passed: 1052 passed, 54 warnings.
 - `cd apps/web && npm run check` — passed: 0 errors, 0 warnings.
 - `cd apps/web && npm run build` — passed.
 - `cd apps/web && npm run test:transaction-entry-preview` — passed: `transaction-entry-preview-static: ok`.
@@ -27,7 +27,7 @@ Commands were run from the repository root in separate isolated shells.
 - `python3 scripts/check_public_status.py` — passed: `public-status-guard: ok`.
 - `python3 scripts/check_write_safety_defaults.py` — passed: default-disabled/write-gate guard ok.
 - `python3 scripts/check_markdown_readability.py` — passed: 27 docs checked.
-- `python3 scripts/check_tracked_hygiene.py` — passed: 1956 tracked paths inspected.
+- `python3 scripts/check_tracked_hygiene.py` — passed: 1957 tracked paths inspected.
 - `git diff --check` — passed.
 
 ## Safety status
