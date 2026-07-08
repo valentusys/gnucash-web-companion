@@ -319,6 +319,11 @@ def test_fixture_scope_boundaries_are_explicit_and_non_claiming() -> None:
     assert boundaries["disposable"]["evidence_class"] == "tested-disposable-report"
     assert boundaries["copied-restorable"]["evidence_class"] == "copied-restorable-report"
     assert boundaries["unknown"]["evidence_class"] == "unverified"
+    disposable_boundary = boundaries["disposable"]["boundary"]
+    assert "Single-use triage" in disposable_boundary
+    assert "Desktop-version expansion" in disposable_boundary
+    assert "backend support statement" in disposable_boundary
+    assert "real-book evidence" in disposable_boundary
     combined = " ".join(str(item) for value in boundaries.values() for item in value.values()).lower()
     assert "not a compatibility guarantee" in combined
     assert "private row data" in combined
@@ -337,6 +342,11 @@ def test_compatibility_docs_define_fixture_scope_boundaries() -> None:
     assert "private row data remains forbidden" in doc
     assert "does not become a tested matrix row" in doc
     assert "Disposable SQLite report metadata is single-use triage evidence" in doc
+    assert (
+        "Operator-created disposable SQLite report metadata for triage only; it is single-use"
+        in doc
+    )
+    assert "Desktop-version expansion, backend support statement, or reusable fixture" in doc
 
 
 def test_compatibility_docs_and_changelog_do_not_claim_broad_support() -> None:

@@ -181,7 +181,7 @@ The compatibility workflow uses narrow fixture-scope words so reports do not bec
 | `fixture_scope` | Report `evidence_class` | Boundary |
 |---|---|---|
 | `synthetic` | `tested-synthetic-fixture` | Committed/generated synthetic SQLite fixture evidence only; not real-book or Desktop-version proof. |
-| `disposable` | `tested-disposable-report` | Operator-created disposable SQLite report metadata for triage; it does not become a tested matrix row by itself. |
+| `disposable` | `tested-disposable-report` | Operator-created disposable SQLite report metadata for triage only; it is single-use and does not become a tested matrix row, Desktop-version expansion, backend support statement, or reusable fixture by itself. |
 | `copied-restorable` | `copied-restorable-report` | Copied/restorable SQLite book stayed outside git; private row data remains forbidden, and redacted metadata alone is not publishable support evidence. |
 | `unknown` | `unverified` | Unknown scope, non-SQLite backend, or incomplete provenance; no support claim. |
 

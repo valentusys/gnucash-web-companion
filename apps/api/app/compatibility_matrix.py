@@ -242,7 +242,10 @@ def fixture_scope_boundaries() -> dict[str, dict[str, str]]:
         "disposable": {
             "evidence_class": "tested-disposable-report",
             "meaning": "Operator-created disposable SQLite fixture evidence reviewed as a report.",
-            "boundary": "Useful for triage only; not a compatibility guarantee and not a reusable fixture row by itself.",
+            "boundary": (
+                "Single-use triage only; not a compatibility guarantee, reusable fixture row, "
+                "Desktop-version expansion, backend support statement, or real-book evidence."
+            ),
         },
         "copied-restorable": {
             "evidence_class": "copied-restorable-report",
