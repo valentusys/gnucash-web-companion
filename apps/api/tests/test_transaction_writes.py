@@ -373,6 +373,24 @@ def _read_account_balances(book_path: Path, account_guids: set[str]) -> dict[str
         book.close()
 
 
+def _read_account_balances_via_readonly_route(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    book_id: int,
+    account_guids: set[str],
+) -> dict[str, Decimal]:
+    """Read balances through the app's read-only account service route."""
+    response = client.get(f"/books/{book_id}/accounts", headers=auth_headers)
+    assert response.status_code == 200
+    balances = {
+        account["id"]: Decimal(account["balance"])
+        for account in response.json()
+        if account["id"] in account_guids
+    }
+    assert set(balances) == account_guids
+    return balances
+
+
 def _make_mock_piecash(fake_book, fake_accounts):
     """Create a mock piecash module for write tests."""
     mock_piecash = MagicMock()
@@ -1960,8 +1978,12 @@ class TestWriteAlphaCreateRouteDisposableFixture:
             ],
         }
         txs_before = _read_written_transactions(disposable_fixture_book)
-        before_balances = _read_account_balances(disposable_fixture_book, tracked_guids)
-        assert set(before_balances) == tracked_guids
+        before_balances = _read_account_balances_via_readonly_route(
+            client,
+            auth_headers,
+            disposable_sample_book,
+            tracked_guids,
+        )
 
         response = client.post(
             f"/books/{disposable_sample_book}/transactions",
@@ -2011,7 +2033,12 @@ class TestWriteAlphaCreateRouteDisposableFixture:
         assert reopened_splits[destination_guid]["memo"] == "destination memo exact"
         assert sum(split["value"] for split in created["splits"]) == Decimal("0.00")
 
-        reopened_balances = _read_account_balances(disposable_fixture_book, tracked_guids)
+        reopened_balances = _read_account_balances_via_readonly_route(
+            client,
+            auth_headers,
+            disposable_sample_book,
+            tracked_guids,
+        )
         assert reopened_balances[source_guid] == before_balances[source_guid] - amount
         assert reopened_balances[destination_guid] == before_balances[destination_guid] + amount
         total_delta = sum(reopened_balances[guid] - before_balances[guid] for guid in tracked_guids)
@@ -2036,7 +2063,7 @@ class TestWriteAlphaCreateRouteDisposableFixture:
         assert disposable_write_lock.acquire(lock_key) is True
         disposable_write_lock.release(lock_key)
 
-    def test_enabled_create_route_three_split_reopens_with_exact_fields_and_balance_deltas(
+    def test_enabled_create_route_three_split_reopens_with_exact_fields_and_balance_deltas_via_readonly_paths(
         self,
         client,
         auth_headers,
@@ -2073,8 +2100,12 @@ class TestWriteAlphaCreateRouteDisposableFixture:
             ],
         }
         txs_before = _read_written_transactions(disposable_fixture_book)
-        before_balances = _read_account_balances(disposable_fixture_book, tracked_guids)
-        assert set(before_balances) == tracked_guids
+        before_balances = _read_account_balances_via_readonly_route(
+            client,
+            auth_headers,
+            disposable_sample_book,
+            tracked_guids,
+        )
 
         response = client.post(
             f"/books/{disposable_sample_book}/transactions",
@@ -2112,6 +2143,16 @@ class TestWriteAlphaCreateRouteDisposableFixture:
         assert detail_splits[transport_guid]["currency"] == "SEK"
         assert detail_splits[transport_guid]["memo"] == "destination transport portion"
 
+        list_response = client.get(
+            f"/books/{disposable_sample_book}/transactions",
+            headers=auth_headers,
+            params={"query": payload["description"]},
+        )
+        assert list_response.status_code == 200
+        listed = {item["id"]: item for item in list_response.json()["items"]}
+        assert transaction_id in listed
+        assert listed[transaction_id]["currency"] == "SEK"
+
         reopened_txs = _read_written_transactions(disposable_fixture_book)
         assert len(reopened_txs) == len(txs_before) + 1
         created = next(tx for tx in reopened_txs if tx["guid"] == transaction_id)
@@ -2132,7 +2173,12 @@ class TestWriteAlphaCreateRouteDisposableFixture:
         assert reopened_splits[transport_guid]["memo"] == "destination transport portion"
         assert sum(split["value"] for split in created["splits"]) == Decimal("0.00")
 
-        reopened_balances = _read_account_balances(disposable_fixture_book, tracked_guids)
+        reopened_balances = _read_account_balances_via_readonly_route(
+            client,
+            auth_headers,
+            disposable_sample_book,
+            tracked_guids,
+        )
         assert reopened_balances[source_guid] == before_balances[source_guid] - Decimal("63.33")
         assert reopened_balances[food_guid] == before_balances[food_guid] + Decimal("40.00")
         assert reopened_balances[transport_guid] == before_balances[transport_guid] + Decimal("23.33")
