@@ -2602,6 +2602,8 @@ class TestPatchTransaction:
             ("value", {"value": "-999.00"}),
             ("quantity", {"quantity": "-999.00"}),
             ("account_id", {"account_id": "other-account-guid"}),
+            ("split_amounts", {"split_amounts": {"synthetic-split-guid": "-999.00"}}),
+            ("split_accounts", {"split_accounts": {"synthetic-split-guid": "other-account-guid"}}),
             (
                 "splits",
                 {
@@ -2618,6 +2620,7 @@ class TestPatchTransaction:
             ("currency", {"currency": "USD"}),
             ("date", {"date": "2026-12-25"}),
             ("post_date", {"post_date": "2026-12-25"}),
+            ("exchange_rate", {"exchange_rate": "1.25"}),
         ],
     )
     def test_patch_rejects_immutable_financial_fields(
@@ -2828,6 +2831,60 @@ class TestWriteAlphaPatchRouteDisposableFixture:
             assert payload["request_summary"]["fields_updated"] == ["split_memos"]
             assert payload["fields_updated"] == {"split_memos": memo_updates}
 
+    def test_enabled_patch_route_allows_clearing_text_metadata_without_financial_mutation(
+        self,
+        client,
+        auth_headers,
+        disposable_sample_book,
+        disposable_fixture_book,
+        disposable_write_lock,
+        session_factory,
+    ):
+        tx_before = self._first_fixture_transaction(disposable_fixture_book)
+        assert tx_before["description"]
+        self._mark_owned(session_factory, disposable_sample_book, tx_before["guid"])
+        split_guid = tx_before["splits"][0]["guid"]
+
+        response = client.patch(
+            f"/books/{disposable_sample_book}/transactions/{tx_before['guid']}",
+            json={"description": "", "split_memos": {split_guid: ""}},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["transaction_id"] == tx_before["guid"]
+        assert Path(data["backup_path"]).exists()
+
+        txs_after = _read_written_transactions(disposable_fixture_book)
+        patched = next(tx for tx in txs_after if tx["guid"] == tx_before["guid"])
+        assert patched["description"] == ""
+        assert patched["post_date"] == tx_before["post_date"]
+        assert patched["currency"] == tx_before["currency"]
+        assert [split["guid"] for split in patched["splits"]] == [
+            split["guid"] for split in tx_before["splits"]
+        ]
+        assert [split["account_guid"] for split in patched["splits"]] == [
+            split["account_guid"] for split in tx_before["splits"]
+        ]
+        assert [split["value"] for split in patched["splits"]] == [
+            split["value"] for split in tx_before["splits"]
+        ]
+        patched_split = next(split for split in patched["splits"] if split["guid"] == split_guid)
+        assert patched_split["memo"] == ""
+
+        lock_key = str(disposable_fixture_book)
+        assert disposable_write_lock.acquire(lock_key) is True
+        disposable_write_lock.release(lock_key)
+
+        with session_factory() as session:
+            audit_log = session.get(AuditLog, data["audit_log_id"])
+            assert audit_log is not None
+            payload = json.loads(audit_log.payload_json)
+            assert payload["result"] == "success"
+            assert set(payload["request_summary"]["fields_updated"]) == {"description", "split_memos"}
+            assert payload["fields_updated"] == {"description": "", "split_memos": {split_guid: ""}}
+
     @pytest.mark.parametrize(
         ("field_name", "immutable_payload"),
         [
@@ -2835,6 +2892,8 @@ class TestWriteAlphaPatchRouteDisposableFixture:
             ("value", {"value": "-999.00"}),
             ("quantity", {"quantity": "-999.00"}),
             ("account_id", {"account_id": "c3e2c3289f6745d6a226599207ef1157"}),
+            ("split_amounts", {"split_amounts": {"synthetic-split-guid": "-999.00"}}),
+            ("split_accounts", {"split_accounts": {"synthetic-split-guid": "c3e2c3289f6745d6a226599207ef1157"}}),
             (
                 "splits",
                 {
@@ -2857,6 +2916,7 @@ class TestWriteAlphaPatchRouteDisposableFixture:
             ("currency", {"currency": "USD"}),
             ("date", {"date": "2026-05-18"}),
             ("post_date", {"post_date": "2026-05-18"}),
+            ("exchange_rate", {"exchange_rate": "1.25"}),
         ],
     )
     def test_enabled_patch_route_rejects_immutable_financial_fields_without_mutation(

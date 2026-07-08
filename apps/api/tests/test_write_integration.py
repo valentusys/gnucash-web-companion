@@ -666,6 +666,34 @@ class TestPatchTransactionMetadata:
         patched_split = next(split for split in tx["splits"] if split["guid"] == target_guid)
         assert patched_split["memo"] == "Combined memo update"
 
+    def test_patch_allows_clearing_text_metadata_without_financial_changes(self, service_and_path):
+        """PATCH may clear description and memo text while preserving all financial fields."""
+        svc, book_path = service_and_path
+        txs_before = _read_transactions(book_path)
+        before = next(t for t in txs_before if t["guid"] == FixtureTransactions.GROCERY_STORE)
+        assert before["description"]
+        target_guid = before["splits"][0]["guid"]
+
+        request = TransactionPatchRequestDTO(
+            description="",
+            split_memos={target_guid: ""},
+        )
+        result = svc.patch_transaction_metadata(
+            FixtureTransactions.GROCERY_STORE, request, user_id=1, book_id=1
+        )
+        assert result.transaction_id == FixtureTransactions.GROCERY_STORE
+
+        txs_after = _read_transactions(book_path)
+        after = next(t for t in txs_after if t["guid"] == FixtureTransactions.GROCERY_STORE)
+        assert after["description"] == ""
+        assert after["post_date"] == before["post_date"]
+        assert after["currency"] == before["currency"]
+        assert [split["guid"] for split in after["splits"]] == [split["guid"] for split in before["splits"]]
+        assert [split["account_guid"] for split in after["splits"]] == [split["account_guid"] for split in before["splits"]]
+        assert [split["value"] for split in after["splits"]] == [split["value"] for split in before["splits"]]
+        patched_split = next(split for split in after["splits"] if split["guid"] == target_guid)
+        assert patched_split["memo"] == ""
+
 
 # ---------------------------------------------------------------------------
 # 7. Patch validation rejections
@@ -696,6 +724,10 @@ class TestPatchValidationRejections:
         [
             ("amount", {"amount": "999.00"}),
             ("account_id", {"account_id": FixtureAccounts.FOOD}),
+            ("value", {"value": "999.00"}),
+            ("quantity", {"quantity": "999.00"}),
+            ("split_amounts", {"split_amounts": {"synthetic-split-guid": "999.00"}}),
+            ("split_accounts", {"split_accounts": {"synthetic-split-guid": FixtureAccounts.FOOD}}),
             (
                 "splits",
                 {
@@ -710,6 +742,8 @@ class TestPatchValidationRejections:
             ),
             ("currency", {"currency": "USD"}),
             ("date", {"date": "2026-12-25"}),
+            ("post_date", {"post_date": "2026-12-25"}),
+            ("exchange_rate", {"exchange_rate": "1.25"}),
         ],
     )
     def test_patch_rejects_immutable_financial_fields_at_schema(self, field_name, immutable_payload):
