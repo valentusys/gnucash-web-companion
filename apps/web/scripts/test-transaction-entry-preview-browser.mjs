@@ -130,6 +130,8 @@ function assertSourceSafety() {
 	assert.match(page, /id="mobile-preview-path-card"[\s\S]*Mobile preview path[\s\S]*Tap Preview transaction; this is the only submitting action[\s\S]*The form stays preview-only and no-write on mobile/s, 'mobile preview path card must guide the safe preview-only flow');
 	assert.match(page, /id="preview-mobile-action-bar"[\s\S]*sticky bottom-0[\s\S]*formaction="\?\/preview"[\s\S]*Preview transaction[\s\S]*Create disabled/s, 'mobile action bar must keep the preview submit target and disabled create control together');
 	assert.match(page, /id="mobile-confirmation-status-card"[\s\S]*Mobile confirmation status[\s\S]*Preview state[\s\S]*Future Create: disabled[\s\S]*Copy helper: placeholders only[\s\S]*No write path is enabled/s, 'mobile confirmation status card must summarize preview state without adding write controls');
+	assert.match(page, /id="mobile-preview-review-cards"[\s\S]*Mobile preview review[\s\S]*Key normalized fields are repeated here for thumb-first review[\s\S]*Review disabled confirmation shell[\s\S]*Open placeholder approval packet/s, 'mobile preview review cards must make normalized preview and confirmation anchors thumb-friendly');
+	assert.match(page, /id="mobile-confirmation-review-steps"[\s\S]*Mobile confirmation checklist[\s\S]*Local checkbox does not submit, arm, or approve CREATE[\s\S]*Future Create remains disabled/s, 'mobile confirmation review steps must stay local/no-write');
 	assert.match(page, /id="redacted-create-readiness-state"[\s\S]*Redacted read-only readiness state[\s\S]*writes_enabled status[\s\S]*allowed execution status/s, 'page must expose the redacted read-only readiness object fields');
 	assert.match(page, /id="armed-session-requirements"[\s\S]*Target class required[\s\S]*Exact CREATE count required[\s\S]*preview-reviewed checkbox alone is not enough/s, 'armed-session requirements panel must remain disabled placeholder guidance');
 	assert.match(page, /id="target-preflight-readiness"[\s\S]*Target preflight required[\s\S]*Target readiness not checked[\s\S]*Default state: all target readiness checks are pending \/ not checked \/ not armed/s, 'target preflight shell must default to not checked/pending');
@@ -627,7 +629,13 @@ async function assertMobilePreviewUx(cdp, label, { confirmation = false, stale =
 			actionBarClass: document.querySelector('#preview-mobile-action-bar')?.className ?? '',
 			confirmationPresent: Boolean(document.querySelector('#mobile-confirmation-status-card')),
 			confirmationVisible: visible('#mobile-confirmation-status-card'),
-			confirmationText: text('#mobile-confirmation-status-card')
+			confirmationText: text('#mobile-confirmation-status-card'),
+			reviewCardsPresent: Boolean(document.querySelector('#mobile-preview-review-cards')),
+			reviewCardsVisible: visible('#mobile-preview-review-cards'),
+			reviewCardsText: text('#mobile-preview-review-cards'),
+			reviewStepsPresent: Boolean(document.querySelector('#mobile-confirmation-review-steps')),
+			reviewStepsVisible: visible('#mobile-confirmation-review-steps'),
+			reviewStepsText: text('#mobile-confirmation-review-steps')
 		};
 	})()`);
 	assert.ok(state.scrollWidth <= state.viewportWidth + 8, `${label}: mobile viewport must not have obvious horizontal overflow (${state.scrollWidth} > ${state.viewportWidth})`);
@@ -640,6 +648,8 @@ async function assertMobilePreviewUx(cdp, label, { confirmation = false, stale =
 	assert.match(state.actionBarText, /Create disabled/, `${label}: mobile action bar must keep disabled create copy`);
 	if (!confirmation) {
 		assert.equal(state.confirmationPresent, false, `${label}: mobile confirmation status must be absent before successful preview`);
+		assert.equal(state.reviewCardsPresent, false, `${label}: mobile preview review cards must be absent before successful preview`);
+		assert.equal(state.reviewStepsPresent, false, `${label}: mobile confirmation review steps must be absent before successful preview`);
 		return;
 	}
 	assert.equal(state.confirmationVisible, true, `${label}: mobile confirmation status must be visible after successful preview`);
@@ -647,6 +657,15 @@ async function assertMobilePreviewUx(cdp, label, { confirmation = false, stale =
 	assert.match(state.confirmationText, /Future Create: disabled/i, `${label}: mobile confirmation status must keep Future Create disabled`);
 	assert.match(state.confirmationText, /Copy helper: placeholders only/i, `${label}: mobile confirmation status must keep copy helper redacted`);
 	assert.match(state.confirmationText, /No write path is enabled/, `${label}: mobile confirmation status must repeat no-write boundary`);
+	assert.equal(state.reviewCardsVisible, true, `${label}: mobile preview review cards must be visible after successful preview`);
+	assert.match(state.reviewCardsText, /Mobile preview review/, `${label}: mobile preview review cards must render title`);
+	assert.match(state.reviewCardsText, /Key normalized fields are repeated here for thumb-first review/, `${label}: mobile preview review cards must explain mobile review purpose`);
+	assert.match(state.reviewCardsText, /Review disabled confirmation shell/, `${label}: mobile preview review cards must link to the confirmation shell`);
+	assert.match(state.reviewCardsText, /Open placeholder approval packet/, `${label}: mobile preview review cards must link to redacted approval packet`);
+	assert.equal(state.reviewStepsVisible, true, `${label}: mobile confirmation review steps must be visible after successful preview`);
+	assert.match(state.reviewStepsText, /Mobile confirmation checklist/, `${label}: mobile confirmation review steps must render title`);
+	assert.match(state.reviewStepsText, /Local checkbox does not submit, arm, or approve CREATE/, `${label}: mobile confirmation review steps must remain no-write`);
+	assert.match(state.reviewStepsText, /Future Create remains disabled/, `${label}: mobile confirmation review steps must keep Future Create disabled`);
 	if (stale) {
 		assert.match(state.confirmationText, /Stale — run Preview transaction again/, `${label}: stale mobile confirmation must require re-preview`);
 	} else {

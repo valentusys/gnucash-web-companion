@@ -775,6 +775,21 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 				<p id="mobile-confirmation-status-help" class="mt-3 font-semibold">Next safe action: review fields below, or rerun Preview transaction if the draft changes. No write path is enabled.</p>
 			</div>
 
+			<section id="mobile-preview-review-cards" class="mt-4 min-w-0 rounded-2xl p-4 text-sm md:hidden" aria-labelledby="mobile-preview-review-title" aria-describedby="mobile-preview-review-help preview-create-disabled-explanation" style="border: 1px solid #bfdbfe; background: #eff6ff; color: #1e3a8a;">
+				<p id="mobile-preview-review-title" class="font-semibold">Mobile preview review</p>
+				<p id="mobile-preview-review-help" class="mt-1">Key normalized fields are repeated here for thumb-first review; this card is display-only and does not copy, submit, or arm CREATE.</p>
+				<dl id="mobile-preview-review-list" class="mt-3 grid min-w-0 gap-2">
+					<div class="min-w-0 rounded-xl p-3" style="background: #dbeafe;"><dt class="text-xs font-semibold uppercase tracking-wide">Source/debit account</dt><dd class="mt-1 break-words">{preview.debit_account.full_name}</dd></div>
+					<div class="min-w-0 rounded-xl p-3" style="background: #dbeafe;"><dt class="text-xs font-semibold uppercase tracking-wide">Destination/credit account</dt><dd class="mt-1 break-words">{preview.credit_account.full_name}</dd></div>
+					<div class="min-w-0 rounded-xl p-3" style="background: #dbeafe;"><dt class="text-xs font-semibold uppercase tracking-wide">Amount + currency</dt><dd class="mt-1 break-words">{preview.amount} {preview.currency}</dd></div>
+					<div class="min-w-0 rounded-xl p-3" style="background: #dbeafe;"><dt class="text-xs font-semibold uppercase tracking-wide">Date</dt><dd class="mt-1 break-words">{preview.date}</dd></div>
+				</dl>
+				<div id="mobile-preview-review-actions" class="mt-3 grid min-w-0 gap-2" aria-label="Mobile preview review jump links">
+					<a class="block rounded-xl px-3 py-2 text-center font-semibold" style="border: 1px solid #bfdbfe; color: #1e40af;" href="#preview-confirmation-shell">Review disabled confirmation shell</a>
+					<a class="block rounded-xl px-3 py-2 text-center font-semibold" style="border: 1px solid #bfdbfe; color: #1e40af;" href="#approval-packet">Open placeholder approval packet</a>
+				</div>
+			</section>
+
 			<section id="preview-confirmation-shell" class="mt-4 min-w-0 rounded-2xl border p-4" aria-labelledby="preview-confirmation-shell-title" aria-describedby="preview-confirmation-shell-help preview-create-disabled-explanation" style="border-color: var(--app-border); background: var(--app-bg);">
 				<div class="flex min-w-0 flex-col gap-4 md:flex-row md:items-start md:justify-between">
 					<div class="min-w-0">
@@ -798,6 +813,15 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 						<li>Execution result status: {executionResult.status}; success/failure results stay pending and rollback state is {executionResult.rollback_state}.</li>
 						<li>Preview-reviewed checkbox alone is not enough; the preview must also be current, non-stale, owner-approved, target-preflight-passed, backed up, read back, audited, reset, probed, result-reported, and manually verified in Desktop.</li>
 					</ul>
+				</div>
+				<div id="mobile-confirmation-review-steps" class="mt-4 rounded-xl p-3 text-sm md:hidden" role="note" aria-labelledby="mobile-confirmation-review-title" aria-describedby="preview-confirmation-shell-help preview-create-disabled-explanation" style="border: 1px solid #bfdbfe; background: #eff6ff; color: #1e3a8a;">
+					<p id="mobile-confirmation-review-title" class="font-semibold">Mobile confirmation checklist</p>
+					<ol class="mt-2 list-decimal space-y-1 pl-5">
+						<li>Compare the mobile preview review cards with the normalized preview details below.</li>
+						<li>Local checkbox does not submit, arm, or approve CREATE; it only records this browser-local review state.</li>
+						<li>Future Create remains disabled until fresh owner approval, exact count, target preflight, backup, read-back, audit, reset, probes, result reporting, and Desktop verification all happen in a separate approved session.</li>
+						<li>If any draft field changed after preview, rerun Preview transaction before relying on this confirmation shell.</li>
+					</ol>
 				</div>
 				<div class="mt-4 flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:justify-between">
 					<label class="flex min-w-0 items-start gap-2 text-sm" style="color: var(--app-text);" for="preview-reviewed-confirmation">
