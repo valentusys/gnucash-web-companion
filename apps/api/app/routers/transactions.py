@@ -1031,6 +1031,16 @@ def _write_lock_detail() -> str:
     return "Could not acquire write lock for this book. Retry after the active write finishes."
 
 
+def _mark_owner_writebeta_failure_if_active(book_id: int) -> None:
+    """Hard-stop an active owner-writebeta session after routed write failure."""
+    try:
+        from app.routers.owner_writebeta import mark_owner_writebeta_failure_if_active
+
+        mark_owner_writebeta_failure_if_active(book_id=book_id)
+    except Exception:
+        logger.warning("Could not mark owner-writebeta failure hard-stop", exc_info=True)
+
+
 WRITE_ALPHA_AUDIT_ACTIONS = (
     "transaction.create",
     "transaction.patch",
@@ -1571,6 +1581,7 @@ async def create_book_transaction(
         )
         readback_fields = _verify_transaction_create_readback(book, request, result)
     except WriteLockError as exc:
+        _mark_owner_writebeta_failure_if_active(book.id)
         audit_payload.update({"result": "failed", "error": _write_lock_detail()})
         _update_audit_log(session, log, audit_payload)
         raise HTTPException(
@@ -1578,6 +1589,7 @@ async def create_book_transaction(
             detail=_write_lock_detail(),
         ) from exc
     except GnuCashCreateReadbackVerificationError as exc:
+        _mark_owner_writebeta_failure_if_active(book.id)
         safe_detail = _write_error_detail(exc)
         audit_payload.update(
             {
@@ -1596,6 +1608,7 @@ async def create_book_transaction(
             detail=safe_detail,
         ) from exc
     except GnuCashWriteError as exc:
+        _mark_owner_writebeta_failure_if_active(book.id)
         safe_detail = _write_error_detail(exc)
         audit_payload.update(
             {
@@ -1699,6 +1712,7 @@ async def patch_book_transaction(
             book_id=book.id,
         )
     except WriteLockError as exc:
+        _mark_owner_writebeta_failure_if_active(book.id)
         audit_payload.update({"result": "failed", "error": _write_lock_detail()})
         _update_audit_log(session, log, audit_payload)
         raise HTTPException(
@@ -1706,6 +1720,7 @@ async def patch_book_transaction(
             detail=_write_lock_detail(),
         ) from exc
     except GnuCashWriteError as exc:
+        _mark_owner_writebeta_failure_if_active(book.id)
         safe_detail = _write_error_detail(exc)
         audit_payload.update(
             {
@@ -1720,6 +1735,7 @@ async def patch_book_transaction(
             detail=safe_detail,
         ) from exc
     except EntityNotFoundError as exc:
+        _mark_owner_writebeta_failure_if_active(book.id)
         audit_payload.update({"result": "failed", "error": str(exc)})
         _update_audit_log(session, log, audit_payload)
         raise HTTPException(
@@ -1793,6 +1809,7 @@ async def delete_book_transaction(
             book_id=book.id,
         )
     except WriteLockError as exc:
+        _mark_owner_writebeta_failure_if_active(book.id)
         audit_payload.update({"result": "failed", "error": _write_lock_detail()})
         _update_audit_log(session, log, audit_payload)
         raise HTTPException(
@@ -1800,6 +1817,7 @@ async def delete_book_transaction(
             detail=_write_lock_detail(),
         ) from exc
     except GnuCashWriteError as exc:
+        _mark_owner_writebeta_failure_if_active(book.id)
         safe_detail = _write_error_detail(exc)
         audit_payload.update(
             {
@@ -1814,6 +1832,7 @@ async def delete_book_transaction(
             detail=safe_detail,
         ) from exc
     except EntityNotFoundError as exc:
+        _mark_owner_writebeta_failure_if_active(book.id)
         audit_payload.update({"result": "failed", "error": str(exc)})
         _update_audit_log(session, log, audit_payload)
         raise HTTPException(

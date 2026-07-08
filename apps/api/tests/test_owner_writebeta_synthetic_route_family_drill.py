@@ -6,6 +6,7 @@ No GnuCash book is opened or mutated.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import json
 from pathlib import Path
 
 import pytest
@@ -334,6 +335,68 @@ def _assert_default_disabled_route_family_probes(
     assert [name for name, _ in fake_write_calls] == expected_write_call_names
 
 
+def _audit_payloads(session_factory, action: str) -> list[dict]:
+    with session_factory() as session:
+        logs = session.query(AuditLog).filter_by(action=action).order_by(AuditLog.id).all()
+        return [json.loads(log.payload_json or "{}") for log in logs]
+
+
+def _assert_failed_hard_stop_status(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    book_id: int,
+) -> dict:
+    status_response = client.get(f"/books/{book_id}/owner-writebeta/status", headers=auth_headers)
+    assert status_response.status_code == 200
+    status_payload = status_response.json()
+    assert status_payload["state"] == "failed_hard_stop"
+    assert status_payload["writes_blocked"] is True
+    assert "state_failed_hard_stop" in status_payload["blocked_reasons"]
+    assert status_payload["summary"]["preview_hash"] is None
+    assert status_payload["summary"]["confirmation_token_ref"] is None
+    assert status_payload["summary"]["restore_readiness_ref"] is None
+    warning_text = "\n".join(status_payload["warnings"])
+    assert "rollback/restore decision" in warning_text
+    assert "opaque audit/backup/restore refs" in warning_text
+    for raw_private_marker in (
+        "/data/books",
+        "book.gnucash.sqlite",
+        "owner-writebeta-disposable-route-family.gnucash.sqlite",
+    ):
+        assert raw_private_marker not in str(status_payload)
+    return status_payload
+
+
+class InvalidAccountWriteService(FakeWriteService):
+    def create_transaction(self, *, request, user_id: int, book_id: int):
+        self.calls.append(("create-invalid-account", request))
+        from app.services.gnucash_write import GnuCashWriteError
+
+        raise GnuCashWriteError(
+            "Validation failed: Account not found: synthetic-missing-account"
+        )
+
+
+class LockFailingWriteService(FakeWriteService):
+    def create_transaction(self, *, request, user_id: int, book_id: int):
+        self.calls.append(("create-lock-failed", request))
+        from app.services.write_lock import WriteLockError
+
+        raise WriteLockError("/private/original/book.gnucash.sqlite")
+
+
+def _install_write_service(monkeypatch, service_factory):
+    monkeypatch.setattr("app.routers.transactions._write_service_for", service_factory)
+
+
+def _assert_no_failed_audit_raw_path(payloads: list[dict]) -> None:
+    assert len(payloads) == 1
+    assert payloads[0]["result"] == "failed"
+    serialized = json.dumps(payloads[0], sort_keys=True)
+    assert "/private/original" not in serialized
+    assert "book.gnucash.sqlite" not in serialized
+
+
 def test_synthetic_create_patch_delete_route_family_requires_fresh_confirmed_gate_and_default_reset(
     client,
     auth_headers,
@@ -578,4 +641,168 @@ def test_synthetic_route_family_disabled_defaults_return_403_before_write_servic
         synthetic_book,
         fake_write_calls,
         [],
+    )
+
+
+def test_issue50_stale_confirmed_preview_rejects_before_audit_or_write_service(
+    client,
+    auth_headers,
+    synthetic_book,
+    fake_write_calls,
+    session_factory,
+):
+    headers = _preview_confirm_headers(client, auth_headers, synthetic_book, "CREATE")
+
+    response = client.post(
+        f"/books/{synthetic_book}/transactions",
+        headers={**headers, "X-Owner-Writebeta-Preview-Hash": "owb-prev-stale"},
+        json=_synthetic_create_payload(),
+    )
+
+    assert response.status_code == 403
+    assert "armed preview" in response.json()["detail"]
+    assert fake_write_calls == []
+    assert _audit_payloads(session_factory, "transaction.create") == []
+    from app.routers.owner_writebeta import _SESSIONS
+
+    assert _SESSIONS[synthetic_book].state.value == "confirmation"
+
+
+def test_issue50_writes_disabled_rejects_even_with_fresh_owner_writebeta_confirmation(
+    client,
+    auth_headers,
+    synthetic_book,
+    fake_write_calls,
+    session_factory,
+):
+    headers = _preview_confirm_headers(client, auth_headers, synthetic_book, "CREATE")
+    app.dependency_overrides[get_settings] = lambda: READ_ONLY_SETTINGS
+
+    response = client.post(
+        f"/books/{synthetic_book}/transactions",
+        headers=headers,
+        json=_synthetic_create_payload(),
+    )
+
+    assert response.status_code == 403
+    assert "read-only" in response.json()["detail"]
+    assert fake_write_calls == []
+    assert _audit_payloads(session_factory, "transaction.create") == []
+    status = client.get(f"/books/{synthetic_book}/owner-writebeta/status", headers=auth_headers)
+    assert status.status_code == 200
+    status_payload = status.json()
+    assert status_payload["state"] == "confirmation"
+    assert status_payload["writes_blocked"] is True
+    assert "writes_disabled_default" in status_payload["blocked_reasons"]
+
+
+def test_issue50_missing_backup_or_recovery_boundary_rejects_before_write_service(
+    client,
+    auth_headers,
+    synthetic_book,
+    fake_write_calls,
+    session_factory,
+):
+    preflight = client.post(f"/books/{synthetic_book}/owner-writebeta/preflight", headers=auth_headers)
+    assert preflight.status_code == 200
+    preview = client.post(
+        f"/books/{synthetic_book}/owner-writebeta/preview",
+        headers=auth_headers,
+        json={"operation": "CREATE", "payload_shape": {"synthetic": "shape"}, "count": 1},
+    )
+    assert preview.status_code == 200
+    preview_hash = preview.json()["preview_hash"]
+
+    missing_backup = client.post(
+        f"/books/{synthetic_book}/owner-writebeta/confirm",
+        headers=auth_headers,
+        json={"preview_hash": preview_hash, "restore_readiness_ref": "rr-no-backup"},
+    )
+    assert missing_backup.status_code == 422
+    from app.routers.owner_writebeta import _SESSIONS
+
+    assert _SESSIONS[synthetic_book].state.value == "preview"
+
+    confirm_without_restore = client.post(
+        f"/books/{synthetic_book}/owner-writebeta/confirm",
+        headers=auth_headers,
+        json={"preview_hash": preview_hash, "backup_ref": "bkp-no-restore"},
+    )
+    assert confirm_without_restore.status_code == 200
+    response = client.post(
+        f"/books/{synthetic_book}/transactions",
+        headers={
+            **auth_headers,
+            "X-Owner-Writebeta-Preview-Hash": preview_hash,
+            "X-Owner-Writebeta-Confirmation-Token": confirm_without_restore.json()["confirmation_token"],
+        },
+        json=_synthetic_create_payload(),
+    )
+
+    assert response.status_code == 403
+    assert "restore_readiness_ref" in response.json()["detail"]
+    assert fake_write_calls == []
+    assert _audit_payloads(session_factory, "transaction.create") == []
+    status = client.get(f"/books/{synthetic_book}/owner-writebeta/status", headers=auth_headers)
+    assert "restore_not_ready" in status.json()["blocked_reasons"]
+
+
+def test_issue50_invalid_account_rejection_hard_stops_with_safe_recovery_message(
+    client,
+    auth_headers,
+    synthetic_book,
+    fake_write_calls,
+    session_factory,
+    monkeypatch,
+):
+    _install_write_service(
+        monkeypatch,
+        lambda book: InvalidAccountWriteService(fake_write_calls),
+    )
+    headers = _preview_confirm_headers(client, auth_headers, synthetic_book, "CREATE")
+
+    response = client.post(
+        f"/books/{synthetic_book}/transactions",
+        headers=headers,
+        json=_synthetic_create_payload(),
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == (
+        "Validation failed: Account not found: synthetic-missing-account"
+    )
+    assert [name for name, _ in fake_write_calls] == ["create-invalid-account"]
+    _assert_failed_hard_stop_status(client, auth_headers, synthetic_book)
+    payloads = _audit_payloads(session_factory, "transaction.create")
+    assert payloads[0]["result"] == "failed"
+    assert payloads[0]["backup_path"] is None
+
+
+def test_issue50_lock_failure_hard_stops_and_does_not_leak_raw_lock_or_book_path(
+    client,
+    auth_headers,
+    synthetic_book,
+    fake_write_calls,
+    session_factory,
+    monkeypatch,
+):
+    _install_write_service(monkeypatch, lambda book: LockFailingWriteService(fake_write_calls))
+    headers = _preview_confirm_headers(client, auth_headers, synthetic_book, "CREATE")
+
+    response = client.post(
+        f"/books/{synthetic_book}/transactions",
+        headers=headers,
+        json=_synthetic_create_payload(),
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == (
+        "Could not acquire write lock for this book. Retry after the active write finishes."
+    )
+    assert "/private/original" not in response.text
+    assert "book.gnucash.sqlite" not in response.text
+    assert [name for name, _ in fake_write_calls] == ["create-lock-failed"]
+    _assert_failed_hard_stop_status(client, auth_headers, synthetic_book)
+    _assert_no_failed_audit_raw_path(
+        _audit_payloads(session_factory, "transaction.create")
     )

@@ -33,6 +33,11 @@ router = APIRouter(prefix="/books/{book_id}/owner-writebeta", tags=["owner-write
 
 _SESSIONS: dict[int, OwnerWritebetaSession] = {}
 
+OWNER_WRITEBETA_FAILURE_RECOVERY_WARNING = (
+    "Failure recovery: keep writes blocked, use only opaque audit/backup/restore refs, "
+    "and require an owner-approved rollback/restore decision before any retry."
+)
+
 
 class OwnerWritebetaStatusDTO(BaseModel):
     book_id: int
@@ -147,6 +152,29 @@ def require_owner_writebeta_if_active(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
 
 
+def mark_owner_writebeta_failure_if_active(
+    *,
+    book_id: int,
+    reason: str = "post-mutation verification incomplete",
+) -> None:
+    """Fail closed after a routed mutation attempt cannot complete verification.
+
+    Legacy write-alpha calls without an active owner-writebeta session are left
+    unchanged. When the owner-writebeta route guard has moved a session into a
+    mutation state, any validation, lock, backup, read-back, or write error must
+    not leave the session reusable or apparently armed.
+    """
+    session_state = _SESSIONS.get(book_id)
+    if session_state is None or session_state.state == OwnerWritebetaState.DISABLED:
+        return
+    if session_state.state == OwnerWritebetaState.FAILED_HARD_STOP:
+        return
+    try:
+        session_state.transition(OwnerWritebetaState.FAILED_HARD_STOP, reason=reason)
+    except OwnerWritebetaTransitionError:
+        return
+
+
 def _status(book_id: int, session_state: OwnerWritebetaSession, settings: Settings) -> OwnerWritebetaStatusDTO:
     blocked: list[str] = []
     passed: list[str] = []
@@ -172,6 +200,14 @@ def _status(book_id: int, session_state: OwnerWritebetaSession, settings: Settin
             passed.append("preview_confirmed_armed")
         if not session_state.restore_readiness_ref:
             blocked.append("restore_not_ready")
+    warnings = [
+        "Owner-only experimental writebeta state visibility for copied/restorable test books only.",
+        "Real working/private/original/only-copy books remain blocked.",
+        "Values are redacted; raw paths, account names, memos, descriptions, and amounts are not exposed.",
+    ]
+    if session_state.state == OwnerWritebetaState.FAILED_HARD_STOP:
+        warnings.append(OWNER_WRITEBETA_FAILURE_RECOVERY_WARNING)
+
     return OwnerWritebetaStatusDTO(
         book_id=book_id,
         state=session_state.state.value,
@@ -179,11 +215,7 @@ def _status(book_id: int, session_state: OwnerWritebetaSession, settings: Settin
         blocked_reasons=blocked,
         pass_reasons=passed,
         summary=session_state.redacted_summary(),
-        warnings=[
-            "Owner-only experimental writebeta state visibility for copied/restorable test books only.",
-            "Real working/private/original/only-copy books remain blocked.",
-            "Values are redacted; raw paths, account names, memos, descriptions, and amounts are not exposed.",
-        ],
+        warnings=warnings,
     )
 
 
