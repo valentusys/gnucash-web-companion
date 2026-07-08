@@ -252,6 +252,88 @@ def _verify_and_reset(client: TestClient, auth_headers: dict[str, str], book_id:
     assert reset.json()["summary"]["confirmation_token_ref"] is None
 
 
+def _assert_default_disabled_route_family_probes(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    book_id: int,
+    fake_write_calls: list[tuple[str, object]],
+    expected_write_call_names: list[str],
+) -> None:
+    status_check = client.get(f"/books/{book_id}/owner-writebeta/status", headers=auth_headers)
+    assert status_check.status_code == 200
+    status_payload = status_check.json()
+    assert status_payload["state"] == "disabled"
+    assert status_payload["writes_blocked"] is True
+    assert "writes_disabled_default" in status_payload["blocked_reasons"]
+    assert status_payload["summary"]["preview_hash"] is None
+    assert status_payload["summary"]["confirmation_token_ref"] is None
+    assert status_payload["summary"]["restore_readiness_ref"] is None
+
+    readiness = client.get(f"/books/{book_id}/transactions/create-readiness-status", headers=auth_headers)
+    assert readiness.status_code == 200
+    readiness_payload = readiness.json()
+    assert readiness_payload["status"] == "disabled"
+    assert readiness_payload["writes_enabled"] is False
+    assert readiness_payload["session_armed"] is False
+    assert readiness_payload["create_execution_allowed"] is False
+    assert readiness_payload["allowed_create_count"] == 0
+    assert readiness_payload["readiness_state"]["preflight"]["status"] == "not_checked"
+    assert readiness_payload["readiness_state"]["preflight"]["private_target_probed"] is False
+    assert readiness_payload["readiness_state"]["backup"]["backup_helper_called"] is False
+
+    write_probes = [
+        (
+            "validate",
+            client.post(
+                f"/books/{book_id}/transactions/validate",
+                headers=auth_headers,
+                json=_synthetic_create_payload(),
+            ),
+        ),
+        (
+            "create",
+            client.post(
+                f"/books/{book_id}/transactions",
+                headers=auth_headers,
+                json=_synthetic_create_payload(),
+            ),
+        ),
+        (
+            "patch",
+            client.patch(
+                f"/books/{book_id}/transactions/synthetic-created-tx",
+                headers=auth_headers,
+                json={"description": "blocked"},
+            ),
+        ),
+        (
+            "delete",
+            client.delete(
+                f"/books/{book_id}/transactions/synthetic-created-tx",
+                headers=auth_headers,
+            ),
+        ),
+    ]
+    assert [response.status_code for _, response in write_probes] == [403, 403, 403, 403]
+    for name, response in write_probes:
+        assert "read-only" in response.json()["detail"], f"{name} probe did not return read-only detail"
+
+    batch = client.post(
+        f"/books/{book_id}/transactions/batch",
+        headers=auth_headers,
+        json={"items": [_synthetic_create_payload()]},
+    )
+    assert batch.status_code in {404, 405}
+
+    preflight = client.post(f"/books/{book_id}/owner-writebeta/preflight", headers=auth_headers)
+    assert preflight.status_code == 200
+    preflight_payload = preflight.json()
+    assert preflight_payload["writes_blocked"] is True
+    assert "writes_disabled_default" in preflight_payload["blocked_reasons"]
+
+    assert [name for name, _ in fake_write_calls] == expected_write_call_names
+
+
 def test_synthetic_create_patch_delete_route_family_requires_fresh_confirmed_gate_and_default_reset(
     client,
     auth_headers,
@@ -297,14 +379,13 @@ def test_synthetic_create_patch_delete_route_family_requires_fresh_confirmed_gat
     _verify_and_reset(client, auth_headers, synthetic_book, "delete")
 
     app.dependency_overrides[get_settings] = lambda: READ_ONLY_SETTINGS
-    disabled_create = client.post(
-        f"/books/{synthetic_book}/transactions",
-        headers=auth_headers,
-        json=_synthetic_create_payload(),
+    _assert_default_disabled_route_family_probes(
+        client,
+        auth_headers,
+        synthetic_book,
+        fake_write_calls,
+        ["create", "patch", "delete"],
     )
-    assert disabled_create.status_code == 403
-    assert "read-only" in disabled_create.json()["detail"]
-    assert [name for name, _ in fake_write_calls] == ["create", "patch", "delete"]
 
 
 def test_synthetic_route_family_create_requires_disposable_target_preflight_before_write_service(
@@ -491,12 +572,10 @@ def test_synthetic_route_family_disabled_defaults_return_403_before_write_servic
 ):
     app.dependency_overrides[get_settings] = lambda: READ_ONLY_SETTINGS
 
-    responses = [
-        client.post(f"/books/{synthetic_book}/transactions", headers=auth_headers, json=_synthetic_create_payload()),
-        client.patch(f"/books/{synthetic_book}/transactions/synthetic-created-tx", headers=auth_headers, json={"description": "blocked"}),
-        client.delete(f"/books/{synthetic_book}/transactions/synthetic-created-tx", headers=auth_headers),
-    ]
-
-    assert [response.status_code for response in responses] == [403, 403, 403]
-    assert all("read-only" in response.json()["detail"] for response in responses)
-    assert fake_write_calls == []
+    _assert_default_disabled_route_family_probes(
+        client,
+        auth_headers,
+        synthetic_book,
+        fake_write_calls,
+        [],
+    )
