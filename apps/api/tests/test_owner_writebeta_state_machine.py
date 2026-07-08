@@ -332,6 +332,55 @@ def test_owner_writebeta_restart_post_hard_stop_requires_new_session():
             session.transition(target)
 
 
+def test_owner_writebeta_reopen_after_reset_starts_clean_recovery_cycle():
+    """A reopened synthetic cycle must not inherit stale recovery proof refs."""
+    from app.owner_writebeta_state_machine import arm_confirmed_preview, mark_post_mutation_checks, prepare_preview
+
+    session = OwnerWritebetaSession()
+    session.transition(OwnerWritebetaState.PREFLIGHT)
+    prepare_preview(session, "CREATE", {"synthetic": {"shape": "only"}}, count=1)
+    assert session.preview_hash is not None
+    arm_confirmed_preview(
+        session,
+        preview_hash=session.preview_hash,
+        backup_ref="bkp-reopen-old",
+        restore_readiness_ref="rr-reopen-old",
+    )
+    session.transition(OwnerWritebetaState.MUTATING)
+    mark_post_mutation_checks(
+        session,
+        audit_ref="audit-reopen-old",
+        restore_ref="restore-reopen-old",
+        lock_released=True,
+        defaults_reset=True,
+    )
+    session.transition(OwnerWritebetaState.COMPLETE)
+    session.transition(OwnerWritebetaState.DISABLED)
+
+    disabled_summary = session.redacted_summary()
+    assert disabled_summary["audit_ref"] == "audit-reopen-old"
+    assert disabled_summary["restore_ref"] == "restore-reopen-old"
+
+    session.transition(OwnerWritebetaState.PREFLIGHT)
+    reopened_summary = session.redacted_summary()
+    assert reopened_summary["state"] == "preflight"
+    assert reopened_summary["writes_blocked"] is True
+    for ref_name in [
+        "operation_ref",
+        "backup_ref",
+        "audit_ref",
+        "restore_ref",
+        "restore_readiness_ref",
+        "preview_hash",
+        "confirmation_token_ref",
+    ]:
+        assert reopened_summary[ref_name] is None
+    assert reopened_summary["operation"] is None
+    assert reopened_summary["operation_count"] == "0"
+    assert reopened_summary["lock_released"] is False
+    assert reopened_summary["defaults_reset"] is False
+
+
 def test_owner_writebeta_redacted_summary_sanitizes_safe_shape_keys_and_values():
     """Prove _safe_shape redacts both user-provided keys and values (RED first)."""
     from app.owner_writebeta_state_machine import _safe_shape

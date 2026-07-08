@@ -65,6 +65,12 @@ class OwnerWritebetaSession:
     def transition(self, target: OwnerWritebetaState, *, reason: str | None = None, **refs: str | None) -> "OwnerWritebetaSession":
         if target not in self.ALLOWED[self.state]:
             raise OwnerWritebetaTransitionError(f"unsafe owner-writebeta transition: {self.state} -> {target}")
+        if self.state == OwnerWritebetaState.DISABLED and target == OwnerWritebetaState.PREFLIGHT:
+            # A new/reopened synthetic write cycle must start without stale
+            # recovery refs or post-mutation flags from the previous cycle.
+            # The disabled summary can still expose the last opaque refs until
+            # the operator explicitly starts a fresh preflight.
+            self._clear_reopen_cycle_state()
         # Apply incoming refs as tentative values so state-specific checks can
         # validate them before the transition is committed.
         tentative = {}
@@ -121,6 +127,21 @@ class OwnerWritebetaSession:
             OwnerWritebetaState.COMPLETE,
             OwnerWritebetaState.FAILED_HARD_STOP,
         }
+
+    def _clear_reopen_cycle_state(self) -> None:
+        self.operation_ref = None
+        self.backup_ref = None
+        self.audit_ref = None
+        self.restore_ref = None
+        self.restore_readiness_ref = None
+        self.preview_hash = None
+        self.confirmation_token_ref = None
+        self.operation = None
+        self.operation_count = 0
+        self.expires_at = None
+        self.lock_released = False
+        self.defaults_reset = False
+        self.failed_reason = None
 
     def redacted_summary(self) -> dict[str, str | bool | None]:
         return {
