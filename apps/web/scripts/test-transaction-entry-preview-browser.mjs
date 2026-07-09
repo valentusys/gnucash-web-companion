@@ -632,6 +632,57 @@ function buildRedactedSyntheticDeleteResultPanel() {
 	};
 }
 
+function failureResultPanelSummary(kind) {
+	if (kind === 'backup_failed') {
+		return {
+			create_count_state: 'zero_before_create',
+			read_back_verification: 'not_run',
+			backup_state: 'failed_before_create',
+			audit_state: 'not_recorded',
+			reset_default_disabled_probe_summary: 'pending_not_run',
+			raw_evidence_included: false
+		};
+	}
+	if (kind === 'read_back_failed') {
+		return {
+			create_count_state: 'unknown_after_attempt',
+			read_back_verification: 'failed',
+			backup_state: 'opaque_backup_ref_required',
+			audit_state: 'safe_failure_record_only',
+			reset_default_disabled_probe_summary: 'required_before_completion',
+			raw_evidence_included: false
+		};
+	}
+	if (kind === 'reset_probe_failed') {
+		return {
+			create_count_state: 'post_result_hard_stop',
+			read_back_verification: 'blocked_until_owner_recovery',
+			backup_state: 'opaque_backup_ref_required',
+			audit_state: 'safe_failure_record_only',
+			reset_default_disabled_probe_summary: 'failed_hard_stop',
+			raw_evidence_included: false
+		};
+	}
+	if (kind === 'recovery_copy') {
+		return {
+			create_count_state: 'not_applicable',
+			read_back_verification: 'not_applicable',
+			backup_state: 'opaque_backup_ref_required',
+			audit_state: 'not_applicable',
+			reset_default_disabled_probe_summary: 'not_applicable',
+			raw_evidence_included: false
+		};
+	}
+	return {
+		create_count_state: 'zero_before_create',
+		read_back_verification: 'not_run',
+		backup_state: 'not_run',
+		audit_state: 'not_recorded',
+		reset_default_disabled_probe_summary: 'pending_not_run',
+		raw_evidence_included: false
+	};
+}
+
 function buildRedactedSyntheticFailureUiDrillPanels() {
 	return {
 		redacted_failure_ui_drills: [
@@ -643,6 +694,7 @@ function buildRedactedSyntheticFailureUiDrillPanels() {
 				http_status: 'not_submitted',
 				mutation_count: 0,
 				no_success_claim: true,
+				result_panel: failureResultPanelSummary('before_create'),
 				safe_message: 'Stale preview rejected; rerun preview before approval.',
 				next_safe_action: 'rerun_preview',
 				recovery_copy_ref: null
@@ -655,6 +707,7 @@ function buildRedactedSyntheticFailureUiDrillPanels() {
 				http_status: 403,
 				mutation_count: 0,
 				no_success_claim: true,
+				result_panel: failureResultPanelSummary('before_create'),
 				safe_message: 'Target preflight failed closed before CREATE.',
 				next_safe_action: 'report_redacted_preflight_blocker',
 				recovery_copy_ref: null
@@ -667,6 +720,7 @@ function buildRedactedSyntheticFailureUiDrillPanels() {
 				http_status: 403,
 				mutation_count: 0,
 				no_success_claim: true,
+				result_panel: failureResultPanelSummary('before_create'),
 				safe_message: 'Writes disabled rejected the operation before book resolution.',
 				next_safe_action: 'keep_defaults_disabled',
 				recovery_copy_ref: null
@@ -679,6 +733,7 @@ function buildRedactedSyntheticFailureUiDrillPanels() {
 				http_status: 422,
 				mutation_count: 0,
 				no_success_claim: true,
+				result_panel: failureResultPanelSummary('backup_failed'),
 				safe_message: 'Backup failed before CREATE; no success result emitted.',
 				next_safe_action: 'require_redacted_backup_evidence',
 				recovery_copy_ref: null
@@ -691,6 +746,7 @@ function buildRedactedSyntheticFailureUiDrillPanels() {
 				http_status: 409,
 				mutation_count: 0,
 				no_success_claim: true,
+				result_panel: failureResultPanelSummary('before_create'),
 				safe_message: 'Could not acquire write lock; retry only after active write finishes.',
 				next_safe_action: 'wait_and_rerun_preflight',
 				recovery_copy_ref: null
@@ -703,6 +759,7 @@ function buildRedactedSyntheticFailureUiDrillPanels() {
 				http_status: 503,
 				mutation_count: 'unknown_after_attempt',
 				no_success_claim: true,
+				result_panel: failureResultPanelSummary('read_back_failed'),
 				safe_message: 'Read-back failed; preserve target and require owner recovery decision.',
 				next_safe_action: 'preserve_target_owner_recovery_decision',
 				recovery_copy_ref: 'recovery-copy-ref-redacted-issue51'
@@ -715,6 +772,7 @@ function buildRedactedSyntheticFailureUiDrillPanels() {
 				http_status: 'blocked_or_unavailable',
 				mutation_count: 'no_additional_mutation',
 				no_success_claim: true,
+				result_panel: failureResultPanelSummary('reset_probe_failed'),
 				safe_message: 'Reset and default-disabled probe failed; completion remains blocked.',
 				next_safe_action: 'hard_stop_rerun_disabled_probes',
 				recovery_copy_ref: null
@@ -727,6 +785,7 @@ function buildRedactedSyntheticFailureUiDrillPanels() {
 				http_status: 'not_applicable',
 				mutation_count: 0,
 				no_success_claim: true,
+				result_panel: failureResultPanelSummary('recovery_copy'),
 				safe_message: 'Safe recovery copy is opaque and not restored automatically.',
 				next_safe_action: 'restore_only_after_owner_decision',
 				recovery_copy_ref: 'recovery-copy-ref-redacted-issue51'
@@ -1476,6 +1535,19 @@ function assertRedactedSyntheticFailureUiDrillPanels(responseBody) {
 	for (const drill of responseBody.redacted_failure_ui_drills) {
 		assert.equal(drill.evidence_shape, 'api_result_shaped_redacted_ui_evidence', `${drill.drill_id}: evidence shape must stay API-result-shaped and redacted`);
 		assert.equal(drill.no_success_claim, true, `${drill.drill_id}: failure drill must block success claims`);
+		assert.deepEqual(
+			Object.keys(drill.result_panel).sort(),
+			[
+				'audit_state',
+				'backup_state',
+				'create_count_state',
+				'raw_evidence_included',
+				'read_back_verification',
+				'reset_default_disabled_probe_summary'
+			].sort(),
+			`${drill.drill_id}: failure result panel must expose create_count/read-back/backup/audit/reset/default-disabled fields`
+		);
+		assert.equal(drill.result_panel.raw_evidence_included, false, `${drill.drill_id}: failure result panel must explicitly exclude raw evidence`);
 		assert.ok(!['success', 'ready', 'passed', 'ok'].includes(drill.status), `${drill.drill_id}: failure drill status must fail closed`);
 		assert.ok(!/[\\/]|\.gnucash|\.sqlite|\.db|\.env/i.test(drill.safe_message), `${drill.drill_id}: safe message must not expose raw paths or file names`);
 	}
@@ -1484,9 +1556,13 @@ function assertRedactedSyntheticFailureUiDrillPanels(responseBody) {
 	assert.equal(byId.target_preflight_rejection.http_status, 403, 'target preflight rejection must be API-result-shaped 403 evidence');
 	assert.equal(byId.writes_disabled_rejection.result_state, 'rejected_before_book_resolution', 'writes-disabled rejection must happen before book resolution');
 	assert.equal(byId.backup_failure.result_state, 'failed_before_create', 'backup failure must be represented before CREATE');
+	assert.equal(byId.backup_failure.result_panel.backup_state, 'failed_before_create', 'backup failure result panel must expose redacted backup failure state');
 	assert.equal(byId.lock_failure.http_status, 409, 'lock failure must be represented as conflict evidence');
 	assert.equal(byId.read_back_failure.status, 'requires_owner_recovery', 'read-back failure must require owner recovery decision');
+	assert.equal(byId.read_back_failure.result_panel.create_count_state, 'unknown_after_attempt', 'read-back failure result panel must not convert attempted CREATE into success');
+	assert.equal(byId.read_back_failure.result_panel.read_back_verification, 'failed', 'read-back failure result panel must expose failed read-back verification');
 	assert.equal(byId.reset_probe_failure.result_state, 'post_result_hard_stop', 'reset/probe failure must hard-stop completion');
+	assert.equal(byId.reset_probe_failure.result_panel.reset_default_disabled_probe_summary, 'failed_hard_stop', 'reset/probe failure result panel must expose failed default-disabled probe summary');
 	assert.equal(byId.safe_recovery_copy.status, 'not_run', 'safe recovery copy must not imply restore was run');
 	const redactedText = JSON.stringify(responseBody);
 	for (const forbiddenValue of [
@@ -1535,6 +1611,13 @@ async function assertFailureUiDrillMatrix(cdp, label) {
 	assert.equal(state.present, true, `${label}: failure UI drill matrix must be browser-visible`);
 	assert.match(state.text, /Failure UI drills \(redacted \/ fail-closed\)/, `${label}: failure drill title must render`);
 	assert.match(state.text, /api_result_shaped_redacted_ui_evidence/, `${label}: failure drill evidence shape must render`);
+	assert.match(state.text, /failure_result_panel_fields: create_count\/read-back\/backup\/audit\/reset-default-disabled/, `${label}: failure drill matrix must render the redacted failure result-panel field contract`);
+	assert.match(state.text, /create_count_state/, `${label}: failure drill matrix must render create_count_state`);
+	assert.match(state.text, /read_back_verification/, `${label}: failure drill matrix must render read_back_verification`);
+	assert.match(state.text, /backup_state/, `${label}: failure drill matrix must render backup_state`);
+	assert.match(state.text, /audit_state/, `${label}: failure drill matrix must render audit_state`);
+	assert.match(state.text, /reset_default_disabled_probe_summary/, `${label}: failure drill matrix must render reset/default-disabled probe summary`);
+	assert.match(state.text, /raw_evidence_included\s+false/, `${label}: failure drill matrix must explicitly show raw evidence is excluded`);
 	assert.match(state.text, /stale preview rejection/i, `${label}: stale preview rejection drill must render`);
 	assert.match(state.text, /Target preflight rejection/, `${label}: target preflight rejection drill must render`);
 	assert.match(state.text, /Writes-disabled rejection/, `${label}: writes-disabled rejection drill must render`);

@@ -177,6 +177,7 @@ for (const requiredBrowserSmokeFragment of [
 	'browser must not issue CREATE/PATCH/DELETE/batch/validate/preflight/backup/audit/write-beta boundary requests',
 	'synthetic API stub must observe zero validate/preflight/backup/audit/write-beta boundary requests',
 	'function buildRedactedSyntheticFailureUiDrillPanels',
+	'function failureResultPanelSummary',
 	'function assertRedactedSyntheticFailureUiDrillPanels',
 	'function assertFailureUiDrillMatrix',
 	'redacted_failure_ui_drills',
@@ -189,6 +190,9 @@ for (const requiredBrowserSmokeFragment of [
 	'read_back_failure',
 	'reset_probe_failure',
 	'safe_recovery_copy',
+	'create_count_state',
+	'read_back_verification',
+	'reset_default_disabled_probe_summary',
 	'failure drill evidence must stay redacted and fail closed'
 ]) {
 	assert.ok(browserSmoke.includes(requiredBrowserSmokeFragment), `browser smoke missing required coverage marker: ${requiredBrowserSmokeFragment}`);
@@ -400,6 +404,11 @@ for (const requiredPageFragment of [
 	'backup_state: captured',
 	'audit_state: recorded',
 	'reset_default_disabled_probe_summary: verified',
+	'redacted-create-failure-state',
+	'Synthetic failure state shape (explicit test-mode only)',
+	'create_count_state: zero_before_create or unknown_after_attempt',
+	'read_back_verification: not_run, failed, or blocked_until_owner_recovery',
+	'raw_evidence_included: false',
 	'redacted-create-result-redaction-list',
 	'Only opaque refs may be displayed for CREATE, backup, audit, ownership, and disabled-probe evidence',
 	'No transaction_id, backup_path, raw audit payload, account IDs, currency, descriptions, memos, amounts, GUIDs, raw paths, screenshots, tokens, or secrets',
@@ -410,6 +419,7 @@ for (const requiredPageFragment of [
 	'Future Create remains disabled until backup/read-back/audit/reset/probes readiness and execution-result reporting are completed',
 	'failure-ui-drill-matrix',
 	'Failure UI drills (redacted / fail-closed)',
+	'failure_result_panel_fields: create_count/read-back/backup/audit/reset-default-disabled',
 	'failure-ui-drill-list',
 	'stale_preview_rejection',
 	'Target preflight rejection',
@@ -421,6 +431,11 @@ for (const requiredPageFragment of [
 	'Safe recovery copy',
 	'Failure drill evidence shape',
 	'api_result_shaped_redacted_ui_evidence',
+	'create_count_state',
+	'read_back_verification',
+	'backup_state',
+	'audit_state',
+	'raw_evidence_included',
 	'No raw target paths, backup paths, account names, descriptions, memos, amounts, GUIDs, screenshots, tokens, or secrets',
 	'preview-reviewed checkbox alone is not enough',
 	'Manual Desktop verification required for the first UI CREATE trial',
@@ -642,6 +657,7 @@ assert.match(server, /function createExecutionResult\(\)[\s\S]*status: 'not_exec
 assert.match(server, /function createExecutionResult\(\)[\s\S]*id: 'success_create_ref_recorded'[\s\S]*id: 'success_read_back_verified'[\s\S]*id: 'failure_error_translated'[\s\S]*id: 'failure_no_success_claim'[\s\S]*id: 'rollback_decision_recorded'[\s\S]*id: 'post_result_disabled_probes_verified'/s, 'server execution result shell must include pending success, failure, rollback, and post-result steps');
 assert.match(page, /id="redacted-create-result-contract"[\s\S]*Explicit synthetic CREATE result panel contract \(inactive\)[\s\S]*create_count: pending[\s\S]*read-back verification: pending[\s\S]*backup_state: pending[\s\S]*audit_state: pending[\s\S]*reset\/default-disabled probes: pending/s, 'transaction-entry page must show the inactive redacted result-panel contract without executing CREATE');
 assert.match(page, /id="redacted-create-success-state"[\s\S]*status: success only after explicit synthetic test-mode CREATE[\s\S]*create_count: 1[\s\S]*read_back_verification: verified[\s\S]*backup_state: captured[\s\S]*audit_state: recorded[\s\S]*reset_default_disabled_probe_summary: verified/s, 'transaction-entry page must document the explicit synthetic success state without activating CREATE');
+assert.match(page, /id="redacted-create-failure-state"[\s\S]*Synthetic failure state shape \(explicit test-mode only\)[\s\S]*no_success_claim: true[\s\S]*create_count_state: zero_before_create or unknown_after_attempt[\s\S]*read_back_verification: not_run, failed, or blocked_until_owner_recovery[\s\S]*raw_evidence_included: false/s, 'transaction-entry page must document the explicit synthetic failure result shape without raw evidence or success claims');
 assert.match(page, /id="redacted-create-result-redaction-list"[\s\S]*Only opaque refs may be displayed[\s\S]*No transaction_id, backup_path, raw audit payload, account IDs, currency, descriptions, memos, amounts, GUIDs, raw paths, screenshots, tokens, or secrets[\s\S]*Default \/transactions\/new never activates this state/s, 'redacted result-panel contract must forbid raw product-route result fields and default UI activation');
 assert.match(page, /id="redacted-create-result-contract"[\s\S]*No raw book paths, account names, descriptions, memos, amounts, GUIDs, screenshots, tokens, or secrets/s, 'redacted result-panel contract must state that raw/private evidence is forbidden');
 assert.match(page, /id="redacted-patch-result-contract"[\s\S]*Explicit synthetic metadata-only PATCH result panel contract \(inactive\)[\s\S]*app-created disposable transaction only[\s\S]*description and split memo metadata only[\s\S]*amount, account, split, date, and currency changes rejected/s, 'transaction-entry page must show the inactive metadata-only PATCH result-panel contract without executing PATCH');
@@ -649,6 +665,7 @@ assert.match(page, /id="redacted-patch-result-redaction-list"[\s\S]*Only opaque 
 assert.match(page, /id="redacted-delete-result-contract"[\s\S]*Explicit synthetic app-owned DELETE result panel contract \(inactive\)[\s\S]*app-created disposable transaction only[\s\S]*Non-app-created and non-disposable DELETE attempts must stay rejected before mutation/s, 'transaction-entry page must show the inactive app-owned DELETE result-panel contract without executing DELETE');
 assert.match(page, /id="redacted-delete-result-redaction-list"[\s\S]*Only opaque refs may be displayed for DELETE[\s\S]*No transaction_id, backup_path, raw audit payload, account IDs, currency, descriptions, memos, amounts, split GUIDs, raw paths, screenshots, tokens, or secrets[\s\S]*Default \/transactions\/new never activates DELETE/s, 'redacted DELETE result-panel contract must forbid raw product-route DELETE fields and default UI activation');
 assert.match(page, /id="failure-ui-drill-matrix"[\s\S]*stale_preview_rejection[\s\S]*target_preflight_rejection[\s\S]*writes_disabled_rejection[\s\S]*backup_failure[\s\S]*lock_failure[\s\S]*read_back_failure[\s\S]*reset_probe_failure[\s\S]*safe_recovery_copy/s, 'transaction-entry page must render every issue #51 failure drill state as redacted UI evidence');
+assert.match(page, /id="failure-ui-drill-matrix"[\s\S]*failure_result_panel_fields: create_count\/read-back\/backup\/audit\/reset-default-disabled[\s\S]*create_count_state[\s\S]*read_back_verification[\s\S]*backup_state[\s\S]*audit_state[\s\S]*reset_default_disabled_probe_summary[\s\S]*raw_evidence_included/s, 'failure drill matrix must render redacted result-panel fields for create_count, read-back, backup/audit, reset/default-disabled probes, and raw-evidence exclusion');
 assert.match(page, /id="failure-ui-drill-matrix"[\s\S]*Failure drill evidence shape[\s\S]*api_result_shaped_redacted_ui_evidence[\s\S]*No raw target paths, backup paths, account names, descriptions, memos, amounts, GUIDs, screenshots, tokens, or secrets/s, 'failure drill matrix must describe redacted API-result-shaped evidence and forbid raw/private values');
 assert.doesNotMatch(page, /data-failure-drill-status="(?:success|passed|ready|ok)"/, 'failure drill matrix must not mark failures as successful or ready');
 assert.match(browserSmoke, /function buildRedactedSyntheticFailureUiDrillPanels[\s\S]*stale_preview_rejection[\s\S]*target_preflight_rejection[\s\S]*writes_disabled_rejection[\s\S]*backup_failure[\s\S]*lock_failure[\s\S]*read_back_failure[\s\S]*reset_probe_failure[\s\S]*safe_recovery_copy/s, 'browser smoke must build API-result-shaped redacted failure drill panels for all required failure states');

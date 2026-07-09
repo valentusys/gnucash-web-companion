@@ -104,6 +104,14 @@
 		message: string;
 		next_safe_action: string;
 		evidence_scope: 'redacted_only';
+		result_panel: {
+			create_count_state: 'zero_before_create' | 'unknown_after_attempt' | 'post_result_hard_stop' | 'not_applicable';
+			read_back_verification: 'not_run' | 'failed' | 'blocked_until_owner_recovery' | 'not_applicable';
+			backup_state: 'not_run' | 'failed_before_create' | 'opaque_backup_ref_required' | 'not_applicable';
+			audit_state: 'not_recorded' | 'safe_failure_record_only' | 'not_applicable';
+			reset_default_disabled_probe_summary: 'pending_not_run' | 'failed_hard_stop' | 'required_before_completion' | 'not_applicable';
+			raw_evidence_included: false;
+		};
 		no_success_claim: true;
 	};
 	type CreateReadinessStatus = {
@@ -212,6 +220,57 @@
 			{ id: 'post_result_disabled_probes_verified', label: 'Post-result disabled probes verified', phase: 'post_result', status: 'pending', required: true, evidence_scope: 'redacted_only', note: 'Pending: future post-result checks must prove writes are disabled and validate/preflight/CREATE/PATCH/DELETE/batch are blocked or unavailable.' }
 		]
 	};
+	type FailureResultPanelKind = 'before_create' | 'backup_failed' | 'read_back_failed' | 'reset_probe_failed' | 'recovery_copy';
+	function failureResultPanel(kind: FailureResultPanelKind): FailureUiDrill['result_panel'] {
+		if (kind === 'backup_failed') {
+			return {
+				create_count_state: 'zero_before_create',
+				read_back_verification: 'not_run',
+				backup_state: 'failed_before_create',
+				audit_state: 'not_recorded',
+				reset_default_disabled_probe_summary: 'pending_not_run',
+				raw_evidence_included: false
+			};
+		}
+		if (kind === 'read_back_failed') {
+			return {
+				create_count_state: 'unknown_after_attempt',
+				read_back_verification: 'failed',
+				backup_state: 'opaque_backup_ref_required',
+				audit_state: 'safe_failure_record_only',
+				reset_default_disabled_probe_summary: 'required_before_completion',
+				raw_evidence_included: false
+			};
+		}
+		if (kind === 'reset_probe_failed') {
+			return {
+				create_count_state: 'post_result_hard_stop',
+				read_back_verification: 'blocked_until_owner_recovery',
+				backup_state: 'opaque_backup_ref_required',
+				audit_state: 'safe_failure_record_only',
+				reset_default_disabled_probe_summary: 'failed_hard_stop',
+				raw_evidence_included: false
+			};
+		}
+		if (kind === 'recovery_copy') {
+			return {
+				create_count_state: 'not_applicable',
+				read_back_verification: 'not_applicable',
+				backup_state: 'opaque_backup_ref_required',
+				audit_state: 'not_applicable',
+				reset_default_disabled_probe_summary: 'not_applicable',
+				raw_evidence_included: false
+			};
+		}
+		return {
+			create_count_state: 'zero_before_create',
+			read_back_verification: 'not_run',
+			backup_state: 'not_run',
+			audit_state: 'not_recorded',
+			reset_default_disabled_probe_summary: 'pending_not_run',
+			raw_evidence_included: false
+		};
+	}
 	const redactedFailureUiDrills: FailureUiDrill[] = [
 		{
 			id: 'stale_preview_rejection',
@@ -224,6 +283,7 @@
 			message: 'Draft changed after preview; rerun Preview transaction before any owner approval. No CREATE executed.',
 			next_safe_action: 'Rerun the preview and collect a fresh non-stale review before any separate approved session.',
 			evidence_scope: 'redacted_only',
+			result_panel: failureResultPanel('before_create'),
 			no_success_claim: true
 		},
 		{
@@ -237,6 +297,7 @@
 			message: 'Disposable target preflight failed closed; target details stay redacted and no write helper runs.',
 			next_safe_action: 'Stop and provide only redacted target-readiness blockers; do not guess or probe private paths.',
 			evidence_scope: 'redacted_only',
+			result_panel: failureResultPanel('before_create'),
 			no_success_claim: true
 		},
 		{
@@ -250,6 +311,7 @@
 			message: 'GNUCASH_WRITES_ENABLED=false rejected the route before book resolution or write service construction.',
 			next_safe_action: 'Keep defaults disabled and report the rejection as expected no-mutation evidence.',
 			evidence_scope: 'redacted_only',
+			result_panel: failureResultPanel('before_create'),
 			no_success_claim: true
 		},
 		{
@@ -263,6 +325,7 @@
 			message: 'Backup failed before CREATE; no success result is emitted and no raw backup path is displayed.',
 			next_safe_action: 'Stop, preserve the target, and require redacted backup evidence before retry.',
 			evidence_scope: 'redacted_only',
+			result_panel: failureResultPanel('backup_failed'),
 			no_success_claim: true
 		},
 		{
@@ -276,6 +339,7 @@
 			message: 'Could not acquire the write lock; the UI reports a safe retry-later message without lock or book paths.',
 			next_safe_action: 'Wait for the active write to finish, then rerun preflight from a fresh approval context.',
 			evidence_scope: 'redacted_only',
+			result_panel: failureResultPanel('before_create'),
 			no_success_claim: true
 		},
 		{
@@ -289,6 +353,7 @@
 			message: 'Read-back verification failed; success stays blocked until private verification or owner recovery decision.',
 			next_safe_action: 'Preserve target state, keep redacted backup reference only, and require owner-approved recovery decision before retry.',
 			evidence_scope: 'redacted_only',
+			result_panel: failureResultPanel('read_back_failed'),
 			no_success_claim: true
 		},
 		{
@@ -302,6 +367,7 @@
 			message: 'Write-disable reset or disabled-probe verification failed; completion and success reporting stay blocked.',
 			next_safe_action: 'Hard stop, keep writes disabled, and rerun validate/preflight/CREATE/PATCH/DELETE/batch probes only in the approved test scope.',
 			evidence_scope: 'redacted_only',
+			result_panel: failureResultPanel('reset_probe_failed'),
 			no_success_claim: true
 		},
 		{
@@ -315,6 +381,7 @@
 			message: 'Safe recovery copy is represented only by an opaque reference; restore is not run from this UI.',
 			next_safe_action: 'Use the copy only after an explicit owner recovery decision; keep raw paths and filenames out of UI evidence.',
 			evidence_scope: 'redacted_only',
+			result_panel: failureResultPanel('recovery_copy'),
 			no_success_claim: true
 		}
 	];
@@ -714,6 +781,12 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 					reset_default_disabled_probe_summary: verified with APP_ENV=test, GNUCASH_WRITES_ENABLED=false, CREATE blocked after reset,
 					and validate/preflight/CREATE/PATCH/DELETE/batch blocked or unavailable.
 				</p>
+				<p id="redacted-create-failure-state" class="mt-2 font-semibold">
+					Synthetic failure state shape (explicit test-mode only): no_success_claim: true; create_count_state: zero_before_create or unknown_after_attempt;
+					read_back_verification: not_run, failed, or blocked_until_owner_recovery; backup_state and audit_state use only redacted states;
+					reset_default_disabled_probe_summary remains pending, required, or failed_hard_stop until validate/preflight/CREATE/PATCH/DELETE/batch are blocked after reset;
+					raw_evidence_included: false.
+				</p>
 				<ul id="redacted-create-result-redaction-list" class="mt-2 list-disc pl-5">
 					<li>Only opaque refs may be displayed for CREATE, backup, audit, ownership, and disabled-probe evidence.</li>
 					<li>No transaction_id, backup_path, raw audit payload, account IDs, currency, descriptions, memos, amounts, GUIDs, raw paths, screenshots, tokens, or secrets may appear in the result panel.</li>
@@ -793,7 +866,7 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 				<span class="rounded-full px-3 py-1 font-semibold sm:col-span-2" style="background: #fee2e2; color: #991b1b;">evidence_scope: redacted_only</span>
 			</div>
 		</div>
-		<p id="failure-ui-drill-evidence-shape" class="mt-3 font-semibold">Failure drill evidence shape: api_result_shaped_redacted_ui_evidence; default UI result remains blocked/not run.</p>
+		<p id="failure-ui-drill-evidence-shape" class="mt-3 font-semibold">Failure drill evidence shape: api_result_shaped_redacted_ui_evidence; default UI result remains blocked/not run; failure_result_panel_fields: create_count/read-back/backup/audit/reset-default-disabled.</p>
 		<ul id="failure-ui-drill-list" class="mt-3 grid min-w-0 gap-2 md:grid-cols-2" aria-label="Redacted failure UI drill checklist">
 			{#each redactedFailureUiDrills as drill (drill.id)}
 				<li class="min-w-0 rounded-xl p-3" data-failure-drill={drill.id} data-failure-drill-status={drill.status} data-failure-drill-scope={drill.evidence_scope} style="border: 1px solid #fecaca; background: #fff7f7;">
@@ -808,6 +881,12 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 						<div><dt class="font-semibold">http_status</dt><dd>{drill.http_status}</dd></div>
 						<div><dt class="font-semibold">mutation_count</dt><dd>{drill.mutation_count}</dd></div>
 						<div><dt class="font-semibold">no_success_claim</dt><dd>{String(drill.no_success_claim)}</dd></div>
+						<div><dt class="font-semibold">create_count_state</dt><dd class="break-words">{drill.result_panel.create_count_state}</dd></div>
+						<div><dt class="font-semibold">read_back_verification</dt><dd class="break-words">{drill.result_panel.read_back_verification}</dd></div>
+						<div><dt class="font-semibold">backup_state</dt><dd class="break-words">{drill.result_panel.backup_state}</dd></div>
+						<div><dt class="font-semibold">audit_state</dt><dd class="break-words">{drill.result_panel.audit_state}</dd></div>
+						<div><dt class="font-semibold">reset_default_disabled_probe_summary</dt><dd class="break-words">{drill.result_panel.reset_default_disabled_probe_summary}</dd></div>
+						<div><dt class="font-semibold">raw_evidence_included</dt><dd>{String(drill.result_panel.raw_evidence_included)}</dd></div>
 					</dl>
 					<p class="mt-2 text-xs font-semibold">{drill.message}</p>
 					<p class="mt-1 text-xs">Next safe action: {drill.next_safe_action}</p>
