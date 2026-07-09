@@ -975,12 +975,52 @@ def _record_write_alpha_transaction_ownership(
     return ownership
 
 
+def _write_alpha_transaction_ownership_error_detail(mutation: str) -> str:
+    return (
+        f"Write-alpha {mutation} is allowed only for transactions created by write-alpha "
+        "for this book. Historical or manually imported GnuCash transactions remain read-only."
+    )
+
+
+def _audit_write_alpha_ownership_rejection(
+    session: Session,
+    *,
+    user_id: int,
+    book_id: int,
+    transaction_id: str,
+    mutation: str,
+    request_summary: dict[str, Any],
+) -> AuditLog:
+    """Record a redacted app-metadata audit row for non-owned PATCH/DELETE attempts."""
+    detail = _write_alpha_transaction_ownership_error_detail(mutation)
+    audit_payload = {
+        "action": f"transaction.{mutation.lower()}",
+        "transaction_id": transaction_id,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "request_summary": request_summary,
+        "backup_path": None,
+        "backup_artifact_ref": None,
+        "ownership_status": "non_owned_rejected",
+        "result": "failed",
+        "error": detail,
+    }
+    return _audit_log(
+        session,
+        user_id,
+        book_id,
+        f"transaction.{mutation.lower()}",
+        audit_payload,
+    )
+
+
 def _require_write_alpha_transaction_ownership(
     session: Session,
     *,
     book_id: int,
     transaction_id: str,
     mutation: str = "mutation",
+    audit_user_id: int | None = None,
+    audit_request_summary: dict[str, Any] | None = None,
 ) -> WriteAlphaTransactionOwnership:
     """Require app metadata ownership before mutating an existing transaction."""
     ownership = (
@@ -993,13 +1033,17 @@ def _require_write_alpha_transaction_ownership(
         .one_or_none()
     )
     if ownership is None:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=(
-                f"Write-alpha {mutation} is allowed only for transactions created by write-alpha "
-                "for this book. Historical or manually imported GnuCash transactions remain read-only."
-            ),
-        )
+        detail = _write_alpha_transaction_ownership_error_detail(mutation)
+        if audit_user_id is not None:
+            _audit_write_alpha_ownership_rejection(
+                session,
+                user_id=audit_user_id,
+                book_id=book_id,
+                transaction_id=transaction_id,
+                mutation=mutation,
+                request_summary=audit_request_summary or {},
+            )
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=detail)
     return ownership
 
 
@@ -1862,11 +1906,21 @@ async def patch_book_transaction(
     book = _resolve_viewable_book(book_id, user, session)
     _require_book_edit_access(book, user, session)
     _require_disposable_create_target(book)
+    patch_field_names = [
+        k
+        for k, v in {
+            "description": request.description,
+            "split_memos": request.split_memos,
+        }.items()
+        if v is not None
+    ]
     ownership = _require_write_alpha_transaction_ownership(
         session,
         book_id=book.id,
         transaction_id=transaction_id,
         mutation="PATCH",
+        audit_user_id=user.id,
+        audit_request_summary={"fields_updated": patch_field_names},
     )
     from app.routers.owner_writebeta import require_owner_writebeta_if_active
 
@@ -1975,6 +2029,8 @@ async def delete_book_transaction(
         book_id=book.id,
         transaction_id=transaction_id,
         mutation="DELETE",
+        audit_user_id=user.id,
+        audit_request_summary={"target_class": "write_alpha_owned_required"},
     )
     from app.routers.owner_writebeta import require_owner_writebeta_if_active
 

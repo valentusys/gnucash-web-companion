@@ -3402,7 +3402,16 @@ class TestWriteAlphaPatchRouteDisposableFixture:
 
         with session_factory() as session:
             logs = session.query(AuditLog).filter_by(action="transaction.patch").all()
-            assert logs == []
+            assert len(logs) == 1
+            payload = json.loads(logs[0].payload_json)
+            assert payload["result"] == "failed"
+            assert payload["ownership_status"] == "non_owned_rejected"
+            assert payload["transaction_id"] == tx_before["guid"]
+            assert payload["backup_path"] is None
+            assert payload["backup_artifact_ref"] is None
+            assert payload["request_summary"] == {"fields_updated": ["description"]}
+            assert "fields_updated" not in payload
+            assert "should not write historical" not in json.dumps(payload)
 
     def test_owned_non_disposable_patch_target_rejected_before_write_service(
         self,
@@ -3903,7 +3912,16 @@ class TestWriteAlphaDeleteRouteDisposableFixture:
 
         with session_factory() as session:
             logs = session.query(AuditLog).filter_by(action="transaction.delete").all()
-            assert logs == []
+            assert len(logs) == 1
+            payload = json.loads(logs[0].payload_json)
+            assert payload["result"] == "failed"
+            assert payload["ownership_status"] == "non_owned_rejected"
+            assert payload["transaction_id"] == tx_before["guid"]
+            assert payload["backup_path"] is None
+            assert payload["backup_artifact_ref"] is None
+            assert payload["request_summary"] == {
+                "target_class": "write_alpha_owned_required"
+            }
 
     def test_owned_non_disposable_delete_target_rejected_before_write_service(
         self,
@@ -4009,7 +4027,15 @@ class TestWriteAlphaDeleteRouteDisposableFixture:
 
         with session_factory() as session:
             logs = session.query(AuditLog).filter_by(action="transaction.delete").all()
-            assert logs == []
+            assert len(logs) == 1
+            payload = json.loads(logs[0].payload_json)
+            assert payload["result"] == "failed"
+            assert payload["ownership_status"] == "non_owned_rejected"
+            assert payload["transaction_id"] == tx_before["guid"]
+            assert payload["backup_path"] is None
+            assert payload["request_summary"] == {
+                "target_class": "write_alpha_owned_required"
+            }
             marker = session.get(WriteAlphaTransactionOwnership, marker_id)
             assert marker is not None
             assert marker.created_by_write_alpha is False
