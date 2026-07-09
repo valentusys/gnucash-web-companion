@@ -31,6 +31,7 @@ from app.models import WriteAlphaTransactionOwnership  # noqa: E402
 from write_alpha_create_delete_chain import (  # noqa: E402
     bootstrap_metadata,
     configure_app,
+    ensure_safe_runtime_artifact_dir,
     is_inside_repo,
     login,
     opaque,
@@ -59,6 +60,8 @@ def run(book_path: Path, work_dir: Path, evidence_dir: Path) -> dict[str, Any]:
         raise RuntimeError("book file missing")
     if is_inside_repo(book_path):
         raise RuntimeError("book must be outside git working tree")
+    work_dir_class = ensure_safe_runtime_artifact_dir(work_dir, "work-dir")
+    evidence_dir_class = ensure_safe_runtime_artifact_dir(evidence_dir, "evidence-dir")
 
     work_dir.mkdir(parents=True, exist_ok=True)
     evidence_dir.mkdir(parents=True, exist_ok=True)
@@ -184,6 +187,12 @@ def run(book_path: Path, work_dir: Path, evidence_dir: Path) -> dict[str, Any]:
         "scenario_type": "copied-book-write-alpha-small-batch",
         "timestamp_utc": datetime.now(timezone.utc).isoformat(),
         "book_outside_git": True,
+        "runtime_artifacts": {
+            "work_dir_class": work_dir_class,
+            "evidence_dir_class": evidence_dir_class,
+            "tracked_artifacts_prevented": True,
+            "raw_paths_redacted": True,
+        },
         "operation_counts": {
             "create_attempts": 2,
             "create_successes": 2,

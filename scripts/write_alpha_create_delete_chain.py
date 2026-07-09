@@ -21,6 +21,7 @@ import argparse
 import hashlib
 import json
 import shutil
+import subprocess
 import sys
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -57,6 +58,53 @@ def is_inside_repo(path: Path) -> bool:
         return True
     except ValueError:
         return False
+
+
+def _is_inside(path: Path, parent: Path) -> bool:
+    try:
+        path.resolve().relative_to(parent.resolve())
+        return True
+    except ValueError:
+        return False
+
+
+def _git_ignored(path: Path, *, repo_root: Path) -> bool:
+    try:
+        relative = path.resolve().relative_to(repo_root.resolve())
+    except ValueError:
+        return False
+    try:
+        result = subprocess.run(
+            ["git", "check-ignore", "--quiet", "--", str(relative)],
+            cwd=repo_root,
+            check=False,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except OSError:
+        return False
+    return result.returncode == 0
+
+
+def classify_runtime_artifact_dir(path: Path, *, repo_root: Path = REPO_ROOT) -> str:
+    """Classify where disposable drill work/evidence artifacts would be written."""
+
+    resolved_repo = repo_root.resolve()
+    resolved_path = path.expanduser().resolve()
+    if not _is_inside(resolved_path, resolved_repo):
+        return "external"
+    if _git_ignored(resolved_path, repo_root=resolved_repo):
+        return "ignored"
+    return "unsafe"
+
+
+def ensure_safe_runtime_artifact_dir(path: Path, label: str, *, repo_root: Path = REPO_ROOT) -> str:
+    """Fail closed before writing any work/evidence artifact to a tracked repo path."""
+
+    location_class = classify_runtime_artifact_dir(path, repo_root=repo_root)
+    if location_class == "unsafe":
+        raise RuntimeError(f"{label} must be outside git working tree or git-ignored runtime storage")
+    return location_class
 
 
 def opaque(value: str, n: int = 12) -> str:
@@ -175,6 +223,8 @@ def run(book_path: Path, work_dir: Path, evidence_dir: Path) -> dict[str, Any]:
         raise RuntimeError("book file missing")
     if is_inside_repo(book_path):
         raise RuntimeError("book must be outside git working tree")
+    work_dir_class = ensure_safe_runtime_artifact_dir(work_dir, "work-dir")
+    evidence_dir_class = ensure_safe_runtime_artifact_dir(evidence_dir, "evidence-dir")
 
     work_dir.mkdir(parents=True, exist_ok=True)
     evidence_dir.mkdir(parents=True, exist_ok=True)
@@ -261,6 +311,12 @@ def run(book_path: Path, work_dir: Path, evidence_dir: Path) -> dict[str, Any]:
         "scenario_type": "copied-book-write-alpha-create-to-delete-chain",
         "timestamp_utc": datetime.now(timezone.utc).isoformat(),
         "book_outside_git": True,
+        "runtime_artifacts": {
+            "work_dir_class": work_dir_class,
+            "evidence_dir_class": evidence_dir_class,
+            "tracked_artifacts_prevented": True,
+            "raw_paths_redacted": True,
+        },
         "book_sha_before_prefix": before[:12],
         "book_sha_pre_delete_prefix": pre_delete_sha[:12],
         "book_sha_after_prefix": after[:12],
