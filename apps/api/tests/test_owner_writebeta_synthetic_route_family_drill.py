@@ -6,6 +6,7 @@ No GnuCash book is opened or mutated.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from decimal import Decimal
 import json
 from pathlib import Path
 
@@ -20,7 +21,7 @@ from app.database import Base
 from app.main import app
 from app.models import AuditLog, Book, User, UserBookAccess
 from app.routers.auth import get_db
-from app.schemas.gnucash import TransactionDetailDTO, TransactionSplitDTO
+from app.schemas.gnucash import AccountDTO, TransactionDetailDTO, TransactionSplitDTO
 from app.schemas.gnucash_writes import TransactionValidationResultDTO, TransactionWriteResultDTO
 from app.services.auth import hash_password
 
@@ -34,6 +35,21 @@ TEST_SETTINGS = Settings(
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
+
+
+def _account_dto(account_id: str, balance: Decimal | str = "0.00", currency: str = "SEK") -> AccountDTO:
+    return AccountDTO(
+        id=account_id,
+        name=account_id,
+        full_name=account_id,
+        type="BANK",
+        currency=currency,
+        balance=str(balance),
+        placeholder=False,
+        hidden=False,
+        parent_id=None,
+    )
+
 
 READ_ONLY_SETTINGS = Settings(
     app_env="test",
@@ -90,6 +106,17 @@ def fake_write_calls(monkeypatch):
         return FakeWriteService(calls)
 
     class FakeReadService:
+        def list_accounts(self) -> list[AccountDTO]:
+            balances = {
+                "synthetic-bank": Decimal("0.00"),
+                "synthetic-expense": Decimal("0.00"),
+            }
+            create_requests = [payload for name, payload in calls if name == "create"]
+            if create_requests:
+                for split in getattr(create_requests[-1], "splits", []):
+                    balances[split.account_id] += Decimal(split.amount)
+            return [_account_dto(account_id, balance) for account_id, balance in balances.items()]
+
         def get_transaction(self, transaction_id: str) -> TransactionDetailDTO:
             create_requests = [payload for name, payload in calls if name == "create"]
             assert create_requests, "read-back verification must follow a synthetic CREATE call"
@@ -510,6 +537,18 @@ def test_issue50_routed_create_real_service_path_covers_backup_lock_audit_readba
                     events.append("lock-release")
 
     class FakeReadbackService:
+        def list_accounts(self) -> list[AccountDTO]:
+            events.append("accounts-read")
+            balances = {
+                "synthetic-bank": Decimal("0.00"),
+                "synthetic-expense": Decimal("0.00"),
+            }
+            tx = created.get("transaction")
+            if tx is not None:
+                for split in cast(Any, tx).splits:
+                    balances[split.account.guid] += Decimal(str(split.value))
+            return [_account_dto(account_id, balance) for account_id, balance in balances.items()]
+
         def get_transaction(self, transaction_id: str) -> TransactionDetailDTO:
             events.append(f"readback:{transaction_id}")
             tx = cast(Any, created["transaction"])

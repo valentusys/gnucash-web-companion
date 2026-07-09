@@ -14,9 +14,9 @@ import logging
 import os
 import re
 from datetime import date, datetime, timezone
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
-from typing import Any
+from typing import Any, NoReturn
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
@@ -86,6 +86,7 @@ DISPOSABLE_CREATE_TARGET_HINTS = frozenset(
     }
 )
 SQLITE_BOOK_SUFFIXES = frozenset({".sqlite", ".sqlite3", ".db"})
+ReadbackAccountBalanceSnapshot = dict[str, tuple[Decimal, str]]
 
 
 def _serialize_transaction_list_item(
@@ -1190,58 +1191,218 @@ def _request_summary(request: TransactionCreateRequestDTO) -> dict[str, Any]:
     }
 
 
+def _fail_create_readback_verification(
+    backup_path: str | None,
+    exc: Exception | None = None,
+) -> NoReturn:
+    error = GnuCashCreateReadbackVerificationError(
+        CREATE_READBACK_FAILURE_DETAIL,
+        backup_path=backup_path,
+    )
+    if exc is not None:
+        raise error from exc
+    raise error
+
+
+def _readback_decimal(value: Any, backup_path: str | None) -> Decimal:
+    try:
+        amount = Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError) as exc:
+        _fail_create_readback_verification(backup_path, exc)
+    if not amount.is_finite():
+        _fail_create_readback_verification(backup_path)
+    return amount
+
+
+def _format_readback_decimal(value: Decimal) -> str:
+    return format(value, "f")
+
+
+def _request_account_delta_totals(
+    request: TransactionCreateRequestDTO,
+    backup_path: str | None,
+) -> tuple[dict[str, Decimal], dict[str, str]]:
+    deltas: dict[str, Decimal] = {}
+    currencies: dict[str, str] = {}
+    for split in request.splits:
+        account_id = str(split.account_id)
+        currency = split.currency.upper()
+        if account_id in currencies and currencies[account_id] != currency:
+            _fail_create_readback_verification(backup_path)
+        currencies[account_id] = currency
+        deltas[account_id] = deltas.get(account_id, Decimal("0")) + _readback_decimal(
+            split.amount,
+            backup_path,
+        )
+    return deltas, currencies
+
+
+def _read_request_account_balance_snapshot(
+    book: Book,
+    request: TransactionCreateRequestDTO,
+    *,
+    backup_path: str | None = None,
+) -> ReadbackAccountBalanceSnapshot:
+    """Read request account balances through the read-only service for delta checks."""
+    account_ids = {str(split.account_id) for split in request.splits}
+    try:
+        accounts = transaction_service_for(book).list_accounts()
+    except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
+        _fail_create_readback_verification(backup_path, exc)
+
+    snapshot: ReadbackAccountBalanceSnapshot = {}
+    for account in accounts:
+        account_id = str(getattr(account, "id", ""))
+        if account_id not in account_ids:
+            continue
+        currency = str(getattr(account, "currency", "")).upper()
+        balance = _readback_decimal(getattr(account, "balance", "0"), backup_path)
+        snapshot[account_id] = (balance, currency)
+
+    if set(snapshot) != account_ids:
+        _fail_create_readback_verification(backup_path)
+    for split in request.splits:
+        account_currency = snapshot[str(split.account_id)][1]
+        if account_currency != split.currency.upper():
+            _fail_create_readback_verification(backup_path)
+    return snapshot
+
+
+def _readback_split_totals_by_currency(
+    splits: list[Any],
+    backup_path: str | None,
+) -> dict[str, Decimal]:
+    totals: dict[str, Decimal] = {}
+    for split in splits:
+        currency = str(getattr(split, "currency", "")).upper()
+        if not currency:
+            _fail_create_readback_verification(backup_path)
+        totals[currency] = totals.get(currency, Decimal("0")) + _readback_decimal(
+            getattr(split, "amount", "0"),
+            backup_path,
+        )
+    return totals
+
+
+def _verify_account_balance_deltas(
+    book: Book,
+    request: TransactionCreateRequestDTO,
+    result: TransactionWriteResultDTO,
+    before_account_balances: ReadbackAccountBalanceSnapshot,
+) -> tuple[int, dict[str, str]]:
+    after_account_balances = _read_request_account_balance_snapshot(
+        book,
+        request,
+        backup_path=result.backup_path,
+    )
+    expected_deltas, account_currencies = _request_account_delta_totals(
+        request,
+        result.backup_path,
+    )
+    delta_totals_by_currency: dict[str, Decimal] = {}
+    for account_id, expected_delta in expected_deltas.items():
+        before_balance, before_currency = before_account_balances[account_id]
+        after_balance, after_currency = after_account_balances[account_id]
+        expected_currency = account_currencies[account_id]
+        if before_currency != expected_currency or after_currency != expected_currency:
+            _fail_create_readback_verification(result.backup_path)
+        observed_delta = after_balance - before_balance
+        if observed_delta != expected_delta:
+            _fail_create_readback_verification(result.backup_path)
+        delta_totals_by_currency[expected_currency] = (
+            delta_totals_by_currency.get(expected_currency, Decimal("0")) + observed_delta
+        )
+
+    for total in delta_totals_by_currency.values():
+        if total != Decimal("0"):
+            _fail_create_readback_verification(result.backup_path)
+
+    return len(expected_deltas), {
+        currency: _format_readback_decimal(total)
+        for currency, total in sorted(delta_totals_by_currency.items())
+    }
+
+
 def _verify_transaction_create_readback(
     book: Book,
     request: TransactionCreateRequestDTO,
     result: TransactionWriteResultDTO,
-) -> dict[str, bool | str | int]:
-    """Read the newly created transaction through the read-only service before reporting success."""
+    before_account_balances: ReadbackAccountBalanceSnapshot | None = None,
+) -> dict[str, Any]:
+    """Read the created transaction and request-account deltas before reporting success."""
     try:
         detail = transaction_service_for(book).get_transaction(result.transaction_id)
     except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
-        raise GnuCashCreateReadbackVerificationError(
-            CREATE_READBACK_FAILURE_DETAIL,
-            backup_path=result.backup_path,
-        ) from exc
+        _fail_create_readback_verification(result.backup_path, exc)
+
+    request_currencies = sorted({split.currency.upper() for split in request.splits})
+    if len(request_currencies) != 1:
+        _fail_create_readback_verification(result.backup_path)
+    request_currency = request_currencies[0]
+    readback_currency = str(getattr(detail, "currency", "")).upper()
 
     if detail.id != result.transaction_id:
-        raise GnuCashCreateReadbackVerificationError(
-            CREATE_READBACK_FAILURE_DETAIL,
-            backup_path=result.backup_path,
-        )
+        _fail_create_readback_verification(result.backup_path)
     if detail.date != request.date:
-        raise GnuCashCreateReadbackVerificationError(
-            CREATE_READBACK_FAILURE_DETAIL,
-            backup_path=result.backup_path,
-        )
+        _fail_create_readback_verification(result.backup_path)
     if detail.description != request.description:
-        raise GnuCashCreateReadbackVerificationError(
-            CREATE_READBACK_FAILURE_DETAIL,
-            backup_path=result.backup_path,
-        )
+        _fail_create_readback_verification(result.backup_path)
+    if readback_currency != request_currency:
+        _fail_create_readback_verification(result.backup_path)
     if len(detail.splits) != len(request.splits):
-        raise GnuCashCreateReadbackVerificationError(
-            CREATE_READBACK_FAILURE_DETAIL,
-            backup_path=result.backup_path,
+        _fail_create_readback_verification(result.backup_path)
+    if _readback_split_signatures(detail.splits, result.backup_path) != _request_split_signatures(
+        request.splits,
+        result.backup_path,
+    ):
+        _fail_create_readback_verification(result.backup_path)
+
+    split_totals_by_currency = _readback_split_totals_by_currency(
+        detail.splits,
+        result.backup_path,
+    )
+    for total in split_totals_by_currency.values():
+        if total != Decimal("0"):
+            _fail_create_readback_verification(result.backup_path)
+
+    account_delta_count = 0
+    account_delta_totals: dict[str, str] = {}
+    account_deltas_verified = False
+    if before_account_balances is not None:
+        account_delta_count, account_delta_totals = _verify_account_balance_deltas(
+            book,
+            request,
+            result,
+            before_account_balances,
         )
-    if _readback_split_signatures(detail.splits) != _request_split_signatures(request.splits):
-        raise GnuCashCreateReadbackVerificationError(
-            CREATE_READBACK_FAILURE_DETAIL,
-            backup_path=result.backup_path,
-        )
+        account_deltas_verified = True
 
     return {
         "readback_verified": True,
         "readback_transaction_id": detail.id,
+        "readback_transaction_present": True,
         "readback_split_count": len(detail.splits),
+        "readback_split_balance_verified": True,
+        "readback_split_balance_by_currency": {
+            currency: _format_readback_decimal(total)
+            for currency, total in sorted(split_totals_by_currency.items())
+        },
+        "readback_currency": readback_currency,
+        "readback_currency_consistent": True,
+        "readback_account_balance_deltas_verified": account_deltas_verified,
+        "readback_account_balance_delta_count": account_delta_count,
+        "readback_account_balance_delta_total_by_currency": account_delta_totals,
     }
 
 
-def _request_split_signatures(splits: list[TransactionSplitWriteDTO]) -> list[tuple[str, Decimal, str, str]]:
+def _request_split_signatures(
+    splits: list[TransactionSplitWriteDTO],
+    backup_path: str | None,
+) -> list[tuple[str, Decimal, str, str]]:
     return sorted(
         (
             split.account_id,
-            Decimal(split.amount),
+            _readback_decimal(split.amount, backup_path),
             split.currency.upper(),
             split.memo or "",
         )
@@ -1249,11 +1410,14 @@ def _request_split_signatures(splits: list[TransactionSplitWriteDTO]) -> list[tu
     )
 
 
-def _readback_split_signatures(splits: list[Any]) -> list[tuple[str, Decimal, str, str]]:
+def _readback_split_signatures(
+    splits: list[Any],
+    backup_path: str | None,
+) -> list[tuple[str, Decimal, str, str]]:
     return sorted(
         (
             str(getattr(split, "account_id", "")),
-            Decimal(str(getattr(split, "amount", "0"))),
+            _readback_decimal(getattr(split, "amount", "0"), backup_path),
             str(getattr(split, "currency", "")).upper(),
             str(getattr(split, "memo", "") or ""),
         )
@@ -1566,20 +1730,41 @@ async def create_book_transaction(
         "backup_artifact_ref": None,
         "readback_verified": False,
         "readback_transaction_id": None,
+        "readback_transaction_present": False,
         "readback_split_count": None,
+        "readback_split_balance_verified": False,
+        "readback_split_balance_by_currency": None,
+        "readback_currency": None,
+        "readback_currency_consistent": False,
+        "readback_account_balance_deltas_verified": False,
+        "readback_account_balance_delta_count": None,
+        "readback_account_balance_delta_total_by_currency": None,
         "result": "started",
     }
     log = _audit_log(session, user.id, book.id, "transaction.create", audit_payload)
 
     result: TransactionWriteResultDTO | None = None
-    readback_fields: dict[str, bool | str | int] = {}
+    readback_fields: dict[str, Any] = {}
     try:
+        before_account_balances = None
+        if isinstance(service, GnuCashWriteService):
+            validation = service.validate_transaction_create(request)
+            if not validation.valid:
+                raise GnuCashWriteError(
+                    f"Validation failed: {'; '.join(validation.errors)}"
+                )
+            before_account_balances = _read_request_account_balance_snapshot(book, request)
         result = service.create_transaction(
             request=request,
             user_id=user.id,
             book_id=book.id,
         )
-        readback_fields = _verify_transaction_create_readback(book, request, result)
+        readback_fields = _verify_transaction_create_readback(
+            book,
+            request,
+            result,
+            before_account_balances=before_account_balances,
+        )
     except WriteLockError as exc:
         _mark_owner_writebeta_failure_if_active(book.id)
         audit_payload.update({"result": "failed", "error": _write_lock_detail()})
@@ -1597,7 +1782,15 @@ async def create_book_transaction(
                 "transaction_id": result.transaction_id if result is not None else None,
                 "readback_verified": False,
                 "readback_transaction_id": None,
+                "readback_transaction_present": False,
                 "readback_split_count": None,
+                "readback_split_balance_verified": False,
+                "readback_split_balance_by_currency": None,
+                "readback_currency": None,
+                "readback_currency_consistent": False,
+                "readback_account_balance_deltas_verified": False,
+                "readback_account_balance_delta_count": None,
+                "readback_account_balance_delta_total_by_currency": None,
                 "error": safe_detail,
                 **_backup_audit_fields(getattr(exc, "backup_path", None)),
             }
@@ -1639,8 +1832,9 @@ async def create_book_transaction(
         user_id=user.id,
     )
     result.audit_log_id = log.id
-    result.readback_verified = True
-    result.readback_transaction_id = str(readback_fields["readback_transaction_id"])
+    for key, value in readback_fields.items():
+        if hasattr(result, key):
+            setattr(result, key, value)
 
     return result
 

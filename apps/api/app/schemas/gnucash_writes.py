@@ -136,6 +136,42 @@ class TransactionWriteResultDTO(BaseModel):
         None,
         description="GUID observed by the post-write read-back verification",
     )
+    readback_transaction_present: bool | None = Field(
+        None,
+        description="True when the created transaction was found through the read-only path",
+    )
+    readback_split_count: int | None = Field(
+        None,
+        description="Split count observed by post-write read-only verification",
+    )
+    readback_split_balance_verified: bool | None = Field(
+        None,
+        description="True when read-back splits balance to zero by currency",
+    )
+    readback_split_balance_by_currency: dict[str, str] | None = Field(
+        None,
+        description="Read-back split totals by currency, expressed as decimal strings",
+    )
+    readback_currency: str | None = Field(
+        None,
+        description="Transaction currency observed by post-write read-only verification",
+    )
+    readback_currency_consistent: bool | None = Field(
+        None,
+        description="True when transaction, split, account, and request currencies match",
+    )
+    readback_account_balance_deltas_verified: bool | None = Field(
+        None,
+        description="True when read-only account balances changed by the created split amounts",
+    )
+    readback_account_balance_delta_count: int | None = Field(
+        None,
+        description="Number of request accounts whose balance delta was verified",
+    )
+    readback_account_balance_delta_total_by_currency: dict[str, str] | None = Field(
+        None,
+        description="Sum of verified account balance deltas by currency, expressed as decimal strings",
+    )
 
 
 class WriteAlphaAuditSummaryItemDTO(BaseModel):

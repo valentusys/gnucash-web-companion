@@ -27,7 +27,7 @@ from app.database import Base
 from app.main import app
 from app.models import User, Book, UserBookAccess, AuditLog, WriteAlphaTransactionOwnership
 from app.routers.auth import get_db
-from app.schemas.gnucash import TransactionDetailDTO, TransactionSplitDTO
+from app.schemas.gnucash import AccountDTO, TransactionDetailDTO, TransactionSplitDTO
 from app.schemas.gnucash_writes import TransactionCreateRequestDTO, TransactionSplitWriteDTO
 from app.services.auth import hash_password
 from app.services.backup import BackupError
@@ -1490,7 +1490,25 @@ class TestCreateReadbackVerification:
             ],
         )
 
-    def _patch_read_service(self, monkeypatch, detail: TransactionDetailDTO) -> None:
+    def _account(self, account_id: str, balance: str, currency: str = "SEK") -> AccountDTO:
+        return AccountDTO(
+            id=account_id,
+            name=account_id,
+            full_name=account_id,
+            type="BANK",
+            currency=currency,
+            balance=balance,
+            placeholder=False,
+            hidden=False,
+            parent_id=None,
+        )
+
+    def _patch_read_service(
+        self,
+        monkeypatch,
+        detail: TransactionDetailDTO,
+        accounts: list[AccountDTO] | None = None,
+    ) -> None:
         import app.routers.transactions as transactions_router
 
         class FakeReadService:
@@ -1498,9 +1516,12 @@ class TestCreateReadbackVerification:
                 assert transaction_id == "created-readback-tx"
                 return detail
 
+            def list_accounts(self) -> list[AccountDTO]:
+                return accounts or []
+
         monkeypatch.setattr(transactions_router, "transaction_service_for", lambda book: FakeReadService())
 
-    def test_create_readback_accepts_exact_source_destination_amount_currency_date_description_memo_and_splits(
+    def test_create_readback_accepts_exact_source_destination_amount_currency_date_description_memo_splits_and_balance_deltas(
         self,
         monkeypatch,
     ):
@@ -1509,7 +1530,12 @@ class TestCreateReadbackVerification:
 
         request = self._request()
         detail = self._detail_from_request("created-readback-tx", request)
-        self._patch_read_service(monkeypatch, detail)
+        after_accounts = [
+            self._account("source-checking-guid", "874.50"),
+            self._account("destination-food-guid", "100.00"),
+            self._account("destination-transport-guid", "25.50"),
+        ]
+        self._patch_read_service(monkeypatch, detail, accounts=after_accounts)
 
         readback = transactions_router._verify_transaction_create_readback(
             Book(name="Synthetic read-back book", storage_type="sqlite", uri_or_path="synthetic://readback"),
@@ -1518,12 +1544,25 @@ class TestCreateReadbackVerification:
                 transaction_id="created-readback-tx",
                 backup_path="synthetic-backup-ref",
             ),
+            before_account_balances={
+                "source-checking-guid": (Decimal("1000.00"), "SEK"),
+                "destination-food-guid": (Decimal("0.00"), "SEK"),
+                "destination-transport-guid": (Decimal("0.00"), "SEK"),
+            },
         )
 
         assert readback == {
             "readback_verified": True,
             "readback_transaction_id": "created-readback-tx",
+            "readback_transaction_present": True,
             "readback_split_count": 3,
+            "readback_split_balance_verified": True,
+            "readback_split_balance_by_currency": {"SEK": "0.00"},
+            "readback_currency": "SEK",
+            "readback_currency_consistent": True,
+            "readback_account_balance_deltas_verified": True,
+            "readback_account_balance_delta_count": 3,
+            "readback_account_balance_delta_total_by_currency": {"SEK": "0.00"},
         }
 
     @pytest.mark.parametrize(
@@ -1536,8 +1575,10 @@ class TestCreateReadbackVerification:
             "destination_account",
             "amount",
             "currency",
+            "transaction_currency",
             "memo",
             "split_count",
+            "split_balance",
         ],
     )
     def test_create_readback_rejects_mismatched_source_destination_amount_currency_date_description_memo_and_splits(
@@ -1564,10 +1605,15 @@ class TestCreateReadbackVerification:
             detail.splits[2].amount = "25.51"
         elif mismatch == "currency":
             detail.splits[1].currency = "USD"
+        elif mismatch == "transaction_currency":
+            detail.currency = "USD"
         elif mismatch == "memo":
             detail.splits[0].memo = "different source memo"
         elif mismatch == "split_count":
             detail.splits = detail.splits[:-1]
+        elif mismatch == "split_balance":
+            request.splits[2].amount = "25.51"
+            detail.splits[2].amount = "25.51"
         else:  # pragma: no cover - protects future parametrization edits
             raise AssertionError(f"unhandled mismatch: {mismatch}")
         self._patch_read_service(monkeypatch, detail)
@@ -1581,6 +1627,37 @@ class TestCreateReadbackVerification:
                 Book(name="Synthetic read-back book", storage_type="sqlite", uri_or_path="synthetic://readback"),
                 request,
                 result,
+            )
+
+        assert excinfo.value.detail == transactions_router.CREATE_READBACK_FAILURE_DETAIL
+        assert excinfo.value.backup_path == "synthetic-backup-ref"
+
+    def test_create_readback_rejects_mismatched_account_balance_delta(self, monkeypatch):
+        import app.routers.transactions as transactions_router
+        from app.schemas.gnucash_writes import TransactionWriteResultDTO
+
+        request = self._request()
+        detail = self._detail_from_request("created-readback-tx", request)
+        after_accounts = [
+            self._account("source-checking-guid", "875.00"),
+            self._account("destination-food-guid", "100.00"),
+            self._account("destination-transport-guid", "25.50"),
+        ]
+        self._patch_read_service(monkeypatch, detail, accounts=after_accounts)
+
+        with pytest.raises(transactions_router.GnuCashCreateReadbackVerificationError) as excinfo:
+            transactions_router._verify_transaction_create_readback(
+                Book(name="Synthetic read-back book", storage_type="sqlite", uri_or_path="synthetic://readback"),
+                request,
+                TransactionWriteResultDTO(
+                    transaction_id="created-readback-tx",
+                    backup_path="synthetic-backup-ref",
+                ),
+                before_account_balances={
+                    "source-checking-guid": (Decimal("1000.00"), "SEK"),
+                    "destination-food-guid": (Decimal("0.00"), "SEK"),
+                    "destination-transport-guid": (Decimal("0.00"), "SEK"),
+                },
             )
 
         assert excinfo.value.detail == transactions_router.CREATE_READBACK_FAILURE_DETAIL
@@ -1604,6 +1681,25 @@ class TestCreateTransaction:
         fake_book = FakeBookForWrite(accounts=fake_accounts, transactions=[])
         mock_piecash, created_tx = _make_mock_piecash(fake_book, fake_accounts)
 
+        def fake_read_accounts() -> list[AccountDTO]:
+            balances = {"bank-guid": Decimal("0"), "food-guid": Decimal("0")}
+            for split in created_tx.splits:
+                balances[split.account.guid] += Decimal(str(split.value))
+            return [
+                AccountDTO(
+                    id=account_id,
+                    name=account_id,
+                    full_name=account_id,
+                    type="BANK",
+                    currency="SEK",
+                    balance=format(balance, "f"),
+                    placeholder=False,
+                    hidden=False,
+                    parent_id=None,
+                )
+                for account_id, balance in balances.items()
+            ]
+
         import app.services.write_lock as wl_module
         import app.services.gnucash_write as gw_module
         import app.services.gnucash_book as gb_module
@@ -1621,7 +1717,8 @@ class TestCreateTransaction:
                                         get_transaction=lambda transaction_id: _readback_detail_from_payload(
                                             transaction_id,
                                             payload,
-                                        )
+                                        ),
+                                        list_accounts=fake_read_accounts,
                                     ),
                                 ):
                                     response = client.post(
@@ -1930,6 +2027,15 @@ class TestWriteAlphaCreateRouteDisposableFixture:
         data = response.json()
         assert data["readback_verified"] is True
         assert data["readback_transaction_id"] == data["transaction_id"]
+        assert data["readback_transaction_present"] is True
+        assert data["readback_split_count"] == 2
+        assert data["readback_split_balance_verified"] is True
+        assert data["readback_split_balance_by_currency"] == {"SEK": "0.00"}
+        assert data["readback_currency"] == "SEK"
+        assert data["readback_currency_consistent"] is True
+        assert data["readback_account_balance_deltas_verified"] is True
+        assert data["readback_account_balance_delta_count"] == 2
+        assert data["readback_account_balance_delta_total_by_currency"] == {"SEK": "0.00"}
 
         reopened_balances = _read_account_balances(disposable_fixture_book, tracked_guids)
         assert set(reopened_balances) == tracked_guids
@@ -2057,7 +2163,15 @@ class TestWriteAlphaCreateRouteDisposableFixture:
         }
         assert audit_payload["readback_verified"] is True
         assert audit_payload["readback_transaction_id"] == transaction_id
+        assert audit_payload["readback_transaction_present"] is True
         assert audit_payload["readback_split_count"] == 2
+        assert audit_payload["readback_split_balance_verified"] is True
+        assert audit_payload["readback_split_balance_by_currency"] == {"SEK": "0.00"}
+        assert audit_payload["readback_currency"] == "SEK"
+        assert audit_payload["readback_currency_consistent"] is True
+        assert audit_payload["readback_account_balance_deltas_verified"] is True
+        assert audit_payload["readback_account_balance_delta_count"] == 2
+        assert audit_payload["readback_account_balance_delta_total_by_currency"] == {"SEK": "0.00"}
 
         lock_key = str(disposable_fixture_book)
         assert disposable_write_lock.acquire(lock_key) is True
@@ -2203,6 +2317,32 @@ class TestWriteAlphaCreateRouteDisposableFixture:
         from app.services.gnucash_exceptions import EntityNotFoundError
 
         class MissingCreatedTransactionReadService:
+            def list_accounts(self) -> list[AccountDTO]:
+                return [
+                    AccountDTO(
+                        id="c73e8aa01e6345288662b556f2f866f3",
+                        name="Checking",
+                        full_name="Assets:Checking",
+                        type="BANK",
+                        currency="SEK",
+                        balance="0.00",
+                        placeholder=False,
+                        hidden=False,
+                        parent_id=None,
+                    ),
+                    AccountDTO(
+                        id="388a85676d4a4643ae6cd28166c34e79",
+                        name="Food",
+                        full_name="Expenses:Food",
+                        type="EXPENSE",
+                        currency="SEK",
+                        balance="0.00",
+                        placeholder=False,
+                        hidden=False,
+                        parent_id=None,
+                    ),
+                ]
+
             def get_transaction(self, transaction_id):
                 raise EntityNotFoundError("transaction", transaction_id)
 
