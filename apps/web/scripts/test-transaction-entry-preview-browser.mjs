@@ -29,8 +29,8 @@ const syntheticToken = 'synthetic-smoke-token';
 const syntheticDescription = 'Synthetic browser smoke preview';
 const syntheticMemo = 'Synthetic browser smoke memo';
 const syntheticAmount = '12.34';
-const explicitSyntheticCreateHarnessToken = 'issue50-explicit-synthetic-create-harness';
-const explicitSyntheticCreateHarnessSearch = '?explicit_test_mode=issue50';
+const explicitSyntheticCreateHarnessToken = 'issue51-explicit-synthetic-create-harness';
+const explicitSyntheticCreateHarnessSearch = '?explicit_test_mode=issue51';
 const explicitSyntheticCreateId = 'synthetic-explicit-create-1';
 
 const syntheticBook = {
@@ -264,7 +264,7 @@ function isExplicitSyntheticCreateHarnessRequest(req, url) {
 	return req.method === 'POST'
 		&& url.pathname === '/books/1/transactions'
 		&& url.search === explicitSyntheticCreateHarnessSearch
-		&& req.headers['x-issue50-explicit-test-create'] === explicitSyntheticCreateHarnessToken
+		&& req.headers['x-issue51-explicit-test-create'] === explicitSyntheticCreateHarnessToken
 		&& req.headers['x-app-env'] === 'test'
 		&& req.headers['x-gnucash-writes-enabled'] === 'true';
 }
@@ -1009,6 +1009,82 @@ function productCreatePayloadFromPreview(previewPayload) {
 	};
 }
 
+async function collectReviewedApprovalEvidence(cdp, label) {
+	const state = await evaluate(cdp, `(() => {
+		const text = (selector) => document.querySelector(selector)?.innerText ?? '';
+		const approval = document.querySelector('#approval-packet');
+		const reviewed = document.querySelector('#preview-reviewed-confirmation');
+		const future = document.querySelector('#future-create-disabled');
+		return {
+			approvalPresent: Boolean(approval),
+			approvalClosestFormId: approval?.closest('form')?.id ?? null,
+			approvalText: text('#approval-packet'),
+			copyStatusText: text('#approval-packet-copy-note'),
+			previewReviewedStatusText: text('#preview-reviewed-status'),
+			reviewedChecked: Boolean(reviewed?.checked),
+			reviewedDisabled: Boolean(reviewed?.disabled),
+			reviewedName: reviewed?.getAttribute('name'),
+			reviewedFormId: reviewed?.form?.id ?? null,
+			staleWarningPresent: Boolean(document.querySelector('#preview-stale-warning')),
+			futureDisabled: Boolean(future?.disabled),
+			futureType: future?.type ?? null,
+			futureFormId: future?.form?.id ?? null,
+			futureName: future?.getAttribute('name'),
+			futureValue: future?.getAttribute('value'),
+			futureFormAction: future?.getAttribute('formaction')
+		};
+	})()`);
+	assert.equal(state.approvalPresent, true, `${label}: reviewed approval packet must be present before explicit test-mode CREATE rehearsal`);
+	assert.equal(state.approvalClosestFormId, null, `${label}: reviewed approval packet must remain outside the preview form`);
+	assert.equal(state.reviewedChecked, true, `${label}: reviewed approval evidence must include a checked local preview-reviewed checkbox`);
+	assert.equal(state.reviewedDisabled, false, `${label}: reviewed approval evidence must come from a non-stale preview`);
+	assert.equal(state.reviewedName, null, `${label}: reviewed checkbox must stay local-only and unnamed`);
+	assert.equal(state.reviewedFormId, null, `${label}: reviewed checkbox must not submit with the preview form`);
+	assert.equal(state.staleWarningPresent, false, `${label}: reviewed approval evidence must be non-stale`);
+	assert.match(state.previewReviewedStatusText, /Preview reviewed locally/, `${label}: reviewed status must be explicit`);
+	assert.match(state.previewReviewedStatusText, /preview-reviewed checkbox alone is not enough/, `${label}: reviewed status must not arm CREATE`);
+	assert.match(state.approvalText, /Future Create remains disabled/, `${label}: approval evidence must keep future create disabled`);
+	assert.match(state.approvalText, /Fresh same-context owner approval with exact CREATE count = 1/, `${label}: approval evidence must require fresh exact-count owner approval`);
+	assert.match(state.copyStatusText, /The copy button uses placeholders only|Redacted placeholder template copied/, `${label}: approval evidence must stay placeholder-only`);
+	assert.equal(state.futureDisabled, true, `${label}: reviewed approval evidence must keep Future Create disabled`);
+	assert.equal(state.futureType, 'button', `${label}: Future Create must remain non-submitting during reviewed evidence capture`);
+	assert.equal(state.futureFormId, null, `${label}: Future Create must remain outside the preview form during reviewed evidence capture`);
+	assert.equal(state.futureName, null, `${label}: Future Create must not submit a name during reviewed evidence capture`);
+	assert.equal(state.futureValue, null, `${label}: Future Create must not submit a value during reviewed evidence capture`);
+	assert.equal(state.futureFormAction, null, `${label}: Future Create must not expose a form action during reviewed evidence capture`);
+	return {
+		source: 'browser-reviewed-approval-packet',
+		evidence_scope: 'redacted_only',
+		issue: 51,
+		target_class: 'synthetic_disposable_stub',
+		preview_reviewed: true,
+		preview_stale: false,
+		approval_packet_present: true,
+		approval_template: 'placeholder_only',
+		future_create_disabled: true,
+		future_create_control: 'disabled_type_button_outside_form',
+		create_count: 1,
+		explicit_test_mode: 'issue51'
+	};
+}
+
+function assertExplicitSyntheticCreateHarnessReviewedEvidence(reviewedApprovalEvidence) {
+	assert.deepEqual(reviewedApprovalEvidence, {
+		source: 'browser-reviewed-approval-packet',
+		evidence_scope: 'redacted_only',
+		issue: 51,
+		target_class: 'synthetic_disposable_stub',
+		preview_reviewed: true,
+		preview_stale: false,
+		approval_packet_present: true,
+		approval_template: 'placeholder_only',
+		future_create_disabled: true,
+		future_create_control: 'disabled_type_button_outside_form',
+		create_count: 1,
+		explicit_test_mode: 'issue51'
+	}, 'explicit CREATE harness requires reviewed browser approval evidence from the non-stale preview UI');
+}
+
 async function assertExplicitSyntheticCreateHarnessRejectsUserMode(api, browserRequests, productCreatePayload) {
 	const browserRequestCountBefore = browserRequests.length;
 	const explicitPayloadCountBefore = api.explicitCreatePayloads.length;
@@ -1023,7 +1099,7 @@ async function assertExplicitSyntheticCreateHarnessRejectsUserMode(api, browserR
 			label: 'non-test APP_ENV synthetic CREATE probe',
 			search: explicitSyntheticCreateHarnessSearch,
 			headers: {
-				'x-issue50-explicit-test-create': explicitSyntheticCreateHarnessToken,
+				'x-issue51-explicit-test-create': explicitSyntheticCreateHarnessToken,
 				'x-app-env': 'production',
 				'x-gnucash-writes-enabled': 'true'
 			}
@@ -1032,7 +1108,7 @@ async function assertExplicitSyntheticCreateHarnessRejectsUserMode(api, browserR
 			label: 'writes-disabled explicit CREATE probe',
 			search: explicitSyntheticCreateHarnessSearch,
 			headers: {
-				'x-issue50-explicit-test-create': explicitSyntheticCreateHarnessToken,
+				'x-issue51-explicit-test-create': explicitSyntheticCreateHarnessToken,
 				'x-app-env': 'test',
 				'x-gnucash-writes-enabled': 'false'
 			}
@@ -1041,7 +1117,7 @@ async function assertExplicitSyntheticCreateHarnessRejectsUserMode(api, browserR
 			label: 'missing explicit test-mode query',
 			search: '',
 			headers: {
-				'x-issue50-explicit-test-create': explicitSyntheticCreateHarnessToken,
+				'x-issue51-explicit-test-create': explicitSyntheticCreateHarnessToken,
 				'x-app-env': 'test',
 				'x-gnucash-writes-enabled': 'true'
 			}
@@ -1086,7 +1162,8 @@ async function assertExplicitSyntheticCreateHarnessRejectsUserMode(api, browserR
 	);
 }
 
-async function runExplicitSyntheticCreateHarness(api, browserRequests, previewPayload) {
+async function runExplicitSyntheticCreateHarness(api, browserRequests, previewPayload, reviewedApprovalEvidence) {
+	assertExplicitSyntheticCreateHarnessReviewedEvidence(reviewedApprovalEvidence);
 	assert.equal(api.explicitCreatePayloads.length, 0, 'explicit synthetic CREATE harness must start with zero CREATE payloads');
 	assert.equal(
 		isForbiddenTransactionMutation('POST', '/books/1/transactions', ''),
@@ -1111,7 +1188,7 @@ async function runExplicitSyntheticCreateHarness(api, browserRequests, previewPa
 		headers: {
 			'content-type': 'application/json',
 			authorization: `Bearer ${syntheticToken}`,
-			'x-issue50-explicit-test-create': explicitSyntheticCreateHarnessToken,
+			'x-issue51-explicit-test-create': explicitSyntheticCreateHarnessToken,
 			'x-app-env': 'test',
 			'x-gnucash-writes-enabled': 'true'
 		},
@@ -1163,6 +1240,7 @@ async function runSmoke() {
 	let chromiumProcess;
 	let cdp;
 	const browserRequests = [];
+	let reviewedApprovalEvidence;
 
 	try {
 		webProcess = spawnLogged(process.execPath, [viteBin, 'dev', '--host', '127.0.0.1', '--port', String(webPort), '--strictPort'], {
@@ -1388,6 +1466,7 @@ async function runSmoke() {
 		await assertDisabledButtonInert(cdp, '#future-create-disabled', 'Future Create disabled', browserRequests, 'reviewed Future Create');
 		await assertReadinessShellsRemainPending(cdp, 'reviewed preview');
 		await assertExecutionResultShellRemainsPending(cdp, 'reviewed preview');
+		reviewedApprovalEvidence = await collectReviewedApprovalEvidence(cdp, 'reviewed preview');
 		assertNoMutationRequestsObserved(api, browserRequests, 'reviewed preview');
 		await setInput(cdp, '#preview-description', 'Synthetic browser smoke changed draft');
 		await waitForExpression(cdp, `document.querySelector('#preview-stale-warning')?.innerText.includes('stale and cannot support a future owner-approved CREATE')`, 'stale warning after draft change');
@@ -1456,7 +1535,9 @@ async function runSmoke() {
 			['?/preview'],
 			'browser must submit the transaction-entry form exactly once and only to the preview action'
 		);
-		await runExplicitSyntheticCreateHarness(api, browserRequests, previewPayload);
+		assert.equal(reviewedApprovalEvidence?.preview_reviewed, true, 'browser smoke must capture reviewed approval evidence before explicit test-mode CREATE harness');
+		assert.equal(reviewedApprovalEvidence?.preview_stale, false, 'browser smoke must capture non-stale approval evidence before explicit test-mode CREATE harness');
+		await runExplicitSyntheticCreateHarness(api, browserRequests, previewPayload, reviewedApprovalEvidence);
 		assertBrowserToAppToApiBoundary(browserRequests, webBase, api.url, 'explicit synthetic create harness');
 		assertDisposableSyntheticApiTargetBoundary(api, 'explicit synthetic create harness');
 	} catch (error) {

@@ -84,6 +84,11 @@ for (const requiredBrowserSmokeFragment of [
 	'explicitCreatePayloads',
 	'function isExplicitSyntheticCreateHarnessRequest',
 	'function productCreatePayloadFromPreview',
+	'function collectReviewedApprovalEvidence',
+	'function assertExplicitSyntheticCreateHarnessReviewedEvidence',
+	'source: \'browser-reviewed-approval-packet\'',
+	'explicit CREATE harness requires reviewed browser approval evidence from the non-stale preview UI',
+	'browser smoke must capture reviewed approval evidence before explicit test-mode CREATE harness',
 	'function assertExplicitSyntheticCreateHarnessRejectsUserMode',
 	'missing explicit harness header',
 	'non-test APP_ENV synthetic CREATE probe',
@@ -92,8 +97,8 @@ for (const requiredBrowserSmokeFragment of [
 	'function runExplicitSyntheticCreateHarness',
 	'function assertBrowserToAppToApiBoundary',
 	'function assertDisposableSyntheticApiTargetBoundary',
-	'x-issue50-explicit-test-create',
-	'explicit_test_mode=issue50',
+	'x-issue51-explicit-test-create',
+	'explicit_test_mode=issue51',
 	'product CREATE route remains forbidden without explicit synthetic test harness',
 	'explicit harness must not be browser-driven or activate default UI',
 	'default/user-mode product CREATE route must be probed only by explicit Node harness and remain blocked',
@@ -116,12 +121,12 @@ assert.match(browserSmoke, /isForbiddenTransactionMutation\(method, pathname, se
 assert.match(browserSmoke, /assertNoMutationRequestsObserved[\s\S]*request\.search \?\? ''/, 'browser smoke repeated mutation-boundary checks must include synthetic API query strings');
 assert.match(browserSmoke, /create-preview', '\?next=%2Fbooks%2F1%2Ftransactions%2Fbatch/, 'browser smoke must unit-check query-smuggled API create-preview mutation boundaries');
 assert.match(browserSmoke, /\?\/preview&next=%2Fbooks%2F1%2Ftransactions%2Fbatch/, 'browser smoke must reject smuggled mutation routes even when ?/preview appears in the query');
-assert.match(browserSmoke, /isExplicitSyntheticCreateHarnessRequest[\s\S]*\/books\/1\/transactions[\s\S]*explicitSyntheticCreateHarnessSearch[\s\S]*x-issue50-explicit-test-create[\s\S]*x-app-env[\s\S]*x-gnucash-writes-enabled/, 'explicit synthetic CREATE harness must be header-gated and product-route shaped');
+assert.match(browserSmoke, /isExplicitSyntheticCreateHarnessRequest[\s\S]*\/books\/1\/transactions[\s\S]*explicitSyntheticCreateHarnessSearch[\s\S]*x-issue51-explicit-test-create[\s\S]*x-app-env[\s\S]*x-gnucash-writes-enabled/, 'explicit synthetic CREATE harness must be header-gated and product-route shaped');
 assert.match(browserSmoke, /runExplicitSyntheticCreateHarness[\s\S]*isForbiddenTransactionMutation\('POST', '\/books\/1\/transactions', ''\)[\s\S]*product CREATE route remains forbidden without explicit synthetic test harness[\s\S]*fetch\(`\$\{api\.url\}\/books\/1\/transactions\$\{explicitSyntheticCreateHarnessSearch\}`/, 'explicit synthetic CREATE harness must prove default CREATE remains blocked before using the explicit test route');
 assert.match(browserSmoke, /productCreatePayloadFromPreview[\s\S]*splits[\s\S]*account_id: previewPayload\.debit_account_id[\s\S]*amount: `-\$\{previewPayload\.amount\}`[\s\S]*account_id: previewPayload\.credit_account_id/, 'explicit synthetic CREATE harness must derive a product CREATE payload from the preview payload');
 assert.match(browserSmoke, /assertExplicitSyntheticCreateHarnessRejectsUserMode[\s\S]*missing explicit harness header[\s\S]*non-test APP_ENV synthetic CREATE probe[\s\S]*writes-disabled explicit CREATE probe[\s\S]*response\.status, 409[\s\S]*explicit rejected CREATE probes must not be browser-driven/, 'explicit synthetic CREATE harness must actively reject user-mode or partially armed CREATE probes');
-assert.match(browserSmoke, /runExplicitSyntheticCreateHarness[\s\S]*productCreatePayloadFromPreview\(previewPayload\)[\s\S]*assertExplicitSyntheticCreateHarnessRejectsUserMode\(api, browserRequests, productCreatePayload\)[\s\S]*fetch\(`\$\{api\.url\}\/books\/1\/transactions\$\{explicitSyntheticCreateHarnessSearch\}`/, 'explicit synthetic CREATE harness must run rejection probes before accepting the explicit test-mode CREATE');
-assert.match(browserSmoke, /runExplicitSyntheticCreateHarness\(api, browserRequests, previewPayload\)/, 'browser smoke must run the explicit synthetic CREATE harness after the no-mutation browser assertions');
+assert.match(browserSmoke, /runExplicitSyntheticCreateHarness[\s\S]*assertExplicitSyntheticCreateHarnessReviewedEvidence\(reviewedApprovalEvidence\)[\s\S]*productCreatePayloadFromPreview\(previewPayload\)[\s\S]*assertExplicitSyntheticCreateHarnessRejectsUserMode\(api, browserRequests, productCreatePayload\)[\s\S]*fetch\(`\$\{api\.url\}\/books\/1\/transactions\$\{explicitSyntheticCreateHarnessSearch\}`/, 'explicit synthetic CREATE harness must require reviewed approval evidence and run rejection probes before accepting the explicit test-mode CREATE');
+assert.match(browserSmoke, /reviewedApprovalEvidence = await collectReviewedApprovalEvidence\(cdp, 'reviewed preview'\)[\s\S]*assertNoMutationRequestsObserved\(api, browserRequests, 'reviewed preview'\)[\s\S]*runExplicitSyntheticCreateHarness\(api, browserRequests, previewPayload, reviewedApprovalEvidence\)/, 'browser smoke must capture reviewed approval evidence before the explicit synthetic CREATE harness');
 
 for (const field of [
 	'book_id',
