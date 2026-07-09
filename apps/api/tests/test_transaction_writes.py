@@ -811,6 +811,7 @@ class TestWritesDisabledByDefault:
         sample_book,
         session_factory,
         monkeypatch,
+        tmp_path,
     ):
         write_service_calls = []
 
@@ -826,6 +827,34 @@ class TestWritesDisabledByDefault:
             "X-Gnucash-Writes-Enabled": "true",
         }
         explicit_query = "?explicit_test_mode=issue51"
+        proof_reuse_target = tmp_path / "issue51-reused-proof-disposable.gnucash.sqlite"
+        shutil.copy2(SYNTHETIC_FIXTURE_PATH, proof_reuse_target)
+        with session_factory() as session:
+            proof_reuse_book = Book(
+                name="Issue51 reused proof disposable fixture",
+                storage_type="sqlite",
+                uri_or_path=str(proof_reuse_target),
+                is_default=False,
+            )
+            session.add(proof_reuse_book)
+            session.flush()
+            admin = session.query(User).filter(User.username == "admin").one()
+            session.add(UserBookAccess(user_id=admin.id, book_id=proof_reuse_book.id, role="owner"))
+            session.commit()
+            proof_reuse_book_id = proof_reuse_book.id
+        assert proof_reuse_book_id != 1
+
+        proof_reuse_response = client.post(
+            f"/books/{proof_reuse_book_id}/transactions{explicit_query}",
+            json=_balanced_transaction_payload(),
+            headers={**auth_headers, **required_harness_headers},
+        )
+        assert proof_reuse_response.status_code == 403
+        proof_reuse_detail = proof_reuse_response.json()["detail"]
+        assert "Explicit issue51 CREATE harness" in proof_reuse_detail
+        assert "synthetic/disposable proof" in proof_reuse_detail
+        assert "Issue51 reused proof" not in proof_reuse_detail
+
         rejected_cases = [
             ("missing explicit query", "", required_harness_headers),
             (

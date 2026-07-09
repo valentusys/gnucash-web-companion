@@ -89,7 +89,8 @@ SQLITE_BOOK_SUFFIXES = frozenset({".sqlite", ".sqlite3", ".db"})
 ISSUE51_EXPLICIT_TEST_MODE = "issue51"
 ISSUE51_EXPLICIT_CREATE_QUERY = f"explicit_test_mode={ISSUE51_EXPLICIT_TEST_MODE}"
 ISSUE51_EXPLICIT_CREATE_HEADER = "issue51-explicit-synthetic-create-harness"
-ISSUE51_SYNTHETIC_DISPOSABLE_PROOF = "synthetic-disposable-fixture-book-1"
+ISSUE51_SYNTHETIC_DISPOSABLE_BOOK_ID = 1
+ISSUE51_SYNTHETIC_DISPOSABLE_PROOF = f"synthetic-disposable-fixture-book-{ISSUE51_SYNTHETIC_DISPOSABLE_BOOK_ID}"
 EXPLICIT_ISSUE51_CREATE_HARNESS_DETAIL = (
     "Explicit issue51 CREATE harness requires exact test-mode query, harness header, "
     "synthetic/disposable proof, APP_ENV=test, and GNUCASH_WRITES_ENABLED=true."
@@ -1580,6 +1581,7 @@ def _explicit_issue51_create_harness_attempted(
 def _require_explicit_issue51_create_harness_scope(
     *,
     settings: Settings,
+    book_id: int,
     raw_query: str,
     explicit_test_mode: str | None,
     x_issue51_explicit_test_create: str | None,
@@ -1606,6 +1608,7 @@ def _require_explicit_issue51_create_harness_scope(
 
     if (
         raw_query != ISSUE51_EXPLICIT_CREATE_QUERY
+        or book_id != ISSUE51_SYNTHETIC_DISPOSABLE_BOOK_ID
         or _clean_harness_value(explicit_test_mode) != ISSUE51_EXPLICIT_TEST_MODE
         or _clean_harness_value(x_issue51_explicit_test_create) != ISSUE51_EXPLICIT_CREATE_HEADER
         or _clean_harness_value(x_issue51_synthetic_disposable_proof)
@@ -1841,6 +1844,7 @@ async def create_book_transaction(
     _require_disposable_create_target(book)
     _require_explicit_issue51_create_harness_scope(
         settings=settings,
+        book_id=book.id,
         raw_query=http_request.url.query,
         explicit_test_mode=explicit_test_mode,
         x_issue51_explicit_test_create=x_issue51_explicit_test_create,
