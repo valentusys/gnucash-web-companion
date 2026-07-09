@@ -801,6 +801,7 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 						<div><dt class="font-semibold">backup/audit</dt><dd>backup_state: captured by opaque ref; audit_state: recorded by opaque ref; no raw backup path or audit payload.</dd></div>
 						<div><dt class="font-semibold">reset/default-disabled probes</dt><dd>reset_default_disabled_probe_summary: verified; APP_ENV=test, GNUCASH_WRITES_ENABLED=false, and validate/preflight/CREATE/PATCH/DELETE/batch are blocked_or_unavailable after reset.</dd></div>
 						<div><dt class="font-semibold">raw_book_evidence_included</dt><dd>false; no transaction_id, backup_path, raw audit payload, account IDs, descriptions, memos, amounts, GUIDs, raw paths, screenshots, tokens, or secrets.</dd></div>
+						<div class="md:col-span-2"><dt class="font-semibold">result_panel_visible_rows</dt><dd>display-only rows: create_count, read_back_verification, backup_state, audit_state, reset_default_disabled_probe_summary, raw_book_evidence_included; raw_value_included=false for every row; private_raw_payload_rendered: false.</dd></div>
 					</dl>
 				</div>
 				<div id="redacted-create-failure-result-panel-fields" class="mt-3 rounded-lg p-3" role="note" aria-label="Redacted CREATE failure result panel fields" style="border: 1px solid #5eead4; background: #f0fdfa;">

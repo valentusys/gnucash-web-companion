@@ -237,6 +237,7 @@ function assertSourceSafety() {
 	assert.match(page, /id="execution-result-triage-panel"[\s\S]*Disabled result triage[\s\S]*Current state: no CREATE execution attempted; preview data is not a success result[\s\S]*Success requires redacted CREATE reference and private read-back before any success copy[\s\S]*Failure state keeps success blocked until a safe error is translated[\s\S]*Rollback state remains owner-approved recovery only and is not run from this page[\s\S]*Post-result reset\/probe state stays pending until GNUCASH_WRITES_ENABLED=false is verified/s, 'execution-result triage panel must clarify disabled success/failure/rollback/reset outcomes');
 	assert.match(page, /id="redacted-create-success-state"[\s\S]*status: success only after explicit synthetic test-mode CREATE[\s\S]*create_count: 1[\s\S]*read_back_verification: verified[\s\S]*backup_state: captured[\s\S]*audit_state: recorded[\s\S]*reset_default_disabled_probe_summary: verified/s, 'redacted result contract must document the explicit synthetic success state without activating default UI CREATE');
 	assert.match(page, /id="redacted-create-success-result-panel-fields"[\s\S]*Success result panel fields \(redacted\)[\s\S]*success only after explicit synthetic\/disposable test-mode CREATE; never from preview[\s\S]*raw_book_evidence_included[\s\S]*false; no transaction_id, backup_path, raw audit payload/s, 'redacted success result panel fields must explicitly expose create_count/read-back/backup/audit/reset evidence and raw-book exclusion');
+	assert.match(page, /id="redacted-create-success-result-panel-fields"[\s\S]*result_panel_visible_rows[\s\S]*display-only rows: create_count, read_back_verification, backup_state, audit_state, reset_default_disabled_probe_summary, raw_book_evidence_included[\s\S]*raw_value_included=false[\s\S]*private_raw_payload_rendered: false/s, 'redacted success result panel must expose only display-safe visible rows');
 	assert.match(page, /id="redacted-create-failure-result-panel-fields"[\s\S]*Failure result panel fields \(redacted\)[\s\S]*create_count_state[\s\S]*unknown_after_attempt[\s\S]*post_result_hard_stop[\s\S]*raw_book_evidence_included[\s\S]*false/s, 'redacted failure result panel fields must explicitly fail closed without raw-book evidence');
 	assert.match(page, /id="redacted-create-result-redaction-list"[\s\S]*Only opaque refs may be displayed[\s\S]*No transaction_id, backup_path, raw audit payload, account IDs, currency, descriptions, memos, amounts, GUIDs, raw paths, screenshots, tokens, or secrets[\s\S]*Default \/transactions\/new never activates this state/s, 'redacted result contract must forbid raw product-route result fields and default UI activation');
 	assert.match(page, /id="redacted-patch-result-contract"[\s\S]*Explicit synthetic metadata-only PATCH result panel contract \(inactive\)[\s\S]*app-created disposable transaction only[\s\S]*description and split memo metadata only[\s\S]*amount, account, split, date, and currency changes rejected/s, 'inactive PATCH result-panel contract must document app-owned metadata-only PATCH scope');
@@ -432,6 +433,15 @@ function buildRedactedSyntheticCreateResultPanel() {
 			target_class: 'disposable_copied_like_fixture',
 			create_count: 1,
 			create_result_ref: explicitSyntheticCreateRef,
+			private_raw_payload_rendered: false,
+			result_panel_visible_rows: [
+				{ field: 'create_count', display_value: '1', evidence_scope: 'redacted_only', raw_value_included: false },
+				{ field: 'read_back_verification', display_value: 'verified', evidence_scope: 'redacted_only', raw_value_included: false },
+				{ field: 'backup_state', display_value: 'captured', evidence_scope: 'redacted_only', raw_value_included: false },
+				{ field: 'audit_state', display_value: 'recorded', evidence_scope: 'redacted_only', raw_value_included: false },
+				{ field: 'reset_default_disabled_probe_summary', display_value: 'verified', evidence_scope: 'redacted_only', raw_value_included: false },
+				{ field: 'raw_book_evidence_included', display_value: 'false', evidence_scope: 'redacted_only', raw_value_included: false }
+			],
 			backend_route_write_boundary: {
 				product_route_used: true,
 				route: 'POST /books/{book_id}/transactions',
@@ -2159,6 +2169,37 @@ async function assertExplicitSyntheticCreateHarnessRejectsUserMode(api, browserR
 	);
 }
 
+function buildRedactedCreateVisibleRows(panel) {
+	return [
+		{ field: 'create_count', display_value: String(panel.create_count), evidence_scope: 'redacted_only', raw_value_included: false },
+		{ field: 'read_back_verification', display_value: panel.read_back_verification.state, evidence_scope: 'redacted_only', raw_value_included: false },
+		{ field: 'backup_state', display_value: panel.backup_state.state, evidence_scope: 'redacted_only', raw_value_included: false },
+		{ field: 'audit_state', display_value: panel.audit_state.state, evidence_scope: 'redacted_only', raw_value_included: false },
+		{ field: 'reset_default_disabled_probe_summary', display_value: panel.reset_default_disabled_probe_summary.state, evidence_scope: 'redacted_only', raw_value_included: false },
+		{ field: 'raw_book_evidence_included', display_value: 'false', evidence_scope: 'redacted_only', raw_value_included: false }
+	];
+}
+
+function redactCreateResultPanelForDisplay(responseBody) {
+	assert.deepEqual(Object.keys(responseBody), ['redacted_result_panel'], 'explicit product-route CREATE drill must emit only the redacted result panel before display shaping');
+	const panel = responseBody.redacted_result_panel;
+	assert.equal(panel.status, 'success', 'display shaping requires a successful explicit synthetic CREATE result');
+	assert.equal(panel.create_count, 1, 'display shaping requires exact create_count 1');
+	assert.equal(panel.read_back_verification?.state, 'verified', 'display shaping requires verified read-back state');
+	assert.equal(panel.backup_state?.state, 'captured', 'display shaping requires captured backup state');
+	assert.equal(panel.audit_state?.state, 'recorded', 'display shaping requires recorded audit state');
+	assert.equal(panel.reset_default_disabled_probe_summary?.state, 'verified', 'display shaping requires verified reset/default-disabled probes');
+	assert.equal(panel.redaction?.raw_book_paths, false, 'display shaping requires raw book paths to be excluded');
+	assert.equal(panel.redaction?.raw_backup_paths, false, 'display shaping requires raw backup paths to be excluded');
+	return {
+		redacted_result_panel: {
+			...panel,
+			private_raw_payload_rendered: false,
+			result_panel_visible_rows: buildRedactedCreateVisibleRows(panel)
+		}
+	};
+}
+
 function runProductRouteCreateDrill(productCreatePayload) {
 	assert.ok(existsSync(productCreateDrillScript), 'explicit CREATE harness requires the disposable product-route drill script');
 	const child = spawnSync('python3', [productCreateDrillScript, '--json-only'], {
@@ -2174,7 +2215,7 @@ function runProductRouteCreateDrill(productCreatePayload) {
 	assert.equal(String(child.stderr ?? '').trim(), '', 'explicit product-route CREATE drill must keep stderr empty on success');
 	const stdout = String(child.stdout ?? '').trim();
 	assert.ok(stdout.startsWith('{') && stdout.endsWith('}'), 'explicit product-route CREATE drill must emit only redacted JSON on stdout');
-	return JSON.parse(stdout);
+	return redactCreateResultPanelForDisplay(JSON.parse(stdout));
 }
 
 function runProductRoutePatchDrill(productCreatePayload) {
@@ -2487,6 +2528,26 @@ function assertRedactedSyntheticCreateResultPanel(responseBody, productCreatePay
 	assert.equal(panel.target_class, 'disposable_copied_like_fixture', 'explicit synthetic CREATE result panel must stay scoped to the disposable copied-like fixture target');
 	assert.equal(panel.create_count, reviewedApprovalEvidence.create_count, 'explicit synthetic CREATE result panel must show the reviewed exact create_count');
 	assert.equal(panel.create_count, 1, 'explicit synthetic CREATE result panel must show exactly one CREATE');
+	assert.equal(panel.private_raw_payload_rendered, false, 'explicit synthetic CREATE result panel must not render a private/raw product payload');
+	assert.deepEqual(
+		panel.result_panel_visible_rows.map((row) => row.field),
+		['create_count', 'read_back_verification', 'backup_state', 'audit_state', 'reset_default_disabled_probe_summary', 'raw_book_evidence_included'],
+		'explicit synthetic CREATE result panel must expose only the approved visible row fields'
+	);
+	assert.ok(
+		panel.result_panel_visible_rows.every((row) => row.evidence_scope === 'redacted_only' && row.raw_value_included === false),
+		'explicit synthetic CREATE result panel visible rows must stay redacted and exclude raw values'
+	);
+	assert.deepEqual(
+		panel.result_panel_visible_rows.map((row) => row.display_value),
+		['1', 'verified', 'captured', 'recorded', 'verified', 'false'],
+		'explicit synthetic CREATE result panel visible rows must summarize count/read-back/backup/audit/reset/raw-evidence states only'
+	);
+	assert.doesNotMatch(
+		JSON.stringify(panel.result_panel_visible_rows),
+		/transaction_id|backup_path|audit_log_id|payload_json|account_id|split|description|memo|amount|GUID|\.gnucash\.sqlite/i,
+		'explicit synthetic CREATE result panel visible rows must not include raw DTO/private data fields'
+	);
 	assert.deepEqual(
 		panel.fixture_scope,
 		{
