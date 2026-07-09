@@ -515,21 +515,20 @@ What current HEAD covers with synthetic or disposable targets:
 - optional DELETE coverage stays app-owned/write-alpha-created only and rejects non-owned, inert-marker, active
   unarmed preview, missing, and non-disposable targets before the write service where applicable.
 
-Latest redacted checks tied to #50 disposable-fixture coverage:
+Latest redacted final local gates tied to #50 disposable-fixture coverage:
 
-- API route-family drill:
-  ```bash
-  PYTHONPATH=apps/api apps/api/.venv/bin/python -m pytest apps/api/tests/test_owner_writebeta_synthetic_route_family_drill.py -q
-  ```
-  returned `18 passed, 3 warnings in 13.78s`.
-- Static web guard: `node apps/web/scripts/test-transaction-entry-preview.mjs` returned
-  `transaction-entry-preview-static: ok`.
-- Synthetic browser harness: `node apps/web/scripts/test-transaction-entry-preview-browser.mjs` returned
+- public-status, write-safety defaults, markdown-readability, tracked-hygiene, `git diff --check`, and Docker Compose
+  config guards passed from the repository root;
+- backend `pytest -q` passed `1090 passed, 56 warnings in 346.76s (0:05:46)`;
+- frontend `npm run check` passed with `0 errors and 0 warnings`;
+- frontend `npm run build` completed successfully;
+- static preview, auth-route, and synthetic browser preview/explicit-test-mode CREATE harness checks passed with
+  `transaction-entry-preview-static: ok`, `auth route checks passed`, and
   `transaction-entry-preview-browser: ok (synthetic browser preview writes-disabled; explicit test-mode CREATE harness)`.
 
-Safety counters from those checks and this docs-status packet: normal browser UI CREATE/PATCH/DELETE/batch requests 0;
-private/owner/original/working/Syncthing/only-copy books opened or mutated 0; product dogfood/private target probes 0;
-committed raw books/backups/exports/screenshots/app DBs/secrets 0; release or public-write posture claims 0; default
+Safety counters from those final gates: normal browser UI CREATE/PATCH/DELETE/batch requests 0; private/owner/
+original/working/Syncthing/only-copy books opened or mutated 0; product dogfood/private target probes 0; committed
+raw books/backups/exports/screenshots/app DBs/secrets 0; release or public-write posture claims 0; default
 write-posture flips 0.
 
 Untouched boundaries:
@@ -540,4 +539,5 @@ Untouched boundaries:
 - no release, tag, package, image, public write beta, stable, production-ready, or security-audited claim is made;
 - `GNUCASH_WRITES_ENABLED=false` remains the default and enabled write execution remains `APP_ENV=test` gated.
 
-Next step: run the final full gates from the issue #50 queue before any issue update or broader status claim.
+Next step: any GitHub issue update, product dogfood, private target probe, release work, or future mutating step
+requires fresh explicit scope/approval.

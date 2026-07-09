@@ -1,6 +1,6 @@
 # Issue #50 disposable copied-book web UI CREATE drill
 
-Status: **REDACTED_DOCS_STATUS_RECORDED**
+Status: **FINAL_LOCAL_GATES_RECORDED**
 Issue: [#50 Disposable copied-book web UI CREATE drill](https://github.com/valentusys/gnucash-web-companion/issues/50)
 Related docs: [PROJECT_STATUS.md](../../PROJECT_STATUS.md),
 [owner transaction-entry workflow](../write-alpha/owner-transaction-entry-workflow.md)
@@ -70,25 +70,39 @@ Default production posture remains disabled:
    - DELETE rejects non-owned, inert-marker, active unarmed preview, missing, and non-disposable targets before the
      write service where applicable.
 
-## Checks and safety counters re-run for this docs-status follow-up
+## Final local gates re-run for this follow-up
 
-These checks ran from the repository root on 2026-07-09 and used only synthetic or disposable test fixtures:
+These checks ran from the repository root on 2026-07-09. Backend/API tests and browser harnesses used only
+synthetic or disposable test fixtures; no product dogfood or private target probe was run.
 
-- `PYTHONPATH=apps/api apps/api/.venv/bin/python -m pytest apps/api/tests/test_owner_writebeta_synthetic_route_family_drill.py -q`
-  - Result: `18 passed, 3 warnings in 13.78s`.
-  - Covered one routed CREATE real-service-path drill, one route-family CREATE/PATCH/DELETE reset session,
-    five immutable PATCH field rejection cases, and fail-closed drills for stale preview, expired preview,
-    writes-disabled confirmation, missing backup/restore readiness, invalid account, and lock failure.
-- `node apps/web/scripts/test-transaction-entry-preview.mjs`
+- `python3 scripts/check_public_status.py`
+  - Result: `public-status-guard: ok`.
+- `python3 scripts/check_write_safety_defaults.py`
+  - Result: `write-safety defaults ok: GNUCASH_WRITES_ENABLED=false; APP_ENV=development default present;
+    APP_ENV=test gate text present; explicit write enablement present; reset/default-disabled probe wording present`.
+- `python3 scripts/check_markdown_readability.py`
+  - Result: `markdown-readability-guard: ok (27 docs checked)`.
+- `python3 scripts/check_tracked_hygiene.py`
+  - Result: `Tracked hygiene check passed (1961 tracked paths inspected).`
+- `git diff --check`
+  - Result: exit 0 with no whitespace errors.
+- `cd apps/api && pytest -q`
+  - Result: `1090 passed, 56 warnings in 346.76s (0:05:46)`.
+- `cd apps/web && npm run check`
+  - Result: `svelte-check found 0 errors and 0 warnings`.
+- `cd apps/web && npm run build`
+  - Result: exit 0; Vite production build completed and adapter-node reported `done`.
+- `cd apps/web && npm run test:transaction-entry-preview`
   - Result: `transaction-entry-preview-static: ok`.
-- `node apps/web/scripts/test-transaction-entry-preview-browser.mjs`
-  - Result: `transaction-entry-preview-browser: ok (synthetic browser preview writes-disabled; explicit test-mode CREATE harness)`.
-  - Browser/API counters asserted by the harness: exactly one normal `create-preview` request, zero browser-observed
-    CREATE/PATCH/DELETE/batch/validate/preflight/backup/audit/write-beta boundary requests, four rejected
-    partial/user-mode product-route CREATE probes, exactly one accepted explicit test-mode synthetic CREATE request
-    against the API stub, and zero accepted non-disposable target requests.
+- `cd apps/web && npm run test:auth-routes`
+  - Result: `auth route checks passed`.
+- `cd apps/web && npm run test:transaction-entry-preview-browser`
+  - Result: `transaction-entry-preview-browser: ok (synthetic browser preview writes-disabled; explicit test-mode
+    CREATE harness)`.
+- `JWT_SECRET=dummy-validation-secret APP_ADMIN_PASSWORD=dummy docker compose config --quiet`
+  - Result: exit 0 with no rendered-config errors.
 
-Safety counters for this docs-status packet:
+Safety counters for this final-gates packet:
 
 - owner/private/original/working/Syncthing/only-copy books opened, copied, or mutated: 0;
 - product dogfood runs or private target probes: 0;
@@ -106,5 +120,6 @@ Safety counters for this docs-status packet:
 
 ## Follow-up
 
-Continue into the issue #50 final full gates only after these redacted docs/status changes pass the scoped guards.
-The next packet should run the full final gate list before posting any issue update or claiming broader completion.
+Issue #50 final local gates are recorded for this disposable-fixture-only packet. Any GitHub issue update,
+product dogfood, private target probe, release work, or future mutating step remains outside this packet and
+requires fresh explicit scope/approval.

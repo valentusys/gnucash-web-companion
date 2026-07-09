@@ -152,13 +152,14 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   reopen/balance verification, default-disabled route-family probes, failure drills, explicit synthetic web
   CREATE harness boundaries, metadata-only PATCH for app-created transactions, and app-owned DELETE bounds.
   That coverage uses temporary synthetic/disposable fixtures, in-memory/fake route-family services, and a
-  synthetic API/browser harness only. The docs-status follow-up re-ran the API route-family drill
-  (`18 passed, 3 warnings in 13.78s`), the static web guard (`transaction-entry-preview-static: ok`), and the
-  synthetic browser harness (`transaction-entry-preview-browser: ok (synthetic browser preview writes-disabled;
-  explicit test-mode CREATE harness)`). It records counters of 0 owner/private/original/working/Syncthing/
-  only-copy books opened or mutated, 0 product dogfood/private target probes, 0 committed raw books/backups/
-  exports/screenshots/app DBs/secrets, 0 release or public-write posture claims, and 0 default write-posture
-  flips. `GNUCASH_WRITES_ENABLED=false` remains the default and enabled writes remain `APP_ENV=test` gated.
+  synthetic API/browser harness only. The final-gates follow-up passed public-status, write-safety defaults,
+  markdown-readability, tracked-hygiene, whitespace, Docker Compose config, backend pytest (`1090 passed,
+  56 warnings in 346.76s`), frontend check/build, static preview, auth-route, and synthetic browser
+  preview/explicit-test-mode CREATE harness checks. It records counters of 0 owner/private/original/working/
+  Syncthing/only-copy books opened or mutated, 0 product dogfood/private target probes, 0 committed raw books/
+  backups/exports/screenshots/app DBs/secrets, 0 release or public-write posture claims, and 0 default
+  write-posture flips. `GNUCASH_WRITES_ENABLED=false` remains the default and enabled writes remain
+  `APP_ENV=test` gated.
 - Current #36 docs reconciliation: owner-writebeta remains maintenance-only and unreleased until
   explicit owner approval. The guard state still requires default `GNUCASH_WRITES_ENABLED=false`,
   enabled write-alpha/writebeta `APP_ENV=test` gating, no public write beta, no real/private/original/
