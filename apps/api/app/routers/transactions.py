@@ -86,6 +86,13 @@ DISPOSABLE_CREATE_TARGET_HINTS = frozenset(
     }
 )
 SQLITE_BOOK_SUFFIXES = frozenset({".sqlite", ".sqlite3", ".db"})
+ISSUE51_EXPLICIT_TEST_MODE = "issue51"
+ISSUE51_EXPLICIT_CREATE_HEADER = "issue51-explicit-synthetic-create-harness"
+ISSUE51_SYNTHETIC_DISPOSABLE_PROOF = "synthetic-disposable-fixture-book-1"
+EXPLICIT_ISSUE51_CREATE_HARNESS_DETAIL = (
+    "Explicit issue51 CREATE harness requires exact test-mode query, harness header, "
+    "synthetic/disposable proof, APP_ENV=test, and GNUCASH_WRITES_ENABLED=true."
+)
 ReadbackAccountBalanceSnapshot = dict[str, tuple[Decimal, str]]
 
 
@@ -1545,6 +1552,72 @@ def _require_disposable_create_target(book: Book) -> None:
         )
 
 
+def _clean_harness_value(value: str | None) -> str:
+    return str(value or "").strip()
+
+
+def _explicit_issue51_create_harness_attempted(
+    *,
+    explicit_test_mode: str | None,
+    x_issue51_explicit_test_create: str | None,
+    x_issue51_synthetic_disposable_proof: str | None,
+    x_app_env: str | None,
+    x_gnucash_writes_enabled: str | None,
+) -> bool:
+    return any(
+        _clean_harness_value(value)
+        for value in (
+            explicit_test_mode,
+            x_issue51_explicit_test_create,
+            x_issue51_synthetic_disposable_proof,
+            x_app_env,
+            x_gnucash_writes_enabled,
+        )
+    )
+
+
+def _require_explicit_issue51_create_harness_scope(
+    *,
+    settings: Settings,
+    explicit_test_mode: str | None,
+    x_issue51_explicit_test_create: str | None,
+    x_issue51_synthetic_disposable_proof: str | None,
+    x_app_env: str | None,
+    x_gnucash_writes_enabled: str | None,
+) -> None:
+    """Fail closed for issue #51 explicit CREATE harness query/header smuggling.
+
+    Normal write-alpha tests remain gated by Settings. When a caller advertises
+    the issue #51 explicit CREATE harness, every harness marker must match the
+    synthetic/disposable proof contract exactly. Header values are not trusted to
+    enable writes; they only make incomplete or user-mode harness attempts fail
+    before write service construction.
+    """
+    if not _explicit_issue51_create_harness_attempted(
+        explicit_test_mode=explicit_test_mode,
+        x_issue51_explicit_test_create=x_issue51_explicit_test_create,
+        x_issue51_synthetic_disposable_proof=x_issue51_synthetic_disposable_proof,
+        x_app_env=x_app_env,
+        x_gnucash_writes_enabled=x_gnucash_writes_enabled,
+    ):
+        return
+
+    if (
+        _clean_harness_value(explicit_test_mode) != ISSUE51_EXPLICIT_TEST_MODE
+        or _clean_harness_value(x_issue51_explicit_test_create) != ISSUE51_EXPLICIT_CREATE_HEADER
+        or _clean_harness_value(x_issue51_synthetic_disposable_proof)
+        != ISSUE51_SYNTHETIC_DISPOSABLE_PROOF
+        or _clean_harness_value(x_app_env).lower() != "test"
+        or _clean_harness_value(x_gnucash_writes_enabled).lower() != "true"
+        or settings.app_env.lower() != "test"
+        or not settings.gnucash_writes_enabled
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=EXPLICIT_ISSUE51_CREATE_HARNESS_DETAIL,
+        )
+
+
 # ---------------------------------------------------------------------------
 # Phase 12: Controlled write endpoints
 # ---------------------------------------------------------------------------
@@ -1745,6 +1818,11 @@ async def create_book_transaction(
     user: User = Depends(get_current_user),
     session: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
+    explicit_test_mode: str | None = Query(None),
+    x_issue51_explicit_test_create: str | None = Header(None),
+    x_issue51_synthetic_disposable_proof: str | None = Header(None),
+    x_app_env: str | None = Header(None),
+    x_gnucash_writes_enabled: str | None = Header(None),
     x_owner_writebeta_preview_hash: str | None = Header(None),
     x_owner_writebeta_confirmation_token: str | None = Header(None),
 ) -> TransactionWriteResultDTO:
@@ -1757,6 +1835,14 @@ async def create_book_transaction(
     book = _resolve_viewable_book(book_id, user, session)
     _require_book_edit_access(book, user, session)
     _require_disposable_create_target(book)
+    _require_explicit_issue51_create_harness_scope(
+        settings=settings,
+        explicit_test_mode=explicit_test_mode,
+        x_issue51_explicit_test_create=x_issue51_explicit_test_create,
+        x_issue51_synthetic_disposable_proof=x_issue51_synthetic_disposable_proof,
+        x_app_env=x_app_env,
+        x_gnucash_writes_enabled=x_gnucash_writes_enabled,
+    )
     from app.routers.owner_writebeta import require_owner_writebeta_if_active
 
     require_owner_writebeta_if_active(

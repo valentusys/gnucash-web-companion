@@ -804,6 +804,85 @@ class TestWritesDisabledByDefault:
         with session_factory() as session:
             assert session.query(AuditLog).count() == 0
 
+    def test_explicit_issue51_create_harness_requires_exact_query_headers_and_proof(
+        self,
+        client,
+        auth_headers,
+        sample_book,
+        session_factory,
+        monkeypatch,
+    ):
+        write_service_calls = []
+
+        def forbidden_write_service(*args, **kwargs):
+            write_service_calls.append((args, kwargs))
+            raise AssertionError("incomplete explicit CREATE harness must not construct write services")
+
+        monkeypatch.setattr("app.routers.transactions._write_service_for", forbidden_write_service)
+        required_harness_headers = {
+            "X-Issue51-Explicit-Test-Create": "issue51-explicit-synthetic-create-harness",
+            "X-Issue51-Synthetic-Disposable-Proof": "synthetic-disposable-fixture-book-1",
+            "X-App-Env": "test",
+            "X-Gnucash-Writes-Enabled": "true",
+        }
+        explicit_query = "?explicit_test_mode=issue51"
+        rejected_cases = [
+            ("missing explicit query", "", required_harness_headers),
+            (
+                "missing explicit harness header",
+                explicit_query,
+                {
+                    key: value
+                    for key, value in required_harness_headers.items()
+                    if key != "X-Issue51-Explicit-Test-Create"
+                },
+            ),
+            (
+                "missing synthetic disposable proof header",
+                explicit_query,
+                {
+                    key: value
+                    for key, value in required_harness_headers.items()
+                    if key != "X-Issue51-Synthetic-Disposable-Proof"
+                },
+            ),
+            (
+                "wrong synthetic disposable proof header",
+                explicit_query,
+                {
+                    **required_harness_headers,
+                    "X-Issue51-Synthetic-Disposable-Proof": "owner-private-target",
+                },
+            ),
+            (
+                "non-test app-env header",
+                explicit_query,
+                {**required_harness_headers, "X-App-Env": "production"},
+            ),
+            (
+                "writes-disabled header",
+                explicit_query,
+                {**required_harness_headers, "X-Gnucash-Writes-Enabled": "false"},
+            ),
+        ]
+
+        for label, query, harness_headers in rejected_cases:
+            response = client.post(
+                f"/books/{sample_book}/transactions{query}",
+                json=_balanced_transaction_payload(),
+                headers={**auth_headers, **harness_headers},
+            )
+
+            assert response.status_code == 403, label
+            detail = response.json()["detail"]
+            assert "Explicit issue51 CREATE harness" in detail
+            assert "synthetic/disposable proof" in detail
+            assert "disposable-route-test-book" not in detail
+
+        assert write_service_calls == []
+        with session_factory() as session:
+            assert session.query(AuditLog).count() == 0
+
 
 # ---------------------------------------------------------------------------
 # Tests: POST /books/{book_id}/transactions/validate

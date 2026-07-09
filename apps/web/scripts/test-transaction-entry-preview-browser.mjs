@@ -308,7 +308,7 @@ function assertExplicitSyntheticCreateHarnessPredicateRequiresDisposableProof() 
 		'explicit synthetic CREATE harness predicate accepts only the fully proofed disposable fixture target'
 	);
 	const rejectedCases = [
-		['non-disposable book id', request(), url(`/books/2/transactions${explicitSyntheticCreateHarnessSearch}`)],
+		['non-disposable synthetic book id', request(), url(`/books/2/transactions${explicitSyntheticCreateHarnessSearch}`)],
 		['missing synthetic/disposable proof header', request({ headers: { ...headers, 'x-issue51-synthetic-disposable-proof': undefined } }), url(`/books/1/transactions${explicitSyntheticCreateHarnessSearch}`)],
 		['wrong APP_ENV header', request({ headers: { ...headers, 'x-app-env': 'production' } }), url(`/books/1/transactions${explicitSyntheticCreateHarnessSearch}`)],
 		['query-smuggled mutation target', request(), url('/books/1/transactions?explicit_test_mode=issue51&next=%2Fbooks%2F2%2Ftransactions%2Fbatch')],
@@ -1589,6 +1589,7 @@ async function assertExplicitSyntheticCreateHarnessRejectsUserMode(api, browserR
 	const rejectedCases = [
 		{
 			label: 'missing explicit harness header',
+			path: '/books/1/transactions',
 			search: explicitSyntheticCreateHarnessSearch,
 			headers: {
 				'x-issue51-synthetic-disposable-proof': explicitSyntheticDisposableProof,
@@ -1598,6 +1599,7 @@ async function assertExplicitSyntheticCreateHarnessRejectsUserMode(api, browserR
 		},
 		{
 			label: 'missing synthetic/disposable proof header',
+			path: '/books/1/transactions',
 			search: explicitSyntheticCreateHarnessSearch,
 			headers: {
 				'x-issue51-explicit-test-create': explicitSyntheticCreateHarnessToken,
@@ -1607,6 +1609,7 @@ async function assertExplicitSyntheticCreateHarnessRejectsUserMode(api, browserR
 		},
 		{
 			label: 'non-test APP_ENV synthetic CREATE probe',
+			path: '/books/1/transactions',
 			search: explicitSyntheticCreateHarnessSearch,
 			headers: {
 				'x-issue51-explicit-test-create': explicitSyntheticCreateHarnessToken,
@@ -1617,6 +1620,7 @@ async function assertExplicitSyntheticCreateHarnessRejectsUserMode(api, browserR
 		},
 		{
 			label: 'writes-disabled explicit CREATE probe',
+			path: '/books/1/transactions',
 			search: explicitSyntheticCreateHarnessSearch,
 			headers: {
 				'x-issue51-explicit-test-create': explicitSyntheticCreateHarnessToken,
@@ -1627,6 +1631,7 @@ async function assertExplicitSyntheticCreateHarnessRejectsUserMode(api, browserR
 		},
 		{
 			label: 'missing explicit test-mode query',
+			path: '/books/1/transactions',
 			search: '',
 			headers: {
 				'x-issue51-explicit-test-create': explicitSyntheticCreateHarnessToken,
@@ -1638,7 +1643,7 @@ async function assertExplicitSyntheticCreateHarnessRejectsUserMode(api, browserR
 	];
 
 	for (const testCase of rejectedCases) {
-		const response = await fetch(`${api.url}/books/1/transactions${testCase.search}`, {
+		const response = await fetch(`${api.url}${testCase.path}${testCase.search}`, {
 			method: 'POST',
 			headers: {
 				'content-type': 'application/json',
@@ -1663,9 +1668,9 @@ async function assertExplicitSyntheticCreateHarnessRejectsUserMode(api, browserR
 			.map(({ method, path, search, pathWithSearch }) => ({ method, path, search, pathWithSearch })),
 		rejectedCases.map((testCase) => ({
 			method: 'POST',
-			path: '/books/1/transactions',
+			path: testCase.path,
 			search: testCase.search,
-			pathWithSearch: `/books/1/transactions${testCase.search}`
+			pathWithSearch: `${testCase.path}${testCase.search}`
 		})),
 		'explicit rejected CREATE probes must be recorded only as blocked default/user-mode boundary attempts'
 	);
