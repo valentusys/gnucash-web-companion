@@ -539,5 +539,31 @@ Untouched boundaries:
 - no release, tag, package, image, public write beta, stable, production-ready, or security-audited claim is made;
 - `GNUCASH_WRITES_ENABLED=false` remains the default and enabled write execution remains `APP_ENV=test` gated.
 
+## #51 disposable UI execution rehearsal status
+
+#51 remains a synthetic/disposable fixture-only extension of the #50 web UI execution rehearsal. It does not
+authorize owner/private/original/working/Syncthing/only-copy book mutation, product dogfood, historical/manual
+transaction DELETE, release work, or default write-posture changes.
+
+What actually passed under #51:
+
+- a product-route DELETE drill created exactly one app-owned disposable setup transaction, rejected non-owned and
+  non-disposable DELETE attempts before mutation, deleted exactly that app-owned disposable transaction, checked
+  read-back/backup/audit/default-disabled probes, and emitted only redacted result-panel data;
+- the deterministic browser harness kept normal/default `/transactions/new` preview-only while explicit test mode
+  exercised synthetic/disposable CREATE, metadata-only PATCH, and app-owned DELETE drills;
+- prior #51 final gates passed backend pytest (`1096 passed, 56 warnings in 347.54s`), static transaction-entry
+  preview, synthetic browser preview/explicit-test-mode CREATE/PATCH/DELETE harness checks, write-safety defaults,
+  tracked hygiene, and diff whitespace gates.
+
+Current redacted status is tracked in `docs/handoff/issue51-disposable-ui-execution-rehearsal.md`. That handoff
+separates untouched owner/private/original/working/Syncthing/only-copy books from temporary synthetic/disposable
+fixtures, synthetic API/browser harness state, and in-memory/fake route-family services. It records 0 owner/private/
+original/working/Syncthing/only-copy books opened, copied, or mutated; 0 product dogfood/private target probes; 0
+committed raw private/runtime artifacts; 0 release or public-write posture claims; and 0 default write-posture flips.
+`GNUCASH_WRITES_ENABLED=false` remains the default and enabled write routes remain `APP_ENV=test` gated. The
+docs/status-only task guards passed public-status, write-safety-defaults, markdown-readability, tracked-hygiene,
+and `git diff --check` verification.
+
 Next step: any GitHub issue update, product dogfood, private target probe, release work, or future mutating step
 requires fresh explicit scope/approval.
