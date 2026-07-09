@@ -128,7 +128,21 @@ for (const requiredBrowserSmokeFragment of [
 	'synthetic API must not receive requests for non-disposable book targets',
 	'create-preview payload must contain only preview API fields',
 	'browser must not issue CREATE/PATCH/DELETE/batch/validate/preflight/backup/audit/write-beta boundary requests',
-	'synthetic API stub must observe zero validate/preflight/backup/audit/write-beta boundary requests'
+	'synthetic API stub must observe zero validate/preflight/backup/audit/write-beta boundary requests',
+	'function buildRedactedSyntheticFailureUiDrillPanels',
+	'function assertRedactedSyntheticFailureUiDrillPanels',
+	'function assertFailureUiDrillMatrix',
+	'redacted_failure_ui_drills',
+	'api_result_shaped_redacted_ui_evidence',
+	'stale_preview_rejection',
+	'target_preflight_rejection',
+	'writes_disabled_rejection',
+	'backup_failure',
+	'lock_failure',
+	'read_back_failure',
+	'reset_probe_failure',
+	'safe_recovery_copy',
+	'failure drill evidence must stay redacted and fail closed'
 ]) {
 	assert.ok(browserSmoke.includes(requiredBrowserSmokeFragment), `browser smoke missing required coverage marker: ${requiredBrowserSmokeFragment}`);
 }
@@ -325,6 +339,20 @@ for (const requiredPageFragment of [
 	'Rollback is a future owner-approved recovery path only',
 	'Rollback/restore: owner-approved recovery path only',
 	'Future Create remains disabled until backup/read-back/audit/reset/probes readiness and execution-result reporting are completed',
+	'failure-ui-drill-matrix',
+	'Failure UI drills (redacted / fail-closed)',
+	'failure-ui-drill-list',
+	'stale_preview_rejection',
+	'Target preflight rejection',
+	'Writes-disabled rejection',
+	'Backup failure',
+	'Lock failure',
+	'Read-back failure',
+	'Reset/probe failure',
+	'Safe recovery copy',
+	'Failure drill evidence shape',
+	'api_result_shaped_redacted_ui_evidence',
+	'No raw target paths, backup paths, account names, descriptions, memos, amounts, GUIDs, screenshots, tokens, or secrets',
 	'preview-reviewed checkbox alone is not enough',
 	'Manual Desktop verification required for the first UI CREATE trial',
 	'POST /books/&lbrace;book_id&rbrace;/transactions/create-preview',
@@ -545,6 +573,12 @@ assert.match(server, /function createExecutionResult\(\)[\s\S]*status: 'not_exec
 assert.match(server, /function createExecutionResult\(\)[\s\S]*id: 'success_create_ref_recorded'[\s\S]*id: 'success_read_back_verified'[\s\S]*id: 'failure_error_translated'[\s\S]*id: 'failure_no_success_claim'[\s\S]*id: 'rollback_decision_recorded'[\s\S]*id: 'post_result_disabled_probes_verified'/s, 'server execution result shell must include pending success, failure, rollback, and post-result steps');
 assert.match(page, /id="redacted-create-result-contract"[\s\S]*Explicit synthetic CREATE result panel contract \(inactive\)[\s\S]*create_count: pending[\s\S]*read-back verification: pending[\s\S]*backup_state: pending[\s\S]*audit_state: pending[\s\S]*reset\/default-disabled probes: pending/s, 'transaction-entry page must show the inactive redacted result-panel contract without executing CREATE');
 assert.match(page, /id="redacted-create-result-contract"[\s\S]*No raw book paths, account names, descriptions, memos, amounts, GUIDs, screenshots, tokens, or secrets/s, 'redacted result-panel contract must state that raw/private evidence is forbidden');
+assert.match(page, /id="failure-ui-drill-matrix"[\s\S]*stale_preview_rejection[\s\S]*target_preflight_rejection[\s\S]*writes_disabled_rejection[\s\S]*backup_failure[\s\S]*lock_failure[\s\S]*read_back_failure[\s\S]*reset_probe_failure[\s\S]*safe_recovery_copy/s, 'transaction-entry page must render every issue #51 failure drill state as redacted UI evidence');
+assert.match(page, /id="failure-ui-drill-matrix"[\s\S]*Failure drill evidence shape[\s\S]*api_result_shaped_redacted_ui_evidence[\s\S]*No raw target paths, backup paths, account names, descriptions, memos, amounts, GUIDs, screenshots, tokens, or secrets/s, 'failure drill matrix must describe redacted API-result-shaped evidence and forbid raw/private values');
+assert.doesNotMatch(page, /data-failure-drill-status="(?:success|passed|ready|ok)"/, 'failure drill matrix must not mark failures as successful or ready');
+assert.match(browserSmoke, /function buildRedactedSyntheticFailureUiDrillPanels[\s\S]*stale_preview_rejection[\s\S]*target_preflight_rejection[\s\S]*writes_disabled_rejection[\s\S]*backup_failure[\s\S]*lock_failure[\s\S]*read_back_failure[\s\S]*reset_probe_failure[\s\S]*safe_recovery_copy/s, 'browser smoke must build API-result-shaped redacted failure drill panels for all required failure states');
+assert.match(browserSmoke, /function assertRedactedSyntheticFailureUiDrillPanels[\s\S]*raw_target_paths[\s\S]*raw_backup_paths[\s\S]*raw_amounts[\s\S]*failure drill evidence must stay redacted and fail closed/s, 'browser smoke must reject raw/private values in failure drill evidence');
+assert.match(browserSmoke, /function assertFailureUiDrillMatrix[\s\S]*failure-ui-drill-matrix[\s\S]*data-failure-drill[\s\S]*safe_recovery_copy/s, 'browser smoke must assert browser-visible failure drill matrix');
 assert.doesNotMatch(page, /data-preflight-status="(?:checked|passed|ready|ok)"/, 'target preflight UI must not mark any default check as checked/passed/ready');
 assert.doesNotMatch(page, /data-execution-readiness-status="(?:checked|passed|ready|ok)"/, 'execution readiness shell must not mark any default check as checked/passed/ready');
 assert.doesNotMatch(page, /data-execution-evidence-status="(?:checked|passed|ready|ok)"/, 'execution evidence packet plan must not mark any default evidence step as checked/passed/ready');

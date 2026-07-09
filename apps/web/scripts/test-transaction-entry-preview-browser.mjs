@@ -157,6 +157,8 @@ function assertSourceSafety() {
 	assert.match(page, /id="execution-result-shell"[\s\S]*Execution-result UX shell \(not run\)[\s\S]*Default state: no execution result exists, no success or failure result is claimed, and rollback\/restore is not run/s, 'execution-result shell must default to not run/no success/no failure/no rollback');
 	assert.match(page, /id="execution-result-outcome-legend"[\s\S]*Result outcome legend \(disabled\)[\s\S]*Do not infer success from preview or approval copy[\s\S]*Rollback\/restore: owner-approved recovery path only/s, 'execution-result shell must explain disabled success/failure/rollback outcomes');
 	assert.match(page, /id="execution-result-triage-panel"[\s\S]*Disabled result triage[\s\S]*Current state: no CREATE execution attempted; preview data is not a success result[\s\S]*Success requires redacted CREATE reference and private read-back before any success copy[\s\S]*Failure state keeps success blocked until a safe error is translated[\s\S]*Rollback state remains owner-approved recovery only and is not run from this page[\s\S]*Post-result reset\/probe state stays pending until GNUCASH_WRITES_ENABLED=false is verified/s, 'execution-result triage panel must clarify disabled success/failure/rollback/reset outcomes');
+	assert.match(page, /id="failure-ui-drill-matrix"[\s\S]*stale_preview_rejection[\s\S]*target_preflight_rejection[\s\S]*writes_disabled_rejection[\s\S]*backup_failure[\s\S]*lock_failure[\s\S]*read_back_failure[\s\S]*reset_probe_failure[\s\S]*safe_recovery_copy/s, 'failure UI drill matrix must cover every required redacted failure drill');
+	assert.match(page, /id="failure-ui-drill-matrix"[\s\S]*success_claims: 0[\s\S]*api_result_shaped_redacted_ui_evidence[\s\S]*No raw target paths, backup paths, account names, descriptions, memos, amounts, GUIDs, screenshots, tokens, or secrets/s, 'failure UI drill matrix must be redacted and fail closed');
 	assert.match(page, /id="failure-rollback-decision-ladder"[\s\S]*Failure and rollback decision ladder \(disabled\)[\s\S]*Stop before CREATE: show failure, keep success blocked, no rollback needed[\s\S]*Unknown after attempted CREATE: preserve target state and require owner recovery decision[\s\S]*Confirmed failed\/no mutation: safe redacted error only; no success claim[\s\S]*Confirmed mutated but rejected by post-checks: owner-approved restore decision before retry[\s\S]*After any result: reset writes disabled and run disabled probes before reporting completion/s, 'failure/rollback decision ladder must stay visible and disabled');
 	for (const targetPreflightLabel of ['Target file exists/readable', 'Target is outside repo', 'GnuCash Desktop closed', 'No .LCK/.LNK lock', 'Manual Desktop verification required']) {
 		assert.ok(page.includes(targetPreflightLabel), `target preflight checklist missing label: ${targetPreflightLabel}`);
@@ -370,6 +372,120 @@ function buildRedactedSyntheticCreateResultPanel() {
 				screenshots: false,
 				tokens_or_secrets: false
 			}
+		}
+	};
+}
+
+function buildRedactedSyntheticFailureUiDrillPanels() {
+	return {
+		redacted_failure_ui_drills: [
+			{
+				drill_id: 'stale_preview_rejection',
+				evidence_shape: 'api_result_shaped_redacted_ui_evidence',
+				status: 'blocked',
+				result_state: 'rejected_before_create',
+				http_status: 'not_submitted',
+				mutation_count: 0,
+				no_success_claim: true,
+				safe_message: 'Stale preview rejected; rerun preview before approval.',
+				next_safe_action: 'rerun_preview',
+				recovery_copy_ref: null
+			},
+			{
+				drill_id: 'target_preflight_rejection',
+				evidence_shape: 'api_result_shaped_redacted_ui_evidence',
+				status: 'blocked',
+				result_state: 'failed_closed_before_create',
+				http_status: 403,
+				mutation_count: 0,
+				no_success_claim: true,
+				safe_message: 'Target preflight failed closed before CREATE.',
+				next_safe_action: 'report_redacted_preflight_blocker',
+				recovery_copy_ref: null
+			},
+			{
+				drill_id: 'writes_disabled_rejection',
+				evidence_shape: 'api_result_shaped_redacted_ui_evidence',
+				status: 'blocked',
+				result_state: 'rejected_before_book_resolution',
+				http_status: 403,
+				mutation_count: 0,
+				no_success_claim: true,
+				safe_message: 'Writes disabled rejected the operation before book resolution.',
+				next_safe_action: 'keep_defaults_disabled',
+				recovery_copy_ref: null
+			},
+			{
+				drill_id: 'backup_failure',
+				evidence_shape: 'api_result_shaped_redacted_ui_evidence',
+				status: 'failed',
+				result_state: 'failed_before_create',
+				http_status: 422,
+				mutation_count: 0,
+				no_success_claim: true,
+				safe_message: 'Backup failed before CREATE; no success result emitted.',
+				next_safe_action: 'require_redacted_backup_evidence',
+				recovery_copy_ref: null
+			},
+			{
+				drill_id: 'lock_failure',
+				evidence_shape: 'api_result_shaped_redacted_ui_evidence',
+				status: 'blocked',
+				result_state: 'rejected_before_create',
+				http_status: 409,
+				mutation_count: 0,
+				no_success_claim: true,
+				safe_message: 'Could not acquire write lock; retry only after active write finishes.',
+				next_safe_action: 'wait_and_rerun_preflight',
+				recovery_copy_ref: null
+			},
+			{
+				drill_id: 'read_back_failure',
+				evidence_shape: 'api_result_shaped_redacted_ui_evidence',
+				status: 'requires_owner_recovery',
+				result_state: 'unknown_after_attempted_create',
+				http_status: 503,
+				mutation_count: 'unknown_after_attempt',
+				no_success_claim: true,
+				safe_message: 'Read-back failed; preserve target and require owner recovery decision.',
+				next_safe_action: 'preserve_target_owner_recovery_decision',
+				recovery_copy_ref: 'recovery-copy-ref-redacted-issue51'
+			},
+			{
+				drill_id: 'reset_probe_failure',
+				evidence_shape: 'api_result_shaped_redacted_ui_evidence',
+				status: 'failed',
+				result_state: 'post_result_hard_stop',
+				http_status: 'blocked_or_unavailable',
+				mutation_count: 'no_additional_mutation',
+				no_success_claim: true,
+				safe_message: 'Reset and default-disabled probe failed; completion remains blocked.',
+				next_safe_action: 'hard_stop_rerun_disabled_probes',
+				recovery_copy_ref: null
+			},
+			{
+				drill_id: 'safe_recovery_copy',
+				evidence_shape: 'api_result_shaped_redacted_ui_evidence',
+				status: 'not_run',
+				result_state: 'owner_approved_recovery_copy_available_not_restored',
+				http_status: 'not_applicable',
+				mutation_count: 0,
+				no_success_claim: true,
+				safe_message: 'Safe recovery copy is opaque and not restored automatically.',
+				next_safe_action: 'restore_only_after_owner_decision',
+				recovery_copy_ref: 'recovery-copy-ref-redacted-issue51'
+			}
+		],
+		redaction: {
+			raw_target_paths: false,
+			raw_backup_paths: false,
+			private_account_names: false,
+			raw_descriptions: false,
+			raw_memos: false,
+			raw_amounts: false,
+			raw_guids: false,
+			screenshots: false,
+			tokens_or_secrets: false
 		}
 	};
 }
@@ -1017,6 +1133,118 @@ async function assertExecutionResultShellRemainsPending(cdp, label) {
 	assert.ok(!/execution_result\.status\s+(?:success|failed|rolled_back)|rollback_state\s+(?:run|complete)|success_state\s+(?:done|success)/i.test(executionResultState.executionResultText), `${label}: execution-result shell must not render completed result states`);
 }
 
+function assertRedactedSyntheticFailureUiDrillPanels(responseBody) {
+	const expectedIds = [
+		'stale_preview_rejection',
+		'target_preflight_rejection',
+		'writes_disabled_rejection',
+		'backup_failure',
+		'lock_failure',
+		'read_back_failure',
+		'reset_probe_failure',
+		'safe_recovery_copy'
+	];
+	assert.deepEqual(
+		responseBody.redacted_failure_ui_drills.map((drill) => drill.drill_id),
+		expectedIds,
+		'failure drill evidence must cover all issue #51 scenarios in stable order'
+	);
+	assert.deepEqual(
+		responseBody.redaction,
+		{
+			raw_target_paths: false,
+			raw_backup_paths: false,
+			private_account_names: false,
+			raw_descriptions: false,
+			raw_memos: false,
+			raw_amounts: false,
+			raw_guids: false,
+			screenshots: false,
+			tokens_or_secrets: false
+		},
+		'failure drill evidence must expose only redaction booleans, never raw values'
+	);
+	for (const drill of responseBody.redacted_failure_ui_drills) {
+		assert.equal(drill.evidence_shape, 'api_result_shaped_redacted_ui_evidence', `${drill.drill_id}: evidence shape must stay API-result-shaped and redacted`);
+		assert.equal(drill.no_success_claim, true, `${drill.drill_id}: failure drill must block success claims`);
+		assert.ok(!['success', 'ready', 'passed', 'ok'].includes(drill.status), `${drill.drill_id}: failure drill status must fail closed`);
+		assert.ok(!/[\\/]|\.gnucash|\.sqlite|\.db|\.env/i.test(drill.safe_message), `${drill.drill_id}: safe message must not expose raw paths or file names`);
+	}
+	const byId = Object.fromEntries(responseBody.redacted_failure_ui_drills.map((drill) => [drill.drill_id, drill]));
+	assert.equal(byId.stale_preview_rejection.mutation_count, 0, 'stale preview rejection must have zero mutation count');
+	assert.equal(byId.target_preflight_rejection.http_status, 403, 'target preflight rejection must be API-result-shaped 403 evidence');
+	assert.equal(byId.writes_disabled_rejection.result_state, 'rejected_before_book_resolution', 'writes-disabled rejection must happen before book resolution');
+	assert.equal(byId.backup_failure.result_state, 'failed_before_create', 'backup failure must be represented before CREATE');
+	assert.equal(byId.lock_failure.http_status, 409, 'lock failure must be represented as conflict evidence');
+	assert.equal(byId.read_back_failure.status, 'requires_owner_recovery', 'read-back failure must require owner recovery decision');
+	assert.equal(byId.reset_probe_failure.result_state, 'post_result_hard_stop', 'reset/probe failure must hard-stop completion');
+	assert.equal(byId.safe_recovery_copy.status, 'not_run', 'safe recovery copy must not imply restore was run');
+	const redactedText = JSON.stringify(responseBody);
+	for (const forbiddenValue of [
+		syntheticDescription,
+		syntheticMemo,
+		syntheticAmount,
+		syntheticValidationFailureDescription,
+		syntheticQueryTamperDescription,
+		'Synthetic Source',
+		'Synthetic Destination',
+		disposableSourceAccountId,
+		disposableDestinationAccountId,
+		explicitSyntheticBackupRef,
+		explicitSyntheticAuditRef
+	]) {
+		assert.ok(!redactedText.includes(String(forbiddenValue)), `failure drill evidence must stay redacted and fail closed: ${forbiddenValue}`);
+	}
+	assert.ok(!/"(?:target_path|backup_path|book_path|transaction_id)"\s*:/.test(redactedText), 'failure drill evidence must not expose raw target, backup, book, or transaction fields');
+}
+
+async function assertFailureUiDrillMatrix(cdp, label) {
+	const state = await evaluate(cdp, `(() => {
+		const matrix = document.querySelector('#failure-ui-drill-matrix');
+		const drills = Array.from(document.querySelectorAll('[data-failure-drill]')).map((item) => ({
+			id: item.getAttribute('data-failure-drill'),
+			status: item.getAttribute('data-failure-drill-status'),
+			scope: item.getAttribute('data-failure-drill-scope'),
+			text: item.textContent.replace(/\\s+/g, ' ').trim()
+		}));
+		return {
+			present: Boolean(matrix),
+			text: matrix?.innerText ?? '',
+			drills
+		};
+	})()`);
+	const expectedIds = [
+		'stale_preview_rejection',
+		'target_preflight_rejection',
+		'writes_disabled_rejection',
+		'backup_failure',
+		'lock_failure',
+		'read_back_failure',
+		'reset_probe_failure',
+		'safe_recovery_copy'
+	];
+	assert.equal(state.present, true, `${label}: failure UI drill matrix must be browser-visible`);
+	assert.match(state.text, /Failure UI drills \(redacted \/ fail-closed\)/, `${label}: failure drill title must render`);
+	assert.match(state.text, /api_result_shaped_redacted_ui_evidence/, `${label}: failure drill evidence shape must render`);
+	assert.match(state.text, /stale preview rejection/i, `${label}: stale preview rejection drill must render`);
+	assert.match(state.text, /Target preflight rejection/, `${label}: target preflight rejection drill must render`);
+	assert.match(state.text, /Writes-disabled rejection/, `${label}: writes-disabled rejection drill must render`);
+	assert.match(state.text, /Backup failure/, `${label}: backup failure drill must render`);
+	assert.match(state.text, /Lock failure/, `${label}: lock failure drill must render`);
+	assert.match(state.text, /Read-back failure/, `${label}: read-back failure drill must render`);
+	assert.match(state.text, /Reset\/probe failure/, `${label}: reset/probe failure drill must render`);
+	assert.match(state.text, /Safe recovery copy/, `${label}: safe recovery copy drill must render`);
+	assert.match(state.text, /No raw target paths, backup paths, account names, descriptions, memos, amounts, GUIDs, screenshots, tokens, or secrets/, `${label}: failure drill matrix must state redaction boundary`);
+	assert.deepEqual(state.drills.map((drill) => drill.id), expectedIds, `${label}: failure drills must render in expected order`);
+	assert.deepEqual(state.drills.map((drill) => drill.scope), Array(expectedIds.length).fill('redacted_only'), `${label}: failure drills must stay redacted-only`);
+	assert.ok(state.drills.every((drill) => !['success', 'ready', 'passed', 'ok'].includes(drill.status)), `${label}: failure drills must not render success/ready statuses`);
+	assert.ok(!state.text.includes(syntheticDescription), `${label}: failure drill matrix must not leak synthetic description`);
+	assert.ok(!state.text.includes(syntheticMemo), `${label}: failure drill matrix must not leak synthetic memo`);
+	assert.ok(!state.text.includes(syntheticAmount), `${label}: failure drill matrix must not leak synthetic amount`);
+	assert.ok(!state.text.includes(disposableSourceAccountId), `${label}: failure drill matrix must not leak source account id`);
+	assert.ok(!state.text.includes(disposableDestinationAccountId), `${label}: failure drill matrix must not leak destination account id`);
+}
+
 async function assertApprovalPacketAbsent(cdp, label) {
 	const state = await evaluate(cdp, `(() => ({
 		approvalPacket: Boolean(document.querySelector('#approval-packet')),
@@ -1496,6 +1724,7 @@ async function runExplicitSyntheticCreateHarness(api, browserRequests, previewPa
 async function runSmoke() {
 	assertSourceSafety();
 	assertMutationRequestPredicates();
+	assertRedactedSyntheticFailureUiDrillPanels(buildRedactedSyntheticFailureUiDrillPanels());
 	assert.ok(existsSync(viteBin), 'Vite must be installed before running the browser smoke');
 	assert.ok(existsSync(chromiumBin), `Chromium binary not found at ${chromiumBin}`);
 
@@ -1593,6 +1822,7 @@ async function runSmoke() {
 		await assertMobilePreviewUx(cdp, 'initial page');
 		await assertReadinessShellsRemainPending(cdp, 'initial page');
 		await assertExecutionResultShellRemainsPending(cdp, 'initial page');
+		await assertFailureUiDrillMatrix(cdp, 'initial page');
 		await assertApprovalPacketAbsent(cdp, 'initial page');
 		await assertDisabledButtonInert(cdp, 'form button[type="button"][disabled]', 'Create disabled', browserRequests, 'form Create disabled');
 		assertNoMutationRequestsObserved(api, browserRequests, 'initial disabled Create probe');
