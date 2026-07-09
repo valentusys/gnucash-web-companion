@@ -109,12 +109,15 @@ for (const requiredBrowserSmokeFragment of [
 	'explicit rejected CREATE probes must not be browser-driven',
 	'function buildRedactedSyntheticCreateResultPanel',
 	'function assertRedactedSyntheticCreateResultPanel',
+	'function assertNoPrivateRawResultPanelLeak',
 	'redacted_result_panel',
 	'issue51-redacted-create-result',
 	'read_back_verification',
 	'backup_state',
 	'audit_state',
 	'reset_default_disabled_probe_summary',
+	'raw path-like artifact',
+	'explicit synthetic CREATE result panel must not expose raw API result fields',
 	'raw_book_paths',
 	'raw_amounts',
 	'explicit synthetic CREATE result panel must stay redacted',
@@ -344,6 +347,18 @@ for (const requiredPageFragment of [
 	'backup_state: pending',
 	'audit_state: pending',
 	'reset/default-disabled probes: pending',
+	'redacted-create-success-state',
+	'Synthetic success state shape (explicit test-mode only)',
+	'status: success only after explicit synthetic test-mode CREATE',
+	'create_count: 1',
+	'read_back_verification: verified',
+	'backup_state: captured',
+	'audit_state: recorded',
+	'reset_default_disabled_probe_summary: verified',
+	'redacted-create-result-redaction-list',
+	'Only opaque refs may be displayed for CREATE, backup, audit, ownership, and disabled-probe evidence',
+	'No transaction_id, backup_path, raw audit payload, account IDs, currency, descriptions, memos, amounts, GUIDs, raw paths, screenshots, tokens, or secrets',
+	'Default /transactions/new never activates this state',
 	'No raw book paths, account names, descriptions, memos, amounts, GUIDs, screenshots, tokens, or secrets',
 	'Rollback is a future owner-approved recovery path only',
 	'Rollback/restore: owner-approved recovery path only',
@@ -581,6 +596,8 @@ assert.match(server, /function createExecutionReadiness\(\)[\s\S]*disabled_probe
 assert.match(server, /function createExecutionResult\(\)[\s\S]*status: 'not_executed'[\s\S]*create_result_state: 'blocked'[\s\S]*success_state: 'pending'[\s\S]*failure_state: 'pending'[\s\S]*rollback_state: 'not_run'/s, 'server execution result shell must default to not_executed/blocked/pending/not_run');
 assert.match(server, /function createExecutionResult\(\)[\s\S]*id: 'success_create_ref_recorded'[\s\S]*id: 'success_read_back_verified'[\s\S]*id: 'failure_error_translated'[\s\S]*id: 'failure_no_success_claim'[\s\S]*id: 'rollback_decision_recorded'[\s\S]*id: 'post_result_disabled_probes_verified'/s, 'server execution result shell must include pending success, failure, rollback, and post-result steps');
 assert.match(page, /id="redacted-create-result-contract"[\s\S]*Explicit synthetic CREATE result panel contract \(inactive\)[\s\S]*create_count: pending[\s\S]*read-back verification: pending[\s\S]*backup_state: pending[\s\S]*audit_state: pending[\s\S]*reset\/default-disabled probes: pending/s, 'transaction-entry page must show the inactive redacted result-panel contract without executing CREATE');
+assert.match(page, /id="redacted-create-success-state"[\s\S]*status: success only after explicit synthetic test-mode CREATE[\s\S]*create_count: 1[\s\S]*read_back_verification: verified[\s\S]*backup_state: captured[\s\S]*audit_state: recorded[\s\S]*reset_default_disabled_probe_summary: verified/s, 'transaction-entry page must document the explicit synthetic success state without activating CREATE');
+assert.match(page, /id="redacted-create-result-redaction-list"[\s\S]*Only opaque refs may be displayed[\s\S]*No transaction_id, backup_path, raw audit payload, account IDs, currency, descriptions, memos, amounts, GUIDs, raw paths, screenshots, tokens, or secrets[\s\S]*Default \/transactions\/new never activates this state/s, 'redacted result-panel contract must forbid raw product-route result fields and default UI activation');
 assert.match(page, /id="redacted-create-result-contract"[\s\S]*No raw book paths, account names, descriptions, memos, amounts, GUIDs, screenshots, tokens, or secrets/s, 'redacted result-panel contract must state that raw/private evidence is forbidden');
 assert.match(page, /id="failure-ui-drill-matrix"[\s\S]*stale_preview_rejection[\s\S]*target_preflight_rejection[\s\S]*writes_disabled_rejection[\s\S]*backup_failure[\s\S]*lock_failure[\s\S]*read_back_failure[\s\S]*reset_probe_failure[\s\S]*safe_recovery_copy/s, 'transaction-entry page must render every issue #51 failure drill state as redacted UI evidence');
 assert.match(page, /id="failure-ui-drill-matrix"[\s\S]*Failure drill evidence shape[\s\S]*api_result_shaped_redacted_ui_evidence[\s\S]*No raw target paths, backup paths, account names, descriptions, memos, amounts, GUIDs, screenshots, tokens, or secrets/s, 'failure drill matrix must describe redacted API-result-shaped evidence and forbid raw/private values');

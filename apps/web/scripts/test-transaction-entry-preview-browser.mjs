@@ -163,6 +163,8 @@ function assertSourceSafety() {
 	assert.match(page, /id="execution-result-shell"[\s\S]*Execution-result UX shell \(not run\)[\s\S]*Default state: no execution result exists, no success or failure result is claimed, and rollback\/restore is not run/s, 'execution-result shell must default to not run/no success/no failure/no rollback');
 	assert.match(page, /id="execution-result-outcome-legend"[\s\S]*Result outcome legend \(disabled\)[\s\S]*Do not infer success from preview or approval copy[\s\S]*Rollback\/restore: owner-approved recovery path only/s, 'execution-result shell must explain disabled success/failure/rollback outcomes');
 	assert.match(page, /id="execution-result-triage-panel"[\s\S]*Disabled result triage[\s\S]*Current state: no CREATE execution attempted; preview data is not a success result[\s\S]*Success requires redacted CREATE reference and private read-back before any success copy[\s\S]*Failure state keeps success blocked until a safe error is translated[\s\S]*Rollback state remains owner-approved recovery only and is not run from this page[\s\S]*Post-result reset\/probe state stays pending until GNUCASH_WRITES_ENABLED=false is verified/s, 'execution-result triage panel must clarify disabled success/failure/rollback/reset outcomes');
+	assert.match(page, /id="redacted-create-success-state"[\s\S]*status: success only after explicit synthetic test-mode CREATE[\s\S]*create_count: 1[\s\S]*read_back_verification: verified[\s\S]*backup_state: captured[\s\S]*audit_state: recorded[\s\S]*reset_default_disabled_probe_summary: verified/s, 'redacted result contract must document the explicit synthetic success state without activating default UI CREATE');
+	assert.match(page, /id="redacted-create-result-redaction-list"[\s\S]*Only opaque refs may be displayed[\s\S]*No transaction_id, backup_path, raw audit payload, account IDs, currency, descriptions, memos, amounts, GUIDs, raw paths, screenshots, tokens, or secrets[\s\S]*Default \/transactions\/new never activates this state/s, 'redacted result contract must forbid raw product-route result fields and default UI activation');
 	assert.match(page, /id="failure-ui-drill-matrix"[\s\S]*stale_preview_rejection[\s\S]*target_preflight_rejection[\s\S]*writes_disabled_rejection[\s\S]*backup_failure[\s\S]*lock_failure[\s\S]*read_back_failure[\s\S]*reset_probe_failure[\s\S]*safe_recovery_copy/s, 'failure UI drill matrix must cover every required redacted failure drill');
 	assert.match(page, /id="failure-ui-drill-matrix"[\s\S]*success_claims: 0[\s\S]*api_result_shaped_redacted_ui_evidence[\s\S]*No raw target paths, backup paths, account names, descriptions, memos, amounts, GUIDs, screenshots, tokens, or secrets/s, 'failure UI drill matrix must be redacted and fail closed');
 	assert.match(page, /id="failure-rollback-decision-ladder"[\s\S]*Failure and rollback decision ladder \(disabled\)[\s\S]*Stop before CREATE: show failure, keep success blocked, no rollback needed[\s\S]*Unknown after attempted CREATE: preserve target state and require owner recovery decision[\s\S]*Confirmed failed\/no mutation: safe redacted error only; no success claim[\s\S]*Confirmed mutated but rejected by post-checks: owner-approved restore decision before retry[\s\S]*After any result: reset writes disabled and run disabled probes before reporting completion/s, 'failure/rollback decision ladder must stay visible and disabled');
@@ -905,6 +907,12 @@ async function assertPreviewOnlyRuntimeTopology(cdp, label) {
 }
 
 async function assertMobilePreviewUx(cdp, label, { confirmation = false, stale = false } = {}) {
+	await cdp.send('Emulation.setDeviceMetricsOverride', {
+		width: 390,
+		height: 900,
+		deviceScaleFactor: 2,
+		mobile: true
+	});
 	const state = await evaluate(cdp, `(() => {
 		const text = (selector) => document.querySelector(selector)?.innerText ?? '';
 		const visible = (selector) => {
@@ -1626,20 +1634,57 @@ function runProductRouteCreateDrill(productCreatePayload) {
 	assert.ok(existsSync(productCreateDrillScript), 'explicit CREATE harness requires the disposable product-route drill script');
 	const child = spawnSync('python3', [productCreateDrillScript, '--json-only'], {
 		cwd: repoRoot,
+		input: JSON.stringify({ product_create_payload: productCreatePayload }),
 		encoding: 'utf8',
-		input: `${JSON.stringify({ product_create_payload: productCreatePayload })}\n`,
+		env: {
+			...process.env,
+			APP_ENV: 'test',
+			GNUCASH_WRITES_ENABLED: 'true'
+		},
 		maxBuffer: 1024 * 1024,
 		timeout: 120000
 	});
 	assert.equal(child.error, undefined, `explicit product-route CREATE drill process failed safely: ${child.error?.message ?? 'unknown'}`);
-	assert.equal(
-		child.status,
-		0,
-		`explicit product-route CREATE drill must succeed through the backend product route; stderr tail: ${(child.stderr ?? '').slice(-1200)}`
-	);
+	assert.equal(child.status, 0, `explicit product-route CREATE drill must succeed through the backend product route: ${String(child.stderr ?? '').slice(-2000)}`);
+	assert.equal(String(child.stderr ?? '').trim(), '', 'explicit product-route CREATE drill must keep stderr empty on success');
 	const stdout = String(child.stdout ?? '').trim();
 	assert.ok(stdout.startsWith('{') && stdout.endsWith('}'), 'explicit product-route CREATE drill must emit only redacted JSON on stdout');
 	return JSON.parse(stdout);
+}
+
+function assertNoPrivateRawResultPanelLeak(responseBody, productCreatePayload) {
+	const redactedResultText = JSON.stringify(responseBody);
+	for (const forbiddenValue of [
+		explicitSyntheticCreateId,
+		syntheticDescription,
+		syntheticMemo,
+		syntheticAmount,
+		productCreatePayload.description,
+		...productCreatePayload.splits.flatMap((split) => [split.account_id, split.amount, split.currency, split.memo])
+	]) {
+		assert.ok(!redactedResultText.includes(String(forbiddenValue)), `explicit synthetic CREATE result panel must stay redacted: ${forbiddenValue}`);
+	}
+
+	for (const [pattern, label] of [
+		[/\/(?:home|tmp|var|mnt|data|backup|backups)\//i, 'raw path-like artifact'],
+		[/\\\\/, 'Windows-style raw path separator'],
+		[/\.gnucash\.sqlite/i, 'raw GnuCash SQLite filename'],
+		[/app-metadata\.sqlite/i, 'raw app metadata DB filename'],
+		[/test-book\.gnucash\.sqlite/i, 'raw fixture source filename'],
+		[/issue51-disposable-copied-like/i, 'raw disposable copied-like book filename'],
+		[/"transaction_id"\s*:/, 'raw transaction_id field'],
+		[/"backup_path"\s*:/, 'raw backup_path field'],
+		[/"audit_log_id"\s*:/, 'raw audit_log_id field'],
+		[/"payload_json"\s*:/, 'raw audit payload field'],
+		[/"splits"\s*:/, 'raw splits payload field'],
+		[/"account_id"\s*:/, 'raw account_id payload field']
+	]) {
+		assert.doesNotMatch(redactedResultText, pattern, `explicit synthetic CREATE result panel must not expose ${label}`);
+	}
+	assert.ok(!redactedResultText.includes(String(productCreateDrillScript)), 'explicit synthetic CREATE result panel must not expose the product drill script path');
+	assert.ok(!redactedResultText.includes(String(repoRoot)), 'explicit synthetic CREATE result panel must not expose the repository path');
+	assert.ok(!redactedResultText.includes(String(root)), 'explicit synthetic CREATE result panel must not expose the web app path');
+	assert.deepEqual(Object.keys(responseBody), ['redacted_result_panel'], 'explicit synthetic CREATE result panel must not expose raw API result fields alongside the redacted panel');
 }
 
 function assertRedactedSyntheticCreateResultPanel(responseBody, productCreatePayload, reviewedApprovalEvidence) {
@@ -1722,6 +1767,7 @@ function assertRedactedSyntheticCreateResultPanel(responseBody, productCreatePay
 		},
 		'explicit synthetic CREATE result panel must show the no-private/raw-data redaction state'
 	);
+	assertNoPrivateRawResultPanelLeak(responseBody, productCreatePayload);
 
 	const redactedResultText = JSON.stringify(responseBody);
 	for (const forbiddenValue of [
@@ -2084,6 +2130,7 @@ async function runSmoke() {
 		await fillPreviewForm(cdp, { description: syntheticQueryTamperDescription });
 		await click(cdp, 'button[formaction="?/preview"]');
 		await waitForExpression(cdp, `document.body && document.body.innerText.includes('Normalized preview')`, 'normal explicit test-mode query attempt preview');
+		await waitForExpression(cdp, `Boolean(document.querySelector('#target-preflight-readiness') && document.querySelector('#execution-readiness-shell') && document.querySelector('#execution-result-shell'))`, 'normal explicit test-mode query attempt safety shells');
 		await assertPreviewOnlyRuntimeTopology(cdp, 'normal explicit test-mode query attempt preview');
 		await assertMobilePreviewUx(cdp, 'normal explicit test-mode query attempt preview', { confirmation: true });
 		await assertReadinessShellsRemainPending(cdp, 'normal explicit test-mode query attempt preview');

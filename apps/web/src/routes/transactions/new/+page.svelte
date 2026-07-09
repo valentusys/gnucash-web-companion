@@ -708,6 +708,17 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 					<div><dt class="font-semibold">audit_state</dt><dd>audit_state: pending</dd></div>
 					<div class="md:col-span-2"><dt class="font-semibold">reset/default-disabled probe summary</dt><dd>reset/default-disabled probes: pending; validate/preflight/CREATE/PATCH/DELETE/batch must be blocked or unavailable after reset.</dd></div>
 				</dl>
+				<p id="redacted-create-success-state" class="mt-3 font-semibold">
+					Synthetic success state shape (explicit test-mode only): status: success only after explicit synthetic test-mode CREATE;
+					create_count: 1; read_back_verification: verified; backup_state: captured; audit_state: recorded;
+					reset_default_disabled_probe_summary: verified with APP_ENV=test, GNUCASH_WRITES_ENABLED=false, CREATE blocked after reset,
+					and validate/preflight/CREATE/PATCH/DELETE/batch blocked or unavailable.
+				</p>
+				<ul id="redacted-create-result-redaction-list" class="mt-2 list-disc pl-5">
+					<li>Only opaque refs may be displayed for CREATE, backup, audit, ownership, and disabled-probe evidence.</li>
+					<li>No transaction_id, backup_path, raw audit payload, account IDs, currency, descriptions, memos, amounts, GUIDs, raw paths, screenshots, tokens, or secrets may appear in the result panel.</li>
+					<li>Default /transactions/new never activates this state; preview and approval copy are not execution-result evidence.</li>
+				</ul>
 				<p class="mt-2 font-semibold">No raw book paths, account names, descriptions, memos, amounts, GUIDs, screenshots, tokens, or secrets may appear in the result panel.</p>
 			</div>
 			<ul id="execution-result-step-list" class="mt-3 grid min-w-0 gap-2 md:grid-cols-2" aria-label="Future execution result status checklist">
