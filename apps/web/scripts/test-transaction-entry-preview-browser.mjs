@@ -1009,6 +1009,83 @@ function productCreatePayloadFromPreview(previewPayload) {
 	};
 }
 
+async function assertExplicitSyntheticCreateHarnessRejectsUserMode(api, browserRequests, productCreatePayload) {
+	const browserRequestCountBefore = browserRequests.length;
+	const explicitPayloadCountBefore = api.explicitCreatePayloads.length;
+	const forbiddenRequestCountBefore = api.forbiddenRequests.length;
+	const rejectedCases = [
+		{
+			label: 'missing explicit harness header',
+			search: explicitSyntheticCreateHarnessSearch,
+			headers: { 'x-app-env': 'test', 'x-gnucash-writes-enabled': 'true' }
+		},
+		{
+			label: 'non-test APP_ENV synthetic CREATE probe',
+			search: explicitSyntheticCreateHarnessSearch,
+			headers: {
+				'x-issue50-explicit-test-create': explicitSyntheticCreateHarnessToken,
+				'x-app-env': 'production',
+				'x-gnucash-writes-enabled': 'true'
+			}
+		},
+		{
+			label: 'writes-disabled explicit CREATE probe',
+			search: explicitSyntheticCreateHarnessSearch,
+			headers: {
+				'x-issue50-explicit-test-create': explicitSyntheticCreateHarnessToken,
+				'x-app-env': 'test',
+				'x-gnucash-writes-enabled': 'false'
+			}
+		},
+		{
+			label: 'missing explicit test-mode query',
+			search: '',
+			headers: {
+				'x-issue50-explicit-test-create': explicitSyntheticCreateHarnessToken,
+				'x-app-env': 'test',
+				'x-gnucash-writes-enabled': 'true'
+			}
+		}
+	];
+
+	for (const testCase of rejectedCases) {
+		const response = await fetch(`${api.url}/books/1/transactions${testCase.search}`, {
+			method: 'POST',
+			headers: {
+				'content-type': 'application/json',
+				authorization: `Bearer ${syntheticToken}`,
+				...testCase.headers
+			},
+			body: JSON.stringify(productCreatePayload)
+		});
+		assert.equal(response.status, 409, `${testCase.label}: default/user-mode product CREATE route must remain disabled and inert`);
+		assert.deepEqual(
+			await response.json(),
+			{ detail: 'Synthetic smoke blocked a mutation endpoint.' },
+			`${testCase.label}: rejected CREATE probe must return the synthetic no-mutation block response`
+		);
+	}
+
+	assert.equal(browserRequests.length, browserRequestCountBefore, 'explicit rejected CREATE probes must not be browser-driven');
+	assert.equal(api.explicitCreatePayloads.length, explicitPayloadCountBefore, 'rejected CREATE probes must not be accepted as explicit test-mode CREATE payloads');
+	assert.deepEqual(
+		api.forbiddenRequests
+			.slice(forbiddenRequestCountBefore)
+			.map(({ method, path, search, pathWithSearch }) => ({ method, path, search, pathWithSearch })),
+		rejectedCases.map((testCase) => ({
+			method: 'POST',
+			path: '/books/1/transactions',
+			search: testCase.search,
+			pathWithSearch: `/books/1/transactions${testCase.search}`
+		})),
+		'explicit rejected CREATE probes must be recorded only as blocked default/user-mode boundary attempts'
+	);
+	assert.ok(
+		api.requests.slice(-rejectedCases.length).every((request) => request.explicitHarnessRequest === false),
+		'rejected user-mode CREATE probes must never satisfy the explicit synthetic CREATE harness gate'
+	);
+}
+
 async function runExplicitSyntheticCreateHarness(api, browserRequests, previewPayload) {
 	assert.equal(api.explicitCreatePayloads.length, 0, 'explicit synthetic CREATE harness must start with zero CREATE payloads');
 	assert.equal(
@@ -1025,6 +1102,7 @@ async function runExplicitSyntheticCreateHarness(api, browserRequests, previewPa
 	const productCreatePayload = productCreatePayloadFromPreview(previewPayload);
 	assert.deepEqual(Object.keys(productCreatePayload).sort(), ['date', 'description', 'splits'].sort(), 'explicit synthetic CREATE harness must use the product CREATE payload shape');
 	assert.equal(productCreatePayload.splits.length, 2, 'explicit synthetic CREATE harness must remain a single two-split CREATE drill');
+	await assertExplicitSyntheticCreateHarnessRejectsUserMode(api, browserRequests, productCreatePayload);
 	const browserRequestCountBefore = browserRequests.length;
 	const forbiddenRequestCountBefore = api.forbiddenRequests.length;
 
@@ -1057,10 +1135,17 @@ async function runExplicitSyntheticCreateHarness(api, browserRequests, previewPa
 		[{ method: 'POST', path: '/books/1/transactions', search: explicitSyntheticCreateHarnessSearch, pathWithSearch: `/books/1/transactions${explicitSyntheticCreateHarnessSearch}` }],
 		'explicit synthetic CREATE harness must be the only accepted product CREATE route request'
 	);
-	assert.equal(
-		api.requests.filter((request) => request.path === '/books/1/transactions' && !request.explicitHarnessRequest).length,
-		0,
-		'default/user-mode product CREATE route must remain unused'
+	assert.deepEqual(
+		api.requests
+			.filter((request) => request.path === '/books/1/transactions' && !request.explicitHarnessRequest)
+			.map(({ method, path, search, pathWithSearch }) => ({ method, path, search, pathWithSearch })),
+		[
+			{ method: 'POST', path: '/books/1/transactions', search: explicitSyntheticCreateHarnessSearch, pathWithSearch: `/books/1/transactions${explicitSyntheticCreateHarnessSearch}` },
+			{ method: 'POST', path: '/books/1/transactions', search: explicitSyntheticCreateHarnessSearch, pathWithSearch: `/books/1/transactions${explicitSyntheticCreateHarnessSearch}` },
+			{ method: 'POST', path: '/books/1/transactions', search: explicitSyntheticCreateHarnessSearch, pathWithSearch: `/books/1/transactions${explicitSyntheticCreateHarnessSearch}` },
+			{ method: 'POST', path: '/books/1/transactions', search: '', pathWithSearch: '/books/1/transactions' }
+		],
+		'default/user-mode product CREATE route must be probed only by explicit Node harness and remain blocked'
 	);
 }
 
