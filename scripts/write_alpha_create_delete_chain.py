@@ -29,6 +29,32 @@ from pathlib import Path
 from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+DISPOSABLE_TARGET_HINTS = frozenset(
+    {
+        "copy",
+        "copied",
+        "disposable",
+        "dogfood",
+        "scratch",
+        "synthetic",
+        "test",
+        "tmp",
+    }
+)
+FORBIDDEN_TARGET_HINTS = frozenset(
+    {
+        "only copy",
+        "only-copy",
+        "only_copy",
+        "original",
+        "private",
+        "sole copy",
+        "sole-copy",
+        "sole_copy",
+        "syncthing",
+        "working",
+    }
+)
 sys.path.insert(0, str(REPO_ROOT / "apps" / "api"))
 
 import piecash  # noqa: E402
@@ -109,6 +135,29 @@ def ensure_safe_runtime_artifact_dir(path: Path, label: str, *, repo_root: Path 
 
 def opaque(value: str, n: int = 12) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()[:n]
+
+
+def disposable_target_blocker(path: Path) -> str | None:
+    """Return a path-safe blocker unless a target is explicitly disposable-like."""
+
+    marker_text = path.name.lower()
+    context_text = " ".join(part.lower() for part in path.parts)
+    if any(marker in context_text for marker in FORBIDDEN_TARGET_HINTS):
+        return (
+            "book filename contains forbidden "
+            "owner/private/original/working/Syncthing/only-copy marker"
+        )
+    if not any(marker in marker_text for marker in DISPOSABLE_TARGET_HINTS):
+        return "book filename must mark it as copied/disposable/synthetic test data"
+    return None
+
+
+def ensure_disposable_target_path(path: Path) -> None:
+    """Fail closed before any piecash open/read when the target is not disposable-like."""
+
+    blocker = disposable_target_blocker(path)
+    if blocker is not None:
+        raise RuntimeError(blocker)
 
 
 def pick_two_accounts(book_path: Path) -> tuple[str, str, str]:
@@ -223,6 +272,7 @@ def run(book_path: Path, work_dir: Path, evidence_dir: Path) -> dict[str, Any]:
         raise RuntimeError("book file missing")
     if is_inside_repo(book_path):
         raise RuntimeError("book must be outside git working tree")
+    ensure_disposable_target_path(book_path)
     work_dir_class = ensure_safe_runtime_artifact_dir(work_dir, "work-dir")
     evidence_dir_class = ensure_safe_runtime_artifact_dir(evidence_dir, "evidence-dir")
 

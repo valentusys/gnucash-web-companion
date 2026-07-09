@@ -79,3 +79,34 @@ def test_create_delete_chain_run_blocks_tracked_runtime_dir_before_opening_book(
     assert str(excinfo.value) == "work-dir must be outside git working tree or git-ignored runtime storage"
     assert not unsafe_work_dir.exists()
     assert not external_evidence_dir.exists()
+
+
+def test_create_delete_chain_blocks_unmarked_external_book_before_opening_or_writing(tmp_path):
+    unmarked_book = tmp_path / "owner-ledger.gnucash.sqlite"
+    unmarked_book.write_bytes(b"not a real book; must be rejected before piecash opens it")
+    external_work_dir = tmp_path / "work"
+    external_evidence_dir = tmp_path / "evidence"
+
+    with pytest.raises(RuntimeError) as excinfo:
+        chain.run(unmarked_book, external_work_dir, external_evidence_dir)
+
+    assert str(excinfo.value) == "book filename must mark it as copied/disposable/synthetic test data"
+    assert not external_work_dir.exists()
+    assert not external_evidence_dir.exists()
+
+
+def test_create_delete_chain_blocks_forbidden_only_copy_marker_even_when_disposable(tmp_path):
+    only_copy_book = tmp_path / "only-copy-disposable.gnucash.sqlite"
+    only_copy_book.write_bytes(b"not a real book; forbidden marker must fail before opening")
+    external_work_dir = tmp_path / "work"
+    external_evidence_dir = tmp_path / "evidence"
+
+    with pytest.raises(RuntimeError) as excinfo:
+        chain.run(only_copy_book, external_work_dir, external_evidence_dir)
+
+    assert str(excinfo.value) == (
+        "book filename contains forbidden "
+        "owner/private/original/working/Syncthing/only-copy marker"
+    )
+    assert not external_work_dir.exists()
+    assert not external_evidence_dir.exists()
