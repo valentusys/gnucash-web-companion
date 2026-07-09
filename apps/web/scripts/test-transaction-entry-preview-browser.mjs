@@ -710,6 +710,58 @@ function assertNoMutationRequestsObserved(api, browserRequests, label) {
 	);
 }
 
+function assertBrowserToAppToApiBoundary(browserRequests, webBase, apiUrl, label) {
+	const webOrigin = new URL(webBase).origin;
+	const apiOrigin = new URL(apiUrl).origin;
+	const httpRequests = browserRequests.filter((request) => {
+		try {
+			return ['http:', 'https:'].includes(new URL(request.url).protocol);
+		} catch {
+			return false;
+		}
+	});
+	assert.ok(httpRequests.length >= 1, `${label}: browser-to-app boundary must observe at least one app request`);
+	assert.deepEqual(
+		httpRequests
+			.filter((request) => new URL(request.url).origin !== webOrigin)
+			.map((request) => ({ method: request.method, origin: new URL(request.url).origin, path: new URL(request.url).pathname })),
+		[],
+		`${label}: browser-to-app boundary must keep all browser HTTP requests on the app origin`
+	);
+	assert.deepEqual(
+		httpRequests
+			.filter((request) => new URL(request.url).origin === apiOrigin)
+			.map((request) => ({ method: request.method, path: new URL(request.url).pathname })),
+		[],
+		`${label}: browser-to-app boundary must not call synthetic API origin directly`
+	);
+	assert.deepEqual(
+		httpRequests
+			.filter((request) => new URL(request.url).pathname.startsWith('/books/'))
+			.map((request) => ({ method: request.method, path: new URL(request.url).pathname })),
+		[],
+		`${label}: browser-to-app boundary must not expose backend book routes to the browser`
+	);
+}
+
+function assertDisposableSyntheticApiTargetBoundary(api, label) {
+	const syntheticBookId = String(syntheticBook.id);
+	const bookScopedRequests = api.requests.filter((request) => request.path.startsWith('/books/'));
+	assert.ok(bookScopedRequests.length >= 1, `${label}: synthetic API must observe app-to-API book requests`);
+	assert.deepEqual(
+		bookScopedRequests
+			.filter((request) => !new RegExp(`^/books/${syntheticBookId}(?:/|$)`).test(request.path))
+			.map(({ method, path, search, pathWithSearch }) => ({ method, path, search, pathWithSearch })),
+		[],
+		`${label}: synthetic API must not receive requests for non-disposable book targets`
+	);
+	assert.deepEqual(
+		[...new Set(bookScopedRequests.map((request) => request.path.match(/^\/books\/([^/]+)/)?.[1] ?? 'missing'))],
+		[syntheticBookId],
+		`${label}: app-to-API requests must stay scoped to the disposable synthetic book id`
+	);
+}
+
 async function assertReadinessShellsRemainPending(cdp, label) {
 	const shellState = await evaluate(cdp, `(() => {
 		const text = (selector) => document.querySelector(selector)?.innerText ?? '';
@@ -1277,6 +1329,7 @@ async function runSmoke() {
 		assertNoMutationRequestsObserved(api, browserRequests, 'clear preview');
 
 		assertNoMutationRequestsObserved(api, browserRequests, 'final browser smoke');
+		assertBrowserToAppToApiBoundary(browserRequests, webBase, api.url, 'final browser smoke');
 		const createReadinessStatusCalls = api.requests.filter((request) => request.method === 'GET' && request.path === '/books/1/transactions/create-readiness-status');
 		assert.ok(createReadinessStatusCalls.length >= 1, 'browser smoke must load create-readiness-status as read-only status');
 		const createPreviewCalls = api.requests.filter((request) => request.method === 'POST' && request.path === '/books/1/transactions/create-preview');
@@ -1319,6 +1372,8 @@ async function runSmoke() {
 			'browser must submit the transaction-entry form exactly once and only to the preview action'
 		);
 		await runExplicitSyntheticCreateHarness(api, browserRequests, previewPayload);
+		assertBrowserToAppToApiBoundary(browserRequests, webBase, api.url, 'explicit synthetic create harness');
+		assertDisposableSyntheticApiTargetBoundary(api, 'explicit synthetic create harness');
 	} catch (error) {
 		if (webProcess) console.error(`web-server-output-tail:\n${webProcess.outputTail()}`);
 		if (chromiumProcess) console.error(`chromium-output-tail:\n${chromiumProcess.outputTail()}`);
