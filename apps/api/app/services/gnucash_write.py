@@ -343,6 +343,18 @@ class GnuCashWriteService(GnuCashBookService):
                 transaction = self._find_transaction(book, transaction_id)
                 if transaction is None:
                     errors.append(f"Transaction not found: {transaction_id}")
+                elif request.split_memos is not None:
+                    split_ids = {_guid(split) for split in transaction.splits}
+                    unknown_split_count = sum(
+                        1
+                        for split_id in request.split_memos
+                        if split_id not in split_ids
+                    )
+                    if unknown_split_count:
+                        errors.append(
+                            "Unknown split memo target; split_memos may reference only "
+                            "splits belonging to the target transaction"
+                        )
             finally:
                 close = getattr(book, "close", None)
                 if callable(close):

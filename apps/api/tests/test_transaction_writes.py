@@ -3264,6 +3264,96 @@ class TestWriteAlphaPatchRouteDisposableFixture:
             logs = session.query(AuditLog).filter_by(action="transaction.patch").all()
             assert logs == []
 
+    def test_owned_non_disposable_patch_target_rejected_before_write_service(
+        self,
+        client,
+        auth_headers,
+        session_factory,
+        tmp_path: Path,
+        monkeypatch,
+    ):
+        calls = []
+
+        def forbidden_write_service(*args, **kwargs):
+            calls.append((args, kwargs))
+            raise AssertionError("write service must not be constructed for non-disposable PATCH")
+
+        monkeypatch.setattr("app.routers.transactions._write_service_for", forbidden_write_service)
+        books_dir = tmp_path / "books"
+        books_dir.mkdir()
+        target = books_dir / "historical-ledger.gnucash.sqlite"
+        target.write_bytes(b"SQLite format 3\x00 non-disposable patch target placeholder")
+        with session_factory() as session:
+            book = Book(
+                name="Synthetic non-disposable patch guard fixture",
+                storage_type="sqlite",
+                uri_or_path=str(target),
+                base_currency="SEK",
+                is_default=False,
+            )
+            session.add(book)
+            session.flush()
+            admin = session.query(User).filter(User.username == "admin").one()
+            session.add(UserBookAccess(user_id=admin.id, book_id=book.id, role="owner"))
+            session.commit()
+            book_id = book.id
+
+        owned_transaction_id = "synthetic-owned-marker-tx"
+        self._mark_owned(session_factory, book_id, owned_transaction_id)
+
+        response = client.patch(
+            f"/books/{book_id}/transactions/{owned_transaction_id}",
+            json={"description": "should not patch a non-disposable target"},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 403
+        detail = response.json()["detail"]
+        assert "Disposable target preflight failed closed" in detail
+        assert "filename must mark it as copied/disposable/synthetic test data" in detail
+        assert str(target) not in detail
+        assert calls == []
+        assert not (tmp_path / "backups").exists()
+        with session_factory() as session:
+            logs = session.query(AuditLog).filter_by(action="transaction.patch").all()
+            assert logs == []
+
+    def test_enabled_patch_route_rejects_unknown_split_memo_target_without_mutation(
+        self,
+        client,
+        auth_headers,
+        disposable_sample_book,
+        disposable_fixture_book,
+        disposable_write_lock,
+        session_factory,
+    ):
+        tx_before = self._first_fixture_transaction(disposable_fixture_book)
+        self._mark_owned(session_factory, disposable_sample_book, tx_before["guid"])
+        txs_before = _read_written_transactions(disposable_fixture_book)
+
+        response = client.patch(
+            f"/books/{disposable_sample_book}/transactions/{tx_before['guid']}",
+            json={"split_memos": {"synthetic-unknown-split-guid": "memo for missing split"}},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 422
+        assert "Unknown split memo target" in response.json()["detail"]
+        assert _read_written_transactions(disposable_fixture_book) == txs_before
+        backups_root = disposable_fixture_book.parent.parent / "backups"
+        assert not backups_root.exists()
+        lock_key = str(disposable_fixture_book)
+        assert disposable_write_lock.acquire(lock_key) is True
+        disposable_write_lock.release(lock_key)
+
+        with session_factory() as session:
+            logs = session.query(AuditLog).filter_by(action="transaction.patch").all()
+            assert logs
+            payload = json.loads(logs[-1].payload_json)
+            assert payload["result"] == "failed"
+            assert payload["backup_path"] is None
+            assert "Unknown split memo target" in payload["error"]
+
     def test_owned_missing_transaction_returns_404_without_backup_or_lock_leak(
         self,
         client,

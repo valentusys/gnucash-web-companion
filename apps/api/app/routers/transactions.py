@@ -1667,6 +1667,7 @@ async def patch_book_transaction(
     _ensure_write_alpha_test_scope(settings)
     book = _resolve_viewable_book(book_id, user, session)
     _require_book_edit_access(book, user, session)
+    _require_disposable_create_target(book)
     ownership = _require_write_alpha_transaction_ownership(
         session,
         book_id=book.id,
