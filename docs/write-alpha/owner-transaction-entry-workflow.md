@@ -2,7 +2,9 @@
 
 Issue: [#48 Owner web transaction-entry UI for CREATE + optional PATCH app-created metadata](https://github.com/valentusys/gnucash-web-companion/issues/48)
 Transition issue: [#49 Owner web UI CREATE execution trial](https://github.com/valentusys/gnucash-web-companion/issues/49)
-Status: **WEB_UI_PREVIEW_ONLY_SUFFICIENTLY_VALIDATED**. This document does not authorize mutation by itself.
+Drill issue: [#50 Disposable copied-book web UI CREATE drill](https://github.com/valentusys/gnucash-web-companion/issues/50)
+Status: **WEB_UI_PREVIEW_VALIDATED_AND_ISSUE50_SYNTHETIC_DRILL_RECORDED**. This document does not authorize
+mutation by itself.
 
 ## Product framing
 
@@ -487,3 +489,38 @@ owner/PM approval for the exact target class and exact CREATE count.
 
 This document is a re-scope/planning artifact. No CREATE, PATCH, DELETE, dogfood loop, release, tag, package,
 image publication, public write beta, or production/stable/security-audited claim is made here.
+
+## #50 disposable copied-book drill status
+
+#50 records a synthetic/disposable copied-book drill only. It does not authorize owner/private/original/working/
+Syncthing/only-copy book mutation and does not change the default product posture.
+
+What current HEAD covers with synthetic or disposable targets:
+
+- disposable target preflight fails closed before routed CREATE/PATCH/DELETE when the target lacks copied,
+  disposable, or synthetic proof, or appears inside the repository;
+- routed CREATE coverage on disposable SQLite fixtures verifies backup-before-write, read-back, audit row,
+  write-alpha ownership marker, released lock, exact field preservation, reopen through read-only paths, and
+  balanced split/balance deltas;
+- route-family tests reset to `GNUCASH_WRITES_ENABLED=false` and prove validate/readiness/preflight, CREATE,
+  PATCH, DELETE, and batch families are blocked or unavailable with defaults restored;
+- failure drills cover stale owner-writebeta headers, writes-disabled confirmation attempts, missing backup or
+  restore readiness, invalid account rejection, lock failure redaction, read-back failure, backup failure, and
+  post-backup write failure without raw private path leakage;
+- the browser harness keeps the normal web UI preview-only while an explicit synthetic test harness can exercise a
+  product-shaped CREATE request only through synthetic headers/query markers and disposable API stubs;
+- optional PATCH coverage stays metadata-only for write-alpha-created/app-owned disposable transactions and rejects
+  amount, account, split, date, currency, nested financial payloads, non-owned transactions, and non-disposable
+  targets before mutation;
+- optional DELETE coverage stays app-owned/write-alpha-created only and rejects non-owned, inert-marker, active
+  unarmed preview, missing, and non-disposable targets before the write service where applicable.
+
+Untouched boundaries:
+
+- no owner/private/original/working/Syncthing/only-copy book was opened, copied, or mutated for this tracked packet;
+- no raw transaction data, private paths, non-synthetic account names, screenshots, books, backups, exports, `.env`,
+  tokens, keys, certs, or app DBs are committed here;
+- no release, tag, package, image, public write beta, stable, production-ready, or security-audited claim is made;
+- `GNUCASH_WRITES_ENABLED=false` remains the default and enabled write execution remains `APP_ENV=test` gated.
+
+Next step: run the final full gates from the issue #50 queue before any issue update or broader status claim.

@@ -1,6 +1,6 @@
 # PROJECT_STATUS
 
-Last updated: 2026-07-08
+Last updated: 2026-07-09
 
 ## Quick navigation
 
@@ -27,17 +27,19 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   [#47](https://github.com/valentusys/gnucash-web-companion/issues/47), Owner real-book CREATE + PATCH
   app-created metadata-only operating mode,
   [#48](https://github.com/valentusys/gnucash-web-companion/issues/48), Owner web transaction-entry UI for
-  CREATE + optional PATCH app-created metadata, and
-  [#49](https://github.com/valentusys/gnucash-web-companion/issues/49), Owner web UI CREATE execution trial.
+  CREATE + optional PATCH app-created metadata,
+  [#49](https://github.com/valentusys/gnucash-web-companion/issues/49), Owner web UI CREATE execution trial, and
+  [#50](https://github.com/valentusys/gnucash-web-companion/issues/50), Disposable copied-book web UI CREATE drill.
   #45 remains the CREATE-only tracker, #46 remains the PATCH app-created metadata-only boundary/evidence
   tracker, #47 remains the active mixed CREATE + PATCH app-created metadata-only operating-mode tracker after
   the owner-verified first mixed session, #48 remains open as the sufficiently validated non-mutating
-  preview-only owner web transaction-entry UI evidence tracker, and #49 is the next strictly scoped
-  owner-approved web UI CREATE trial tracker. None of these issues are DELETE approval, release approval, or
-  public write beta approval.
+  preview-only owner web transaction-entry UI evidence tracker, #49 remains the non-mutating owner web UI
+  CREATE execution-shell tracker, and #50 is the current synthetic/disposable fixture-only drill tracker. None
+  of these issues are DELETE approval, release approval, or public write beta approval.
   [#22](https://github.com/valentusys/gnucash-web-companion/issues/22) and
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) are closed.
-- Latest handoffs/docs: `docs/handoff/issue49-final-gates-redacted-status.md`,
+- Latest handoffs/docs: `docs/handoff/issue50-disposable-copied-book-create-drill.md`,
+  `docs/handoff/issue49-final-gates-redacted-status.md`,
   `docs/handoff/issue49-execution-result-ux-shell.md`,
   `docs/handoff/issue49-backup-readback-audit-reset-probes-shell-r3.md`,
   `docs/handoff/issue49-backup-readback-audit-reset-probes-shell-r2.md`,
@@ -110,9 +112,9 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   `/transactions/new` preview UI, disabled Future Create, approval packet, stale-preview warning,
   account selector UX, accessibility/mobile polish, manual browser smoke, deterministic synthetic browser
   smoke, and static/backend guards all passed without CREATE/PATCH/DELETE/batch. Further #48 preview-only
-  polishing should pause unless bugs are found. #49 is the next strictly scoped owner web UI CREATE
-  execution-trial tracker for a future bounded owner-approved CREATE through the web UI on a test copy or
-  owner-selected target. The first #49 implementation slice is non-mutating gate/shell work: `/transactions/new`
+  polishing should pause unless bugs are found. #49 completed the non-mutating owner web UI CREATE execution-shell
+  work for a future bounded owner-approved CREATE through the web UI on a test copy or owner-selected target. The
+  first #49 implementation slice is non-mutating gate/shell work: `/transactions/new`
   now renders a server-provided write-session-not-armed state, `create_execution_allowed=false`,
   `allowed_create_count=0`, required target-class/create-count/preflight/backup/read-back/audit/reset/probe/
   Desktop-verification guidance, and a still-disabled Future Create button without wiring active CREATE. The next
@@ -144,7 +146,16 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   manual Desktop verification. Telegram/agent
   compact input is development/test harness only, not the main product workflow. None of these issues are
   DELETE/batch approval, release approval, public write beta approval, or production/stable/security-audited
-  claims. No release was published; `NO_RELEASE` remains current.
+  claims. No release was published; `NO_RELEASE` remains current. #50 is now the current
+  disposable copied-book drill tracker. Current HEAD contains synthetic/disposable fixture-only coverage for
+  fail-closed target preflight, routed CREATE with backup/read-back/audit/ownership/lock evidence, read-only
+  reopen/balance verification, default-disabled route-family probes, failure drills, explicit synthetic web
+  CREATE harness boundaries, metadata-only PATCH for app-created transactions, and app-owned DELETE bounds.
+  That coverage uses temporary synthetic/disposable fixtures, in-memory/fake route-family services, and a
+  synthetic API/browser harness only. It did not touch owner/private/original/working/Syncthing/only-copy books,
+  commit books/backups/exports/screenshots, publish a release, approve public write beta, or change the default
+  production-disabled posture. `GNUCASH_WRITES_ENABLED=false` remains the default and enabled writes remain
+  `APP_ENV=test` gated.
 - Current #36 docs reconciliation: owner-writebeta remains maintenance-only and unreleased until
   explicit owner approval. The guard state still requires default `GNUCASH_WRITES_ENABLED=false`,
   enabled write-alpha/writebeta `APP_ENV=test` gating, no public write beta, no real/private/original/
