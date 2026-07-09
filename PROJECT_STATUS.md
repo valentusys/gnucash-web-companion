@@ -30,14 +30,16 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   CREATE + optional PATCH app-created metadata,
   [#49](https://github.com/valentusys/gnucash-web-companion/issues/49), Owner web UI CREATE execution trial,
   [#50](https://github.com/valentusys/gnucash-web-companion/issues/50), Disposable copied-book web UI CREATE drill, and
-  [#51](https://github.com/valentusys/gnucash-web-companion/issues/51), optional app-owned DELETE UI rehearsal.
+  [#51](https://github.com/valentusys/gnucash-web-companion/issues/51), Disposable copied-book UI execution rehearsal.
   #45 remains the CREATE-only tracker, #46 remains the PATCH app-created metadata-only boundary/evidence
   tracker, #47 remains the active mixed CREATE + PATCH app-created metadata-only operating-mode tracker after
   the owner-verified first mixed session, #48 remains open as the sufficiently validated non-mutating
   preview-only owner web transaction-entry UI evidence tracker, #49 remains the non-mutating owner web UI
-  CREATE execution-shell tracker, #50 remains the synthetic/disposable fixture-only CREATE drill tracker, and
-  #51 is bounded to optional synthetic/disposable app-owned DELETE rehearsal evidence. None of these issues are
-  historical/manual/non-owned DELETE approval, release approval, or public write beta approval.
+  CREATE execution-shell tracker, #50 completed disposable/synthetic routed write drill evidence with CREATE/PATCH/
+  DELETE exercised only on synthetic/disposable fixtures, and #51 is the next recommended disposable copied-book UI
+  execution rehearsal tracker. Owner/private/original/working/Syncthing books stayed untouched, `GNUCASH_WRITES_ENABLED=false`
+  remains default, and none of these issues are historical/manual/non-owned DELETE approval, release approval, public write
+  beta approval, or stable/production-ready/security-audited claims.
   [#22](https://github.com/valentusys/gnucash-web-companion/issues/22) and
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) are closed.
 - Latest handoffs/docs: `docs/handoff/issue51-disposable-ui-execution-rehearsal.md`,
@@ -150,8 +152,10 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   manual Desktop verification. Telegram/agent
   compact input is development/test harness only, not the main product workflow. None of these issues are
   DELETE/batch approval, release approval, public write beta approval, or production/stable/security-audited
-  claims. No release was published; `NO_RELEASE` remains current. #50 remains the disposable copied-book
-  CREATE drill tracker, and #51 is bounded to optional synthetic/disposable app-owned DELETE rehearsal evidence.
+  claims. No release was published; `NO_RELEASE` remains current. #50 completed the disposable copied-book
+  routed write drill evidence: CREATE/PATCH/DELETE were exercised only on synthetic/disposable fixtures,
+  owner/private/original/working/Syncthing books stayed untouched, and `GNUCASH_WRITES_ENABLED=false` remains
+  default. #51 is the next recommended disposable copied-book UI execution rehearsal tracker.
   Current HEAD contains synthetic/disposable fixture-only coverage for fail-closed target preflight, routed
   CREATE with backup/read-back/audit/ownership/lock evidence, read-only reopen/balance verification,
   default-disabled route-family probes, failure drills, explicit synthetic web CREATE harness boundaries,

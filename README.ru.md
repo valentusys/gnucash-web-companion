@@ -50,9 +50,13 @@ release docs и handoff-файлах, чтобы этот файл не стан
 - Current active issues: #45 remains the CREATE-only tracker. #46 remains the PATCH app-created
   metadata-only boundary/evidence tracker. #47 is the active mixed CREATE + PATCH app-created metadata-only
   operating-mode tracker after an owner-verified first mixed session. #48 remains open as the sufficiently
-  validated non-mutating preview-only owner web transaction-entry UI evidence tracker. #49 tracks the next
-  strictly scoped owner-approved web UI CREATE execution trial. None are mutation approval by themselves,
-  DELETE/batch approval, release approval, or public write beta approval.
+  validated non-mutating preview-only owner web transaction-entry UI evidence tracker. #49 records the
+  non-mutating owner web UI CREATE execution shell. #50 completed disposable/synthetic routed write drill evidence:
+  CREATE/PATCH/DELETE были выполнены только на synthetic/disposable fixtures; owner/private/original/working/
+  Syncthing books не трогались; `GNUCASH_WRITES_ENABLED=false` остаётся дефолтом; public write beta/release/stable/
+  security-audited claim нет. #51 is the next recommended disposable copied-book UI execution rehearsal tracker.
+  None are mutation approval by themselves, DELETE/batch approval for owner/private books, release approval, or
+  public write beta approval.
 - Недавно закрытые очереди: #22 compatibility fixtures, #28 markdown readability, #13, #41, #42, #43.
 
 ## Карта открытых очередей
@@ -62,11 +66,14 @@ release docs и handoff-файлах, чтобы этот файл не стан
   owner-approved CREATE trial и manual Desktop verification. #45 and #46 record owner-verified CREATE-only
   and PATCH app-created metadata-only test-copy evidence. #47 is the active owner-only mixed CREATE + PATCH
   app-created metadata-only operating-mode tracker after the owner-verified first mixed session. #48 remains open
-  as the sufficiently validated preview-only owner web transaction-entry UI evidence tracker. #49 tracks the next
-  strictly scoped owner-approved web UI CREATE execution trial. Compact text/CSV-like input is local/debug-helper
-  only, not the main user-facing product workflow. CREATE/PATCH remain unauthorized until fresh same-context
-  owner/PM approval with exact counts; DELETE, batch, amount/account/split/date/currency/balance-affecting
-  changes, release, and public write beta remain forbidden.
+  as the sufficiently validated preview-only owner web transaction-entry UI evidence tracker. #49 records the
+  non-mutating owner web UI CREATE execution shell. #50 completed disposable/synthetic routed write drill evidence:
+  CREATE/PATCH/DELETE только на synthetic/disposable fixtures, owner/private/original/working/Syncthing books не
+  трогались, `GNUCASH_WRITES_ENABLED=false` остаётся дефолтом. #51 is the next recommended disposable copied-book UI
+  execution rehearsal tracker. Compact text/CSV-like input is local/debug-helper only, not the main user-facing
+  product workflow. CREATE/PATCH remain unauthorized for owner/private books until fresh same-context owner/PM
+  approval with exact counts; DELETE, batch, amount/account/split/date/currency/balance-affecting changes, release,
+  and public write beta remain forbidden.
 - #22: compatibility fixtures закрыта narrowly for isolated Desktop-generated synthetic SQLite fixture
   read-only evidence only; future Desktop/backend/version fixture expansion остаётся separate work.
 - #28: raw Markdown readability закрыта после terminal-readability/status guard cleanup без whole-repo reflow.
