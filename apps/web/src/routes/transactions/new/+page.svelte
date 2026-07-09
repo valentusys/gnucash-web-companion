@@ -99,6 +99,15 @@
 		surface: 'browser_visible' | 'api_result_shaped';
 		status: 'blocked' | 'failed' | 'requires_owner_recovery' | 'not_run';
 		result_state: string;
+		failure_stage:
+			| 'stale_preview_guard'
+			| 'target_preflight_gate'
+			| 'write_gate_default_disabled'
+			| 'backup_before_create'
+			| 'lock_before_create'
+			| 'post_create_read_back'
+			| 'post_result_reset_probe'
+			| 'owner_recovery_copy';
 		http_status: string;
 		mutation_count: string;
 		message: string;
@@ -278,6 +287,7 @@
 			surface: 'browser_visible',
 			status: 'blocked',
 			result_state: 'rejected_before_create',
+			failure_stage: 'stale_preview_guard',
 			http_status: 'not_submitted',
 			mutation_count: '0',
 			message: 'Draft changed after preview; rerun Preview transaction before any owner approval. No CREATE executed.',
@@ -292,6 +302,7 @@
 			surface: 'api_result_shaped',
 			status: 'blocked',
 			result_state: 'failed_closed_before_create',
+			failure_stage: 'target_preflight_gate',
 			http_status: '403',
 			mutation_count: '0',
 			message: 'Disposable target preflight failed closed; target details stay redacted and no write helper runs.',
@@ -306,6 +317,7 @@
 			surface: 'api_result_shaped',
 			status: 'blocked',
 			result_state: 'rejected_before_book_resolution',
+			failure_stage: 'write_gate_default_disabled',
 			http_status: '403',
 			mutation_count: '0',
 			message: 'GNUCASH_WRITES_ENABLED=false rejected the route before book resolution or write service construction.',
@@ -320,6 +332,7 @@
 			surface: 'api_result_shaped',
 			status: 'failed',
 			result_state: 'failed_before_create',
+			failure_stage: 'backup_before_create',
 			http_status: '422',
 			mutation_count: '0',
 			message: 'Backup failed before CREATE; no success result is emitted and no raw backup path is displayed.',
@@ -334,6 +347,7 @@
 			surface: 'api_result_shaped',
 			status: 'blocked',
 			result_state: 'rejected_before_create',
+			failure_stage: 'lock_before_create',
 			http_status: '409',
 			mutation_count: '0',
 			message: 'Could not acquire the write lock; the UI reports a safe retry-later message without lock or book paths.',
@@ -348,6 +362,7 @@
 			surface: 'api_result_shaped',
 			status: 'requires_owner_recovery',
 			result_state: 'unknown_after_attempted_create',
+			failure_stage: 'post_create_read_back',
 			http_status: '503',
 			mutation_count: 'unknown_after_attempt',
 			message: 'Read-back verification failed; success stays blocked until private verification or owner recovery decision.',
@@ -362,6 +377,7 @@
 			surface: 'api_result_shaped',
 			status: 'failed',
 			result_state: 'post_result_hard_stop',
+			failure_stage: 'post_result_reset_probe',
 			http_status: 'blocked_or_unavailable',
 			mutation_count: 'no_additional_mutation',
 			message: 'Write-disable reset or disabled-probe verification failed; completion and success reporting stay blocked.',
@@ -376,6 +392,7 @@
 			surface: 'api_result_shaped',
 			status: 'not_run',
 			result_state: 'owner_approved_recovery_copy_available_not_restored',
+			failure_stage: 'owner_recovery_copy',
 			http_status: 'not_applicable',
 			mutation_count: '0',
 			message: 'Safe recovery copy is represented only by an opaque reference; restore is not run from this UI.',
@@ -866,10 +883,10 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 				<span class="rounded-full px-3 py-1 font-semibold sm:col-span-2" style="background: #fee2e2; color: #991b1b;">evidence_scope: redacted_only</span>
 			</div>
 		</div>
-		<p id="failure-ui-drill-evidence-shape" class="mt-3 font-semibold">Failure drill evidence shape: api_result_shaped_redacted_ui_evidence; default UI result remains blocked/not run; failure_result_panel_fields: create_count/read-back/backup/audit/reset-default-disabled.</p>
+		<p id="failure-ui-drill-evidence-shape" class="mt-3 font-semibold">Failure drill evidence shape: api_result_shaped_redacted_ui_evidence; default UI result remains blocked/not run; failure_stage tracks stale/preflight/write-gate/backup/lock/read-back/reset/recovery boundaries; failure_result_panel_fields: create_count/read-back/backup/audit/reset-default-disabled.</p>
 		<ul id="failure-ui-drill-list" class="mt-3 grid min-w-0 gap-2 md:grid-cols-2" aria-label="Redacted failure UI drill checklist">
 			{#each redactedFailureUiDrills as drill (drill.id)}
-				<li class="min-w-0 rounded-xl p-3" data-failure-drill={drill.id} data-failure-drill-status={drill.status} data-failure-drill-scope={drill.evidence_scope} style="border: 1px solid #fecaca; background: #fff7f7;">
+				<li class="min-w-0 rounded-xl p-3" data-failure-drill={drill.id} data-failure-drill-status={drill.status} data-failure-stage={drill.failure_stage} data-failure-drill-scope={drill.evidence_scope} style="border: 1px solid #fecaca; background: #fff7f7;">
 					<div class="flex min-w-0 items-start justify-between gap-3">
 						<span class="font-semibold">{drill.label}</span>
 						<span class="shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold" style="background: #fffbeb; color: #92400e;">{drill.status}</span>
@@ -878,6 +895,7 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 						<div><dt class="font-semibold">drill_id</dt><dd class="break-words">{drill.id}</dd></div>
 						<div><dt class="font-semibold">surface</dt><dd>{drill.surface}</dd></div>
 						<div><dt class="font-semibold">result_state</dt><dd class="break-words">{drill.result_state}</dd></div>
+						<div><dt class="font-semibold">failure_stage</dt><dd class="break-words">{drill.failure_stage}</dd></div>
 						<div><dt class="font-semibold">http_status</dt><dd>{drill.http_status}</dd></div>
 						<div><dt class="font-semibold">mutation_count</dt><dd>{drill.mutation_count}</dd></div>
 						<div><dt class="font-semibold">no_success_claim</dt><dd>{String(drill.no_success_claim)}</dd></div>

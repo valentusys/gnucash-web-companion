@@ -55,6 +55,26 @@ const explicitSyntheticDeleteBackupRef = 'backup-ref-redacted-issue51-delete';
 const explicitSyntheticDeleteAuditRef = 'audit-ref-redacted-issue51-delete';
 const explicitSyntheticPatchRejectedFields = ['amount', 'account_id', 'splits', 'date', 'currency'];
 const explicitSyntheticDisabledProbeFamilies = ['validate', 'preflight', 'create', 'patch', 'delete', 'batch'];
+const expectedFailureDrillIds = [
+	'stale_preview_rejection',
+	'target_preflight_rejection',
+	'writes_disabled_rejection',
+	'backup_failure',
+	'lock_failure',
+	'read_back_failure',
+	'reset_probe_failure',
+	'safe_recovery_copy'
+];
+const expectedFailureStages = [
+	'stale_preview_guard',
+	'target_preflight_gate',
+	'write_gate_default_disabled',
+	'backup_before_create',
+	'lock_before_create',
+	'post_create_read_back',
+	'post_result_reset_probe',
+	'owner_recovery_copy'
+];
 const previewPayloadFieldNames = ['amount', 'credit_account_id', 'currency', 'date', 'debit_account_id', 'description', 'memo'].sort();
 const cdpCommandTimeoutMs = Number(process.env.ISSUE51_CDP_TIMEOUT_MS ?? '30000');
 
@@ -691,6 +711,7 @@ function buildRedactedSyntheticFailureUiDrillPanels() {
 				evidence_shape: 'api_result_shaped_redacted_ui_evidence',
 				status: 'blocked',
 				result_state: 'rejected_before_create',
+				failure_stage: 'stale_preview_guard',
 				http_status: 'not_submitted',
 				mutation_count: 0,
 				no_success_claim: true,
@@ -704,6 +725,7 @@ function buildRedactedSyntheticFailureUiDrillPanels() {
 				evidence_shape: 'api_result_shaped_redacted_ui_evidence',
 				status: 'blocked',
 				result_state: 'failed_closed_before_create',
+				failure_stage: 'target_preflight_gate',
 				http_status: 403,
 				mutation_count: 0,
 				no_success_claim: true,
@@ -717,6 +739,7 @@ function buildRedactedSyntheticFailureUiDrillPanels() {
 				evidence_shape: 'api_result_shaped_redacted_ui_evidence',
 				status: 'blocked',
 				result_state: 'rejected_before_book_resolution',
+				failure_stage: 'write_gate_default_disabled',
 				http_status: 403,
 				mutation_count: 0,
 				no_success_claim: true,
@@ -730,6 +753,7 @@ function buildRedactedSyntheticFailureUiDrillPanels() {
 				evidence_shape: 'api_result_shaped_redacted_ui_evidence',
 				status: 'failed',
 				result_state: 'failed_before_create',
+				failure_stage: 'backup_before_create',
 				http_status: 422,
 				mutation_count: 0,
 				no_success_claim: true,
@@ -743,6 +767,7 @@ function buildRedactedSyntheticFailureUiDrillPanels() {
 				evidence_shape: 'api_result_shaped_redacted_ui_evidence',
 				status: 'blocked',
 				result_state: 'rejected_before_create',
+				failure_stage: 'lock_before_create',
 				http_status: 409,
 				mutation_count: 0,
 				no_success_claim: true,
@@ -756,6 +781,7 @@ function buildRedactedSyntheticFailureUiDrillPanels() {
 				evidence_shape: 'api_result_shaped_redacted_ui_evidence',
 				status: 'requires_owner_recovery',
 				result_state: 'unknown_after_attempted_create',
+				failure_stage: 'post_create_read_back',
 				http_status: 503,
 				mutation_count: 'unknown_after_attempt',
 				no_success_claim: true,
@@ -769,6 +795,7 @@ function buildRedactedSyntheticFailureUiDrillPanels() {
 				evidence_shape: 'api_result_shaped_redacted_ui_evidence',
 				status: 'failed',
 				result_state: 'post_result_hard_stop',
+				failure_stage: 'post_result_reset_probe',
 				http_status: 'blocked_or_unavailable',
 				mutation_count: 'no_additional_mutation',
 				no_success_claim: true,
@@ -782,6 +809,7 @@ function buildRedactedSyntheticFailureUiDrillPanels() {
 				evidence_shape: 'api_result_shaped_redacted_ui_evidence',
 				status: 'not_run',
 				result_state: 'owner_approved_recovery_copy_available_not_restored',
+				failure_stage: 'owner_recovery_copy',
 				http_status: 'not_applicable',
 				mutation_count: 0,
 				no_success_claim: true,
@@ -1502,20 +1530,15 @@ async function assertExecutionResultShellRemainsPending(cdp, label) {
 }
 
 function assertRedactedSyntheticFailureUiDrillPanels(responseBody) {
-	const expectedIds = [
-		'stale_preview_rejection',
-		'target_preflight_rejection',
-		'writes_disabled_rejection',
-		'backup_failure',
-		'lock_failure',
-		'read_back_failure',
-		'reset_probe_failure',
-		'safe_recovery_copy'
-	];
 	assert.deepEqual(
 		responseBody.redacted_failure_ui_drills.map((drill) => drill.drill_id),
-		expectedIds,
+		expectedFailureDrillIds,
 		'failure drill evidence must cover all issue #51 scenarios in stable order'
+	);
+	assert.deepEqual(
+		responseBody.redacted_failure_ui_drills.map((drill) => drill.failure_stage),
+		expectedFailureStages,
+		'failure drill evidence must bind each scenario to a stable redacted failure_stage'
 	);
 	assert.deepEqual(
 		responseBody.redaction,
@@ -1548,21 +1571,30 @@ function assertRedactedSyntheticFailureUiDrillPanels(responseBody) {
 			`${drill.drill_id}: failure result panel must expose create_count/read-back/backup/audit/reset/default-disabled fields`
 		);
 		assert.equal(drill.result_panel.raw_evidence_included, false, `${drill.drill_id}: failure result panel must explicitly exclude raw evidence`);
+		assert.ok(expectedFailureStages.includes(drill.failure_stage), `${drill.drill_id}: failure_stage must be one of the redacted bounded failure boundaries`);
 		assert.ok(!['success', 'ready', 'passed', 'ok'].includes(drill.status), `${drill.drill_id}: failure drill status must fail closed`);
 		assert.ok(!/[\\/]|\.gnucash|\.sqlite|\.db|\.env/i.test(drill.safe_message), `${drill.drill_id}: safe message must not expose raw paths or file names`);
 	}
 	const byId = Object.fromEntries(responseBody.redacted_failure_ui_drills.map((drill) => [drill.drill_id, drill]));
+	assert.equal(byId.stale_preview_rejection.failure_stage, 'stale_preview_guard', 'stale preview rejection must be tied to the stale preview guard stage');
 	assert.equal(byId.stale_preview_rejection.mutation_count, 0, 'stale preview rejection must have zero mutation count');
+	assert.equal(byId.target_preflight_rejection.failure_stage, 'target_preflight_gate', 'target preflight rejection must be tied to the target preflight gate stage');
 	assert.equal(byId.target_preflight_rejection.http_status, 403, 'target preflight rejection must be API-result-shaped 403 evidence');
+	assert.equal(byId.writes_disabled_rejection.failure_stage, 'write_gate_default_disabled', 'writes-disabled rejection must be tied to the default-disabled write gate stage');
 	assert.equal(byId.writes_disabled_rejection.result_state, 'rejected_before_book_resolution', 'writes-disabled rejection must happen before book resolution');
+	assert.equal(byId.backup_failure.failure_stage, 'backup_before_create', 'backup failure must be tied to the before-CREATE backup stage');
 	assert.equal(byId.backup_failure.result_state, 'failed_before_create', 'backup failure must be represented before CREATE');
 	assert.equal(byId.backup_failure.result_panel.backup_state, 'failed_before_create', 'backup failure result panel must expose redacted backup failure state');
+	assert.equal(byId.lock_failure.failure_stage, 'lock_before_create', 'lock failure must be tied to the before-CREATE lock stage');
 	assert.equal(byId.lock_failure.http_status, 409, 'lock failure must be represented as conflict evidence');
+	assert.equal(byId.read_back_failure.failure_stage, 'post_create_read_back', 'read-back failure must be tied to the post-CREATE read-back stage');
 	assert.equal(byId.read_back_failure.status, 'requires_owner_recovery', 'read-back failure must require owner recovery decision');
 	assert.equal(byId.read_back_failure.result_panel.create_count_state, 'unknown_after_attempt', 'read-back failure result panel must not convert attempted CREATE into success');
 	assert.equal(byId.read_back_failure.result_panel.read_back_verification, 'failed', 'read-back failure result panel must expose failed read-back verification');
+	assert.equal(byId.reset_probe_failure.failure_stage, 'post_result_reset_probe', 'reset/probe failure must be tied to the post-result reset/probe stage');
 	assert.equal(byId.reset_probe_failure.result_state, 'post_result_hard_stop', 'reset/probe failure must hard-stop completion');
 	assert.equal(byId.reset_probe_failure.result_panel.reset_default_disabled_probe_summary, 'failed_hard_stop', 'reset/probe failure result panel must expose failed default-disabled probe summary');
+	assert.equal(byId.safe_recovery_copy.failure_stage, 'owner_recovery_copy', 'safe recovery copy must be tied to the owner recovery-copy stage');
 	assert.equal(byId.safe_recovery_copy.status, 'not_run', 'safe recovery copy must not imply restore was run');
 	const redactedText = JSON.stringify(responseBody);
 	for (const forbiddenValue of [
@@ -1589,6 +1621,7 @@ async function assertFailureUiDrillMatrix(cdp, label) {
 		const drills = Array.from(document.querySelectorAll('[data-failure-drill]')).map((item) => ({
 			id: item.getAttribute('data-failure-drill'),
 			status: item.getAttribute('data-failure-drill-status'),
+			stage: item.getAttribute('data-failure-stage'),
 			scope: item.getAttribute('data-failure-drill-scope'),
 			text: item.textContent.replace(/\\s+/g, ' ').trim()
 		}));
@@ -1598,20 +1631,11 @@ async function assertFailureUiDrillMatrix(cdp, label) {
 			drills
 		};
 	})()`);
-	const expectedIds = [
-		'stale_preview_rejection',
-		'target_preflight_rejection',
-		'writes_disabled_rejection',
-		'backup_failure',
-		'lock_failure',
-		'read_back_failure',
-		'reset_probe_failure',
-		'safe_recovery_copy'
-	];
 	assert.equal(state.present, true, `${label}: failure UI drill matrix must be browser-visible`);
 	assert.match(state.text, /Failure UI drills \(redacted \/ fail-closed\)/, `${label}: failure drill title must render`);
 	assert.match(state.text, /api_result_shaped_redacted_ui_evidence/, `${label}: failure drill evidence shape must render`);
 	assert.match(state.text, /failure_result_panel_fields: create_count\/read-back\/backup\/audit\/reset-default-disabled/, `${label}: failure drill matrix must render the redacted failure result-panel field contract`);
+	assert.match(state.text, /failure_stage/, `${label}: failure drill matrix must render the stable failure_stage field`);
 	assert.match(state.text, /create_count_state/, `${label}: failure drill matrix must render create_count_state`);
 	assert.match(state.text, /read_back_verification/, `${label}: failure drill matrix must render read_back_verification`);
 	assert.match(state.text, /backup_state/, `${label}: failure drill matrix must render backup_state`);
@@ -1627,8 +1651,9 @@ async function assertFailureUiDrillMatrix(cdp, label) {
 	assert.match(state.text, /Reset\/probe failure/, `${label}: reset/probe failure drill must render`);
 	assert.match(state.text, /Safe recovery copy/, `${label}: safe recovery copy drill must render`);
 	assert.match(state.text, /No raw target paths, backup paths, account names, descriptions, memos, amounts, GUIDs, screenshots, tokens, or secrets/, `${label}: failure drill matrix must state redaction boundary`);
-	assert.deepEqual(state.drills.map((drill) => drill.id), expectedIds, `${label}: failure drills must render in expected order`);
-	assert.deepEqual(state.drills.map((drill) => drill.scope), Array(expectedIds.length).fill('redacted_only'), `${label}: failure drills must stay redacted-only`);
+	assert.deepEqual(state.drills.map((drill) => drill.id), expectedFailureDrillIds, `${label}: failure drills must render in expected order`);
+	assert.deepEqual(state.drills.map((drill) => drill.stage), expectedFailureStages, `${label}: failure drills must expose stable failure stages in expected order`);
+	assert.deepEqual(state.drills.map((drill) => drill.scope), Array(expectedFailureDrillIds.length).fill('redacted_only'), `${label}: failure drills must stay redacted-only`);
 	assert.ok(state.drills.every((drill) => !['success', 'ready', 'passed', 'ok'].includes(drill.status)), `${label}: failure drills must not render success/ready statuses`);
 	assert.ok(!state.text.includes(syntheticDescription), `${label}: failure drill matrix must not leak synthetic description`);
 	assert.ok(!state.text.includes(syntheticMemo), `${label}: failure drill matrix must not leak synthetic memo`);
