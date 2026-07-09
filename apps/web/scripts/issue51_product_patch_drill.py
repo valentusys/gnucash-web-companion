@@ -189,6 +189,66 @@ def _assert_immutable_rejections(
     return probes
 
 
+def _assert_non_owned_patch_rejection(
+    *,
+    client: TestClient,
+    headers: dict[str, str],
+    book_id: int,
+    non_owned_transaction_id: str,
+    book_path: Path,
+    work_dir: Path,
+    session_factory: Any,
+) -> dict[str, Any]:
+    txs_before = _read_transactions(book_path)
+    backup_count_before = _backup_file_count(work_dir)
+    response = client.patch(
+        f"/books/{book_id}/transactions/{non_owned_transaction_id}",
+        json={"description": "non-owned patch probe should stay rejected"},
+        headers=headers,
+    )
+    if response.status_code != 403:
+        raise DrillFailure("non-owned PATCH probe did not fail closed")
+    if "Write-alpha PATCH is allowed only" not in json.dumps(response.json()):
+        raise DrillFailure("non-owned PATCH probe did not return ownership rejection")
+    if _read_transactions(book_path) != txs_before:
+        raise DrillFailure("non-owned PATCH probe mutated the disposable fixture")
+    if _backup_file_count(work_dir) != backup_count_before:
+        raise DrillFailure("non-owned PATCH probe created backup evidence")
+
+    with session_factory() as session:
+        patch_logs = session.query(AuditLog).filter_by(action="transaction.patch").all()
+        rejected_payloads = []
+        for log in patch_logs:
+            payload = json.loads(log.payload_json)
+            if (
+                payload.get("ownership_status") == "non_owned_rejected"
+                and payload.get("transaction_id") == non_owned_transaction_id
+            ):
+                rejected_payloads.append(payload)
+        if len(rejected_payloads) != 1:
+            raise DrillFailure("non-owned PATCH rejection audit row missing or duplicated")
+        rejected_payload = rejected_payloads[0]
+        if rejected_payload.get("result") != "failed":
+            raise DrillFailure("non-owned PATCH rejection audit row was not failed")
+        if rejected_payload.get("backup_path") is not None:
+            raise DrillFailure("non-owned PATCH rejection audit row included backup path")
+        if rejected_payload.get("backup_artifact_ref") is not None:
+            raise DrillFailure("non-owned PATCH rejection audit row included backup artifact")
+        if rejected_payload.get("request_summary") != {"fields_updated": ["description"]}:
+            raise DrillFailure("non-owned PATCH rejection audit summary mismatch")
+        if "non-owned patch probe" in json.dumps(rejected_payload):
+            raise DrillFailure("non-owned PATCH rejection audit leaked raw probe description")
+
+    return {
+        "state": "verified",
+        "non_owned_patch_rejected": True,
+        "non_owned_http_status_class": response.status_code,
+        "mutation_count": 0,
+        "backup_created": False,
+        "audit_recorded": True,
+    }
+
+
 def _run_disabled_patch_probe(
     *,
     app_db: Path,
@@ -231,7 +291,11 @@ def _run_disabled_patch_probe(
     return summary, blocked and unchanged and no_backup
 
 
-def build_redacted_patch_result_panel(*, disabled_patch_probe_summary: dict[str, Any]) -> dict[str, Any]:
+def build_redacted_patch_result_panel(
+    *,
+    ownership_rejection_summary: dict[str, Any],
+    disabled_patch_probe_summary: dict[str, Any],
+) -> dict[str, Any]:
     return {
         "redacted_patch_result_panel": {
             "panel_id": ISSUE51_PATCH_PANEL_ID,
@@ -314,6 +378,7 @@ def build_redacted_patch_result_panel(*, disabled_patch_probe_summary: dict[str,
                 "mutation_count": 0,
                 "backup_created": False,
             },
+            "ownership_rejection_summary": ownership_rejection_summary,
             "reset_default_disabled_patch_probe_summary": disabled_patch_probe_summary,
             "redaction": {
                 "raw_book_paths": False,
@@ -348,6 +413,9 @@ def run_issue51_product_patch_drill(product_create_payload: dict[str, Any] | Non
         lock_dir = work_dir / "locks"
         tracked_accounts = {SOURCE_ACCOUNT_ID, DESTINATION_ACCOUNT_ID}
         txs_before_create = _read_transactions(book_path)
+        if not txs_before_create:
+            raise DrillFailure("fixture must include a historical transaction for non-owned PATCH rejection")
+        non_owned_transaction_id = txs_before_create[0]["guid"]
         balances_before_create = _read_account_balances(book_path, tracked_accounts)
         if set(balances_before_create) != tracked_accounts:
             raise DrillFailure("fixture account balance precheck failed")
@@ -402,6 +470,18 @@ def run_issue51_product_patch_drill(product_create_payload: dict[str, Any] | Non
             )
             if [probe["field"] for probe in immutable_probe_results] != list(IMMUTABLE_REJECTED_FIELDS):
                 raise DrillFailure("immutable rejection probe set mismatch")
+
+            ownership_rejection_summary = _assert_non_owned_patch_rejection(
+                client=client,
+                headers=headers,
+                book_id=book_id,
+                non_owned_transaction_id=non_owned_transaction_id,
+                book_path=book_path,
+                work_dir=work_dir,
+                session_factory=session_factory,
+            )
+            if ownership_rejection_summary["state"] != "verified":
+                raise DrillFailure("non-owned PATCH rejection summary was not verified")
 
             patch_description = "Synthetic PATCH metadata update"
             patch_memos = {created_before_patch["splits"][0]["guid"]: "Synthetic PATCH memo update"}
@@ -488,7 +568,10 @@ def run_issue51_product_patch_drill(product_create_payload: dict[str, Any] | Non
         if not disabled_ok:
             raise DrillFailure("disabled/reset PATCH probe did not fail closed")
 
-    return build_redacted_patch_result_panel(disabled_patch_probe_summary=disabled_patch_probe_summary)
+    return build_redacted_patch_result_panel(
+        ownership_rejection_summary=ownership_rejection_summary,
+        disabled_patch_probe_summary=disabled_patch_probe_summary,
+    )
 
 
 def _payload_from_stdin() -> dict[str, Any] | None:

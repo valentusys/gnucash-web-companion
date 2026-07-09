@@ -818,7 +818,7 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 				<dl class="mt-2 grid min-w-0 gap-2 md:grid-cols-2">
 					<div><dt class="font-semibold">patch_count</dt><dd>patch_count: pending</dd></div>
 					<div><dt class="font-semibold">ownership_state</dt><dd>app-created target: pending; non-app-created PATCH stays rejected.</dd></div>
-					<div><dt class="font-semibold">metadata_only_scope</dt><dd>description and split memo metadata only; amount/account/split/date/currency edits rejected.</dd></div>
+					<div><dt class="font-semibold">metadata_only_scope</dt><dd>description and split memo metadata only; non-owned PATCH rejection summary must prove no mutation or backup before amount, account, split, date, and currency changes rejected evidence is trusted.</dd></div>
 					<div><dt class="font-semibold">read-back verification</dt><dd>metadata read-back pending; split count, accounts, values, date, and currency must remain unchanged.</dd></div>
 					<div><dt class="font-semibold">immutable_rejection_summary</dt><dd>amount, account, split, date, and currency changes rejected: pending.</dd></div>
 					<div><dt class="font-semibold">reset/default-disabled PATCH probe</dt><dd>PATCH blocked after GNUCASH_WRITES_ENABLED=false reset: pending.</dd></div>

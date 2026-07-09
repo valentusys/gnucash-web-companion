@@ -529,6 +529,14 @@ function buildRedactedSyntheticPatchResultPanel() {
 				result: 'success',
 				raw_payload_included: false
 			},
+			ownership_rejection_summary: {
+				state: 'verified',
+				non_owned_patch_rejected: true,
+				non_owned_http_status_class: 403,
+				mutation_count: 0,
+				backup_created: false,
+				audit_recorded: true
+			},
 			immutable_rejection_summary: {
 				state: 'verified',
 				rejected_fields: explicitSyntheticPatchRejectedFields,
@@ -2191,6 +2199,14 @@ function assertRedactedSyntheticPatchResultPanel(responseBody, productCreatePayl
 		non_app_created_patch_allowed: false,
 		app_metadata_only: true
 	}, 'explicit synthetic PATCH result panel must prove the target is app-created/write-alpha-owned');
+	assert.deepEqual(panel.ownership_rejection_summary, {
+		state: 'verified',
+		non_owned_patch_rejected: true,
+		non_owned_http_status_class: 403,
+		mutation_count: 0,
+		backup_created: false,
+		audit_recorded: true
+	}, 'explicit synthetic PATCH result panel must prove non-owned PATCH stays rejected before mutation or backup');
 	assert.deepEqual(panel.read_back_verification, {
 		state: 'verified',
 		transaction_ref: explicitSyntheticPatchRef,
