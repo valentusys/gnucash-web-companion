@@ -239,10 +239,19 @@ async def owner_writebeta_preflight(
 ) -> OwnerWritebetaStatusDTO:
     _resolve_editable_book(book_id, user, db)
     session_state = _session_for(book_id)
+    if session_state.state not in {
+        OwnerWritebetaState.DISABLED,
+        OwnerWritebetaState.PREFLIGHT,
+        OwnerWritebetaState.PREVIEW,
+        OwnerWritebetaState.CONFIRMATION,
+    }:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Owner-writebeta preflight is blocked by current state.")
+    if not settings.gnucash_writes_enabled or settings.app_env.lower() != "test":
+        # A disabled/default or non-test runtime may inspect blocked preflight
+        # status, but must not advance the state machine toward an armed write.
+        return _status(book_id, session_state, settings)
     if session_state.state == OwnerWritebetaState.DISABLED:
         session_state.transition(OwnerWritebetaState.PREFLIGHT)
-    elif session_state.state not in {OwnerWritebetaState.PREFLIGHT, OwnerWritebetaState.PREVIEW, OwnerWritebetaState.CONFIRMATION}:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Owner-writebeta preflight is blocked by current state.")
     return _status(book_id, session_state, settings)
 
 

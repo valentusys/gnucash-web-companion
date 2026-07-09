@@ -89,10 +89,13 @@ def test_owner_writebeta_preflight_status_is_redacted_and_default_blocked(client
     response = client.post(f"/books/{sample_book}/owner-writebeta/preflight", headers=auth_headers)
     assert response.status_code == 200
     payload = response.json()
-    assert payload["state"] == "preflight"
+    assert payload["state"] == "disabled"
     assert payload["writes_blocked"] is True
     assert "writes_disabled_default" in payload["blocked_reasons"]
+    assert "writes_explicitly_enabled_runtime" not in payload["pass_reasons"]
     assert "app_env_test_gate" in payload["pass_reasons"]
+    assert payload["summary"]["preview_hash"] is None
+    assert payload["summary"]["confirmation_token_ref"] is None
     assert "test.gnucash.sqlite" not in str(payload)
 
 
@@ -527,14 +530,17 @@ def test_owner_writebeta_failed_hard_stop_is_explicitly_blocked(client, auth_hea
 
 
 def test_owner_writebeta_preflight_blocked_reasons_exclude_state_prefix(client, auth_headers, sample_book):
-    """Preflight must not report state-based blocked reasons."""
+    """Default-disabled preflight probe must not advance or report state blockers."""
     response = client.post(f"/books/{sample_book}/owner-writebeta/preflight", headers=auth_headers)
     assert response.status_code == 200
     payload = response.json()
-    assert payload["state"] == "preflight"
+    assert payload["state"] == "disabled"
     assert payload["writes_blocked"] is True
     assert "writes_disabled_default" in payload["blocked_reasons"]
+    assert "writes_explicitly_enabled_runtime" not in payload["pass_reasons"]
     assert "app_env_test_gate" in payload["pass_reasons"]
+    assert payload["summary"]["preview_hash"] is None
+    assert payload["summary"]["confirmation_token_ref"] is None
     for reason in payload["blocked_reasons"]:
         assert not reason.startswith("state_"), (
             f"Preflight should not have state_* blocked reason, got: {reason}"

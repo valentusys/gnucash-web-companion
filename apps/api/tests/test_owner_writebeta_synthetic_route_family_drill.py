@@ -259,7 +259,14 @@ def _preview_confirm_headers(client: TestClient, auth_headers: dict[str, str], b
     }
 
 
-def _verify_and_reset(client: TestClient, auth_headers: dict[str, str], book_id: int, suffix: str):
+def _verify_and_reset(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    book_id: int,
+    suffix: str,
+    fake_write_calls: list[tuple[str, object]],
+    expected_write_call_names: list[str],
+):
     verify = client.post(
         f"/books/{book_id}/owner-writebeta/verify-reset",
         headers=auth_headers,
@@ -271,13 +278,44 @@ def _verify_and_reset(client: TestClient, auth_headers: dict[str, str], book_id:
         },
     )
     assert verify.status_code == 200
-    assert verify.json()["state"] == "reset_required"
-    reset = client.post(f"/books/{book_id}/owner-writebeta/reset-disabled", headers=auth_headers)
-    assert reset.status_code == 200
-    assert reset.json()["state"] == "disabled"
-    assert reset.json()["writes_blocked"] is True
-    assert reset.json()["summary"]["preview_hash"] is None
-    assert reset.json()["summary"]["confirmation_token_ref"] is None
+    verify_payload = verify.json()
+    assert verify_payload["state"] == "reset_required"
+    assert verify_payload["writes_blocked"] is True
+    assert "state_reset_required" in verify_payload["blocked_reasons"]
+    assert verify_payload["summary"]["audit_ref"] == f"audit-{suffix}-ref"
+    assert verify_payload["summary"]["restore_ref"] == f"restore-{suffix}-ref"
+    assert verify_payload["summary"]["lock_released"] is True
+    assert verify_payload["summary"]["defaults_reset"] is True
+    assert verify_payload["summary"]["preview_hash"] is None
+    assert verify_payload["summary"]["confirmation_token_ref"] is None
+    assert verify_payload["summary"]["restore_readiness_ref"] is None
+
+    app.dependency_overrides[get_settings] = lambda: READ_ONLY_SETTINGS
+    try:
+        reset = client.post(f"/books/{book_id}/owner-writebeta/reset-disabled", headers=auth_headers)
+        assert reset.status_code == 200
+        reset_payload = reset.json()
+        assert reset_payload["state"] == "disabled"
+        assert reset_payload["writes_blocked"] is True
+        assert "writes_disabled_default" in reset_payload["blocked_reasons"]
+        assert "writes_explicitly_enabled_runtime" not in reset_payload["pass_reasons"]
+        assert reset_payload["summary"]["audit_ref"] == f"audit-{suffix}-ref"
+        assert reset_payload["summary"]["restore_ref"] == f"restore-{suffix}-ref"
+        assert reset_payload["summary"]["lock_released"] is True
+        assert reset_payload["summary"]["defaults_reset"] is True
+        assert reset_payload["summary"]["preview_hash"] is None
+        assert reset_payload["summary"]["confirmation_token_ref"] is None
+        assert reset_payload["summary"]["restore_readiness_ref"] is None
+
+        _assert_default_disabled_route_family_probes(
+            client,
+            auth_headers,
+            book_id,
+            fake_write_calls,
+            expected_write_call_names,
+        )
+    finally:
+        app.dependency_overrides[get_settings] = lambda: TEST_SETTINGS
 
 
 def _assert_default_disabled_route_family_probes(
@@ -287,12 +325,16 @@ def _assert_default_disabled_route_family_probes(
     fake_write_calls: list[tuple[str, object]],
     expected_write_call_names: list[str],
 ) -> None:
+    baseline_calls = list(fake_write_calls)
+    assert [name for name, _ in baseline_calls] == expected_write_call_names
+
     status_check = client.get(f"/books/{book_id}/owner-writebeta/status", headers=auth_headers)
     assert status_check.status_code == 200
     status_payload = status_check.json()
     assert status_payload["state"] == "disabled"
     assert status_payload["writes_blocked"] is True
     assert "writes_disabled_default" in status_payload["blocked_reasons"]
+    assert "writes_explicitly_enabled_runtime" not in status_payload["pass_reasons"]
     assert status_payload["summary"]["preview_hash"] is None
     assert status_payload["summary"]["confirmation_token_ref"] is None
     assert status_payload["summary"]["restore_readiness_ref"] is None
@@ -308,6 +350,12 @@ def _assert_default_disabled_route_family_probes(
     assert readiness_payload["readiness_state"]["preflight"]["status"] == "not_checked"
     assert readiness_payload["readiness_state"]["preflight"]["private_target_probed"] is False
     assert readiness_payload["readiness_state"]["backup"]["backup_helper_called"] is False
+    assert readiness_payload["readiness_state"]["allowed_execution"]["status"] == "blocked"
+    assert readiness_payload["readiness_state"]["allowed_execution"]["allowed"] is False
+    assert "GNUCASH_WRITES_ENABLED=false" in readiness_payload["readiness_state"]["allowed_execution"]["reason"]
+    readiness_limitations = "\n".join(readiness_payload["limitations"])
+    assert "no CREATE/PATCH/DELETE/batch route is called" in readiness_limitations
+    assert "No private target probing" in readiness_limitations
 
     write_probes = [
         (
@@ -356,10 +404,19 @@ def _assert_default_disabled_route_family_probes(
     preflight = client.post(f"/books/{book_id}/owner-writebeta/preflight", headers=auth_headers)
     assert preflight.status_code == 200
     preflight_payload = preflight.json()
+    assert preflight_payload["state"] == "disabled"
     assert preflight_payload["writes_blocked"] is True
     assert "writes_disabled_default" in preflight_payload["blocked_reasons"]
+    assert "writes_explicitly_enabled_runtime" not in preflight_payload["pass_reasons"]
+    assert preflight_payload["summary"]["preview_hash"] is None
+    assert preflight_payload["summary"]["confirmation_token_ref"] is None
+    assert preflight_payload["summary"]["restore_readiness_ref"] is None
 
+    final_status = client.get(f"/books/{book_id}/owner-writebeta/status", headers=auth_headers)
+    assert final_status.status_code == 200
+    assert final_status.json()["state"] == "disabled"
     assert [name for name, _ in fake_write_calls] == expected_write_call_names
+    assert fake_write_calls == baseline_calls
 
 
 def _audit_payloads(session_factory, action: str) -> list[dict]:
@@ -704,7 +761,7 @@ def test_synthetic_create_patch_delete_route_family_requires_fresh_confirmed_gat
     )
     assert create.status_code == 201
     assert create.json()["transaction_id"] == "synthetic-created-tx"
-    _verify_and_reset(client, auth_headers, synthetic_book, "create")
+    _verify_and_reset(client, auth_headers, synthetic_book, "create", fake_write_calls, ["create"])
 
     patch_headers = _preview_confirm_headers(client, auth_headers, synthetic_book, "PATCH", target_owned=True)
     patch = client.patch(
@@ -718,7 +775,7 @@ def test_synthetic_create_patch_delete_route_family_requires_fresh_confirmed_gat
     assert patched_request.split_memos == {"synthetic-split": "memo-only"}
     for immutable_field in ("amount", "account_id", "splits", "currency", "date"):
         assert not hasattr(patched_request, immutable_field)
-    _verify_and_reset(client, auth_headers, synthetic_book, "patch")
+    _verify_and_reset(client, auth_headers, synthetic_book, "patch", fake_write_calls, ["create", "patch"])
 
     delete_headers = _preview_confirm_headers(client, auth_headers, synthetic_book, "DELETE", target_owned=True)
     non_owned_delete = client.delete(
@@ -732,7 +789,7 @@ def test_synthetic_create_patch_delete_route_family_requires_fresh_confirmed_gat
         headers=delete_headers,
     )
     assert delete.status_code == 200
-    _verify_and_reset(client, auth_headers, synthetic_book, "delete")
+    _verify_and_reset(client, auth_headers, synthetic_book, "delete", fake_write_calls, ["create", "patch", "delete"])
 
     app.dependency_overrides[get_settings] = lambda: READ_ONLY_SETTINGS
     _assert_default_disabled_route_family_probes(
@@ -863,7 +920,7 @@ def test_synthetic_patch_route_rejects_immutable_fields_without_calling_patch(
         json=_synthetic_create_payload(),
     )
     assert create.status_code == 201
-    _verify_and_reset(client, auth_headers, synthetic_book, "create-for-rejected-patch")
+    _verify_and_reset(client, auth_headers, synthetic_book, "create-for-rejected-patch", fake_write_calls, ["create"])
 
     patch_headers = _preview_confirm_headers(client, auth_headers, synthetic_book, "PATCH", target_owned=True)
     baseline_calls = list(fake_write_calls)
