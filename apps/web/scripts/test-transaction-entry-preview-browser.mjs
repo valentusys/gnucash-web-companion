@@ -13,6 +13,7 @@ const repoRoot = join(root, '..', '..');
 const viteBin = join(root, 'node_modules', 'vite', 'bin', 'vite.js');
 const previewServerIndex = join(root, '.svelte-kit', 'output', 'server', 'index.js');
 const productCreateDrillScript = join(repoRoot, 'scripts', 'issue51_product_create_drill.py');
+const productPatchDrillScript = join(root, 'scripts', 'issue51_product_patch_drill.py');
 function resolveChromiumBin() {
 	if (process.env.CHROMIUM_BIN) return process.env.CHROMIUM_BIN;
 	for (const candidate of [
@@ -44,6 +45,10 @@ const explicitSyntheticCreateId = 'synthetic-explicit-create-1';
 const explicitSyntheticCreateRef = 'create-ref-redacted-issue51';
 const explicitSyntheticBackupRef = 'backup-ref-redacted-issue51';
 const explicitSyntheticAuditRef = 'audit-ref-redacted-issue51';
+const explicitSyntheticPatchRef = 'patch-ref-redacted-issue51';
+const explicitSyntheticPatchBackupRef = 'backup-ref-redacted-issue51-patch';
+const explicitSyntheticPatchAuditRef = 'audit-ref-redacted-issue51-patch';
+const explicitSyntheticPatchRejectedFields = ['amount', 'account_id', 'splits', 'date', 'currency'];
 const explicitSyntheticDisabledProbeFamilies = ['validate', 'preflight', 'create', 'patch', 'delete', 'batch'];
 const cdpCommandTimeoutMs = Number(process.env.ISSUE51_CDP_TIMEOUT_MS ?? '30000');
 
@@ -167,6 +172,8 @@ function assertSourceSafety() {
 	assert.match(page, /id="execution-result-triage-panel"[\s\S]*Disabled result triage[\s\S]*Current state: no CREATE execution attempted; preview data is not a success result[\s\S]*Success requires redacted CREATE reference and private read-back before any success copy[\s\S]*Failure state keeps success blocked until a safe error is translated[\s\S]*Rollback state remains owner-approved recovery only and is not run from this page[\s\S]*Post-result reset\/probe state stays pending until GNUCASH_WRITES_ENABLED=false is verified/s, 'execution-result triage panel must clarify disabled success/failure/rollback/reset outcomes');
 	assert.match(page, /id="redacted-create-success-state"[\s\S]*status: success only after explicit synthetic test-mode CREATE[\s\S]*create_count: 1[\s\S]*read_back_verification: verified[\s\S]*backup_state: captured[\s\S]*audit_state: recorded[\s\S]*reset_default_disabled_probe_summary: verified/s, 'redacted result contract must document the explicit synthetic success state without activating default UI CREATE');
 	assert.match(page, /id="redacted-create-result-redaction-list"[\s\S]*Only opaque refs may be displayed[\s\S]*No transaction_id, backup_path, raw audit payload, account IDs, currency, descriptions, memos, amounts, GUIDs, raw paths, screenshots, tokens, or secrets[\s\S]*Default \/transactions\/new never activates this state/s, 'redacted result contract must forbid raw product-route result fields and default UI activation');
+	assert.match(page, /id="redacted-patch-result-contract"[\s\S]*Explicit synthetic metadata-only PATCH result panel contract \(inactive\)[\s\S]*app-created disposable transaction only[\s\S]*description and split memo metadata only[\s\S]*amount, account, split, date, and currency changes rejected/s, 'inactive PATCH result-panel contract must document app-owned metadata-only PATCH scope');
+	assert.match(page, /id="redacted-patch-result-redaction-list"[\s\S]*Only opaque refs may be displayed for PATCH[\s\S]*No transaction_id, split GUIDs, backup_path, raw audit payload, account IDs, currency, descriptions, memos, amounts, raw paths, screenshots, tokens, or secrets[\s\S]*Default \/transactions\/new never activates PATCH/s, 'inactive PATCH result-panel contract must forbid raw PATCH fields and default UI activation');
 	assert.match(page, /id="failure-ui-drill-matrix"[\s\S]*stale_preview_rejection[\s\S]*target_preflight_rejection[\s\S]*writes_disabled_rejection[\s\S]*backup_failure[\s\S]*lock_failure[\s\S]*read_back_failure[\s\S]*reset_probe_failure[\s\S]*safe_recovery_copy/s, 'failure UI drill matrix must cover every required redacted failure drill');
 	assert.match(page, /id="failure-ui-drill-matrix"[\s\S]*success_claims: 0[\s\S]*api_result_shaped_redacted_ui_evidence[\s\S]*No raw target paths, backup paths, account names, descriptions, memos, amounts, GUIDs, screenshots, tokens, or secrets/s, 'failure UI drill matrix must be redacted and fail closed');
 	assert.match(page, /id="failure-rollback-decision-ladder"[\s\S]*Failure and rollback decision ladder \(disabled\)[\s\S]*Stop before CREATE: show failure, keep success blocked, no rollback needed[\s\S]*Unknown after attempted CREATE: preserve target state and require owner recovery decision[\s\S]*Confirmed failed\/no mutation: safe redacted error only; no success claim[\s\S]*Confirmed mutated but rejected by post-checks: owner-approved restore decision before retry[\s\S]*After any result: reset writes disabled and run disabled probes before reporting completion/s, 'failure/rollback decision ladder must stay visible and disabled');
@@ -401,6 +408,112 @@ function buildRedactedSyntheticCreateResultPanel() {
 					{ route_family: 'delete', status: 'blocked_or_unavailable', http_status_class: 403 },
 					{ route_family: 'batch', status: 'blocked_or_unavailable', http_status_class: 405 }
 				]
+			},
+			redaction: {
+				raw_book_paths: false,
+				raw_backup_paths: false,
+				private_account_names: false,
+				raw_descriptions: false,
+				raw_memos: false,
+				raw_amounts: false,
+				raw_guids: false,
+				screenshots: false,
+				tokens_or_secrets: false
+			}
+		}
+	};
+}
+
+function buildRedactedSyntheticPatchResultPanel() {
+	return {
+		redacted_patch_result_panel: {
+			panel_id: 'issue51-redacted-patch-result',
+			status: 'success',
+			evidence_scope: 'redacted_only',
+			target_class: 'disposable_copied_like_fixture',
+			setup_create_count: 1,
+			patch_count: 1,
+			create_result_ref: 'create-ref-redacted-issue51-patch-setup',
+			patch_result_ref: explicitSyntheticPatchRef,
+			backend_route_write_boundary: {
+				setup_create_product_route_used: true,
+				patch_product_route_used: true,
+				route: 'PATCH /books/{book_id}/transactions/{transaction_id}',
+				route_response_status: 200,
+				app_env: 'test',
+				gnucash_writes_enabled_during_patch: true,
+				normal_ui_patch_activated: false,
+				direct_sql_write: false
+			},
+			fixture_scope: {
+				copied_like_fixture: true,
+				synthetic_fixture_source: true,
+				outside_git_worktree: true,
+				private_or_only_copy_target: false
+			},
+			ownership_state: {
+				state: 'verified',
+				app_created_target: true,
+				created_by_write_alpha: true,
+				non_app_created_patch_allowed: false,
+				app_metadata_only: true
+			},
+			metadata_only_scope: {
+				description_updated: true,
+				split_memos_updated: true,
+				amount_changes_rejected: true,
+				account_changes_rejected: true,
+				split_changes_rejected: true,
+				date_changes_rejected: true,
+				currency_changes_rejected: true,
+				rejected_fields: explicitSyntheticPatchRejectedFields,
+				split_structure_preserved: true,
+				financial_values_preserved: true,
+				post_date_preserved: true,
+				currency_preserved: true
+			},
+			read_back_verification: {
+				state: 'verified',
+				transaction_ref: explicitSyntheticPatchRef,
+				transaction_present: true,
+				metadata_description_verified: true,
+				metadata_memo_verified: true,
+				split_count_unchanged: true,
+				split_accounts_unchanged: true,
+				split_values_unchanged: true,
+				post_date_unchanged: true,
+				currency_unchanged: true,
+				transaction_count_delta_after_patch: 0,
+				account_balance_delta_count: 0,
+				private_values_redacted: true
+			},
+			backup_state: {
+				state: 'captured',
+				backup_ref: explicitSyntheticPatchBackupRef,
+				exists_verified: true,
+				pre_patch_contents_verified: true,
+				raw_path_included: false
+			},
+			audit_state: {
+				state: 'recorded',
+				audit_ref: explicitSyntheticPatchAuditRef,
+				result: 'success',
+				raw_payload_included: false
+			},
+			immutable_rejection_summary: {
+				state: 'verified',
+				rejected_fields: explicitSyntheticPatchRejectedFields,
+				http_status_class: 422,
+				mutation_count: 0,
+				backup_created: false
+			},
+			reset_default_disabled_patch_probe_summary: {
+				state: 'verified',
+				app_env: 'test',
+				gnucash_writes_enabled: false,
+				patch_execution_allowed_after_reset: false,
+				patch_execution_blocked_after_reset_verified: true,
+				probe: { route_family: 'patch', status: 'blocked_or_unavailable', http_status_class: 403 }
 			},
 			redaction: {
 				raw_book_paths: false,
@@ -1213,6 +1326,10 @@ async function assertExecutionResultShellRemainsPending(cdp, label) {
 	assert.match(executionResultState.executionResultText, /audit_state: pending/, `${label}: inactive result-panel contract must show audit state pending`);
 	assert.match(executionResultState.executionResultText, /reset\/default-disabled probes: pending/, `${label}: inactive result-panel contract must show reset/default-disabled probes pending`);
 	assert.match(executionResultState.executionResultText, /No raw book paths, account names, descriptions, memos, amounts, GUIDs, screenshots, tokens, or secrets/, `${label}: inactive result-panel contract must forbid private/raw evidence`);
+	assert.match(executionResultState.executionResultText, /Explicit synthetic metadata-only PATCH result panel contract \(inactive\)/, `${label}: inactive PATCH result-panel contract must stay visible`);
+	assert.match(executionResultState.executionResultText, /app-created disposable transaction only/, `${label}: inactive PATCH contract must require app-created disposable targets`);
+	assert.match(executionResultState.executionResultText, /description and split memo metadata only/, `${label}: inactive PATCH contract must keep metadata-only scope`);
+	assert.match(executionResultState.executionResultText, /amount, account, split, date, and currency changes rejected/, `${label}: inactive PATCH contract must reject balance-affecting fields`);
 	assert.match(executionResultState.executionResultText, /performs no restore and emits no success claim/, `${label}: rollback/no-success boundary must stay visible`);
 	assert.deepEqual(executionResultState.executionResultStatuses, Array(6).fill('pending'), `${label}: execution-result steps must stay pending`);
 	assert.deepEqual(
@@ -1702,6 +1819,133 @@ function runProductRouteCreateDrill(productCreatePayload) {
 	return JSON.parse(stdout);
 }
 
+function runProductRoutePatchDrill(productCreatePayload) {
+	assert.ok(existsSync(productPatchDrillScript), 'explicit PATCH harness requires the disposable product-route metadata-only PATCH drill script');
+	const child = spawnSync('python3', [productPatchDrillScript, '--json-only'], {
+		cwd: repoRoot,
+		input: JSON.stringify({ product_create_payload: productCreatePayload }),
+		encoding: 'utf8',
+		env: {
+			...process.env,
+			APP_ENV: 'test',
+			GNUCASH_WRITES_ENABLED: 'true'
+		},
+		maxBuffer: 1024 * 1024,
+		timeout: 120000
+	});
+	assert.equal(child.error, undefined, `explicit product-route metadata-only PATCH drill process failed safely: ${child.error?.message ?? 'unknown'}`);
+	assert.equal(child.status, 0, `explicit product-route metadata-only PATCH drill must succeed through the backend product route: ${String(child.stderr ?? '').slice(-2000)}`);
+	assert.equal(String(child.stderr ?? '').trim(), '', 'explicit product-route metadata-only PATCH drill must keep stderr empty on success');
+	const stdout = String(child.stdout ?? '').trim();
+	assert.ok(stdout.startsWith('{') && stdout.endsWith('}'), 'explicit product-route metadata-only PATCH drill must emit only redacted JSON on stdout');
+	return JSON.parse(stdout);
+}
+
+function assertNoPrivateRawPatchResultPanelLeak(responseBody, productCreatePayload) {
+	const redactedResultText = JSON.stringify(responseBody);
+	for (const forbiddenValue of [
+		explicitSyntheticCreateId,
+		syntheticDescription,
+		syntheticMemo,
+		syntheticAmount,
+		'Synthetic PATCH metadata update',
+		'Synthetic PATCH memo update',
+		productCreatePayload.description,
+		...productCreatePayload.splits.flatMap((split) => [split.account_id, split.amount, split.currency, split.memo])
+	]) {
+		assert.ok(!redactedResultText.includes(String(forbiddenValue)), `explicit synthetic PATCH result panel must stay redacted: ${forbiddenValue}`);
+	}
+	for (const [pattern, label] of [
+		[/\/(?:home|tmp|var|mnt|data|backup|backups)\//i, 'raw path-like artifact'],
+		[/\\\\/, 'Windows-style raw path separator'],
+		[/\.gnucash\.sqlite/i, 'raw GnuCash SQLite filename'],
+		[/app-metadata\.sqlite/i, 'raw app metadata DB filename'],
+		[/test-book\.gnucash\.sqlite/i, 'raw fixture source filename'],
+		[/issue51-disposable-copied-like/i, 'raw disposable copied-like book filename'],
+		[/"transaction_id"\s*:/, 'raw transaction_id field'],
+		[/"backup_path"\s*:/, 'raw backup_path field'],
+		[/"audit_log_id"\s*:/, 'raw audit_log_id field'],
+		[/"payload_json"\s*:/, 'raw audit payload field'],
+		[/"splits"\s*:/, 'raw splits payload field'],
+		[/"account_id"\s*:/, 'raw account_id payload field']
+	]) {
+		assert.doesNotMatch(redactedResultText, pattern, `explicit synthetic PATCH result panel must not expose ${label}`);
+	}
+	assert.ok(!redactedResultText.includes(String(productPatchDrillScript)), 'explicit synthetic PATCH result panel must not expose the product PATCH drill script path');
+	assert.ok(!redactedResultText.includes(String(repoRoot)), 'explicit synthetic PATCH result panel must not expose the repository path');
+	assert.ok(!redactedResultText.includes(String(root)), 'explicit synthetic PATCH result panel must not expose the web app path');
+	assert.deepEqual(Object.keys(responseBody), ['redacted_patch_result_panel'], 'explicit synthetic PATCH result panel must not expose raw API result fields alongside the redacted panel');
+}
+
+function assertRedactedSyntheticPatchResultPanel(responseBody, productCreatePayload, reviewedApprovalEvidence) {
+	assert.deepEqual(
+		responseBody,
+		buildRedactedSyntheticPatchResultPanel(),
+		'explicit synthetic PATCH result panel must match the redacted metadata-only success/result contract'
+	);
+	const panel = responseBody.redacted_patch_result_panel;
+	assert.equal(panel.panel_id, 'issue51-redacted-patch-result', 'explicit synthetic PATCH result panel must have a stable redacted panel id');
+	assert.equal(panel.status, 'success', 'explicit synthetic PATCH result panel may show success only for the explicit test-mode harness result');
+	assert.equal(panel.evidence_scope, 'redacted_only', 'explicit synthetic PATCH result panel must be redacted-only');
+	assert.equal(panel.target_class, 'disposable_copied_like_fixture', 'explicit synthetic PATCH result panel must stay scoped to the disposable copied-like fixture target');
+	assert.equal(panel.setup_create_count, reviewedApprovalEvidence.create_count, 'explicit synthetic PATCH result panel must show exactly one app-owned setup CREATE');
+	assert.equal(panel.patch_count, 1, 'explicit synthetic PATCH result panel must show exactly one metadata-only PATCH');
+	assert.deepEqual(panel.metadata_only_scope.rejected_fields, explicitSyntheticPatchRejectedFields, 'explicit synthetic PATCH result panel must list rejected immutable fields');
+	assert.equal(panel.metadata_only_scope.description_updated, true, 'explicit synthetic PATCH result panel must verify description metadata update');
+	assert.equal(panel.metadata_only_scope.split_memos_updated, true, 'explicit synthetic PATCH result panel must verify split memo metadata update');
+	assert.equal(panel.metadata_only_scope.amount_changes_rejected, true, 'explicit synthetic PATCH result panel must reject amount changes');
+	assert.equal(panel.metadata_only_scope.account_changes_rejected, true, 'explicit synthetic PATCH result panel must reject account changes');
+	assert.equal(panel.metadata_only_scope.split_changes_rejected, true, 'explicit synthetic PATCH result panel must reject split changes');
+	assert.equal(panel.metadata_only_scope.date_changes_rejected, true, 'explicit synthetic PATCH result panel must reject date changes');
+	assert.equal(panel.metadata_only_scope.currency_changes_rejected, true, 'explicit synthetic PATCH result panel must reject currency changes');
+	assert.deepEqual(panel.ownership_state, {
+		state: 'verified',
+		app_created_target: true,
+		created_by_write_alpha: true,
+		non_app_created_patch_allowed: false,
+		app_metadata_only: true
+	}, 'explicit synthetic PATCH result panel must prove the target is app-created/write-alpha-owned');
+	assert.deepEqual(panel.read_back_verification, {
+		state: 'verified',
+		transaction_ref: explicitSyntheticPatchRef,
+		transaction_present: true,
+		metadata_description_verified: true,
+		metadata_memo_verified: true,
+		split_count_unchanged: true,
+		split_accounts_unchanged: true,
+		split_values_unchanged: true,
+		post_date_unchanged: true,
+		currency_unchanged: true,
+		transaction_count_delta_after_patch: 0,
+		account_balance_delta_count: 0,
+		private_values_redacted: true
+	}, 'explicit synthetic PATCH result panel must prove metadata-only read-back without raw transaction values');
+	assert.deepEqual(panel.immutable_rejection_summary, {
+		state: 'verified',
+		rejected_fields: explicitSyntheticPatchRejectedFields,
+		http_status_class: 422,
+		mutation_count: 0,
+		backup_created: false
+	}, 'explicit synthetic PATCH result panel must summarize immutable rejection probes');
+	assert.equal(panel.reset_default_disabled_patch_probe_summary.gnucash_writes_enabled, false, 'explicit synthetic PATCH result panel must show writes reset to default disabled');
+	assert.equal(panel.reset_default_disabled_patch_probe_summary.app_env, 'test', 'explicit synthetic PATCH result panel must remain APP_ENV=test scoped');
+	assert.equal(panel.reset_default_disabled_patch_probe_summary.patch_execution_blocked_after_reset_verified, true, 'explicit synthetic PATCH result panel must verify PATCH is blocked after reset');
+	assert.equal(panel.reset_default_disabled_patch_probe_summary.probe.route_family, 'patch', 'explicit synthetic PATCH result panel must include the disabled PATCH probe');
+	assert.equal(panel.reset_default_disabled_patch_probe_summary.probe.status, 'blocked_or_unavailable', 'explicit synthetic PATCH result panel must show disabled PATCH probe blocked');
+	assert.deepEqual(panel.redaction, {
+		raw_book_paths: false,
+		raw_backup_paths: false,
+		private_account_names: false,
+		raw_descriptions: false,
+		raw_memos: false,
+		raw_amounts: false,
+		raw_guids: false,
+		screenshots: false,
+		tokens_or_secrets: false
+	}, 'explicit synthetic PATCH result panel must show the no-private/raw-data redaction state');
+	assertNoPrivateRawPatchResultPanelLeak(responseBody, productCreatePayload);
+}
+
 function assertNoPrivateRawResultPanelLeak(responseBody, productCreatePayload) {
 	const redactedResultText = JSON.stringify(responseBody);
 	for (const forbiddenValue of [
@@ -1879,6 +2123,70 @@ async function runExplicitSyntheticCreateHarness(api, browserRequests, previewPa
 			{ method: 'POST', path: '/books/1/transactions', search: '', pathWithSearch: '/books/1/transactions' }
 		],
 		'default/user-mode product CREATE route must be probed only by explicit Node harness and remain blocked'
+	);
+}
+
+async function runExplicitSyntheticPatchHarness(api, browserRequests, previewPayload, reviewedApprovalEvidence) {
+	assertExplicitSyntheticCreateHarnessReviewedEvidence(reviewedApprovalEvidence);
+	assert.equal(
+		isForbiddenTransactionMutation('PATCH', '/books/1/transactions/synthetic-id', ''),
+		true,
+		'product PATCH route remains forbidden without explicit synthetic metadata-only test harness'
+	);
+	assert.equal(
+		isForbiddenTransactionMutation('PATCH', '/books/1/transactions/synthetic-id', '?explicit_test_mode=issue51'),
+		true,
+		'product PATCH route remains forbidden to the generic mutation predicate even when the explicit-test query is present'
+	);
+	const productCreatePayload = productCreatePayloadFromPreview(previewPayload);
+	await assertExplicitSyntheticPatchHarnessRejectsUserMode(api, browserRequests);
+	const browserRequestCountBefore = browserRequests.length;
+	const forbiddenRequestCountBefore = api.forbiddenRequests.length;
+
+	const responseBody = runProductRoutePatchDrill(productCreatePayload);
+	assertRedactedSyntheticPatchResultPanel(responseBody, productCreatePayload, reviewedApprovalEvidence);
+	assert.equal(browserRequests.length, browserRequestCountBefore, 'explicit PATCH harness must not be browser-driven or activate default UI');
+	assert.equal(api.forbiddenRequests.length, forbiddenRequestCountBefore, 'explicit PATCH harness must not be counted as a default/user-mode mutation boundary request');
+	assert.deepEqual(api.explicitCreatePayloads, [], 'explicit synthetic API stub must not fabricate product-route CREATE or PATCH payloads');
+}
+
+async function assertExplicitSyntheticPatchHarnessRejectsUserMode(api, browserRequests) {
+	const browserRequestCountBefore = browserRequests.length;
+	const forbiddenRequestCountBefore = api.forbiddenRequests.length;
+	const rejectedCases = [
+		{ label: 'ordinary product PATCH probe', path: '/books/1/transactions/synthetic-id', search: '', method: 'PATCH' },
+		{ label: 'query-smuggled explicit PATCH probe', path: '/books/1/transactions/synthetic-id', search: '?explicit_test_mode=issue51', method: 'PATCH' }
+	];
+	for (const testCase of rejectedCases) {
+		const response = await fetch(`${api.url}${testCase.path}${testCase.search}`, {
+			method: testCase.method,
+			headers: {
+				'content-type': 'application/json',
+				authorization: `Bearer ${syntheticToken}`,
+				'x-app-env': 'test',
+				'x-gnucash-writes-enabled': 'true'
+			},
+			body: JSON.stringify({ description: 'should remain blocked before explicit PATCH harness' })
+		});
+		assert.equal(response.status, 409, `${testCase.label}: default/user-mode product PATCH route must remain disabled and inert`);
+		assert.deepEqual(
+			await response.json(),
+			{ detail: 'Synthetic smoke blocked a mutation endpoint.' },
+			`${testCase.label}: rejected PATCH probe must return the synthetic no-mutation block response`
+		);
+	}
+	assert.equal(browserRequests.length, browserRequestCountBefore, 'explicit rejected PATCH probes must not be browser-driven');
+	assert.deepEqual(
+		api.forbiddenRequests
+			.slice(forbiddenRequestCountBefore)
+			.map(({ method, path, search, pathWithSearch }) => ({ method, path, search, pathWithSearch })),
+		rejectedCases.map((testCase) => ({
+			method: testCase.method,
+			path: testCase.path,
+			search: testCase.search,
+			pathWithSearch: `${testCase.path}${testCase.search}`
+		})),
+		'explicit rejected PATCH probes must be recorded only as blocked default/user-mode boundary attempts'
 	);
 }
 
@@ -2250,6 +2558,9 @@ async function runSmoke() {
 		await runExplicitSyntheticCreateHarness(api, browserRequests, previewPayload, reviewedApprovalEvidence);
 		assertBrowserToAppToApiBoundary(browserRequests, webBase, api.url, 'explicit synthetic create harness');
 		assertDisposableSyntheticApiTargetBoundary(api, 'explicit synthetic create harness');
+		await runExplicitSyntheticPatchHarness(api, browserRequests, previewPayload, reviewedApprovalEvidence);
+		assertBrowserToAppToApiBoundary(browserRequests, webBase, api.url, 'explicit synthetic patch harness');
+		assertDisposableSyntheticApiTargetBoundary(api, 'explicit synthetic patch harness');
 	} catch (error) {
 		if (webProcess) console.error(`web-server-output-tail:\n${webProcess.outputTail()}`);
 		if (chromiumProcess) console.error(`chromium-output-tail:\n${chromiumProcess.outputTail()}`);
@@ -2264,4 +2575,4 @@ async function runSmoke() {
 }
 
 await runSmoke();
-console.log('transaction-entry-preview-browser: ok (normal browser preview-only/failure/query guards; explicit test-mode product-route disposable CREATE drill)');
+console.log('transaction-entry-preview-browser: ok (normal browser preview-only/failure/query guards; explicit test-mode product-route disposable CREATE and metadata-only PATCH drills)');

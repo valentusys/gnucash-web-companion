@@ -721,6 +721,25 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 				</ul>
 				<p class="mt-2 font-semibold">No raw book paths, account names, descriptions, memos, amounts, GUIDs, screenshots, tokens, or secrets may appear in the result panel.</p>
 			</div>
+			<div id="redacted-patch-result-contract" class="mt-3 rounded-lg p-3 text-xs" role="note" aria-label="Inactive redacted synthetic metadata-only PATCH result panel contract" style="border: 1px solid #5eead4; background: #f0fdfa;">
+				<p class="font-semibold">Explicit synthetic metadata-only PATCH result panel contract (inactive)</p>
+				<p class="mt-1 font-semibold">Default UI state remains preview-only; this contract is display-only and does not execute PATCH.</p>
+				<p class="mt-1">A future explicit synthetic/disposable test-mode PATCH rehearsal may show only a redacted result panel for an app-created disposable transaction only, with description and split memo metadata only, and with amount, account, split, date, and currency changes rejected.</p>
+				<dl class="mt-2 grid min-w-0 gap-2 md:grid-cols-2">
+					<div><dt class="font-semibold">patch_count</dt><dd>patch_count: pending</dd></div>
+					<div><dt class="font-semibold">ownership_state</dt><dd>app-created target: pending; non-app-created PATCH stays rejected.</dd></div>
+					<div><dt class="font-semibold">metadata_only_scope</dt><dd>description and split memo metadata only; amount/account/split/date/currency edits rejected.</dd></div>
+					<div><dt class="font-semibold">read-back verification</dt><dd>metadata read-back pending; split count, accounts, values, date, and currency must remain unchanged.</dd></div>
+					<div><dt class="font-semibold">immutable_rejection_summary</dt><dd>amount, account, split, date, and currency changes rejected: pending.</dd></div>
+					<div><dt class="font-semibold">reset/default-disabled PATCH probe</dt><dd>PATCH blocked after GNUCASH_WRITES_ENABLED=false reset: pending.</dd></div>
+				</dl>
+				<ul id="redacted-patch-result-redaction-list" class="mt-2 list-disc pl-5">
+					<li>Only opaque refs may be displayed for PATCH setup, PATCH result, backup, audit, ownership, immutable rejection, and disabled-probe evidence.</li>
+					<li>No transaction_id, split GUIDs, backup_path, raw audit payload, account IDs, currency, descriptions, memos, amounts, raw paths, screenshots, tokens, or secrets may appear in the PATCH result panel.</li>
+					<li>Default /transactions/new never activates PATCH; preview, approval copy, and inactive contracts are not mutation evidence.</li>
+				</ul>
+				<p class="mt-2 font-semibold">No raw book paths, account names, descriptions, memos, amounts, GUIDs, screenshots, tokens, or secrets may appear in the PATCH result panel.</p>
+			</div>
 			<ul id="execution-result-step-list" class="mt-3 grid min-w-0 gap-2 md:grid-cols-2" aria-label="Future execution result status checklist">
 				{#each executionResult.steps as step (step.id)}
 					<li class="min-w-0 rounded-lg p-3" data-execution-result-step={step.id} data-execution-result-status={step.status} style="border: 1px solid #5eead4; background: #f0fdfa;">

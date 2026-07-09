@@ -135,6 +135,25 @@ for (const requiredBrowserSmokeFragment of [
 	'function runExplicitSyntheticCreateHarness',
 	'function runProductRouteCreateDrill',
 	'productCreateDrillScript',
+	'productPatchDrillScript',
+	'function buildRedactedSyntheticPatchResultPanel',
+	'function runProductRoutePatchDrill',
+	'function runExplicitSyntheticPatchHarness',
+	'function assertRedactedSyntheticPatchResultPanel',
+	'redacted_patch_result_panel',
+	'issue51-redacted-patch-result',
+	'metadata_only_scope',
+	'ownership_state',
+	'app_created_target',
+	'immutable_rejection_summary',
+	'amount_changes_rejected',
+	'account_changes_rejected',
+	'split_changes_rejected',
+	'date_changes_rejected',
+	'currency_changes_rejected',
+	'reset_default_disabled_patch_probe_summary',
+	'explicit product-route metadata-only PATCH drill must succeed through the backend product route',
+	'product PATCH route remains forbidden without explicit synthetic metadata-only test harness',
 	'spawnSync',
 	'function assertBrowserToAppToApiBoundary',
 	'function assertDisposableSyntheticApiTargetBoundary',
@@ -188,6 +207,10 @@ assert.match(browserSmoke, /reviewedApprovalEvidence = await collectReviewedAppr
 assert.match(browserSmoke, /function buildRedactedSyntheticCreateResultPanel\(\)[\s\S]*redacted_result_panel[\s\S]*create_count: 1[\s\S]*fixture_scope[\s\S]*private_or_only_copy_target: false[\s\S]*read_back_verification[\s\S]*backup_state[\s\S]*audit_state[\s\S]*reset_default_disabled_probe_summary/s, 'explicit synthetic CREATE harness must build a redacted result panel with fixture proof, count, read-back, backup/audit, and reset/probe summary');
 assert.match(browserSmoke, /function assertRedactedSyntheticCreateResultPanel[\s\S]*syntheticDescription[\s\S]*syntheticMemo[\s\S]*syntheticAmount[\s\S]*explicit synthetic CREATE result panel must stay redacted/s, 'explicit synthetic CREATE result panel assertions must reject private/raw-like payload values');
 assert.match(browserSmoke, /runExplicitSyntheticCreateHarness[\s\S]*const responseBody = runProductRouteCreateDrill\(productCreatePayload\)[\s\S]*assertRedactedSyntheticCreateResultPanel\(responseBody, productCreatePayload, reviewedApprovalEvidence\)/s, 'explicit synthetic CREATE harness must assert the redacted result panel returned from the backend product-route drill');
+assert.match(browserSmoke, /function buildRedactedSyntheticPatchResultPanel\(\)[\s\S]*redacted_patch_result_panel[\s\S]*setup_create_count: 1[\s\S]*patch_count: 1[\s\S]*ownership_state[\s\S]*metadata_only_scope[\s\S]*immutable_rejection_summary[\s\S]*reset_default_disabled_patch_probe_summary/s, 'explicit synthetic PATCH harness must build a redacted result panel for one app-owned metadata-only PATCH');
+assert.match(browserSmoke, /function assertRedactedSyntheticPatchResultPanel[\s\S]*metadata_only_scope\.rejected_fields[\s\S]*amount_changes_rejected[\s\S]*account_changes_rejected[\s\S]*split_changes_rejected[\s\S]*date_changes_rejected[\s\S]*currency_changes_rejected/s, 'explicit synthetic PATCH result assertions must reject immutable financial fields');
+assert.match(browserSmoke, /runExplicitSyntheticPatchHarness[\s\S]*isForbiddenTransactionMutation\('PATCH', '\/books\/1\/transactions\/synthetic-id', ''\)[\s\S]*product PATCH route remains forbidden without explicit synthetic metadata-only test harness[\s\S]*runProductRoutePatchDrill\(productCreatePayload\)[\s\S]*assertRedactedSyntheticPatchResultPanel\(responseBody, productCreatePayload, reviewedApprovalEvidence\)/s, 'explicit synthetic PATCH harness must prove default PATCH remains blocked before using the backend product-route drill');
+assert.match(browserSmoke, /runProductRoutePatchDrill[\s\S]*productPatchDrillScript[\s\S]*APP_ENV: 'test'[\s\S]*GNUCASH_WRITES_ENABLED: 'true'[\s\S]*explicit product-route metadata-only PATCH drill must succeed through the backend product route/s, 'explicit synthetic PATCH harness must run the backend product-route drill in test env with writes enabled only inside the harness');
 assert.match(browserSmoke, /payload\.amount === validationFailureAmount[\s\S]*loc: \['body', 'amount'\][\s\S]*msg: 'amount must be positive'/s, 'browser smoke must drive failure UI through the preview endpoint, not a mutation endpoint');
 assert.match(browserSmoke, /function assertPreviewValidationFailureUi[\s\S]*Preview validation failed safely[\s\S]*No CREATE\\\/PATCH\\\/DELETE\\\/batch executed[\s\S]*Future Create control must remain absent until a successful preview/s, 'browser smoke must assert safe failure UI before continuing');
 assert.match(browserSmoke, /function assertOrdinaryBrowserCannotReachExplicitTestMode[\s\S]*transactionEntryAppSubmissionSearches[\s\S]*'\?\/preview'[\s\S]*request\.path === '\/books\/1\/transactions'[\s\S]*ordinary browser cannot reach explicit test-mode execution path/s, 'browser smoke must prove ordinary browser submissions cannot reach the explicit test-mode execution path');
@@ -609,6 +632,8 @@ assert.match(page, /id="redacted-create-result-contract"[\s\S]*Explicit syntheti
 assert.match(page, /id="redacted-create-success-state"[\s\S]*status: success only after explicit synthetic test-mode CREATE[\s\S]*create_count: 1[\s\S]*read_back_verification: verified[\s\S]*backup_state: captured[\s\S]*audit_state: recorded[\s\S]*reset_default_disabled_probe_summary: verified/s, 'transaction-entry page must document the explicit synthetic success state without activating CREATE');
 assert.match(page, /id="redacted-create-result-redaction-list"[\s\S]*Only opaque refs may be displayed[\s\S]*No transaction_id, backup_path, raw audit payload, account IDs, currency, descriptions, memos, amounts, GUIDs, raw paths, screenshots, tokens, or secrets[\s\S]*Default \/transactions\/new never activates this state/s, 'redacted result-panel contract must forbid raw product-route result fields and default UI activation');
 assert.match(page, /id="redacted-create-result-contract"[\s\S]*No raw book paths, account names, descriptions, memos, amounts, GUIDs, screenshots, tokens, or secrets/s, 'redacted result-panel contract must state that raw/private evidence is forbidden');
+assert.match(page, /id="redacted-patch-result-contract"[\s\S]*Explicit synthetic metadata-only PATCH result panel contract \(inactive\)[\s\S]*app-created disposable transaction only[\s\S]*description and split memo metadata only[\s\S]*amount, account, split, date, and currency changes rejected/s, 'transaction-entry page must show the inactive metadata-only PATCH result-panel contract without executing PATCH');
+assert.match(page, /id="redacted-patch-result-redaction-list"[\s\S]*Only opaque refs may be displayed for PATCH[\s\S]*No transaction_id, split GUIDs, backup_path, raw audit payload, account IDs, currency, descriptions, memos, amounts, raw paths, screenshots, tokens, or secrets[\s\S]*Default \/transactions\/new never activates PATCH/s, 'redacted PATCH result-panel contract must forbid raw product-route PATCH fields and default UI activation');
 assert.match(page, /id="failure-ui-drill-matrix"[\s\S]*stale_preview_rejection[\s\S]*target_preflight_rejection[\s\S]*writes_disabled_rejection[\s\S]*backup_failure[\s\S]*lock_failure[\s\S]*read_back_failure[\s\S]*reset_probe_failure[\s\S]*safe_recovery_copy/s, 'transaction-entry page must render every issue #51 failure drill state as redacted UI evidence');
 assert.match(page, /id="failure-ui-drill-matrix"[\s\S]*Failure drill evidence shape[\s\S]*api_result_shaped_redacted_ui_evidence[\s\S]*No raw target paths, backup paths, account names, descriptions, memos, amounts, GUIDs, screenshots, tokens, or secrets/s, 'failure drill matrix must describe redacted API-result-shaped evidence and forbid raw/private values');
 assert.doesNotMatch(page, /data-failure-drill-status="(?:success|passed|ready|ok)"/, 'failure drill matrix must not mark failures as successful or ready');
