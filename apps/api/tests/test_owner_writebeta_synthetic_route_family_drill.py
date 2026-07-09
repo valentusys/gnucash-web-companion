@@ -397,6 +397,260 @@ def _assert_no_failed_audit_raw_path(payloads: list[dict]) -> None:
     assert "book.gnucash.sqlite" not in serialized
 
 
+def test_issue50_routed_create_real_service_path_covers_backup_lock_audit_readback_exact_fields_and_redaction(
+    client,
+    auth_headers,
+    synthetic_book,
+    session_factory,
+    fake_write_calls,
+    monkeypatch,
+    tmp_path: Path,
+):
+    """Exercise the routed CREATE path with real service orchestration on disposable fakes.
+
+    The test keeps the GnuCash write itself fake, but leaves the route and
+    GnuCashWriteService sequencing intact: audit start, lock, backup, write-open,
+    save, lock release, route read-back, audit success, and response/audit-summary
+    redaction all run through the HTTP route.
+    """
+    from contextlib import contextmanager
+    from datetime import date
+    from decimal import Decimal
+    from types import SimpleNamespace
+    from typing import Any, cast
+
+    import app.routers.transactions as transactions_router
+    import app.services.gnucash_write as gnucash_write_module
+    from app.services.gnucash_write import GnuCashWriteService
+    from app.services.write_lock import WriteLockService
+
+    events: list[str] = []
+    backup_paths: list[str] = []
+    created: dict[str, Any] = {}
+    currency = SimpleNamespace(mnemonic="SEK")
+    accounts = [
+        SimpleNamespace(
+            guid="synthetic-bank",
+            name="Synthetic Bank",
+            type="BANK",
+            commodity=currency,
+            placeholder=False,
+            hidden=False,
+            parent=None,
+        ),
+        SimpleNamespace(
+            guid="synthetic-expense",
+            name="Synthetic Expense",
+            type="EXPENSE",
+            commodity=currency,
+            placeholder=False,
+            hidden=False,
+            parent=None,
+        ),
+    ]
+
+    class FakePiecashBook:
+        def __init__(self, label: str) -> None:
+            self.label = label
+            self.default_currency = currency
+            self.accounts = accounts
+
+        def save(self) -> None:
+            events.append("save")
+
+        def close(self) -> None:
+            events.append(f"close-{self.label}")
+
+    class FakePiecashSplit:
+        def __init__(self, *, account, value, memo) -> None:
+            assert isinstance(value, Decimal)
+            events.append(f"split:{account.guid}:{value}:{memo}")
+            self.account = account
+            self.value = value
+            self.memo = memo
+            self.reconcile_state = ""
+
+    class FakePiecashTransaction:
+        def __init__(self, *, currency, description, post_date, splits) -> None:
+            assert post_date == date(2026, 6, 4)
+            events.append(f"transaction:{description}:{currency.mnemonic}:{len(splits)}")
+            self.guid = "synthetic-created-route-real"
+            self.currency = currency
+            self.description = description
+            self.post_date = post_date
+            self.splits = splits
+            created["transaction"] = self
+
+    def open_read_book(self, uri_or_path: str):
+        events.append("open-read")
+        return FakePiecashBook("read")
+
+    def open_write_book(self, uri_or_path: str):
+        events.append("open-write")
+        return FakePiecashBook("write")
+
+    real_backup = gnucash_write_module.create_book_backup
+
+    def spy_backup(book_config) -> str:
+        events.append("backup")
+        backup_path = real_backup(book_config)
+        backup_paths.append(backup_path)
+        return backup_path
+
+    real_lock = WriteLockService(lock_dir=tmp_path / "locks")
+
+    class SpyWriteLockService:
+        @contextmanager
+        def lock(self, book_key: str):
+            with real_lock.lock(book_key):
+                events.append("lock-acquired")
+                try:
+                    yield
+                finally:
+                    events.append("lock-release")
+
+    class FakeReadbackService:
+        def get_transaction(self, transaction_id: str) -> TransactionDetailDTO:
+            events.append(f"readback:{transaction_id}")
+            tx = cast(Any, created["transaction"])
+            return TransactionDetailDTO(
+                id=transaction_id,
+                date=tx.post_date.isoformat(),
+                description=tx.description,
+                currency=tx.currency.mnemonic,
+                splits=[
+                    TransactionSplitDTO(
+                        account_id=split.account.guid,
+                        account_name=f"Synthetic:{split.account.guid}",
+                        memo=split.memo,
+                        reconcile_state="",
+                        amount=str(split.value),
+                        currency=split.account.commodity.mnemonic,
+                    )
+                    for split in tx.splits
+                ],
+            )
+
+    real_audit_log = transactions_router._audit_log
+    real_update_audit_log = transactions_router._update_audit_log
+
+    def spy_audit_log(session, user_id: int, book_id: int, action: str, payload: dict):
+        events.append(f"audit-start:{payload['result']}")
+        return real_audit_log(session, user_id, book_id, action, payload)
+
+    def spy_update_audit_log(session, log, payload: dict) -> None:
+        events.append(f"audit-update:{payload['result']}")
+        real_update_audit_log(session, log, payload)
+
+    monkeypatch.setattr(transactions_router, "_write_service_for", lambda book: GnuCashWriteService(book))
+    monkeypatch.setattr(transactions_router, "transaction_service_for", lambda book: FakeReadbackService())
+    monkeypatch.setattr(transactions_router, "_audit_log", spy_audit_log)
+    monkeypatch.setattr(transactions_router, "_update_audit_log", spy_update_audit_log)
+    monkeypatch.setattr(GnuCashWriteService, "_open_piecash_book", open_read_book)
+    monkeypatch.setattr(GnuCashWriteService, "_open_piecash_book_for_write", open_write_book)
+    monkeypatch.setattr(gnucash_write_module, "create_book_backup", spy_backup)
+    monkeypatch.setattr(gnucash_write_module, "write_lock_service", SpyWriteLockService())
+    monkeypatch.setattr(gnucash_write_module.piecash, "Split", FakePiecashSplit)
+    monkeypatch.setattr(gnucash_write_module.piecash, "Transaction", FakePiecashTransaction)
+
+    payload = {
+        "date": "2026-06-04",
+        "description": "Synthetic routed CREATE decimal preservation",
+        "splits": [
+            {
+                "account_id": "synthetic-bank",
+                "amount": "-123.4500",
+                "currency": "SEK",
+                "memo": "synthetic source memo exact trailing zeros",
+            },
+            {
+                "account_id": "synthetic-expense",
+                "amount": "123.4500",
+                "currency": "SEK",
+                "memo": "synthetic destination memo exact trailing zeros",
+            },
+        ],
+    }
+    headers = _preview_confirm_headers(client, auth_headers, synthetic_book, "CREATE")
+
+    response = client.post(
+        f"/books/{synthetic_book}/transactions",
+        headers=headers,
+        json=payload,
+    )
+
+    assert response.status_code == 201
+    data = response.json()
+    assert data["transaction_id"] == "synthetic-created-route-real"
+    assert data["readback_verified"] is True
+    assert data["readback_transaction_id"] == "synthetic-created-route-real"
+    assert data["audit_log_id"] is not None
+    assert backup_paths == [data["backup_path"]]
+    assert Path(data["backup_path"]).exists()
+    assert fake_write_calls == []
+
+    assert events.index("audit-start:started") < events.index("lock-acquired")
+    assert events.index("lock-acquired") < events.index("backup")
+    assert events.index("backup") < events.index("open-write")
+    assert events.index("open-write") < events.index("save")
+    assert events.index("save") < events.index("lock-release")
+    assert events.index("lock-release") < events.index("readback:synthetic-created-route-real")
+    assert events.index("readback:synthetic-created-route-real") < events.index("audit-update:success")
+    assert "split:synthetic-bank:-123.4500:synthetic source memo exact trailing zeros" in events
+    assert "split:synthetic-expense:123.4500:synthetic destination memo exact trailing zeros" in events
+    assert (
+        "transaction:Synthetic routed CREATE decimal preservation:SEK:2"
+        in events
+    )
+
+    response_evidence = json.dumps(data, sort_keys=True)
+    for raw_value in (
+        payload["description"],
+        "synthetic source memo exact trailing zeros",
+        "synthetic destination memo exact trailing zeros",
+        "synthetic-bank",
+        "synthetic-expense",
+        "123.4500",
+    ):
+        assert raw_value not in response_evidence
+
+    payloads = _audit_payloads(session_factory, "transaction.create")
+    assert len(payloads) == 1
+    audit_payload = payloads[0]
+    assert audit_payload["result"] == "success"
+    assert audit_payload["request_summary"] == {
+        "date": "2026-06-04",
+        "description": "Synthetic routed CREATE decimal preservation",
+        "split_count": 2,
+        "currencies": ["SEK"],
+    }
+    assert audit_payload["transaction_id"] == "synthetic-created-route-real"
+    assert audit_payload["readback_verified"] is True
+    assert audit_payload["readback_transaction_id"] == "synthetic-created-route-real"
+    assert audit_payload["readback_split_count"] == 2
+    assert audit_payload["backup_path"] == data["backup_path"]
+    assert audit_payload["backup_artifact_ref"].startswith("bkp-")
+
+    summary = client.get(
+        f"/books/{synthetic_book}/write-alpha-audit-summary",
+        headers=auth_headers,
+    )
+    assert summary.status_code == 200
+    summary_evidence = json.dumps(summary.json(), sort_keys=True)
+    assert audit_payload["backup_artifact_ref"] in summary_evidence
+    for raw_value in (
+        data["backup_path"],
+        Path(data["backup_path"]).name,
+        payload["description"],
+        "synthetic source memo exact trailing zeros",
+        "synthetic destination memo exact trailing zeros",
+        "synthetic-bank",
+        "synthetic-expense",
+        "123.4500",
+    ):
+        assert raw_value not in summary_evidence
+
+
 def test_synthetic_create_patch_delete_route_family_requires_fresh_confirmed_gate_and_default_reset(
     client,
     auth_headers,
