@@ -55,6 +55,7 @@ const explicitSyntheticDeleteBackupRef = 'backup-ref-redacted-issue51-delete';
 const explicitSyntheticDeleteAuditRef = 'audit-ref-redacted-issue51-delete';
 const explicitSyntheticPatchRejectedFields = ['amount', 'account_id', 'splits', 'date', 'currency'];
 const explicitSyntheticDisabledProbeFamilies = ['validate', 'preflight', 'create', 'patch', 'delete', 'batch'];
+const previewPayloadFieldNames = ['amount', 'credit_account_id', 'currency', 'date', 'debit_account_id', 'description', 'memo'].sort();
 const cdpCommandTimeoutMs = Number(process.env.ISSUE51_CDP_TIMEOUT_MS ?? '30000');
 
 const syntheticBook = {
@@ -1697,12 +1698,16 @@ function assertMutationRequestPredicates() {
 	}
 }
 
-function productCreatePayloadFromPreview(previewPayload) {
+function assertPreviewPayloadShape(previewPayload, label) {
 	assert.deepEqual(
 		Object.keys(previewPayload).sort(),
-		['amount', 'credit_account_id', 'currency', 'date', 'debit_account_id', 'description', 'memo'].sort(),
-		'explicit synthetic CREATE harness must start from the preview action payload only'
+		previewPayloadFieldNames,
+		`${label}: explicit synthetic CREATE harness must start from the preview action payload only`
 	);
+}
+
+function productCreatePayloadFromPreview(previewPayload) {
+	assertPreviewPayloadShape(previewPayload, 'reviewed preview payload');
 	assert.match(previewPayload.amount, /^[0-9]+(?:\.[0-9]+)?$/, 'explicit synthetic CREATE harness requires a positive decimal-string amount');
 	return {
 		date: previewPayload.date,
@@ -1724,7 +1729,65 @@ function productCreatePayloadFromPreview(previewPayload) {
 	};
 }
 
-async function collectReviewedApprovalEvidence(cdp, label) {
+function expectedReviewedApprovalEvidence(previewPayloadIndex = 1) {
+	return {
+		source: 'browser-reviewed-approval-packet',
+		evidence_scope: 'redacted_only',
+		issue: 51,
+		target_class: 'disposable_copied_like_fixture',
+		fixture_scope: 'synthetic_disposable_copied_like',
+		preview_payload_source: 'successful-browser-create-preview-response',
+		preview_payload_index: previewPayloadIndex,
+		preview_payload_fields: previewPayloadFieldNames,
+		preview_payload_snapshot: 'reviewed-before-stale-or-query-tamper',
+		preview_reviewed: true,
+		preview_stale: false,
+		approval_packet_present: true,
+		approval_template: 'placeholder_only',
+		future_create_disabled: true,
+		future_create_control: 'disabled_type_button_outside_form',
+		create_count: 1,
+		explicit_test_mode: 'issue51'
+	};
+}
+
+function assertExplicitSyntheticCreateHarnessReviewedEvidenceRejectsUnreviewedOrUnlinkedEvidence() {
+	const invalidEvidenceCases = [
+		['unreviewed preview', { preview_reviewed: false }],
+		['stale preview evidence', { preview_stale: true, preview_payload_snapshot: 'after-draft-change' }],
+		['unlinked query-tamper preview index', { preview_payload_index: 2, preview_payload_source: 'normal-explicit-query-preview' }],
+		['non-disposable target class', { target_class: 'owner_selected_target' }],
+		['non-disposable fixture scope', { fixture_scope: 'owner_or_private_target' }],
+		['raw evidence scope', { evidence_scope: 'raw_private_values' }],
+		['mutated preview payload fields', { preview_payload_fields: previewPayloadFieldNames.filter((field) => field !== 'memo') }]
+	];
+	for (const [label, patch] of invalidEvidenceCases) {
+		assert.throws(
+			() => assertExplicitSyntheticCreateHarnessReviewedEvidence({ ...expectedReviewedApprovalEvidence(), ...patch }),
+			{ name: 'AssertionError' },
+			`explicit CREATE harness must reject ${label}`
+		);
+	}
+}
+
+function assertReviewedEvidenceMatchesPreviewPayload(api, previewPayload, reviewedApprovalEvidence) {
+	assertExplicitSyntheticCreateHarnessReviewedEvidence(reviewedApprovalEvidence);
+	assert.equal(reviewedApprovalEvidence.preview_payload_index, 1, 'explicit harness must use the reviewed successful preview ordinal, not failure or query-tamper previews');
+	assertPreviewPayloadShape(previewPayload, 'reviewed preview payload bound to approval evidence');
+	assert.deepEqual(
+		api.previewPayloads[reviewedApprovalEvidence.preview_payload_index],
+		previewPayload,
+		'explicit harness must bind reviewed approval evidence to the exact reviewed preview payload'
+	);
+	assert.notDeepEqual(api.previewPayloads[0], previewPayload, 'explicit harness must not reuse the validation-failure preview payload');
+	if (api.previewPayloads.length > 2) {
+		assert.notDeepEqual(api.previewPayloads[2], previewPayload, 'explicit harness must not reuse the later explicit-mode query preview payload');
+	}
+}
+
+async function collectReviewedApprovalEvidence(cdp, label, { previewPayloadIndex, previewPayload }) {
+	assert.equal(previewPayloadIndex, 1, `${label}: reviewed approval evidence must be collected from the successful preview, not failure/query probes`);
+	assertPreviewPayloadShape(previewPayload, `${label}: reviewed approval evidence payload`);
 	const state = await evaluate(cdp, `(() => {
 		const text = (selector) => document.querySelector(selector)?.innerText ?? '';
 		const approval = document.querySelector('#approval-packet');
@@ -1767,37 +1830,15 @@ async function collectReviewedApprovalEvidence(cdp, label) {
 	assert.equal(state.futureName, null, `${label}: Future Create must not submit a name during reviewed evidence capture`);
 	assert.equal(state.futureValue, null, `${label}: Future Create must not submit a value during reviewed evidence capture`);
 	assert.equal(state.futureFormAction, null, `${label}: Future Create must not expose a form action during reviewed evidence capture`);
-	return {
-		source: 'browser-reviewed-approval-packet',
-		evidence_scope: 'redacted_only',
-		issue: 51,
-		target_class: 'disposable_copied_like_fixture',
-		preview_reviewed: true,
-		preview_stale: false,
-		approval_packet_present: true,
-		approval_template: 'placeholder_only',
-		future_create_disabled: true,
-		future_create_control: 'disabled_type_button_outside_form',
-		create_count: 1,
-		explicit_test_mode: 'issue51'
-	};
+	return expectedReviewedApprovalEvidence(previewPayloadIndex);
 }
 
 function assertExplicitSyntheticCreateHarnessReviewedEvidence(reviewedApprovalEvidence) {
-	assert.deepEqual(reviewedApprovalEvidence, {
-		source: 'browser-reviewed-approval-packet',
-		evidence_scope: 'redacted_only',
-		issue: 51,
-		target_class: 'disposable_copied_like_fixture',
-		preview_reviewed: true,
-		preview_stale: false,
-		approval_packet_present: true,
-		approval_template: 'placeholder_only',
-		future_create_disabled: true,
-		future_create_control: 'disabled_type_button_outside_form',
-		create_count: 1,
-		explicit_test_mode: 'issue51'
-	}, 'explicit CREATE harness requires reviewed browser approval evidence from the non-stale preview UI');
+	assert.deepEqual(
+		reviewedApprovalEvidence,
+		expectedReviewedApprovalEvidence(),
+		'explicit CREATE harness requires reviewed browser approval evidence from the non-stale preview UI, bound to the successful synthetic/disposable create-preview payload'
+	);
 }
 
 async function assertExplicitSyntheticCreateHarnessRejectsUserMode(api, browserRequests, productCreatePayload) {
@@ -2315,7 +2356,7 @@ function assertRedactedSyntheticCreateResultPanel(responseBody, productCreatePay
 }
 
 async function runExplicitSyntheticCreateHarness(api, browserRequests, previewPayload, reviewedApprovalEvidence) {
-	assertExplicitSyntheticCreateHarnessReviewedEvidence(reviewedApprovalEvidence);
+	assertReviewedEvidenceMatchesPreviewPayload(api, previewPayload, reviewedApprovalEvidence);
 	assert.equal(api.explicitCreatePayloads.length, 0, 'explicit synthetic CREATE harness must start with zero CREATE payloads');
 	assert.equal(
 		isForbiddenTransactionMutation('POST', '/books/1/transactions', ''),
@@ -2363,7 +2404,7 @@ async function runExplicitSyntheticCreateHarness(api, browserRequests, previewPa
 }
 
 async function runExplicitSyntheticPatchHarness(api, browserRequests, previewPayload, reviewedApprovalEvidence) {
-	assertExplicitSyntheticCreateHarnessReviewedEvidence(reviewedApprovalEvidence);
+	assertReviewedEvidenceMatchesPreviewPayload(api, previewPayload, reviewedApprovalEvidence);
 	assert.equal(
 		isForbiddenTransactionMutation('PATCH', '/books/1/transactions/synthetic-id', ''),
 		true,
@@ -2427,7 +2468,7 @@ async function assertExplicitSyntheticPatchHarnessRejectsUserMode(api, browserRe
 }
 
 async function runExplicitSyntheticDeleteHarness(api, browserRequests, previewPayload, reviewedApprovalEvidence) {
-	assertExplicitSyntheticCreateHarnessReviewedEvidence(reviewedApprovalEvidence);
+	assertReviewedEvidenceMatchesPreviewPayload(api, previewPayload, reviewedApprovalEvidence);
 	assert.equal(
 		isForbiddenTransactionMutation('DELETE', '/books/1/transactions/synthetic-id', ''),
 		true,
@@ -2492,6 +2533,7 @@ async function assertExplicitSyntheticDeleteHarnessRejectsUserMode(api, browserR
 async function runSmoke() {
 	assertSourceSafety();
 	assertMutationRequestPredicates();
+	assertExplicitSyntheticCreateHarnessReviewedEvidenceRejectsUnreviewedOrUnlinkedEvidence();
 	assertRedactedSyntheticFailureUiDrillPanels(buildRedactedSyntheticFailureUiDrillPanels());
 	assert.ok(existsSync(viteBin), 'Vite must be installed before running the browser smoke');
 	assert.ok(existsSync(previewServerIndex), 'Build output must exist before browser smoke; run npm run build before npm run test:transaction-entry-preview-browser');
@@ -2751,9 +2793,13 @@ async function runSmoke() {
 		await assertDisabledButtonInert(cdp, '#future-create-disabled', 'Future Create disabled', browserRequests, 'reviewed Future Create');
 		await assertReadinessShellsRemainPending(cdp, 'reviewed preview');
 		await assertExecutionResultShellRemainsPending(cdp, 'reviewed preview');
-		reviewedApprovalEvidence = await collectReviewedApprovalEvidence(cdp, 'reviewed preview');
 		reviewedPreviewPayload = api.previewPayloads[api.previewPayloads.length - 1];
 		assert.ok(reviewedPreviewPayload, 'browser smoke must retain the reviewed preview payload before later failure/tamper probes');
+		reviewedApprovalEvidence = await collectReviewedApprovalEvidence(cdp, 'reviewed preview', {
+			previewPayloadIndex: api.previewPayloads.length - 1,
+			previewPayload: reviewedPreviewPayload
+		});
+		assertReviewedEvidenceMatchesPreviewPayload(api, reviewedPreviewPayload, reviewedApprovalEvidence);
 		assertNoMutationRequestsObserved(api, browserRequests, 'reviewed preview');
 		await setInput(cdp, '#preview-description', 'Synthetic browser smoke changed draft');
 		await waitForExpression(cdp, `document.querySelector('#preview-stale-warning')?.innerText.includes('stale and cannot support a future owner-approved CREATE')`, 'stale warning after draft change');
