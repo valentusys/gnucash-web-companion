@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -9,7 +9,9 @@ import net from 'node:net';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..');
+const repoRoot = join(root, '..', '..');
 const viteBin = join(root, 'node_modules', 'vite', 'bin', 'vite.js');
+const productCreateDrillScript = join(repoRoot, 'scripts', 'issue51_product_create_drill.py');
 function resolveChromiumBin() {
 	if (process.env.CHROMIUM_BIN) return process.env.CHROMIUM_BIN;
 	for (const candidate of [
@@ -29,6 +31,8 @@ const syntheticToken = 'synthetic-smoke-token';
 const syntheticDescription = 'Synthetic browser smoke preview';
 const syntheticMemo = 'Synthetic browser smoke memo';
 const syntheticAmount = '12.34';
+const disposableSourceAccountId = 'c73e8aa01e6345288662b556f2f866f3';
+const disposableDestinationAccountId = '388a85676d4a4643ae6cd28166c34e79';
 const explicitSyntheticCreateHarnessToken = 'issue51-explicit-synthetic-create-harness';
 const explicitSyntheticCreateHarnessSearch = '?explicit_test_mode=issue51';
 const explicitSyntheticCreateId = 'synthetic-explicit-create-1';
@@ -73,7 +77,7 @@ const syntheticBook = {
 
 const syntheticAccounts = [
 	{
-		id: 'smoke-source',
+		id: disposableSourceAccountId,
 		name: 'Smoke Source',
 		full_name: 'Synthetic Source',
 		type: 'ASSET',
@@ -84,7 +88,7 @@ const syntheticAccounts = [
 		parent_id: null
 	},
 	{
-		id: 'smoke-destination',
+		id: disposableDestinationAccountId,
 		name: 'Smoke Destination',
 		full_name: 'Synthetic Destination',
 		type: 'EXPENSE',
@@ -279,9 +283,31 @@ function buildRedactedSyntheticCreateResultPanel() {
 			panel_id: 'issue51-redacted-create-result',
 			status: 'success',
 			evidence_scope: 'redacted_only',
-			target_class: 'synthetic_disposable_stub',
+			target_class: 'disposable_copied_like_fixture',
 			create_count: 1,
 			create_result_ref: explicitSyntheticCreateRef,
+			backend_route_write_boundary: {
+				product_route_used: true,
+				route: 'POST /books/{book_id}/transactions',
+				route_response_status: 201,
+				app_env: 'test',
+				gnucash_writes_enabled_during_create: true,
+				normal_ui_create_activated: false,
+				direct_sql_write: false
+			},
+			fixture_scope: {
+				copied_like_fixture: true,
+				synthetic_fixture_source: true,
+				outside_git_worktree: true,
+				private_or_only_copy_target: false
+			},
+			write_boundary_verification: {
+				backup_before_write_verified: true,
+				lock_released_verified: true,
+				audit_recorded: true,
+				write_route_called_once: true,
+				read_back_before_success: true
+			},
 			read_back_verification: {
 				state: 'verified',
 				transaction_ref: explicitSyntheticCreateRef,
@@ -289,27 +315,46 @@ function buildRedactedSyntheticCreateResultPanel() {
 				split_count: 2,
 				split_balance_verified: true,
 				account_balance_delta_count: 2,
+				account_balance_deltas_verified: true,
+				reopen_verified: true,
+				currency_verified: true,
+				date_verified: true,
+				description_verified: true,
+				memo_verified: true,
 				private_values_redacted: true
 			},
 			backup_state: {
 				state: 'captured',
 				backup_ref: explicitSyntheticBackupRef,
+				exists_verified: true,
+				pre_create_contents_verified: true,
 				raw_path_included: false
 			},
 			audit_state: {
 				state: 'recorded',
 				audit_ref: explicitSyntheticAuditRef,
+				result: 'success',
 				raw_payload_included: false
+			},
+			ownership_state: {
+				state: 'recorded',
+				ownership_count: 1,
+				app_metadata_only: true
 			},
 			reset_default_disabled_probe_summary: {
 				state: 'verified',
 				app_env: 'test',
 				gnucash_writes_enabled: false,
 				create_execution_allowed_after_reset: false,
-				probes: explicitSyntheticDisabledProbeFamilies.map((route_family) => ({
-					route_family,
-					status: 'blocked_or_unavailable'
-				}))
+				create_execution_blocked_after_reset_verified: true,
+				probes: [
+					{ route_family: 'validate', status: 'blocked_or_unavailable', http_status_class: 403 },
+					{ route_family: 'preflight', status: 'blocked_or_unavailable', http_status_class: 405 },
+					{ route_family: 'create', status: 'blocked_or_unavailable', http_status_class: 403 },
+					{ route_family: 'patch', status: 'blocked_or_unavailable', http_status_class: 403 },
+					{ route_family: 'delete', status: 'blocked_or_unavailable', http_status_class: 403 },
+					{ route_family: 'batch', status: 'blocked_or_unavailable', http_status_class: 405 }
+				]
 			},
 			redaction: {
 				raw_book_paths: false,
@@ -337,11 +382,6 @@ async function startSyntheticApi() {
 		requests.push({ method: req.method, path: url.pathname, search: url.search, pathWithSearch: `${url.pathname}${url.search}`, explicitHarnessRequest });
 
 		try {
-			if (explicitHarnessRequest) {
-				const payload = await readBody(req);
-				explicitCreatePayloads.push(payload);
-				return jsonResponse(res, 201, buildRedactedSyntheticCreateResultPanel());
-			}
 			if (isForbiddenTransactionMutation(req.method ?? 'GET', url.pathname, url.search)) {
 				forbiddenRequests.push({ method: req.method, path: url.pathname, search: url.search, pathWithSearch: `${url.pathname}${url.search}` });
 				return jsonResponse(res, 409, { detail: 'Synthetic smoke blocked a mutation endpoint.' });
@@ -394,20 +434,20 @@ async function startSyntheticApi() {
 					description: payload.description,
 					memo: payload.memo ?? '',
 					debit_account: {
-						id: 'smoke-source',
+						id: disposableSourceAccountId,
 						name: 'Smoke Source',
 						full_name: 'Synthetic Source',
 						currency: 'SEK'
 					},
 					credit_account: {
-						id: 'smoke-destination',
+						id: disposableDestinationAccountId,
 						name: 'Smoke Destination',
 						full_name: 'Synthetic Destination',
 						currency: 'SEK'
 					},
 					splits: [
-						{ account_id: 'smoke-source', amount: `-${payload.amount}`, currency: 'SEK', memo: payload.memo ?? '' },
-						{ account_id: 'smoke-destination', amount: payload.amount, currency: 'SEK', memo: payload.memo ?? '' }
+						{ account_id: disposableSourceAccountId, amount: `-${payload.amount}`, currency: 'SEK', memo: payload.memo ?? '' },
+						{ account_id: disposableDestinationAccountId, amount: payload.amount, currency: 'SEK', memo: payload.memo ?? '' }
 					],
 					warnings: ['Preview only: synthetic smoke executed no GnuCash write.']
 				});
@@ -1114,7 +1154,7 @@ async function collectReviewedApprovalEvidence(cdp, label) {
 		source: 'browser-reviewed-approval-packet',
 		evidence_scope: 'redacted_only',
 		issue: 51,
-		target_class: 'synthetic_disposable_stub',
+		target_class: 'disposable_copied_like_fixture',
 		preview_reviewed: true,
 		preview_stale: false,
 		approval_packet_present: true,
@@ -1131,7 +1171,7 @@ function assertExplicitSyntheticCreateHarnessReviewedEvidence(reviewedApprovalEv
 		source: 'browser-reviewed-approval-packet',
 		evidence_scope: 'redacted_only',
 		issue: 51,
-		target_class: 'synthetic_disposable_stub',
+		target_class: 'disposable_copied_like_fixture',
 		preview_reviewed: true,
 		preview_stale: false,
 		approval_packet_present: true,
@@ -1220,6 +1260,26 @@ async function assertExplicitSyntheticCreateHarnessRejectsUserMode(api, browserR
 	);
 }
 
+function runProductRouteCreateDrill(productCreatePayload) {
+	assert.ok(existsSync(productCreateDrillScript), 'explicit CREATE harness requires the disposable product-route drill script');
+	const child = spawnSync('python3', [productCreateDrillScript, '--json-only'], {
+		cwd: repoRoot,
+		encoding: 'utf8',
+		input: `${JSON.stringify({ product_create_payload: productCreatePayload })}\n`,
+		maxBuffer: 1024 * 1024,
+		timeout: 120000
+	});
+	assert.equal(child.error, undefined, `explicit product-route CREATE drill process failed safely: ${child.error?.message ?? 'unknown'}`);
+	assert.equal(
+		child.status,
+		0,
+		`explicit product-route CREATE drill must succeed through the backend product route; stderr tail: ${(child.stderr ?? '').slice(-1200)}`
+	);
+	const stdout = String(child.stdout ?? '').trim();
+	assert.ok(stdout.startsWith('{') && stdout.endsWith('}'), 'explicit product-route CREATE drill must emit only redacted JSON on stdout');
+	return JSON.parse(stdout);
+}
+
 function assertRedactedSyntheticCreateResultPanel(responseBody, productCreatePayload, reviewedApprovalEvidence) {
 	assert.deepEqual(
 		responseBody,
@@ -1230,7 +1290,7 @@ function assertRedactedSyntheticCreateResultPanel(responseBody, productCreatePay
 	assert.equal(panel.panel_id, 'issue51-redacted-create-result', 'explicit synthetic CREATE result panel must have a stable redacted panel id');
 	assert.equal(panel.status, 'success', 'explicit synthetic CREATE result panel may show success only for the explicit test-mode harness result');
 	assert.equal(panel.evidence_scope, 'redacted_only', 'explicit synthetic CREATE result panel must be redacted-only');
-	assert.equal(panel.target_class, 'synthetic_disposable_stub', 'explicit synthetic CREATE result panel must stay scoped to the synthetic disposable stub target');
+	assert.equal(panel.target_class, 'disposable_copied_like_fixture', 'explicit synthetic CREATE result panel must stay scoped to the disposable copied-like fixture target');
 	assert.equal(panel.create_count, reviewedApprovalEvidence.create_count, 'explicit synthetic CREATE result panel must show the reviewed exact create_count');
 	assert.equal(panel.create_count, 1, 'explicit synthetic CREATE result panel must show exactly one CREATE');
 	assert.deepEqual(
@@ -1242,18 +1302,24 @@ function assertRedactedSyntheticCreateResultPanel(responseBody, productCreatePay
 			split_count: 2,
 			split_balance_verified: true,
 			account_balance_delta_count: 2,
+			account_balance_deltas_verified: true,
+			reopen_verified: true,
+			currency_verified: true,
+			date_verified: true,
+			description_verified: true,
+			memo_verified: true,
 			private_values_redacted: true
 		},
 		'explicit synthetic CREATE result panel must show read-back verification without raw transaction values'
 	);
 	assert.deepEqual(
 		panel.backup_state,
-		{ state: 'captured', backup_ref: explicitSyntheticBackupRef, raw_path_included: false },
+		{ state: 'captured', backup_ref: explicitSyntheticBackupRef, exists_verified: true, pre_create_contents_verified: true, raw_path_included: false },
 		'explicit synthetic CREATE result panel must show backup state without raw backup path'
 	);
 	assert.deepEqual(
 		panel.audit_state,
-		{ state: 'recorded', audit_ref: explicitSyntheticAuditRef, raw_payload_included: false },
+		{ state: 'recorded', audit_ref: explicitSyntheticAuditRef, result: 'success', raw_payload_included: false },
 		'explicit synthetic CREATE result panel must show audit state without raw payload'
 	);
 	assert.deepEqual(
@@ -1264,6 +1330,7 @@ function assertRedactedSyntheticCreateResultPanel(responseBody, productCreatePay
 	assert.equal(panel.reset_default_disabled_probe_summary.gnucash_writes_enabled, false, 'explicit synthetic CREATE result panel must show writes reset to default disabled');
 	assert.equal(panel.reset_default_disabled_probe_summary.app_env, 'test', 'explicit synthetic CREATE result panel must remain APP_ENV=test scoped');
 	assert.equal(panel.reset_default_disabled_probe_summary.create_execution_allowed_after_reset, false, 'explicit synthetic CREATE result panel must show CREATE blocked after reset');
+	assert.equal(panel.reset_default_disabled_probe_summary.create_execution_blocked_after_reset_verified, true, 'explicit synthetic CREATE result panel must verify CREATE is blocked after reset');
 	assert.ok(
 		panel.reset_default_disabled_probe_summary.probes.every((probe) => probe.status === 'blocked_or_unavailable'),
 		'explicit synthetic CREATE result panel must show every default-disabled probe as blocked or unavailable'
@@ -1320,29 +1387,17 @@ async function runExplicitSyntheticCreateHarness(api, browserRequests, previewPa
 	const browserRequestCountBefore = browserRequests.length;
 	const forbiddenRequestCountBefore = api.forbiddenRequests.length;
 
-	const response = await fetch(`${api.url}/books/1/transactions${explicitSyntheticCreateHarnessSearch}`, {
-		method: 'POST',
-		headers: {
-			'content-type': 'application/json',
-			authorization: `Bearer ${syntheticToken}`,
-			'x-issue51-explicit-test-create': explicitSyntheticCreateHarnessToken,
-			'x-app-env': 'test',
-			'x-gnucash-writes-enabled': 'true'
-		},
-		body: JSON.stringify(productCreatePayload)
-	});
-	assert.equal(response.status, 201, 'explicit synthetic CREATE harness must use product CREATE route and receive a synthetic created result');
-	const responseBody = await response.json();
+	const responseBody = runProductRouteCreateDrill(productCreatePayload);
 	assertRedactedSyntheticCreateResultPanel(responseBody, productCreatePayload, reviewedApprovalEvidence);
 	assert.equal(browserRequests.length, browserRequestCountBefore, 'explicit harness must not be browser-driven or activate default UI');
 	assert.equal(api.forbiddenRequests.length, forbiddenRequestCountBefore, 'explicit harness must not be counted as a default/user-mode mutation boundary request');
-	assert.deepEqual(api.explicitCreatePayloads, [productCreatePayload], 'explicit synthetic CREATE harness must capture exactly one product CREATE payload');
+	assert.deepEqual(api.explicitCreatePayloads, [], 'explicit synthetic API stub must not fabricate the product-route CREATE payload');
 	assert.deepEqual(
 		api.requests
 			.filter((request) => request.explicitHarnessRequest)
 			.map(({ method, path, search, pathWithSearch }) => ({ method, path, search, pathWithSearch })),
-		[{ method: 'POST', path: '/books/1/transactions', search: explicitSyntheticCreateHarnessSearch, pathWithSearch: `/books/1/transactions${explicitSyntheticCreateHarnessSearch}` }],
-		'explicit synthetic CREATE harness must be the only accepted product CREATE route request'
+		[],
+		'explicit synthetic CREATE harness must not accept a synthetic API-created route result'
 	);
 	assert.deepEqual(
 		api.requests
@@ -1463,7 +1518,7 @@ async function runSmoke() {
 		await waitForExpression(cdp, `Boolean(document.querySelector('#debit-account-select') && document.querySelector('#credit-account-select'))`, 'account selectors');
 		assert.deepEqual(
 			await evaluate(cdp, `Array.from(document.querySelectorAll('#debit-account-select option, #credit-account-select option')).map((option) => option.value).filter(Boolean).sort()`),
-			['smoke-destination', 'smoke-destination', 'smoke-source', 'smoke-source'],
+			[disposableDestinationAccountId, disposableDestinationAccountId, disposableSourceAccountId, disposableSourceAccountId],
 			'browser selectors must expose only selectable synthetic account IDs'
 		);
 
@@ -1479,8 +1534,8 @@ async function runSmoke() {
 		await setInput(cdp, '#preview-description', syntheticDescription);
 		await setInput(cdp, '#preview-amount', syntheticAmount);
 		await setInput(cdp, '#preview-memo', syntheticMemo);
-		await setSelect(cdp, '#debit-account-select', 'smoke-source');
-		await setSelect(cdp, '#credit-account-select', 'smoke-source');
+		await setSelect(cdp, '#debit-account-select', disposableSourceAccountId);
+		await setSelect(cdp, '#credit-account-select', disposableSourceAccountId);
 
 		const sameAccountBrowserPostsBefore = browserRequests.filter((request) => request.method === 'POST' && new URL(request.url).pathname === '/transactions/new').length;
 		const sameAccountApiPreviewBefore = api.requests.filter((request) => request.method === 'POST' && request.path === '/books/1/transactions/create-preview').length;
@@ -1503,11 +1558,11 @@ async function runSmoke() {
 		await assertExecutionResultShellRemainsPending(cdp, 'same-account client block');
 		await assertApprovalPacketAbsent(cdp, 'same-account client block');
 		assertNoMutationRequestsObserved(api, browserRequests, 'same-account client block');
-		await setSelect(cdp, '#credit-account-select', 'smoke-destination');
+		await setSelect(cdp, '#credit-account-select', disposableDestinationAccountId);
 
 		const formSnapshot = await evaluate(cdp, `(() => Object.fromEntries(new FormData(document.querySelector('button[formaction="?/preview"]').closest('form')).entries()))()`);
-		assert.equal(formSnapshot.debit_account_id, 'smoke-source', 'source selector must submit the selected account id');
-		assert.equal(formSnapshot.credit_account_id, 'smoke-destination', 'destination selector must submit the selected account id');
+		assert.equal(formSnapshot.debit_account_id, disposableSourceAccountId, 'source selector must submit the selected account id');
+		assert.equal(formSnapshot.credit_account_id, disposableDestinationAccountId, 'destination selector must submit the selected account id');
 		assert.ok(!('debit-account-search' in formSnapshot) && !('credit-account-search' in formSnapshot), 'search text must not be submitted');
 
 		await evaluate(cdp, `(() => {
@@ -1637,8 +1692,8 @@ async function runSmoke() {
 			['amount', 'credit_account_id', 'currency', 'date', 'debit_account_id', 'description', 'memo'].sort(),
 			'create-preview payload must contain only preview API fields'
 		);
-		assert.equal(previewPayload.debit_account_id, 'smoke-source', 'create-preview payload must submit only the selected source account id');
-		assert.equal(previewPayload.credit_account_id, 'smoke-destination', 'create-preview payload must submit only the selected destination account id');
+		assert.equal(previewPayload.debit_account_id, disposableSourceAccountId, 'create-preview payload must submit only the selected source account id');
+		assert.equal(previewPayload.credit_account_id, disposableDestinationAccountId, 'create-preview payload must submit only the selected destination account id');
 		assert.equal(previewPayload.amount, syntheticAmount, 'create-preview payload must preserve the decimal amount string');
 		assert.equal(previewPayload.currency, 'SEK', 'create-preview payload must submit the selected currency code');
 		for (const forbiddenPayloadField of [
@@ -1686,4 +1741,4 @@ async function runSmoke() {
 }
 
 await runSmoke();
-console.log('transaction-entry-preview-browser: ok (synthetic browser preview writes-disabled; explicit test-mode CREATE harness)');
+console.log('transaction-entry-preview-browser: ok (synthetic browser preview writes-disabled; explicit test-mode product-route disposable CREATE drill)');
