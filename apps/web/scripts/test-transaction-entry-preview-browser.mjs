@@ -11,6 +11,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..');
 const repoRoot = join(root, '..', '..');
 const viteBin = join(root, 'node_modules', 'vite', 'bin', 'vite.js');
+const previewServerIndex = join(root, '.svelte-kit', 'output', 'server', 'index.js');
 const productCreateDrillScript = join(repoRoot, 'scripts', 'issue51_product_create_drill.py');
 function resolveChromiumBin() {
 	if (process.env.CHROMIUM_BIN) return process.env.CHROMIUM_BIN;
@@ -829,6 +830,17 @@ async function setSelect(cdp, selector, value) {
 	})()`);
 }
 
+async function setCheckbox(cdp, selector, checked) {
+	await evaluate(cdp, `(() => {
+		const element = document.querySelector(${jsString(selector)});
+		if (!element) throw new Error('missing checkbox ' + ${jsString(selector)});
+		element.checked = ${checked ? 'true' : 'false'};
+		element.dispatchEvent(new Event('input', { bubbles: true }));
+		element.dispatchEvent(new Event('change', { bubbles: true }));
+		return true;
+	})()`);
+}
+
 async function fillPreviewForm(cdp, { amount = syntheticAmount, description = syntheticDescription, memo = syntheticMemo } = {}) {
 	await setInput(cdp, '#preview-date', '2026-07-05');
 	await setInput(cdp, '#preview-currency', 'SEK');
@@ -846,6 +858,12 @@ async function click(cdp, selector) {
 		element.click();
 		return true;
 	})()`);
+}
+
+async function clickAndWaitForPageLoad(cdp, selector, label) {
+	const pageLoad = waitForCdpEvent(cdp, 'Page.loadEventFired', label);
+	await click(cdp, selector);
+	await pageLoad;
 }
 
 async function assertDisabledButtonInert(cdp, selector, expectedText, browserRequests, label) {
@@ -1864,6 +1882,7 @@ async function runSmoke() {
 	assertMutationRequestPredicates();
 	assertRedactedSyntheticFailureUiDrillPanels(buildRedactedSyntheticFailureUiDrillPanels());
 	assert.ok(existsSync(viteBin), 'Vite must be installed before running the browser smoke');
+	assert.ok(existsSync(previewServerIndex), 'Build output must exist before browser smoke; run npm run build before npm run test:transaction-entry-preview-browser');
 	assert.ok(existsSync(chromiumBin), `Chromium binary not found at ${chromiumBin}`);
 
 	const api = await startSyntheticApi();
@@ -1878,7 +1897,7 @@ async function runSmoke() {
 	let reviewedPreviewPayload;
 
 	try {
-		webProcess = spawnLogged(process.execPath, [viteBin, 'dev', '--host', '127.0.0.1', '--port', String(webPort), '--strictPort'], {
+		webProcess = spawnLogged(process.execPath, [viteBin, 'preview', '--host', '127.0.0.1', '--port', String(webPort), '--strictPort'], {
 			cwd: root,
 			env: {
 				...process.env,
@@ -1892,8 +1911,10 @@ async function runSmoke() {
 		const webBase = `http://127.0.0.1:${webPort}`;
 		await waitForHttp(`${webBase}/login`, 45000);
 
+		// Use the built preview server and classic headless mode to avoid Vite-dev/HMR
+		// navigation races in Snap Chromium while keeping the smoke browser-observed.
 		chromiumProcess = spawnLogged(chromiumBin, [
-			'--headless=new',
+			'--headless',
 			'--disable-gpu',
 			'--disable-dev-shm-usage',
 			'--disable-background-networking',
@@ -2015,7 +2036,7 @@ async function runSmoke() {
 		await setInput(cdp, '#preview-description', syntheticValidationFailureDescription);
 		await setInput(cdp, '#preview-amount', validationFailureAmount);
 		const validationFailureBoundaryBefore = captureNormalBrowserBoundaryCounts(api, browserRequests);
-		await click(cdp, 'button[formaction="?/preview"]');
+		await clickAndWaitForPageLoad(cdp, 'button[formaction="?/preview"]', 'validation failure preview submit load');
 		await waitForExpression(cdp, `document.querySelector('#preview-error-summary')?.innerText.includes('Preview validation failed safely')`, 'validation failure UI');
 		await assertPreviewValidationFailureUi(cdp, 'validation failure UI');
 		await assertPreviewOnlyRuntimeTopology(cdp, 'validation failure UI');
@@ -2045,7 +2066,7 @@ async function runSmoke() {
 		})()`);
 
 		const validPreviewBoundaryBefore = captureNormalBrowserBoundaryCounts(api, browserRequests);
-		await click(cdp, 'button[formaction="?/preview"]');
+		await clickAndWaitForPageLoad(cdp, 'button[formaction="?/preview"]', 'valid preview submit load');
 		await waitForExpression(cdp, `document.body && document.body.innerText.includes('Normalized preview')`, 'normalized preview');
 		await waitForExpression(cdp, `Boolean(document.querySelector('#approval-packet'))`, 'approval packet');
 		await assertPreviewOnlyRuntimeTopology(cdp, 'post-preview');
@@ -2109,7 +2130,7 @@ async function runSmoke() {
 		}
 		assert.equal(await evaluate(cdp, `(window.__smokeClipboardWrites?.length ?? 0) <= 1`), true, 'approval template clipboard shim must not write more than one placeholder template');
 
-		await click(cdp, '#preview-reviewed-confirmation');
+		await setCheckbox(cdp, '#preview-reviewed-confirmation', true);
 		await waitForExpression(cdp, `document.querySelector('#preview-reviewed-confirmation')?.checked === true`, 'preview-reviewed checkbox checked');
 		await waitForExpression(cdp, `document.querySelector('#preview-reviewed-status')?.innerText.includes('Preview reviewed locally') && document.querySelector('#preview-reviewed-status')?.innerText.includes('preview-reviewed checkbox alone is not enough')`, 'preview-reviewed still blocked status');
 		await assertPreviewOnlyRuntimeTopology(cdp, 'reviewed preview');
@@ -2161,7 +2182,7 @@ async function runSmoke() {
 		await assertApprovalPacketAbsent(cdp, 'normal explicit test-mode query attempt initial page');
 		await evaluate(cdp, `new Promise((resolve) => setTimeout(resolve, 500))`, { awaitPromise: true });
 		await fillPreviewForm(cdp, { description: syntheticQueryTamperDescription });
-		await click(cdp, 'button[formaction="?/preview"]');
+		await clickAndWaitForPageLoad(cdp, 'button[formaction="?/preview"]', 'normal explicit test-mode preview submit load');
 		await waitForExpression(cdp, `document.body && document.body.innerText.includes('Normalized preview')`, 'normal explicit test-mode query attempt preview');
 		await waitForExpression(cdp, `Boolean(document.querySelector('#target-preflight-readiness') && document.querySelector('#execution-readiness-shell') && document.querySelector('#execution-result-shell'))`, 'normal explicit test-mode query attempt safety shells');
 		await assertPreviewOnlyRuntimeTopology(cdp, 'normal explicit test-mode query attempt preview');
