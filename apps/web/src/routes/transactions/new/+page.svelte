@@ -578,6 +578,19 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 				<div class="rounded-lg px-3 py-2" style="background: #f0fdfa;"><dt class="font-semibold">rollback_state</dt><dd>{executionResult.rollback_state}</dd></div>
 				<div class="rounded-lg px-3 py-2 md:col-span-2" style="background: #f0fdfa;"><dt class="font-semibold">safe user message</dt><dd>{executionResult.user_message}</dd></div>
 			</dl>
+			<div id="redacted-create-result-contract" class="mt-3 rounded-lg p-3 text-xs" role="note" aria-label="Inactive redacted synthetic CREATE result panel contract" style="border: 1px solid #5eead4; background: #f0fdfa;">
+				<p class="font-semibold">Explicit synthetic CREATE result panel contract (inactive)</p>
+				<p class="mt-1 font-semibold">Default UI state remains preview-only; this contract is display-only and does not execute CREATE.</p>
+				<p class="mt-1">A future explicit synthetic/disposable test-mode CREATE rehearsal may show only a redacted success/result panel with these fields:</p>
+				<dl class="mt-2 grid min-w-0 gap-2 md:grid-cols-2">
+					<div><dt class="font-semibold">create_count</dt><dd>create_count: pending</dd></div>
+					<div><dt class="font-semibold">read-back verification</dt><dd>read-back verification: pending</dd></div>
+					<div><dt class="font-semibold">backup_state</dt><dd>backup_state: pending</dd></div>
+					<div><dt class="font-semibold">audit_state</dt><dd>audit_state: pending</dd></div>
+					<div class="md:col-span-2"><dt class="font-semibold">reset/default-disabled probe summary</dt><dd>reset/default-disabled probes: pending; validate/preflight/CREATE/PATCH/DELETE/batch must be blocked or unavailable after reset.</dd></div>
+				</dl>
+				<p class="mt-2 font-semibold">No raw book paths, account names, descriptions, memos, amounts, GUIDs, screenshots, tokens, or secrets may appear in the result panel.</p>
+			</div>
 			<ul id="execution-result-step-list" class="mt-3 grid min-w-0 gap-2 md:grid-cols-2" aria-label="Future execution result status checklist">
 				{#each executionResult.steps as step (step.id)}
 					<li class="min-w-0 rounded-lg p-3" data-execution-result-step={step.id} data-execution-result-status={step.status} style="border: 1px solid #5eead4; background: #f0fdfa;">

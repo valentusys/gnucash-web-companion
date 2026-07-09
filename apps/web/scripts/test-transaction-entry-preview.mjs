@@ -94,6 +94,18 @@ for (const requiredBrowserSmokeFragment of [
 	'non-test APP_ENV synthetic CREATE probe',
 	'writes-disabled explicit CREATE probe',
 	'explicit rejected CREATE probes must not be browser-driven',
+	'function buildRedactedSyntheticCreateResultPanel',
+	'function assertRedactedSyntheticCreateResultPanel',
+	'redacted_result_panel',
+	'issue51-redacted-create-result',
+	'read_back_verification',
+	'backup_state',
+	'audit_state',
+	'reset_default_disabled_probe_summary',
+	'raw_book_paths',
+	'raw_amounts',
+	'explicit synthetic CREATE result panel must stay redacted',
+	'reset/default-disabled probe summary must cover validate/preflight/CREATE/PATCH/DELETE/batch',
 	'function runExplicitSyntheticCreateHarness',
 	'function assertBrowserToAppToApiBoundary',
 	'function assertDisposableSyntheticApiTargetBoundary',
@@ -127,6 +139,9 @@ assert.match(browserSmoke, /productCreatePayloadFromPreview[\s\S]*splits[\s\S]*a
 assert.match(browserSmoke, /assertExplicitSyntheticCreateHarnessRejectsUserMode[\s\S]*missing explicit harness header[\s\S]*non-test APP_ENV synthetic CREATE probe[\s\S]*writes-disabled explicit CREATE probe[\s\S]*response\.status, 409[\s\S]*explicit rejected CREATE probes must not be browser-driven/, 'explicit synthetic CREATE harness must actively reject user-mode or partially armed CREATE probes');
 assert.match(browserSmoke, /runExplicitSyntheticCreateHarness[\s\S]*assertExplicitSyntheticCreateHarnessReviewedEvidence\(reviewedApprovalEvidence\)[\s\S]*productCreatePayloadFromPreview\(previewPayload\)[\s\S]*assertExplicitSyntheticCreateHarnessRejectsUserMode\(api, browserRequests, productCreatePayload\)[\s\S]*fetch\(`\$\{api\.url\}\/books\/1\/transactions\$\{explicitSyntheticCreateHarnessSearch\}`/, 'explicit synthetic CREATE harness must require reviewed approval evidence and run rejection probes before accepting the explicit test-mode CREATE');
 assert.match(browserSmoke, /reviewedApprovalEvidence = await collectReviewedApprovalEvidence\(cdp, 'reviewed preview'\)[\s\S]*assertNoMutationRequestsObserved\(api, browserRequests, 'reviewed preview'\)[\s\S]*runExplicitSyntheticCreateHarness\(api, browserRequests, previewPayload, reviewedApprovalEvidence\)/, 'browser smoke must capture reviewed approval evidence before the explicit synthetic CREATE harness');
+assert.match(browserSmoke, /function buildRedactedSyntheticCreateResultPanel\(\)[\s\S]*redacted_result_panel[\s\S]*create_count: 1[\s\S]*read_back_verification[\s\S]*backup_state[\s\S]*audit_state[\s\S]*reset_default_disabled_probe_summary/s, 'explicit synthetic CREATE harness must build a redacted result panel with count, read-back, backup/audit, and reset/probe summary');
+assert.match(browserSmoke, /function assertRedactedSyntheticCreateResultPanel[\s\S]*syntheticDescription[\s\S]*syntheticMemo[\s\S]*syntheticAmount[\s\S]*explicit synthetic CREATE result panel must stay redacted/s, 'explicit synthetic CREATE result panel assertions must reject private/raw-like payload values');
+assert.match(browserSmoke, /runExplicitSyntheticCreateHarness[\s\S]*const responseBody = await response\.json\(\)[\s\S]*assertRedactedSyntheticCreateResultPanel\(responseBody, productCreatePayload, reviewedApprovalEvidence\)/s, 'explicit synthetic CREATE harness must assert the redacted result panel returned from the explicit test-mode route');
 
 for (const field of [
 	'book_id',
@@ -284,6 +299,14 @@ for (const requiredPageFragment of [
 	'Failure result: no success claim emitted',
 	'Rollback result: restore decision recorded',
 	'Post-result disabled probes verified',
+	'redacted-create-result-contract',
+	'Explicit synthetic CREATE result panel contract (inactive)',
+	'create_count: pending',
+	'read-back verification: pending',
+	'backup_state: pending',
+	'audit_state: pending',
+	'reset/default-disabled probes: pending',
+	'No raw book paths, account names, descriptions, memos, amounts, GUIDs, screenshots, tokens, or secrets',
 	'Rollback is a future owner-approved recovery path only',
 	'Rollback/restore: owner-approved recovery path only',
 	'Future Create remains disabled until backup/read-back/audit/reset/probes readiness and execution-result reporting are completed',
@@ -505,6 +528,8 @@ assert.match(server, /function createExecutionReadiness\(\)[\s\S]*evidence_packe
 assert.match(server, /function createExecutionReadiness\(\)[\s\S]*disabled_probe_plan: \[[\s\S]*id: 'validate_probe_after_reset'[\s\S]*id: 'preflight_probe_after_reset'[\s\S]*id: 'create_probe_after_reset'[\s\S]*id: 'patch_probe_after_reset'[\s\S]*id: 'delete_probe_after_reset'[\s\S]*id: 'batch_probe_after_reset'/s, 'server execution readiness must include an explicit pending disabled-probe plan');
 assert.match(server, /function createExecutionResult\(\)[\s\S]*status: 'not_executed'[\s\S]*create_result_state: 'blocked'[\s\S]*success_state: 'pending'[\s\S]*failure_state: 'pending'[\s\S]*rollback_state: 'not_run'/s, 'server execution result shell must default to not_executed/blocked/pending/not_run');
 assert.match(server, /function createExecutionResult\(\)[\s\S]*id: 'success_create_ref_recorded'[\s\S]*id: 'success_read_back_verified'[\s\S]*id: 'failure_error_translated'[\s\S]*id: 'failure_no_success_claim'[\s\S]*id: 'rollback_decision_recorded'[\s\S]*id: 'post_result_disabled_probes_verified'/s, 'server execution result shell must include pending success, failure, rollback, and post-result steps');
+assert.match(page, /id="redacted-create-result-contract"[\s\S]*Explicit synthetic CREATE result panel contract \(inactive\)[\s\S]*create_count: pending[\s\S]*read-back verification: pending[\s\S]*backup_state: pending[\s\S]*audit_state: pending[\s\S]*reset\/default-disabled probes: pending/s, 'transaction-entry page must show the inactive redacted result-panel contract without executing CREATE');
+assert.match(page, /id="redacted-create-result-contract"[\s\S]*No raw book paths, account names, descriptions, memos, amounts, GUIDs, screenshots, tokens, or secrets/s, 'redacted result-panel contract must state that raw/private evidence is forbidden');
 assert.doesNotMatch(page, /data-preflight-status="(?:checked|passed|ready|ok)"/, 'target preflight UI must not mark any default check as checked/passed/ready');
 assert.doesNotMatch(page, /data-execution-readiness-status="(?:checked|passed|ready|ok)"/, 'execution readiness shell must not mark any default check as checked/passed/ready');
 assert.doesNotMatch(page, /data-execution-evidence-status="(?:checked|passed|ready|ok)"/, 'execution evidence packet plan must not mark any default evidence step as checked/passed/ready');

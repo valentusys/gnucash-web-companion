@@ -32,6 +32,10 @@ const syntheticAmount = '12.34';
 const explicitSyntheticCreateHarnessToken = 'issue51-explicit-synthetic-create-harness';
 const explicitSyntheticCreateHarnessSearch = '?explicit_test_mode=issue51';
 const explicitSyntheticCreateId = 'synthetic-explicit-create-1';
+const explicitSyntheticCreateRef = 'create-ref-redacted-issue51';
+const explicitSyntheticBackupRef = 'backup-ref-redacted-issue51';
+const explicitSyntheticAuditRef = 'audit-ref-redacted-issue51';
+const explicitSyntheticDisabledProbeFamilies = ['validate', 'preflight', 'create', 'patch', 'delete', 'batch'];
 
 const syntheticBook = {
 	id: 1,
@@ -269,6 +273,59 @@ function isExplicitSyntheticCreateHarnessRequest(req, url) {
 		&& req.headers['x-gnucash-writes-enabled'] === 'true';
 }
 
+function buildRedactedSyntheticCreateResultPanel() {
+	return {
+		redacted_result_panel: {
+			panel_id: 'issue51-redacted-create-result',
+			status: 'success',
+			evidence_scope: 'redacted_only',
+			target_class: 'synthetic_disposable_stub',
+			create_count: 1,
+			create_result_ref: explicitSyntheticCreateRef,
+			read_back_verification: {
+				state: 'verified',
+				transaction_ref: explicitSyntheticCreateRef,
+				transaction_present: true,
+				split_count: 2,
+				split_balance_verified: true,
+				account_balance_delta_count: 2,
+				private_values_redacted: true
+			},
+			backup_state: {
+				state: 'captured',
+				backup_ref: explicitSyntheticBackupRef,
+				raw_path_included: false
+			},
+			audit_state: {
+				state: 'recorded',
+				audit_ref: explicitSyntheticAuditRef,
+				raw_payload_included: false
+			},
+			reset_default_disabled_probe_summary: {
+				state: 'verified',
+				app_env: 'test',
+				gnucash_writes_enabled: false,
+				create_execution_allowed_after_reset: false,
+				probes: explicitSyntheticDisabledProbeFamilies.map((route_family) => ({
+					route_family,
+					status: 'blocked_or_unavailable'
+				}))
+			},
+			redaction: {
+				raw_book_paths: false,
+				raw_backup_paths: false,
+				private_account_names: false,
+				raw_descriptions: false,
+				raw_memos: false,
+				raw_amounts: false,
+				raw_guids: false,
+				screenshots: false,
+				tokens_or_secrets: false
+			}
+		}
+	};
+}
+
 async function startSyntheticApi() {
 	const requests = [];
 	const forbiddenRequests = [];
@@ -283,13 +340,7 @@ async function startSyntheticApi() {
 			if (explicitHarnessRequest) {
 				const payload = await readBody(req);
 				explicitCreatePayloads.push(payload);
-				return jsonResponse(res, 201, {
-					transaction_id: explicitSyntheticCreateId,
-					backup_path: 'redacted-synthetic-backup-ref',
-					audit_log_id: 1,
-					readback_verified: true,
-					readback_transaction_id: explicitSyntheticCreateId
-				});
+				return jsonResponse(res, 201, buildRedactedSyntheticCreateResultPanel());
 			}
 			if (isForbiddenTransactionMutation(req.method ?? 'GET', url.pathname, url.search)) {
 				forbiddenRequests.push({ method: req.method, path: url.pathname, search: url.search, pathWithSearch: `${url.pathname}${url.search}` });
@@ -829,6 +880,13 @@ async function assertExecutionResultShellRemainsPending(cdp, label) {
 	assert.match(executionResultState.executionResultText, /Confirmed failed\/no mutation: safe redacted error only; no success claim/, `${label}: decision ladder must keep failed/no-mutation copy redacted`);
 	assert.match(executionResultState.executionResultText, /Confirmed mutated but rejected by post-checks: owner-approved restore decision before retry/, `${label}: decision ladder must keep restore owner-approved`);
 	assert.match(executionResultState.executionResultText, /After any result: reset writes disabled and run disabled probes before reporting completion/, `${label}: decision ladder must require reset/probes after any result`);
+	assert.match(executionResultState.executionResultText, /Explicit synthetic CREATE result panel contract \(inactive\)/, `${label}: inactive redacted result-panel contract must stay visible`);
+	assert.match(executionResultState.executionResultText, /create_count: pending/, `${label}: inactive result-panel contract must show create_count pending`);
+	assert.match(executionResultState.executionResultText, /read-back verification: pending/, `${label}: inactive result-panel contract must show read-back pending`);
+	assert.match(executionResultState.executionResultText, /backup_state: pending/, `${label}: inactive result-panel contract must show backup state pending`);
+	assert.match(executionResultState.executionResultText, /audit_state: pending/, `${label}: inactive result-panel contract must show audit state pending`);
+	assert.match(executionResultState.executionResultText, /reset\/default-disabled probes: pending/, `${label}: inactive result-panel contract must show reset/default-disabled probes pending`);
+	assert.match(executionResultState.executionResultText, /No raw book paths, account names, descriptions, memos, amounts, GUIDs, screenshots, tokens, or secrets/, `${label}: inactive result-panel contract must forbid private/raw evidence`);
 	assert.match(executionResultState.executionResultText, /performs no restore and emits no success claim/, `${label}: rollback/no-success boundary must stay visible`);
 	assert.deepEqual(executionResultState.executionResultStatuses, Array(6).fill('pending'), `${label}: execution-result steps must stay pending`);
 	assert.deepEqual(
@@ -1162,6 +1220,85 @@ async function assertExplicitSyntheticCreateHarnessRejectsUserMode(api, browserR
 	);
 }
 
+function assertRedactedSyntheticCreateResultPanel(responseBody, productCreatePayload, reviewedApprovalEvidence) {
+	assert.deepEqual(
+		responseBody,
+		buildRedactedSyntheticCreateResultPanel(),
+		'explicit synthetic CREATE result panel must match the redacted success/result contract'
+	);
+	const panel = responseBody.redacted_result_panel;
+	assert.equal(panel.panel_id, 'issue51-redacted-create-result', 'explicit synthetic CREATE result panel must have a stable redacted panel id');
+	assert.equal(panel.status, 'success', 'explicit synthetic CREATE result panel may show success only for the explicit test-mode harness result');
+	assert.equal(panel.evidence_scope, 'redacted_only', 'explicit synthetic CREATE result panel must be redacted-only');
+	assert.equal(panel.target_class, 'synthetic_disposable_stub', 'explicit synthetic CREATE result panel must stay scoped to the synthetic disposable stub target');
+	assert.equal(panel.create_count, reviewedApprovalEvidence.create_count, 'explicit synthetic CREATE result panel must show the reviewed exact create_count');
+	assert.equal(panel.create_count, 1, 'explicit synthetic CREATE result panel must show exactly one CREATE');
+	assert.deepEqual(
+		panel.read_back_verification,
+		{
+			state: 'verified',
+			transaction_ref: explicitSyntheticCreateRef,
+			transaction_present: true,
+			split_count: 2,
+			split_balance_verified: true,
+			account_balance_delta_count: 2,
+			private_values_redacted: true
+		},
+		'explicit synthetic CREATE result panel must show read-back verification without raw transaction values'
+	);
+	assert.deepEqual(
+		panel.backup_state,
+		{ state: 'captured', backup_ref: explicitSyntheticBackupRef, raw_path_included: false },
+		'explicit synthetic CREATE result panel must show backup state without raw backup path'
+	);
+	assert.deepEqual(
+		panel.audit_state,
+		{ state: 'recorded', audit_ref: explicitSyntheticAuditRef, raw_payload_included: false },
+		'explicit synthetic CREATE result panel must show audit state without raw payload'
+	);
+	assert.deepEqual(
+		panel.reset_default_disabled_probe_summary.probes.map((probe) => probe.route_family),
+		explicitSyntheticDisabledProbeFamilies,
+		'reset/default-disabled probe summary must cover validate/preflight/CREATE/PATCH/DELETE/batch'
+	);
+	assert.equal(panel.reset_default_disabled_probe_summary.gnucash_writes_enabled, false, 'explicit synthetic CREATE result panel must show writes reset to default disabled');
+	assert.equal(panel.reset_default_disabled_probe_summary.app_env, 'test', 'explicit synthetic CREATE result panel must remain APP_ENV=test scoped');
+	assert.equal(panel.reset_default_disabled_probe_summary.create_execution_allowed_after_reset, false, 'explicit synthetic CREATE result panel must show CREATE blocked after reset');
+	assert.ok(
+		panel.reset_default_disabled_probe_summary.probes.every((probe) => probe.status === 'blocked_or_unavailable'),
+		'explicit synthetic CREATE result panel must show every default-disabled probe as blocked or unavailable'
+	);
+	assert.deepEqual(
+		panel.redaction,
+		{
+			raw_book_paths: false,
+			raw_backup_paths: false,
+			private_account_names: false,
+			raw_descriptions: false,
+			raw_memos: false,
+			raw_amounts: false,
+			raw_guids: false,
+			screenshots: false,
+			tokens_or_secrets: false
+		},
+		'explicit synthetic CREATE result panel must show the no-private/raw-data redaction state'
+	);
+
+	const redactedResultText = JSON.stringify(responseBody);
+	for (const forbiddenValue of [
+		explicitSyntheticCreateId,
+		syntheticDescription,
+		syntheticMemo,
+		syntheticAmount,
+		productCreatePayload.description,
+		...productCreatePayload.splits.flatMap((split) => [split.account_id, split.amount, split.currency, split.memo])
+	]) {
+		assert.ok(!redactedResultText.includes(String(forbiddenValue)), `explicit synthetic CREATE result panel must stay redacted: ${forbiddenValue}`);
+	}
+	assert.ok(!/"transaction_id"\s*:/.test(redactedResultText), 'explicit synthetic CREATE result panel must not expose a raw transaction_id field');
+	assert.ok(!/"backup_path"\s*:/.test(redactedResultText), 'explicit synthetic CREATE result panel must not expose a raw backup_path field');
+}
+
 async function runExplicitSyntheticCreateHarness(api, browserRequests, previewPayload, reviewedApprovalEvidence) {
 	assertExplicitSyntheticCreateHarnessReviewedEvidence(reviewedApprovalEvidence);
 	assert.equal(api.explicitCreatePayloads.length, 0, 'explicit synthetic CREATE harness must start with zero CREATE payloads');
@@ -1195,13 +1332,8 @@ async function runExplicitSyntheticCreateHarness(api, browserRequests, previewPa
 		body: JSON.stringify(productCreatePayload)
 	});
 	assert.equal(response.status, 201, 'explicit synthetic CREATE harness must use product CREATE route and receive a synthetic created result');
-	assert.deepEqual(await response.json(), {
-		transaction_id: explicitSyntheticCreateId,
-		backup_path: 'redacted-synthetic-backup-ref',
-		audit_log_id: 1,
-		readback_verified: true,
-		readback_transaction_id: explicitSyntheticCreateId
-	});
+	const responseBody = await response.json();
+	assertRedactedSyntheticCreateResultPanel(responseBody, productCreatePayload, reviewedApprovalEvidence);
 	assert.equal(browserRequests.length, browserRequestCountBefore, 'explicit harness must not be browser-driven or activate default UI');
 	assert.equal(api.forbiddenRequests.length, forbiddenRequestCountBefore, 'explicit harness must not be counted as a default/user-mode mutation boundary request');
 	assert.deepEqual(api.explicitCreatePayloads, [productCreatePayload], 'explicit synthetic CREATE harness must capture exactly one product CREATE payload');
