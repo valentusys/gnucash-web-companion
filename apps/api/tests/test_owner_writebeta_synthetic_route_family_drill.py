@@ -588,6 +588,9 @@ def test_issue50_routed_create_real_service_path_covers_backup_lock_audit_readba
 
     events: list[str] = []
     backup_paths: list[str] = []
+    audit_start_snapshots: list[dict[str, Any]] = []
+    audit_success_snapshots: list[dict[str, Any]] = []
+    audit_row_ids: list[int] = []
     created: dict[str, Any] = {}
     currency = SimpleNamespace(mnemonic="SEK")
     accounts = [
@@ -710,11 +713,15 @@ def test_issue50_routed_create_real_service_path_covers_backup_lock_audit_readba
 
     def spy_audit_log(session, user_id: int, book_id: int, action: str, payload: dict):
         events.append(f"audit-start:{payload['result']}")
-        return real_audit_log(session, user_id, book_id, action, payload)
+        log = real_audit_log(session, user_id, book_id, action, payload)
+        audit_row_ids.append(log.id)
+        audit_start_snapshots.append(json.loads(log.payload_json or "{}"))
+        return log
 
     def spy_update_audit_log(session, log, payload: dict) -> None:
         events.append(f"audit-update:{payload['result']}")
         real_update_audit_log(session, log, payload)
+        audit_success_snapshots.append(json.loads(log.payload_json or "{}"))
 
     monkeypatch.setattr(transactions_router, "_write_service_for", lambda book: GnuCashWriteService(book))
     monkeypatch.setattr(transactions_router, "transaction_service_for", lambda book: FakeReadbackService())
@@ -776,6 +783,48 @@ def test_issue50_routed_create_real_service_path_covers_backup_lock_audit_readba
         "transaction:Synthetic routed CREATE decimal preservation:SEK:2"
         in events
     )
+    tx = cast(Any, created["transaction"])
+    assert tx.post_date == date(2026, 6, 4)
+    assert tx.description == payload["description"]
+    assert tx.currency.mnemonic == "SEK"
+    assert len(tx.splits) == 2
+    assert [split.account.guid for split in tx.splits] == ["synthetic-bank", "synthetic-expense"]
+    assert [str(split.value) for split in tx.splits] == ["-123.4500", "123.4500"]
+    assert [split.memo for split in tx.splits] == [
+        "synthetic source memo exact trailing zeros",
+        "synthetic destination memo exact trailing zeros",
+    ]
+
+    expected_request_summary = {
+        "date": "2026-06-04",
+        "description": "Synthetic routed CREATE decimal preservation",
+        "split_count": 2,
+        "currencies": ["SEK"],
+    }
+    assert audit_row_ids == [data["audit_log_id"]]
+    assert len(audit_start_snapshots) == 1
+    audit_start = audit_start_snapshots[0]
+    assert audit_start["result"] == "started"
+    assert audit_start["request_summary"] == expected_request_summary
+    assert audit_start["transaction_id"] is None
+    assert audit_start["backup_path"] is None
+    assert audit_start["backup_artifact_ref"] is None
+    assert audit_start["readback_verified"] is False
+    assert audit_start["readback_transaction_id"] is None
+    assert audit_start["readback_transaction_present"] is False
+    assert audit_start["readback_split_count"] is None
+
+    assert len(audit_success_snapshots) == 1
+    audit_success = audit_success_snapshots[0]
+    assert audit_success["result"] == "success"
+    assert audit_success["request_summary"] == expected_request_summary
+    assert audit_success["transaction_id"] == "synthetic-created-route-real"
+    assert audit_success["backup_path"] == data["backup_path"]
+    assert audit_success["backup_artifact_ref"].startswith("bkp-")
+    assert audit_success["readback_verified"] is True
+    assert audit_success["readback_transaction_id"] == "synthetic-created-route-real"
+    assert audit_success["readback_transaction_present"] is True
+    assert audit_success["readback_split_count"] == 2
 
     response_evidence = json.dumps(data, sort_keys=True)
     for raw_value in (
@@ -792,12 +841,7 @@ def test_issue50_routed_create_real_service_path_covers_backup_lock_audit_readba
     assert len(payloads) == 1
     audit_payload = payloads[0]
     assert audit_payload["result"] == "success"
-    assert audit_payload["request_summary"] == {
-        "date": "2026-06-04",
-        "description": "Synthetic routed CREATE decimal preservation",
-        "split_count": 2,
-        "currencies": ["SEK"],
-    }
+    assert audit_payload["request_summary"] == expected_request_summary
     assert audit_payload["transaction_id"] == "synthetic-created-route-real"
     assert audit_payload["readback_verified"] is True
     assert audit_payload["readback_transaction_id"] == "synthetic-created-route-real"
