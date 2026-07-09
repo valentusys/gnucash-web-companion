@@ -829,6 +829,21 @@ class TestWritesDisabledByDefault:
         rejected_cases = [
             ("missing explicit query", "", required_harness_headers),
             (
+                "query-smuggled next route",
+                f"{explicit_query}&next=%2Fbooks%2F{sample_book}%2Ftransactions%2Fbatch",
+                required_harness_headers,
+            ),
+            (
+                "duplicate explicit query",
+                f"{explicit_query}&explicit_test_mode=issue51",
+                required_harness_headers,
+            ),
+            (
+                "leading unrelated query",
+                f"?next=%2Fbooks%2F{sample_book}%2Ftransactions%2Fbatch&explicit_test_mode=issue51",
+                required_harness_headers,
+            ),
+            (
                 "missing explicit harness header",
                 explicit_query,
                 {
@@ -852,6 +867,24 @@ class TestWritesDisabledByDefault:
                 {
                     **required_harness_headers,
                     "X-Issue51-Synthetic-Disposable-Proof": "owner-private-target",
+                },
+            ),
+            (
+                "header-smuggled explicit harness token",
+                explicit_query,
+                {
+                    **required_harness_headers,
+                    "X-Issue51-Explicit-Test-Create": " issue51-explicit-synthetic-create-harness",
+                },
+            ),
+            (
+                "comma-smuggled synthetic disposable proof header",
+                explicit_query,
+                {
+                    **required_harness_headers,
+                    "X-Issue51-Synthetic-Disposable-Proof": (
+                        "synthetic-disposable-fixture-book-1,owner-private-target"
+                    ),
                 },
             ),
             (

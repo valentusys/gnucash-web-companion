@@ -18,7 +18,7 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any, NoReturn
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
@@ -87,6 +87,7 @@ DISPOSABLE_CREATE_TARGET_HINTS = frozenset(
 )
 SQLITE_BOOK_SUFFIXES = frozenset({".sqlite", ".sqlite3", ".db"})
 ISSUE51_EXPLICIT_TEST_MODE = "issue51"
+ISSUE51_EXPLICIT_CREATE_QUERY = f"explicit_test_mode={ISSUE51_EXPLICIT_TEST_MODE}"
 ISSUE51_EXPLICIT_CREATE_HEADER = "issue51-explicit-synthetic-create-harness"
 ISSUE51_SYNTHETIC_DISPOSABLE_PROOF = "synthetic-disposable-fixture-book-1"
 EXPLICIT_ISSUE51_CREATE_HARNESS_DETAIL = (
@@ -1553,7 +1554,7 @@ def _require_disposable_create_target(book: Book) -> None:
 
 
 def _clean_harness_value(value: str | None) -> str:
-    return str(value or "").strip()
+    return "" if value is None else str(value)
 
 
 def _explicit_issue51_create_harness_attempted(
@@ -1579,6 +1580,7 @@ def _explicit_issue51_create_harness_attempted(
 def _require_explicit_issue51_create_harness_scope(
     *,
     settings: Settings,
+    raw_query: str,
     explicit_test_mode: str | None,
     x_issue51_explicit_test_create: str | None,
     x_issue51_synthetic_disposable_proof: str | None,
@@ -1603,7 +1605,8 @@ def _require_explicit_issue51_create_harness_scope(
         return
 
     if (
-        _clean_harness_value(explicit_test_mode) != ISSUE51_EXPLICIT_TEST_MODE
+        raw_query != ISSUE51_EXPLICIT_CREATE_QUERY
+        or _clean_harness_value(explicit_test_mode) != ISSUE51_EXPLICIT_TEST_MODE
         or _clean_harness_value(x_issue51_explicit_test_create) != ISSUE51_EXPLICIT_CREATE_HEADER
         or _clean_harness_value(x_issue51_synthetic_disposable_proof)
         != ISSUE51_SYNTHETIC_DISPOSABLE_PROOF
@@ -1815,6 +1818,7 @@ async def validate_book_transaction(
 async def create_book_transaction(
     book_id: int,
     request: TransactionCreateRequestDTO,
+    http_request: Request,
     user: User = Depends(get_current_user),
     session: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
@@ -1837,6 +1841,7 @@ async def create_book_transaction(
     _require_disposable_create_target(book)
     _require_explicit_issue51_create_harness_scope(
         settings=settings,
+        raw_query=http_request.url.query,
         explicit_test_mode=explicit_test_mode,
         x_issue51_explicit_test_create=x_issue51_explicit_test_create,
         x_issue51_synthetic_disposable_proof=x_issue51_synthetic_disposable_proof,

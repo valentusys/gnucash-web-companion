@@ -344,7 +344,10 @@ function assertExplicitSyntheticCreateHarnessPredicateRequiresDisposableProof() 
 		['non-disposable synthetic book id', request(), url(`/books/2/transactions${explicitSyntheticCreateHarnessSearch}`)],
 		['missing synthetic/disposable proof header', request({ headers: { ...headers, 'x-issue51-synthetic-disposable-proof': undefined } }), url(`/books/1/transactions${explicitSyntheticCreateHarnessSearch}`)],
 		['wrong APP_ENV header', request({ headers: { ...headers, 'x-app-env': 'production' } }), url(`/books/1/transactions${explicitSyntheticCreateHarnessSearch}`)],
+		['header-smuggled explicit harness token', request({ headers: { ...headers, 'x-issue51-explicit-test-create': ` ${explicitSyntheticCreateHarnessToken}` } }), url(`/books/1/transactions${explicitSyntheticCreateHarnessSearch}`)],
 		['query-smuggled mutation target', request(), url('/books/1/transactions?explicit_test_mode=issue51&next=%2Fbooks%2F2%2Ftransactions%2Fbatch')],
+		['extra explicit query parameter', request(), url(`/books/1/transactions${explicitSyntheticCreateHarnessSearch}&mode=preview`)],
+		['duplicate explicit test-mode query', request(), url(`/books/1/transactions${explicitSyntheticCreateHarnessSearch}&explicit_test_mode=issue51`)],
 		['missing exact explicit query', request(), url('/books/1/transactions')]
 	];
 	for (const [label, rejectedRequest, rejectedUrl] of rejectedCases) {
@@ -2006,6 +2009,17 @@ async function assertExplicitSyntheticCreateHarnessRejectsUserMode(api, browserR
 				'x-app-env': 'test',
 				'x-gnucash-writes-enabled': 'true'
 			}
+		},
+		{
+			label: 'query-smuggled explicit CREATE probe',
+			path: '/books/1/transactions',
+			search: `${explicitSyntheticCreateHarnessSearch}&next=%2Fbooks%2F1%2Ftransactions%2Fbatch`,
+			headers: {
+				'x-issue51-explicit-test-create': explicitSyntheticCreateHarnessToken,
+				'x-issue51-synthetic-disposable-proof': explicitSyntheticDisposableProof,
+				'x-app-env': 'test',
+				'x-gnucash-writes-enabled': 'true'
+			}
 		}
 	];
 
@@ -2505,7 +2519,8 @@ async function runExplicitSyntheticCreateHarness(api, browserRequests, previewPa
 			{ method: 'POST', path: '/books/1/transactions', search: explicitSyntheticCreateHarnessSearch, pathWithSearch: `/books/1/transactions${explicitSyntheticCreateHarnessSearch}` },
 			{ method: 'POST', path: '/books/1/transactions', search: explicitSyntheticCreateHarnessSearch, pathWithSearch: `/books/1/transactions${explicitSyntheticCreateHarnessSearch}` },
 			{ method: 'POST', path: '/books/1/transactions', search: explicitSyntheticCreateHarnessSearch, pathWithSearch: `/books/1/transactions${explicitSyntheticCreateHarnessSearch}` },
-			{ method: 'POST', path: '/books/1/transactions', search: '', pathWithSearch: '/books/1/transactions' }
+			{ method: 'POST', path: '/books/1/transactions', search: '', pathWithSearch: '/books/1/transactions' },
+			{ method: 'POST', path: '/books/1/transactions', search: `${explicitSyntheticCreateHarnessSearch}&next=%2Fbooks%2F1%2Ftransactions%2Fbatch`, pathWithSearch: `/books/1/transactions${explicitSyntheticCreateHarnessSearch}&next=%2Fbooks%2F1%2Ftransactions%2Fbatch` }
 		],
 		'default/user-mode product CREATE route must be probed only by explicit Node harness and remain blocked'
 	);
