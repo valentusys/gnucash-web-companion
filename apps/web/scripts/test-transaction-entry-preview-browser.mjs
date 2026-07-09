@@ -37,6 +37,7 @@ const syntheticQueryTamperDescription = 'Synthetic browser smoke explicit-mode q
 const disposableSourceAccountId = 'c73e8aa01e6345288662b556f2f866f3';
 const disposableDestinationAccountId = '388a85676d4a4643ae6cd28166c34e79';
 const explicitSyntheticCreateHarnessToken = 'issue51-explicit-synthetic-create-harness';
+const explicitSyntheticDisposableProof = 'synthetic-disposable-fixture-book-1';
 const explicitSyntheticCreateHarnessSearch = '?explicit_test_mode=issue51';
 const explicitSyntheticCreateId = 'synthetic-explicit-create-1';
 const explicitSyntheticCreateRef = 'create-ref-redacted-issue51';
@@ -283,8 +284,39 @@ function isExplicitSyntheticCreateHarnessRequest(req, url) {
 		&& url.pathname === '/books/1/transactions'
 		&& url.search === explicitSyntheticCreateHarnessSearch
 		&& req.headers['x-issue51-explicit-test-create'] === explicitSyntheticCreateHarnessToken
+		&& req.headers['x-issue51-synthetic-disposable-proof'] === explicitSyntheticDisposableProof
 		&& req.headers['x-app-env'] === 'test'
 		&& req.headers['x-gnucash-writes-enabled'] === 'true';
+}
+
+function assertExplicitSyntheticCreateHarnessPredicateRequiresDisposableProof() {
+	const headers = {
+		'x-issue51-explicit-test-create': explicitSyntheticCreateHarnessToken,
+		'x-issue51-synthetic-disposable-proof': explicitSyntheticDisposableProof,
+		'x-app-env': 'test',
+		'x-gnucash-writes-enabled': 'true'
+	};
+	const request = (overrides = {}) => ({ method: 'POST', headers, ...overrides });
+	const url = (pathWithSearch) => new URL(pathWithSearch, 'http://127.0.0.1');
+	assert.equal(
+		isExplicitSyntheticCreateHarnessRequest(request(), url(`/books/1/transactions${explicitSyntheticCreateHarnessSearch}`)),
+		true,
+		'explicit synthetic CREATE harness predicate accepts only the fully proofed disposable fixture target'
+	);
+	const rejectedCases = [
+		['non-disposable book id', request(), url(`/books/2/transactions${explicitSyntheticCreateHarnessSearch}`)],
+		['missing synthetic/disposable proof header', request({ headers: { ...headers, 'x-issue51-synthetic-disposable-proof': undefined } }), url(`/books/1/transactions${explicitSyntheticCreateHarnessSearch}`)],
+		['wrong APP_ENV header', request({ headers: { ...headers, 'x-app-env': 'production' } }), url(`/books/1/transactions${explicitSyntheticCreateHarnessSearch}`)],
+		['query-smuggled mutation target', request(), url('/books/1/transactions?explicit_test_mode=issue51&next=%2Fbooks%2F2%2Ftransactions%2Fbatch')],
+		['missing exact explicit query', request(), url('/books/1/transactions')]
+	];
+	for (const [label, rejectedRequest, rejectedUrl] of rejectedCases) {
+		assert.equal(
+			isExplicitSyntheticCreateHarnessRequest(rejectedRequest, rejectedUrl),
+			false,
+			`explicit synthetic CREATE harness predicate must reject ${label}`
+		);
+	}
 }
 
 function buildRedactedSyntheticCreateResultPanel() {
@@ -1337,6 +1369,7 @@ function forbiddenBrowserMutationRequests(requests) {
 }
 
 function assertMutationRequestPredicates() {
+	assertExplicitSyntheticCreateHarnessPredicateRequiresDisposableProof();
 	const allowedApiRequests = [
 		['GET', '/health', ''],
 		['GET', '/books/1/transactions/create-readiness-status', ''],
@@ -1504,13 +1537,27 @@ async function assertExplicitSyntheticCreateHarnessRejectsUserMode(api, browserR
 		{
 			label: 'missing explicit harness header',
 			search: explicitSyntheticCreateHarnessSearch,
-			headers: { 'x-app-env': 'test', 'x-gnucash-writes-enabled': 'true' }
+			headers: {
+				'x-issue51-synthetic-disposable-proof': explicitSyntheticDisposableProof,
+				'x-app-env': 'test',
+				'x-gnucash-writes-enabled': 'true'
+			}
+		},
+		{
+			label: 'missing synthetic/disposable proof header',
+			search: explicitSyntheticCreateHarnessSearch,
+			headers: {
+				'x-issue51-explicit-test-create': explicitSyntheticCreateHarnessToken,
+				'x-app-env': 'test',
+				'x-gnucash-writes-enabled': 'true'
+			}
 		},
 		{
 			label: 'non-test APP_ENV synthetic CREATE probe',
 			search: explicitSyntheticCreateHarnessSearch,
 			headers: {
 				'x-issue51-explicit-test-create': explicitSyntheticCreateHarnessToken,
+				'x-issue51-synthetic-disposable-proof': explicitSyntheticDisposableProof,
 				'x-app-env': 'production',
 				'x-gnucash-writes-enabled': 'true'
 			}
@@ -1520,6 +1567,7 @@ async function assertExplicitSyntheticCreateHarnessRejectsUserMode(api, browserR
 			search: explicitSyntheticCreateHarnessSearch,
 			headers: {
 				'x-issue51-explicit-test-create': explicitSyntheticCreateHarnessToken,
+				'x-issue51-synthetic-disposable-proof': explicitSyntheticDisposableProof,
 				'x-app-env': 'test',
 				'x-gnucash-writes-enabled': 'false'
 			}
@@ -1529,6 +1577,7 @@ async function assertExplicitSyntheticCreateHarnessRejectsUserMode(api, browserR
 			search: '',
 			headers: {
 				'x-issue51-explicit-test-create': explicitSyntheticCreateHarnessToken,
+				'x-issue51-synthetic-disposable-proof': explicitSyntheticDisposableProof,
 				'x-app-env': 'test',
 				'x-gnucash-writes-enabled': 'true'
 			}
@@ -1606,6 +1655,16 @@ function assertRedactedSyntheticCreateResultPanel(responseBody, productCreatePay
 	assert.equal(panel.target_class, 'disposable_copied_like_fixture', 'explicit synthetic CREATE result panel must stay scoped to the disposable copied-like fixture target');
 	assert.equal(panel.create_count, reviewedApprovalEvidence.create_count, 'explicit synthetic CREATE result panel must show the reviewed exact create_count');
 	assert.equal(panel.create_count, 1, 'explicit synthetic CREATE result panel must show exactly one CREATE');
+	assert.deepEqual(
+		panel.fixture_scope,
+		{
+			copied_like_fixture: true,
+			synthetic_fixture_source: true,
+			outside_git_worktree: true,
+			private_or_only_copy_target: false
+		},
+		'explicit synthetic CREATE result panel must prove a synthetic/disposable copied-like fixture target'
+	);
 	assert.deepEqual(
 		panel.read_back_verification,
 		{
@@ -1717,6 +1776,7 @@ async function runExplicitSyntheticCreateHarness(api, browserRequests, previewPa
 			.filter((request) => request.path === '/books/1/transactions' && !request.explicitHarnessRequest)
 			.map(({ method, path, search, pathWithSearch }) => ({ method, path, search, pathWithSearch })),
 		[
+			{ method: 'POST', path: '/books/1/transactions', search: explicitSyntheticCreateHarnessSearch, pathWithSearch: `/books/1/transactions${explicitSyntheticCreateHarnessSearch}` },
 			{ method: 'POST', path: '/books/1/transactions', search: explicitSyntheticCreateHarnessSearch, pathWithSearch: `/books/1/transactions${explicitSyntheticCreateHarnessSearch}` },
 			{ method: 'POST', path: '/books/1/transactions', search: explicitSyntheticCreateHarnessSearch, pathWithSearch: `/books/1/transactions${explicitSyntheticCreateHarnessSearch}` },
 			{ method: 'POST', path: '/books/1/transactions', search: explicitSyntheticCreateHarnessSearch, pathWithSearch: `/books/1/transactions${explicitSyntheticCreateHarnessSearch}` },

@@ -203,6 +203,26 @@ def sample_book(session_factory, tmp_path: Path):
 
 
 @pytest.fixture
+def non_disposable_sample_book(session_factory, tmp_path: Path):
+    target = tmp_path / "ledger-main.gnucash.sqlite"
+    target.write_bytes(b"SQLite format 3\x00 non-disposable route target placeholder")
+    with session_factory() as session:
+        book = Book(
+            name="Non-disposable route target fixture",
+            storage_type="sqlite",
+            uri_or_path=str(target),
+            is_default=False,
+        )
+        session.add(book)
+        session.flush()
+        admin = session.query(User).filter(User.username == "admin").one()
+        session.add(UserBookAccess(user_id=admin.id, book_id=book.id, role="owner"))
+        session.commit()
+        book_id = book.id
+    return book_id
+
+
+@pytest.fixture
 def editor_book_access(session_factory, sample_book, editor_user):
     with session_factory() as session:
         session.add(UserBookAccess(user_id=editor_user, book_id=sample_book, role="editor"))
@@ -722,6 +742,67 @@ class TestWritesDisabledByDefault:
             assert "test" in response.json()["detail"]
         assert fail_if_write_service_is_constructed == []
         assert resolved_books == []
+
+    def test_write_routes_reject_explicit_mode_query_and_header_smuggling_on_non_disposable_target(
+        self,
+        client,
+        auth_headers,
+        non_disposable_sample_book,
+        session_factory,
+        monkeypatch,
+    ):
+        write_service_calls = []
+
+        def forbidden_write_service(*args, **kwargs):
+            write_service_calls.append((args, kwargs))
+            raise AssertionError("non-disposable smuggling probes must not construct write services")
+
+        monkeypatch.setattr("app.routers.transactions._write_service_for", forbidden_write_service)
+        smuggled_headers = {
+            **auth_headers,
+            "X-Issue51-Explicit-Test-Create": "issue51-explicit-synthetic-create-harness",
+            "X-Issue51-Synthetic-Disposable-Proof": "synthetic-disposable-fixture-book-1",
+            "X-App-Env": "test",
+            "X-Gnucash-Writes-Enabled": "true",
+            "X-Owner-Writebeta-Preview-Hash": "owb-prev-smuggled",
+            "X-Owner-Writebeta-Confirmation-Token": "owb-conf-smuggled",
+        }
+        smuggled_query = (
+            "explicit_test_mode=issue51"
+            f"&next=%2Fbooks%2F{non_disposable_sample_book}%2Ftransactions%2Fbatch"
+        )
+
+        responses = [
+            client.post(
+                f"/books/{non_disposable_sample_book}/transactions/validate?{smuggled_query}",
+                json=_balanced_transaction_payload(),
+                headers=smuggled_headers,
+            ),
+            client.post(
+                f"/books/{non_disposable_sample_book}/transactions?{smuggled_query}",
+                json=_balanced_transaction_payload(),
+                headers=smuggled_headers,
+            ),
+            client.patch(
+                f"/books/{non_disposable_sample_book}/transactions/synthetic-created-tx?{smuggled_query}",
+                json={"description": "smuggled metadata-only patch"},
+                headers=smuggled_headers,
+            ),
+            client.delete(
+                f"/books/{non_disposable_sample_book}/transactions/synthetic-created-tx?{smuggled_query}",
+                headers=smuggled_headers,
+            ),
+        ]
+
+        for response in responses:
+            assert response.status_code == 403
+            detail = response.json()["detail"]
+            assert "Disposable target preflight failed closed" in detail
+            assert "filename must mark it as copied/disposable/synthetic test data" in detail
+            assert "ledger-main" not in detail
+        assert write_service_calls == []
+        with session_factory() as session:
+            assert session.query(AuditLog).count() == 0
 
 
 # ---------------------------------------------------------------------------

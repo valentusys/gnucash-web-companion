@@ -1591,6 +1591,65 @@ def test_write_safety_defaults_guard_rejects_new_put_transaction_write_route_not
     assert str(tmp_path) not in "; ".join(failures)
 
 
+def test_write_safety_defaults_guard_rejects_write_route_missing_disposable_target_guard(tmp_path: Path) -> None:
+    routes = tmp_path / "transactions.py"
+    route_defs = "\n".join(
+        f"async def {name}():\n"
+        "    _ensure_writes_enabled(settings)\n"
+        "    _ensure_write_alpha_test_scope(settings)\n"
+        "    book = _resolve_viewable_book(book_id, user, session)\n"
+        "    _require_book_edit_access(book, user, session)\n"
+        "    service = _write_service_for(book)\n"
+        "    return service.validate_transaction_create(request)\n"
+        for name in write_safety_guard.WRITE_ROUTE_FUNCTIONS
+    )
+    routes.write_text(
+        "def _ensure_writes_enabled(settings):\n"
+        "    if not settings.gnucash_writes_enabled:\n"
+        "        raise RuntimeError(\"GnuCash writes are disabled. MVP v0.1 is read-only by default.\")\n\n"
+        "def _ensure_write_alpha_test_scope(settings):\n"
+        "    if settings.app_env.lower() != \"test\":\n"
+        "        raise RuntimeError(\"controlled write-alpha routes are limited to explicit test-environment\")\n\n"
+        f"{route_defs}\n",
+        encoding="utf-8",
+    )
+
+    failures = write_safety_guard._check_write_route_test_gates(routes)
+
+    assert any("must require a synthetic/disposable target before write-family execution" in failure for failure in failures)
+    assert str(tmp_path) not in "; ".join(failures)
+
+
+def test_write_safety_defaults_guard_rejects_disposable_target_guard_after_write_service(tmp_path: Path) -> None:
+    routes = tmp_path / "transactions.py"
+    route_defs = "\n".join(
+        f"async def {name}():\n"
+        "    _ensure_writes_enabled(settings)\n"
+        "    _ensure_write_alpha_test_scope(settings)\n"
+        "    book = _resolve_viewable_book(book_id, user, session)\n"
+        "    _require_book_edit_access(book, user, session)\n"
+        "    service = _write_service_for(book)\n"
+        "    _require_disposable_create_target(book)\n"
+        "    return service.validate_transaction_create(request)\n"
+        for name in write_safety_guard.WRITE_ROUTE_FUNCTIONS
+    )
+    routes.write_text(
+        "def _ensure_writes_enabled(settings):\n"
+        "    if not settings.gnucash_writes_enabled:\n"
+        "        raise RuntimeError(\"GnuCash writes are disabled. MVP v0.1 is read-only by default.\")\n\n"
+        "def _ensure_write_alpha_test_scope(settings):\n"
+        "    if settings.app_env.lower() != \"test\":\n"
+        "        raise RuntimeError(\"controlled write-alpha routes are limited to explicit test-environment\")\n\n"
+        f"{route_defs}\n",
+        encoding="utf-8",
+    )
+
+    failures = write_safety_guard._check_write_route_test_gates(routes)
+
+    assert any("must call _require_disposable_create_target before _write_service_for" in failure for failure in failures)
+    assert str(tmp_path) not in "; ".join(failures)
+
+
 def test_write_safety_defaults_guard_rejects_docstring_only_write_default_gate(tmp_path: Path) -> None:
     routes = tmp_path / "transactions.py"
     route_defs = "\n".join(

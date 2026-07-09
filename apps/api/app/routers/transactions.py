@@ -1726,6 +1726,9 @@ async def validate_book_transaction(
     _ensure_write_alpha_test_scope(settings)
     book = _resolve_viewable_book(book_id, user, session)
     _require_book_edit_access(book, user, session)
+    # Validation is part of the write route family: it may construct the
+    # write service, so it must prove the target is synthetic/disposable first.
+    _require_disposable_create_target(book)
 
     service = _write_service_for(book)
     return service.validate_transaction_create(request)

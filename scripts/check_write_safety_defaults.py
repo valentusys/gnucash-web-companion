@@ -84,10 +84,22 @@ WRITE_ROUTE_FUNCTIONS = (
 WRITE_ROUTE_GATED_CALLS = (
     "_resolve_viewable_book",
     "_require_book_edit_access",
+    "_require_disposable_create_target",
     "_write_service_for",
     "_audit_log",
     "_require_write_alpha_transaction_ownership",
     "require_owner_writebeta_if_active",
+)
+WRITE_ROUTE_DISPOSABLE_TARGET_GUARD = "_require_disposable_create_target"
+WRITE_ROUTE_ACTIVE_CALLS_AFTER_DISPOSABLE_GUARD = (
+    "_write_service_for",
+    "_audit_log",
+    "_require_write_alpha_transaction_ownership",
+    "require_owner_writebeta_if_active",
+    "validate_transaction_create",
+    "create_transaction",
+    "patch_transaction_metadata",
+    "delete_transaction",
 )
 WRITE_COMPATIBILITY_REQUIRED_TEXTS = (
     "supported-version write compatibility remains pending",
@@ -811,6 +823,18 @@ def _check_write_route_test_gates(routes_path: Path = REPO_ROOT / WRITE_ROUTES_F
                     failures.append(
                         f"write route {function_name} must call {gated_call} only after APP_ENV=test scope"
                     )
+            disposable_guard_line = _first_call_line(call_lines, WRITE_ROUTE_DISPOSABLE_TARGET_GUARD)
+            if disposable_guard_line is None:
+                failures.append(
+                    f"write route {function_name} must require a synthetic/disposable target before write-family execution"
+                )
+            else:
+                for active_call in WRITE_ROUTE_ACTIVE_CALLS_AFTER_DISPOSABLE_GUARD:
+                    active_call_line = _first_call_line(call_lines, active_call)
+                    if active_call_line is not None and active_call_line < disposable_guard_line:
+                        failures.append(
+                            f"write route {function_name} must call {WRITE_ROUTE_DISPOSABLE_TARGET_GUARD} before {active_call}"
+                        )
     return failures
 
 
