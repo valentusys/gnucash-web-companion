@@ -763,20 +763,39 @@ def test_issue50_routed_create_real_service_path_covers_backup_lock_audit_readba
     assert response.status_code == 201
     data = response.json()
     assert data["transaction_id"] == "synthetic-created-route-real"
-    assert data["readback_verified"] is True
-    assert data["readback_transaction_id"] == "synthetic-created-route-real"
+    expected_success_readback = {
+        "readback_verified": True,
+        "readback_transaction_id": "synthetic-created-route-real",
+        "readback_transaction_present": True,
+        "readback_split_count": 2,
+        "readback_split_balance_verified": True,
+        "readback_split_balance_by_currency": {"SEK": "0.0000"},
+        "readback_currency": "SEK",
+        "readback_currency_consistent": True,
+        "readback_account_balance_deltas_verified": True,
+        "readback_account_balance_delta_count": 2,
+        "readback_account_balance_delta_total_by_currency": {"SEK": "0.0000"},
+    }
+    for key, expected_value in expected_success_readback.items():
+        assert data[key] == expected_value
     assert data["audit_log_id"] is not None
     assert backup_paths == [data["backup_path"]]
     assert Path(data["backup_path"]).exists()
     assert fake_write_calls == []
 
-    assert events.index("audit-start:started") < events.index("lock-acquired")
+    account_read_positions = [
+        index for index, event in enumerate(events) if event == "accounts-read"
+    ]
+    assert len(account_read_positions) == 2
+    assert events.index("audit-start:started") < account_read_positions[0]
+    assert account_read_positions[0] < events.index("lock-acquired")
     assert events.index("lock-acquired") < events.index("backup")
     assert events.index("backup") < events.index("open-write")
     assert events.index("open-write") < events.index("save")
     assert events.index("save") < events.index("lock-release")
     assert events.index("lock-release") < events.index("readback:synthetic-created-route-real")
-    assert events.index("readback:synthetic-created-route-real") < events.index("audit-update:success")
+    assert events.index("readback:synthetic-created-route-real") < account_read_positions[1]
+    assert account_read_positions[1] < events.index("audit-update:success")
     assert "split:synthetic-bank:-123.4500:synthetic source memo exact trailing zeros" in events
     assert "split:synthetic-expense:123.4500:synthetic destination memo exact trailing zeros" in events
     assert (
@@ -813,6 +832,13 @@ def test_issue50_routed_create_real_service_path_covers_backup_lock_audit_readba
     assert audit_start["readback_transaction_id"] is None
     assert audit_start["readback_transaction_present"] is False
     assert audit_start["readback_split_count"] is None
+    assert audit_start["readback_split_balance_verified"] is False
+    assert audit_start["readback_split_balance_by_currency"] is None
+    assert audit_start["readback_currency"] is None
+    assert audit_start["readback_currency_consistent"] is False
+    assert audit_start["readback_account_balance_deltas_verified"] is False
+    assert audit_start["readback_account_balance_delta_count"] is None
+    assert audit_start["readback_account_balance_delta_total_by_currency"] is None
 
     assert len(audit_success_snapshots) == 1
     audit_success = audit_success_snapshots[0]
@@ -821,10 +847,8 @@ def test_issue50_routed_create_real_service_path_covers_backup_lock_audit_readba
     assert audit_success["transaction_id"] == "synthetic-created-route-real"
     assert audit_success["backup_path"] == data["backup_path"]
     assert audit_success["backup_artifact_ref"].startswith("bkp-")
-    assert audit_success["readback_verified"] is True
-    assert audit_success["readback_transaction_id"] == "synthetic-created-route-real"
-    assert audit_success["readback_transaction_present"] is True
-    assert audit_success["readback_split_count"] == 2
+    for key, expected_value in expected_success_readback.items():
+        assert audit_success[key] == expected_value
 
     response_evidence = json.dumps(data, sort_keys=True)
     for raw_value in (
@@ -843,9 +867,8 @@ def test_issue50_routed_create_real_service_path_covers_backup_lock_audit_readba
     assert audit_payload["result"] == "success"
     assert audit_payload["request_summary"] == expected_request_summary
     assert audit_payload["transaction_id"] == "synthetic-created-route-real"
-    assert audit_payload["readback_verified"] is True
-    assert audit_payload["readback_transaction_id"] == "synthetic-created-route-real"
-    assert audit_payload["readback_split_count"] == 2
+    for key, expected_value in expected_success_readback.items():
+        assert audit_payload[key] == expected_value
     assert audit_payload["backup_path"] == data["backup_path"]
     assert audit_payload["backup_artifact_ref"].startswith("bkp-")
 
