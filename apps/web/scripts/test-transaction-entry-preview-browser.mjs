@@ -53,6 +53,45 @@ const explicitSyntheticDeleteRef = 'delete-ref-redacted-issue51';
 const explicitSyntheticDeleteCreateRef = 'create-ref-redacted-issue51-delete-setup';
 const explicitSyntheticDeleteBackupRef = 'backup-ref-redacted-issue51-delete';
 const explicitSyntheticDeleteAuditRef = 'audit-ref-redacted-issue51-delete';
+const allowedProductDrillEnvKeys = [
+	'PATH',
+	'VIRTUAL_ENV',
+	'PYTHONPATH',
+	'PYTHONHOME',
+	'PYTHONNOUSERSITE',
+	'PYTHONUNBUFFERED',
+	'LD_LIBRARY_PATH',
+	'DYLD_LIBRARY_PATH',
+	'LANG',
+	'LC_ALL',
+	'TMPDIR',
+	'TEMP',
+	'TMP'
+];
+const explicitProductDrillEnvKeys = ['APP_ENV', 'GNUCASH_WRITES_ENABLED', 'ISSUE51_PRODUCT_DRILL_ENV_SCOPE'];
+const forbiddenProductDrillEnvKeys = [
+	'API_INTERNAL_URL',
+	'DATABASE_URL',
+	'APP_DATABASE_URL',
+	'GNUCASH_DEFAULT_BOOK_PATH',
+	'GNUCASH_BOOK_PATH',
+	'GNUCASH_BOOK_URI',
+	'GNUCASH_SQLITE_PATH',
+	'BOOK_PATH',
+	'BOOKS_DIR',
+	'BACKUP_DIR',
+	'DATA_DIR',
+	'JWT_SECRET',
+	'APP_ADMIN_PASSWORD',
+	'GITHUB_TOKEN',
+	'GH_TOKEN',
+	'OPENAI_API_KEY',
+	'ANTHROPIC_API_KEY',
+	'HERMES_API_KEY',
+	'AWS_ACCESS_KEY_ID',
+	'AWS_SECRET_ACCESS_KEY',
+	'GOOGLE_APPLICATION_CREDENTIALS'
+];
 const explicitSyntheticPatchRejectedFields = ['amount', 'account_id', 'splits', 'date', 'currency'];
 const explicitSyntheticDisabledProbeFamilies = ['validate', 'preflight', 'create', 'patch', 'delete', 'batch'];
 const expectedFailureDrillIds = [
@@ -357,6 +396,29 @@ function assertExplicitSyntheticCreateHarnessPredicateRequiresDisposableProof() 
 			`explicit synthetic CREATE harness predicate must reject ${label}`
 		);
 	}
+}
+
+function assertProductDrillEnvironmentIsDisposableOnly(env) {
+	assert.equal(env.APP_ENV, 'test', 'explicit product-route drills must run only in APP_ENV=test');
+	assert.equal(env.GNUCASH_WRITES_ENABLED, 'true', 'explicit product-route drills may enable writes only inside the bounded test-mode subprocess');
+	assert.equal(env.ISSUE51_PRODUCT_DRILL_ENV_SCOPE, 'synthetic-disposable-only', 'explicit product-route drills must mark the synthetic/disposable-only env scope');
+	for (const key of forbiddenProductDrillEnvKeys) {
+		assert.equal(Object.hasOwn(env, key), false, `explicit product-route drills must not inherit private/runtime env key: ${key}`);
+	}
+	const unexpectedKeys = Object.keys(env).filter((key) => !allowedProductDrillEnvKeys.includes(key) && !explicitProductDrillEnvKeys.includes(key));
+	assert.deepEqual(unexpectedKeys, [], 'explicit product-route drills must inherit only a minimal toolchain env plus explicit test-mode gates');
+}
+
+function productDrillEnvironment() {
+	const env = {};
+	for (const key of allowedProductDrillEnvKeys) {
+		if (process.env[key]) env[key] = process.env[key];
+	}
+	env.APP_ENV = 'test';
+	env.GNUCASH_WRITES_ENABLED = 'true';
+	env.ISSUE51_PRODUCT_DRILL_ENV_SCOPE = 'synthetic-disposable-only';
+	assertProductDrillEnvironmentIsDisposableOnly(env);
+	return env;
 }
 
 function buildRedactedSyntheticCreateResultPanel() {
@@ -2075,11 +2137,7 @@ function runProductRouteCreateDrill(productCreatePayload) {
 		cwd: repoRoot,
 		input: JSON.stringify({ product_create_payload: productCreatePayload }),
 		encoding: 'utf8',
-		env: {
-			...process.env,
-			APP_ENV: 'test',
-			GNUCASH_WRITES_ENABLED: 'true'
-		},
+		env: productDrillEnvironment(),
 		maxBuffer: 1024 * 1024,
 		timeout: 120000
 	});
@@ -2097,11 +2155,7 @@ function runProductRoutePatchDrill(productCreatePayload) {
 		cwd: repoRoot,
 		input: JSON.stringify({ product_create_payload: productCreatePayload }),
 		encoding: 'utf8',
-		env: {
-			...process.env,
-			APP_ENV: 'test',
-			GNUCASH_WRITES_ENABLED: 'true'
-		},
+		env: productDrillEnvironment(),
 		maxBuffer: 1024 * 1024,
 		timeout: 120000
 	});
@@ -2119,11 +2173,7 @@ function runProductRouteDeleteDrill(productCreatePayload) {
 		cwd: repoRoot,
 		input: JSON.stringify({ product_create_payload: productCreatePayload }),
 		encoding: 'utf8',
-		env: {
-			...process.env,
-			APP_ENV: 'test',
-			GNUCASH_WRITES_ENABLED: 'true'
-		},
+		env: productDrillEnvironment(),
 		maxBuffer: 1024 * 1024,
 		timeout: 120000
 	});
@@ -2673,6 +2723,7 @@ async function runSmoke() {
 	assertSourceSafety();
 	assertMutationRequestPredicates();
 	assertExplicitSyntheticCreateHarnessReviewedEvidenceRejectsUnreviewedOrUnlinkedEvidence();
+	assertProductDrillEnvironmentIsDisposableOnly(productDrillEnvironment());
 	assertRedactedSyntheticFailureUiDrillPanels(buildRedactedSyntheticFailureUiDrillPanels());
 	assert.ok(existsSync(viteBin), 'Vite must be installed before running the browser smoke');
 	assert.ok(existsSync(previewServerIndex), 'Build output must exist before browser smoke; run npm run build before npm run test:transaction-entry-preview-browser');
