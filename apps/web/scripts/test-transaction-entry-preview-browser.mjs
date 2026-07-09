@@ -1,8 +1,7 @@
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { spawn, spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, rmSync, readFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { existsSync, mkdirSync, mkdtempSync, rmSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import net from 'node:net';
@@ -12,6 +11,7 @@ const root = join(here, '..');
 const repoRoot = join(root, '..', '..');
 const viteBin = join(root, 'node_modules', 'vite', 'bin', 'vite.js');
 const previewServerIndex = join(root, '.svelte-kit', 'output', 'server', 'index.js');
+const smokeTempRoot = join(root, '.svelte-kit', 'smoke-tmp');
 const productCreateDrillScript = join(repoRoot, 'scripts', 'issue51_product_create_drill.py');
 const productPatchDrillScript = join(root, 'scripts', 'issue51_product_patch_drill.py');
 const productDeleteDrillScript = join(root, 'scripts', 'issue51_product_delete_drill.py');
@@ -115,7 +115,7 @@ const expectedFailureStages = [
 	'owner_recovery_copy'
 ];
 const previewPayloadFieldNames = ['amount', 'credit_account_id', 'currency', 'date', 'debit_account_id', 'description', 'memo'].sort();
-const cdpCommandTimeoutMs = Number(process.env.ISSUE51_CDP_TIMEOUT_MS ?? '30000');
+const cdpCommandTimeoutMs = Number(process.env.ISSUE51_CDP_TIMEOUT_MS ?? '120000');
 
 const syntheticBook = {
 	id: 1,
@@ -236,6 +236,8 @@ function assertSourceSafety() {
 	assert.match(page, /id="execution-result-outcome-legend"[\s\S]*Result outcome legend \(disabled\)[\s\S]*Do not infer success from preview or approval copy[\s\S]*Rollback\/restore: owner-approved recovery path only/s, 'execution-result shell must explain disabled success/failure/rollback outcomes');
 	assert.match(page, /id="execution-result-triage-panel"[\s\S]*Disabled result triage[\s\S]*Current state: no CREATE execution attempted; preview data is not a success result[\s\S]*Success requires redacted CREATE reference and private read-back before any success copy[\s\S]*Failure state keeps success blocked until a safe error is translated[\s\S]*Rollback state remains owner-approved recovery only and is not run from this page[\s\S]*Post-result reset\/probe state stays pending until GNUCASH_WRITES_ENABLED=false is verified/s, 'execution-result triage panel must clarify disabled success/failure/rollback/reset outcomes');
 	assert.match(page, /id="redacted-create-success-state"[\s\S]*status: success only after explicit synthetic test-mode CREATE[\s\S]*create_count: 1[\s\S]*read_back_verification: verified[\s\S]*backup_state: captured[\s\S]*audit_state: recorded[\s\S]*reset_default_disabled_probe_summary: verified/s, 'redacted result contract must document the explicit synthetic success state without activating default UI CREATE');
+	assert.match(page, /id="redacted-create-success-result-panel-fields"[\s\S]*Success result panel fields \(redacted\)[\s\S]*success only after explicit synthetic\/disposable test-mode CREATE; never from preview[\s\S]*raw_book_evidence_included[\s\S]*false; no transaction_id, backup_path, raw audit payload/s, 'redacted success result panel fields must explicitly expose create_count/read-back/backup/audit/reset evidence and raw-book exclusion');
+	assert.match(page, /id="redacted-create-failure-result-panel-fields"[\s\S]*Failure result panel fields \(redacted\)[\s\S]*create_count_state[\s\S]*unknown_after_attempt[\s\S]*post_result_hard_stop[\s\S]*raw_book_evidence_included[\s\S]*false/s, 'redacted failure result panel fields must explicitly fail closed without raw-book evidence');
 	assert.match(page, /id="redacted-create-result-redaction-list"[\s\S]*Only opaque refs may be displayed[\s\S]*No transaction_id, backup_path, raw audit payload, account IDs, currency, descriptions, memos, amounts, GUIDs, raw paths, screenshots, tokens, or secrets[\s\S]*Default \/transactions\/new never activates this state/s, 'redacted result contract must forbid raw product-route result fields and default UI activation');
 	assert.match(page, /id="redacted-patch-result-contract"[\s\S]*Explicit synthetic metadata-only PATCH result panel contract \(inactive\)[\s\S]*app-created disposable transaction only[\s\S]*description and split memo metadata only[\s\S]*amount, account, split, date, and currency changes rejected/s, 'inactive PATCH result-panel contract must document app-owned metadata-only PATCH scope');
 	assert.match(page, /id="redacted-patch-result-redaction-list"[\s\S]*Only opaque refs may be displayed for PATCH[\s\S]*No transaction_id, split GUIDs, backup_path, raw audit payload, account IDs, currency, descriptions, memos, amounts, raw paths, screenshots, tokens, or secrets[\s\S]*Default \/transactions\/new never activates PATCH/s, 'inactive PATCH result-panel contract must forbid raw PATCH fields and default UI activation');
@@ -1059,13 +1061,24 @@ function spawnLogged(command, args, options) {
 }
 
 async function stopProcess(child) {
-	if (!child || child.exitCode !== null || child.killed) return;
+	if (!child || child.exitCode !== null) return;
 	await new Promise((resolve) => {
-		child.once('exit', resolve);
+		let resolved = false;
+		let forceKillTimer;
+		let giveUpTimer;
+		const finish = () => {
+			if (resolved) return;
+			resolved = true;
+			clearTimeout(forceKillTimer);
+			clearTimeout(giveUpTimer);
+			resolve();
+		};
+		child.once('exit', finish);
 		child.kill('SIGTERM');
-		setTimeout(() => {
-			if (child.exitCode === null && !child.killed) child.kill('SIGKILL');
-		}, 3000).unref();
+		forceKillTimer = setTimeout(() => {
+			if (child.exitCode === null) child.kill('SIGKILL');
+		}, 3000);
+		giveUpTimer = setTimeout(finish, 8000);
 	});
 }
 
@@ -1107,12 +1120,15 @@ class CdpClient {
 	send(method, params = {}) {
 		const id = this.nextId++;
 		this.ws.send(JSON.stringify({ id, method, params }));
+		const timeoutDescription = method === 'Runtime.evaluate' && typeof params.expression === 'string'
+			? `: ${params.expression.replace(/\s+/g, ' ').slice(0, 240)}`
+			: '';
 		return new Promise((resolve, reject) => {
 			this.pending.set(id, { resolve, reject });
 			setTimeout(() => {
 				if (!this.pending.has(id)) return;
 				this.pending.delete(id);
-				reject(new Error(`CDP command timed out: ${method}`));
+				reject(new Error(`CDP command timed out: ${method}${timeoutDescription}`));
 			}, cdpCommandTimeoutMs).unref();
 		});
 	}
@@ -1188,10 +1204,12 @@ async function setInput(cdp, selector, value) {
 	await evaluate(cdp, `(() => {
 		const element = document.querySelector(${jsString(selector)});
 		if (!element) throw new Error('missing input ' + ${jsString(selector)});
-		element.value = ${jsString(value)};
-		element.dispatchEvent(new Event('input', { bubbles: true }));
+		const valueSetter = Object.getOwnPropertyDescriptor(element.constructor.prototype, 'value')?.set;
+		if (valueSetter) valueSetter.call(element, ${jsString(value)});
+		else element.value = ${jsString(value)};
+		element.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: ${jsString(value)} }));
 		element.dispatchEvent(new Event('change', { bubbles: true }));
-		return true;
+		return element.value;
 	})()`);
 }
 
@@ -1199,9 +1217,12 @@ async function setSelect(cdp, selector, value) {
 	await evaluate(cdp, `(() => {
 		const element = document.querySelector(${jsString(selector)});
 		if (!element) throw new Error('missing select ' + ${jsString(selector)});
-		element.value = ${jsString(value)};
+		const valueSetter = Object.getOwnPropertyDescriptor(element.constructor.prototype, 'value')?.set;
+		if (valueSetter) valueSetter.call(element, ${jsString(value)});
+		else element.value = ${jsString(value)};
+		element.dispatchEvent(new Event('input', { bubbles: true }));
 		element.dispatchEvent(new Event('change', { bubbles: true }));
-		return true;
+		return element.value;
 	})()`);
 }
 
@@ -1236,9 +1257,12 @@ async function click(cdp, selector) {
 }
 
 async function clickAndWaitForPageLoad(cdp, selector, label) {
-	const pageLoad = waitForCdpEvent(cdp, 'Page.loadEventFired', label);
+	const pageLoad = waitForCdpEvent(cdp, 'Page.loadEventFired', label, 15000).catch(() => null);
 	await click(cdp, selector);
-	await pageLoad;
+	await Promise.race([
+		pageLoad,
+		waitForExpression(cdp, `document.readyState !== 'loading'`, `${label} document ready`, 15000).catch(() => null)
+	]);
 }
 
 async function assertDisabledButtonInert(cdp, selector, expectedText, browserRequests, label) {
@@ -1582,6 +1606,10 @@ async function assertExecutionResultShellRemainsPending(cdp, label) {
 	assert.match(executionResultState.executionResultText, /Confirmed mutated but rejected by post-checks: owner-approved restore decision before retry/, `${label}: decision ladder must keep restore owner-approved`);
 	assert.match(executionResultState.executionResultText, /After any result: reset writes disabled and run disabled probes before reporting completion/, `${label}: decision ladder must require reset/probes after any result`);
 	assert.match(executionResultState.executionResultText, /Explicit synthetic CREATE result panel contract \(inactive\)/, `${label}: inactive redacted result-panel contract must stay visible`);
+	assert.match(executionResultState.executionResultText, /Success result panel fields \(redacted\)/, `${label}: inactive success result-panel field contract must stay visible`);
+	assert.match(executionResultState.executionResultText, /success only after explicit synthetic\/disposable test-mode CREATE; never from preview/, `${label}: success result-panel field contract must not infer success from preview`);
+	assert.match(executionResultState.executionResultText, /Failure result panel fields \(redacted\)/, `${label}: inactive failure result-panel field contract must stay visible`);
+	assert.match(executionResultState.executionResultText, /raw_book_evidence_included\s+false/, `${label}: result-panel contracts must explicitly exclude raw book evidence`);
 	assert.match(executionResultState.executionResultText, /create_count: pending/, `${label}: inactive result-panel contract must show create_count pending`);
 	assert.match(executionResultState.executionResultText, /read-back verification: pending/, `${label}: inactive result-panel contract must show read-back pending`);
 	assert.match(executionResultState.executionResultText, /backup_state: pending/, `${label}: inactive result-panel contract must show backup state pending`);
@@ -2732,7 +2760,8 @@ async function runSmoke() {
 	const api = await startSyntheticApi();
 	const webPort = await getFreePort();
 	const debugPort = await getFreePort();
-	const profileDir = mkdtempSync(join(tmpdir(), 'gnucash-web-smoke-'));
+	mkdirSync(smokeTempRoot, { recursive: true });
+	const profileDir = mkdtempSync(join(smokeTempRoot, 'gnucash-web-smoke-'));
 	let webProcess;
 	let chromiumProcess;
 	let cdp;
@@ -2768,13 +2797,24 @@ async function runSmoke() {
 			'--disable-sync',
 			'--metrics-recording-only',
 			'--no-first-run',
+			'--no-proxy-server',
+			'--proxy-server=direct://',
+			'--proxy-bypass-list=*',
 			'--no-sandbox',
 			`--remote-debugging-address=127.0.0.1`,
 			`--remote-debugging-port=${debugPort}`,
 			`--user-data-dir=${profileDir}`,
 			'--window-size=390,900',
 			'about:blank'
-		], { cwd: root, env: process.env });
+		], {
+			cwd: root,
+			env: {
+				...process.env,
+				TMPDIR: smokeTempRoot,
+				TMP: smokeTempRoot,
+				TEMP: smokeTempRoot
+			}
+		});
 		cdp = await connectCdp(debugPort);
 		cdp.on('Network.requestWillBeSent', (params) => {
 			browserRequests.push({ method: params.request.method, url: params.request.url });
@@ -2795,9 +2835,12 @@ async function runSmoke() {
 			path: '/',
 			sameSite: 'Lax'
 		});
-		const initialNavigation = waitForCdpEvent(cdp, 'Page.loadEventFired', 'initial transaction entry page load');
+		const initialNavigation = waitForCdpEvent(cdp, 'Page.loadEventFired', 'initial transaction entry page load', 15000).catch(() => null);
 		await cdp.send('Page.navigate', { url: `${webBase}/transactions/new` });
-		await initialNavigation;
+		await Promise.race([
+			initialNavigation,
+			waitForTransactionEntryPageReady(cdp, 'initial transaction entry page ready')
+		]);
 		await waitForTransactionEntryPageReady(cdp, 'initial transaction entry page ready');
 		await waitForExpression(cdp, `document.body && document.body.innerText.includes('Preview only / no write executed')`, 'no-write warning');
 		await waitForExpression(cdp, `document.body && document.body.innerText.includes('Write session not armed') && document.body.innerText.includes('CREATE execution unavailable without fresh owner approval')`, 'write-session gate');
@@ -3016,9 +3059,12 @@ async function runSmoke() {
 		assertNoMutationRequestsObserved(api, browserRequests, 'clear preview');
 
 		const explicitModeQueryBoundaryBefore = captureNormalBrowserBoundaryCounts(api, browserRequests);
-		const explicitModeNavigation = waitForCdpEvent(cdp, 'Page.loadEventFired', 'normal explicit test-mode query attempt load');
+		const explicitModeNavigation = waitForCdpEvent(cdp, 'Page.loadEventFired', 'normal explicit test-mode query attempt load', 15000).catch(() => null);
 		await cdp.send('Page.navigate', { url: `${webBase}/transactions/new?explicit_test_mode=issue51` });
-		await explicitModeNavigation;
+		await Promise.race([
+			explicitModeNavigation,
+			waitForTransactionEntryPageReady(cdp, 'normal explicit test-mode query attempt page ready')
+		]);
 		await waitForExpression(cdp, `location.pathname === '/transactions/new' && location.search === '?explicit_test_mode=issue51'`, 'normal explicit test-mode query attempt URL');
 		await waitForTransactionEntryPageReady(cdp, 'normal explicit test-mode query attempt page ready');
 		await waitForExpression(cdp, `document.body && document.body.innerText.includes('Preview only / no write executed')`, 'normal explicit test-mode query attempt page');

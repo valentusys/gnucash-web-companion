@@ -792,6 +792,28 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 					<div><dt class="font-semibold">audit_state</dt><dd>audit_state: pending</dd></div>
 					<div class="md:col-span-2"><dt class="font-semibold">reset/default-disabled probe summary</dt><dd>reset/default-disabled probes: pending; validate/preflight/CREATE/PATCH/DELETE/batch must be blocked or unavailable after reset.</dd></div>
 				</dl>
+				<div id="redacted-create-success-result-panel-fields" class="mt-3 rounded-lg p-3" role="note" aria-label="Redacted CREATE success result panel fields" style="border: 1px solid #5eead4; background: #f0fdfa;">
+					<p class="font-semibold">Success result panel fields (redacted)</p>
+					<dl class="mt-2 grid min-w-0 gap-2 md:grid-cols-2">
+						<div><dt class="font-semibold">status</dt><dd>success only after explicit synthetic/disposable test-mode CREATE; never from preview.</dd></div>
+						<div><dt class="font-semibold">create_count</dt><dd>create_count: 1; exact count is reviewed and not inferred from the preview shell.</dd></div>
+						<div><dt class="font-semibold">read_back_verification</dt><dd>verified before success; transaction, account, memo, amount, currency, and date values stay private/redacted.</dd></div>
+						<div><dt class="font-semibold">backup/audit</dt><dd>backup_state: captured by opaque ref; audit_state: recorded by opaque ref; no raw backup path or audit payload.</dd></div>
+						<div><dt class="font-semibold">reset/default-disabled probes</dt><dd>reset_default_disabled_probe_summary: verified; APP_ENV=test, GNUCASH_WRITES_ENABLED=false, and validate/preflight/CREATE/PATCH/DELETE/batch are blocked_or_unavailable after reset.</dd></div>
+						<div><dt class="font-semibold">raw_book_evidence_included</dt><dd>false; no transaction_id, backup_path, raw audit payload, account IDs, descriptions, memos, amounts, GUIDs, raw paths, screenshots, tokens, or secrets.</dd></div>
+					</dl>
+				</div>
+				<div id="redacted-create-failure-result-panel-fields" class="mt-3 rounded-lg p-3" role="note" aria-label="Redacted CREATE failure result panel fields" style="border: 1px solid #5eead4; background: #f0fdfa;">
+					<p class="font-semibold">Failure result panel fields (redacted)</p>
+					<dl class="mt-2 grid min-w-0 gap-2 md:grid-cols-2">
+						<div><dt class="font-semibold">no_success_claim</dt><dd>true for every failure, unknown, reset/probe hard-stop, or owner recovery-copy state.</dd></div>
+						<div><dt class="font-semibold">create_count_state</dt><dd>zero_before_create, unknown_after_attempt, post_result_hard_stop, or not_applicable; failures never convert attempted CREATE into success.</dd></div>
+						<div><dt class="font-semibold">read_back_verification</dt><dd>not_run, failed, blocked_until_owner_recovery, or not_applicable; private read-back values stay out of UI evidence.</dd></div>
+						<div><dt class="font-semibold">backup/audit</dt><dd>backup_state and audit_state use redacted states only; opaque refs are allowed only when a future approved harness produced them.</dd></div>
+						<div><dt class="font-semibold">reset/default-disabled probes</dt><dd>reset_default_disabled_probe_summary remains pending_not_run, required_before_completion, failed_hard_stop, or not_applicable until blocked_or_unavailable probes are verified.</dd></div>
+						<div><dt class="font-semibold">raw_book_evidence_included</dt><dd>false; no raw target path, backup path, transaction id, account data, descriptions, memos, amounts, GUIDs, screenshots, tokens, or secrets.</dd></div>
+					</dl>
+				</div>
 				<p id="redacted-create-success-state" class="mt-3 font-semibold">
 					Synthetic success state shape (explicit test-mode only): status: success only after explicit synthetic test-mode CREATE;
 					create_count: 1; read_back_verification: verified; backup_state: captured; audit_state: recorded;
