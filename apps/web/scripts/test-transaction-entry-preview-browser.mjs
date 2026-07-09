@@ -31,6 +31,9 @@ const syntheticToken = 'synthetic-smoke-token';
 const syntheticDescription = 'Synthetic browser smoke preview';
 const syntheticMemo = 'Synthetic browser smoke memo';
 const syntheticAmount = '12.34';
+const validationFailureAmount = '0.00';
+const syntheticValidationFailureDescription = 'Synthetic browser smoke validation failure';
+const syntheticQueryTamperDescription = 'Synthetic browser smoke explicit-mode query attempt';
 const disposableSourceAccountId = 'c73e8aa01e6345288662b556f2f866f3';
 const disposableDestinationAccountId = '388a85676d4a4643ae6cd28166c34e79';
 const explicitSyntheticCreateHarnessToken = 'issue51-explicit-synthetic-create-harness';
@@ -424,6 +427,13 @@ async function startSyntheticApi() {
 				if (payload.debit_account_id === payload.credit_account_id) {
 					return jsonResponse(res, 422, { detail: 'debit and credit accounts must be different' });
 				}
+				if (payload.amount === validationFailureAmount) {
+					return jsonResponse(res, 422, {
+						detail: [
+							{ loc: ['body', 'amount'], msg: 'amount must be positive' }
+						]
+					});
+				}
 				return jsonResponse(res, 200, {
 					preview_only: true,
 					writes_enabled_required_for_create: true,
@@ -637,6 +647,16 @@ async function setSelect(cdp, selector, value) {
 	})()`);
 }
 
+async function fillPreviewForm(cdp, { amount = syntheticAmount, description = syntheticDescription, memo = syntheticMemo } = {}) {
+	await setInput(cdp, '#preview-date', '2026-07-05');
+	await setInput(cdp, '#preview-currency', 'SEK');
+	await setInput(cdp, '#preview-description', description);
+	await setInput(cdp, '#preview-amount', amount);
+	await setInput(cdp, '#preview-memo', memo);
+	await setSelect(cdp, '#debit-account-select', disposableSourceAccountId);
+	await setSelect(cdp, '#credit-account-select', disposableDestinationAccountId);
+}
+
 async function click(cdp, selector) {
 	await evaluate(cdp, `(() => {
 		const element = document.querySelector(${jsString(selector)});
@@ -799,6 +819,66 @@ function assertNoMutationRequestsObserved(api, browserRequests, label) {
 		[],
 		`${label}: synthetic API stub must observe zero validate/preflight/backup/audit/write-beta boundary requests`
 	);
+}
+
+function transactionEntryAppSubmissionSearches(requests) {
+	return requests
+		.filter((request) => {
+			const url = new URL(request.url);
+			return request.method === 'POST' && url.pathname === '/transactions/new';
+		})
+		.map((request) => new URL(request.url).search);
+}
+
+function captureNormalBrowserBoundaryCounts(api, browserRequests) {
+	return {
+		browserRequestCount: browserRequests.length,
+		browserForbiddenCount: forbiddenBrowserMutationRequests(browserRequests).length,
+		apiRequestCount: api.requests.length,
+		apiForbiddenCount: api.forbiddenRequests.length,
+		explicitCreatePayloadCount: api.explicitCreatePayloads.length
+	};
+}
+
+function assertOrdinaryBrowserCannotReachExplicitTestMode(api, browserRequests, before, label) {
+	const newBrowserRequests = browserRequests.slice(before.browserRequestCount);
+	const newApiRequests = api.requests.slice(before.apiRequestCount);
+	const newSubmissionSearches = transactionEntryAppSubmissionSearches(newBrowserRequests);
+	assert.ok(newSubmissionSearches.length >= 1, `${label}: ordinary browser path must submit at least one preview request`);
+	assert.deepEqual(
+		[...new Set(newSubmissionSearches)],
+		['?/preview'],
+		`${label}: ordinary browser submissions must stay on the preview action only`
+	);
+	assert.deepEqual(
+		newApiRequests
+			.filter((request) => request.path === '/books/1/transactions' || request.explicitHarnessRequest)
+			.map(({ method, path, search, pathWithSearch, explicitHarnessRequest }) => ({ method, path, search, pathWithSearch, explicitHarnessRequest })),
+		[],
+		`${label}: ordinary browser cannot reach explicit test-mode execution path`
+	);
+	assert.equal(api.explicitCreatePayloads.length, before.explicitCreatePayloadCount, `${label}: ordinary browser must not create explicit test-mode payloads`);
+	assert.equal(forbiddenBrowserMutationRequests(browserRequests).length, before.browserForbiddenCount, `${label}: ordinary browser must not add mutation-capable browser requests`);
+	assert.equal(api.forbiddenRequests.length, before.apiForbiddenCount, `${label}: ordinary browser must not add synthetic API mutation-boundary requests`);
+}
+
+async function assertPreviewValidationFailureUi(cdp, label) {
+	const state = await evaluate(cdp, `(() => ({
+		errorSummaryText: document.querySelector('#preview-error-summary')?.innerText ?? '',
+		amountErrorText: document.querySelector('#preview-amount-error')?.innerText ?? '',
+		jumpListText: document.querySelector('#preview-error-jump-list')?.innerText ?? '',
+		approvalPacketPresent: Boolean(document.querySelector('#approval-packet')),
+		normalizedPreviewPresent: Boolean(document.querySelector('#normalized-preview')),
+		futureCreatePresent: Boolean(document.querySelector('#future-create-disabled'))
+	}))()`);
+	assert.match(state.errorSummaryText, /Preview validation failed safely/, `${label}: validation failure UI must show the safe summary`);
+	assert.match(state.errorSummaryText, /No CREATE\/PATCH\/DELETE\/batch executed/, `${label}: validation failure UI must repeat the no-write boundary`);
+	assert.match(state.errorSummaryText, /Raw private paths, secrets, and runtime internals are not shown/, `${label}: validation failure UI must stay redacted`);
+	assert.match(state.jumpListText, /Amount:/, `${label}: validation failure UI must link the amount field error`);
+	assert.match(state.amountErrorText, /positive decimal amount/, `${label}: validation failure UI must render the amount field error`);
+	assert.equal(state.approvalPacketPresent, false, `${label}: approval packet must remain absent after failed preview`);
+	assert.equal(state.normalizedPreviewPresent, false, `${label}: normalized preview must remain absent after failed preview`);
+	assert.equal(state.futureCreatePresent, false, `${label}: Future Create control must remain absent until a successful preview`);
 }
 
 function assertBrowserToAppToApiBoundary(browserRequests, webBase, apiUrl, label) {
@@ -1428,6 +1508,7 @@ async function runSmoke() {
 	let cdp;
 	const browserRequests = [];
 	let reviewedApprovalEvidence;
+	let reviewedPreviewPayload;
 
 	try {
 		webProcess = spawnLogged(process.execPath, [viteBin, 'dev', '--host', '127.0.0.1', '--port', String(webPort), '--strictPort'], {
@@ -1529,12 +1610,7 @@ async function runSmoke() {
 		await waitForExpression(cdp, `document.querySelector('#credit-account-count')?.innerText.includes('Showing 1 of 2')`, 'destination account filter count');
 		await setInput(cdp, '#credit-account-search', '');
 
-		await setInput(cdp, '#preview-date', '2026-07-05');
-		await setInput(cdp, '#preview-currency', 'SEK');
-		await setInput(cdp, '#preview-description', syntheticDescription);
-		await setInput(cdp, '#preview-amount', syntheticAmount);
-		await setInput(cdp, '#preview-memo', syntheticMemo);
-		await setSelect(cdp, '#debit-account-select', disposableSourceAccountId);
+		await fillPreviewForm(cdp);
 		await setSelect(cdp, '#credit-account-select', disposableSourceAccountId);
 
 		const sameAccountBrowserPostsBefore = browserRequests.filter((request) => request.method === 'POST' && new URL(request.url).pathname === '/transactions/new').length;
@@ -1565,6 +1641,22 @@ async function runSmoke() {
 		assert.equal(formSnapshot.credit_account_id, disposableDestinationAccountId, 'destination selector must submit the selected account id');
 		assert.ok(!('debit-account-search' in formSnapshot) && !('credit-account-search' in formSnapshot), 'search text must not be submitted');
 
+		await setInput(cdp, '#preview-description', syntheticValidationFailureDescription);
+		await setInput(cdp, '#preview-amount', validationFailureAmount);
+		const validationFailureBoundaryBefore = captureNormalBrowserBoundaryCounts(api, browserRequests);
+		await click(cdp, 'button[formaction="?/preview"]');
+		await waitForExpression(cdp, `document.querySelector('#preview-error-summary')?.innerText.includes('Preview validation failed safely')`, 'validation failure UI');
+		await assertPreviewValidationFailureUi(cdp, 'validation failure UI');
+		await assertPreviewOnlyRuntimeTopology(cdp, 'validation failure UI');
+		await assertMobilePreviewUx(cdp, 'validation failure UI');
+		await assertReadinessShellsRemainPending(cdp, 'validation failure UI');
+		await assertExecutionResultShellRemainsPending(cdp, 'validation failure UI');
+		await assertApprovalPacketAbsent(cdp, 'validation failure UI');
+		assertOrdinaryBrowserCannotReachExplicitTestMode(api, browserRequests, validationFailureBoundaryBefore, 'validation failure UI');
+		assertNoMutationRequestsObserved(api, browserRequests, 'validation failure UI');
+
+		await fillPreviewForm(cdp);
+
 		await evaluate(cdp, `(() => {
 			window.__smokeClipboardWrites = [];
 			const smokeClipboard = {
@@ -1581,6 +1673,7 @@ async function runSmoke() {
 			return navigator.clipboard === smokeClipboard;
 		})()`);
 
+		const validPreviewBoundaryBefore = captureNormalBrowserBoundaryCounts(api, browserRequests);
 		await click(cdp, 'button[formaction="?/preview"]');
 		await waitForExpression(cdp, `document.body && document.body.innerText.includes('Normalized preview')`, 'normalized preview');
 		await waitForExpression(cdp, `Boolean(document.querySelector('#approval-packet'))`, 'approval packet');
@@ -1589,6 +1682,7 @@ async function runSmoke() {
 		await assertReadinessShellsRemainPending(cdp, 'post-preview');
 		await assertExecutionResultShellRemainsPending(cdp, 'post-preview');
 		await assertApprovalPacketControls(cdp, 'post-preview approval packet');
+		assertOrdinaryBrowserCannotReachExplicitTestMode(api, browserRequests, validPreviewBoundaryBefore, 'post-preview');
 		assertNoMutationRequestsObserved(api, browserRequests, 'post-preview');
 		await evaluate(cdp, `new Promise((resolve) => setTimeout(resolve, 1000))`, { awaitPromise: true });
 
@@ -1654,6 +1748,8 @@ async function runSmoke() {
 		await assertReadinessShellsRemainPending(cdp, 'reviewed preview');
 		await assertExecutionResultShellRemainsPending(cdp, 'reviewed preview');
 		reviewedApprovalEvidence = await collectReviewedApprovalEvidence(cdp, 'reviewed preview');
+		reviewedPreviewPayload = api.previewPayloads[api.previewPayloads.length - 1];
+		assert.ok(reviewedPreviewPayload, 'browser smoke must retain the reviewed preview payload before later failure/tamper probes');
 		assertNoMutationRequestsObserved(api, browserRequests, 'reviewed preview');
 		await setInput(cdp, '#preview-description', 'Synthetic browser smoke changed draft');
 		await waitForExpression(cdp, `document.querySelector('#preview-stale-warning')?.innerText.includes('stale and cannot support a future owner-approved CREATE')`, 'stale warning after draft change');
@@ -1679,19 +1775,49 @@ async function runSmoke() {
 		await assertExecutionResultShellRemainsPending(cdp, 'clear preview');
 		assertNoMutationRequestsObserved(api, browserRequests, 'clear preview');
 
+		const explicitModeQueryBoundaryBefore = captureNormalBrowserBoundaryCounts(api, browserRequests);
+		await cdp.send('Page.navigate', { url: `${webBase}/transactions/new?explicit_test_mode=issue51` });
+		await waitForExpression(cdp, `location.pathname === '/transactions/new' && location.search === '?explicit_test_mode=issue51'`, 'normal explicit test-mode query attempt URL');
+		await waitForExpression(cdp, `document.body && document.body.innerText.includes('Preview only / no write executed')`, 'normal explicit test-mode query attempt page');
+		await waitForExpression(cdp, `Boolean(document.querySelector('#debit-account-select') && document.querySelector('#credit-account-select'))`, 'normal explicit test-mode query attempt selectors');
+		await assertPreviewOnlyRuntimeTopology(cdp, 'normal explicit test-mode query attempt initial page');
+		await assertMobilePreviewUx(cdp, 'normal explicit test-mode query attempt initial page');
+		await assertReadinessShellsRemainPending(cdp, 'normal explicit test-mode query attempt initial page');
+		await assertExecutionResultShellRemainsPending(cdp, 'normal explicit test-mode query attempt initial page');
+		await assertApprovalPacketAbsent(cdp, 'normal explicit test-mode query attempt initial page');
+		await evaluate(cdp, `new Promise((resolve) => setTimeout(resolve, 500))`, { awaitPromise: true });
+		await fillPreviewForm(cdp, { description: syntheticQueryTamperDescription });
+		await click(cdp, 'button[formaction="?/preview"]');
+		await waitForExpression(cdp, `document.body && document.body.innerText.includes('Normalized preview')`, 'normal explicit test-mode query attempt preview');
+		await assertPreviewOnlyRuntimeTopology(cdp, 'normal explicit test-mode query attempt preview');
+		await assertMobilePreviewUx(cdp, 'normal explicit test-mode query attempt preview', { confirmation: true });
+		await assertReadinessShellsRemainPending(cdp, 'normal explicit test-mode query attempt preview');
+		await assertExecutionResultShellRemainsPending(cdp, 'normal explicit test-mode query attempt preview');
+		await assertApprovalPacketControls(cdp, 'normal explicit test-mode query attempt approval packet');
+		await assertDisabledButtonInert(cdp, '#future-create-disabled', 'Future Create disabled', browserRequests, 'normal explicit test-mode query attempt Future Create');
+		assertOrdinaryBrowserCannotReachExplicitTestMode(api, browserRequests, explicitModeQueryBoundaryBefore, 'normal explicit test-mode query attempt');
+		assertNoMutationRequestsObserved(api, browserRequests, 'normal explicit test-mode query attempt');
+
 		assertNoMutationRequestsObserved(api, browserRequests, 'final browser smoke');
 		assertBrowserToAppToApiBoundary(browserRequests, webBase, api.url, 'final browser smoke');
 		const createReadinessStatusCalls = api.requests.filter((request) => request.method === 'GET' && request.path === '/books/1/transactions/create-readiness-status');
 		assert.ok(createReadinessStatusCalls.length >= 1, 'browser smoke must load create-readiness-status as read-only status');
 		const createPreviewCalls = api.requests.filter((request) => request.method === 'POST' && request.path === '/books/1/transactions/create-preview');
-		assert.equal(createPreviewCalls.length, 1, 'browser smoke must call create-preview exactly once through the server action');
-		assert.equal(api.previewPayloads.length, 1, 'synthetic API stub must capture exactly one create-preview payload');
-		const previewPayload = api.previewPayloads[0];
-		assert.deepEqual(
-			Object.keys(previewPayload).sort(),
-			['amount', 'credit_account_id', 'currency', 'date', 'debit_account_id', 'description', 'memo'].sort(),
-			'create-preview payload must contain only preview API fields'
-		);
+		assert.equal(createPreviewCalls.length, 3, 'browser smoke must call create-preview exactly three times: failure UI, reviewed preview, and normal explicit-mode query attempt');
+		assert.equal(api.previewPayloads.length, 3, 'synthetic API stub must capture exactly three create-preview payloads');
+		for (const payload of api.previewPayloads) {
+			assert.deepEqual(
+				Object.keys(payload).sort(),
+				['amount', 'credit_account_id', 'currency', 'date', 'debit_account_id', 'description', 'memo'].sort(),
+				'create-preview payload must contain only preview API fields'
+			);
+		}
+		assert.equal(api.previewPayloads[0].amount, validationFailureAmount, 'validation failure UI must be driven by a preview request, not a mutation request');
+		assert.equal(api.previewPayloads[0].description, syntheticValidationFailureDescription, 'validation failure preview payload must stay synthetic and disposable');
+		assert.equal(api.requests.filter((request) => request.explicitHarnessRequest).length, 0, 'normal explicit test-mode query attempt must not satisfy the explicit harness gate');
+		const previewPayload = reviewedPreviewPayload;
+		assert.ok(previewPayload, 'reviewed preview payload must be captured for the explicit test-mode harness');
+		assert.deepEqual(previewPayload, api.previewPayloads[1], 'reviewed preview payload must be the successful normal preview, not the failure or query-tamper probe');
 		assert.equal(previewPayload.debit_account_id, disposableSourceAccountId, 'create-preview payload must submit only the selected source account id');
 		assert.equal(previewPayload.credit_account_id, disposableDestinationAccountId, 'create-preview payload must submit only the selected destination account id');
 		assert.equal(previewPayload.amount, syntheticAmount, 'create-preview payload must preserve the decimal amount string');
@@ -1713,14 +1839,10 @@ async function runSmoke() {
 		]) {
 			assert.ok(!(forbiddenPayloadField in previewPayload), `create-preview payload must not submit local-only field: ${forbiddenPayloadField}`);
 		}
-		const transactionEntryAppSubmissions = browserRequests.filter((request) => {
-			const url = new URL(request.url);
-			return request.method === 'POST' && url.pathname === '/transactions/new';
-		});
 		assert.deepEqual(
-			transactionEntryAppSubmissions.map((request) => new URL(request.url).search),
-			['?/preview'],
-			'browser must submit the transaction-entry form exactly once and only to the preview action'
+			transactionEntryAppSubmissionSearches(browserRequests),
+			['?/preview', '?/preview', '?/preview'],
+			'browser must submit the transaction-entry form only to the preview action, including failure and explicit-mode query attempts'
 		);
 		assert.equal(reviewedApprovalEvidence?.preview_reviewed, true, 'browser smoke must capture reviewed approval evidence before explicit test-mode CREATE harness');
 		assert.equal(reviewedApprovalEvidence?.preview_stale, false, 'browser smoke must capture non-stale approval evidence before explicit test-mode CREATE harness');
@@ -1741,4 +1863,4 @@ async function runSmoke() {
 }
 
 await runSmoke();
-console.log('transaction-entry-preview-browser: ok (synthetic browser preview writes-disabled; explicit test-mode product-route disposable CREATE drill)');
+console.log('transaction-entry-preview-browser: ok (normal browser preview-only/failure/query guards; explicit test-mode product-route disposable CREATE drill)');

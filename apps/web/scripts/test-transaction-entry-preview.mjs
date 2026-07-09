@@ -51,6 +51,12 @@ for (const requiredBrowserSmokeFragment of [
 	'mobile preview review cards must be visible after successful preview',
 	'mobile confirmation review steps must remain no-write',
 	'function assertNoMutationRequestsObserved',
+	'function transactionEntryAppSubmissionSearches',
+	'function assertOrdinaryBrowserCannotReachExplicitTestMode',
+	'ordinary browser cannot reach explicit test-mode execution path',
+	'function assertPreviewValidationFailureUi',
+	'validation failure UI',
+	'normal explicit test-mode query attempt',
 	'evidencePacketStatuses',
 	'execution-evidence-packet-plan',
 	'executionResultStatuses',
@@ -146,6 +152,11 @@ assert.match(browserSmoke, /reviewedApprovalEvidence = await collectReviewedAppr
 assert.match(browserSmoke, /function buildRedactedSyntheticCreateResultPanel\(\)[\s\S]*redacted_result_panel[\s\S]*create_count: 1[\s\S]*read_back_verification[\s\S]*backup_state[\s\S]*audit_state[\s\S]*reset_default_disabled_probe_summary/s, 'explicit synthetic CREATE harness must build a redacted result panel with count, read-back, backup/audit, and reset/probe summary');
 assert.match(browserSmoke, /function assertRedactedSyntheticCreateResultPanel[\s\S]*syntheticDescription[\s\S]*syntheticMemo[\s\S]*syntheticAmount[\s\S]*explicit synthetic CREATE result panel must stay redacted/s, 'explicit synthetic CREATE result panel assertions must reject private/raw-like payload values');
 assert.match(browserSmoke, /runExplicitSyntheticCreateHarness[\s\S]*const responseBody = runProductRouteCreateDrill\(productCreatePayload\)[\s\S]*assertRedactedSyntheticCreateResultPanel\(responseBody, productCreatePayload, reviewedApprovalEvidence\)/s, 'explicit synthetic CREATE harness must assert the redacted result panel returned from the backend product-route drill');
+assert.match(browserSmoke, /payload\.amount === validationFailureAmount[\s\S]*loc: \['body', 'amount'\][\s\S]*msg: 'amount must be positive'/s, 'browser smoke must drive failure UI through the preview endpoint, not a mutation endpoint');
+assert.match(browserSmoke, /function assertPreviewValidationFailureUi[\s\S]*Preview validation failed safely[\s\S]*No CREATE\\\/PATCH\\\/DELETE\\\/batch executed[\s\S]*Future Create control must remain absent until a successful preview/s, 'browser smoke must assert safe failure UI before continuing');
+assert.match(browserSmoke, /function assertOrdinaryBrowserCannotReachExplicitTestMode[\s\S]*transactionEntryAppSubmissionSearches[\s\S]*'\?\/preview'[\s\S]*request\.path === '\/books\/1\/transactions'[\s\S]*ordinary browser cannot reach explicit test-mode execution path/s, 'browser smoke must prove ordinary browser submissions cannot reach the explicit test-mode execution path');
+assert.match(browserSmoke, /Page\.navigate', \{ url: `\$\{webBase\}\/transactions\/new\?explicit_test_mode=issue51` \}[\s\S]*normal explicit test-mode query attempt[\s\S]*assertOrdinaryBrowserCannotReachExplicitTestMode/s, 'browser smoke must attempt an ordinary explicit_test_mode query and still submit only preview');
+assert.match(browserSmoke, /transactionEntryAppSubmissionSearches\(browserRequests\)[\s\S]*\['\?\/preview', '\?\/preview', '\?\/preview'\][\s\S]*including failure and explicit-mode query attempts/s, 'browser smoke must prove every ordinary transaction-entry POST targets only ?/preview');
 
 for (const field of [
 	'book_id',
