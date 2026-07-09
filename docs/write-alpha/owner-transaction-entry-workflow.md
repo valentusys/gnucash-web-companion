@@ -515,6 +515,23 @@ What current HEAD covers with synthetic or disposable targets:
 - optional DELETE coverage stays app-owned/write-alpha-created only and rejects non-owned, inert-marker, active
   unarmed preview, missing, and non-disposable targets before the write service where applicable.
 
+Latest redacted checks tied to #50 disposable-fixture coverage:
+
+- API route-family drill:
+  ```bash
+  PYTHONPATH=apps/api apps/api/.venv/bin/python -m pytest apps/api/tests/test_owner_writebeta_synthetic_route_family_drill.py -q
+  ```
+  returned `18 passed, 3 warnings in 13.78s`.
+- Static web guard: `node apps/web/scripts/test-transaction-entry-preview.mjs` returned
+  `transaction-entry-preview-static: ok`.
+- Synthetic browser harness: `node apps/web/scripts/test-transaction-entry-preview-browser.mjs` returned
+  `transaction-entry-preview-browser: ok (synthetic browser preview writes-disabled; explicit test-mode CREATE harness)`.
+
+Safety counters from those checks and this docs-status packet: normal browser UI CREATE/PATCH/DELETE/batch requests 0;
+private/owner/original/working/Syncthing/only-copy books opened or mutated 0; product dogfood/private target probes 0;
+committed raw books/backups/exports/screenshots/app DBs/secrets 0; release or public-write posture claims 0; default
+write-posture flips 0.
+
 Untouched boundaries:
 
 - no owner/private/original/working/Syncthing/only-copy book was opened, copied, or mutated for this tracked packet;

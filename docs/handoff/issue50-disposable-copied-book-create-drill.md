@@ -70,6 +70,32 @@ Default production posture remains disabled:
    - DELETE rejects non-owned, inert-marker, active unarmed preview, missing, and non-disposable targets before the
      write service where applicable.
 
+## Checks and safety counters re-run for this docs-status follow-up
+
+These checks ran from the repository root on 2026-07-09 and used only synthetic or disposable test fixtures:
+
+- `PYTHONPATH=apps/api apps/api/.venv/bin/python -m pytest apps/api/tests/test_owner_writebeta_synthetic_route_family_drill.py -q`
+  - Result: `18 passed, 3 warnings in 13.78s`.
+  - Covered one routed CREATE real-service-path drill, one route-family CREATE/PATCH/DELETE reset session,
+    five immutable PATCH field rejection cases, and fail-closed drills for stale preview, expired preview,
+    writes-disabled confirmation, missing backup/restore readiness, invalid account, and lock failure.
+- `node apps/web/scripts/test-transaction-entry-preview.mjs`
+  - Result: `transaction-entry-preview-static: ok`.
+- `node apps/web/scripts/test-transaction-entry-preview-browser.mjs`
+  - Result: `transaction-entry-preview-browser: ok (synthetic browser preview writes-disabled; explicit test-mode CREATE harness)`.
+  - Browser/API counters asserted by the harness: exactly one normal `create-preview` request, zero browser-observed
+    CREATE/PATCH/DELETE/batch/validate/preflight/backup/audit/write-beta boundary requests, four rejected
+    partial/user-mode product-route CREATE probes, exactly one accepted explicit test-mode synthetic CREATE request
+    against the API stub, and zero accepted non-disposable target requests.
+
+Safety counters for this docs-status packet:
+
+- owner/private/original/working/Syncthing/only-copy books opened, copied, or mutated: 0;
+- product dogfood runs or private target probes: 0;
+- committed books, backups, exports, screenshots, app DBs, `.env`, tokens, keys, certs, or unredacted evidence files: 0;
+- release, tag, package, image, public write beta, stable, production-ready, or security-audited claims: 0;
+- default write-posture flips: 0; `GNUCASH_WRITES_ENABLED=false` and enabled-write `APP_ENV=test` gates are preserved.
+
 ## What did not happen
 
 - No owner/private/original/working/Syncthing/only-copy book was opened, copied, or mutated.
