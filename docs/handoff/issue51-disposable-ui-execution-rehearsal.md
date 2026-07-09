@@ -83,6 +83,26 @@ These task-required gates ran from the repository root in isolated shell calls a
 - Supplemental staged whitespace check: `git diff --cached --check`
   - Result: exit 0 with no whitespace errors.
 
+## 2026-07-10 follow-up guard rerun
+
+This docs-status follow-up reran the task-required guards from the repository root in isolated shell calls:
+
+- `python3 scripts/check_public_status.py`
+  - Result: `public-status-guard: ok`.
+- `python3 scripts/check_write_safety_defaults.py`
+  - Result: `write-safety defaults ok: GNUCASH_WRITES_ENABLED=false; APP_ENV=development default present;
+    APP_ENV=test gate text present; explicit write enablement present; reset/default-disabled probe wording present`.
+- `python3 scripts/check_markdown_readability.py`
+  - Result: `markdown-readability-guard: ok (27 docs checked)`.
+- `python3 scripts/check_tracked_hygiene.py`
+  - Result: `Tracked hygiene check passed (1968 tracked paths inspected).`
+- `git diff --check`
+  - Result: exit 0 with no whitespace errors.
+
+Follow-up safety counters: owner/private/original/working/Syncthing/only-copy books opened, copied, or mutated: 0;
+product dogfood/private target probes: 0; raw books/backups/exports/screenshots/app DBs/secrets committed: 0;
+release or public-write posture claims added: 0; default write-posture flips: 0.
+
 ## Follow-up boundary
 
 Continue only into final full gates or a new explicitly scoped owner/PM task. Any owner/private target, product
