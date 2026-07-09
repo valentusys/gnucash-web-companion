@@ -3765,6 +3765,59 @@ class TestWriteAlphaDeleteRouteDisposableFixture:
             logs = session.query(AuditLog).filter_by(action="transaction.delete").all()
             assert logs == []
 
+    def test_owned_non_disposable_delete_target_rejected_before_write_service(
+        self,
+        client,
+        auth_headers,
+        session_factory,
+        tmp_path: Path,
+        monkeypatch,
+    ):
+        calls = []
+
+        def forbidden_write_service(*args, **kwargs):
+            calls.append((args, kwargs))
+            raise AssertionError("write service must not be constructed for non-disposable DELETE")
+
+        monkeypatch.setattr("app.routers.transactions._write_service_for", forbidden_write_service)
+        books_dir = tmp_path / "books"
+        books_dir.mkdir()
+        target = books_dir / "historical-ledger.gnucash.sqlite"
+        target.write_bytes(b"SQLite format 3\x00 non-disposable delete target placeholder")
+        with session_factory() as session:
+            book = Book(
+                name="Synthetic non-disposable delete guard fixture",
+                storage_type="sqlite",
+                uri_or_path=str(target),
+                base_currency="SEK",
+                is_default=False,
+            )
+            session.add(book)
+            session.flush()
+            admin = session.query(User).filter(User.username == "admin").one()
+            session.add(UserBookAccess(user_id=admin.id, book_id=book.id, role="owner"))
+            session.commit()
+            book_id = book.id
+
+        owned_transaction_id = "synthetic-owned-delete-marker-tx"
+        self._mark_owned(session_factory, book_id, owned_transaction_id)
+
+        response = client.delete(
+            f"/books/{book_id}/transactions/{owned_transaction_id}",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 403
+        detail = response.json()["detail"]
+        assert "Disposable target preflight failed closed" in detail
+        assert "filename must mark it as copied/disposable/synthetic test data" in detail
+        assert str(target) not in detail
+        assert calls == []
+        assert not (tmp_path / "backups").exists()
+        with session_factory() as session:
+            logs = session.query(AuditLog).filter_by(action="transaction.delete").all()
+            assert logs == []
+
     def test_inert_ownership_marker_with_false_created_flag_rejects_delete_before_write_service(
         self,
         client,
