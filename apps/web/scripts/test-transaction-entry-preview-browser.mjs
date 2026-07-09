@@ -44,6 +44,7 @@ const explicitSyntheticCreateRef = 'create-ref-redacted-issue51';
 const explicitSyntheticBackupRef = 'backup-ref-redacted-issue51';
 const explicitSyntheticAuditRef = 'audit-ref-redacted-issue51';
 const explicitSyntheticDisabledProbeFamilies = ['validate', 'preflight', 'create', 'patch', 'delete', 'batch'];
+const cdpCommandTimeoutMs = Number(process.env.ISSUE51_CDP_TIMEOUT_MS ?? '30000');
 
 const syntheticBook = {
 	id: 1,
@@ -736,7 +737,7 @@ class CdpClient {
 				if (!this.pending.has(id)) return;
 				this.pending.delete(id);
 				reject(new Error(`CDP command timed out: ${method}`));
-			}, 10000).unref();
+			}, cdpCommandTimeoutMs).unref();
 		});
 	}
 
@@ -775,6 +776,32 @@ async function waitForExpression(cdp, expression, label, timeoutMs = 10000) {
 		await new Promise((resolve) => setTimeout(resolve, 150));
 	}
 	throw new Error(`Timed out waiting for browser condition: ${label}`);
+}
+
+function waitForCdpEvent(cdp, method, label, timeoutMs = 30000) {
+	return new Promise((resolve, reject) => {
+		let done = false;
+		const timeout = setTimeout(() => {
+			if (done) return;
+			done = true;
+			reject(new Error(`Timed out waiting for CDP event: ${label}`));
+		}, timeoutMs);
+		cdp.on(method, (params) => {
+			if (done) return;
+			done = true;
+			clearTimeout(timeout);
+			resolve(params);
+		});
+	});
+}
+
+async function waitForTransactionEntryPageReady(cdp, label) {
+	await waitForExpression(
+		cdp,
+		`document.readyState !== 'loading' && location.pathname === '/transactions/new' && Boolean(document.querySelector('#transaction-preview-form')) && document.body?.innerText.includes('Preview only / no write executed')`,
+		label,
+		30000
+	);
 }
 
 function jsString(value) {
@@ -1903,7 +1930,10 @@ async function runSmoke() {
 			path: '/',
 			sameSite: 'Lax'
 		});
+		const initialNavigation = waitForCdpEvent(cdp, 'Page.loadEventFired', 'initial transaction entry page load');
 		await cdp.send('Page.navigate', { url: `${webBase}/transactions/new` });
+		await initialNavigation;
+		await waitForTransactionEntryPageReady(cdp, 'initial transaction entry page ready');
 		await waitForExpression(cdp, `document.body && document.body.innerText.includes('Preview only / no write executed')`, 'no-write warning');
 		await waitForExpression(cdp, `document.body && document.body.innerText.includes('Write session not armed') && document.body.innerText.includes('CREATE execution unavailable without fresh owner approval')`, 'write-session gate');
 		await waitForExpression(cdp, `document.body && document.body.innerText.includes('allowed_create_count: 0') && document.body.innerText.includes('target_class: required')`, 'write-session default status');
@@ -2117,8 +2147,11 @@ async function runSmoke() {
 		assertNoMutationRequestsObserved(api, browserRequests, 'clear preview');
 
 		const explicitModeQueryBoundaryBefore = captureNormalBrowserBoundaryCounts(api, browserRequests);
+		const explicitModeNavigation = waitForCdpEvent(cdp, 'Page.loadEventFired', 'normal explicit test-mode query attempt load');
 		await cdp.send('Page.navigate', { url: `${webBase}/transactions/new?explicit_test_mode=issue51` });
+		await explicitModeNavigation;
 		await waitForExpression(cdp, `location.pathname === '/transactions/new' && location.search === '?explicit_test_mode=issue51'`, 'normal explicit test-mode query attempt URL');
+		await waitForTransactionEntryPageReady(cdp, 'normal explicit test-mode query attempt page ready');
 		await waitForExpression(cdp, `document.body && document.body.innerText.includes('Preview only / no write executed')`, 'normal explicit test-mode query attempt page');
 		await waitForExpression(cdp, `Boolean(document.querySelector('#debit-account-select') && document.querySelector('#credit-account-select'))`, 'normal explicit test-mode query attempt selectors');
 		await assertPreviewOnlyRuntimeTopology(cdp, 'normal explicit test-mode query attempt initial page');
