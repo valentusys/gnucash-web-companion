@@ -441,6 +441,7 @@ def _assert_failed_hard_stop_status(
     assert status_payload["summary"]["restore_readiness_ref"] is None
     warning_text = "\n".join(status_payload["warnings"])
     assert "rollback/restore decision" in warning_text
+    assert "owner-approved rollback/restore decision before any retry" in warning_text
     assert "opaque audit/backup/restore refs" in warning_text
     for raw_private_marker in (
         "/data/books",
@@ -448,7 +449,84 @@ def _assert_failed_hard_stop_status(
         "owner-writebeta-disposable-route-family.gnucash.sqlite",
     ):
         assert raw_private_marker not in str(status_payload)
+    _assert_failed_hard_stop_rejects_reuse(client, auth_headers, book_id)
     return status_payload
+
+
+def _assert_failed_hard_stop_rejects_reuse(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    book_id: int,
+) -> None:
+    """A post-mutation hard stop must not allow stale preview/confirm reuse."""
+    probes = [
+        (
+            "preflight",
+            client.post(f"/books/{book_id}/owner-writebeta/preflight", headers=auth_headers),
+            "blocked by current state",
+        ),
+        (
+            "preview",
+            client.post(
+                f"/books/{book_id}/owner-writebeta/preview",
+                headers=auth_headers,
+                json={"operation": "CREATE", "payload_shape": {"synthetic": "reuse"}, "count": 1},
+            ),
+            "requires preflight state",
+        ),
+        (
+            "confirm",
+            client.post(
+                f"/books/{book_id}/owner-writebeta/confirm",
+                headers=auth_headers,
+                json={"preview_hash": "owb-prev-reuse", "backup_ref": "bkp-reuse", "restore_readiness_ref": "rr-reuse"},
+            ),
+            "confirmation preview hash mismatch",
+        ),
+        (
+            "reset-disabled",
+            client.post(f"/books/{book_id}/owner-writebeta/reset-disabled", headers=auth_headers),
+            "Reset-disabled requires reset_required state",
+        ),
+    ]
+    for name, response, detail_fragment in probes:
+        assert response.status_code == 409, f"{name} reuse probe must fail closed"
+        assert detail_fragment in response.json()["detail"], f"{name} detail must stay explicit"
+
+
+def _assert_preflight_failure_boundary_remains_non_mutating(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    book_id: int,
+    fake_write_calls: list[tuple[str, object]],
+    session_factory,
+    raw_private_markers: tuple[str, ...] = (),
+) -> None:
+    """Target preflight failures happen before write/audit/rollback boundaries."""
+    assert fake_write_calls == []
+    assert _audit_payloads(session_factory, "transaction.create") == []
+
+    owner_status = client.get(f"/books/{book_id}/owner-writebeta/status", headers=auth_headers)
+    assert owner_status.status_code == 200
+    owner_payload = owner_status.json()
+    assert owner_payload["state"] == "confirmation"
+    assert "preview_confirmed_armed" in owner_payload["pass_reasons"]
+    assert "state_failed_hard_stop" not in owner_payload["blocked_reasons"]
+    owner_warning_text = "\n".join(owner_payload["warnings"])
+    assert "rollback/restore decision" not in owner_warning_text
+
+    readiness = client.get(f"/books/{book_id}/transactions/create-readiness-status", headers=auth_headers)
+    assert readiness.status_code == 200
+    readiness_payload = readiness.json()
+    assert readiness_payload["create_execution_allowed"] is False
+    assert readiness_payload["allowed_create_count"] == 0
+    assert readiness_payload["readiness_state"]["target"]["status"] == "not_selected"
+    assert readiness_payload["readiness_state"]["preflight"]["status"] == "not_checked"
+    assert readiness_payload["readiness_state"]["allowed_execution"]["status"] == "blocked"
+    assert readiness_payload["readiness_state"]["allowed_execution"]["allowed"] is False
+    for raw_private_marker in raw_private_markers:
+        assert raw_private_marker not in str(owner_payload)
+        assert raw_private_marker not in str(readiness_payload)
 
 
 class InvalidAccountWriteService(FakeWriteService):
@@ -827,6 +905,14 @@ def test_synthetic_route_family_create_requires_disposable_target_preflight_befo
     from app.routers.owner_writebeta import _SESSIONS
 
     assert _SESSIONS[external_unproven_book].state.value == "confirmation"
+    _assert_preflight_failure_boundary_remains_non_mutating(
+        client,
+        auth_headers,
+        external_unproven_book,
+        fake_write_calls,
+        session_factory,
+        raw_private_markers=("owner-ledger",),
+    )
 
 
 def test_synthetic_route_family_create_requires_target_outside_repo_before_write_service(
@@ -875,6 +961,14 @@ def test_synthetic_route_family_create_requires_target_outside_repo_before_write
     from app.routers.owner_writebeta import _SESSIONS
 
     assert _SESSIONS[book_id].state.value == "confirmation"
+    _assert_preflight_failure_boundary_remains_non_mutating(
+        client,
+        auth_headers,
+        book_id,
+        fake_write_calls,
+        session_factory,
+        raw_private_markers=(str(target), target.name),
+    )
 
 
 @pytest.mark.parametrize(
@@ -1016,6 +1110,41 @@ def test_issue50_stale_confirmed_preview_rejects_before_audit_or_write_service(
     from app.routers.owner_writebeta import _SESSIONS
 
     assert _SESSIONS[synthetic_book].state.value == "confirmation"
+
+
+def test_issue50_expired_confirmed_preview_rejects_before_audit_or_write_service(
+    client,
+    auth_headers,
+    synthetic_book,
+    fake_write_calls,
+    session_factory,
+):
+    from datetime import datetime, timedelta, timezone
+
+    from app.routers.owner_writebeta import _SESSIONS
+
+    headers = _preview_confirm_headers(client, auth_headers, synthetic_book, "CREATE")
+    assert _SESSIONS[synthetic_book].state.value == "confirmation"
+    _SESSIONS[synthetic_book].expires_at = datetime.now(timezone.utc) - timedelta(seconds=1)
+
+    response = client.post(
+        f"/books/{synthetic_book}/transactions",
+        headers=headers,
+        json=_synthetic_create_payload(),
+    )
+
+    assert response.status_code == 403
+    assert "confirmed owner-writebeta preview expired" in response.json()["detail"]
+    assert fake_write_calls == []
+    assert _audit_payloads(session_factory, "transaction.create") == []
+    status = client.get(f"/books/{synthetic_book}/owner-writebeta/status", headers=auth_headers)
+    assert status.status_code == 200
+    status_payload = status.json()
+    assert status_payload["state"] == "confirmation"
+    assert status_payload["writes_blocked"] is True
+    assert "confirmation_expired" in status_payload["blocked_reasons"]
+    assert status_payload["summary"]["backup_ref"] == "bkp-create-ref"
+    assert status_payload["summary"]["restore_readiness_ref"] == "rr-create-ref"
 
 
 def test_issue50_writes_disabled_rejects_even_with_fresh_owner_writebeta_confirmation(
