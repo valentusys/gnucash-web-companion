@@ -139,6 +139,11 @@ function assertSourceSafety() {
 		'node scripts/test-transaction-entry-preview-browser.mjs',
 		'package.json must expose npm run test:transaction-entry-preview-browser'
 	);
+	assert.equal(
+		packageJson.scripts?.['test:transaction-entry-create-disposable-browser'],
+		'node scripts/test-transaction-entry-preview-browser.mjs',
+		'package.json must expose npm run test:transaction-entry-create-disposable-browser as the same deterministic synthetic/disposable browser smoke'
+	);
 	assert.match(page, /id="write-session-gate"[\s\S]*Preview mode[\s\S]*Write session not armed[\s\S]*CREATE execution unavailable without fresh owner approval/s, 'write-session gate must default to preview mode and not armed');
 	assert.match(page, /writes_enabled:[\s\S]*session_armed:[\s\S]*create_execution_allowed:[\s\S]*allowed_create_count:[\s\S]*target_class:/s, 'write-session gate must expose safe redacted status fields');
 	assert.match(page, /id="mobile-preview-path-card"[\s\S]*Mobile preview path[\s\S]*Tap Preview transaction; this is the only submitting action[\s\S]*The form stays preview-only and no-write on mobile/s, 'mobile preview path card must guide the safe preview-only flow');

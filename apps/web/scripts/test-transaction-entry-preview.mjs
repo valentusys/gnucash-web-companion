@@ -33,6 +33,11 @@ assert.equal(
 	'node scripts/test-transaction-entry-preview-browser.mjs',
 	'package.json must expose npm run test:transaction-entry-preview-browser'
 );
+assert.equal(
+	packageJson.scripts?.['test:transaction-entry-create-disposable-browser'],
+	'node scripts/test-transaction-entry-preview-browser.mjs',
+	'package.json must expose npm run test:transaction-entry-create-disposable-browser as the same deterministic synthetic/disposable browser smoke'
+);
 
 for (const requiredBrowserSmokeFragment of [
 	'function assertDisabledButtonInert',
