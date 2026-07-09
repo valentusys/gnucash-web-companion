@@ -740,6 +740,25 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 				</ul>
 				<p class="mt-2 font-semibold">No raw book paths, account names, descriptions, memos, amounts, GUIDs, screenshots, tokens, or secrets may appear in the PATCH result panel.</p>
 			</div>
+			<div id="redacted-delete-result-contract" class="mt-3 rounded-lg p-3 text-xs" role="note" aria-label="Inactive redacted synthetic app-owned DELETE result panel contract" style="border: 1px solid #5eead4; background: #f0fdfa;">
+				<p class="font-semibold">Explicit synthetic app-owned DELETE result panel contract (inactive)</p>
+				<p class="mt-1 font-semibold">Default UI state remains preview-only; this contract is display-only and does not execute DELETE.</p>
+				<p class="mt-1">A future explicit synthetic/disposable test-mode DELETE rehearsal may show only a redacted result panel for an app-created disposable transaction only. Non-app-created and non-disposable DELETE attempts must stay rejected before mutation.</p>
+				<dl class="mt-2 grid min-w-0 gap-2 md:grid-cols-2">
+					<div><dt class="font-semibold">delete_count</dt><dd>delete_count: pending</dd></div>
+					<div><dt class="font-semibold">ownership_state</dt><dd>app-created target: pending; non-app-created DELETE stays rejected.</dd></div>
+					<div><dt class="font-semibold">delete_scope</dt><dd>one app-owned disposable transaction only; historical/manual DELETE remains forbidden.</dd></div>
+					<div><dt class="font-semibold">read-back verification</dt><dd>transaction absent after DELETE pending; retained transactions and balances must be verified.</dd></div>
+					<div><dt class="font-semibold">rejection_summary</dt><dd>non-owned and non-disposable DELETE probes rejected: pending.</dd></div>
+					<div><dt class="font-semibold">reset/default-disabled DELETE probe</dt><dd>DELETE blocked after GNUCASH_WRITES_ENABLED=false reset: pending.</dd></div>
+				</dl>
+				<ul id="redacted-delete-result-redaction-list" class="mt-2 list-disc pl-5">
+					<li>Only opaque refs may be displayed for DELETE setup, DELETE result, backup, audit, ownership, rejection, and disabled-probe evidence.</li>
+					<li>No transaction_id, backup_path, raw audit payload, account IDs, currency, descriptions, memos, amounts, split GUIDs, raw paths, screenshots, tokens, or secrets may appear in the DELETE result panel.</li>
+					<li>Default /transactions/new never activates DELETE; preview, approval copy, and inactive contracts are not mutation evidence.</li>
+				</ul>
+				<p class="mt-2 font-semibold">No raw book paths, account names, descriptions, memos, amounts, GUIDs, screenshots, tokens, or secrets may appear in the DELETE result panel.</p>
+			</div>
 			<ul id="execution-result-step-list" class="mt-3 grid min-w-0 gap-2 md:grid-cols-2" aria-label="Future execution result status checklist">
 				{#each executionResult.steps as step (step.id)}
 					<li class="min-w-0 rounded-lg p-3" data-execution-result-step={step.id} data-execution-result-status={step.status} style="border: 1px solid #5eead4; background: #f0fdfa;">

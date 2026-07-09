@@ -28,17 +28,20 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   app-created metadata-only operating mode,
   [#48](https://github.com/valentusys/gnucash-web-companion/issues/48), Owner web transaction-entry UI for
   CREATE + optional PATCH app-created metadata,
-  [#49](https://github.com/valentusys/gnucash-web-companion/issues/49), Owner web UI CREATE execution trial, and
-  [#50](https://github.com/valentusys/gnucash-web-companion/issues/50), Disposable copied-book web UI CREATE drill.
+  [#49](https://github.com/valentusys/gnucash-web-companion/issues/49), Owner web UI CREATE execution trial,
+  [#50](https://github.com/valentusys/gnucash-web-companion/issues/50), Disposable copied-book web UI CREATE drill, and
+  [#51](https://github.com/valentusys/gnucash-web-companion/issues/51), optional app-owned DELETE UI rehearsal.
   #45 remains the CREATE-only tracker, #46 remains the PATCH app-created metadata-only boundary/evidence
   tracker, #47 remains the active mixed CREATE + PATCH app-created metadata-only operating-mode tracker after
   the owner-verified first mixed session, #48 remains open as the sufficiently validated non-mutating
   preview-only owner web transaction-entry UI evidence tracker, #49 remains the non-mutating owner web UI
-  CREATE execution-shell tracker, and #50 is the current synthetic/disposable fixture-only drill tracker. None
-  of these issues are DELETE approval, release approval, or public write beta approval.
+  CREATE execution-shell tracker, #50 remains the synthetic/disposable fixture-only CREATE drill tracker, and
+  #51 is bounded to optional synthetic/disposable app-owned DELETE rehearsal evidence. None of these issues are
+  historical/manual/non-owned DELETE approval, release approval, or public write beta approval.
   [#22](https://github.com/valentusys/gnucash-web-companion/issues/22) and
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) are closed.
-- Latest handoffs/docs: `docs/handoff/issue50-disposable-copied-book-create-drill.md`,
+- Latest handoffs/docs: `docs/handoff/issue51-delete-app-owned-ui-rehearsal.md`,
+  `docs/handoff/issue50-disposable-copied-book-create-drill.md`,
   `docs/handoff/issue49-final-gates-redacted-status.md`,
   `docs/handoff/issue49-execution-result-ux-shell.md`,
   `docs/handoff/issue49-backup-readback-audit-reset-probes-shell-r3.md`,
@@ -146,16 +149,20 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   manual Desktop verification. Telegram/agent
   compact input is development/test harness only, not the main product workflow. None of these issues are
   DELETE/batch approval, release approval, public write beta approval, or production/stable/security-audited
-  claims. No release was published; `NO_RELEASE` remains current. #50 is now the current
-  disposable copied-book drill tracker. Current HEAD contains synthetic/disposable fixture-only coverage for
+  claims. No release was published; `NO_RELEASE` remains current. #50 remains the
+  disposable copied-book CREATE drill tracker, and #51 is bounded to optional synthetic/disposable
+  app-owned DELETE rehearsal evidence. Current HEAD contains synthetic/disposable fixture-only coverage for
   fail-closed target preflight, routed CREATE with backup/read-back/audit/ownership/lock evidence, read-only
   reopen/balance verification, default-disabled route-family probes, failure drills, explicit synthetic web
   CREATE harness boundaries, metadata-only PATCH for app-created transactions, and app-owned DELETE bounds.
-  That coverage uses temporary synthetic/disposable fixtures, in-memory/fake route-family services, and a
-  synthetic API/browser harness only. The final-gates follow-up passed public-status, write-safety defaults,
-  markdown-readability, tracked-hygiene, whitespace, Docker Compose config, backend pytest (`1090 passed,
-  56 warnings in 346.76s`), frontend check/build, static preview, auth-route, and synthetic browser
-  preview/explicit-test-mode CREATE harness checks. It records counters of 0 owner/private/original/working/
+  The #51 follow-up adds an explicit product-route DELETE drill that creates one app-owned disposable setup
+  transaction, rejects non-owned and non-disposable DELETE attempts without mutation, deletes exactly that
+  app-owned disposable transaction, verifies read-back/backup/audit/default-disabled probes, and emits only a
+  redacted result panel. That coverage uses temporary synthetic/disposable fixtures, in-memory/fake
+  route-family services, and a synthetic API/browser harness only. The #51 final-gates follow-up passed
+  write-safety defaults, tracked-hygiene, whitespace, backend pytest (`1096 passed, 56 warnings in 347.54s`),
+  static transaction-entry preview, and synthetic browser preview/explicit-test-mode CREATE, metadata-only PATCH,
+  and app-owned DELETE harness checks. It records counters of 0 owner/private/original/working/
   Syncthing/only-copy books opened or mutated, 0 product dogfood/private target probes, 0 committed raw books/
   backups/exports/screenshots/app DBs/secrets, 0 release or public-write posture claims, and 0 default
   write-posture flips. `GNUCASH_WRITES_ENABLED=false` remains the default and enabled writes remain

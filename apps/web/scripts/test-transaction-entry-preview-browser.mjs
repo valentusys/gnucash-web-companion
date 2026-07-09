@@ -14,6 +14,7 @@ const viteBin = join(root, 'node_modules', 'vite', 'bin', 'vite.js');
 const previewServerIndex = join(root, '.svelte-kit', 'output', 'server', 'index.js');
 const productCreateDrillScript = join(repoRoot, 'scripts', 'issue51_product_create_drill.py');
 const productPatchDrillScript = join(root, 'scripts', 'issue51_product_patch_drill.py');
+const productDeleteDrillScript = join(root, 'scripts', 'issue51_product_delete_drill.py');
 function resolveChromiumBin() {
 	if (process.env.CHROMIUM_BIN) return process.env.CHROMIUM_BIN;
 	for (const candidate of [
@@ -48,6 +49,10 @@ const explicitSyntheticAuditRef = 'audit-ref-redacted-issue51';
 const explicitSyntheticPatchRef = 'patch-ref-redacted-issue51';
 const explicitSyntheticPatchBackupRef = 'backup-ref-redacted-issue51-patch';
 const explicitSyntheticPatchAuditRef = 'audit-ref-redacted-issue51-patch';
+const explicitSyntheticDeleteRef = 'delete-ref-redacted-issue51';
+const explicitSyntheticDeleteCreateRef = 'create-ref-redacted-issue51-delete-setup';
+const explicitSyntheticDeleteBackupRef = 'backup-ref-redacted-issue51-delete';
+const explicitSyntheticDeleteAuditRef = 'audit-ref-redacted-issue51-delete';
 const explicitSyntheticPatchRejectedFields = ['amount', 'account_id', 'splits', 'date', 'currency'];
 const explicitSyntheticDisabledProbeFamilies = ['validate', 'preflight', 'create', 'patch', 'delete', 'batch'];
 const cdpCommandTimeoutMs = Number(process.env.ISSUE51_CDP_TIMEOUT_MS ?? '30000');
@@ -514,6 +519,102 @@ function buildRedactedSyntheticPatchResultPanel() {
 				patch_execution_allowed_after_reset: false,
 				patch_execution_blocked_after_reset_verified: true,
 				probe: { route_family: 'patch', status: 'blocked_or_unavailable', http_status_class: 403 }
+			},
+			redaction: {
+				raw_book_paths: false,
+				raw_backup_paths: false,
+				private_account_names: false,
+				raw_descriptions: false,
+				raw_memos: false,
+				raw_amounts: false,
+				raw_guids: false,
+				screenshots: false,
+				tokens_or_secrets: false
+			}
+		}
+	};
+}
+
+function buildRedactedSyntheticDeleteResultPanel() {
+	return {
+		redacted_delete_result_panel: {
+			panel_id: 'issue51-redacted-delete-result',
+			status: 'success',
+			evidence_scope: 'redacted_only',
+			target_class: 'disposable_copied_like_fixture',
+			setup_create_count: 1,
+			delete_count: 1,
+			create_result_ref: explicitSyntheticDeleteCreateRef,
+			delete_result_ref: explicitSyntheticDeleteRef,
+			backend_route_write_boundary: {
+				setup_create_product_route_used: true,
+				delete_product_route_used: true,
+				route: 'DELETE /books/{book_id}/transactions/{transaction_id}',
+				route_response_status: 200,
+				app_env: 'test',
+				gnucash_writes_enabled_during_delete: true,
+				normal_ui_delete_activated: false,
+				direct_sql_write: false
+			},
+			fixture_scope: {
+				copied_like_fixture: true,
+				synthetic_fixture_source: true,
+				outside_git_worktree: true,
+				private_or_only_copy_target: false
+			},
+			ownership_state: {
+				state: 'verified',
+				app_created_target: true,
+				created_by_write_alpha: true,
+				non_app_created_delete_allowed: false,
+				non_disposable_delete_allowed: false,
+				app_metadata_only: true
+			},
+			delete_scope: {
+				transaction_removed: true,
+				retained_non_target_transactions_unchanged: true,
+				account_balance_reverted: true,
+				split_rows_removed: true,
+				historical_or_manual_delete_allowed: false
+			},
+			read_back_verification: {
+				state: 'verified',
+				transaction_ref: explicitSyntheticDeleteRef,
+				transaction_present_after_delete: false,
+				transaction_count_delta_after_delete: -1,
+				account_balance_delta_reverted: true,
+				reopen_verified: true,
+				private_values_redacted: true
+			},
+			backup_state: {
+				state: 'captured',
+				backup_ref: explicitSyntheticDeleteBackupRef,
+				exists_verified: true,
+				pre_delete_contents_verified: true,
+				raw_path_included: false
+			},
+			audit_state: {
+				state: 'recorded',
+				audit_ref: explicitSyntheticDeleteAuditRef,
+				result: 'success',
+				raw_payload_included: false
+			},
+			rejection_summary: {
+				state: 'verified',
+				non_owned_delete_rejected: true,
+				non_owned_http_status_class: 403,
+				non_disposable_delete_rejected: true,
+				non_disposable_http_status_class: 403,
+				mutation_count: 0,
+				backup_created: false
+			},
+			reset_default_disabled_delete_probe_summary: {
+				state: 'verified',
+				app_env: 'test',
+				gnucash_writes_enabled: false,
+				delete_execution_allowed_after_reset: false,
+				delete_execution_blocked_after_reset_verified: true,
+				probe: { route_family: 'delete', status: 'blocked_or_unavailable', http_status_class: 403 }
 			},
 			redaction: {
 				raw_book_paths: false,
@@ -1841,6 +1942,28 @@ function runProductRoutePatchDrill(productCreatePayload) {
 	return JSON.parse(stdout);
 }
 
+function runProductRouteDeleteDrill(productCreatePayload) {
+	assert.ok(existsSync(productDeleteDrillScript), 'explicit DELETE harness requires the disposable product-route app-owned DELETE drill script');
+	const child = spawnSync('python3', [productDeleteDrillScript, '--json-only'], {
+		cwd: repoRoot,
+		input: JSON.stringify({ product_create_payload: productCreatePayload }),
+		encoding: 'utf8',
+		env: {
+			...process.env,
+			APP_ENV: 'test',
+			GNUCASH_WRITES_ENABLED: 'true'
+		},
+		maxBuffer: 1024 * 1024,
+		timeout: 120000
+	});
+	assert.equal(child.error, undefined, `explicit product-route app-owned DELETE drill process failed safely: ${child.error?.message ?? 'unknown'}`);
+	assert.equal(child.status, 0, `explicit product-route app-owned DELETE drill must succeed through the backend product route: ${String(child.stderr ?? '').slice(-2000)}`);
+	assert.equal(String(child.stderr ?? '').trim(), '', 'explicit product-route app-owned DELETE drill must keep stderr empty on success');
+	const stdout = String(child.stdout ?? '').trim();
+	assert.ok(stdout.startsWith('{') && stdout.endsWith('}'), 'explicit product-route app-owned DELETE drill must emit only redacted JSON on stdout');
+	return JSON.parse(stdout);
+}
+
 function assertNoPrivateRawPatchResultPanelLeak(responseBody, productCreatePayload) {
 	const redactedResultText = JSON.stringify(responseBody);
 	for (const forbiddenValue of [
@@ -1944,6 +2067,119 @@ function assertRedactedSyntheticPatchResultPanel(responseBody, productCreatePayl
 		tokens_or_secrets: false
 	}, 'explicit synthetic PATCH result panel must show the no-private/raw-data redaction state');
 	assertNoPrivateRawPatchResultPanelLeak(responseBody, productCreatePayload);
+}
+
+function assertNoPrivateRawDeleteResultPanelLeak(responseBody, productCreatePayload) {
+	const redactedResultText = JSON.stringify(responseBody);
+	for (const forbiddenValue of [
+		explicitSyntheticCreateId,
+		syntheticDescription,
+		syntheticMemo,
+		syntheticAmount,
+		productCreatePayload.description,
+		...productCreatePayload.splits.flatMap((split) => [split.account_id, split.amount, split.currency, split.memo])
+	]) {
+		assert.ok(!redactedResultText.includes(String(forbiddenValue)), `explicit synthetic DELETE result panel must stay redacted: ${forbiddenValue}`);
+	}
+	for (const [pattern, label] of [
+		[/\/(?:home|tmp|var|mnt|data|backup|backups)\//i, 'raw path-like artifact'],
+		[/\\\\/, 'Windows-style raw path separator'],
+		[/\.gnucash\.sqlite/i, 'raw GnuCash SQLite filename'],
+		[/app-metadata\.sqlite/i, 'raw app metadata DB filename'],
+		[/test-book\.gnucash\.sqlite/i, 'raw fixture source filename'],
+		[/issue51-disposable-copied-like/i, 'raw disposable copied-like book filename'],
+		[/owner-ledger/i, 'raw rejected non-disposable fixture label'],
+		[/"transaction_id"\s*:/, 'raw transaction_id field'],
+		[/"backup_path"\s*:/, 'raw backup_path field'],
+		[/"audit_log_id"\s*:/, 'raw audit_log_id field'],
+		[/"payload_json"\s*:/, 'raw audit payload field'],
+		[/"splits"\s*:/, 'raw splits payload field'],
+		[/"account_id"\s*:/, 'raw account_id payload field']
+	]) {
+		assert.doesNotMatch(redactedResultText, pattern, `explicit synthetic DELETE result panel must not expose ${label}`);
+	}
+	assert.ok(!redactedResultText.includes(String(productDeleteDrillScript)), 'explicit synthetic DELETE result panel must not expose the product DELETE drill script path');
+	assert.ok(!redactedResultText.includes(String(repoRoot)), 'explicit synthetic DELETE result panel must not expose the repository path');
+	assert.ok(!redactedResultText.includes(String(root)), 'explicit synthetic DELETE result panel must not expose the web app path');
+	assert.deepEqual(Object.keys(responseBody), ['redacted_delete_result_panel'], 'explicit synthetic DELETE result panel must not expose raw API result fields alongside the redacted panel');
+}
+
+function assertRedactedSyntheticDeleteResultPanel(responseBody, productCreatePayload, reviewedApprovalEvidence) {
+	assert.deepEqual(
+		responseBody,
+		buildRedactedSyntheticDeleteResultPanel(),
+		'explicit synthetic DELETE result panel must match the redacted app-owned success/result contract'
+	);
+	const panel = responseBody.redacted_delete_result_panel;
+	assert.equal(panel.panel_id, 'issue51-redacted-delete-result', 'explicit synthetic DELETE result panel must have a stable redacted panel id');
+	assert.equal(panel.status, 'success', 'explicit synthetic DELETE result panel may show success only for the explicit test-mode harness result');
+	assert.equal(panel.evidence_scope, 'redacted_only', 'explicit synthetic DELETE result panel must be redacted-only');
+	assert.equal(panel.target_class, 'disposable_copied_like_fixture', 'explicit synthetic DELETE result panel must stay scoped to the disposable copied-like fixture target');
+	assert.equal(panel.setup_create_count, reviewedApprovalEvidence.create_count, 'explicit synthetic DELETE result panel must show exactly one app-owned setup CREATE');
+	assert.equal(panel.delete_count, 1, 'explicit synthetic DELETE result panel must show exactly one DELETE');
+	assert.deepEqual(panel.ownership_state, {
+		state: 'verified',
+		app_created_target: true,
+		created_by_write_alpha: true,
+		non_app_created_delete_allowed: false,
+		non_disposable_delete_allowed: false,
+		app_metadata_only: true
+	}, 'explicit synthetic DELETE result panel must prove only an app-owned disposable target can be deleted');
+	assert.deepEqual(panel.delete_scope, {
+		transaction_removed: true,
+		retained_non_target_transactions_unchanged: true,
+		account_balance_reverted: true,
+		split_rows_removed: true,
+		historical_or_manual_delete_allowed: false
+	}, 'explicit synthetic DELETE result panel must prove a bounded DELETE scope');
+	assert.deepEqual(panel.read_back_verification, {
+		state: 'verified',
+		transaction_ref: explicitSyntheticDeleteRef,
+		transaction_present_after_delete: false,
+		transaction_count_delta_after_delete: -1,
+		account_balance_delta_reverted: true,
+		reopen_verified: true,
+		private_values_redacted: true
+	}, 'explicit synthetic DELETE result panel must prove deletion by read-back without raw transaction values');
+	assert.deepEqual(panel.backup_state, {
+		state: 'captured',
+		backup_ref: explicitSyntheticDeleteBackupRef,
+		exists_verified: true,
+		pre_delete_contents_verified: true,
+		raw_path_included: false
+	}, 'explicit synthetic DELETE result panel must show backup state without raw backup path');
+	assert.deepEqual(panel.audit_state, {
+		state: 'recorded',
+		audit_ref: explicitSyntheticDeleteAuditRef,
+		result: 'success',
+		raw_payload_included: false
+	}, 'explicit synthetic DELETE result panel must show audit state without raw payload');
+	assert.deepEqual(panel.rejection_summary, {
+		state: 'verified',
+		non_owned_delete_rejected: true,
+		non_owned_http_status_class: 403,
+		non_disposable_delete_rejected: true,
+		non_disposable_http_status_class: 403,
+		mutation_count: 0,
+		backup_created: false
+	}, 'explicit synthetic DELETE result panel must summarize non-owned and non-disposable rejections');
+	assert.equal(panel.reset_default_disabled_delete_probe_summary.gnucash_writes_enabled, false, 'explicit synthetic DELETE result panel must show writes reset to default disabled');
+	assert.equal(panel.reset_default_disabled_delete_probe_summary.app_env, 'test', 'explicit synthetic DELETE result panel must remain APP_ENV=test scoped');
+	assert.equal(panel.reset_default_disabled_delete_probe_summary.delete_execution_blocked_after_reset_verified, true, 'explicit synthetic DELETE result panel must verify DELETE is blocked after reset');
+	assert.equal(panel.reset_default_disabled_delete_probe_summary.probe.route_family, 'delete', 'explicit synthetic DELETE result panel must include the disabled DELETE probe');
+	assert.equal(panel.reset_default_disabled_delete_probe_summary.probe.status, 'blocked_or_unavailable', 'explicit synthetic DELETE result panel must show disabled DELETE probe blocked');
+	assert.deepEqual(panel.redaction, {
+		raw_book_paths: false,
+		raw_backup_paths: false,
+		private_account_names: false,
+		raw_descriptions: false,
+		raw_memos: false,
+		raw_amounts: false,
+		raw_guids: false,
+		screenshots: false,
+		tokens_or_secrets: false
+	}, 'explicit synthetic DELETE result panel must show the no-private/raw-data redaction state');
+	assertNoPrivateRawDeleteResultPanelLeak(responseBody, productCreatePayload);
 }
 
 function assertNoPrivateRawResultPanelLeak(responseBody, productCreatePayload) {
@@ -2187,6 +2423,69 @@ async function assertExplicitSyntheticPatchHarnessRejectsUserMode(api, browserRe
 			pathWithSearch: `${testCase.path}${testCase.search}`
 		})),
 		'explicit rejected PATCH probes must be recorded only as blocked default/user-mode boundary attempts'
+	);
+}
+
+async function runExplicitSyntheticDeleteHarness(api, browserRequests, previewPayload, reviewedApprovalEvidence) {
+	assertExplicitSyntheticCreateHarnessReviewedEvidence(reviewedApprovalEvidence);
+	assert.equal(
+		isForbiddenTransactionMutation('DELETE', '/books/1/transactions/synthetic-id', ''),
+		true,
+		'product DELETE route remains forbidden without explicit synthetic app-owned test harness'
+	);
+	assert.equal(
+		isForbiddenTransactionMutation('DELETE', '/books/1/transactions/synthetic-id', '?explicit_test_mode=issue51'),
+		true,
+		'product DELETE route remains forbidden to the generic mutation predicate even when the explicit-test query is present'
+	);
+	const productCreatePayload = productCreatePayloadFromPreview(previewPayload);
+	await assertExplicitSyntheticDeleteHarnessRejectsUserMode(api, browserRequests);
+	const browserRequestCountBefore = browserRequests.length;
+	const forbiddenRequestCountBefore = api.forbiddenRequests.length;
+
+	const responseBody = runProductRouteDeleteDrill(productCreatePayload);
+	assertRedactedSyntheticDeleteResultPanel(responseBody, productCreatePayload, reviewedApprovalEvidence);
+	assert.equal(browserRequests.length, browserRequestCountBefore, 'explicit DELETE harness must not be browser-driven or activate default UI');
+	assert.equal(api.forbiddenRequests.length, forbiddenRequestCountBefore, 'explicit DELETE harness must not be counted as a default/user-mode mutation boundary request');
+	assert.deepEqual(api.explicitCreatePayloads, [], 'explicit synthetic API stub must not fabricate product-route CREATE/PATCH/DELETE payloads');
+}
+
+async function assertExplicitSyntheticDeleteHarnessRejectsUserMode(api, browserRequests) {
+	const browserRequestCountBefore = browserRequests.length;
+	const forbiddenRequestCountBefore = api.forbiddenRequests.length;
+	const rejectedCases = [
+		{ label: 'ordinary product DELETE probe', path: '/books/1/transactions/synthetic-id', search: '', method: 'DELETE' },
+		{ label: 'query-smuggled explicit DELETE probe', path: '/books/1/transactions/synthetic-id', search: '?explicit_test_mode=issue51', method: 'DELETE' }
+	];
+	for (const testCase of rejectedCases) {
+		const response = await fetch(`${api.url}${testCase.path}${testCase.search}`, {
+			method: testCase.method,
+			headers: {
+				'content-type': 'application/json',
+				authorization: `Bearer ${syntheticToken}`,
+				'x-app-env': 'test',
+				'x-gnucash-writes-enabled': 'true'
+			}
+		});
+		assert.equal(response.status, 409, `${testCase.label}: default/user-mode product DELETE route must remain disabled and inert`);
+		assert.deepEqual(
+			await response.json(),
+			{ detail: 'Synthetic smoke blocked a mutation endpoint.' },
+			`${testCase.label}: rejected DELETE probe must return the synthetic no-mutation block response`
+		);
+	}
+	assert.equal(browserRequests.length, browserRequestCountBefore, 'explicit rejected DELETE probes must not be browser-driven');
+	assert.deepEqual(
+		api.forbiddenRequests
+			.slice(forbiddenRequestCountBefore)
+			.map(({ method, path, search, pathWithSearch }) => ({ method, path, search, pathWithSearch })),
+		rejectedCases.map((testCase) => ({
+			method: testCase.method,
+			path: testCase.path,
+			search: testCase.search,
+			pathWithSearch: `${testCase.path}${testCase.search}`
+		})),
+		'explicit rejected DELETE probes must be recorded only as blocked default/user-mode boundary attempts'
 	);
 }
 
@@ -2561,6 +2860,9 @@ async function runSmoke() {
 		await runExplicitSyntheticPatchHarness(api, browserRequests, previewPayload, reviewedApprovalEvidence);
 		assertBrowserToAppToApiBoundary(browserRequests, webBase, api.url, 'explicit synthetic patch harness');
 		assertDisposableSyntheticApiTargetBoundary(api, 'explicit synthetic patch harness');
+		await runExplicitSyntheticDeleteHarness(api, browserRequests, previewPayload, reviewedApprovalEvidence);
+		assertBrowserToAppToApiBoundary(browserRequests, webBase, api.url, 'explicit synthetic delete harness');
+		assertDisposableSyntheticApiTargetBoundary(api, 'explicit synthetic delete harness');
 	} catch (error) {
 		if (webProcess) console.error(`web-server-output-tail:\n${webProcess.outputTail()}`);
 		if (chromiumProcess) console.error(`chromium-output-tail:\n${chromiumProcess.outputTail()}`);
@@ -2575,4 +2877,4 @@ async function runSmoke() {
 }
 
 await runSmoke();
-console.log('transaction-entry-preview-browser: ok (normal browser preview-only/failure/query guards; explicit test-mode product-route disposable CREATE and metadata-only PATCH drills)');
+console.log('transaction-entry-preview-browser: ok (normal browser preview-only/failure/query guards; explicit test-mode product-route disposable CREATE, metadata-only PATCH, and app-owned DELETE drills)');
