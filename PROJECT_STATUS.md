@@ -1,6 +1,6 @@
 # PROJECT_STATUS
 
-Last updated: 2026-07-09
+Last updated: 2026-07-10
 
 ## Quick navigation
 
@@ -173,7 +173,10 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   private target probes, 0 committed raw books/backups/exports/screenshots/app DBs/secrets, 0 release or public-
   write posture claims, and 0 default write-posture flips. `GNUCASH_WRITES_ENABLED=false` remains the default and
   enabled writes remain `APP_ENV=test` gated. The docs/status-only task guards passed public-status,
-  write-safety-defaults, markdown-readability, tracked-hygiene, and `git diff --check` verification.
+  write-safety-defaults, markdown-readability, tracked-hygiene, and `git diff --check` verification. A
+  2026-07-10 bounded rerun for `issue51-redacted-docs-status` repeated only those redacted docs/status
+  gates from the repository root; it did not open, copy, or mutate any GnuCash book, run product
+  dogfood, probe a private target, publish a release, or change default write posture.
 - Current #36 docs reconciliation: owner-writebeta remains maintenance-only and unreleased until
   explicit owner approval. The guard state still requires default `GNUCASH_WRITES_ENABLED=false`,
   enabled write-alpha/writebeta `APP_ENV=test` gating, no public write beta, no real/private/original/

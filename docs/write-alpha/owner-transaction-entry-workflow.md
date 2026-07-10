@@ -3,8 +3,8 @@
 Issue: [#48 Owner web transaction-entry UI for CREATE + optional PATCH app-created metadata](https://github.com/valentusys/gnucash-web-companion/issues/48)
 Transition issue: [#49 Owner web UI CREATE execution trial](https://github.com/valentusys/gnucash-web-companion/issues/49)
 Drill issue: [#50 Disposable copied-book web UI CREATE drill](https://github.com/valentusys/gnucash-web-companion/issues/50)
-Status: **WEB_UI_PREVIEW_VALIDATED_AND_ISSUE50_SYNTHETIC_DRILL_RECORDED**. This document does not authorize
-mutation by itself.
+Status: **WEB_UI_PREVIEW_VALIDATED, ISSUE50_SYNTHETIC_DRILL_RECORDED, AND
+ISSUE51_REDACTED_STATUS_RECORDED**. This document does not authorize mutation by itself.
 
 ## Product framing
 
@@ -563,7 +563,9 @@ original/working/Syncthing/only-copy books opened, copied, or mutated; 0 product
 committed raw private/runtime artifacts; 0 release or public-write posture claims; and 0 default write-posture flips.
 `GNUCASH_WRITES_ENABLED=false` remains the default and enabled write routes remain `APP_ENV=test` gated. The
 docs/status-only task guards passed public-status, write-safety-defaults, markdown-readability, tracked-hygiene,
-and `git diff --check` verification.
+and `git diff --check` verification. A 2026-07-10 bounded rerun repeated only those redacted docs/status gates;
+it did not open, copy, or mutate any GnuCash book, run product dogfood, probe a private target, publish a release,
+or change default write posture.
 
 Next step: any GitHub issue update, product dogfood, private target probe, release work, or future mutating step
 requires fresh explicit scope/approval.
