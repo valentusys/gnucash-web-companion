@@ -176,7 +176,12 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   write-safety-defaults, markdown-readability, tracked-hygiene, and `git diff --check` verification. A
   2026-07-10 bounded rerun for `issue51-redacted-docs-status` repeated only those redacted docs/status
   gates from the repository root; it did not open, copy, or mutate any GnuCash book, run product
-  dogfood, probe a private target, publish a release, or change default write posture.
+  dogfood, probe a private target, publish a release, or change default write posture. A later
+  `issue51-docs-status-followup` docs/status pass updated only the same redacted scope, reran
+  public-status, write-safety-defaults, markdown-readability, tracked-hygiene, and `git diff --check`,
+  and kept safety counters at 0 for owner/private/original/working/Syncthing/only-copy books opened,
+  copied, or mutated, product dogfood/private target probes, committed raw private/runtime artifacts,
+  release/public-write posture claims, and default write-posture flips.
 - Current #36 docs reconciliation: owner-writebeta remains maintenance-only and unreleased until
   explicit owner approval. The guard state still requires default `GNUCASH_WRITES_ENABLED=false`,
   enabled write-alpha/writebeta `APP_ENV=test` gating, no public write beta, no real/private/original/

@@ -177,6 +177,39 @@ product dogfood/private target probes: 0; raw books/backups/exports/screenshots/
 release or public-write posture claims added: 0; default write-posture flips: 0. Default
 `GNUCASH_WRITES_ENABLED=false` and `APP_ENV=test` enabled-write gates remain preserved.
 
+## 2026-07-10 docs/status follow-up rerun
+
+Task `issue51-docs-status-followup` updated only the allowed redacted docs/status files:
+
+- `PROJECT_STATUS.md`;
+- `docs/write-alpha/owner-transaction-entry-workflow.md`;
+- `docs/handoff/issue51-disposable-ui-execution-rehearsal.md`.
+
+This follow-up did not add new raw execution evidence. It ties the completed #51 disposable UI rehearsal evidence
+above to current root guard results and bounded safety counters. No owner/private/original/working/Syncthing/
+only-copy book was opened, copied, or mutated. No product dogfood or private target probe was run. No raw books,
+backups, exports, screenshots, app DBs, `.env`, tokens, keys, certs, private paths, account names, descriptions,
+memos, amounts, GUIDs, or raw private evidence were added.
+
+Task-required guards were run from the repository root in isolated shell calls:
+
+- `python3 scripts/check_public_status.py`
+  - Result: `public-status-guard: ok`.
+- `python3 scripts/check_write_safety_defaults.py`
+  - Result: `write-safety defaults ok: GNUCASH_WRITES_ENABLED=false; APP_ENV=development default present;
+    APP_ENV=test gate text present; explicit write enablement present; reset/default-disabled probe wording present`.
+- `python3 scripts/check_markdown_readability.py`
+  - Result: `markdown-readability-guard: ok (27 docs checked)`.
+- `python3 scripts/check_tracked_hygiene.py`
+  - Result: `Tracked hygiene check passed (1968 tracked paths inspected).`
+- `git diff --check`
+  - Result: exit 0 with no whitespace errors.
+
+Follow-up safety counters: owner/private/original/working/Syncthing/only-copy books opened, copied, or mutated: 0;
+product dogfood/private target probes: 0; raw books/backups/exports/screenshots/app DBs/secrets committed: 0;
+release/tag/package/image publications: 0; release or public-write posture claims added: 0; default write-posture
+flips: 0. Default `GNUCASH_WRITES_ENABLED=false` and `APP_ENV=test` enabled-write gates remain preserved.
+
 ## Follow-up boundary
 
 Continue only into final full gates or a new explicitly scoped owner/PM task. Any owner/private target, product

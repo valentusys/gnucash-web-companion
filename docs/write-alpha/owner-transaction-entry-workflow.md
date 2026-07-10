@@ -567,5 +567,10 @@ and `git diff --check` verification. A 2026-07-10 bounded rerun repeated only th
 it did not open, copy, or mutate any GnuCash book, run product dogfood, probe a private target, publish a release,
 or change default write posture.
 
+A later `issue51-docs-status-followup` pass updated only redacted docs/status files and reran the same root guards:
+public-status, write-safety-defaults, markdown-readability, tracked-hygiene, and `git diff --check` all passed. It
+added no product dogfood/private target probes, GnuCash book opens/copies/mutations, releases, default write-posture
+changes, or raw private/runtime artifacts.
+
 Next step: any GitHub issue update, product dogfood, private target probe, release work, or future mutating step
 requires fresh explicit scope/approval.
