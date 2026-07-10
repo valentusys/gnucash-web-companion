@@ -105,6 +105,7 @@ NON_CREATE_ISSUE51_HARNESS_SMUGGLING_DETAIL = (
     "markers are accepted only by POST /books/{book_id}/transactions with exact "
     "synthetic/disposable proof, APP_ENV=test, and GNUCASH_WRITES_ENABLED=true."
 )
+CREATE_PREVIEW_NON_FINITE_AMOUNT_DETAIL = "amount must be a finite decimal string"
 ReadbackAccountBalanceSnapshot = dict[str, tuple[Decimal, str]]
 
 
@@ -859,6 +860,46 @@ def _build_transaction_create_preview(
     )
 
 
+def _coerce_transaction_create_preview_request(
+    payload: dict[str, Any],
+) -> TransactionCreatePreviewRequestDTO:
+    if not isinstance(payload, dict):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="create preview payload must be an object",
+        )
+
+    request = TransactionCreatePreviewRequestDTO.model_construct(
+        date=_preview_request_text(payload, "date"),
+        debit_account_id=_preview_request_text(payload, "debit_account_id"),
+        credit_account_id=_preview_request_text(payload, "credit_account_id"),
+        amount=_preview_request_text(payload, "amount"),
+        currency=_preview_request_text(payload, "currency").upper(),
+        description=_preview_request_text(payload, "description"),
+        memo=_preview_request_text(payload, "memo", default=""),
+    )
+    _parse_preview_date(request.date)
+    _parse_preview_amount(request.amount)
+    return request
+
+
+def _preview_request_text(payload: dict[str, Any], field_name: str, *, default: str | None = None) -> str:
+    if field_name not in payload:
+        if default is not None:
+            return default
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"{field_name} is required",
+        )
+    value = payload[field_name]
+    if not isinstance(value, str):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"{field_name} must be a string",
+        )
+    return value
+
+
 def _parse_preview_date(value: str) -> date:
     if not value or not value.strip():
         raise HTTPException(
@@ -887,6 +928,11 @@ def _parse_preview_amount(value: str) -> Decimal:
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="amount must be a decimal string",
         ) from exc
+    if not amount.is_finite():
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=CREATE_PREVIEW_NON_FINITE_AMOUNT_DETAIL,
+        )
     if amount <= Decimal("0"):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -1813,7 +1859,7 @@ async def get_write_alpha_audit_summary(
 )
 async def preview_book_transaction_create(
     book_id: int,
-    request: TransactionCreatePreviewRequestDTO,
+    request: dict[str, Any],
     user: User = Depends(get_current_user),
     session: Session = Depends(get_db),
 ) -> TransactionCreatePreviewDTO:
@@ -1824,6 +1870,7 @@ async def preview_book_transaction_create(
     preview and never constructs the write service, lock, backup, audit, or
     mutation path.
     """
+    preview_request = _coerce_transaction_create_preview_request(request)
     book = _resolve_readonly_data_book(book_id, user, session)
     _require_book_owner_access(book, user, session)
     try:
@@ -1831,7 +1878,7 @@ async def preview_book_transaction_create(
         accounts = service.list_accounts()
     except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
         handle_gnucash_error(exc)
-    return _build_transaction_create_preview(request, accounts)
+    return _build_transaction_create_preview(preview_request, accounts)
 
 
 @router.post(

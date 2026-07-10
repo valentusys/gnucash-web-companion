@@ -725,6 +725,33 @@ class TestTransactionCreatePreview:
         response = self.post_preview(client, auth_headers, sample_book, _preview_payload(amount="12.3.4"))
         assert response.status_code == 422
 
+    @pytest.mark.parametrize("amount", ["NaN", "sNaN", "Infinity", "-Infinity"])
+    def test_non_finite_amounts_are_rejected_with_fixed_path_safe_message_without_mutation_helpers(
+        self,
+        client,
+        auth_headers,
+        sample_book,
+        fake_book_with_transactions,
+        session_factory,
+        monkeypatch,
+        amount,
+    ):
+        self._set_fake_book(session_factory, sample_book, fake_book_with_transactions)
+        self.guard_preview_mutation_helpers(
+            monkeypatch,
+            message="non-finite create-preview amounts must not reach mutation helpers",
+        )
+
+        response = self.post_preview(client, auth_headers, sample_book, _preview_payload(amount=amount))
+
+        assert response.status_code == 422
+        assert response.json()["detail"] == "amount must be a finite decimal string"
+        serialized = str(response.json())
+        assert amount not in serialized
+        assert "/data/books" not in serialized
+        assert "test.gnucash" not in serialized
+        self.assert_no_preview_mutation_metadata(session_factory)
+
     def test_zero_amount_rejected(
         self, client, auth_headers, sample_book, fake_book_with_transactions, session_factory
     ):
@@ -869,9 +896,10 @@ class TestTransactionCreatePreview:
             '"/books/{book_id}/transactions/create-preview"',
             "_resolve_readonly_data_book",
             "_require_book_owner_access",
+            "_coerce_transaction_create_preview_request(request)",
             "transaction_service_for(book)",
             "service.list_accounts()",
-            "_build_transaction_create_preview(request, accounts)",
+            "_build_transaction_create_preview(preview_request, accounts)",
         ):
             assert required in source
 
