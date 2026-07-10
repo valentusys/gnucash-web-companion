@@ -435,12 +435,12 @@ function buildRedactedSyntheticCreateResultPanel() {
 			create_result_ref: explicitSyntheticCreateRef,
 			private_raw_payload_rendered: false,
 			result_panel_visible_rows: [
-				{ field: 'create_count', display_value: '1', evidence_scope: 'redacted_only', raw_value_included: false },
-				{ field: 'read_back_verification', display_value: 'verified', evidence_scope: 'redacted_only', raw_value_included: false },
-				{ field: 'backup_state', display_value: 'captured', evidence_scope: 'redacted_only', raw_value_included: false },
-				{ field: 'audit_state', display_value: 'recorded', evidence_scope: 'redacted_only', raw_value_included: false },
-				{ field: 'reset_default_disabled_probe_summary', display_value: 'verified', evidence_scope: 'redacted_only', raw_value_included: false },
-				{ field: 'raw_book_evidence_included', display_value: 'false', evidence_scope: 'redacted_only', raw_value_included: false }
+				{ field: 'create_count', display_value: '1', evidence_scope: 'redacted_only', raw_value_included: false, display_value_source: 'fixed_status_summary' },
+				{ field: 'read_back_verification', display_value: 'verified', evidence_scope: 'redacted_only', raw_value_included: false, display_value_source: 'fixed_status_summary' },
+				{ field: 'backup_state', display_value: 'captured', evidence_scope: 'redacted_only', raw_value_included: false, display_value_source: 'fixed_status_summary' },
+				{ field: 'audit_state', display_value: 'recorded', evidence_scope: 'redacted_only', raw_value_included: false, display_value_source: 'fixed_status_summary' },
+				{ field: 'reset_default_disabled_probe_summary', display_value: 'verified', evidence_scope: 'redacted_only', raw_value_included: false, display_value_source: 'fixed_status_summary' },
+				{ field: 'raw_book_evidence_included', display_value: 'false', evidence_scope: 'redacted_only', raw_value_included: false, display_value_source: 'fixed_status_summary' }
 			],
 			backend_route_write_boundary: {
 				product_route_used: true,
@@ -2169,15 +2169,48 @@ async function assertExplicitSyntheticCreateHarnessRejectsUserMode(api, browserR
 	);
 }
 
+const redactedCreateVisibleRowFields = ['create_count', 'read_back_verification', 'backup_state', 'audit_state', 'reset_default_disabled_probe_summary', 'raw_book_evidence_included'];
+const redactedCreateVisibleRowDisplayValues = ['1', 'verified', 'captured', 'recorded', 'verified', 'false'];
+
 function buildRedactedCreateVisibleRows(panel) {
-	return [
-		{ field: 'create_count', display_value: String(panel.create_count), evidence_scope: 'redacted_only', raw_value_included: false },
-		{ field: 'read_back_verification', display_value: panel.read_back_verification.state, evidence_scope: 'redacted_only', raw_value_included: false },
-		{ field: 'backup_state', display_value: panel.backup_state.state, evidence_scope: 'redacted_only', raw_value_included: false },
-		{ field: 'audit_state', display_value: panel.audit_state.state, evidence_scope: 'redacted_only', raw_value_included: false },
-		{ field: 'reset_default_disabled_probe_summary', display_value: panel.reset_default_disabled_probe_summary.state, evidence_scope: 'redacted_only', raw_value_included: false },
-		{ field: 'raw_book_evidence_included', display_value: 'false', evidence_scope: 'redacted_only', raw_value_included: false }
-	];
+	assert.equal(panel.create_count, 1, 'redacted CREATE visible rows require exact create_count 1');
+	assert.equal(panel.read_back_verification?.state, 'verified', 'redacted CREATE visible rows require verified read-back');
+	assert.equal(panel.backup_state?.state, 'captured', 'redacted CREATE visible rows require captured backup state');
+	assert.equal(panel.audit_state?.state, 'recorded', 'redacted CREATE visible rows require recorded audit state');
+	assert.equal(panel.reset_default_disabled_probe_summary?.state, 'verified', 'redacted CREATE visible rows require verified reset/default-disabled probes');
+	return redactedCreateVisibleRowFields.map((field, index) => ({
+		field,
+		display_value: redactedCreateVisibleRowDisplayValues[index],
+		evidence_scope: 'redacted_only',
+		raw_value_included: false,
+		display_value_source: 'fixed_status_summary'
+	}));
+}
+
+function assertRedactedCreateVisibleRows(rows, label) {
+	assert.deepEqual(
+		rows.map((row) => row.field),
+		redactedCreateVisibleRowFields,
+		`${label}: explicit synthetic CREATE result panel must expose only the approved visible row fields`
+	);
+	assert.deepEqual(
+		rows.map((row) => row.display_value),
+		redactedCreateVisibleRowDisplayValues,
+		`${label}: explicit synthetic CREATE result panel visible rows must summarize count/read-back/backup/audit/reset/raw-evidence states only`
+	);
+	assert.ok(
+		rows.every((row) => row.evidence_scope === 'redacted_only' && row.raw_value_included === false && row.display_value_source === 'fixed_status_summary'),
+		`${label}: explicit synthetic CREATE result panel visible rows must use fixed status summaries and never render opaque refs or raw values`
+	);
+	const visibleRowsText = JSON.stringify(rows);
+	assert.doesNotMatch(
+		visibleRowsText,
+		/transaction_id|backup_path|audit_log_id|payload_json|account_id|split|description|memo|amount|GUID|\.gnucash\.sqlite/i,
+		`${label}: explicit synthetic CREATE result panel visible rows must not include raw DTO/private data fields`
+	);
+	for (const forbiddenVisibleValue of [explicitSyntheticCreateRef, explicitSyntheticBackupRef, explicitSyntheticAuditRef]) {
+		assert.ok(!visibleRowsText.includes(forbiddenVisibleValue), `${label}: redacted visible row values must not render opaque refs: ${forbiddenVisibleValue}`);
+	}
 }
 
 function redactCreateResultPanelForDisplay(responseBody) {
@@ -2191,11 +2224,13 @@ function redactCreateResultPanelForDisplay(responseBody) {
 	assert.equal(panel.reset_default_disabled_probe_summary?.state, 'verified', 'display shaping requires verified reset/default-disabled probes');
 	assert.equal(panel.redaction?.raw_book_paths, false, 'display shaping requires raw book paths to be excluded');
 	assert.equal(panel.redaction?.raw_backup_paths, false, 'display shaping requires raw backup paths to be excluded');
+	const resultPanelVisibleRows = buildRedactedCreateVisibleRows(panel);
+	assertRedactedCreateVisibleRows(resultPanelVisibleRows, 'display shaping');
 	return {
 		redacted_result_panel: {
 			...panel,
 			private_raw_payload_rendered: false,
-			result_panel_visible_rows: buildRedactedCreateVisibleRows(panel)
+			result_panel_visible_rows: resultPanelVisibleRows
 		}
 	};
 }
@@ -2529,25 +2564,7 @@ function assertRedactedSyntheticCreateResultPanel(responseBody, productCreatePay
 	assert.equal(panel.create_count, reviewedApprovalEvidence.create_count, 'explicit synthetic CREATE result panel must show the reviewed exact create_count');
 	assert.equal(panel.create_count, 1, 'explicit synthetic CREATE result panel must show exactly one CREATE');
 	assert.equal(panel.private_raw_payload_rendered, false, 'explicit synthetic CREATE result panel must not render a private/raw product payload');
-	assert.deepEqual(
-		panel.result_panel_visible_rows.map((row) => row.field),
-		['create_count', 'read_back_verification', 'backup_state', 'audit_state', 'reset_default_disabled_probe_summary', 'raw_book_evidence_included'],
-		'explicit synthetic CREATE result panel must expose only the approved visible row fields'
-	);
-	assert.ok(
-		panel.result_panel_visible_rows.every((row) => row.evidence_scope === 'redacted_only' && row.raw_value_included === false),
-		'explicit synthetic CREATE result panel visible rows must stay redacted and exclude raw values'
-	);
-	assert.deepEqual(
-		panel.result_panel_visible_rows.map((row) => row.display_value),
-		['1', 'verified', 'captured', 'recorded', 'verified', 'false'],
-		'explicit synthetic CREATE result panel visible rows must summarize count/read-back/backup/audit/reset/raw-evidence states only'
-	);
-	assert.doesNotMatch(
-		JSON.stringify(panel.result_panel_visible_rows),
-		/transaction_id|backup_path|audit_log_id|payload_json|account_id|split|description|memo|amount|GUID|\.gnucash\.sqlite/i,
-		'explicit synthetic CREATE result panel visible rows must not include raw DTO/private data fields'
-	);
+	assertRedactedCreateVisibleRows(panel.result_panel_visible_rows, 'explicit synthetic CREATE result panel');
 	assert.deepEqual(
 		panel.fixture_scope,
 		{
