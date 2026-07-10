@@ -325,8 +325,8 @@ assert.match(
 );
 assert.match(
 	newTransactionServer,
-	/`\/books\/\$\{bookId\}\/transactions\/create-preview`/,
-	'new transaction preview page must call only the non-mutating create-preview endpoint'
+	/`\/books\/\$\{activeBook\.id\}\/transactions\/create-preview`/,
+	'new transaction preview page must call only the non-mutating active-book create-preview endpoint'
 );
 assert.match(
 	newTransactionServer,
@@ -335,7 +335,7 @@ assert.match(
 );
 assert.doesNotMatch(
 	newTransactionServer,
-	/env\.GNUCASH_WRITES_ENABLED !== 'true'[\s\S]*redirect\(303, '\/transactions'\)|\/transactions\/validate|`\/books\/\$\{bookId\}\/transactions`|\b(?:create|validate)\s*:\s*async|hasWriteAcknowledgement/,
+	/env\.GNUCASH_WRITES_ENABLED !== 'true'[\s\S]*redirect\(303, '\/transactions'\)|\/transactions\/validate|`\/books\/\$\{bookId\}\/transactions`|`\/books\/\$\{activeBook\.id\}\/transactions`|\b(?:create|validate)\s*:\s*async|hasWriteAcknowledgement/,
 	'new transaction preview route must stay reachable with writes disabled and must not retain create/validate/write action code'
 );
 
