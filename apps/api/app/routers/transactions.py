@@ -95,6 +95,11 @@ EXPLICIT_ISSUE51_CREATE_HARNESS_DETAIL = (
     "Explicit issue51 CREATE harness requires exact test-mode query, harness header, "
     "synthetic/disposable proof, APP_ENV=test, and GNUCASH_WRITES_ENABLED=true."
 )
+NON_CREATE_ISSUE51_HARNESS_SMUGGLING_DETAIL = (
+    "Non-CREATE write route rejects query/header smuggling. Explicit issue51 CREATE harness "
+    "markers are accepted only by POST /books/{book_id}/transactions with exact "
+    "synthetic/disposable proof, APP_ENV=test, and GNUCASH_WRITES_ENABLED=true."
+)
 ReadbackAccountBalanceSnapshot = dict[str, tuple[Decimal, str]]
 
 
@@ -1624,6 +1629,35 @@ def _require_explicit_issue51_create_harness_scope(
         )
 
 
+def _require_no_non_create_write_route_query_or_issue51_headers(
+    *,
+    raw_query: str,
+    x_issue51_explicit_test_create: str | None,
+    x_issue51_synthetic_disposable_proof: str | None,
+    x_app_env: str | None,
+    x_gnucash_writes_enabled: str | None,
+) -> None:
+    """Reject explicit CREATE harness/query material on non-CREATE write routes.
+
+    Validate/PATCH/DELETE are part of the write route family but are not the
+    issue #51 explicit CREATE harness. They accept no query parameters and never
+    trust harness-like headers to select test mode or target safety; failing here
+    prevents route/query/header smuggling before book lookup, audit, or service
+    construction.
+    """
+    if raw_query or _explicit_issue51_create_harness_attempted(
+        explicit_test_mode=None,
+        x_issue51_explicit_test_create=x_issue51_explicit_test_create,
+        x_issue51_synthetic_disposable_proof=x_issue51_synthetic_disposable_proof,
+        x_app_env=x_app_env,
+        x_gnucash_writes_enabled=x_gnucash_writes_enabled,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=NON_CREATE_ISSUE51_HARNESS_SMUGGLING_DETAIL,
+        )
+
+
 # ---------------------------------------------------------------------------
 # Phase 12: Controlled write endpoints
 # ---------------------------------------------------------------------------
@@ -1796,13 +1830,25 @@ async def preview_book_transaction_create(
 async def validate_book_transaction(
     book_id: int,
     request: TransactionCreateRequestDTO,
+    http_request: Request,
     user: User = Depends(get_current_user),
     session: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
+    x_issue51_explicit_test_create: str | None = Header(None),
+    x_issue51_synthetic_disposable_proof: str | None = Header(None),
+    x_app_env: str | None = Header(None),
+    x_gnucash_writes_enabled: str | None = Header(None),
 ) -> TransactionValidationResultDTO:
     """Validate a transaction create request without writing."""
     _ensure_writes_enabled(settings)
     _ensure_write_alpha_test_scope(settings)
+    _require_no_non_create_write_route_query_or_issue51_headers(
+        raw_query=http_request.url.query,
+        x_issue51_explicit_test_create=x_issue51_explicit_test_create,
+        x_issue51_synthetic_disposable_proof=x_issue51_synthetic_disposable_proof,
+        x_app_env=x_app_env,
+        x_gnucash_writes_enabled=x_gnucash_writes_enabled,
+    )
     book = _resolve_viewable_book(book_id, user, session)
     _require_book_edit_access(book, user, session)
     # Validation is part of the write route family: it may construct the
@@ -1989,9 +2035,14 @@ async def patch_book_transaction(
     book_id: int,
     transaction_id: str,
     request: TransactionPatchRequestDTO,
+    http_request: Request,
     user: User = Depends(get_current_user),
     session: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
+    x_issue51_explicit_test_create: str | None = Header(None),
+    x_issue51_synthetic_disposable_proof: str | None = Header(None),
+    x_app_env: str | None = Header(None),
+    x_gnucash_writes_enabled: str | None = Header(None),
     x_owner_writebeta_preview_hash: str | None = Header(None),
     x_owner_writebeta_confirmation_token: str | None = Header(None),
 ) -> TransactionWriteResultDTO:
@@ -2001,6 +2052,13 @@ async def patch_book_transaction(
     """
     _ensure_writes_enabled(settings)
     _ensure_write_alpha_test_scope(settings)
+    _require_no_non_create_write_route_query_or_issue51_headers(
+        raw_query=http_request.url.query,
+        x_issue51_explicit_test_create=x_issue51_explicit_test_create,
+        x_issue51_synthetic_disposable_proof=x_issue51_synthetic_disposable_proof,
+        x_app_env=x_app_env,
+        x_gnucash_writes_enabled=x_gnucash_writes_enabled,
+    )
     book = _resolve_viewable_book(book_id, user, session)
     _require_book_edit_access(book, user, session)
     _require_disposable_create_target(book)
@@ -2110,15 +2168,27 @@ async def patch_book_transaction(
 async def delete_book_transaction(
     book_id: int,
     transaction_id: str,
+    http_request: Request,
     user: User = Depends(get_current_user),
     session: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
+    x_issue51_explicit_test_create: str | None = Header(None),
+    x_issue51_synthetic_disposable_proof: str | None = Header(None),
+    x_app_env: str | None = Header(None),
+    x_gnucash_writes_enabled: str | None = Header(None),
     x_owner_writebeta_preview_hash: str | None = Header(None),
     x_owner_writebeta_confirmation_token: str | None = Header(None),
 ) -> TransactionWriteResultDTO:
     """Delete one existing transaction through the experimental write-alpha path."""
     _ensure_writes_enabled(settings)
     _ensure_write_alpha_test_scope(settings)
+    _require_no_non_create_write_route_query_or_issue51_headers(
+        raw_query=http_request.url.query,
+        x_issue51_explicit_test_create=x_issue51_explicit_test_create,
+        x_issue51_synthetic_disposable_proof=x_issue51_synthetic_disposable_proof,
+        x_app_env=x_app_env,
+        x_gnucash_writes_enabled=x_gnucash_writes_enabled,
+    )
     book = _resolve_viewable_book(book_id, user, session)
     _require_book_edit_access(book, user, session)
     _require_disposable_create_target(book)

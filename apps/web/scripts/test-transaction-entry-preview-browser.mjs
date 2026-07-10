@@ -2202,24 +2202,66 @@ async function assertExplicitSyntheticCreateHarnessRejectsUserMode(api, browserR
 				'x-app-env': 'test',
 				'x-gnucash-writes-enabled': 'true'
 			}
+		},
+		{
+			label: 'non-CREATE validate route rejects explicit harness query/header smuggling',
+			path: '/books/1/transactions/validate',
+			search: `${explicitSyntheticCreateHarnessSearch}&next=%2Fbooks%2F1%2Ftransactions%2Fbatch`,
+			method: 'POST',
+			headers: {
+				'x-issue51-explicit-test-create': explicitSyntheticCreateHarnessToken,
+				'x-issue51-synthetic-disposable-proof': explicitSyntheticDisposableProof,
+				'x-app-env': 'test',
+				'x-gnucash-writes-enabled': 'true'
+			}
+		},
+		{
+			label: 'non-CREATE PATCH route rejects explicit harness query/header smuggling',
+			path: '/books/1/transactions/synthetic-created-tx',
+			search: `${explicitSyntheticCreateHarnessSearch}&next=%2Fbooks%2F1%2Ftransactions%2Fbatch`,
+			method: 'PATCH',
+			body: { description: 'smuggled metadata-only patch' },
+			headers: {
+				'x-issue51-explicit-test-create': explicitSyntheticCreateHarnessToken,
+				'x-issue51-synthetic-disposable-proof': explicitSyntheticDisposableProof,
+				'x-app-env': 'test',
+				'x-gnucash-writes-enabled': 'true'
+			}
+		},
+		{
+			label: 'non-CREATE DELETE route rejects explicit harness query/header smuggling',
+			path: '/books/1/transactions/synthetic-created-tx',
+			search: `${explicitSyntheticCreateHarnessSearch}&next=%2Fbooks%2F1%2Ftransactions%2Fbatch`,
+			method: 'DELETE',
+			body: null,
+			headers: {
+				'x-issue51-explicit-test-create': explicitSyntheticCreateHarnessToken,
+				'x-issue51-synthetic-disposable-proof': explicitSyntheticDisposableProof,
+				'x-app-env': 'test',
+				'x-gnucash-writes-enabled': 'true'
+			}
 		}
 	];
 
 	for (const testCase of rejectedCases) {
-		const response = await fetch(`${api.url}${testCase.path}${testCase.search}`, {
-			method: 'POST',
+		const requestOptions = {
+			method: testCase.method ?? 'POST',
 			headers: {
 				'content-type': 'application/json',
 				authorization: `Bearer ${syntheticToken}`,
 				...testCase.headers
-			},
-			body: JSON.stringify(productCreatePayload)
-		});
-		assert.equal(response.status, 409, `${testCase.label}: default/user-mode product CREATE route must remain disabled and inert`);
+			}
+		};
+		if (testCase.body !== null) {
+			requestOptions.body = JSON.stringify(testCase.body ?? productCreatePayload);
+		}
+		const response = await fetch(`${api.url}${testCase.path}${testCase.search}`, requestOptions);
+
+		assert.equal(response.status, 409, `${testCase.label}: default/user-mode product route must remain disabled and inert`);
 		assert.deepEqual(
 			await response.json(),
 			{ detail: 'Synthetic smoke blocked a mutation endpoint.' },
-			`${testCase.label}: rejected CREATE probe must return the synthetic no-mutation block response`
+			`${testCase.label}: rejected mutation probe must return the synthetic no-mutation block response`
 		);
 	}
 
@@ -2230,7 +2272,7 @@ async function assertExplicitSyntheticCreateHarnessRejectsUserMode(api, browserR
 			.slice(forbiddenRequestCountBefore)
 			.map(({ method, path, search, pathWithSearch }) => ({ method, path, search, pathWithSearch })),
 		rejectedCases.map((testCase) => ({
-			method: 'POST',
+			method: testCase.method ?? 'POST',
 			path: testCase.path,
 			search: testCase.search,
 			pathWithSearch: `${testCase.path}${testCase.search}`

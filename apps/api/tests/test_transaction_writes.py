@@ -794,12 +794,85 @@ class TestWritesDisabledByDefault:
             ),
         ]
 
+        validate_response, create_response, patch_response, delete_response = responses
+
         for response in responses:
             assert response.status_code == 403
+            assert "ledger-main" not in response.json()["detail"]
+
+        create_detail = create_response.json()["detail"]
+        assert "Disposable target preflight failed closed" in create_detail
+        assert "filename must mark it as copied/disposable/synthetic test data" in create_detail
+
+        for label, response in (
+            ("validate", validate_response),
+            ("patch", patch_response),
+            ("delete", delete_response),
+        ):
             detail = response.json()["detail"]
-            assert "Disposable target preflight failed closed" in detail
-            assert "filename must mark it as copied/disposable/synthetic test data" in detail
-            assert "ledger-main" not in detail
+            assert "Non-CREATE write route rejects query/header smuggling" in detail, label
+            assert "Explicit issue51 CREATE harness" in detail, label
+        assert write_service_calls == []
+        with session_factory() as session:
+            assert session.query(AuditLog).count() == 0
+
+    def test_non_create_write_routes_reject_issue51_query_header_smuggling_before_service_or_audit(
+        self,
+        client,
+        auth_headers,
+        sample_book,
+        session_factory,
+        monkeypatch,
+    ):
+        write_service_calls = []
+
+        def forbidden_write_service(*args, **kwargs):
+            write_service_calls.append((args, kwargs))
+            raise AssertionError("non-CREATE explicit CREATE harness smuggling must not construct write services")
+
+        monkeypatch.setattr("app.routers.transactions._write_service_for", forbidden_write_service)
+        smuggled_headers = {
+            **auth_headers,
+            "X-Issue51-Explicit-Test-Create": "issue51-explicit-synthetic-create-harness",
+            "X-Issue51-Synthetic-Disposable-Proof": "synthetic-disposable-fixture-book-1",
+            "X-App-Env": "test",
+            "X-Gnucash-Writes-Enabled": "true",
+        }
+        smuggled_query = "?explicit_test_mode=issue51&next=%2Fbooks%2F1%2Ftransactions%2Fbatch"
+
+        responses = [
+            (
+                "validate",
+                client.post(
+                    f"/books/{sample_book}/transactions/validate{smuggled_query}",
+                    json=_balanced_transaction_payload(),
+                    headers=smuggled_headers,
+                ),
+            ),
+            (
+                "patch",
+                client.patch(
+                    f"/books/{sample_book}/transactions/synthetic-created-tx{smuggled_query}",
+                    json={"description": "smuggled metadata-only patch"},
+                    headers=smuggled_headers,
+                ),
+            ),
+            (
+                "delete",
+                client.delete(
+                    f"/books/{sample_book}/transactions/synthetic-created-tx{smuggled_query}",
+                    headers=smuggled_headers,
+                ),
+            ),
+        ]
+
+        for label, response in responses:
+            assert response.status_code == 403, label
+            detail = response.json()["detail"]
+            assert "Non-CREATE write route rejects query/header smuggling" in detail, label
+            assert "Explicit issue51 CREATE harness" in detail, label
+            assert "disposable-route-test-book" not in detail
+            assert "synthetic-created-tx" not in detail
         assert write_service_calls == []
         with session_factory() as session:
             assert session.query(AuditLog).count() == 0

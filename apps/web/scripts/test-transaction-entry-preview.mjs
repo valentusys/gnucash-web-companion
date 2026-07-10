@@ -141,6 +141,7 @@ for (const requiredBrowserSmokeFragment of [
 	'extra explicit query parameter',
 	'duplicate explicit test-mode query',
 	'query-smuggled explicit CREATE probe',
+	'non-CREATE validate route rejects explicit harness query/header smuggling',
 	'explicit rejected CREATE probes must not be browser-driven',
 	'function buildRedactedSyntheticCreateResultPanel',
 	'function assertRedactedSyntheticCreateResultPanel',
