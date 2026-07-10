@@ -120,6 +120,8 @@ for (const requiredBrowserSmokeFragment of [
 	'unlinked query-tamper preview index',
 	'explicit harness must bind reviewed approval evidence to the exact reviewed preview payload',
 	'explicit harness must not reuse the later explicit-mode query preview payload',
+	'stale preview approval evidence rejection',
+	'explicit harness must reject stale current UI evidence before product-route drill',
 	'function assertExplicitSyntheticCreateHarnessReviewedEvidence',
 	'source: \'browser-reviewed-approval-packet\'',
 	'explicit CREATE harness requires reviewed browser approval evidence from the non-stale preview UI',

@@ -3102,6 +3102,14 @@ async function runSmoke() {
 		assert.equal(await evaluate(cdp, `document.querySelector('#preview-reviewed-confirmation')?.checked === false`), true, 'stale draft must reset local reviewed checkbox');
 		assert.equal(await evaluate(cdp, `document.querySelector('#preview-reviewed-confirmation')?.disabled === true`), true, 'stale preview must disable local reviewed checkbox');
 		assert.equal(await evaluate(cdp, `document.querySelector('#future-create-disabled')?.disabled === true`), true, 'Future Create must remain disabled after stale change');
+		await assert.rejects(
+			() => collectReviewedApprovalEvidence(cdp, 'stale preview approval evidence rejection', {
+				previewPayloadIndex: 1,
+				previewPayload: reviewedPreviewPayload
+			}),
+			{ name: 'AssertionError' },
+			'explicit harness must reject stale current UI evidence before product-route drill'
+		);
 		await assertPreviewOnlyRuntimeTopology(cdp, 'stale preview');
 		await assertMobilePreviewUx(cdp, 'stale preview', { confirmation: true, stale: true });
 		await assertApprovalPacketControls(cdp, 'stale approval packet', { reviewedDisabled: true });
