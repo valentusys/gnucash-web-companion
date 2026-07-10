@@ -230,15 +230,6 @@ async function apiPost<T>(fetchFn: typeof fetch, path: string, token: string, pa
 	return { ok: response.ok, status: response.status, body };
 }
 
-function safeMessage(value: unknown, fallback = PREVIEW_ERROR_FALLBACK): string {
-	if (typeof value !== 'string') return fallback;
-	const detail = value.trim();
-	if (detail && detail.length <= 180 && !/[\\/]/.test(detail)) {
-		return detail;
-	}
-	return fallback;
-}
-
 function fallbackFieldMessage(field: PreviewFieldName): string {
 	return `Invalid ${FIELD_LABELS[field]}. No write was executed.`;
 }
@@ -325,11 +316,17 @@ function fieldErrorsFromString(detail: string): PreviewFieldErrors {
 	return errors;
 }
 
+function previewErrorSummary(fieldErrors: PreviewFieldErrors): string {
+	return Object.keys(fieldErrors).length
+		? 'Preview validation failed safely. Review the highlighted fields. No write was executed.'
+		: PREVIEW_ERROR_FALLBACK;
+}
+
 function previewErrorDetails(body: unknown): { error: string; fieldErrors: PreviewFieldErrors } {
 	const detail = typeof body === 'object' && body !== null && 'detail' in body ? (body as ApiErrorBody).detail : undefined;
 	if (typeof detail === 'string') {
-		const error = safeMessage(detail);
-		return { error, fieldErrors: fieldErrorsFromString(detail) };
+		const fieldErrors = fieldErrorsFromString(detail);
+		return { error: previewErrorSummary(fieldErrors), fieldErrors };
 	}
 	if (Array.isArray(detail)) {
 		const fieldErrors: PreviewFieldErrors = {};
@@ -341,9 +338,7 @@ function previewErrorDetails(body: unknown): { error: string; fieldErrors: Previ
 			addFieldError(fieldErrors, field, message);
 		}
 		return {
-			error: Object.keys(fieldErrors).length
-				? 'Preview validation failed safely. Review the highlighted fields. No write was executed.'
-				: PREVIEW_ERROR_FALLBACK,
+			error: previewErrorSummary(fieldErrors),
 			fieldErrors
 		};
 	}

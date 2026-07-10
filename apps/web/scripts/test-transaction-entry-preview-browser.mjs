@@ -37,6 +37,10 @@ const syntheticMemo = 'Synthetic browser smoke memo';
 const syntheticAmount = '12.34';
 const validationFailureAmount = '0.00';
 const syntheticValidationFailureDescription = 'Synthetic browser smoke validation failure';
+const unknownPreviewFailureAmount = '98.76';
+const syntheticUnknownPreviewFailureDescription = 'Synthetic browser smoke unknown preview redaction';
+const privatePreviewErrorDetailSentinel = 'PRIVATE_LEDGER_SENTINEL_9F2C7B_GUID_4E2A6D';
+const previewFailureFallbackText = 'Preview validation failed safely. No write was executed.';
 const syntheticQueryTamperDescription = 'Synthetic browser smoke explicit-mode query attempt';
 const disposableSourceAccountId = 'c73e8aa01e6345288662b556f2f866f3';
 const disposableDestinationAccountId = '388a85676d4a4643ae6cd28166c34e79';
@@ -380,6 +384,8 @@ function assertSourceSafety() {
 	assert.match(server, /const \{ activeBook \} = await getActiveBookContext\(fetch, cookies, token\)[\s\S]*const activeBookId = activeBook \? String\(activeBook\.id\) : ''[\s\S]*bookId !== activeBookId[\s\S]*previewBookMismatchFailure\(returnedPayload, activeBook\)/s, 'server action must reject submitted book_id values that do not match the active book');
 	assert.match(server, /apiPost<TransactionCreatePreview>[\s\S]*`\/books\/\$\{activeBook\.id\}\/transactions\/create-preview`/s, 'server action must submit create-preview only for the active book context');
 	assert.doesNotMatch(server, /`\/books\/\$\{bookId\}\/transactions\/create-preview`/, 'server action must not trust submitted book_id as the API target');
+	assert.match(server, /if \(typeof detail === 'string'\) \{\s*const fieldErrors = fieldErrorsFromString\(detail\);\s*return \{ error: previewErrorSummary\(fieldErrors\), fieldErrors \};\s*\}/s, 'server action must map string API details through fixed summaries instead of rendering them verbatim');
+	assert.doesNotMatch(server, /function safeMessage|safeMessage\(detail\)|return detail;/, 'server action must not pass through unrecognized API detail strings');
 	assert.match(server, /function createTargetPreflight\(\)[\s\S]*required: true[\s\S]*status: 'not_checked'[\s\S]*target_class: targetClass[\s\S]*status: 'pending'/s, 'server target preflight must default to required/not_checked/pending');
 	assert.match(server, /function createExecutionReadiness\(\)[\s\S]*required: true[\s\S]*status: 'not_checked'[\s\S]*backup_state: 'pending'[\s\S]*read_back_state: 'pending'[\s\S]*audit_state: 'pending'[\s\S]*reset_state: 'pending'[\s\S]*probe_state: 'pending'[\s\S]*status: 'pending'/s, 'server execution readiness must default to required/not_checked/pending');
 	assert.match(server, /function createExecutionReadiness\(\)[\s\S]*evidence_packet_plan: \[[\s\S]*id: 'backup_before_create_evidence'[\s\S]*id: 'read_back_after_create_evidence'[\s\S]*id: 'audit_after_create_evidence'[\s\S]*id: 'reset_disabled_evidence'[\s\S]*id: 'disabled_probes_after_reset_evidence'[\s\S]*id: 'desktop_verification_evidence'/s, 'server execution readiness must include an explicit pending evidence packet plan');
@@ -1068,6 +1074,9 @@ async function startSyntheticApi() {
 						]
 					});
 				}
+				if (payload.amount === unknownPreviewFailureAmount && payload.description === syntheticUnknownPreviewFailureDescription) {
+					return jsonResponse(res, 422, { detail: privatePreviewErrorDetailSentinel });
+				}
 				return jsonResponse(res, 200, {
 					preview_only: true,
 					writes_enabled_required_for_create: true,
@@ -1584,6 +1593,29 @@ async function assertPreviewValidationFailureUi(cdp, label) {
 	assert.equal(state.approvalPacketPresent, false, `${label}: approval packet must remain absent after failed preview`);
 	assert.equal(state.normalizedPreviewPresent, false, `${label}: normalized preview must remain absent after failed preview`);
 	assert.equal(state.futureCreatePresent, false, `${label}: Future Create control must remain absent until a successful preview`);
+}
+
+async function assertUnknownPreviewDetailRedactionUi(cdp, label) {
+	const state = await evaluate(cdp, `(() => ({
+		errorSummaryText: document.querySelector('#preview-error-summary')?.innerText ?? '',
+		bodyText: document.body?.innerText ?? '',
+		html: document.documentElement?.outerHTML ?? '',
+		jumpListPresent: Boolean(document.querySelector('#preview-error-jump-list')),
+		approvalPacketPresent: Boolean(document.querySelector('#approval-packet')),
+		normalizedPreviewPresent: Boolean(document.querySelector('#normalized-preview')),
+		futureCreatePresent: Boolean(document.querySelector('#future-create-disabled')),
+		futureCreateEnabled: document.querySelector('#future-create-disabled')?.disabled === false
+	}))()`);
+	assert.match(state.errorSummaryText, /Preview validation failed safely/, `${label}: unknown detail UI must show the safe summary title`);
+	assert.ok(state.errorSummaryText.includes(previewFailureFallbackText), `${label}: unknown detail UI must show the fixed preview failure fallback`);
+	assert.match(state.errorSummaryText, /No CREATE\/PATCH\/DELETE\/batch executed/, `${label}: unknown detail UI must repeat the no-write boundary`);
+	assert.match(state.errorSummaryText, /Raw private paths, secrets, and runtime internals are not shown/, `${label}: unknown detail UI must stay redacted`);
+	assert.equal(state.bodyText.includes(privatePreviewErrorDetailSentinel), false, `${label}: rendered page text must not include the private-looking API detail sentinel`);
+	assert.equal(state.html.includes(privatePreviewErrorDetailSentinel), false, `${label}: rendered HTML must not include the private-looking API detail sentinel`);
+	assert.equal(state.jumpListPresent, false, `${label}: unrecognized detail must not create a field-error jump list`);
+	assert.equal(state.approvalPacketPresent, false, `${label}: approval packet must remain absent after unknown detail failure`);
+	assert.equal(state.normalizedPreviewPresent, false, `${label}: normalized preview must remain absent after unknown detail failure`);
+	assert.equal(state.futureCreateEnabled, false, `${label}: Future Create must not become enabled after unknown detail failure`);
 }
 
 async function selectInjectedNonDisposableBook(cdp) {
@@ -2206,7 +2238,10 @@ function assertReviewedEvidenceMatchesPreviewPayload(api, previewPayload, review
 	);
 	assert.notDeepEqual(api.previewPayloads[0], previewPayload, 'explicit harness must not reuse the validation-failure preview payload');
 	if (api.previewPayloads.length > 2) {
-		assert.notDeepEqual(api.previewPayloads[2], previewPayload, 'explicit harness must not reuse the later explicit-mode query preview payload');
+		assert.notDeepEqual(api.previewPayloads[2], previewPayload, 'explicit harness must not reuse the unknown-detail redaction failure preview payload');
+	}
+	if (api.previewPayloads.length > 3) {
+		assert.notDeepEqual(api.previewPayloads[3], previewPayload, 'explicit harness must not reuse the later explicit-mode query preview payload');
 	}
 }
 
@@ -2928,7 +2963,7 @@ function assertIssue51BrowserSmokeFollowupUiToRouteProofs({
 	assertReviewedEvidenceMatchesPreviewPayload(api, previewPayload, reviewedApprovalEvidence);
 	assert.deepEqual(
 		transactionEntryAppSubmissionSearches(browserRequests),
-		['?/preview', '?/preview', '?/preview', '?/preview'],
+		['?/preview', '?/preview', '?/preview', '?/preview', '?/preview'],
 		'issue #51 follow-up must prove UI-reviewed preview was the only normal browser submission path before CREATE rehearsal'
 	);
 	assert.deepEqual(
@@ -3489,6 +3524,22 @@ async function runSmoke() {
 		await assertExecutionResultShellRemainsPending(cdp, 'clear preview');
 		assertNoMutationRequestsObserved(api, browserRequests, 'clear preview');
 
+		await fillPreviewForm(cdp, {
+			amount: unknownPreviewFailureAmount,
+			description: syntheticUnknownPreviewFailureDescription
+		});
+		const unknownDetailBoundaryBefore = captureNormalBrowserBoundaryCounts(api, browserRequests);
+		await clickAndWaitForPageLoad(cdp, 'button[formaction="?/preview"]', 'unknown preview detail redaction preview submit load');
+		await waitForExpression(cdp, `document.querySelector('#preview-error-summary')?.innerText.includes(${jsString(previewFailureFallbackText)})`, 'unknown preview detail redaction UI');
+		await assertUnknownPreviewDetailRedactionUi(cdp, 'unknown preview detail redaction UI');
+		await assertPreviewOnlyRuntimeTopology(cdp, 'unknown preview detail redaction UI');
+		await assertMobilePreviewUx(cdp, 'unknown preview detail redaction UI');
+		await assertReadinessShellsRemainPending(cdp, 'unknown preview detail redaction UI');
+		await assertExecutionResultShellRemainsPending(cdp, 'unknown preview detail redaction UI');
+		await assertApprovalPacketAbsent(cdp, 'unknown preview detail redaction UI');
+		assertOrdinaryBrowserCannotReachExplicitTestMode(api, browserRequests, unknownDetailBoundaryBefore, 'unknown preview detail redaction UI');
+		assertNoMutationRequestsObserved(api, browserRequests, 'unknown preview detail redaction UI');
+
 		const explicitModeQueryBoundaryBefore = captureNormalBrowserBoundaryCounts(api, browserRequests);
 		const explicitModeNavigation = waitForCdpEvent(cdp, 'Page.loadEventFired', 'normal explicit test-mode query attempt load', 15000).catch(() => null);
 		await cdp.send('Page.navigate', { url: `${webBase}/transactions/new?explicit_test_mode=issue51` });
@@ -3524,8 +3575,8 @@ async function runSmoke() {
 		const createReadinessStatusCalls = api.requests.filter((request) => request.method === 'GET' && request.path === '/books/1/transactions/create-readiness-status');
 		assert.ok(createReadinessStatusCalls.length >= 1, 'browser smoke must load create-readiness-status as read-only status');
 		const createPreviewCalls = api.requests.filter((request) => request.method === 'POST' && request.path === '/books/1/transactions/create-preview');
-		assert.equal(createPreviewCalls.length, 3, 'browser smoke must call create-preview exactly three times: failure UI, reviewed preview, and normal explicit-mode query attempt');
-		assert.equal(api.previewPayloads.length, 3, 'synthetic API stub must capture exactly three create-preview payloads');
+		assert.equal(createPreviewCalls.length, 4, 'browser smoke must call create-preview exactly four times: validation failure UI, reviewed preview, unknown detail redaction, and normal explicit-mode query attempt');
+		assert.equal(api.previewPayloads.length, 4, 'synthetic API stub must capture exactly four create-preview payloads');
 		for (const payload of api.previewPayloads) {
 			assert.deepEqual(
 				Object.keys(payload).sort(),
@@ -3535,6 +3586,8 @@ async function runSmoke() {
 		}
 		assert.equal(api.previewPayloads[0].amount, validationFailureAmount, 'validation failure UI must be driven by a preview request, not a mutation request');
 		assert.equal(api.previewPayloads[0].description, syntheticValidationFailureDescription, 'validation failure preview payload must stay synthetic and disposable');
+		assert.equal(api.previewPayloads[2].amount, unknownPreviewFailureAmount, 'unknown detail redaction UI must be driven by a preview request, not a mutation request');
+		assert.equal(api.previewPayloads[2].description, syntheticUnknownPreviewFailureDescription, 'unknown detail redaction preview payload must stay synthetic and disposable');
 		assert.equal(api.requests.filter((request) => request.explicitHarnessRequest).length, 0, 'normal explicit test-mode query attempt must not satisfy the explicit harness gate');
 		const previewPayload = reviewedPreviewPayload;
 		assert.ok(previewPayload, 'reviewed preview payload must be captured for the explicit test-mode harness');
@@ -3562,8 +3615,8 @@ async function runSmoke() {
 		}
 		assert.deepEqual(
 			transactionEntryAppSubmissionSearches(browserRequests),
-			['?/preview', '?/preview', '?/preview', '?/preview'],
-			'browser must submit the transaction-entry form only to the preview action, including non-disposable book tamper, failure, and explicit-mode query attempts'
+			['?/preview', '?/preview', '?/preview', '?/preview', '?/preview'],
+			'browser must submit the transaction-entry form only to the preview action, including non-disposable book tamper, validation failure, unknown-detail redaction, and explicit-mode query attempts'
 		);
 		assert.equal(reviewedApprovalEvidence?.preview_reviewed, true, 'browser smoke must capture reviewed approval evidence before explicit test-mode CREATE harness');
 		assert.equal(reviewedApprovalEvidence?.preview_stale, false, 'browser smoke must capture non-stale approval evidence before explicit test-mode CREATE harness');

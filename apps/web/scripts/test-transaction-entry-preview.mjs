@@ -71,6 +71,10 @@ for (const requiredBrowserSmokeFragment of [
 	'ordinary browser cannot reach explicit test-mode execution path',
 	'function assertPreviewValidationFailureUi',
 	'validation failure UI',
+	'privatePreviewErrorDetailSentinel',
+	'function assertUnknownPreviewDetailRedactionUi',
+	'unknown preview detail redaction UI',
+	'Preview validation failed safely. No write was executed.',
 	'normal explicit test-mode query attempt',
 	'evidencePacketStatuses',
 	'execution-evidence-packet-plan',
@@ -297,7 +301,7 @@ assert.match(browserSmoke, /payload\.amount === validationFailureAmount[\s\S]*lo
 assert.match(browserSmoke, /function assertPreviewValidationFailureUi[\s\S]*Preview validation failed safely[\s\S]*No CREATE\\\/PATCH\\\/DELETE\\\/batch executed[\s\S]*Future Create control must remain absent until a successful preview/s, 'browser smoke must assert safe failure UI before continuing');
 assert.match(browserSmoke, /function assertOrdinaryBrowserCannotReachExplicitTestMode[\s\S]*transactionEntryAppSubmissionSearches[\s\S]*'\?\/preview'[\s\S]*request\.path === '\/books\/1\/transactions'[\s\S]*ordinary browser cannot reach explicit test-mode execution path/s, 'browser smoke must prove ordinary browser submissions cannot reach the explicit test-mode execution path');
 assert.match(browserSmoke, /Page\.navigate', \{ url: `\$\{webBase\}\/transactions\/new\?explicit_test_mode=issue51` \}[\s\S]*normal explicit test-mode query attempt[\s\S]*assertOrdinaryBrowserCannotReachExplicitTestMode/s, 'browser smoke must attempt an ordinary explicit_test_mode query and still submit only preview');
-assert.match(browserSmoke, /transactionEntryAppSubmissionSearches\(browserRequests\)[\s\S]*\['\?\/preview', '\?\/preview', '\?\/preview', '\?\/preview'\][\s\S]*including non-disposable book tamper, failure, and explicit-mode query attempts/s, 'browser smoke must prove every ordinary transaction-entry POST targets only ?/preview');
+assert.match(browserSmoke, /transactionEntryAppSubmissionSearches\(browserRequests\)[\s\S]*\['\?\/preview', '\?\/preview', '\?\/preview', '\?\/preview', '\?\/preview'\][\s\S]*including non-disposable book tamper, validation failure, unknown-detail redaction, and explicit-mode query attempts/s, 'browser smoke must prove every ordinary transaction-entry POST targets only ?/preview');
 
 for (const field of [
 	'book_id',
@@ -732,13 +736,18 @@ for (const fieldErrorId of [
 assert.ok(
 	server.includes('function previewErrorDetails') &&
 		server.includes('fieldErrors') &&
-		server.includes('function safeMessage') &&
+		server.includes('function previewErrorSummary') &&
 		server.includes('function friendlyFieldMessage') &&
 		server.includes('No selectable accounts are available for this book') &&
-		server.includes('Use a supported three-letter currency') &&
-		server.includes('!/[\\\\/]/.test(detail)'),
-	'server action must derive user-friendly field errors using safe redacted messages'
+		server.includes('Use a supported three-letter currency'),
+	'server action must derive user-friendly field errors using fixed redacted messages'
 );
+assert.match(
+	server,
+	/if \(typeof detail === 'string'\) \{\s*const fieldErrors = fieldErrorsFromString\(detail\);\s*return \{ error: previewErrorSummary\(fieldErrors\), fieldErrors \};\s*\}/s,
+	'server action must map string API details through fixed summaries instead of rendering them verbatim'
+);
+assert.doesNotMatch(server, /function safeMessage|safeMessage\(detail\)|return detail;/, 'server action must not pass through unrecognized API detail strings');
 assert.match(server, /Preview validation failed safely\. Review the highlighted fields\. No write was executed\./, 'server action must provide a safe field-error summary fallback');
 assert.match(server, /function createTargetPreflight\(\)[\s\S]*required: true[\s\S]*status: 'not_checked'[\s\S]*target_class: targetClass[\s\S]*status: 'pending'/s, 'server target preflight shell must default to required/not_checked/pending');
 assert.match(server, /function createExecutionReadiness\(\)[\s\S]*required: true[\s\S]*status: 'not_checked'[\s\S]*backup_state: 'pending'[\s\S]*read_back_state: 'pending'[\s\S]*audit_state: 'pending'[\s\S]*reset_state: 'pending'[\s\S]*probe_state: 'pending'[\s\S]*status: 'pending'/s, 'server execution readiness must default to required/not_checked/pending');
