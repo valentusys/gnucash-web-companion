@@ -181,7 +181,13 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   public-status, write-safety-defaults, markdown-readability, tracked-hygiene, and `git diff --check`,
   and kept safety counters at 0 for owner/private/original/working/Syncthing/only-copy books opened,
   copied, or mutated, product dogfood/private target probes, committed raw private/runtime artifacts,
-  release/public-write posture claims, and default write-posture flips.
+  release/public-write posture claims, and default write-posture flips. The
+  `issue51-final-gates-followup` rerun executed the full final-gate set plus the disposable-browser
+  alias; after one runtime temp-quota cleanup and no source changes, backend pytest passed
+  `1098 passed, 56 warnings in 350.98s`, frontend check/build/static/auth/browser gates passed,
+  Docker Compose config passed, and safety counters stayed at 0 for private/only-copy book use,
+  product dogfood/private target probes, raw private/runtime artifacts, releases/public-write claims,
+  and default write-posture flips.
 - Current #36 docs reconciliation: owner-writebeta remains maintenance-only and unreleased until
   explicit owner approval. The guard state still requires default `GNUCASH_WRITES_ENABLED=false`,
   enabled write-alpha/writebeta `APP_ENV=test` gating, no public write beta, no real/private/original/

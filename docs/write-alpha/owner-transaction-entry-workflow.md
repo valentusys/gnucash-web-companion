@@ -572,5 +572,14 @@ public-status, write-safety-defaults, markdown-readability, tracked-hygiene, and
 added no product dogfood/private target probes, GnuCash book opens/copies/mutations, releases, default write-posture
 changes, or raw private/runtime artifacts.
 
+The `issue51-final-gates-followup` rerun executed the full requested final-gate set plus the disposable-browser alias.
+The first backend pytest attempt was blocked by stale runtime pytest temp artifacts filling the temp quota, then the
+same command passed after cleaning only those stale runtime artifacts: `1098 passed, 56 warnings in 350.98s`.
+Frontend check/build/static preview/auth-route/browser preview gates passed; the disposable-browser alias passed the
+same synthetic browser preview/explicit-test-mode CREATE/PATCH/DELETE harness; Docker Compose config and root safety
+hygiene guards passed. Safety counters stayed at 0 for owner/private/original/working/Syncthing/only-copy books
+opened, copied, or mutated; product dogfood/private target probes; committed raw private/runtime artifacts; release
+or public-write posture claims; and default write-posture flips.
+
 Next step: any GitHub issue update, product dogfood, private target probe, release work, or future mutating step
 requires fresh explicit scope/approval.

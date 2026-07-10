@@ -210,8 +210,52 @@ product dogfood/private target probes: 0; raw books/backups/exports/screenshots/
 release/tag/package/image publications: 0; release or public-write posture claims added: 0; default write-posture
 flips: 0. Default `GNUCASH_WRITES_ENABLED=false` and `APP_ENV=test` enabled-write gates remain preserved.
 
+## 2026-07-10 issue51-final-gates-followup rerun
+
+Task `issue51-final-gates-followup` reran all requested final gates from the repository root in isolated shell calls.
+The `test:transaction-entry-create-disposable-browser` package script existed and was run as the new disposable-browser
+command. Results below are redacted and omit raw fixture data, private paths, account names, descriptions, memos,
+amounts, GUIDs, screenshots, app DBs, secrets, and private evidence.
+
+- `python3 scripts/check_public_status.py`
+  - Result: `public-status-guard: ok`.
+- `python3 scripts/check_write_safety_defaults.py`
+  - Result: `write-safety defaults ok: GNUCASH_WRITES_ENABLED=false; APP_ENV=development default present;
+    APP_ENV=test gate text present; explicit write enablement present; reset/default-disabled probe wording present`.
+- `python3 scripts/check_markdown_readability.py`
+  - Result: `markdown-readability-guard: ok (27 docs checked)`.
+- `python3 scripts/check_tracked_hygiene.py`
+  - Result: `Tracked hygiene check passed (1968 tracked paths inspected).`
+- `git diff --check`
+  - Result: exit 0 with no whitespace errors.
+- `cd apps/api && pytest -q`
+  - First attempt was blocked by stale runtime pytest temp artifacts filling the temp quota:
+    `OSError: [Errno 122] Disk quota exceeded`; no source change was made for that failure.
+  - After cleaning only stale runtime pytest temp artifacts, the same command passed:
+    `1098 passed, 56 warnings in 350.98s`.
+- `cd apps/web && npm run check`
+  - Result: `svelte-check found 0 errors and 0 warnings`.
+- `cd apps/web && npm run build`
+  - Result: production build completed successfully.
+- `cd apps/web && npm run test:transaction-entry-preview`
+  - Result: `transaction-entry-preview-static: ok`.
+- `cd apps/web && npm run test:auth-routes`
+  - Result: `auth route checks passed`.
+- `cd apps/web && npm run test:transaction-entry-preview-browser`
+  - Result: `transaction-entry-preview-browser: ok` for normal preview-only/non-disposable/failure/query guards plus
+    explicit test-mode disposable CREATE, metadata-only PATCH, and app-owned DELETE drills.
+- `cd apps/web && npm run test:transaction-entry-create-disposable-browser`
+  - Result: `transaction-entry-preview-browser: ok` for the disposable-browser alias.
+- `JWT_SECRET=dummy-validation-secret APP_ADMIN_PASSWORD=dummy docker compose config --quiet`
+  - Result: exit 0 with no output.
+
+Final-gates follow-up safety counters: owner/private/original/working/Syncthing/only-copy books opened, copied, or
+mutated: 0; product dogfood/private target probes: 0; raw books/backups/exports/screenshots/app DBs/secrets committed:
+0; release/tag/package/image publications: 0; release or public-write posture claims added: 0; default write-posture
+flips: 0. Default `GNUCASH_WRITES_ENABLED=false` and `APP_ENV=test` enabled-write gates remain preserved.
+
 ## Follow-up boundary
 
-Continue only into final full gates or a new explicitly scoped owner/PM task. Any owner/private target, product
-dogfood, historical/manual/non-owned DELETE, release work, public write posture change, or default write-posture
-change remains outside this packet.
+Continue only into a new explicitly scoped owner/PM task. Any owner/private target, product dogfood,
+historical/manual/non-owned DELETE, release work, public write posture change, or default write-posture change remains
+outside this packet.
