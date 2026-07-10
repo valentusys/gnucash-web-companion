@@ -939,9 +939,14 @@ assert.doesNotMatch(
 	/write_acknowledgement|experimental-write-mode-acknowledged|writeMode\.acknowledgement|writeMode\.finalConfirm|formaction="\?\/create"|Create transaction<\/button>/,
 	'new transaction preview page must not retain final-write acknowledgement or active create controls'
 );
-assert.ok(
-	newTransactionServer.includes('detail.length <= 180 && !/[\\\\/]/.test(detail)') &&
-		newTransactionServer.includes('Preview validation failed safely. No write was executed.'),
+assert.match(
+	newTransactionServer,
+	/if \(typeof detail === 'string'\) \{\s*const fieldErrors = fieldErrorsFromString\(detail\);\s*return \{ error: previewErrorSummary\(fieldErrors\), fieldErrors \};\s*\}/s,
+	'new transaction preview server errors must map string API details through fixed summaries instead of rendering raw details'
+);
+assert.doesNotMatch(
+	newTransactionServer,
+	/function safeMessage|safeMessage\(detail\)|return detail;/,
 	'new transaction preview server errors must avoid rendering raw path-like API details'
 );
 assert.ok(
