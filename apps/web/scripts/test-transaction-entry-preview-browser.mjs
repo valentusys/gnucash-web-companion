@@ -2793,6 +2793,76 @@ function assertRedactedSyntheticCreateResultPanel(responseBody, productCreatePay
 	assert.ok(!/"backup_path"\s*:/.test(redactedResultText), 'explicit synthetic CREATE result panel must not expose a raw backup_path field');
 }
 
+function assertIssue51BrowserSmokeFollowupUiToRouteProofs({
+	api,
+	browserRequests,
+	createResultPanel,
+	previewPayload,
+	reviewedApprovalEvidence,
+	webBase,
+	apiUrl
+}) {
+	assertReviewedEvidenceMatchesPreviewPayload(api, previewPayload, reviewedApprovalEvidence);
+	assert.deepEqual(
+		transactionEntryAppSubmissionSearches(browserRequests),
+		['?/preview', '?/preview', '?/preview', '?/preview'],
+		'issue #51 follow-up must prove UI-reviewed preview was the only normal browser submission path before CREATE rehearsal'
+	);
+	assert.deepEqual(
+		browserRequests
+			.filter((request) => {
+				const url = new URL(request.url);
+				return request.method === 'POST' && (url.pathname.startsWith('/books/') || url.search.includes('explicit_test_mode=issue51'));
+			})
+			.map((request) => ({ method: request.method, path: new URL(request.url).pathname, search: new URL(request.url).search })),
+		[],
+		'normal-mode browser submissions must never hit explicit product CREATE route'
+	);
+	assert.deepEqual(
+		forbiddenBrowserMutationRequests(browserRequests),
+		[],
+		'issue #51 CREATE follow-up: browser observed zero normal-mode mutation-capable requests'
+	);
+	assertBrowserToAppToApiBoundary(browserRequests, webBase, apiUrl, 'issue #51 CREATE follow-up');
+	assertDisposableSyntheticApiTargetBoundary(api, 'issue #51 CREATE follow-up');
+	assert.deepEqual(
+		api.requests
+			.filter((request) => request.path.startsWith(`/books/${syntheticNonDisposableBookId}/`))
+			.map(({ method, path, search, pathWithSearch }) => ({ method, path, search, pathWithSearch })),
+		[],
+		'issue #51 CREATE follow-up: app-to-API requests never target non-disposable book'
+	);
+	assert.deepEqual(api.explicitCreatePayloads, [], 'issue #51 CREATE follow-up must not fabricate product-route CREATE through the synthetic API stub');
+
+	const panel = createResultPanel?.redacted_result_panel;
+	assert.ok(panel, 'issue #51 CREATE follow-up requires a redacted CREATE result panel from the product-route drill');
+	assert.equal(panel.create_count, 1, 'issue #51 CREATE follow-up must rehearse exactly one CREATE');
+	assert.deepEqual(
+		panel.backend_route_write_boundary,
+		{
+			product_route_used: true,
+			route: 'POST /books/{book_id}/transactions',
+			route_response_status: 201,
+			app_env: 'test',
+			gnucash_writes_enabled_during_create: true,
+			normal_ui_create_activated: false,
+			direct_sql_write: false
+		},
+		'redacted CREATE result panel must prove product-route rehearsal used the backend route while normal UI CREATE stayed inactive'
+	);
+	assert.deepEqual(
+		panel.fixture_scope,
+		{
+			copied_like_fixture: true,
+			synthetic_fixture_source: true,
+			outside_git_worktree: true,
+			private_or_only_copy_target: false
+		},
+		'redacted CREATE result panel must prove product-route rehearsal used a disposable copied-like fixture'
+	);
+	assert.equal(panel.reset_default_disabled_probe_summary?.gnucash_writes_enabled, false, 'issue #51 CREATE follow-up must prove writes reset to default disabled after the explicit drill');
+}
+
 async function runExplicitSyntheticCreateHarness(api, browserRequests, previewPayload, reviewedApprovalEvidence) {
 	assertReviewedEvidenceMatchesPreviewPayload(api, previewPayload, reviewedApprovalEvidence);
 	assert.equal(api.explicitCreatePayloads.length, 0, 'explicit synthetic CREATE harness must start with zero CREATE payloads');
@@ -2840,6 +2910,7 @@ async function runExplicitSyntheticCreateHarness(api, browserRequests, previewPa
 		],
 		'default/user-mode product CREATE route must be probed only by explicit Node harness and remain blocked'
 	);
+	return responseBody;
 }
 
 async function runExplicitSyntheticPatchHarness(api, browserRequests, previewPayload, reviewedApprovalEvidence) {
@@ -3373,9 +3444,16 @@ async function runSmoke() {
 		);
 		assert.equal(reviewedApprovalEvidence?.preview_reviewed, true, 'browser smoke must capture reviewed approval evidence before explicit test-mode CREATE harness');
 		assert.equal(reviewedApprovalEvidence?.preview_stale, false, 'browser smoke must capture non-stale approval evidence before explicit test-mode CREATE harness');
-		await runExplicitSyntheticCreateHarness(api, browserRequests, previewPayload, reviewedApprovalEvidence);
-		assertBrowserToAppToApiBoundary(browserRequests, webBase, api.url, 'explicit synthetic create harness');
-		assertDisposableSyntheticApiTargetBoundary(api, 'explicit synthetic create harness');
+		const createResultPanel = await runExplicitSyntheticCreateHarness(api, browserRequests, previewPayload, reviewedApprovalEvidence);
+		assertIssue51BrowserSmokeFollowupUiToRouteProofs({
+			api,
+			browserRequests,
+			createResultPanel,
+			previewPayload,
+			reviewedApprovalEvidence,
+			webBase,
+			apiUrl: api.url
+		});
 		await runExplicitSyntheticPatchHarness(api, browserRequests, previewPayload, reviewedApprovalEvidence);
 		assertBrowserToAppToApiBoundary(browserRequests, webBase, api.url, 'explicit synthetic patch harness');
 		assertDisposableSyntheticApiTargetBoundary(api, 'explicit synthetic patch harness');
