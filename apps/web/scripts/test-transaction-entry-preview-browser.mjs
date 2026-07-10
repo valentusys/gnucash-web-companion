@@ -208,15 +208,16 @@ function assertSourceSafety() {
 	const page = readSource('src', 'routes', 'transactions', 'new', '+page.svelte');
 	const server = readSource('src', 'routes', 'transactions', 'new', '+page.server.ts');
 
+	const expectedBrowserSmokeScript = 'npm run build && node scripts/test-transaction-entry-preview-browser.mjs';
 	assert.equal(
 		packageJson.scripts?.['test:transaction-entry-preview-browser'],
-		'node scripts/test-transaction-entry-preview-browser.mjs',
-		'package.json must expose npm run test:transaction-entry-preview-browser'
+		expectedBrowserSmokeScript,
+		'package.json must expose npm run test:transaction-entry-preview-browser as a self-contained build-backed browser smoke'
 	);
 	assert.equal(
 		packageJson.scripts?.['test:transaction-entry-create-disposable-browser'],
-		'node scripts/test-transaction-entry-preview-browser.mjs',
-		'package.json must expose npm run test:transaction-entry-create-disposable-browser as the same deterministic synthetic/disposable browser smoke'
+		expectedBrowserSmokeScript,
+		'package.json must expose npm run test:transaction-entry-create-disposable-browser as the same build-backed deterministic synthetic/disposable browser smoke'
 	);
 	assert.match(page, /id="write-session-gate"[\s\S]*Preview mode[\s\S]*Write session not armed[\s\S]*CREATE execution unavailable without fresh owner approval/s, 'write-session gate must default to preview mode and not armed');
 	assert.match(page, /writes_enabled:[\s\S]*session_armed:[\s\S]*create_execution_allowed:[\s\S]*allowed_create_count:[\s\S]*target_class:/s, 'write-session gate must expose safe redacted status fields');

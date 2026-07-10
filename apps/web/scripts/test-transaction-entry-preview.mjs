@@ -23,6 +23,7 @@ const server = read('src', 'routes', 'transactions', 'new', '+page.server.ts');
 const transactionsList = read('src', 'routes', 'transactions', '+page.svelte');
 const browserSmoke = read('scripts', 'test-transaction-entry-preview-browser.mjs');
 
+const expectedBrowserSmokeScript = 'npm run build && node scripts/test-transaction-entry-preview-browser.mjs';
 assert.equal(
 	packageJson.scripts?.['test:transaction-entry-preview'],
 	'node scripts/test-transaction-entry-preview.mjs',
@@ -30,13 +31,13 @@ assert.equal(
 );
 assert.equal(
 	packageJson.scripts?.['test:transaction-entry-preview-browser'],
-	'node scripts/test-transaction-entry-preview-browser.mjs',
-	'package.json must expose npm run test:transaction-entry-preview-browser'
+	expectedBrowserSmokeScript,
+	'package.json must expose npm run test:transaction-entry-preview-browser as a self-contained build-backed browser smoke'
 );
 assert.equal(
 	packageJson.scripts?.['test:transaction-entry-create-disposable-browser'],
-	'node scripts/test-transaction-entry-preview-browser.mjs',
-	'package.json must expose npm run test:transaction-entry-create-disposable-browser as the same deterministic synthetic/disposable browser smoke'
+	expectedBrowserSmokeScript,
+	'package.json must expose npm run test:transaction-entry-create-disposable-browser as the same build-backed deterministic synthetic/disposable browser smoke'
 );
 
 for (const requiredBrowserSmokeFragment of [
