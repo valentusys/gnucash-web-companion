@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { createServer } from 'node:http';
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, rmSync, readFileSync } from 'node:fs';
@@ -2128,7 +2129,25 @@ function productCreatePayloadFromPreview(previewPayload) {
 	};
 }
 
-function expectedReviewedApprovalEvidence(previewPayloadIndex = 1) {
+function expectedReviewedPreviewPayload() {
+	return {
+		date: '2026-07-05',
+		debit_account_id: disposableSourceAccountId,
+		credit_account_id: disposableDestinationAccountId,
+		amount: syntheticAmount,
+		currency: 'SEK',
+		description: syntheticDescription,
+		memo: syntheticMemo
+	};
+}
+
+function previewPayloadRedactedFingerprint(previewPayload) {
+	assertPreviewPayloadShape(previewPayload, 'redacted reviewed-preview fingerprint input');
+	const canonicalPayload = previewPayloadFieldNames.map((field) => [field, String(previewPayload[field] ?? '')]);
+	return `sha256:${createHash('sha256').update(JSON.stringify(canonicalPayload)).digest('hex')}`;
+}
+
+function expectedReviewedApprovalEvidence(previewPayload = expectedReviewedPreviewPayload(), previewPayloadIndex = 1) {
 	return {
 		source: 'browser-reviewed-approval-packet',
 		evidence_scope: 'redacted_only',
@@ -2138,6 +2157,7 @@ function expectedReviewedApprovalEvidence(previewPayloadIndex = 1) {
 		preview_payload_source: 'successful-browser-create-preview-response',
 		preview_payload_index: previewPayloadIndex,
 		preview_payload_fields: previewPayloadFieldNames,
+		preview_payload_fingerprint: previewPayloadRedactedFingerprint(previewPayload),
 		preview_payload_snapshot: 'reviewed-before-stale-or-query-tamper',
 		preview_reviewed: true,
 		preview_stale: false,
@@ -2158,7 +2178,8 @@ function assertExplicitSyntheticCreateHarnessReviewedEvidenceRejectsUnreviewedOr
 		['non-disposable target class', { target_class: 'owner_selected_target' }],
 		['non-disposable fixture scope', { fixture_scope: 'owner_or_private_target' }],
 		['raw evidence scope', { evidence_scope: 'raw_private_values' }],
-		['mutated preview payload fields', { preview_payload_fields: previewPayloadFieldNames.filter((field) => field !== 'memo') }]
+		['mutated preview payload fields', { preview_payload_fields: previewPayloadFieldNames.filter((field) => field !== 'memo') }],
+		['wrong reviewed-preview fingerprint', { preview_payload_fingerprint: previewPayloadRedactedFingerprint({ ...expectedReviewedPreviewPayload(), amount: '56.78' }) }]
 	];
 	for (const [label, patch] of invalidEvidenceCases) {
 		assert.throws(
@@ -2173,6 +2194,11 @@ function assertReviewedEvidenceMatchesPreviewPayload(api, previewPayload, review
 	assertExplicitSyntheticCreateHarnessReviewedEvidence(reviewedApprovalEvidence);
 	assert.equal(reviewedApprovalEvidence.preview_payload_index, 1, 'explicit harness must use the reviewed successful preview ordinal, not failure or query-tamper previews');
 	assertPreviewPayloadShape(previewPayload, 'reviewed preview payload bound to approval evidence');
+	assert.equal(
+		reviewedApprovalEvidence.preview_payload_fingerprint,
+		previewPayloadRedactedFingerprint(previewPayload),
+		'explicit harness must bind reviewed approval evidence to the exact reviewed preview payload fingerprint'
+	);
 	assert.deepEqual(
 		api.previewPayloads[reviewedApprovalEvidence.preview_payload_index],
 		previewPayload,
@@ -2229,7 +2255,7 @@ async function collectReviewedApprovalEvidence(cdp, label, { previewPayloadIndex
 	assert.equal(state.futureName, null, `${label}: Future Create must not submit a name during reviewed evidence capture`);
 	assert.equal(state.futureValue, null, `${label}: Future Create must not submit a value during reviewed evidence capture`);
 	assert.equal(state.futureFormAction, null, `${label}: Future Create must not expose a form action during reviewed evidence capture`);
-	return expectedReviewedApprovalEvidence(previewPayloadIndex);
+	return expectedReviewedApprovalEvidence(previewPayload, previewPayloadIndex);
 }
 
 function assertExplicitSyntheticCreateHarnessReviewedEvidence(reviewedApprovalEvidence) {
