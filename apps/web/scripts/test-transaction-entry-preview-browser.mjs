@@ -465,7 +465,11 @@ function assertExplicitSyntheticCreateHarnessPredicateRequiresDisposableProof() 
 		['missing synthetic/disposable proof header', request({ headers: { ...headers, 'x-issue51-synthetic-disposable-proof': undefined } }), url(`/books/1/transactions${explicitSyntheticCreateHarnessSearch}`)],
 		['wrong APP_ENV header', request({ headers: { ...headers, 'x-app-env': 'production' } }), url(`/books/1/transactions${explicitSyntheticCreateHarnessSearch}`)],
 		['header-smuggled explicit harness token', request({ headers: { ...headers, 'x-issue51-explicit-test-create': ` ${explicitSyntheticCreateHarnessToken}` } }), url(`/books/1/transactions${explicitSyntheticCreateHarnessSearch}`)],
+		['comma-smuggled explicit harness token header', request({ headers: { ...headers, 'x-issue51-explicit-test-create': `${explicitSyntheticCreateHarnessToken},${explicitSyntheticCreateHarnessToken}` } }), url(`/books/1/transactions${explicitSyntheticCreateHarnessSearch}`)],
+		['comma-smuggled APP_ENV header', request({ headers: { ...headers, 'x-app-env': 'test,production' } }), url(`/books/1/transactions${explicitSyntheticCreateHarnessSearch}`)],
+		['comma-smuggled writes-enabled header', request({ headers: { ...headers, 'x-gnucash-writes-enabled': 'true,false' } }), url(`/books/1/transactions${explicitSyntheticCreateHarnessSearch}`)],
 		['query-smuggled mutation target', request(), url('/books/1/transactions?explicit_test_mode=issue51&next=%2Fbooks%2F2%2Ftransactions%2Fbatch')],
+		['query-only default CREATE smuggling without harness headers', request({ headers: {} }), url('/books/1/transactions?next=%2Fbooks%2F1%2Ftransactions%2Fbatch')],
 		['extra explicit query parameter', request(), url(`/books/1/transactions${explicitSyntheticCreateHarnessSearch}&mode=preview`)],
 		['duplicate explicit test-mode query', request(), url(`/books/1/transactions${explicitSyntheticCreateHarnessSearch}&explicit_test_mode=issue51`)],
 		['missing exact explicit query', request(), url('/books/1/transactions')]

@@ -95,6 +95,11 @@ EXPLICIT_ISSUE51_CREATE_HARNESS_DETAIL = (
     "Explicit issue51 CREATE harness requires exact test-mode query, harness header, "
     "synthetic/disposable proof, APP_ENV=test, and GNUCASH_WRITES_ENABLED=true."
 )
+CREATE_ROUTE_QUERY_SMUGGLING_DETAIL = (
+    "CREATE write route rejects query smuggling. Default product CREATE accepts no query "
+    "parameters; explicit issue51 CREATE harness accepts only exact test-mode query, "
+    "synthetic/disposable proof, APP_ENV=test, and GNUCASH_WRITES_ENABLED=true."
+)
 NON_CREATE_ISSUE51_HARNESS_SMUGGLING_DETAIL = (
     "Non-CREATE write route rejects query/header smuggling. Explicit issue51 CREATE harness "
     "markers are accepted only by POST /books/{book_id}/transactions with exact "
@@ -1602,13 +1607,19 @@ def _require_explicit_issue51_create_harness_scope(
     enable writes; they only make incomplete or user-mode harness attempts fail
     before write service construction.
     """
-    if not _explicit_issue51_create_harness_attempted(
+    attempted = _explicit_issue51_create_harness_attempted(
         explicit_test_mode=explicit_test_mode,
         x_issue51_explicit_test_create=x_issue51_explicit_test_create,
         x_issue51_synthetic_disposable_proof=x_issue51_synthetic_disposable_proof,
         x_app_env=x_app_env,
         x_gnucash_writes_enabled=x_gnucash_writes_enabled,
-    ):
+    )
+    if not attempted:
+        if raw_query:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=CREATE_ROUTE_QUERY_SMUGGLING_DETAIL,
+            )
         return
 
     if (
@@ -1885,12 +1896,9 @@ async def create_book_transaction(
     """
     _ensure_writes_enabled(settings)
     _ensure_write_alpha_test_scope(settings)
-    book = _resolve_viewable_book(book_id, user, session)
-    _require_book_edit_access(book, user, session)
-    _require_disposable_create_target(book)
     _require_explicit_issue51_create_harness_scope(
         settings=settings,
-        book_id=book.id,
+        book_id=book_id,
         raw_query=http_request.url.query,
         explicit_test_mode=explicit_test_mode,
         x_issue51_explicit_test_create=x_issue51_explicit_test_create,
@@ -1898,6 +1906,9 @@ async def create_book_transaction(
         x_app_env=x_app_env,
         x_gnucash_writes_enabled=x_gnucash_writes_enabled,
     )
+    book = _resolve_viewable_book(book_id, user, session)
+    _require_book_edit_access(book, user, session)
+    _require_disposable_create_target(book)
     from app.routers.owner_writebeta import require_owner_writebeta_if_active
 
     require_owner_writebeta_if_active(

@@ -801,8 +801,19 @@ class TestWritesDisabledByDefault:
             assert "ledger-main" not in response.json()["detail"]
 
         create_detail = create_response.json()["detail"]
-        assert "Disposable target preflight failed closed" in create_detail
-        assert "filename must mark it as copied/disposable/synthetic test data" in create_detail
+        assert "Explicit issue51 CREATE harness" in create_detail
+        assert "synthetic/disposable proof" in create_detail
+
+        exact_harness_non_disposable_response = client.post(
+            f"/books/{non_disposable_sample_book}/transactions?explicit_test_mode=issue51",
+            json=_balanced_transaction_payload(),
+            headers=smuggled_headers,
+        )
+        assert exact_harness_non_disposable_response.status_code == 403
+        exact_harness_detail = exact_harness_non_disposable_response.json()["detail"]
+        assert "Disposable target preflight failed closed" in exact_harness_detail
+        assert "filename must mark it as copied/disposable/synthetic test data" in exact_harness_detail
+        assert "ledger-main" not in exact_harness_detail
 
         for label, response in (
             ("validate", validate_response),
@@ -812,6 +823,66 @@ class TestWritesDisabledByDefault:
             detail = response.json()["detail"]
             assert "Non-CREATE write route rejects query/header smuggling" in detail, label
             assert "Explicit issue51 CREATE harness" in detail, label
+        assert write_service_calls == []
+        with session_factory() as session:
+            assert session.query(AuditLog).count() == 0
+
+    def test_create_route_rejects_issue51_target_and_query_smuggling_before_book_resolution(
+        self,
+        client,
+        auth_headers,
+        session_factory,
+        monkeypatch,
+    ):
+        resolved_books = []
+        write_service_calls = []
+
+        def forbidden_book_resolution(*args, **kwargs):
+            resolved_books.append((args, kwargs))
+            raise AssertionError("issue51 CREATE guard must reject bad targets/queries before book resolution")
+
+        def forbidden_write_service(*args, **kwargs):
+            write_service_calls.append((args, kwargs))
+            raise AssertionError("issue51 CREATE guard must reject bad targets/queries before write service construction")
+
+        monkeypatch.setattr("app.routers.transactions._resolve_viewable_book", forbidden_book_resolution)
+        monkeypatch.setattr("app.routers.transactions._write_service_for", forbidden_write_service)
+        required_harness_headers = {
+            **auth_headers,
+            "X-Issue51-Explicit-Test-Create": "issue51-explicit-synthetic-create-harness",
+            "X-Issue51-Synthetic-Disposable-Proof": "synthetic-disposable-fixture-book-1",
+            "X-App-Env": "test",
+            "X-Gnucash-Writes-Enabled": "true",
+        }
+
+        rejected_cases = [
+            (
+                "wrong synthetic/disposable book id",
+                "/books/999/transactions?explicit_test_mode=issue51",
+                required_harness_headers,
+                "Explicit issue51 CREATE harness",
+            ),
+            (
+                "query-only smuggling without harness headers",
+                "/books/999/transactions?next=%2Fbooks%2F999%2Ftransactions%2Fbatch",
+                auth_headers,
+                "CREATE write route rejects query smuggling",
+            ),
+        ]
+
+        for label, path, headers, expected_detail in rejected_cases:
+            response = client.post(
+                path,
+                json=_balanced_transaction_payload(),
+                headers=headers,
+            )
+            assert response.status_code == 403, label
+            detail = response.json()["detail"]
+            assert expected_detail in detail, label
+            assert "999" not in detail, label
+            assert "batch" not in detail, label
+
+        assert resolved_books == []
         assert write_service_calls == []
         with session_factory() as session:
             assert session.query(AuditLog).count() == 0
