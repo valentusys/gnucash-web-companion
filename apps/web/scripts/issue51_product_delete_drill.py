@@ -165,6 +165,30 @@ def _assert_delete_rejections(
     if _backup_file_count(work_dir) != backup_count_before:
         raise DrillFailure("non-owned DELETE probe created backup evidence")
 
+    with session_factory() as session:
+        delete_logs = session.query(AuditLog).filter_by(action="transaction.delete").all()
+        rejected_payloads = []
+        for log in delete_logs:
+            payload = json.loads(log.payload_json)
+            if (
+                payload.get("ownership_status") == "non_owned_rejected"
+                and payload.get("transaction_id") == "not-created-by-write-alpha"
+            ):
+                rejected_payloads.append(payload)
+        if len(rejected_payloads) != 1:
+            raise DrillFailure("non-owned DELETE rejection audit row missing or duplicated")
+        rejected_payload = rejected_payloads[0]
+        if rejected_payload.get("result") != "failed":
+            raise DrillFailure("non-owned DELETE rejection audit row was not failed")
+        if rejected_payload.get("backup_path") is not None:
+            raise DrillFailure("non-owned DELETE rejection audit row included backup path")
+        if rejected_payload.get("backup_artifact_ref") is not None:
+            raise DrillFailure("non-owned DELETE rejection audit row included backup artifact")
+        if rejected_payload.get("request_summary") != {"target_class": "write_alpha_owned_required"}:
+            raise DrillFailure("non-owned DELETE rejection audit summary mismatch")
+        if "owner-ledger" in json.dumps(rejected_payload):
+            raise DrillFailure("non-owned DELETE rejection audit leaked rejected non-disposable fixture label")
+
     shutil.copy2(SYNTHETIC_FIXTURE, unsafe_book_path)
     if _inside_repo(unsafe_book_path):
         raise DrillFailure("non-disposable rejection fixture copy is inside the git worktree")
@@ -200,6 +224,8 @@ def _assert_delete_rejections(
         "non_disposable_http_status_class": non_disposable_response.status_code,
         "mutation_count": 0,
         "backup_created": False,
+        "non_owned_rejection_audit_recorded": True,
+        "non_owned_rejection_audit_redacted": True,
     }
 
 
@@ -316,6 +342,8 @@ def build_redacted_delete_result_panel(*, disabled_delete_probe_summary: dict[st
                 "non_disposable_http_status_class": 403,
                 "mutation_count": 0,
                 "backup_created": False,
+                "non_owned_rejection_audit_recorded": True,
+                "non_owned_rejection_audit_redacted": True,
             },
             "reset_default_disabled_delete_probe_summary": disabled_delete_probe_summary,
             "redaction": {

@@ -794,7 +794,9 @@ function buildRedactedSyntheticDeleteResultPanel() {
 				non_disposable_delete_rejected: true,
 				non_disposable_http_status_class: 403,
 				mutation_count: 0,
-				backup_created: false
+				backup_created: false,
+				non_owned_rejection_audit_recorded: true,
+				non_owned_rejection_audit_redacted: true
 			},
 			reset_default_disabled_delete_probe_summary: {
 				state: 'verified',
@@ -2731,7 +2733,9 @@ function assertRedactedSyntheticDeleteResultPanel(responseBody, productCreatePay
 		non_disposable_delete_rejected: true,
 		non_disposable_http_status_class: 403,
 		mutation_count: 0,
-		backup_created: false
+		backup_created: false,
+		non_owned_rejection_audit_recorded: true,
+		non_owned_rejection_audit_redacted: true
 	}, 'explicit synthetic DELETE result panel must summarize non-owned and non-disposable rejections');
 	assert.equal(panel.reset_default_disabled_delete_probe_summary.gnucash_writes_enabled, false, 'explicit synthetic DELETE result panel must show writes reset to default disabled');
 	assert.equal(panel.reset_default_disabled_delete_probe_summary.app_env, 'test', 'explicit synthetic DELETE result panel must remain APP_ENV=test scoped');
