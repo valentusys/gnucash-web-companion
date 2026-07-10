@@ -95,6 +95,8 @@ const forbiddenProductDrillEnvKeys = [
 ];
 const explicitSyntheticPatchRejectedFields = ['amount', 'account_id', 'splits', 'date', 'currency'];
 const explicitSyntheticDisabledProbeFamilies = ['validate', 'preflight', 'create', 'patch', 'delete', 'batch'];
+const explicitSyntheticDisabledProbeFamiliesDisplay = 'validate/preflight/CREATE/PATCH/DELETE/batch';
+const resetDefaultDisabledProbeDisplayValue = 'validate/preflight/CREATE/PATCH/DELETE/batch blocked_or_unavailable';
 const expectedFailureDrillIds = [
 	'stale_preview_rejection',
 	'target_preflight_rejection',
@@ -451,7 +453,7 @@ function buildRedactedSyntheticCreateResultPanel() {
 				{ field: 'read_back_verification', display_value: 'verified', evidence_scope: 'redacted_only', raw_value_included: false, display_value_source: 'fixed_status_summary' },
 				{ field: 'backup_state', display_value: 'captured', evidence_scope: 'redacted_only', raw_value_included: false, display_value_source: 'fixed_status_summary' },
 				{ field: 'audit_state', display_value: 'recorded', evidence_scope: 'redacted_only', raw_value_included: false, display_value_source: 'fixed_status_summary' },
-				{ field: 'reset_default_disabled_probe_summary', display_value: 'verified', evidence_scope: 'redacted_only', raw_value_included: false, display_value_source: 'fixed_status_summary' },
+				{ field: 'reset_default_disabled_probe_summary', display_value: resetDefaultDisabledProbeDisplayValue, evidence_scope: 'redacted_only', raw_value_included: false, display_value_source: 'fixed_status_summary' },
 				{ field: 'raw_book_evidence_included', display_value: 'false', evidence_scope: 'redacted_only', raw_value_included: false, display_value_source: 'fixed_status_summary' }
 			],
 			backend_route_write_boundary: {
@@ -757,6 +759,7 @@ function failureResultPanelSummary(kind) {
 			backup_state: 'failed_before_create',
 			audit_state: 'not_recorded',
 			reset_default_disabled_probe_summary: 'pending_not_run',
+			disabled_probe_families: explicitSyntheticDisabledProbeFamiliesDisplay,
 			raw_evidence_included: false
 		};
 	}
@@ -767,6 +770,7 @@ function failureResultPanelSummary(kind) {
 			backup_state: 'opaque_backup_ref_required',
 			audit_state: 'safe_failure_record_only',
 			reset_default_disabled_probe_summary: 'required_before_completion',
+			disabled_probe_families: explicitSyntheticDisabledProbeFamiliesDisplay,
 			raw_evidence_included: false
 		};
 	}
@@ -777,6 +781,7 @@ function failureResultPanelSummary(kind) {
 			backup_state: 'opaque_backup_ref_required',
 			audit_state: 'safe_failure_record_only',
 			reset_default_disabled_probe_summary: 'failed_hard_stop',
+			disabled_probe_families: explicitSyntheticDisabledProbeFamiliesDisplay,
 			raw_evidence_included: false
 		};
 	}
@@ -787,6 +792,7 @@ function failureResultPanelSummary(kind) {
 			backup_state: 'opaque_backup_ref_required',
 			audit_state: 'not_applicable',
 			reset_default_disabled_probe_summary: 'not_applicable',
+			disabled_probe_families: explicitSyntheticDisabledProbeFamiliesDisplay,
 			raw_evidence_included: false
 		};
 	}
@@ -796,6 +802,7 @@ function failureResultPanelSummary(kind) {
 		backup_state: 'not_run',
 		audit_state: 'not_recorded',
 		reset_default_disabled_probe_summary: 'pending_not_run',
+		disabled_probe_families: explicitSyntheticDisabledProbeFamiliesDisplay,
 		raw_evidence_included: false
 	};
 }
@@ -1745,6 +1752,7 @@ function assertRedactedSyntheticFailureUiDrillPanels(responseBody) {
 				'audit_state',
 				'backup_state',
 				'create_count_state',
+				'disabled_probe_families',
 				'raw_evidence_included',
 				'read_back_verification',
 				'reset_default_disabled_probe_summary'
@@ -1752,6 +1760,7 @@ function assertRedactedSyntheticFailureUiDrillPanels(responseBody) {
 			`${drill.drill_id}: failure result panel must expose create_count/read-back/backup/audit/reset/default-disabled fields`
 		);
 		assert.equal(drill.result_panel.raw_evidence_included, false, `${drill.drill_id}: failure result panel must explicitly exclude raw evidence`);
+		assert.equal(drill.result_panel.disabled_probe_families, explicitSyntheticDisabledProbeFamiliesDisplay, `${drill.drill_id}: failure result panel must name every default-disabled probe family`);
 		assert.ok(expectedFailureStages.includes(drill.failure_stage), `${drill.drill_id}: failure_stage must be one of the redacted bounded failure boundaries`);
 		assert.ok(!['success', 'ready', 'passed', 'ok'].includes(drill.status), `${drill.drill_id}: failure drill status must fail closed`);
 		assert.ok(!/[\\/]|\.gnucash|\.sqlite|\.db|\.env/i.test(drill.safe_message), `${drill.drill_id}: safe message must not expose raw paths or file names`);
@@ -1822,6 +1831,7 @@ async function assertFailureUiDrillMatrix(cdp, label) {
 	assert.match(state.text, /backup_state/, `${label}: failure drill matrix must render backup_state`);
 	assert.match(state.text, /audit_state/, `${label}: failure drill matrix must render audit_state`);
 	assert.match(state.text, /reset_default_disabled_probe_summary/, `${label}: failure drill matrix must render reset/default-disabled probe summary`);
+	assert.match(state.text, /disabled_probe_families\s+validate\/preflight\/CREATE\/PATCH\/DELETE\/batch/, `${label}: failure drill matrix must render all disabled probe families`);
 	assert.match(state.text, /raw_evidence_included\s+false/, `${label}: failure drill matrix must explicitly show raw evidence is excluded`);
 	assert.match(state.text, /stale preview rejection/i, `${label}: stale preview rejection drill must render`);
 	assert.match(state.text, /Target preflight rejection/, `${label}: target preflight rejection drill must render`);
@@ -2287,14 +2297,31 @@ async function assertExplicitSyntheticCreateHarnessRejectsUserMode(api, browserR
 }
 
 const redactedCreateVisibleRowFields = ['create_count', 'read_back_verification', 'backup_state', 'audit_state', 'reset_default_disabled_probe_summary', 'raw_book_evidence_included'];
-const redactedCreateVisibleRowDisplayValues = ['1', 'verified', 'captured', 'recorded', 'verified', 'false'];
+const redactedCreateVisibleRowDisplayValues = ['1', 'verified', 'captured', 'recorded', resetDefaultDisabledProbeDisplayValue, 'false'];
+
+function assertResetDefaultDisabledProbeCoverage(summary, label) {
+	assert.equal(summary?.state, 'verified', `${label}: reset/default-disabled summary must be verified before display`);
+	assert.equal(summary?.app_env, 'test', `${label}: reset/default-disabled summary must remain APP_ENV=test scoped`);
+	assert.equal(summary?.gnucash_writes_enabled, false, `${label}: reset/default-disabled summary must show writes reset to false`);
+	assert.equal(summary?.create_execution_allowed_after_reset, false, `${label}: reset/default-disabled summary must keep CREATE blocked after reset`);
+	assert.equal(summary?.create_execution_blocked_after_reset_verified, true, `${label}: reset/default-disabled summary must verify CREATE is blocked after reset`);
+	assert.deepEqual(
+		(summary?.probes ?? []).map((probe) => probe.route_family),
+		explicitSyntheticDisabledProbeFamilies,
+		`${label}: reset/default-disabled summary must cover validate/preflight/CREATE/PATCH/DELETE/batch`
+	);
+	assert.ok(
+		(summary?.probes ?? []).every((probe) => probe.status === 'blocked_or_unavailable'),
+		`${label}: every reset/default-disabled probe must be blocked_or_unavailable`
+	);
+}
 
 function buildRedactedCreateVisibleRows(panel) {
 	assert.equal(panel.create_count, 1, 'redacted CREATE visible rows require exact create_count 1');
 	assert.equal(panel.read_back_verification?.state, 'verified', 'redacted CREATE visible rows require verified read-back');
 	assert.equal(panel.backup_state?.state, 'captured', 'redacted CREATE visible rows require captured backup state');
 	assert.equal(panel.audit_state?.state, 'recorded', 'redacted CREATE visible rows require recorded audit state');
-	assert.equal(panel.reset_default_disabled_probe_summary?.state, 'verified', 'redacted CREATE visible rows require verified reset/default-disabled probes');
+	assertResetDefaultDisabledProbeCoverage(panel.reset_default_disabled_probe_summary, 'redacted CREATE visible rows');
 	return redactedCreateVisibleRowFields.map((field, index) => ({
 		field,
 		display_value: redactedCreateVisibleRowDisplayValues[index],
@@ -2338,7 +2365,7 @@ function redactCreateResultPanelForDisplay(responseBody) {
 	assert.equal(panel.read_back_verification?.state, 'verified', 'display shaping requires verified read-back state');
 	assert.equal(panel.backup_state?.state, 'captured', 'display shaping requires captured backup state');
 	assert.equal(panel.audit_state?.state, 'recorded', 'display shaping requires recorded audit state');
-	assert.equal(panel.reset_default_disabled_probe_summary?.state, 'verified', 'display shaping requires verified reset/default-disabled probes');
+	assertResetDefaultDisabledProbeCoverage(panel.reset_default_disabled_probe_summary, 'display shaping');
 	assert.equal(panel.redaction?.raw_book_paths, false, 'display shaping requires raw book paths to be excluded');
 	assert.equal(panel.redaction?.raw_backup_paths, false, 'display shaping requires raw backup paths to be excluded');
 	const resultPanelVisibleRows = buildRedactedCreateVisibleRows(panel);

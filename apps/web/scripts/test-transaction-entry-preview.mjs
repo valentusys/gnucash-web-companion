@@ -148,7 +148,10 @@ for (const requiredBrowserSmokeFragment of [
 	'function assertRedactedSyntheticCreateResultPanel',
 	'function assertRedactedCreateVisibleRows',
 	'display_value_source',
+	'resetDefaultDisabledProbeDisplayValue',
+	'function assertResetDefaultDisabledProbeCoverage',
 	'fixed_status_summary',
+	'validate/preflight/CREATE/PATCH/DELETE/batch blocked_or_unavailable',
 	'visible rows must use fixed status summaries and never render opaque refs or raw values',
 	'function assertNoPrivateRawResultPanelLeak',
 	'redacted_result_panel',
@@ -233,6 +236,7 @@ for (const requiredBrowserSmokeFragment of [
 	'create_count_state',
 	'read_back_verification',
 	'reset_default_disabled_probe_summary',
+	'disabled_probe_families',
 	'failure drill evidence must stay redacted and fail closed'
 ]) {
 	assert.ok(browserSmoke.includes(requiredBrowserSmokeFragment), `browser smoke missing required coverage marker: ${requiredBrowserSmokeFragment}`);
@@ -441,6 +445,7 @@ for (const requiredPageFragment of [
 	'false; no transaction_id, backup_path, raw audit payload',
 	'result_panel_visible_rows',
 	'display-only rows: create_count, read_back_verification, backup_state, audit_state, reset_default_disabled_probe_summary, raw_book_evidence_included',
+	'reset_default_disabled_probe_summary visible value uses validate/preflight/CREATE/PATCH/DELETE/batch blocked_or_unavailable',
 	'display_value_source: fixed_status_summary for every row',
 	'opaque refs are not visible row values',
 	'private_raw_payload_rendered: false',
@@ -476,6 +481,7 @@ for (const requiredPageFragment of [
 	'failure-ui-drill-matrix',
 	'Failure UI drills (redacted / fail-closed)',
 	'failure_result_panel_fields: create_count/read-back/backup/audit/reset-default-disabled',
+	'failure_result_panel_fields: create_count/read-back/backup/audit/reset-default-disabled/disabled_probe_families',
 	'failure-ui-drill-list',
 	'stale_preview_rejection',
 	'Target preflight rejection',
@@ -500,6 +506,7 @@ for (const requiredPageFragment of [
 	'read_back_verification',
 	'backup_state',
 	'audit_state',
+	'disabled_probe_families',
 	'raw_evidence_included',
 	'No raw target paths, backup paths, account names, descriptions, memos, amounts, GUIDs, screenshots, tokens, or secrets',
 	'preview-reviewed checkbox alone is not enough',

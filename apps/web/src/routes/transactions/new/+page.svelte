@@ -119,6 +119,7 @@
 			backup_state: 'not_run' | 'failed_before_create' | 'opaque_backup_ref_required' | 'not_applicable';
 			audit_state: 'not_recorded' | 'safe_failure_record_only' | 'not_applicable';
 			reset_default_disabled_probe_summary: 'pending_not_run' | 'failed_hard_stop' | 'required_before_completion' | 'not_applicable';
+			disabled_probe_families: 'validate/preflight/CREATE/PATCH/DELETE/batch';
 			raw_evidence_included: false;
 		};
 		no_success_claim: true;
@@ -238,6 +239,7 @@
 				backup_state: 'failed_before_create',
 				audit_state: 'not_recorded',
 				reset_default_disabled_probe_summary: 'pending_not_run',
+				disabled_probe_families: 'validate/preflight/CREATE/PATCH/DELETE/batch',
 				raw_evidence_included: false
 			};
 		}
@@ -248,6 +250,7 @@
 				backup_state: 'opaque_backup_ref_required',
 				audit_state: 'safe_failure_record_only',
 				reset_default_disabled_probe_summary: 'required_before_completion',
+				disabled_probe_families: 'validate/preflight/CREATE/PATCH/DELETE/batch',
 				raw_evidence_included: false
 			};
 		}
@@ -258,6 +261,7 @@
 				backup_state: 'opaque_backup_ref_required',
 				audit_state: 'safe_failure_record_only',
 				reset_default_disabled_probe_summary: 'failed_hard_stop',
+				disabled_probe_families: 'validate/preflight/CREATE/PATCH/DELETE/batch',
 				raw_evidence_included: false
 			};
 		}
@@ -268,6 +272,7 @@
 				backup_state: 'opaque_backup_ref_required',
 				audit_state: 'not_applicable',
 				reset_default_disabled_probe_summary: 'not_applicable',
+				disabled_probe_families: 'validate/preflight/CREATE/PATCH/DELETE/batch',
 				raw_evidence_included: false
 			};
 		}
@@ -277,6 +282,7 @@
 			backup_state: 'not_run',
 			audit_state: 'not_recorded',
 			reset_default_disabled_probe_summary: 'pending_not_run',
+			disabled_probe_families: 'validate/preflight/CREATE/PATCH/DELETE/batch',
 			raw_evidence_included: false
 		};
 	}
@@ -801,7 +807,7 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 						<div><dt class="font-semibold">backup/audit</dt><dd>backup_state: captured by opaque ref; audit_state: recorded by opaque ref; no raw backup path or audit payload.</dd></div>
 						<div><dt class="font-semibold">reset/default-disabled probes</dt><dd>reset_default_disabled_probe_summary: verified; APP_ENV=test, GNUCASH_WRITES_ENABLED=false, and validate/preflight/CREATE/PATCH/DELETE/batch are blocked_or_unavailable after reset.</dd></div>
 						<div><dt class="font-semibold">raw_book_evidence_included</dt><dd>false; no transaction_id, backup_path, raw audit payload, account IDs, descriptions, memos, amounts, GUIDs, raw paths, screenshots, tokens, or secrets.</dd></div>
-						<div class="md:col-span-2"><dt class="font-semibold">result_panel_visible_rows</dt><dd>display-only rows: create_count, read_back_verification, backup_state, audit_state, reset_default_disabled_probe_summary, raw_book_evidence_included; raw_value_included=false for every row; display_value_source: fixed_status_summary for every row; opaque refs are not visible row values; private_raw_payload_rendered: false.</dd></div>
+						<div class="md:col-span-2"><dt class="font-semibold">result_panel_visible_rows</dt><dd>display-only rows: create_count, read_back_verification, backup_state, audit_state, reset_default_disabled_probe_summary, raw_book_evidence_included; reset_default_disabled_probe_summary visible value uses validate/preflight/CREATE/PATCH/DELETE/batch blocked_or_unavailable; raw_value_included=false for every row; display_value_source: fixed_status_summary for every row; opaque refs are not visible row values; private_raw_payload_rendered: false.</dd></div>
 					</dl>
 				</div>
 				<div id="redacted-create-failure-result-panel-fields" class="mt-3 rounded-lg p-3" role="note" aria-label="Redacted CREATE failure result panel fields" style="border: 1px solid #5eead4; background: #f0fdfa;">
@@ -906,7 +912,7 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 				<span class="rounded-full px-3 py-1 font-semibold sm:col-span-2" style="background: #fee2e2; color: #991b1b;">evidence_scope: redacted_only</span>
 			</div>
 		</div>
-		<p id="failure-ui-drill-evidence-shape" class="mt-3 font-semibold">Failure drill evidence shape: api_result_shaped_redacted_ui_evidence; default UI result remains blocked/not run; failure_stage tracks stale/preflight/write-gate/backup/lock/read-back/reset/recovery boundaries; failure_result_panel_fields: create_count/read-back/backup/audit/reset-default-disabled.</p>
+		<p id="failure-ui-drill-evidence-shape" class="mt-3 font-semibold">Failure drill evidence shape: api_result_shaped_redacted_ui_evidence; default UI result remains blocked/not run; failure_stage tracks stale/preflight/write-gate/backup/lock/read-back/reset/recovery boundaries; failure_result_panel_fields: create_count/read-back/backup/audit/reset-default-disabled/disabled_probe_families.</p>
 		<ul id="failure-ui-drill-list" class="mt-3 grid min-w-0 gap-2 md:grid-cols-2" aria-label="Redacted failure UI drill checklist">
 			{#each redactedFailureUiDrills as drill (drill.id)}
 				<li class="min-w-0 rounded-xl p-3" data-failure-drill={drill.id} data-failure-drill-status={drill.status} data-failure-stage={drill.failure_stage} data-failure-drill-scope={drill.evidence_scope} style="border: 1px solid #fecaca; background: #fff7f7;">
@@ -927,6 +933,7 @@ Safety checklist: preview reviewed; no stale preview; write session armed only a
 						<div><dt class="font-semibold">backup_state</dt><dd class="break-words">{drill.result_panel.backup_state}</dd></div>
 						<div><dt class="font-semibold">audit_state</dt><dd class="break-words">{drill.result_panel.audit_state}</dd></div>
 						<div><dt class="font-semibold">reset_default_disabled_probe_summary</dt><dd class="break-words">{drill.result_panel.reset_default_disabled_probe_summary}</dd></div>
+						<div><dt class="font-semibold">disabled_probe_families</dt><dd class="break-words">{drill.result_panel.disabled_probe_families}</dd></div>
 						<div><dt class="font-semibold">raw_evidence_included</dt><dd>{String(drill.result_panel.raw_evidence_included)}</dd></div>
 					</dl>
 					<p class="mt-2 text-xs font-semibold">{drill.message}</p>
