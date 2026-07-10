@@ -117,6 +117,70 @@ const expectedFailureStages = [
 	'post_result_reset_probe',
 	'owner_recovery_copy'
 ];
+const expectedFailureSurfaces = [
+	'browser_visible',
+	'api_result_shaped',
+	'api_result_shaped',
+	'api_result_shaped',
+	'api_result_shaped',
+	'api_result_shaped',
+	'api_result_shaped',
+	'api_result_shaped'
+];
+const expectedFailureStatuses = ['blocked', 'blocked', 'blocked', 'failed', 'blocked', 'requires_owner_recovery', 'failed', 'not_run'];
+const expectedFailureResultStates = [
+	'rejected_before_create',
+	'failed_closed_before_create',
+	'rejected_before_book_resolution',
+	'failed_before_create',
+	'rejected_before_create',
+	'unknown_after_attempted_create',
+	'post_result_hard_stop',
+	'owner_approved_recovery_copy_available_not_restored'
+];
+const expectedFailureHttpStatuses = ['not_submitted', '403', '403', '422', '409', '503', 'blocked_or_unavailable', 'not_applicable'];
+const expectedFailureMutationCounts = ['0', '0', '0', '0', '0', 'unknown_after_attempt', 'no_additional_mutation', '0'];
+const expectedFailureCreateCountStates = [
+	'zero_before_create',
+	'zero_before_create',
+	'zero_before_create',
+	'zero_before_create',
+	'zero_before_create',
+	'unknown_after_attempt',
+	'post_result_hard_stop',
+	'not_applicable'
+];
+const expectedFailureReadBackStates = ['not_run', 'not_run', 'not_run', 'not_run', 'not_run', 'failed', 'blocked_until_owner_recovery', 'not_applicable'];
+const expectedFailureBackupStates = [
+	'not_run',
+	'not_run',
+	'not_run',
+	'failed_before_create',
+	'not_run',
+	'opaque_backup_ref_required',
+	'opaque_backup_ref_required',
+	'opaque_backup_ref_required'
+];
+const expectedFailureAuditStates = [
+	'not_recorded',
+	'not_recorded',
+	'not_recorded',
+	'not_recorded',
+	'not_recorded',
+	'safe_failure_record_only',
+	'safe_failure_record_only',
+	'not_applicable'
+];
+const expectedFailureResetSummaries = [
+	'pending_not_run',
+	'pending_not_run',
+	'pending_not_run',
+	'pending_not_run',
+	'pending_not_run',
+	'required_before_completion',
+	'failed_hard_stop',
+	'not_applicable'
+];
 const previewPayloadFieldNames = ['amount', 'credit_account_id', 'currency', 'date', 'debit_account_id', 'description', 'memo'].sort();
 const cdpCommandTimeoutMs = Number(process.env.ISSUE51_CDP_TIMEOUT_MS ?? '120000');
 
@@ -1813,6 +1877,18 @@ async function assertFailureUiDrillMatrix(cdp, label) {
 			status: item.getAttribute('data-failure-drill-status'),
 			stage: item.getAttribute('data-failure-stage'),
 			scope: item.getAttribute('data-failure-drill-scope'),
+			surface: item.getAttribute('data-failure-surface'),
+			resultState: item.getAttribute('data-failure-result-state'),
+			httpStatus: item.getAttribute('data-failure-http-status'),
+			mutationCount: item.getAttribute('data-failure-mutation-count'),
+			noSuccessClaim: item.getAttribute('data-failure-no-success-claim'),
+			createCountState: item.getAttribute('data-failure-create-count-state'),
+			readBackVerification: item.getAttribute('data-failure-read-back-verification'),
+			backupState: item.getAttribute('data-failure-backup-state'),
+			auditState: item.getAttribute('data-failure-audit-state'),
+			resetProbeSummary: item.getAttribute('data-failure-reset-probe-summary'),
+			disabledProbeFamilies: item.getAttribute('data-failure-disabled-probe-families'),
+			rawEvidenceIncluded: item.getAttribute('data-failure-raw-evidence-included'),
 			text: item.textContent.replace(/\\s+/g, ' ').trim()
 		}));
 		return {
@@ -1845,6 +1921,19 @@ async function assertFailureUiDrillMatrix(cdp, label) {
 	assert.deepEqual(state.drills.map((drill) => drill.id), expectedFailureDrillIds, `${label}: failure drills must render in expected order`);
 	assert.deepEqual(state.drills.map((drill) => drill.stage), expectedFailureStages, `${label}: failure drills must expose stable failure stages in expected order`);
 	assert.deepEqual(state.drills.map((drill) => drill.scope), Array(expectedFailureDrillIds.length).fill('redacted_only'), `${label}: failure drills must stay redacted-only`);
+	assert.deepEqual(state.drills.map((drill) => drill.surface), expectedFailureSurfaces, `${label}: failure drills must expose browser/API-result surface coverage`);
+	assert.deepEqual(state.drills.map((drill) => drill.status), expectedFailureStatuses, `${label}: failure drills must expose exact fail-closed statuses`);
+	assert.deepEqual(state.drills.map((drill) => drill.resultState), expectedFailureResultStates, `${label}: failure drills must expose exact redacted result states`);
+	assert.deepEqual(state.drills.map((drill) => drill.httpStatus), expectedFailureHttpStatuses, `${label}: failure drills must expose redacted HTTP/API result statuses`);
+	assert.deepEqual(state.drills.map((drill) => drill.mutationCount), expectedFailureMutationCounts, `${label}: failure drills must expose mutation-count evidence without raw values`);
+	assert.deepEqual(state.drills.map((drill) => drill.noSuccessClaim), Array(expectedFailureDrillIds.length).fill('true'), `${label}: failure drills must expose no-success-claim evidence`);
+	assert.deepEqual(state.drills.map((drill) => drill.createCountState), expectedFailureCreateCountStates, `${label}: failure drills must expose redacted create-count states`);
+	assert.deepEqual(state.drills.map((drill) => drill.readBackVerification), expectedFailureReadBackStates, `${label}: failure drills must expose redacted read-back states`);
+	assert.deepEqual(state.drills.map((drill) => drill.backupState), expectedFailureBackupStates, `${label}: failure drills must expose redacted backup states`);
+	assert.deepEqual(state.drills.map((drill) => drill.auditState), expectedFailureAuditStates, `${label}: failure drills must expose redacted audit states`);
+	assert.deepEqual(state.drills.map((drill) => drill.resetProbeSummary), expectedFailureResetSummaries, `${label}: failure drills must expose redacted reset/probe summaries`);
+	assert.deepEqual(state.drills.map((drill) => drill.disabledProbeFamilies), Array(expectedFailureDrillIds.length).fill(explicitSyntheticDisabledProbeFamiliesDisplay), `${label}: failure drills must expose all disabled probe families in data attributes`);
+	assert.deepEqual(state.drills.map((drill) => drill.rawEvidenceIncluded), Array(expectedFailureDrillIds.length).fill('false'), `${label}: failure drills must expose raw-evidence exclusion in data attributes`);
 	assert.ok(state.drills.every((drill) => !['success', 'ready', 'passed', 'ok'].includes(drill.status)), `${label}: failure drills must not render success/ready statuses`);
 	assert.ok(!state.text.includes(syntheticDescription), `${label}: failure drill matrix must not leak synthetic description`);
 	assert.ok(!state.text.includes(syntheticMemo), `${label}: failure drill matrix must not leak synthetic memo`);
