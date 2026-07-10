@@ -94,6 +94,11 @@ for (const requiredBrowserSmokeFragment of [
 	'unsafe active readiness details must stay clamped out of the UI',
 	'pathWithSearch',
 	'function isForbiddenBrowserBoundaryRequest',
+	'function isNonDisposableSyntheticBookRequest',
+	'syntheticNonDisposableBookId',
+	'function assertNonDisposableBookTamperBlocked',
+	'non-disposable book tamper',
+	'browser-driven tamper must not reach a non-disposable create-preview API target',
 	'function assertMutationRequestPredicates',
 	'synthetic API boundary must block',
 	'browser boundary must block',
@@ -237,7 +242,9 @@ assert.match(browserSmoke, /isForbiddenBrowserBoundaryRequest[\s\S]*validate[\s\
 assert.match(browserSmoke, /url\.search === '\?\/preview'/, 'browser smoke must allow only the exact ?/preview app submission target');
 assert.match(browserSmoke, /mentionsTransactions[\s\S]*%2Ftransactions[\s\S]*next=%2Fbooks%2F1%2Ftransactions%2Fbatch/, 'browser smoke must reject encoded mutation route queries as boundary requests');
 assert.match(browserSmoke, /assertMutationRequestPredicates[\s\S]*POST[\s\S]*\/books\/1\/transactions[\s\S]*PATCH[\s\S]*DELETE[\s\S]*backups[\s\S]*audit[\s\S]*owner-writebeta/, 'browser smoke must unit-check synthetic API mutation blocking predicates');
-assert.match(browserSmoke, /isForbiddenTransactionMutation\(method, pathname, search = ''\)[\s\S]*querySmugglesMutationBoundary[\s\S]*transactions\(\?:\\\/\|%2F\)\(\?!create-preview/, 'synthetic API boundary must reject query-smuggled mutation routes while preserving exact create-preview');
+assert.match(browserSmoke, /isForbiddenTransactionMutation\(method, pathname, search = ''\)[\s\S]*isNonDisposableSyntheticBookRequest\(pathname\)/, 'synthetic API boundary must reject non-disposable book targets');
+assert.match(browserSmoke, /querySmugglesMutationBoundary[\s\S]*transactions\(\?:\\\/\|%2F\)\(\?!create-preview/, 'synthetic API boundary must reject query-smuggled mutation routes while preserving exact create-preview');
+assert.match(browserSmoke, /assertNonDisposableBookTamperBlocked[\s\S]*selectInjectedNonDisposableBook[\s\S]*browser-driven tamper must not reach a non-disposable create-preview API target[\s\S]*rejected book tamper may reload only active-book read\/status API requests, never non-disposable or preview targets/s, 'browser smoke must submit a tampered non-disposable book id and prove it never reaches non-disposable app-to-API book targets');
 assert.match(browserSmoke, /assertNoMutationRequestsObserved[\s\S]*request\.search \?\? ''/, 'browser smoke repeated mutation-boundary checks must include synthetic API query strings');
 assert.match(browserSmoke, /create-preview', '\?next=%2Fbooks%2F1%2Ftransactions%2Fbatch/, 'browser smoke must unit-check query-smuggled API create-preview mutation boundaries');
 assert.match(browserSmoke, /\?\/preview&next=%2Fbooks%2F1%2Ftransactions%2Fbatch/, 'browser smoke must reject smuggled mutation routes even when ?/preview appears in the query');
@@ -265,7 +272,7 @@ assert.match(browserSmoke, /payload\.amount === validationFailureAmount[\s\S]*lo
 assert.match(browserSmoke, /function assertPreviewValidationFailureUi[\s\S]*Preview validation failed safely[\s\S]*No CREATE\\\/PATCH\\\/DELETE\\\/batch executed[\s\S]*Future Create control must remain absent until a successful preview/s, 'browser smoke must assert safe failure UI before continuing');
 assert.match(browserSmoke, /function assertOrdinaryBrowserCannotReachExplicitTestMode[\s\S]*transactionEntryAppSubmissionSearches[\s\S]*'\?\/preview'[\s\S]*request\.path === '\/books\/1\/transactions'[\s\S]*ordinary browser cannot reach explicit test-mode execution path/s, 'browser smoke must prove ordinary browser submissions cannot reach the explicit test-mode execution path');
 assert.match(browserSmoke, /Page\.navigate', \{ url: `\$\{webBase\}\/transactions\/new\?explicit_test_mode=issue51` \}[\s\S]*normal explicit test-mode query attempt[\s\S]*assertOrdinaryBrowserCannotReachExplicitTestMode/s, 'browser smoke must attempt an ordinary explicit_test_mode query and still submit only preview');
-assert.match(browserSmoke, /transactionEntryAppSubmissionSearches\(browserRequests\)[\s\S]*\['\?\/preview', '\?\/preview', '\?\/preview'\][\s\S]*including failure and explicit-mode query attempts/s, 'browser smoke must prove every ordinary transaction-entry POST targets only ?/preview');
+assert.match(browserSmoke, /transactionEntryAppSubmissionSearches\(browserRequests\)[\s\S]*\['\?\/preview', '\?\/preview', '\?\/preview', '\?\/preview'\][\s\S]*including non-disposable book tamper, failure, and explicit-mode query attempts/s, 'browser smoke must prove every ordinary transaction-entry POST targets only ?/preview');
 
 for (const field of [
 	'book_id',
@@ -745,6 +752,13 @@ assert.match(server, /export const actions: Actions = \{\s*preview:\s*async/s, '
 for (const requiredServerFragment of [
 	'/transactions/create-preview',
 	'formToPreviewPayload',
+	'function previewBookMismatchFailure',
+	'Selected book is not ${activeBookLabel} for this preview session',
+	'const { activeBook } = await getActiveBookContext(fetch, cookies, token)',
+	"const activeBookId = activeBook ? String(activeBook.id) : ''",
+	'bookId !== activeBookId',
+	'previewBookMismatchFailure(returnedPayload, activeBook)',
+	'`/books/${activeBook.id}/transactions/create-preview`',
 	'debit_account_id',
 	'credit_account_id',
 	'No write was executed',
@@ -855,7 +869,8 @@ const actionsBlock = server.match(/export const actions: Actions = \{([\s\S]*?)\
 assert.ok(actionsBlock, '/transactions/new server route must define a bounded actions object');
 assert.deepEqual([...actionsBlock.matchAll(/^\s*([A-Za-z0-9_]+):\s*async/gm)].map((match) => match[1]), ['preview'], '/transactions/new must expose preview as its only server action');
 const apiPostTargets = [...server.matchAll(/(?:^|\n)\s*const\s+\w+\s*=\s*await\s+apiPost<[\s\S]*?>\(\s*fetch,\s*`([^`]+)`/g)].map((match) => match[1]);
-assert.deepEqual(apiPostTargets, ['/books/${bookId}/transactions/create-preview'], 'create-preview must be the only server-side POST target reachable from the transaction-entry action');
+assert.deepEqual(apiPostTargets, ['/books/${activeBook.id}/transactions/create-preview'], 'create-preview must be the only server-side POST target reachable from the transaction-entry action and must use the active book context');
+assert.doesNotMatch(server, /`\/books\/\$\{bookId\}\/transactions\/create-preview`/, '/transactions/new action must not trust the submitted book_id as the API target');
 assert.equal([...server.matchAll(/method:\s*['"`]POST['"`]/g)].length, 1, '/transactions/new server code must keep POST centralized in the preview JSON helper only');
 assert.match(
 	server,

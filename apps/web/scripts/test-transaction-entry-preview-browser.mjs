@@ -42,6 +42,7 @@ const disposableDestinationAccountId = '388a85676d4a4643ae6cd28166c34e79';
 const explicitSyntheticCreateHarnessToken = 'issue51-explicit-synthetic-create-harness';
 const explicitSyntheticDisposableProof = 'synthetic-disposable-fixture-book-1';
 const explicitSyntheticCreateHarnessSearch = '?explicit_test_mode=issue51';
+const syntheticNonDisposableBookId = '2';
 const explicitSyntheticCreateId = 'synthetic-explicit-create-1';
 const explicitSyntheticCreateRef = 'create-ref-redacted-issue51';
 const explicitSyntheticBackupRef = 'backup-ref-redacted-issue51';
@@ -307,6 +308,10 @@ function assertSourceSafety() {
 	assert.match(server, /function createWriteSessionGate\(status = createDefaultReadinessStatus\(\)\)[\s\S]*status\.readiness_state\.session_armed\.armed[\s\S]*status\.readiness_state\.allowed_create_count\.count[\s\S]*create_execution_allowed: status\.readiness_state\.allowed_execution\.allowed/s, 'server write-session gate must derive from redacted readiness status and stay CREATE-disabled');
 	assert.match(server, /function sanitizeCreateReadinessStatus\(value: unknown, fallback = createDefaultReadinessStatus\(\)\)[\s\S]*return createDefaultReadinessStatus\(writesEnabled\)/s, 'server load must clamp any endpoint readiness status into fail-closed defaults before rendering');
 	assert.match(server, /apiGetOptional<unknown>[\s\S]*sanitizeCreateReadinessStatus\(rawCreateReadinessStatus, defaultReadinessStatus\)/s, 'server load must fetch readiness as unknown and sanitize it before UI use');
+	assert.match(server, /function previewBookMismatchFailure[\s\S]*Selected book is not \$\{activeBookLabel\} for this preview session[\s\S]*No write was executed/s, 'server action must fail closed and safely on submitted book mismatch');
+	assert.match(server, /const \{ activeBook \} = await getActiveBookContext\(fetch, cookies, token\)[\s\S]*const activeBookId = activeBook \? String\(activeBook\.id\) : ''[\s\S]*bookId !== activeBookId[\s\S]*previewBookMismatchFailure\(returnedPayload, activeBook\)/s, 'server action must reject submitted book_id values that do not match the active book');
+	assert.match(server, /apiPost<TransactionCreatePreview>[\s\S]*`\/books\/\$\{activeBook\.id\}\/transactions\/create-preview`/s, 'server action must submit create-preview only for the active book context');
+	assert.doesNotMatch(server, /`\/books\/\$\{bookId\}\/transactions\/create-preview`/, 'server action must not trust submitted book_id as the API target');
 	assert.match(server, /function createTargetPreflight\(\)[\s\S]*required: true[\s\S]*status: 'not_checked'[\s\S]*target_class: targetClass[\s\S]*status: 'pending'/s, 'server target preflight must default to required/not_checked/pending');
 	assert.match(server, /function createExecutionReadiness\(\)[\s\S]*required: true[\s\S]*status: 'not_checked'[\s\S]*backup_state: 'pending'[\s\S]*read_back_state: 'pending'[\s\S]*audit_state: 'pending'[\s\S]*reset_state: 'pending'[\s\S]*probe_state: 'pending'[\s\S]*status: 'pending'/s, 'server execution readiness must default to required/not_checked/pending');
 	assert.match(server, /function createExecutionReadiness\(\)[\s\S]*evidence_packet_plan: \[[\s\S]*id: 'backup_before_create_evidence'[\s\S]*id: 'read_back_after_create_evidence'[\s\S]*id: 'audit_after_create_evidence'[\s\S]*id: 'reset_disabled_evidence'[\s\S]*id: 'disabled_probes_after_reset_evidence'[\s\S]*id: 'desktop_verification_evidence'/s, 'server execution readiness must include an explicit pending evidence packet plan');
@@ -342,12 +347,18 @@ function readBody(req) {
 	});
 }
 
+function isNonDisposableSyntheticBookRequest(pathname) {
+	const match = pathname.match(/^\/books\/([^/]+)(?:\/|$)/);
+	return Boolean(match && match[1] !== String(syntheticBook.id));
+}
+
 function isForbiddenTransactionMutation(method, pathname, search = '') {
 	const upper = method.toUpperCase();
 	const actionTarget = `${pathname}${search}`;
 	const querySmugglesMutationBoundary = /(?:\/|%2F)(?:backups?|audit|write-alpha|owner-writebeta)(?:\/|$|[?&=])/i.test(search)
 		|| /(?:\/|%2F)transactions(?:\/|%2F)(?!create-preview(?:$|[?&=]))/i.test(search)
 		|| /(?:\/|%2F|[?&=])(?:validate|preflight|batch|delete|patch)(?:\/|%2F|$|[?&=])/i.test(search);
+	if (isNonDisposableSyntheticBookRequest(pathname)) return true;
 	if (/(?:\/|%2F)(?:backups?|audit|write-alpha|owner-writebeta)(?:\/|$|[?&=])/i.test(actionTarget)) return true;
 	if (querySmugglesMutationBoundary) return true;
 	const mentionsTransactions = pathname.includes('/transactions') || search.includes('/transactions') || /%2Ftransactions/i.test(search);
@@ -1496,6 +1507,64 @@ async function assertPreviewValidationFailureUi(cdp, label) {
 	assert.equal(state.futureCreatePresent, false, `${label}: Future Create control must remain absent until a successful preview`);
 }
 
+async function selectInjectedNonDisposableBook(cdp) {
+	await evaluate(cdp, `(() => {
+		const select = document.querySelector('#preview-book');
+		if (!select) throw new Error('missing preview book selector');
+		let option = Array.from(select.options).find((item) => item.value === ${jsString(syntheticNonDisposableBookId)});
+		if (!option) {
+			option = document.createElement('option');
+			option.value = ${jsString(syntheticNonDisposableBookId)};
+			option.textContent = 'Injected non-disposable target';
+			select.append(option);
+		}
+		select.value = ${jsString(syntheticNonDisposableBookId)};
+		select.dispatchEvent(new Event('input', { bubbles: true }));
+		select.dispatchEvent(new Event('change', { bubbles: true }));
+		return select.value;
+	})()`);
+}
+
+async function assertNonDisposableBookTamperBlocked(cdp, api, browserRequests, label) {
+	const before = captureNormalBrowserBoundaryCounts(api, browserRequests);
+	await fillPreviewForm(cdp, { description: 'Synthetic browser smoke non-disposable book tamper' });
+	await selectInjectedNonDisposableBook(cdp);
+	await waitForExpression(cdp, `document.querySelector('#preview-book')?.value === ${jsString(syntheticNonDisposableBookId)}`, `${label} injected book selected`);
+	await clickAndWaitForPageLoad(cdp, 'button[formaction="?/preview"]', `${label} preview submit load`);
+	await waitForExpression(cdp, `document.querySelector('#preview-error-summary')?.innerText.includes('Preview validation failed safely')`, `${label} safe error summary`);
+	const state = await evaluate(cdp, `(() => ({
+		bookErrorText: document.querySelector('#preview-book-error')?.innerText ?? '',
+		errorSummaryText: document.querySelector('#preview-error-summary')?.innerText ?? '',
+		approvalPacketPresent: Boolean(document.querySelector('#approval-packet')),
+		normalizedPreviewPresent: Boolean(document.querySelector('#normalized-preview')),
+		futureCreatePresent: Boolean(document.querySelector('#future-create-disabled'))
+	}))()`);
+	assert.match(state.bookErrorText, /Selected book is not the active book for this preview session/, `${label}: tampered non-disposable book id must be rejected at the form boundary`);
+	assert.match(state.bookErrorText, /No write was executed/, `${label}: tampered book rejection must repeat the no-write boundary`);
+	assert.match(state.errorSummaryText, /No CREATE\/PATCH\/DELETE\/batch executed/, `${label}: tampered book rejection summary must remain no-write`);
+	assert.equal(state.approvalPacketPresent, false, `${label}: approval packet must remain absent after non-disposable book tamper`);
+	assert.equal(state.normalizedPreviewPresent, false, `${label}: normalized preview must remain absent after non-disposable book tamper`);
+	assert.equal(state.futureCreatePresent, false, `${label}: Future Create control must remain absent after non-disposable book tamper`);
+	assertOrdinaryBrowserCannotReachExplicitTestMode(api, browserRequests, before, label);
+	assert.equal(api.requests.filter((request) => request.path === `/books/${syntheticNonDisposableBookId}/transactions/create-preview`).length, 0, `${label}: browser-driven tamper must not reach a non-disposable create-preview API target`);
+	assert.equal(api.requests.filter((request) => request.path.startsWith(`/books/${syntheticNonDisposableBookId}/`)).length, 0, `${label}: browser-driven tamper must not reach any non-disposable book-scoped API target`);
+	assert.equal(
+		api.requests.filter((request) => request.method === 'POST' && request.path === '/books/1/transactions/create-preview').length,
+		api.previewPayloads.length,
+		`${label}: rejected book tamper must not add a create-preview payload`
+	);
+	const newBookScopedRequests = api.requests.slice(before.apiRequestCount).filter((request) => request.path.startsWith('/books/'));
+	assert.deepEqual(
+		newBookScopedRequests
+			.filter((request) => !/^\/books\/1\/(?:accounts|transactions\/create-readiness-status)$/.test(request.path))
+			.map(({ method, path, search, pathWithSearch }) => ({ method, path, search, pathWithSearch })),
+		[],
+		`${label}: rejected book tamper may reload only active-book read/status API requests, never non-disposable or preview targets`
+	);
+	assertNoMutationRequestsObserved(api, browserRequests, label);
+	await setSelect(cdp, '#preview-book', String(syntheticBook.id));
+}
+
 function assertBrowserToAppToApiBoundary(browserRequests, webBase, apiUrl, label) {
 	const webOrigin = new URL(webBase).origin;
 	const apiOrigin = new URL(apiUrl).origin;
@@ -1847,6 +1916,7 @@ function isForbiddenBrowserBoundaryRequest(request) {
 	const url = new URL(request.url);
 	const actionTarget = `${url.pathname}${url.search}`;
 	if (method === 'POST' && url.pathname === '/transactions/new' && url.search === '?/preview') return false;
+	if (url.pathname.startsWith('/books/')) return true;
 	if (/(?:\/|%2F)(?:backups?|audit|write-alpha|owner-writebeta)(?:\/|$|[?&=])/i.test(actionTarget)) return true;
 	const mentionsTransactions = url.pathname.includes('/transactions') || url.search.includes('/transactions') || /%2Ftransactions/i.test(url.search);
 	if (!mentionsTransactions) return false;
@@ -1871,6 +1941,8 @@ function assertMutationRequestPredicates() {
 	}
 
 	const forbiddenApiRequests = [
+		['GET', `/books/${syntheticNonDisposableBookId}/accounts`, ''],
+		['POST', `/books/${syntheticNonDisposableBookId}/transactions/create-preview`, ''],
 		['POST', '/books/1/transactions', ''],
 		['POST', '/books/1/transactions/create', ''],
 		['POST', '/books/1/transactions/validate', ''],
@@ -1900,6 +1972,8 @@ function assertMutationRequestPredicates() {
 	}
 
 	const forbiddenBrowserRequests = [
+		{ method: 'GET', url: 'http://127.0.0.1:4173/books/1/accounts' },
+		{ method: 'POST', url: `http://127.0.0.1:4173/books/${syntheticNonDisposableBookId}/transactions/create-preview` },
 		{ method: 'POST', url: 'http://127.0.0.1:4173/transactions/new' },
 		{ method: 'POST', url: 'http://127.0.0.1:4173/transactions/new?/create' },
 		{ method: 'POST', url: 'http://127.0.0.1:4173/transactions/new?/preview&next=%2Fbooks%2F1%2Ftransactions%2Fbatch' },
@@ -2998,6 +3072,13 @@ async function runSmoke() {
 		assert.equal(formSnapshot.credit_account_id, disposableDestinationAccountId, 'destination selector must submit the selected account id');
 		assert.ok(!('debit-account-search' in formSnapshot) && !('credit-account-search' in formSnapshot), 'search text must not be submitted');
 
+		await assertNonDisposableBookTamperBlocked(cdp, api, browserRequests, 'non-disposable book tamper');
+		await assertPreviewOnlyRuntimeTopology(cdp, 'non-disposable book tamper');
+		await assertMobilePreviewUx(cdp, 'non-disposable book tamper');
+		await assertReadinessShellsRemainPending(cdp, 'non-disposable book tamper');
+		await assertExecutionResultShellRemainsPending(cdp, 'non-disposable book tamper');
+		await assertApprovalPacketAbsent(cdp, 'non-disposable book tamper');
+
 		await setInput(cdp, '#preview-description', syntheticValidationFailureDescription);
 		await setInput(cdp, '#preview-amount', validationFailureAmount);
 		const validationFailureBoundaryBefore = captureNormalBrowserBoundaryCounts(api, browserRequests);
@@ -3217,8 +3298,8 @@ async function runSmoke() {
 		}
 		assert.deepEqual(
 			transactionEntryAppSubmissionSearches(browserRequests),
-			['?/preview', '?/preview', '?/preview'],
-			'browser must submit the transaction-entry form only to the preview action, including failure and explicit-mode query attempts'
+			['?/preview', '?/preview', '?/preview', '?/preview'],
+			'browser must submit the transaction-entry form only to the preview action, including non-disposable book tamper, failure, and explicit-mode query attempts'
 		);
 		assert.equal(reviewedApprovalEvidence?.preview_reviewed, true, 'browser smoke must capture reviewed approval evidence before explicit test-mode CREATE harness');
 		assert.equal(reviewedApprovalEvidence?.preview_stale, false, 'browser smoke must capture non-stale approval evidence before explicit test-mode CREATE harness');
@@ -3245,4 +3326,4 @@ async function runSmoke() {
 }
 
 await runSmoke();
-console.log('transaction-entry-preview-browser: ok (normal browser preview-only/failure/query guards; explicit test-mode product-route disposable CREATE, metadata-only PATCH, and app-owned DELETE drills)');
+console.log('transaction-entry-preview-browser: ok (normal browser preview-only/non-disposable-target/failure/query guards; explicit test-mode product-route disposable CREATE, metadata-only PATCH, and app-owned DELETE drills)');

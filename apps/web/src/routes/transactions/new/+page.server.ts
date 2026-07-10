@@ -1,7 +1,7 @@
 import { env } from '$env/dynamic/private';
 import { redirect, type Actions } from '@sveltejs/kit';
 import { apiFetch, getActiveBookContext, getAuthToken } from '$lib/api/server';
-import type { Account, TransactionCreatePreview } from '$lib/api/types';
+import type { Account, Book, TransactionCreatePreview } from '$lib/api/types';
 import type { PageServerLoad } from './$types';
 
 type CreatePreviewPayload = {
@@ -359,6 +359,18 @@ function formToPreviewPayload(formData: FormData): CreatePreviewPayload {
 		currency: String(formData.get('currency') ?? '').trim().toUpperCase(),
 		description: String(formData.get('description') ?? '').trim(),
 		memo: String(formData.get('memo') ?? '')
+	};
+}
+
+function previewBookMismatchFailure(returnedPayload: PreviewFormPayload, activeBook: Book | null) {
+	const activeBookLabel = activeBook ? 'the active book' : 'an active book';
+	return {
+		error: 'Preview validation failed safely. Review the highlighted fields. No write was executed.',
+		fieldErrors: {
+			book_id: `Selected book is not ${activeBookLabel} for this preview session. Choose the active book and run preview again. No write was executed.`
+		} satisfies PreviewFieldErrors,
+		payload: returnedPayload,
+		previewOnly: true
 	};
 }
 
@@ -759,9 +771,14 @@ export const actions: Actions = {
 		const payload = formToPreviewPayload(formData);
 		const returnedPayload: PreviewFormPayload = { ...payload, book_id: bookId };
 		try {
+			const { activeBook } = await getActiveBookContext(fetch, cookies, token);
+			const activeBookId = activeBook ? String(activeBook.id) : '';
+			if (!bookId || bookId !== activeBookId || !activeBook) {
+				return previewBookMismatchFailure(returnedPayload, activeBook);
+			}
 			const result = await apiPost<TransactionCreatePreview>(
 				fetch,
-				`/books/${bookId}/transactions/create-preview`,
+				`/books/${activeBook.id}/transactions/create-preview`,
 				token,
 				payload
 			);
