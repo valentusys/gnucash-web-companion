@@ -1,11 +1,11 @@
 import { isHttpError, isRedirect } from '@sveltejs/kit';
 import { apiFetch, getActiveBookContext, getAuthToken } from '$lib/api/server';
-import type { CashflowData, CashflowPeriod, ExpenseByAccount, PeriodReportResponse } from '$lib/api/types';
+import type { CashflowData, CashflowPeriod, ExpenseByAccount, ReportSummary } from '$lib/api/types';
+import { localeFromCookie, t, type Locale } from '$lib/i18n';
 import type { PageServerLoad } from './$types';
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const REPORT_PRESETS = ['this-month', 'last-month', 'year-to-date', 'custom'] as const;
-const REDACTED_SECTION_ERROR = 'Reports API returned a section error. Backend details are redacted.';
 
 type ReportPreset = (typeof REPORT_PRESETS)[number];
 
@@ -30,6 +30,8 @@ type ReportSummaryView = {
 	netWorth: string | null;
 };
 
+type ReportSectionErrors = Record<'summary' | 'cashflow' | 'expenses_by_account', string | null>;
+
 type ReportView = {
 	requestedPeriod: ReportPeriod;
 	reportingBasis: string;
@@ -39,7 +41,7 @@ type ReportView = {
 	cashflow: CashflowData | null;
 	cashflowMonthly: CashflowPeriod[];
 	expensesByAccount: ExpenseByAccount[];
-	sectionErrors: Record<'summary' | 'cashflow' | 'expenses_by_account', string | null>;
+	sectionErrors: ReportSectionErrors;
 };
 
 type DrilldownLinks = {
@@ -47,10 +49,6 @@ type DrilldownLinks = {
 	cashflowByMonth: Record<string, string>;
 	expensesByAccount: Record<string, string>;
 };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === 'object' && value !== null;
-}
 
 function formatDate(date: Date): string {
 	return date.toISOString().slice(0, 10);
@@ -88,7 +86,7 @@ function isReportPreset(value: string | null): value is ReportPreset {
 	return REPORT_PRESETS.includes(value as ReportPreset);
 }
 
-function resolvePeriod(url: URL): PeriodResolution {
+function resolvePeriod(url: URL, locale: Locale): PeriodResolution {
 	const rawPreset = url.searchParams.get('preset');
 	const requestedPreset = isReportPreset(rawPreset) ? rawPreset : null;
 	const hasDateParam = url.searchParams.has('date_from') || url.searchParams.has('date_to');
@@ -99,13 +97,13 @@ function resolvePeriod(url: URL): PeriodResolution {
 		if (!strictIsoDate(rawDateFrom) || !strictIsoDate(rawDateTo)) {
 			return {
 				period: { preset: requestedPreset ?? 'custom', dateFrom: rawDateFrom, dateTo: rawDateTo },
-				validationError: 'Enter a valid custom date_from/date_to range using YYYY-MM-DD dates.'
+				validationError: t(locale, 'reports.validation.invalidDateRange')
 			};
 		}
 		if (rawDateFrom > rawDateTo) {
 			return {
 				period: { preset: requestedPreset ?? 'custom', dateFrom: rawDateFrom, dateTo: rawDateTo },
-				validationError: 'Invalid range: date_from must be on or before date_to.'
+				validationError: t(locale, 'reports.validation.invalidRange')
 			};
 		}
 		return {
@@ -118,7 +116,7 @@ function resolvePeriod(url: URL): PeriodResolution {
 		const fallback = presetRange('this-month');
 		return {
 			period: { preset: 'this-month', dateFrom: fallback.dateFrom, dateTo: fallback.dateTo },
-			validationError: 'Choose a supported report period preset.'
+			validationError: t(locale, 'reports.validation.unsupportedPreset')
 		};
 	}
 
@@ -135,12 +133,18 @@ function reportsUrl(preset: ReportPreset, dateFrom: string, dateTo: string): str
 	return `/reports?${params.toString()}`;
 }
 
-function buildPresetOptions(period: ReportPeriod) {
+function buildPresetOptions(period: ReportPeriod, locale: Locale) {
 	return (['this-month', 'last-month', 'year-to-date'] as const).map((preset) => {
 		const range = presetRange(preset);
+		const labelKey =
+			preset === 'this-month'
+				? 'reports.preset.thisMonth'
+				: preset === 'last-month'
+					? 'reports.preset.lastMonth'
+					: 'reports.preset.yearToDate';
 		return {
 			id: preset,
-			label: preset === 'this-month' ? 'This month' : preset === 'last-month' ? 'Last month' : 'Year to date',
+			label: t(locale, labelKey),
 			href: reportsUrl(preset, range.dateFrom, range.dateTo),
 			active: period.preset === preset && period.dateFrom === range.dateFrom && period.dateTo === range.dateTo
 		};
@@ -200,28 +204,16 @@ function stringValue(value: unknown): string | null {
 	return typeof value === 'string' && value.trim() ? value : null;
 }
 
-function firstString(record: Record<string, unknown>, keys: string[]): string | null {
-	for (const key of keys) {
-		const value = stringValue(record[key]);
-		if (value !== null) return value;
-	}
-	return null;
-}
-
-function stringArray(value: unknown): string[] {
-	return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0) : [];
-}
-
-function normalizeSummary(value: unknown, fallbackCurrency: string): ReportSummaryView | null {
-	if (!isRecord(value)) return null;
+function normalizeSummary(value: ReportSummary | null, fallbackCurrency: string): ReportSummaryView | null {
+	if (!value) return null;
 	const summary = {
-		currency: firstString(value, ['currency']) ?? fallbackCurrency,
-		income: firstString(value, ['income', 'income_total', 'total_income', 'period_income', 'income_this_month']),
-		expenses: firstString(value, ['expenses', 'expense_total', 'total_expenses', 'period_expenses', 'expenses_this_month']),
-		net: firstString(value, ['net', 'net_income', 'period_net', 'cashflow_net', 'profit_loss']),
-		assets: firstString(value, ['assets']),
-		liabilities: firstString(value, ['liabilities']),
-		netWorth: firstString(value, ['net_worth'])
+		currency: stringValue(value.currency) ?? fallbackCurrency,
+		income: stringValue(value.income_this_month),
+		expenses: stringValue(value.expenses_this_month),
+		net: null,
+		assets: stringValue(value.assets),
+		liabilities: stringValue(value.liabilities),
+		netWorth: stringValue(value.net_worth)
 	};
 	if (!summary.income && !summary.expenses && !summary.net && !summary.assets && !summary.liabilities && !summary.netWorth) {
 		return null;
@@ -229,97 +221,97 @@ function normalizeSummary(value: unknown, fallbackCurrency: string): ReportSumma
 	return summary;
 }
 
-function normalizeCashflow(value: unknown, period: ReportPeriod, fallbackCurrency: string): CashflowData | null {
-	if (!isRecord(value)) return null;
-	const inflow = firstString(value, ['inflow', 'income', 'cash_in']);
-	const outflow = firstString(value, ['outflow', 'expenses', 'cash_out']);
-	const net = firstString(value, ['net', 'cashflow_net']);
-	if (!inflow && !outflow && !net) return null;
-	return {
-		date_from: firstString(value, ['date_from']) ?? period.dateFrom,
-		date_to: firstString(value, ['date_to']) ?? period.dateTo,
-		currency: firstString(value, ['currency']) ?? fallbackCurrency,
-		inflow: inflow ?? '0',
-		outflow: outflow ?? '0',
-		net: net ?? '0'
-	};
-}
-
-function normalizeCashflowPeriods(report: Record<string, unknown>): CashflowPeriod[] {
-	const cashflow = report.cashflow;
-	const candidates = [
-		isRecord(cashflow) ? cashflow.monthly_periods : null,
-		report.cashflow_monthly,
-		report.monthly_periods
-	];
-	const periods = candidates.find(Array.isArray);
-	if (!Array.isArray(periods)) return [];
-	return periods.filter((period): period is CashflowPeriod => {
-		return (
-			isRecord(period) &&
-			typeof period.month === 'string' &&
-			typeof period.inflow === 'string' &&
-			typeof period.outflow === 'string' &&
-			typeof period.net === 'string'
-		);
-	});
-}
-
-function normalizeExpenses(value: unknown): ExpenseByAccount[] {
-	if (!Array.isArray(value)) return [];
-	return value.filter((expense): expense is ExpenseByAccount => {
-		return (
-			isRecord(expense) &&
-			typeof expense.account_id === 'string' &&
-			typeof expense.account_name === 'string' &&
-			typeof expense.total === 'string' &&
-			typeof expense.currency === 'string'
-		);
-	});
-}
-
-function redactSectionError(value: unknown): string | null {
+function normalizeCashflow(value: CashflowData | null): CashflowData | null {
 	if (!value) return null;
-	if (typeof value === 'string') return value.trim() ? REDACTED_SECTION_ERROR : null;
-	if (!isRecord(value)) return REDACTED_SECTION_ERROR;
-	const status = typeof value.status === 'string' ? value.status.toLowerCase() : '';
-	const hasMessage = typeof value.message === 'string' && value.message.trim().length > 0;
-	const hasDetail = typeof value.detail === 'string' && value.detail.trim().length > 0;
-	const hasCode = typeof value.code === 'string' && value.code.trim().length > 0;
-	if (status === 'ok' && !hasMessage && !hasDetail && !hasCode) return null;
-	return REDACTED_SECTION_ERROR;
+	if (!stringValue(value.inflow) && !stringValue(value.outflow) && !stringValue(value.net)) return null;
+	return value;
 }
 
-function normalizeReportResponse(response: PeriodReportResponse, fallbackPeriod: ReportPeriod): ReportView {
-	const report = response as unknown as Record<string, unknown>;
-	const rawRequestedPeriod = isRecord(report.requested_period) ? report.requested_period : {};
-	const requestedPeriod = {
-		...fallbackPeriod,
-		dateFrom: firstString(rawRequestedPeriod, ['date_from']) ?? fallbackPeriod.dateFrom,
-		dateTo: firstString(rawRequestedPeriod, ['date_to']) ?? fallbackPeriod.dateTo
-	};
-	const fallbackCurrency = firstString(report, ['currency', 'base_currency']) ?? 'base';
-	const cashflow = normalizeCashflow(report.cashflow, requestedPeriod, fallbackCurrency);
-	const cashflowMonthly = normalizeCashflowPeriods(report);
-	const expensesByAccount = normalizeExpenses(report.expenses_by_account);
-	const rawSectionErrors = isRecord(report.section_errors) ? report.section_errors : {};
-	const reportingBasis = firstString(report, ['reporting_basis']) ?? 'base_currency_only';
-	const limitations = stringArray(report.limitations);
+function normalizeCashflowPeriods(periods: CashflowPeriod[] | null): CashflowPeriod[] {
+	return Array.isArray(periods)
+		? periods.filter((period) => stringValue(period.month) && stringValue(period.inflow) && stringValue(period.outflow) && stringValue(period.net))
+		: [];
+}
+
+function normalizeExpenses(value: ExpenseByAccount[] | null): ExpenseByAccount[] {
+	return Array.isArray(value)
+		? value.filter((expense) => stringValue(expense.account_id) && stringValue(expense.account_name) && stringValue(expense.total) && stringValue(expense.currency))
+		: [];
+}
+
+function isFulfilled<T>(result: PromiseSettledResult<T>): result is PromiseFulfilledResult<T> {
+	return result.status === 'fulfilled';
+}
+
+function rethrowRedirects(results: PromiseSettledResult<unknown>[]): void {
+	for (const result of results) {
+		if (result.status === 'rejected' && isRedirect(result.reason)) throw result.reason;
+	}
+}
+
+function sectionError(result: PromiseSettledResult<unknown>, locale: Locale): string | null {
+	return result.status === 'rejected' ? t(locale, 'reports.sectionError.redacted') : null;
+}
+
+function safeLoadError(reason: unknown, locale: Locale): string {
+	if (isHttpError(reason)) {
+		if (reason.status === 403) return t(locale, 'reports.error.forbidden');
+		if (reason.status === 404) return t(locale, 'reports.error.notFound');
+		if (reason.status === 502 || reason.status === 503) return t(locale, 'reports.error.serviceUnavailable');
+		return t(locale, 'reports.error.requestFailed');
+	}
+	return t(locale, 'reports.error.unknown');
+}
+
+async function loadReport(
+	fetchFn: typeof fetch,
+	bookPrefix: string,
+	token: string,
+	period: ReportPeriod,
+	locale: Locale
+): Promise<{ report: ReportView | null; loadError: string | null }> {
+	const summaryParams = new URLSearchParams({ as_of_date: period.dateTo });
+	const rangeParams = new URLSearchParams({ date_from: period.dateFrom, date_to: period.dateTo });
+	const monthlyParams = new URLSearchParams({ date_from: period.dateFrom, date_to: period.dateTo, by_month: 'true' });
+
+	const [summaryResult, cashflowResult, monthlyResult, expensesResult] = await Promise.allSettled([
+		apiFetch<ReportSummary>(fetchFn, `${bookPrefix}/reports/summary?${summaryParams.toString()}`, token),
+		apiFetch<CashflowData>(fetchFn, `${bookPrefix}/reports/cashflow?${rangeParams.toString()}`, token),
+		apiFetch<CashflowPeriod[]>(fetchFn, `${bookPrefix}/reports/cashflow?${monthlyParams.toString()}`, token),
+		apiFetch<ExpenseByAccount[]>(fetchFn, `${bookPrefix}/reports/expenses-by-account?${rangeParams.toString()}`, token)
+	]);
+	const settled = [summaryResult, cashflowResult, monthlyResult, expensesResult] as PromiseSettledResult<unknown>[];
+	rethrowRedirects(settled);
+
+	const fulfilledCount = settled.filter(isFulfilled).length;
+	if (fulfilledCount === 0) {
+		const firstFailure = settled.find((result) => result.status === 'rejected');
+		return { report: null, loadError: safeLoadError(firstFailure?.status === 'rejected' ? firstFailure.reason : null, locale) };
+	}
+
+	const summaryResponse = isFulfilled(summaryResult) ? summaryResult.value : null;
+	const cashflow = normalizeCashflow(isFulfilled(cashflowResult) ? cashflowResult.value : null);
+	const cashflowMonthly = normalizeCashflowPeriods(isFulfilled(monthlyResult) ? monthlyResult.value : null);
+	const expensesByAccount = normalizeExpenses(isFulfilled(expensesResult) ? expensesResult.value : null);
+	const fallbackCurrency = summaryResponse?.currency ?? cashflow?.currency ?? expensesByAccount[0]?.currency ?? 'base';
 
 	return {
-		requestedPeriod,
-		reportingBasis,
-		includesCurrencyConversion: report.includes_currency_conversion === true,
-		limitations,
-		summary: normalizeSummary(report.summary, cashflow?.currency ?? fallbackCurrency),
-		cashflow,
-		cashflowMonthly,
-		expensesByAccount,
-		sectionErrors: {
-			summary: redactSectionError(rawSectionErrors.summary),
-			cashflow: redactSectionError(rawSectionErrors.cashflow) ?? redactSectionError(rawSectionErrors.cashflow_monthly),
-			expenses_by_account: redactSectionError(rawSectionErrors.expenses_by_account)
-		}
+		report: {
+			requestedPeriod: period,
+			reportingBasis: summaryResponse?.reporting_basis ?? 'base_currency_only',
+			includesCurrencyConversion: summaryResponse?.includes_currency_conversion === true,
+			limitations: Array.isArray(summaryResponse?.limitations) ? summaryResponse.limitations : [],
+			summary: normalizeSummary(summaryResponse, fallbackCurrency),
+			cashflow,
+			cashflowMonthly,
+			expensesByAccount,
+			sectionErrors: {
+				summary: sectionError(summaryResult, locale),
+				cashflow: sectionError(cashflowResult, locale) ?? sectionError(monthlyResult, locale),
+				expenses_by_account: sectionError(expensesResult, locale)
+			}
+		},
+		loadError: null
 	};
 }
 
@@ -330,31 +322,20 @@ function sectionWarnings(report: ReportView | null) {
 		.map(([section, message]) => ({ section, message }));
 }
 
-function safeLoadError(reason: unknown): string {
-	if (isHttpError(reason)) {
-		return reason.body?.message ?? 'Reports API request failed safely.';
-	}
-	return 'Reports API is unavailable or returned an unsupported response. Unknown backend details are redacted.';
-}
-
 export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
+	const locale = localeFromCookie(cookies);
 	const token = getAuthToken(cookies);
 	const { activeBook, bookPrefix } = await getActiveBookContext(fetch, cookies, token);
-	const { period, validationError } = resolvePeriod(url);
-	const presetOptions = buildPresetOptions(period);
+	const { period, validationError } = resolvePeriod(url, locale);
+	const presetOptions = buildPresetOptions(period, locale);
 
 	let report: ReportView | null = null;
 	let loadError: string | null = null;
 
 	if (!validationError) {
-		const reportParams = new URLSearchParams({ date_from: period.dateFrom, date_to: period.dateTo });
-		try {
-			const response = await apiFetch<PeriodReportResponse>(fetch, `${bookPrefix}/reports?${reportParams.toString()}`, token);
-			report = normalizeReportResponse(response, period);
-		} catch (reason) {
-			if (isRedirect(reason)) throw reason;
-			loadError = safeLoadError(reason);
-		}
+		const result = await loadReport(fetch, bookPrefix, token, period, locale);
+		report = result.report;
+		loadError = result.loadError;
 	}
 
 	const activePeriod = report?.requestedPeriod ?? period;
@@ -362,6 +343,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 
 	return {
 		activeBook,
+		locale,
 		period: activePeriod,
 		selectedPreset: period.preset,
 		presetOptions,

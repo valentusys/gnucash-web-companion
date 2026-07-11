@@ -3,22 +3,28 @@
 	import BookSwitcher from '$lib/components/BookSwitcher.svelte';
 	import LocaleSwitcher from '$lib/components/LocaleSwitcher.svelte';
 	import type { Book } from '$lib/api/types';
-import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
+	import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 
 	let {
 		books,
 		activeBook,
 		locale = DEFAULT_LOCALE,
+		currentPath = '/dashboard',
 		returnTo = '/dashboard'
-	}: { books: Book[]; activeBook: Book | null; locale?: Locale; returnTo?: string } = $props();
+	}: { books: Book[]; activeBook: Book | null; locale?: Locale; currentPath?: string; returnTo?: string } = $props();
 
 	const navLinks = $derived([
 		{ href: '/dashboard', label: t(locale, 'nav.dashboard') },
 		{ href: '/accounts', label: t(locale, 'nav.accounts') },
 		{ href: '/transactions', label: t(locale, 'nav.transactions') },
 		{ href: '/scheduled', label: t(locale, 'nav.scheduled') },
+		{ href: '/reports', label: t(locale, 'nav.reports') },
 		{ href: '/books', label: t(locale, 'nav.books') }
 	] as const);
+
+	function isActivePath(href: string): boolean {
+		return currentPath === href || currentPath.startsWith(`${href}/`);
+	}
 </script>
 
 <header class="hidden sticky top-0 z-30 border-b md:block" style="background-color: var(--app-nav-bg); border-color: var(--app-nav-border);">
@@ -29,10 +35,15 @@ import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 
 		<nav class="hidden items-center gap-1 md:flex" aria-label="Main navigation">
 			{#each navLinks as link}
+				{@const active = isActivePath(link.href)}
 				<a
 					href={link.href}
+					aria-current={active ? 'page' : undefined}
+					data-active-route={active ? 'true' : 'false'}
 					class="rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-[var(--app-hover-bg)]"
-					style="color: var(--app-muted);"
+					style={active
+						? 'color: var(--app-accent); background: var(--app-hover-bg); box-shadow: inset 0 0 0 1px var(--app-accent);'
+						: 'color: var(--app-muted);'}
 				>
 					{link.label}
 				</a>

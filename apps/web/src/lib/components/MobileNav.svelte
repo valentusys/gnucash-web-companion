@@ -9,8 +9,9 @@
 		books,
 		activeBook,
 		locale = DEFAULT_LOCALE,
+		currentPath = '/dashboard',
 		returnTo = '/dashboard'
-	}: { books: Book[]; activeBook: Book | null; locale?: Locale; returnTo?: string } = $props();
+	}: { books: Book[]; activeBook: Book | null; locale?: Locale; currentPath?: string; returnTo?: string } = $props();
 
 	let menuOpen = $state(false);
 
@@ -19,8 +20,13 @@
 		{ href: '/accounts', label: t(locale, 'nav.accounts'), icon: 'accounts' },
 		{ href: '/transactions', label: t(locale, 'nav.transactions'), icon: 'transactions' },
 		{ href: '/scheduled', label: t(locale, 'nav.scheduled'), icon: 'scheduled' },
+		{ href: '/reports', label: t(locale, 'nav.reports'), icon: 'reports' },
 		{ href: '/books', label: t(locale, 'nav.books'), icon: 'books' }
 	] as const);
+
+	function isActivePath(href: string): boolean {
+		return currentPath === href || currentPath.startsWith(`${href}/`);
+	}
 
 	function toggleMenu() {
 		menuOpen = !menuOpen;
@@ -41,6 +47,8 @@
 				return `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`;
 			case 'scheduled':
 				return `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>`;
+			case 'reports':
+				return `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6" rx="1"/><rect x="12" y="7" width="3" height="10" rx="1"/><rect x="17" y="5" width="3" height="12" rx="1"/></svg>`;
 			case 'books':
 				return `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>`;
 			default:
@@ -105,14 +113,17 @@
 
 	<div class="safe-bottom flex max-w-full items-stretch justify-around">
 		{#each navLinks as link}
+			{@const active = isActivePath(link.href)}
 			<a
 				href={link.href}
+				aria-current={active ? 'page' : undefined}
+				data-active-route={active ? 'true' : 'false'}
 				class="flex min-h-[44px] min-w-[44px] flex-1 flex-col items-center justify-center gap-0.5 px-1 py-2 text-[10px] font-medium transition-colors"
-				style="color: var(--app-muted);"
+				style={active ? 'color: var(--app-accent); background: var(--app-hover-bg);' : 'color: var(--app-muted);'}
 				onclick={closeMenu}
 			>
 				<span class="h-[22px] w-[22px]" aria-hidden="true">
-					{@html iconFor(link.icon, false)}
+					{@html iconFor(link.icon, active)}
 				</span>
 				<span class="max-w-full truncate">{link.label}</span>
 			</a>

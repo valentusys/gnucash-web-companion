@@ -4,7 +4,7 @@
 	import MobileNav from '$lib/components/MobileNav.svelte';
 	import ReadOnlyStatusBanner from '$lib/components/ReadOnlyStatusBanner.svelte';
 	import type { Book } from '$lib/api/types';
-import { DEFAULT_LOCALE, type Locale } from '$lib/i18n';
+	import { DEFAULT_LOCALE, type Locale } from '$lib/i18n';
 
 	let { data, children }: { data: any; children: any } = $props();
 	let showAppShell = $derived(data.authenticated && data.pathname !== '/login');
@@ -15,9 +15,9 @@ import { DEFAULT_LOCALE, type Locale } from '$lib/i18n';
 
 <div class="min-h-screen overflow-x-hidden max-w-full" style="background-color: var(--app-bg); color: var(--app-text);">
 	{#if showAppShell}
-		<DesktopNav {books} {activeBook} {locale} returnTo={data.pathname} />
+		<DesktopNav {books} {activeBook} {locale} currentPath={data.pathname} returnTo={data.pathname} />
 		<ReadOnlyStatusBanner {locale} {activeBook} />
-		<MobileNav {books} {activeBook} {locale} returnTo={data.pathname} />
+		<MobileNav {books} {activeBook} {locale} currentPath={data.pathname} returnTo={data.pathname} />
 		<!-- Bottom nav spacer: prevents content from being hidden behind fixed bottom nav on mobile -->
 		<div class="pb-32 md:pb-0">
 			{@render children()}

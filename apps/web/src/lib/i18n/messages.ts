@@ -33,6 +33,7 @@ export type MessageKey =
 	| 'nav.accounts'
 	| 'nav.transactions'
 	| 'nav.scheduled'
+	| 'nav.reports'
 	| 'nav.books'
 	| 'nav.logout'
 	| 'safety.statusLabel'
@@ -102,6 +103,67 @@ export type MessageKey =
 	| 'dashboard.cashflowIn'
 	| 'dashboard.cashflowOut'
 	| 'dashboard.cashflowNet'
+	| 'reports.metaTitle'
+	| 'reports.kicker'
+	| 'reports.title'
+	| 'reports.bookLabel'
+	| 'reports.viewTransactionsPeriod'
+	| 'reports.period.title'
+	| 'reports.period.urlBackedHelp'
+	| 'reports.period.presetsAria'
+	| 'reports.period.customAria'
+	| 'reports.period.dateFrom'
+	| 'reports.period.dateTo'
+	| 'reports.period.applyCustom'
+	| 'reports.preset.thisMonth'
+	| 'reports.preset.lastMonth'
+	| 'reports.preset.yearToDate'
+	| 'reports.loading'
+	| 'reports.validation.invalidDateRange'
+	| 'reports.validation.unsupportedPreset'
+	| 'reports.validation.invalidRange'
+	| 'reports.validation.invalidTitle'
+	| 'reports.validation.invalidNoRequest'
+	| 'reports.error.title'
+	| 'reports.error.redactedHelp'
+	| 'reports.error.requestFailed'
+	| 'reports.error.serviceUnavailable'
+	| 'reports.error.forbidden'
+	| 'reports.error.notFound'
+	| 'reports.error.unknown'
+	| 'reports.sectionError.redacted'
+	| 'reports.empty.title'
+	| 'reports.empty.message'
+	| 'reports.empty.aria'
+	| 'reports.empty.action'
+	| 'reports.limitations.title'
+	| 'reports.limitations.reportingBasis'
+	| 'reports.limitations.none'
+	| 'reports.partial.title'
+	| 'reports.partial.help'
+	| 'reports.summary.title'
+	| 'reports.summary.help'
+	| 'reports.summary.openFilter'
+	| 'reports.summary.income'
+	| 'reports.summary.expenses'
+	| 'reports.summary.netPeriodResult'
+	| 'reports.summary.netWorth'
+	| 'reports.summary.assets'
+	| 'reports.summary.liabilities'
+	| 'reports.summary.noTotals'
+	| 'reports.cashflow.title'
+	| 'reports.cashflow.monthlyTitle'
+	| 'reports.cashflow.monthlyHelp'
+	| 'reports.cashflow.inflow'
+	| 'reports.cashflow.outflow'
+	| 'reports.cashflow.net'
+	| 'reports.cashflow.noTotals'
+	| 'reports.cashflow.noMonthly'
+	| 'reports.expenses.title'
+	| 'reports.expenses.help'
+	| 'reports.expenses.allPeriod'
+	| 'reports.expenses.noRows'
+	| 'reports.localizationNotice'
 	| 'home.subtitle'
 	| 'transactions.kicker'
 	| 'transactions.title'
@@ -403,6 +465,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'nav.accounts': 'Accounts',
 		'nav.transactions': 'Transactions',
 		'nav.scheduled': 'Scheduled',
+		'nav.reports': 'Reports',
 		'nav.books': 'Books',
 		'nav.logout': 'Logout',
 		'safety.statusLabel': 'Read-only safety status',
@@ -476,6 +539,73 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'dashboard.cashflowIn': 'In',
 		'dashboard.cashflowOut': 'Out',
 		'dashboard.cashflowNet': 'Net',
+		'reports.metaTitle': 'Period reports',
+		'reports.kicker': 'Read-only reports',
+		'reports.title': 'Period reports explorer',
+		'reports.bookLabel': 'Book: {name}',
+		'reports.viewTransactionsPeriod': 'View /transactions for this period',
+		'reports.period.title': 'Report period',
+		'reports.period.urlBackedHelp':
+			'URL-backed range: {dateFrom} to {dateTo}. Presets and custom dates only change read-only query parameters.',
+		'reports.period.presetsAria': 'Report period presets',
+		'reports.period.customAria': 'Custom report period',
+		'reports.period.dateFrom': 'Date from',
+		'reports.period.dateTo': 'Date to',
+		'reports.period.applyCustom': 'Apply custom range',
+		'reports.preset.thisMonth': 'This month',
+		'reports.preset.lastMonth': 'Last month',
+		'reports.preset.yearToDate': 'Year to date',
+		'reports.loading': 'Loading read-only period reports…',
+		'reports.validation.invalidDateRange': 'Enter a valid custom date_from/date_to range using YYYY-MM-DD dates.',
+		'reports.validation.unsupportedPreset': 'Choose a supported report period preset.',
+		'reports.validation.invalidRange': 'Invalid range: date_from must be on or before date_to.',
+		'reports.validation.invalidTitle': 'Invalid range',
+		'reports.validation.invalidNoRequest': 'No reports API request was made for this invalid range.',
+		'reports.error.title': 'Report request failed',
+		'reports.error.redactedHelp':
+			'Unknown API details are redacted; genuine empty report sections are shown separately below when available.',
+		'reports.error.requestFailed': 'Reports API request failed safely.',
+		'reports.error.serviceUnavailable': 'Reports API is unavailable. Backend details are redacted.',
+		'reports.error.forbidden': 'You do not have access to this read-only reports view.',
+		'reports.error.notFound': 'Requested report data was not found.',
+		'reports.error.unknown': 'Reports API is unavailable or returned an unsupported response. Unknown backend details are redacted.',
+		'reports.sectionError.redacted': 'Reports API returned a section error. Backend details are redacted.',
+		'reports.empty.title': 'No report data',
+		'reports.empty.message':
+			'The reports API returned no summary, cashflow, monthly, or expense rows for this read-only period. Try another date range or inspect transactions for the same filters.',
+		'reports.empty.aria': 'No report data for the selected period',
+		'reports.empty.action': 'Open matching /transactions filter',
+		'reports.limitations.title': 'Reporting limitations',
+		'reports.limitations.reportingBasis':
+			'Reporting basis: {reportingBasis}. No FX conversion is performed; totals are base_currency_only and should not be interpreted as converted multi-currency totals.',
+		'reports.limitations.none':
+			'No additional limitations were reported by the API; keep treating this as base_currency_only with No FX conversion.',
+		'reports.partial.title': 'Partial report',
+		'reports.partial.help': 'One or more sections returned an explicit error state; unaffected sections remain visible.',
+		'reports.summary.title': 'Summary totals',
+		'reports.summary.help': 'Read-only totals for {dateFrom} through {dateTo}.',
+		'reports.summary.openFilter': 'Open matching transaction filter',
+		'reports.summary.income': 'Income',
+		'reports.summary.expenses': 'Expenses',
+		'reports.summary.netPeriodResult': 'Net period result',
+		'reports.summary.netWorth': 'Net worth',
+		'reports.summary.assets': 'Assets',
+		'reports.summary.liabilities': 'Liabilities',
+		'reports.summary.noTotals': 'No summary totals were returned for this period.',
+		'reports.cashflow.title': 'Cashflow totals',
+		'reports.cashflow.monthlyTitle': 'Monthly cashflow',
+		'reports.cashflow.monthlyHelp': 'Each month links to /transactions with matching date_from/date_to filters.',
+		'reports.cashflow.inflow': 'Inflow',
+		'reports.cashflow.outflow': 'Outflow',
+		'reports.cashflow.net': 'Net',
+		'reports.cashflow.noTotals': 'No cashflow totals were returned for this period.',
+		'reports.cashflow.noMonthly': 'No monthly cashflow rows were returned for this period.',
+		'reports.expenses.title': 'Expenses by account',
+		'reports.expenses.help': 'Account rows link to exact /transactions filters for the selected date range and account_id.',
+		'reports.expenses.allPeriod': 'All period transactions',
+		'reports.expenses.noRows': 'No expense account rows were returned for this period.',
+		'reports.localizationNotice':
+			'Release-critical safety copy is localized in English/Russian; backend report values remain as returned by the read-only API.',
 		'home.subtitle': 'Modern self-hosted read-only companion for existing GnuCash books.',
 		'transactions.kicker': 'Transactions',
 		'transactions.title': 'Browse transactions',
@@ -817,6 +947,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'nav.accounts': 'Счета',
 		'nav.transactions': 'Транзакции',
 		'nav.scheduled': 'Плановые',
+		'nav.reports': 'Отчёты',
 		'nav.books': 'Книги',
 		'nav.logout': 'Выйти',
 		'safety.statusLabel': 'Статус безопасности read-only режима',
@@ -890,6 +1021,73 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'dashboard.cashflowIn': 'Вход',
 		'dashboard.cashflowOut': 'Выход',
 		'dashboard.cashflowNet': 'Итого',
+		'reports.metaTitle': 'Отчёты за период',
+		'reports.kicker': 'Read-only отчёты',
+		'reports.title': 'Просмотр отчётов за период',
+		'reports.bookLabel': 'Книга: {name}',
+		'reports.viewTransactionsPeriod': 'Открыть /transactions за этот период',
+		'reports.period.title': 'Период отчёта',
+		'reports.period.urlBackedHelp':
+			'URL-диапазон: {dateFrom} — {dateTo}. Быстрые периоды и свои даты меняют только read-only query parameters.',
+		'reports.period.presetsAria': 'Быстрые периоды отчёта',
+		'reports.period.customAria': 'Свой период отчёта',
+		'reports.period.dateFrom': 'Дата с',
+		'reports.period.dateTo': 'Дата по',
+		'reports.period.applyCustom': 'Применить свой диапазон',
+		'reports.preset.thisMonth': 'Этот месяц',
+		'reports.preset.lastMonth': 'Прошлый месяц',
+		'reports.preset.yearToDate': 'С начала года',
+		'reports.loading': 'Загрузка read-only отчётов за период…',
+		'reports.validation.invalidDateRange': 'Введите корректный custom date_from/date_to диапазон в формате YYYY-MM-DD.',
+		'reports.validation.unsupportedPreset': 'Выберите поддерживаемый быстрый период отчёта.',
+		'reports.validation.invalidRange': 'Некорректный диапазон: date_from должен быть не позже date_to.',
+		'reports.validation.invalidTitle': 'Некорректный диапазон',
+		'reports.validation.invalidNoRequest': 'Для этого некорректного диапазона запрос к reports API не выполнялся.',
+		'reports.error.title': 'Запрос отчёта не удался',
+		'reports.error.redactedHelp':
+			'Неизвестные детали API скрыты; настоящие пустые секции отчёта показываются отдельно, когда доступны.',
+		'reports.error.requestFailed': 'Запрос к reports API безопасно завершился ошибкой.',
+		'reports.error.serviceUnavailable': 'Reports API недоступен. Детали backend скрыты.',
+		'reports.error.forbidden': 'Нет доступа к этому read-only разделу отчётов.',
+		'reports.error.notFound': 'Запрошенные данные отчёта не найдены.',
+		'reports.error.unknown': 'Reports API недоступен или вернул неподдержанный ответ. Неизвестные backend details скрыты.',
+		'reports.sectionError.redacted': 'Reports API вернул ошибку секции. Backend details скрыты.',
+		'reports.empty.title': 'Нет данных отчёта',
+		'reports.empty.message':
+			'Reports API не вернул summary, cashflow, monthly или expense rows для этого read-only периода. Попробуйте другой диапазон дат или откройте транзакции с теми же фильтрами.',
+		'reports.empty.aria': 'Нет данных отчёта за выбранный период',
+		'reports.empty.action': 'Открыть matching /transactions filter',
+		'reports.limitations.title': 'Ограничения отчёта',
+		'reports.limitations.reportingBasis':
+			'База отчёта: {reportingBasis}. No FX conversion не выполняется; итоги base_currency_only не являются сконвертированными мультивалютными итогами.',
+		'reports.limitations.none':
+			'API не сообщил дополнительных ограничений; продолжайте считать отчёт base_currency_only без FX-конвертации.',
+		'reports.partial.title': 'Частичный отчёт',
+		'reports.partial.help': 'Одна или несколько секций вернули явную ошибку; остальные секции остаются видимыми.',
+		'reports.summary.title': 'Итоги summary',
+		'reports.summary.help': 'Read-only итоги за период {dateFrom} — {dateTo}.',
+		'reports.summary.openFilter': 'Открыть matching transaction filter',
+		'reports.summary.income': 'Доходы',
+		'reports.summary.expenses': 'Расходы',
+		'reports.summary.netPeriodResult': 'Итог периода',
+		'reports.summary.netWorth': 'Чистая стоимость',
+		'reports.summary.assets': 'Активы',
+		'reports.summary.liabilities': 'Обязательства',
+		'reports.summary.noTotals': 'За этот период summary totals не вернулись.',
+		'reports.cashflow.title': 'Итоги cashflow',
+		'reports.cashflow.monthlyTitle': 'Cashflow по месяцам',
+		'reports.cashflow.monthlyHelp': 'Каждый месяц ведёт в /transactions с соответствующими фильтрами date_from/date_to.',
+		'reports.cashflow.inflow': 'Вход',
+		'reports.cashflow.outflow': 'Выход',
+		'reports.cashflow.net': 'Итого',
+		'reports.cashflow.noTotals': 'За этот период cashflow totals не вернулись.',
+		'reports.cashflow.noMonthly': 'За этот период monthly cashflow rows не вернулись.',
+		'reports.expenses.title': 'Расходы по счетам',
+		'reports.expenses.help': 'Строки счетов ведут к точным фильтрам /transactions для выбранного date range и account_id.',
+		'reports.expenses.allPeriod': 'Все транзакции периода',
+		'reports.expenses.noRows': 'За этот период expense account rows не вернулись.',
+		'reports.localizationNotice':
+			'Release-critical safety copy локализована на английский/русский; значения отчёта остаются ровно такими, как их вернул read-only API.',
 		'home.subtitle': 'Современный self-hosted read-only companion для существующих книг GnuCash.',
 		'transactions.kicker': 'Транзакции',
 		'transactions.title': 'Просмотр транзакций',
