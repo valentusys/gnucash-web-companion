@@ -1,6 +1,6 @@
 import { error, redirect, type Handle } from '@sveltejs/kit';
 
-const PROTECTED_PREFIXES = ['/dashboard', '/accounts', '/books', '/scheduled', '/transactions'];
+const PROTECTED_PREFIXES = ['/dashboard', '/accounts', '/books', '/scheduled', '/transactions', '/reports'];
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 function isProtectedPath(pathname: string): boolean {

@@ -160,6 +160,52 @@ export type CashflowPeriod = {
 	net: string;
 };
 
+export type ReportSectionError = {
+	status?: 'ok' | 'error' | 'partial' | 'unavailable' | string;
+	code?: string | null;
+	message?: string | null;
+	detail?: string | null;
+};
+
+export type PeriodReportRequestedPeriod = {
+	date_from: string;
+	date_to: string;
+};
+
+export type PeriodReportSummary = {
+	currency: string;
+	income?: string | null;
+	expenses?: string | null;
+	net?: string | null;
+	assets?: string | null;
+	liabilities?: string | null;
+	net_worth?: string | null;
+	[key: string]: string | boolean | string[] | null | undefined;
+};
+
+export type PeriodReportCashflow = CashflowData & {
+	monthly_periods: CashflowPeriod[];
+};
+
+export type PeriodReportSectionErrors = {
+	summary?: ReportSectionError | string | null;
+	cashflow?: ReportSectionError | string | null;
+	cashflow_monthly?: ReportSectionError | string | null;
+	expenses_by_account?: ReportSectionError | string | null;
+	[section: string]: ReportSectionError | string | null | undefined;
+};
+
+export type PeriodReportResponse = {
+	requested_period: PeriodReportRequestedPeriod;
+	reporting_basis: string;
+	includes_currency_conversion?: boolean;
+	limitations: string[];
+	summary: PeriodReportSummary | null;
+	cashflow: PeriodReportCashflow | null;
+	expenses_by_account: ExpenseByAccount[];
+	section_errors: PeriodReportSectionErrors;
+};
+
 export type TransactionCreatePreview = {
 	preview_only: boolean;
 	writes_enabled_required_for_create: boolean;
