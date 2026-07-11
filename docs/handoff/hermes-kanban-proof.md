@@ -77,7 +77,8 @@ Final main passed:
 - frontend check/build, static preview, auth routes, and both browser commands;
 - Docker Compose config validation.
 
-GitHub CI is recorded after the proof/report commit is pushed.
+GitHub CI for proof/report commit `9d84e28` passed all four jobs:
+<https://github.com/valentusys/gnucash-web-companion/actions/runs/29132255675>.
 
 No owner/private/original/working/Syncthing book was opened or mutated. Default `GNUCASH_WRITES_ENABLED=false` and default preview-only UI remain unchanged.
 
