@@ -1,5 +1,13 @@
+import { isRedirect } from '@sveltejs/kit';
 import { getAuthToken, getActiveBookContext, apiFetch } from '$lib/api/server';
-import type { DashboardDrilldownLinks, ReportSummary, ExpenseByAccount, CashflowPeriod, TransactionListItem } from '$lib/api/types';
+import type {
+	DashboardDrilldownLinks,
+	DashboardSectionErrors,
+	ReportSummary,
+	ExpenseByAccount,
+	CashflowPeriod,
+	TransactionListItem
+} from '$lib/api/types';
 
 function transactionFilterHref(params: Record<string, string>): string {
 	const sp = new URLSearchParams({ limit: '50', offset: '0' });
@@ -39,12 +47,18 @@ export async function load({ cookies, fetch: fetchFn }: { cookies: any; fetch: a
 	let expenses: ExpenseByAccount[] = [];
 	let cashflowPeriods: CashflowPeriod[] = [];
 	let recentTransactions: TransactionListItem[] = [];
-	let loadError: string | null = null;
+	const sectionErrors: DashboardSectionErrors = {
+		summary: false,
+		expenses: false,
+		cashflow: false,
+		recentTransactions: false
+	};
 
 	try {
 		summary = await apiFetch<ReportSummary>(fetchFn, `${bookPrefix}/reports/summary`, token);
-	} catch (e: any) {
-		loadError = e.message;
+	} catch (reason) {
+		if (isRedirect(reason)) throw reason;
+		sectionErrors.summary = true;
 	}
 
 	try {
@@ -53,7 +67,9 @@ export async function load({ cookies, fetch: fetchFn }: { cookies: any; fetch: a
 			`${bookPrefix}/reports/expenses-by-account?date_from=${dateFrom}&date_to=${dateTo}`,
 			token
 		);
-	} catch {
+	} catch (reason) {
+		if (isRedirect(reason)) throw reason;
+		sectionErrors.expenses = true;
 		expenses = [];
 	}
 
@@ -63,7 +79,9 @@ export async function load({ cookies, fetch: fetchFn }: { cookies: any; fetch: a
 			`${bookPrefix}/reports/cashflow?date_from=${dateFrom}&date_to=${dateTo}&by_month=true`,
 			token
 		);
-	} catch {
+	} catch (reason) {
+		if (isRedirect(reason)) throw reason;
+		sectionErrors.cashflow = true;
 		cashflowPeriods = [];
 	}
 
@@ -73,7 +91,9 @@ export async function load({ cookies, fetch: fetchFn }: { cookies: any; fetch: a
 			`${bookPrefix}/reports/recent-transactions?limit=10`,
 			token
 		);
-	} catch {
+	} catch (reason) {
+		if (isRedirect(reason)) throw reason;
+		sectionErrors.recentTransactions = true;
 		recentTransactions = [];
 	}
 
@@ -92,5 +112,5 @@ export async function load({ cookies, fetch: fetchFn }: { cookies: any; fetch: a
 		)
 	};
 
-	return { summary, expenses, cashflowPeriods, recentTransactions, loadError, activeBook, drilldowns };
+	return { summary, expenses, cashflowPeriods, recentTransactions, sectionErrors, activeBook, drilldowns };
 }

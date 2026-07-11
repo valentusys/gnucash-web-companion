@@ -14,6 +14,7 @@
 		"test:transaction-entry-create-disposable-browser": "npm run build && node scripts/test-transaction-entry-preview-browser.mjs",
 		"test:reports": "node scripts/test-reports-static.mjs",
 		"test:reports-browser": "npm run build && node scripts/test-reports-browser.mjs",
+		"test:dashboard-browser": "npm run build && node scripts/test-dashboard-browser.mjs",
 		"test:money-strings": "node scripts/test-money-strings.mjs",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"lint": "eslint .",

@@ -137,6 +137,13 @@ export type DashboardDrilldownLinks = {
 	expensesByAccount: Record<string, string>;
 };
 
+export type DashboardSectionErrors = {
+	summary: boolean;
+	expenses: boolean;
+	cashflow: boolean;
+	recentTransactions: boolean;
+};
+
 export type ExpenseByAccount = {
 	account_id: string;
 	account_name: string;

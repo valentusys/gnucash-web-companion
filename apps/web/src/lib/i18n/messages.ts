@@ -77,6 +77,8 @@ export type MessageKey =
 	| 'accounts.emptyAction'
 	| 'dashboard.loading'
 	| 'dashboard.loadFailed'
+	| 'dashboard.sectionError.title'
+	| 'dashboard.sectionError.redacted'
 	| 'dashboard.summary'
 	| 'dashboard.conservativeTotals'
 	| 'dashboard.reportingBasis'
@@ -512,6 +514,9 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'accounts.emptyAction': 'Review available books',
 		'dashboard.loading': 'Loading dashboard summary for the selected read-only book…',
 		'dashboard.loadFailed': 'Failed to load dashboard data',
+		'dashboard.sectionError.title': 'Dashboard section unavailable',
+		'dashboard.sectionError.redacted':
+			'This dashboard section could not be loaded. Other sections are still shown when available. Backend details were redacted.',
 		'dashboard.summary': 'Summary',
 		'dashboard.conservativeTotals': 'Conservative dashboard totals',
 		'dashboard.reportingBasis': 'Reporting basis',
@@ -994,6 +999,9 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'accounts.emptyAction': 'Проверить доступные книги',
 		'dashboard.loading': 'Загрузка dashboard summary для выбранной read-only книги…',
 		'dashboard.loadFailed': 'Не удалось загрузить данные обзора',
+		'dashboard.sectionError.title': 'Секция dashboard недоступна',
+		'dashboard.sectionError.redacted':
+			'Эту секцию dashboard не удалось загрузить. Другие секции всё ещё показываются, когда доступны. Backend details скрыты.',
 		'dashboard.summary': 'Сводка',
 		'dashboard.conservativeTotals': 'Консервативные итоги dashboard',
 		'dashboard.reportingBasis': 'База отчёта',
