@@ -57,6 +57,9 @@ logs/
 # Local autonomous supervisor runtime artifacts
 .hermes/autonomy/
 
+# Hermes Kanban task worktrees
+.worktrees/
+
 # Coverage / test artifacts
 .coverage
 htmlcov/
