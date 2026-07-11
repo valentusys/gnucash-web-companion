@@ -21,13 +21,14 @@ from app.routers.accounts import resolve_default_viewable_book
 from app.routers.auth import get_current_user, get_db
 from app.routers.books import (
     handle_gnucash_error,
+    resolve_readonly_data_book,
     transaction_service_for,
 )
-from app.routers.transactions import _resolve_readonly_data_book
 from app.schemas.gnucash import (
     CashflowDTO,
     CashflowPeriodDTO,
     ExpenseByAccountDTO,
+    PeriodReportDTO,
     ReportSummaryDTO,
     TransactionListItemDTO,
 )
@@ -80,9 +81,43 @@ def _normalize_report_date_range(
     return parsed_from.isoformat(), parsed_to.isoformat()
 
 
+def _normalize_required_report_date_range(date_from: str, date_to: str) -> tuple[date, date]:
+    parsed_from = _parse_report_date(date_from, "date_from")
+    parsed_to = _parse_report_date(date_to, "date_to")
+    assert parsed_from is not None and parsed_to is not None
+    if parsed_from > parsed_to:
+        raise HTTPException(
+            status_code=422,
+            detail="date_from must be on or before date_to",
+        )
+    return parsed_from, parsed_to
+
+
 # ---------------------------------------------------------------------------
 # Book-aware endpoints
 # ---------------------------------------------------------------------------
+
+
+@router.get("/books/{book_id}/reports", response_model=PeriodReportDTO)
+async def get_book_period_report(
+    book_id: int,
+    date_from: str = Query(..., description="Inclusive period start as YYYY-MM-DD"),
+    date_to: str = Query(..., description="Inclusive period end as YYYY-MM-DD"),
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+) -> PeriodReportDTO:
+    """Return a combined read-only period report for a viewable book."""
+    parsed_from, parsed_to = _normalize_required_report_date_range(date_from, date_to)
+    book = resolve_readonly_data_book(book_id, user, session)
+    try:
+        return transaction_service_for(book).get_period_report(
+            parsed_from,
+            parsed_to,
+            book_id=book.id,
+        )
+    except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
+        handle_gnucash_error(exc)
+        raise
 
 
 @router.get("/books/{book_id}/reports/summary")
@@ -94,7 +129,7 @@ async def get_book_report_summary(
 ) -> dict[str, Any]:
     """Return dashboard summary for a viewable book."""
     parsed_date = _parse_report_date(as_of_date, "as_of_date")
-    book = _resolve_readonly_data_book(book_id, user, session)
+    book = resolve_readonly_data_book(book_id, user, session)
     try:
         service = transaction_service_for(book)
         summary = service.get_report_summary(as_of_date=parsed_date)
@@ -117,7 +152,7 @@ async def get_book_cashflow(
     If date_from/date_to are omitted, defaults to current month to today.
     """
     date_from, date_to = _normalize_report_date_range(date_from, date_to)
-    book = _resolve_readonly_data_book(book_id, user, session)
+    book = resolve_readonly_data_book(book_id, user, session)
     try:
         service = transaction_service_for(book)
         if by_month:
@@ -144,7 +179,7 @@ async def get_book_expenses_by_account(
     If date_from/date_to are omitted, defaults to current month to today.
     """
     date_from, date_to = _normalize_report_date_range(date_from, date_to)
-    book = _resolve_readonly_data_book(book_id, user, session)
+    book = resolve_readonly_data_book(book_id, user, session)
     try:
         service = transaction_service_for(book)
         expenses = service.get_expenses_by_account(date_from, date_to)
@@ -161,7 +196,7 @@ async def get_book_recent_transactions(
     session: Session = Depends(get_db),
 ) -> list[dict[str, Any]]:
     """Return the most recent transactions for a viewable book."""
-    book = _resolve_readonly_data_book(book_id, user, session)
+    book = resolve_readonly_data_book(book_id, user, session)
     try:
         service = transaction_service_for(book)
         items = service.list_transactions(limit=limit, offset=0)

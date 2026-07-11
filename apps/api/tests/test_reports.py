@@ -19,6 +19,8 @@ from app.main import app
 from app.models import User, Book, UserBookAccess
 from app.routers.auth import get_db
 from app.services.auth import hash_password
+from app.services.gnucash_book import GnuCashBookService
+from app.services.gnucash_exceptions import GnuCashReadError
 
 TEST_SETTINGS = Settings(
     app_env="test",
@@ -1055,3 +1057,308 @@ class TestBookAwareReports:
             headers=viewer_headers,
         )
         assert response.status_code == 403
+
+
+# ---------------------------------------------------------------------------
+# Tests: GET /books/{book_id}/reports (period vertical slice)
+# ---------------------------------------------------------------------------
+
+
+class TestBookPeriodReport:
+    def test_period_report_requires_auth(self, client, sample_book):
+        response = client.get(
+            f"/books/{sample_book}/reports?date_from=2026-05-01&date_to=2026-05-31"
+        )
+
+        assert response.status_code == 401
+
+    def test_period_report_returns_combined_readonly_sections(
+        self, client, auth_headers, sample_book, fake_book_for_reports, session_factory
+    ):
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(fake_book_for_reports)
+            session.commit()
+
+        response = client.get(
+            f"/books/{sample_book}/reports?date_from=2026-05-01&date_to=2026-05-31",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["book_id"] == sample_book
+        assert data["date_from"] == "2026-05-01"
+        assert data["date_to"] == "2026-05-31"
+        assert data["currency"] == "SEK"
+        assert data["reporting_basis"] == "base_currency_only"
+        assert data["includes_currency_conversion"] is False
+        assert data["partial_failure"] is False
+        assert data["empty"] is False
+        assert data["summary"]["net_worth"] == "170000.00"
+        assert data["cashflow"] == {
+            "date_from": "2026-05-01",
+            "date_to": "2026-05-31",
+            "currency": "SEK",
+            "inflow": "45000.00",
+            "outflow": "15000.00",
+            "net": "30000.00",
+        }
+        assert data["monthly_cashflow"] == [
+            {"month": "2026-05", "inflow": "45000.00", "outflow": "15000.00", "net": "30000.00"}
+        ]
+        assert [item["account_id"] for item in data["expenses_by_account"]] == [
+            "rent",
+            "utilities",
+            "food",
+        ]
+        assert {status["section"]: status["status"] for status in data["section_statuses"]} == {
+            "summary": "ok",
+            "cashflow": "ok",
+            "monthly_cashflow": "ok",
+            "expenses_by_account": "ok",
+        }
+        limitations = " ".join(data["limitations"])
+        assert "base_currency_only" in limitations
+        assert "no currency conversion" in limitations
+
+    def test_period_report_empty_book_is_not_a_partial_failure(
+        self, client, auth_headers, sample_book, empty_fake_book_for_reports, session_factory
+    ):
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(empty_fake_book_for_reports)
+            session.commit()
+
+        response = client.get(
+            f"/books/{sample_book}/reports?date_from=2026-05-01&date_to=2026-05-31",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["partial_failure"] is False
+        assert data["empty"] is True
+        assert data["summary"]["net_worth"] == "0.00"
+        assert data["cashflow"]["net"] == "0.00"
+        assert data["monthly_cashflow"] == []
+        assert data["expenses_by_account"] == []
+        assert {status["section"]: status["status"] for status in data["section_statuses"]} == {
+            "summary": "empty",
+            "cashflow": "empty",
+            "monthly_cashflow": "empty",
+            "expenses_by_account": "empty",
+        }
+
+    def test_period_report_rejects_invalid_and_reversed_ranges(self, client, auth_headers, sample_book):
+        invalid = client.get(
+            f"/books/{sample_book}/reports?date_from=not-a-date&date_to=2026-05-31",
+            headers=auth_headers,
+        )
+        reversed_range = client.get(
+            f"/books/{sample_book}/reports?date_from=2026-06-01&date_to=2026-05-31",
+            headers=auth_headers,
+        )
+
+        assert invalid.status_code == 422
+        assert invalid.json()["detail"] == "date_from must be a valid YYYY-MM-DD date"
+        assert reversed_range.status_code == 422
+        assert reversed_range.json()["detail"] == "date_from must be on or before date_to"
+
+    def test_period_report_requires_book_view_access(
+        self, client, viewer_headers, sample_book, fake_book_for_reports, session_factory
+    ):
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(fake_book_for_reports)
+            session.commit()
+
+        response = client.get(
+            f"/books/{sample_book}/reports?date_from=2026-05-01&date_to=2026-05-31",
+            headers=viewer_headers,
+        )
+
+        assert response.status_code == 403
+
+    def test_period_report_discloses_mixed_and_unknown_currency_limitations(
+        self, client, auth_headers, sample_book, fake_book_for_reports, session_factory, monkeypatch
+    ):
+        sek = FakeCommodity(mnemonic="SEK")
+        eur = FakeCommodity(mnemonic="EUR")
+        root = FakeAccount(guid="root", name="Root Account", type="ROOT", commodity=sek)
+        checking = FakeAccount(guid="checking", name="Checking", type="BANK", commodity=sek, parent=root)
+        eur_travel = FakeAccount(guid="eur-travel", name="EUR Travel", type="EXPENSE", commodity=eur, parent=root)
+        accounts = [root, checking, eur_travel]
+        transactions = [
+            FakeTransaction(
+                guid="eur-only",
+                post_date=date(2026, 5, 8),
+                description="EUR-only synthetic expense",
+                splits=[FakeSplit(account=eur_travel, value=Decimal("999.99"))],
+            )
+        ]
+
+        def fake_open_book(path, readonly=False):
+            return FakeBookForReports(accounts=accounts, transactions=transactions)
+
+        import app.services.gnucash_book as gb_module
+
+        monkeypatch.setattr(gb_module.piecash, "open_book", fake_open_book)
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(fake_book_for_reports)
+            book.base_currency = None
+            session.commit()
+
+        response = client.get(
+            f"/books/{sample_book}/reports?date_from=2026-05-01&date_to=2026-05-31",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["currency"] == "XXX"
+        limitations = " ".join(data["limitations"])
+        assert "unknown (XXX)" in limitations
+        assert "zero totals may mean no matching base-currency accounts" in limitations
+        assert "EUR" in limitations
+        assert "no currency conversion" in limitations
+
+    def test_period_report_preserves_signed_decimal_strings(
+        self, client, auth_headers, sample_book, fake_book_for_reports, session_factory, monkeypatch
+    ):
+        sek = FakeCommodity(mnemonic="SEK")
+        root = FakeAccount(guid="root", name="Root Account", type="ROOT", commodity=sek)
+        contra_asset = FakeAccount(
+            guid="contra-asset",
+            name="Contra Asset",
+            type="ASSET",
+            commodity=sek,
+            parent=root,
+            balance=Decimal("-125.50"),
+        )
+        positive_liability = FakeAccount(
+            guid="positive-liability",
+            name="Positive Liability",
+            type="LIABILITY",
+            commodity=sek,
+            parent=root,
+            balance=Decimal("25.25"),
+        )
+        accounts = [root, contra_asset, positive_liability]
+
+        def fake_open_book(path, readonly=False):
+            return FakeBookForReports(accounts=accounts, transactions=[])
+
+        import app.services.gnucash_book as gb_module
+
+        monkeypatch.setattr(gb_module.piecash, "open_book", fake_open_book)
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(fake_book_for_reports)
+            session.commit()
+
+        response = client.get(
+            f"/books/{sample_book}/reports?date_from=2026-05-01&date_to=2026-05-31",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        summary = response.json()["summary"]
+        assert summary["assets"] == "-125.50"
+        assert summary["liabilities"] == "25.25"
+        assert summary["net_worth"] == "-100.25"
+        assert isinstance(summary["assets"], str)
+
+    def test_period_report_partial_section_failure_is_user_safe(
+        self, client, auth_headers, sample_book, fake_book_for_reports, session_factory, monkeypatch
+    ):
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(fake_book_for_reports)
+            session.commit()
+
+        def fail_expenses(self, date_from=None, date_to=None):
+            raise GnuCashReadError("cannot read /private/books/leaked.gnucash.sqlite")
+
+        monkeypatch.setattr(GnuCashBookService, "get_expenses_by_account", fail_expenses)
+
+        response = client.get(
+            f"/books/{sample_book}/reports?date_from=2026-05-01&date_to=2026-05-31",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["partial_failure"] is True
+        assert data["empty"] is False
+        assert data["summary"]["net_worth"] == "170000.00"
+        assert data["expenses_by_account"] == []
+        statuses = {status["section"]: status for status in data["section_statuses"]}
+        assert statuses["expenses_by_account"]["status"] == "error"
+        assert statuses["expenses_by_account"]["detail"] == "Report section could not be read safely from this runtime."
+        serialized = response.text
+        assert "/private" not in serialized
+        assert "leaked.gnucash" not in serialized
+
+    def test_period_report_serializes_money_as_strings_not_floats(
+        self, client, auth_headers, sample_book, fake_book_for_reports, session_factory
+    ):
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(fake_book_for_reports)
+            session.commit()
+
+        response = client.get(
+            f"/books/{sample_book}/reports?date_from=2026-05-01&date_to=2026-05-31",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        money_values = [
+            data["summary"]["net_worth"],
+            data["summary"]["assets"],
+            data["summary"]["liabilities"],
+            data["summary"]["income_this_month"],
+            data["summary"]["expenses_this_month"],
+            data["cashflow"]["inflow"],
+            data["cashflow"]["outflow"],
+            data["cashflow"]["net"],
+            data["monthly_cashflow"][0]["inflow"],
+            data["monthly_cashflow"][0]["outflow"],
+            data["monthly_cashflow"][0]["net"],
+            data["expenses_by_account"][0]["total"],
+        ]
+        assert all(isinstance(value, str) for value in money_values)
+
+    def test_period_report_service_opens_books_readonly_without_mutation_helpers(
+        self, fake_report_data, tmp_path, monkeypatch
+    ):
+        book_path = tmp_path / "readonly-period-report.gnucash"
+        book_path.write_text("fake")
+        accounts, transactions = fake_report_data
+        readonly_flags: list[bool] = []
+
+        class MutationGuardBook(FakeBookForReports):
+            def save(self):  # pragma: no cover - failure path only
+                raise AssertionError("period reports must not save GnuCash books")
+
+            def flush(self):  # pragma: no cover - failure path only
+                raise AssertionError("period reports must not flush GnuCash books")
+
+        def fake_open_book(path, readonly=False):
+            readonly_flags.append(readonly)
+            return MutationGuardBook(accounts=accounts, transactions=transactions)
+
+        import app.services.gnucash_book as gb_module
+
+        monkeypatch.setattr(gb_module.piecash, "open_book", fake_open_book)
+
+        service = GnuCashBookService({"uri_or_path": str(book_path), "base_currency": "SEK"})
+        report = service.get_period_report("2026-05-01", "2026-05-31", book_id=123)
+
+        assert report.book_id == 123
+        assert report.partial_failure is False
+        assert readonly_flags
+        assert all(readonly_flags)

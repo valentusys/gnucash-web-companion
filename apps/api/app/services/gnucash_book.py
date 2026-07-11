@@ -7,7 +7,7 @@ from contextlib import contextmanager
 from datetime import date, datetime
 from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import piecash
 from sqlalchemy.orm import joinedload
@@ -20,6 +20,8 @@ from app.schemas.gnucash import (
     CashflowPeriodDTO,
     ExpenseByAccountDTO,
     MoneyDTO,
+    PeriodReportDTO,
+    PeriodReportSectionStatusDTO,
     ReportSummaryDTO,
     ScheduledTransactionDTO,
     ScheduledTransactionRecurrenceDTO,
@@ -36,6 +38,8 @@ from app.services.gnucash_exceptions import (
 
 MONEY_QUANT = Decimal("0.01")
 SPLIT_TRANSACTION_LABEL = "Split transaction"
+PERIOD_REPORT_SECTION_ERROR_DETAIL = "Report section could not be read safely from this runtime."
+REPORT_SECTION_EXCEPTIONS = (BookNotConfiguredError, BookNotFoundError, EntityNotFoundError, GnuCashReadError, ValueError)
 SUPPORTED_TRANSACTION_STATES = {
     "unreconciled": "n",
     "cleared": "c",
@@ -121,6 +125,18 @@ class GnuCashBookService:
         if isinstance(book_config, dict):
             return str(book_config.get("base_currency") or "XXX")
         return str(getattr(book_config, "base_currency", None) or "XXX")
+
+    @staticmethod
+    def _get_book_id(book_config: Any) -> int | None:
+        if book_config is None:
+            return None
+        if isinstance(book_config, dict):
+            value = book_config.get("id") or book_config.get("book_id")
+        else:
+            value = getattr(book_config, "id", None)
+        if value is None:
+            return None
+        return int(value)
 
     def _validate_configured_book(self) -> str:
         if not self.uri_or_path or not str(self.uri_or_path).strip():
@@ -550,6 +566,159 @@ class GnuCashBookService:
             for key, values in sorted(months.items())
         ]
         return result
+
+    def get_period_report(
+        self,
+        date_from: date | str,
+        date_to: date | str,
+        *,
+        book_id: int | None = None,
+    ) -> PeriodReportDTO:
+        """Return a combined read-only period report with per-section status.
+
+        Existing report helpers remain the source of truth for each section. This
+        orchestration layer makes partial failures explicit instead of letting a
+        failed section look like a genuine empty list or zero total.
+        """
+        start = _coerce_date(date_from)
+        end = _coerce_date(date_to)
+        if start is None or end is None:
+            raise ValueError("date_from and date_to are required")
+        if start > end:
+            raise ValueError("date_from must be on or before date_to")
+
+        resolved_book_id = book_id if book_id is not None else self._get_book_id(self.book_config)
+        summary: ReportSummaryDTO | None = None
+        cashflow: CashflowDTO | None = None
+        monthly_cashflow: list[CashflowPeriodDTO] = []
+        expenses_by_account: list[ExpenseByAccountDTO] = []
+        section_statuses: list[PeriodReportSectionStatusDTO] = []
+        limitations = self._period_report_base_limitations(self.base_currency)
+
+        try:
+            summary = self.get_report_summary(as_of_date=end)
+            limitations = self._merge_limitations(limitations, summary.limitations)
+            section_statuses.append(
+                self._period_report_section_status(
+                    "summary",
+                    "empty" if self._report_summary_is_empty(summary) else "ok",
+                )
+            )
+        except REPORT_SECTION_EXCEPTIONS:
+            section_statuses.append(self._period_report_section_error("summary"))
+
+        try:
+            cashflow = self.get_cashflow(start, end)
+            section_statuses.append(
+                self._period_report_section_status(
+                    "cashflow",
+                    "empty" if self._cashflow_is_empty(cashflow) else "ok",
+                )
+            )
+        except REPORT_SECTION_EXCEPTIONS:
+            section_statuses.append(self._period_report_section_error("cashflow"))
+
+        try:
+            monthly_cashflow = self.get_cashflow_by_month(start, end)
+            section_statuses.append(
+                self._period_report_section_status(
+                    "monthly_cashflow",
+                    "empty" if not monthly_cashflow else "ok",
+                )
+            )
+        except REPORT_SECTION_EXCEPTIONS:
+            monthly_cashflow = []
+            section_statuses.append(self._period_report_section_error("monthly_cashflow"))
+
+        try:
+            expenses_by_account = self.get_expenses_by_account(start, end)
+            section_statuses.append(
+                self._period_report_section_status(
+                    "expenses_by_account",
+                    "empty" if not expenses_by_account else "ok",
+                )
+            )
+        except REPORT_SECTION_EXCEPTIONS:
+            expenses_by_account = []
+            section_statuses.append(self._period_report_section_error("expenses_by_account"))
+
+        partial_failure = any(section.status == "error" for section in section_statuses)
+        empty = not partial_failure and all(section.status == "empty" for section in section_statuses)
+        currency = summary.currency if summary is not None else cashflow.currency if cashflow is not None else self.base_currency
+        return PeriodReportDTO(
+            book_id=resolved_book_id or 0,
+            date_from=start.isoformat(),
+            date_to=end.isoformat(),
+            currency=currency,
+            reporting_basis="base_currency_only",
+            includes_currency_conversion=False,
+            limitations=limitations,
+            partial_failure=partial_failure,
+            empty=empty,
+            section_statuses=section_statuses,
+            summary=summary,
+            cashflow=cashflow,
+            monthly_cashflow=monthly_cashflow,
+            expenses_by_account=expenses_by_account,
+        )
+
+    @staticmethod
+    def _period_report_section_status(
+        section: Literal["summary", "cashflow", "monthly_cashflow", "expenses_by_account"],
+        status: Literal["ok", "empty", "error"],
+        detail: str | None = None,
+    ) -> PeriodReportSectionStatusDTO:
+        return PeriodReportSectionStatusDTO(section=section, status=status, detail=detail)
+
+    def _period_report_section_error(
+        self,
+        section: Literal["summary", "cashflow", "monthly_cashflow", "expenses_by_account"],
+    ) -> PeriodReportSectionStatusDTO:
+        return self._period_report_section_status(section, "error", PERIOD_REPORT_SECTION_ERROR_DETAIL)
+
+    @staticmethod
+    def _period_report_base_limitations(base_currency: str) -> list[str]:
+        limitations = [
+            "Period reports use reporting_basis=base_currency_only and include no currency conversion.",
+            f"Only accounts and splits whose commodity is {base_currency} are included in reported totals.",
+        ]
+        if base_currency == "XXX":
+            limitations.append(
+                "The configured base currency is unknown (XXX), so zero totals may mean no matching base-currency accounts rather than an empty book."
+            )
+        return limitations
+
+    @staticmethod
+    def _merge_limitations(*groups: list[str]) -> list[str]:
+        merged: list[str] = []
+        seen: set[str] = set()
+        for group in groups:
+            for item in group:
+                if item in seen:
+                    continue
+                seen.add(item)
+                merged.append(item)
+        return merged
+
+    @staticmethod
+    def _report_summary_is_empty(summary: ReportSummaryDTO) -> bool:
+        return all(
+            Decimal(getattr(summary, field_name)) == Decimal("0")
+            for field_name in (
+                "net_worth",
+                "assets",
+                "liabilities",
+                "income_this_month",
+                "expenses_this_month",
+            )
+        )
+
+    @staticmethod
+    def _cashflow_is_empty(cashflow: CashflowDTO) -> bool:
+        return all(
+            Decimal(getattr(cashflow, field_name)) == Decimal("0")
+            for field_name in ("inflow", "outflow", "net")
+        )
 
     def _accounts(self, book: Any) -> Iterable[Any]:
         return getattr(book, "accounts", []) or []

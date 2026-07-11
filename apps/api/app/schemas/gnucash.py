@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -163,6 +165,40 @@ class CashflowPeriodDTO(BaseModel):
     inflow: str
     outflow: str
     net: str
+
+
+class PeriodReportSectionStatusDTO(BaseModel):
+    """Per-section status for an aggregate period report."""
+
+    section: Literal["summary", "cashflow", "monthly_cashflow", "expenses_by_account"]
+    status: Literal["ok", "empty", "error"]
+    detail: str | None = Field(
+        None,
+        description="User-safe error detail for failed sections; never includes paths or internals.",
+    )
+
+
+class PeriodReportDTO(BaseModel):
+    """Combined read-only period report for one book and date range.
+
+    The report is explicit about its base-currency-only basis. Section statuses
+    distinguish genuine empty results from partial read failures.
+    """
+
+    book_id: int
+    date_from: str
+    date_to: str
+    currency: str
+    reporting_basis: Literal["base_currency_only"] = "base_currency_only"
+    includes_currency_conversion: bool = False
+    limitations: list[str] = Field(default_factory=list)
+    partial_failure: bool = False
+    empty: bool = False
+    section_statuses: list[PeriodReportSectionStatusDTO] = Field(default_factory=list)
+    summary: ReportSummaryDTO | None = None
+    cashflow: CashflowDTO | None = None
+    monthly_cashflow: list[CashflowPeriodDTO] = Field(default_factory=list)
+    expenses_by_account: list[ExpenseByAccountDTO] = Field(default_factory=list)
 
 
 class PaginatedResponse(BaseModel):
