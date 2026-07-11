@@ -88,7 +88,11 @@ jobs:
           npm run check
           npm run test:auth-routes
           npm run test:transaction-entry-preview
+          npm run test:reports
+          npm run test:money-strings
           npm run test:transaction-entry-create-disposable-browser
+          node scripts/test-reports-browser.mjs
+          node scripts/test-dashboard-browser.mjs
 
   backend:
     name: Backend tests
