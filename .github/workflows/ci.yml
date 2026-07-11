@@ -70,6 +70,20 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Setup Python for disposable browser drill
+        if: hashFiles('apps/api/requirements.txt') != ''
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install backend dependencies for disposable browser drill
+        if: hashFiles('apps/api/requirements.txt') != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install -r apps/api/requirements.txt
+
       - name: Install and verify frontend
         shell: bash
         run: |
