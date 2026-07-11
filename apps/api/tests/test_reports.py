@@ -787,6 +787,15 @@ class TestExpensesByAccountMVP:
         assert response.status_code == 422
         assert response.json()["detail"] == "date_to must be a valid YYYY-MM-DD date"
 
+    def test_incomplete_date_range_returns_clear_client_error(self, client, auth_headers, sample_book):
+        response = client.get(
+            "/reports/expenses-by-account?date_from=2026-05-01",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 422
+        assert response.json()["detail"] == "date_from and date_to must be provided together"
+
     def test_returns_expenses_list(
         self, client, auth_headers, sample_book, fake_book_for_reports, session_factory
     ):
@@ -860,6 +869,15 @@ class TestCashflowMVP:
 
         assert response.status_code == 422
         assert response.json()["detail"] == "date_from must be a valid YYYY-MM-DD date"
+
+    def test_incomplete_date_range_returns_clear_client_error(self, client, auth_headers, sample_book):
+        response = client.get(
+            "/reports/cashflow?date_to=2026-05-31",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 422
+        assert response.json()["detail"] == "date_from and date_to must be provided together"
 
     def test_returns_cashflow(
         self, client, auth_headers, sample_book, fake_book_for_reports, session_factory
@@ -1122,6 +1140,38 @@ class TestBookPeriodReport:
         assert "base_currency_only" in limitations
         assert "no currency conversion" in limitations
 
+    def test_period_report_summary_is_balance_only_for_arbitrary_period(
+        self, client, auth_headers, sample_book, fake_book_for_reports, session_factory
+    ):
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(fake_book_for_reports)
+            session.commit()
+
+        response = client.get(
+            f"/books/{sample_book}/reports?date_from=2026-05-10&date_to=2026-05-15",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["date_from"] == "2026-05-10"
+        assert data["date_to"] == "2026-05-15"
+        assert "income_this_month" not in data["summary"]
+        assert "expenses_this_month" not in data["summary"]
+        assert data["summary"]["as_of_date"] == "2026-05-15"
+        assert data["cashflow"] == {
+            "date_from": "2026-05-10",
+            "date_to": "2026-05-15",
+            "currency": "SEK",
+            "inflow": "0.00",
+            "outflow": "2150.00",
+            "net": "-2150.00",
+        }
+        assert data["monthly_cashflow"] == [
+            {"month": "2026-05", "inflow": "0.00", "outflow": "2150.00", "net": "-2150.00"}
+        ]
+
     def test_period_report_empty_book_is_not_a_partial_failure(
         self, client, auth_headers, sample_book, empty_fake_book_for_reports, session_factory
     ):
@@ -1320,8 +1370,6 @@ class TestBookPeriodReport:
             data["summary"]["net_worth"],
             data["summary"]["assets"],
             data["summary"]["liabilities"],
-            data["summary"]["income_this_month"],
-            data["summary"]["expenses_this_month"],
             data["cashflow"]["inflow"],
             data["cashflow"]["outflow"],
             data["cashflow"]["net"],

@@ -22,6 +22,7 @@ from app.schemas.gnucash import (
     MoneyDTO,
     PeriodReportDTO,
     PeriodReportSectionStatusDTO,
+    PeriodReportSummaryDTO,
     ReportSummaryDTO,
     ScheduledTransactionDTO,
     ScheduledTransactionRecurrenceDTO,
@@ -588,7 +589,7 @@ class GnuCashBookService:
             raise ValueError("date_from must be on or before date_to")
 
         resolved_book_id = book_id if book_id is not None else self._get_book_id(self.book_config)
-        summary: ReportSummaryDTO | None = None
+        summary: PeriodReportSummaryDTO | None = None
         cashflow: CashflowDTO | None = None
         monthly_cashflow: list[CashflowPeriodDTO] = []
         expenses_by_account: list[ExpenseByAccountDTO] = []
@@ -596,12 +597,13 @@ class GnuCashBookService:
         limitations = self._period_report_base_limitations(self.base_currency)
 
         try:
-            summary = self.get_report_summary(as_of_date=end)
-            limitations = self._merge_limitations(limitations, summary.limitations)
+            dashboard_summary = self.get_report_summary(as_of_date=end)
+            limitations = self._merge_limitations(limitations, dashboard_summary.limitations)
+            summary = self._period_report_summary_from_report_summary(dashboard_summary)
             section_statuses.append(
                 self._period_report_section_status(
                     "summary",
-                    "empty" if self._report_summary_is_empty(summary) else "ok",
+                    "empty" if self._period_report_summary_is_empty(summary) else "ok",
                 )
             )
         except REPORT_SECTION_EXCEPTIONS:
@@ -701,15 +703,26 @@ class GnuCashBookService:
         return merged
 
     @staticmethod
-    def _report_summary_is_empty(summary: ReportSummaryDTO) -> bool:
+    def _period_report_summary_from_report_summary(summary: ReportSummaryDTO) -> PeriodReportSummaryDTO:
+        return PeriodReportSummaryDTO(
+            currency=summary.currency,
+            net_worth=summary.net_worth,
+            assets=summary.assets,
+            liabilities=summary.liabilities,
+            as_of_date=summary.as_of_date,
+            reporting_basis=summary.reporting_basis,
+            includes_currency_conversion=summary.includes_currency_conversion,
+            limitations=summary.limitations,
+        )
+
+    @staticmethod
+    def _period_report_summary_is_empty(summary: PeriodReportSummaryDTO) -> bool:
         return all(
             Decimal(getattr(summary, field_name)) == Decimal("0")
             for field_name in (
                 "net_worth",
                 "assets",
                 "liabilities",
-                "income_this_month",
-                "expenses_this_month",
             )
         )
 

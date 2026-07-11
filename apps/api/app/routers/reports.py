@@ -68,8 +68,13 @@ def _normalize_report_date_range(
     date_from: str | None,
     date_to: str | None,
 ) -> tuple[str, str]:
-    if date_from is None or date_to is None:
+    if date_from is None and date_to is None:
         return _current_month_range()
+    if date_from is None or date_to is None:
+        raise HTTPException(
+            status_code=422,
+            detail="date_from and date_to must be provided together",
+        )
     parsed_from = _parse_report_date(date_from, "date_from")
     parsed_to = _parse_report_date(date_to, "date_to")
     assert parsed_from is not None and parsed_to is not None

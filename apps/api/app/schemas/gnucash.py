@@ -149,6 +149,24 @@ class ReportSummaryDTO(BaseModel):
     limitations: list[str] = Field(default_factory=list)
 
 
+class PeriodReportSummaryDTO(BaseModel):
+    """Balance-only summary for an arbitrary period report.
+
+    Period income/expense totals live in the cashflow section. This avoids
+    exposing dashboard-only income_this_month/expenses_this_month fields on an
+    arbitrary date-range response.
+    """
+
+    currency: str
+    net_worth: str
+    assets: str
+    liabilities: str
+    as_of_date: str
+    reporting_basis: str = "base_currency_only"
+    includes_currency_conversion: bool = False
+    limitations: list[str] = Field(default_factory=list)
+
+
 class ExpenseByAccountDTO(BaseModel):
     """Total expenses for a single account within a date range."""
 
@@ -195,7 +213,7 @@ class PeriodReportDTO(BaseModel):
     partial_failure: bool = False
     empty: bool = False
     section_statuses: list[PeriodReportSectionStatusDTO] = Field(default_factory=list)
-    summary: ReportSummaryDTO | None = None
+    summary: PeriodReportSummaryDTO | None = None
     cashflow: CashflowDTO | None = None
     monthly_cashflow: list[CashflowPeriodDTO] = Field(default_factory=list)
     expenses_by_account: list[ExpenseByAccountDTO] = Field(default_factory=list)
