@@ -1,6 +1,6 @@
 # PROJECT_STATUS
 
-Last updated: 2026-07-10
+Last updated: 2026-07-11
 
 ## Quick navigation
 
@@ -43,6 +43,7 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   [#22](https://github.com/valentusys/gnucash-web-companion/issues/22) and
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) are closed.
 - Latest handoffs/docs: `docs/handoff/issue51-disposable-ui-execution-rehearsal.md`,
+  `docs/handoff/hermes-kanban-product-run.md`,
   `docs/handoff/issue51-delete-app-owned-ui-rehearsal.md`,
   `docs/handoff/issue50-disposable-copied-book-create-drill.md`,
   `docs/handoff/issue49-final-gates-redacted-status.md`,
@@ -96,6 +97,17 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
 
 ## Current status snapshot
 
+- The first production-development Hermes Kanban run used the dedicated
+  `gnucash-web-companion-product-dev` board and produced a locally green tested integration head for
+  [#52](https://github.com/valentusys/gnucash-web-companion/issues/52): an authenticated read-only
+  period reports explorer with URL-backed ranges, explicit partial-error states, exact transaction
+  drilldowns, EN/RU release-critical copy, mobile/browser coverage, and honest dashboard section
+  failures. Ten useful tasks completed through two QA gates; final GitHub CI and issue closure remain
+  pending. #51 PM acceptance passed, while independent QA deferred closure until the browser rehearsal
+  was added to CI; that gate is now present and locally green. No owner/private/original/working/
+  Syncthing/only-copy book was accessed or mutated, reports/dashboard added no writes, and
+  `GNUCASH_WRITES_ENABLED=false` remains default. Evidence:
+  `docs/handoff/hermes-kanban-product-run.md`.
 - Public read-only beta: `v0.5.0-public-readonly-beta` remains current.
 - Not published: `v0.5.1-public-readonly-beta` and `v0.4.0-owner-writebeta`; no public write beta;
   no stable, production-ready, or security-audited release claim.
