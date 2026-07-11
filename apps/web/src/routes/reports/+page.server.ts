@@ -1,13 +1,21 @@
 import { isHttpError, isRedirect } from '@sveltejs/kit';
 import { apiFetch, getActiveBookContext, getAuthToken } from '$lib/api/server';
-import type { CashflowData, CashflowPeriod, ExpenseByAccount, ReportSummary } from '$lib/api/types';
+import type {
+	CashflowData,
+	CashflowPeriod,
+	ExpenseByAccount,
+	PeriodReport,
+	PeriodReportSectionStatus
+} from '$lib/api/types';
 import { localeFromCookie, t, type Locale } from '$lib/i18n';
 import type { PageServerLoad } from './$types';
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const REPORT_PRESETS = ['this-month', 'last-month', 'year-to-date', 'custom'] as const;
+const REPORT_SECTION_KEYS = ['summary', 'cashflow', 'monthly_cashflow', 'expenses_by_account'] as const;
 
 type ReportPreset = (typeof REPORT_PRESETS)[number];
+type ReportSectionKey = (typeof REPORT_SECTION_KEYS)[number];
 
 type ReportPeriod = {
 	preset: ReportPreset;
@@ -30,13 +38,15 @@ type ReportSummaryView = {
 	netWorth: string | null;
 };
 
-type ReportSectionErrors = Record<'summary' | 'cashflow' | 'expenses_by_account', string | null>;
+type ReportSectionErrors = Record<ReportSectionKey, string | null>;
 
 type ReportView = {
 	requestedPeriod: ReportPeriod;
 	reportingBasis: string;
 	includesCurrencyConversion: boolean;
 	limitations: string[];
+	partialFailure: boolean;
+	empty: boolean;
 	summary: ReportSummaryView | null;
 	cashflow: CashflowData | null;
 	cashflowMonthly: CashflowPeriod[];
@@ -204,16 +214,19 @@ function stringValue(value: unknown): string | null {
 	return typeof value === 'string' && value.trim() ? value : null;
 }
 
-function normalizeSummary(value: ReportSummary | null, fallbackCurrency: string): ReportSummaryView | null {
-	if (!value) return null;
+function normalizeSummary(
+	value: PeriodReport['summary'],
+	cashflow: CashflowData | null,
+	fallbackCurrency: string
+): ReportSummaryView | null {
 	const summary = {
-		currency: stringValue(value.currency) ?? fallbackCurrency,
-		income: stringValue(value.income_this_month),
-		expenses: stringValue(value.expenses_this_month),
-		net: null,
-		assets: stringValue(value.assets),
-		liabilities: stringValue(value.liabilities),
-		netWorth: stringValue(value.net_worth)
+		currency: stringValue(value?.currency) ?? stringValue(cashflow?.currency) ?? fallbackCurrency,
+		income: stringValue(cashflow?.inflow),
+		expenses: stringValue(cashflow?.outflow),
+		net: stringValue(cashflow?.net),
+		assets: stringValue(value?.assets),
+		liabilities: stringValue(value?.liabilities),
+		netWorth: stringValue(value?.net_worth)
 	};
 	if (!summary.income && !summary.expenses && !summary.net && !summary.assets && !summary.liabilities && !summary.netWorth) {
 		return null;
@@ -239,18 +252,31 @@ function normalizeExpenses(value: ExpenseByAccount[] | null): ExpenseByAccount[]
 		: [];
 }
 
-function isFulfilled<T>(result: PromiseSettledResult<T>): result is PromiseFulfilledResult<T> {
-	return result.status === 'fulfilled';
+function emptySectionErrors(): ReportSectionErrors {
+	return {
+		summary: null,
+		cashflow: null,
+		monthly_cashflow: null,
+		expenses_by_account: null
+	};
 }
 
-function rethrowRedirects(results: PromiseSettledResult<unknown>[]): void {
-	for (const result of results) {
-		if (result.status === 'rejected' && isRedirect(result.reason)) throw result.reason;
-	}
+function sectionErrorFromStatus(
+	statuses: PeriodReportSectionStatus[],
+	section: ReportSectionKey,
+	locale: Locale
+): string | null {
+	const status = statuses.find((candidate) => candidate.section === section);
+	return status?.status === 'error' ? t(locale, 'reports.sectionError.redacted') : null;
 }
 
-function sectionError(result: PromiseSettledResult<unknown>, locale: Locale): string | null {
-	return result.status === 'rejected' ? t(locale, 'reports.sectionError.redacted') : null;
+function sectionErrorsFromStatuses(statuses: PeriodReportSectionStatus[], locale: Locale): ReportSectionErrors {
+	return {
+		summary: sectionErrorFromStatus(statuses, 'summary', locale),
+		cashflow: sectionErrorFromStatus(statuses, 'cashflow', locale),
+		monthly_cashflow: sectionErrorFromStatus(statuses, 'monthly_cashflow', locale),
+		expenses_by_account: sectionErrorFromStatus(statuses, 'expenses_by_account', locale)
+	};
 }
 
 function safeLoadError(reason: unknown, locale: Locale): string {
@@ -270,49 +296,43 @@ async function loadReport(
 	period: ReportPeriod,
 	locale: Locale
 ): Promise<{ report: ReportView | null; loadError: string | null }> {
-	const summaryParams = new URLSearchParams({ as_of_date: period.dateTo });
 	const rangeParams = new URLSearchParams({ date_from: period.dateFrom, date_to: period.dateTo });
-	const monthlyParams = new URLSearchParams({ date_from: period.dateFrom, date_to: period.dateTo, by_month: 'true' });
 
-	const [summaryResult, cashflowResult, monthlyResult, expensesResult] = await Promise.allSettled([
-		apiFetch<ReportSummary>(fetchFn, `${bookPrefix}/reports/summary?${summaryParams.toString()}`, token),
-		apiFetch<CashflowData>(fetchFn, `${bookPrefix}/reports/cashflow?${rangeParams.toString()}`, token),
-		apiFetch<CashflowPeriod[]>(fetchFn, `${bookPrefix}/reports/cashflow?${monthlyParams.toString()}`, token),
-		apiFetch<ExpenseByAccount[]>(fetchFn, `${bookPrefix}/reports/expenses-by-account?${rangeParams.toString()}`, token)
-	]);
-	const settled = [summaryResult, cashflowResult, monthlyResult, expensesResult] as PromiseSettledResult<unknown>[];
-	rethrowRedirects(settled);
+	try {
+		const periodReport = await apiFetch<PeriodReport>(fetchFn, `${bookPrefix}/reports?${rangeParams.toString()}`, token);
+		const cashflow = normalizeCashflow(periodReport.cashflow);
+		const cashflowMonthly = normalizeCashflowPeriods(periodReport.monthly_cashflow);
+		const expensesByAccount = normalizeExpenses(periodReport.expenses_by_account);
+		const fallbackCurrency =
+			stringValue(periodReport.currency) ?? stringValue(periodReport.summary?.currency) ?? cashflow?.currency ?? expensesByAccount[0]?.currency ?? 'base';
+		const requestedPeriod: ReportPeriod = {
+			preset: period.preset,
+			dateFrom: stringValue(periodReport.date_from) ?? period.dateFrom,
+			dateTo: stringValue(periodReport.date_to) ?? period.dateTo
+		};
 
-	const fulfilledCount = settled.filter(isFulfilled).length;
-	if (fulfilledCount === 0) {
-		const firstFailure = settled.find((result) => result.status === 'rejected');
-		return { report: null, loadError: safeLoadError(firstFailure?.status === 'rejected' ? firstFailure.reason : null, locale) };
+		return {
+			report: {
+				requestedPeriod,
+				reportingBasis: stringValue(periodReport.reporting_basis) ?? 'base_currency_only',
+				includesCurrencyConversion: periodReport.includes_currency_conversion === true,
+				limitations: Array.isArray(periodReport.limitations) ? periodReport.limitations : [],
+				partialFailure: periodReport.partial_failure === true,
+				empty: periodReport.empty === true,
+				summary: normalizeSummary(periodReport.summary, cashflow, fallbackCurrency),
+				cashflow,
+				cashflowMonthly,
+				expensesByAccount,
+				sectionErrors: Array.isArray(periodReport.section_statuses)
+					? sectionErrorsFromStatuses(periodReport.section_statuses, locale)
+					: emptySectionErrors()
+			},
+			loadError: null
+		};
+	} catch (reason) {
+		if (isRedirect(reason)) throw reason;
+		return { report: null, loadError: safeLoadError(reason, locale) };
 	}
-
-	const summaryResponse = isFulfilled(summaryResult) ? summaryResult.value : null;
-	const cashflow = normalizeCashflow(isFulfilled(cashflowResult) ? cashflowResult.value : null);
-	const cashflowMonthly = normalizeCashflowPeriods(isFulfilled(monthlyResult) ? monthlyResult.value : null);
-	const expensesByAccount = normalizeExpenses(isFulfilled(expensesResult) ? expensesResult.value : null);
-	const fallbackCurrency = summaryResponse?.currency ?? cashflow?.currency ?? expensesByAccount[0]?.currency ?? 'base';
-
-	return {
-		report: {
-			requestedPeriod: period,
-			reportingBasis: summaryResponse?.reporting_basis ?? 'base_currency_only',
-			includesCurrencyConversion: summaryResponse?.includes_currency_conversion === true,
-			limitations: Array.isArray(summaryResponse?.limitations) ? summaryResponse.limitations : [],
-			summary: normalizeSummary(summaryResponse, fallbackCurrency),
-			cashflow,
-			cashflowMonthly,
-			expensesByAccount,
-			sectionErrors: {
-				summary: sectionError(summaryResult, locale),
-				cashflow: sectionError(cashflowResult, locale) ?? sectionError(monthlyResult, locale),
-				expenses_by_account: sectionError(expensesResult, locale)
-			}
-		},
-		loadError: null
-	};
 }
 
 function sectionWarnings(report: ReportView | null) {

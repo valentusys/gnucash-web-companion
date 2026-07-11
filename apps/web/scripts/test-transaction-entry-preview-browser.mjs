@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { createServer } from 'node:http';
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, rmSync, readFileSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import net from 'node:net';
@@ -12,13 +13,15 @@ const root = join(here, '..');
 const repoRoot = join(root, '..', '..');
 const viteBin = join(root, 'node_modules', 'vite', 'bin', 'vite.js');
 const previewServerIndex = join(root, '.svelte-kit', 'output', 'server', 'index.js');
-const smokeTempRoot = join(root, '.svelte-kit', 'smoke-tmp');
+const smokeHome = process.env.TRANSACTION_ENTRY_SMOKE_HOME ?? (process.env.USER ? join('/home', process.env.USER) : homedir());
+const smokeTempRoot = process.env.TRANSACTION_ENTRY_SMOKE_TMPDIR ?? join(smokeHome, '.cache', 'gwc-txn-smoke');
 const productCreateDrillScript = join(repoRoot, 'scripts', 'issue51_product_create_drill.py');
 const productPatchDrillScript = join(root, 'scripts', 'issue51_product_patch_drill.py');
 const productDeleteDrillScript = join(root, 'scripts', 'issue51_product_delete_drill.py');
 function resolveChromiumBin() {
 	if (process.env.CHROMIUM_BIN) return process.env.CHROMIUM_BIN;
 	for (const candidate of [
+		'/snap/chromium/current/usr/lib/chromium-browser/chrome',
 		'/snap/bin/chromium',
 		'/usr/bin/chromium',
 		'/usr/bin/chromium-browser',

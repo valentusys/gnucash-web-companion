@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import net from 'node:net';
@@ -10,7 +11,8 @@ const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..');
 const viteBin = join(root, 'node_modules', 'vite', 'bin', 'vite.js');
 const previewServerIndex = join(root, '.svelte-kit', 'output', 'server', 'index.js');
-const smokeTempRoot = join(root, '.svelte-kit', 'reports-smoke-tmp');
+const smokeHome = process.env.REPORTS_SMOKE_HOME ?? (process.env.USER ? join('/home', process.env.USER) : homedir());
+const smokeTempRoot = process.env.REPORTS_SMOKE_TMPDIR ?? join(smokeHome, '.cache', 'gwc-rpt');
 const syntheticToken = 'synthetic-reports-smoke-token';
 const privateReportSentinel = 'PRIVATE_REPORT_SENTINEL_4F1B2C_ACCOUNT_PATH_GUID';
 const cdpCommandTimeoutMs = Number(process.env.REPORTS_CDP_TIMEOUT_MS ?? '90000');
@@ -18,6 +20,7 @@ const cdpCommandTimeoutMs = Number(process.env.REPORTS_CDP_TIMEOUT_MS ?? '90000'
 function resolveChromiumBin() {
 	if (process.env.CHROMIUM_BIN) return process.env.CHROMIUM_BIN;
 	for (const candidate of [
+		'/snap/chromium/current/usr/lib/chromium-browser/chrome',
 		'/snap/bin/chromium',
 		'/usr/bin/chromium',
 		'/usr/bin/chromium-browser',
@@ -78,11 +81,9 @@ function summaryPayload(dateTo, mode = 'full') {
 	if (mode === 'empty') {
 		return {
 			currency: 'SEK',
-			net_worth: '',
-			assets: '',
-			liabilities: '',
-			income_this_month: '',
-			expenses_this_month: '',
+			net_worth: '0.00',
+			assets: '0.00',
+			liabilities: '0.00',
 			as_of_date: dateTo,
 			reporting_basis: 'base_currency_only',
 			includes_currency_conversion: false,
@@ -94,8 +95,6 @@ function summaryPayload(dateTo, mode = 'full') {
 		net_worth: '1450.00',
 		assets: '2000.00',
 		liabilities: '-550.00',
-		income_this_month: '125.00',
-		expenses_this_month: '45.67',
 		as_of_date: dateTo,
 		reporting_basis: 'base_currency_only',
 		includes_currency_conversion: false,
@@ -105,19 +104,59 @@ function summaryPayload(dateTo, mode = 'full') {
 
 function cashflowPayload(dateFrom, dateTo, mode = 'full') {
 	if (mode === 'empty') {
-		return { date_from: dateFrom, date_to: dateTo, currency: 'SEK', inflow: '', outflow: '', net: '' };
+		return { date_from: dateFrom, date_to: dateTo, currency: 'SEK', inflow: '0.00', outflow: '0.00', net: '0.00' };
 	}
 	return { date_from: dateFrom, date_to: dateTo, currency: 'SEK', inflow: '125.00', outflow: '45.67', net: '79.33' };
 }
 
 function monthlyPayload(mode = 'full') {
-	if (mode === 'empty') return [];
+	if (mode === 'empty' || mode === 'partial') return [];
 	return [{ month: '2026-07', inflow: '125.00', outflow: '45.67', net: '79.33' }];
 }
 
 function expensesPayload(mode = 'full') {
 	if (mode === 'empty') return [];
 	return [{ account_id: 'expense-food', account_name: 'Synthetic Food', total: '45.67', currency: 'SEK' }];
+}
+
+function sectionStatuses(mode = 'full') {
+	if (mode === 'empty') {
+		return [
+			{ section: 'summary', status: 'empty', detail: null },
+			{ section: 'cashflow', status: 'empty', detail: null },
+			{ section: 'monthly_cashflow', status: 'empty', detail: null },
+			{ section: 'expenses_by_account', status: 'empty', detail: null }
+		];
+	}
+	return [
+		{ section: 'summary', status: 'ok', detail: null },
+		{ section: 'cashflow', status: 'ok', detail: null },
+		{
+			section: 'monthly_cashflow',
+			status: mode === 'partial' ? 'error' : 'ok',
+			detail: mode === 'partial' ? privateReportSentinel : null
+		},
+		{ section: 'expenses_by_account', status: 'ok', detail: null }
+	];
+}
+
+function periodReportPayload(dateFrom, dateTo, mode = 'full') {
+	return {
+		book_id: 1,
+		date_from: dateFrom,
+		date_to: dateTo,
+		currency: 'SEK',
+		reporting_basis: 'base_currency_only',
+		includes_currency_conversion: false,
+		limitations: ['base_currency_only: No FX conversion; synthetic fixture excludes non-base currencies.'],
+		partial_failure: mode === 'partial',
+		empty: mode === 'empty',
+		section_statuses: sectionStatuses(mode),
+		summary: summaryPayload(dateTo, mode),
+		cashflow: cashflowPayload(dateFrom, dateTo, mode),
+		monthly_cashflow: monthlyPayload(mode),
+		expenses_by_account: expensesPayload(mode)
+	};
 }
 
 function reportMode(dateFrom, dateTo) {
@@ -153,28 +192,18 @@ async function startSyntheticApi() {
 			return jsonResponse(res, 200, [syntheticBook]);
 		}
 
-		const reportMatch = url.pathname.match(/^\/books\/1\/reports\/(summary|cashflow|expenses-by-account)$/);
-		if (!reportMatch || req.method !== 'GET') {
+		if (url.pathname !== '/books/1/reports' || req.method !== 'GET') {
 			return jsonResponse(res, 404, { detail: 'Synthetic reports smoke endpoint not found.' });
 		}
 
-		const section = reportMatch[1];
 		const dateFrom = url.searchParams.get('date_from') ?? '2026-07-01';
-		const dateTo = url.searchParams.get('date_to') ?? url.searchParams.get('as_of_date') ?? '2026-07-31';
+		const dateTo = url.searchParams.get('date_to') ?? '2026-07-31';
 		const mode = reportMode(dateFrom, dateTo);
-		const byMonth = url.searchParams.get('by_month') === 'true';
 
 		if (mode === 'error') {
 			return jsonResponse(res, 500, { detail: privateReportSentinel });
 		}
-		if (mode === 'partial' && section === 'cashflow' && byMonth) {
-			return jsonResponse(res, 500, { detail: privateReportSentinel });
-		}
-		if (section === 'summary') return jsonResponse(res, 200, summaryPayload(dateTo, mode));
-		if (section === 'cashflow' && byMonth) return jsonResponse(res, 200, monthlyPayload(mode));
-		if (section === 'cashflow') return jsonResponse(res, 200, cashflowPayload(dateFrom, dateTo, mode));
-		if (section === 'expenses-by-account') return jsonResponse(res, 200, expensesPayload(mode));
-		return jsonResponse(res, 404, { detail: 'Synthetic reports smoke endpoint not found.' });
+		return jsonResponse(res, 200, periodReportPayload(dateFrom, dateTo, mode));
 	});
 
 	await new Promise((resolve, reject) => {
@@ -368,7 +397,7 @@ async function navigateReports(cdp, webBase, path, label, readyText = 'Period re
 }
 
 function reportRequests(api) {
-	return api.requests.filter((request) => /^\/books\/1\/reports\//.test(request.path));
+	return api.requests.filter((request) => request.path === '/books/1/reports');
 }
 
 function forbiddenBrowserMutationRequests(browserRequests) {
@@ -521,7 +550,7 @@ async function runSmoke() {
 		await navigateReports(cdp, webBase, '/reports?preset=custom&date_from=2026-07-01&date_to=2026-07-31', 'full reports page');
 		await assertNoMobileOverflowAndActiveReportsNav(cdp, 'full reports page');
 		await assertFullReportPage(cdp);
-		assert.equal(reportRequests(api).length, 4, 'full reports page must call exactly the four read-only report endpoints');
+		assert.equal(reportRequests(api).length, 1, 'full reports page must call exactly the combined read-only period report endpoint');
 		assertNoMutationRequestsObserved(api, browserRequests, 'full reports page');
 
 		const reportCountBeforeInvalid = reportRequests(api).length;

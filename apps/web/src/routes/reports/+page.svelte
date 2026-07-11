@@ -13,7 +13,7 @@
 	let report = $derived(data.report);
 	let sectionWarnings = $derived(data.sectionWarnings);
 	let hasReportData = $derived(
-		Boolean(report?.summary || report?.cashflow || report?.cashflowMonthly.length || report?.expensesByAccount.length)
+		Boolean(report && !report.empty && (report.summary || report.cashflow || report.cashflowMonthly.length || report.expensesByAccount.length))
 	);
 
 	function displayMoney(value: string | null | undefined): string {
@@ -155,7 +155,7 @@
 			</section>
 		{/if}
 
-		{#if !hasReportData && !data.loadError}
+		{#if !hasReportData && !data.loadError && !sectionWarnings.length}
 			<EmptyState
 				title={t(locale, 'reports.empty.title')}
 				message={t(locale, 'reports.empty.message')}
@@ -258,7 +258,9 @@
 				<article class="rounded-2xl border p-4" style="border-color: var(--app-border); background: var(--app-panel);">
 					<h2 class="text-xl font-semibold">{t(locale, 'reports.cashflow.monthlyTitle')}</h2>
 					<p class="mt-1 text-sm" style="color: var(--app-muted);">{t(locale, 'reports.cashflow.monthlyHelp')}</p>
-					{#if report.cashflowMonthly.length}
+					{#if report.sectionErrors.monthly_cashflow}
+						<p class="mt-3 rounded-xl border p-3 text-sm" style="border-color: var(--app-warning);" role="alert">{report.sectionErrors.monthly_cashflow}</p>
+					{:else if report.cashflowMonthly.length}
 						<ul class="mt-4 space-y-3">
 							{#each report.cashflowMonthly as period (period.month)}
 								<li class="rounded-xl p-3" style="background: var(--app-bg);">

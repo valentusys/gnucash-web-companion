@@ -160,50 +160,38 @@ export type CashflowPeriod = {
 	net: string;
 };
 
-export type ReportSectionError = {
-	status?: 'ok' | 'error' | 'partial' | 'unavailable' | string;
-	code?: string | null;
-	message?: string | null;
-	detail?: string | null;
-};
-
-export type PeriodReportRequestedPeriod = {
-	date_from: string;
-	date_to: string;
-};
-
 export type PeriodReportSummary = {
 	currency: string;
-	income?: string | null;
-	expenses?: string | null;
-	net?: string | null;
-	assets?: string | null;
-	liabilities?: string | null;
-	net_worth?: string | null;
-	[key: string]: string | boolean | string[] | null | undefined;
-};
-
-export type PeriodReportCashflow = CashflowData & {
-	monthly_periods: CashflowPeriod[];
-};
-
-export type PeriodReportSectionErrors = {
-	summary?: ReportSectionError | string | null;
-	cashflow?: ReportSectionError | string | null;
-	cashflow_monthly?: ReportSectionError | string | null;
-	expenses_by_account?: ReportSectionError | string | null;
-	[section: string]: ReportSectionError | string | null | undefined;
-};
-
-export type PeriodReportResponse = {
-	requested_period: PeriodReportRequestedPeriod;
+	net_worth: string;
+	assets: string;
+	liabilities: string;
+	as_of_date: string;
 	reporting_basis: string;
-	includes_currency_conversion?: boolean;
+	includes_currency_conversion: boolean;
 	limitations: string[];
+};
+
+export type PeriodReportSectionStatus = {
+	section: 'summary' | 'cashflow' | 'monthly_cashflow' | 'expenses_by_account' | string;
+	status: 'ok' | 'empty' | 'error' | string;
+	detail: string | null;
+};
+
+export type PeriodReport = {
+	book_id: number;
+	date_from: string;
+	date_to: string;
+	currency: string;
+	reporting_basis: 'base_currency_only' | string;
+	includes_currency_conversion: boolean;
+	limitations: string[];
+	partial_failure: boolean;
+	empty: boolean;
+	section_statuses: PeriodReportSectionStatus[];
 	summary: PeriodReportSummary | null;
-	cashflow: PeriodReportCashflow | null;
+	cashflow: CashflowData | null;
+	monthly_cashflow: CashflowPeriod[];
 	expenses_by_account: ExpenseByAccount[];
-	section_errors: PeriodReportSectionErrors;
 };
 
 export type TransactionCreatePreview = {
