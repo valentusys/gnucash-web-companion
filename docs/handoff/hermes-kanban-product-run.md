@@ -1,17 +1,20 @@
 # Hermes Kanban product-development run
 
-Status: **LOCAL_INTEGRATION_PASS; FINAL_GITHUB_CI_PENDING**
+Status: **PASS**
 
 This document records the first production-development run on the dedicated Hermes Kanban board. It does not declare Hermes Kanban the only project workflow and does not replace `scripts/autonomy/supervisor.py`.
 
 ## Environment
 
 - Run start: `2026-07-11T06:09:51Z`.
+- Operational completion: `2026-07-11T10:17:59Z`, after final issue closure.
+- Actual runtime: `14,888` seconds (`4h 8m 8s`).
 - Hermes: `v0.18.2 (2026.7.7.2)`, upstream `4aa499ff`.
 - Board: `gnucash-web-companion-product-dev`.
 - Persistent store: `~/.hermes/kanban/boards/gnucash-web-companion-product-dev/kanban.db`.
 - Baseline: `c345ce1521a19efab63b6a3a1347338889b8af1f`, clean and equal to `origin/main`.
 - Tested final integration head before documentation: `56ec97156a4f9c79f289dba83251cae5c2cb5d58`.
+- Final product/CI head: `e3d4aae3f40ea59d657c0300c8b1e31e45065a9f`.
 - Dispatcher: gateway-embedded. No standalone Kanban daemon or repo-local supervisor run was started.
 
 ## Profiles
@@ -44,13 +47,18 @@ Reasons recorded by PM:
 - Independent QA baseline verdict: **REJECT for closure at that checkpoint**, not because of a product write-safety defect, but because the current worker could not reproduce the browser smoke on the host and CI did not run that browser gate.
 - The run added the existing disposable browser rehearsal to CI and reproduced it locally.
 - Both QA integration gates passed the normal preview-only and explicit synthetic/disposable test-mode browser coverage.
-- Final #51 closure remains pending the first green GitHub CI run containing the new browser gate.
+- The first integration CI run found a real CI-only dependency defect: the frontend job did not install `piecash`, which the disposable drill requires. Commit `e3d4aae` added the backend dependency setup without weakening the drill.
+- Final PM/QA verdict: **ACCEPT**. Final CI with the browser gate passed and #51 was closed as completed.
 
-The checkpoint comment is redacted: <https://github.com/valentusys/gnucash-web-companion/issues/51#issuecomment-4943175533>.
+Redacted evidence:
+
+- checkpoint: <https://github.com/valentusys/gnucash-web-companion/issues/51#issuecomment-4943175533>;
+- final acceptance: <https://github.com/valentusys/gnucash-web-companion/issues/51#issuecomment-4944834883>;
+- closed issue: <https://github.com/valentusys/gnucash-web-companion/issues/51>.
 
 ## Task graph and results
 
-The board recorded ten completed tasks and one superseded archived task.
+The board recorded `11` created tasks, `10` completed tasks, `0` failed tasks, and one superseded archived task.
 
 | Task | Result | Dependency role | Branch |
 |---|---|---|---|
@@ -80,7 +88,7 @@ The run did not stop after the first milestone integration gate. It continued wi
 
 ## Worktrees
 
-Hermes assigned one worktree and branch per task under ignored `.worktrees/<task-id>` paths. Coding workers did not edit `main`. Worktrees were retained through review/integration and are eligible for removal only after final CI and clean/integrated verification.
+Hermes assigned one worktree and branch per task under ignored `.worktrees/<task-id>` paths. Coding workers did not edit `main`. After final CI, every task worktree was verified clean and removed; local audit branches and the durable board history remain.
 
 The final main integration used only:
 
@@ -130,6 +138,8 @@ The frontend CI job now runs:
 - reports browser coverage against the existing build output;
 - dashboard browser coverage against the existing build output.
 
+The first pushed CI run, `29148609359`, failed only in the frontend job because the newly enforced disposable drill could not import `piecash`. This was a genuine missing CI prerequisite rather than a product or safety failure. The frontend job now sets up Python 3.12 and installs the existing backend requirements before running the drill. The replacement run `29148850587` passed all jobs.
+
 ## Source and integration commits
 
 Original worker/source commits included:
@@ -152,6 +162,11 @@ The final integration branch contains the reviewed equivalents:
 - `b6062b3` — honest dashboard section errors;
 - `56ec971` — deterministic reports/dashboard CI gates.
 
+Post-integration commits:
+
+- `03e2d49` — product-run handoff and project status;
+- `e3d4aae` — install backend dependencies for the browser drill in frontend CI.
+
 Cherry-picks applied without Git conflicts. QA added narrow contract-alignment and CI integration commits after independent review.
 
 ## Verification before main merge
@@ -172,6 +187,26 @@ Final QA gate results:
 - non-allowlisted added-line secret matches: 0.
 
 The host `/tmp` quota was insufficient for repeated pytest/browser fixtures. Workers reran the same gates with short clean external temporary directories. Tests were not weakened and dependency/lock files were not changed merely to install worktree dependencies.
+
+## Final main and CI verification
+
+After the fast-forward merge, the orchestrator reran the required gates on `main`:
+
+- full backend: `1115 passed`, 62 existing warnings;
+- frontend check/build, auth, transaction preview, reports, money strings, reports browser, dashboard browser, transaction preview browser, and disposable browser alias: passed;
+- public status, write defaults, markdown readability, tracked hygiene, diff, and Docker Compose checks: passed;
+- first pushed CI: failure in the new browser gate because frontend CI lacked backend dependencies;
+- corrected final CI: **success**, all four jobs green: <https://github.com/valentusys/gnucash-web-companion/actions/runs/29148850587>.
+
+Final operational state after issue closure and cleanup:
+
+- #51: closed as completed;
+- #52: closed as completed;
+- Kanban diagnostics: `[]`;
+- board status: ten `done`, no ready/running/blocked tasks;
+- active/orphan task or supervisor workers: none;
+- `main == origin/main` at `e3d4aae3f40ea59d657c0300c8b1e31e45065a9f` before this documentation-only update;
+- repository clean before this documentation-only update.
 
 ## Safety counters
 
@@ -207,6 +242,7 @@ Synthetic/disposable verification exercised the existing bounded CREATE/PATCH/DE
 
 Compared with the previous repo-local supervisor run:
 
+- Kanban completed ten useful tasks plus one archived dependency correction in `4h 8m 8s`; the earlier supervisor run had higher raw task count, but its tasks were not equivalent in scope, so no like-for-like productivity claim is made.
 - Kanban provided stronger task isolation, durable dependency state, explicit per-attempt history, profile routing, and independent QA worktrees.
 - Recovery was more transparent, but the reclaim/archive redispatch race requires operator care.
 - Integration overhead was higher because dependent cumulative branches needed explicit cherry-pick handoffs and two QA heads.

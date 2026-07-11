@@ -102,9 +102,9 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   [#52](https://github.com/valentusys/gnucash-web-companion/issues/52): an authenticated read-only
   period reports explorer with URL-backed ranges, explicit partial-error states, exact transaction
   drilldowns, EN/RU release-critical copy, mobile/browser coverage, and honest dashboard section
-  failures. Ten useful tasks completed through two QA gates; final GitHub CI and issue closure remain
-  pending. #51 PM acceptance passed, while independent QA deferred closure until the browser rehearsal
-  was added to CI; that gate is now present and locally green. No owner/private/original/working/
+  failures. Ten useful tasks completed through two QA gates. Final GitHub CI is green, and both #51
+  and #52 are closed as completed. #51 PM acceptance passed; independent QA initially deferred closure
+  until the browser rehearsal was added to CI, and that gate now passes in CI. No owner/private/original/working/
   Syncthing/only-copy book was accessed or mutated, reports/dashboard added no writes, and
   `GNUCASH_WRITES_ENABLED=false` remains default. Evidence:
   `docs/handoff/hermes-kanban-product-run.md`.
