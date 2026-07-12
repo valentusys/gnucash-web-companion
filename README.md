@@ -66,11 +66,11 @@ the current write-alpha publication baseline remains Phase 261.
 - **Recently completed owner real-book trial:** #44 completed one owner-approved real-book CREATE trial
   with redacted backup/read-back/audit/reset/probe evidence and manual Desktop verification. #44 is
   closed and is not ongoing mutation approval.
-- **Read-only reports:** #52 is closed after the accepted period reports explorer. #53 now adds
+- **Read-only reports:** #52 is closed after the accepted period reports explorer. #53 adds
   URL-backed previous-period, prior-year, and custom comparisons, Decimal-string total/spending
   changes, honest empty/error/not-comparable states, and exact paired transaction drilldowns.
-  Reporting remains base-currency-only with no FX conversion. The implementation passed product QA
-  and exact-product-head CI; #53 remains open only for final documentation/issue closeout.
+  Reporting remains base-currency-only with no FX conversion. #53 is closed as completed after
+  independent acceptance, exact-product-head CI, and final documentation/issue closeout.
 - **Controlled-write trackers:** #45–#50 remain separate experimental post-MVP evidence/workflow
   boundaries. They do not authorize owner/private DELETE or batch, release publication, or public
   write beta. `GNUCASH_WRITES_ENABLED=false` remains the default.
@@ -83,9 +83,10 @@ the current write-alpha publication baseline remains Phase 261.
   for one staged outside-git copied/restorable target only. It is not a real-book, public-write,
   production, stable, security-audited, or broad GnuCash compatibility claim.
 
-## Current queue map
+## Current status map
 
-- #53: accepted integrated read-only comparison milestone; final docs/status and issue closeout remain.
+- #53: closed as completed for the accepted read-only comparison milestone after independent acceptance,
+  exact-product-head CI, and final documentation/issue closeout.
 - #51 and #52: closed after accepted disposable UI rehearsal and read-only period reports work.
 - #36: closed maintenance boundary. #45–#50 remain separate experimental controlled-write history;
   CREATE/PATCH still require fresh same-context owner/PM approval with exact counts, while DELETE,

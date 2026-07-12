@@ -51,17 +51,18 @@ release docs и handoff-файлах, чтобы этот файл не стан
 - Read-only reports: #52 закрыта после принятого period reports explorer. #53 добавляет URL-backed
   сравнение с предыдущим эквивалентным периодом, тем же периодом прошлого года или custom period,
   Decimal-string изменения totals/spending, честные empty/error/not-comparable states и точные paired
-  transaction drilldowns. Reporting остаётся base-currency-only, без FX conversion. Product QA и
-  exact-product-head CI зелёные; #53 остаётся открытой только до финального docs/issue closeout.
+  transaction drilldowns. Reporting остаётся base-currency-only, без FX conversion. #53 закрыта как
+  completed после independent acceptance, exact-product-head CI и final documentation/issue closeout.
 - Controlled-write trackers #45–#50 остаются отдельными experimental post-MVP boundaries. Они не
   разрешают owner/private DELETE или batch, release publication или public write beta.
   `GNUCASH_WRITES_ENABLED=false` остаётся дефолтом.
 - Недавно завершены: #51 disposable copied-book UI rehearsal, #52 read-only period reports, #22
   compatibility fixtures, #28 markdown readability, #13, #41, #42 и #43.
 
-## Карта открытых очередей
+## Карта текущих статусов
 
-- #53: accepted integrated read-only comparison milestone; остаются final docs/status и issue closeout.
+- #53: закрыта как completed для accepted read-only comparison milestone после independent acceptance,
+  exact-product-head CI и final documentation/issue closeout.
 - #51 и #52 закрыты после принятого disposable UI rehearsal и read-only period reports explorer.
 - #36 закрыта как maintenance boundary. #45–#50 остаются отдельной experimental controlled-write
   историей; CREATE/PATCH требуют fresh same-context owner/PM approval с точными counts, а DELETE,
