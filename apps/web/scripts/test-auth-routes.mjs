@@ -68,8 +68,8 @@ assert.match(
 );
 assert.match(
 	read('src/routes/dashboard/+page.server.ts'),
-	/transactionFilterHref[\s\S]*new URLSearchParams\(\{ limit: '50', offset: '0' \}\)[\s\S]*date_from[\s\S]*cashflowByMonth[\s\S]*expensesByAccount[\s\S]*account_id/s,
-	'dashboard server load must build read-only drilldown URLs from existing transaction filter parameters'
+	/buildTransactionsExplorerUrl[\s\S]*dateFrom: params\.date_from[\s\S]*dateTo: params\.date_to[\s\S]*accountIds[\s\S]*type[\s\S]*cashflowByMonth[\s\S]*expensesByAccount/s,
+	'dashboard server load must build canonical read-only explorer drilldown URLs from exact transaction filter parameters'
 );
 assert.doesNotMatch(
 	read('src/routes/dashboard/+page.server.ts'),
@@ -78,8 +78,8 @@ assert.doesNotMatch(
 );
 assert.match(
 	read('src/routes/dashboard/+page.server.ts'),
-	/expenses\.map\(\(expense\) => \[[\s\S]*transactionFilterHref\(\{ account_id: expense\.account_id, date_from: dateFrom, date_to: dateTo \}\)/s,
-	'dashboard expense drilldowns must preserve URL-filter parity with account_id and the same date range'
+	/expenses\.map\(\(expense\) => \[[\s\S]*transactionFilterHref\(\{ account_ids: expense\.account_id, date_from: dateFrom, date_to: dateTo \}\)/s,
+	'dashboard expense drilldowns must preserve canonical explorer URL-filter parity with account_ids and the same date range'
 );
 assert.match(
 	dashboardPage,
@@ -292,7 +292,7 @@ assert.doesNotMatch(localeSwitcher, /localStorage|sessionStorage/, 'locale switc
 const transactionsServer = read('src/routes/transactions/+page.server.ts');
 assert.match(
 	transactionsServer,
-	/writesEnabled:\s*env\.GNUCASH_WRITES_ENABLED === 'true'/,
+	/const writesEnabled = env\.GNUCASH_WRITES_ENABLED === 'true'[\s\S]*writesEnabled/s,
 	'transactions page must expose writesEnabled only when GNUCASH_WRITES_ENABLED is true'
 );
 for (const requiredPreset of ['This month', 'Last month', 'Year to date', 'Clear dates']) {
@@ -303,17 +303,17 @@ for (const requiredPreset of ['This month', 'Last month', 'Year to date', 'Clear
 }
 assert.match(
 	transactionsServer,
-	/buildTransactionFilterUrl[\s\S]*date_from[\s\S]*date_to[\s\S]*account_id[\s\S]*min_amount[\s\S]*max_amount[\s\S]*transaction_state/s,
-	'date preset URLs must preserve existing non-date transaction filters, including state, while using date_from/date_to query params'
+	/buildExplorerDatePresets[\s\S]*buildTransactionsExplorerUrlFromValue\(filters, \{ dateFrom[\s\S]*dateTo[\s\S]*cursor: '' \}\)/s,
+	'canonical explorer date preset URLs must preserve existing non-date filters and reset cursor pagination'
 );
 assert.match(
 	transactionsServer,
-	/buildClearFiltersUrl[\s\S]*limit[\s\S]*offset[\s\S]*clearFiltersHref:\s*buildClearFiltersUrl/,
-	'transactions server load must expose a clear-all filter URL that resets to the first page without private saved filters'
+	/resetHref = buildTransactionsExplorerUrl\(\)[\s\S]*resetPaginationHref = buildTransactionsExplorerUrl\(\{ \.\.\.stripTransactionsExplorerCursor\(filters\), cursor: '' \}\)/s,
+	'transactions server load must expose canonical reset URLs that clear filters or reset cursor pagination without private saved filters'
 );
 assert.match(
 	transactionsServer,
-	/datePresets:\s*buildDatePresets/,
+	/datePresets:\s*buildExplorerDatePresets/,
 	'transactions server load must return date preset URL data to the page'
 );
 
@@ -609,13 +609,13 @@ for (const filterParam of ['query', 'date_from', 'date_to', 'account_id', 'min_a
 	);
 }
 assert.ok(
-	transactionListPage.includes("/books/${bookId}/transactions/export${qs ? '?' + qs : ''}"),
-	'CSV export URL must include the active filter query string'
+	transactionListPage.includes('href={data.exportCsv.href}') && transactionListPage.includes('data.exportCsv?.enabled'),
+	'CSV export URL must come from server-validated active filter/export state'
 );
 assert.match(
 	transactionListPage,
-	/inline-flex min-h-11 items-center justify-center rounded-xl[\s\S]*href=\{exportCsvUrl\}[\s\S]*href=\{data\.clearFiltersHref\}[\s\S]*inline-flex min-h-11 items-center justify-center/s,
-	'transactions page mobile CTA links must keep CSV export and clear-filter actions at least 44px tall'
+	/inline-flex min-h-11 items-center justify-center rounded-xl[\s\S]*href=\{data\.exportCsv\.href\}[\s\S]*href=\{data\.clearFiltersHref\}[\s\S]*inline-flex min-h-11 items-center justify-center/s,
+	'transactions page mobile CTA links must keep CSV export and legacy clear-filter actions at least 44px tall'
 );
 
 const accountDetailServer = read('src/routes/accounts/[id]/+page.server.ts');

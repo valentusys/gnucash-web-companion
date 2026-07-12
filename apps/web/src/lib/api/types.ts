@@ -61,6 +61,11 @@ export type TransactionSplit = {
 	currency: string;
 };
 
+export type MoneyDTO = {
+	amount: string;
+	currency: string;
+};
+
 export type TransactionListItem = {
 	id: string;
 	date: string;
@@ -70,6 +75,11 @@ export type TransactionListItem = {
 	account_id: string;
 	account_name: string;
 	counter_account_name: string;
+	representative_amount?: MoneyDTO;
+	representative_account?: { id: string; name: string } | null;
+	matched_amount?: MoneyDTO | null;
+	amount_basis?: 'selected_accounts' | 'income' | 'expense' | 'representative_split' | string;
+	matched_account_ids?: string[];
 	is_write_alpha_owned?: boolean;
 };
 
@@ -114,6 +124,29 @@ export type PaginatedTransactions = {
 	limit: number;
 	offset: number;
 	total: number;
+};
+
+export type TransactionExplorerSort = 'date_desc' | 'date_asc' | string;
+
+export type TransactionExplorerScan = {
+	candidate_rows: number;
+	split_rows: number;
+	query_count: number;
+	scan_limited: boolean;
+	exhausted: boolean;
+};
+
+export type TransactionExplorerPage = {
+	items: TransactionListItem[];
+	sort: TransactionExplorerSort;
+	page_size: number;
+	returned_count: number;
+	has_more: boolean;
+	has_previous: boolean;
+	next_cursor: string | null;
+	previous_cursor: string | null;
+	scan: TransactionExplorerScan;
+	limitations: string[];
 };
 
 export type ReportSummary = {

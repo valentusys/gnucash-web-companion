@@ -7,10 +7,12 @@
 	let {
 		transactions,
 		onSelect,
+		detailHref,
 		locale = DEFAULT_LOCALE
 	}: {
 		transactions: TransactionListItem[];
 		onSelect: (id: string) => void;
+		detailHref?: (id: string) => string;
 		locale?: Locale;
 	} = $props();
 </script>
@@ -27,7 +29,11 @@
 		>
 			<div class="flex items-start justify-between gap-3">
 				<div class="min-w-0">
-					<p class="truncate text-sm font-medium" style="color: var(--app-text);">{tx.description || 'No description'}</p>
+					{#if detailHref}
+						<a class="block truncate text-sm font-medium hover:underline" style="color: var(--app-accent);" href={detailHref(tx.id)}>{tx.description || 'No description'}</a>
+					{:else}
+						<p class="truncate text-sm font-medium" style="color: var(--app-text);">{tx.description || 'No description'}</p>
+					{/if}
 					<p class="mt-1 text-xs" style="color: var(--app-muted);">{tx.date}</p>
 					{#if tx.is_write_alpha_owned}
 						<span class="mt-2 inline-flex max-w-full items-center rounded-full px-2 py-0.5 text-xs font-semibold" style="background: #fffbeb; color: #92400e; border: 1px solid #fcd34d;" title={t(locale, 'transactions.writeAlphaHistoryTitle')}>

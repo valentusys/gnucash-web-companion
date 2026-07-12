@@ -8,13 +8,17 @@ import type {
 	CashflowPeriod,
 	TransactionListItem
 } from '$lib/api/types';
+import { buildTransactionsExplorerUrl } from '$lib/transactions/explorer';
 
 function transactionFilterHref(params: Record<string, string>): string {
-	const sp = new URLSearchParams({ limit: '50', offset: '0' });
-	for (const [key, value] of Object.entries(params)) {
-		if (value) sp.set(key, value);
-	}
-	return `/transactions?${sp.toString()}`;
+	return buildTransactionsExplorerUrl({
+		dateFrom: params.date_from,
+		dateTo: params.date_to,
+		accountIds: params.account_ids ? [params.account_ids] : params.account_id ? [params.account_id] : [],
+		type: params.type === 'income' || params.type === 'expense' ? params.type : '',
+		sort: 'date_desc',
+		pageSize: 50
+	});
 }
 
 function monthRange(month: string): { date_from: string; date_to: string } {
@@ -99,15 +103,15 @@ export async function load({ cookies, fetch: fetchFn }: { cookies: any; fetch: a
 
 	const drilldowns: DashboardDrilldownLinks = {
 		recent: transactionFilterHref({}),
-		incomeThisMonth: transactionFilterHref({ date_from: dateFrom, date_to: dateTo }),
-		expensesThisMonth: transactionFilterHref({ date_from: dateFrom, date_to: dateTo }),
+		incomeThisMonth: transactionFilterHref({ date_from: dateFrom, date_to: dateTo, type: 'income' }),
+		expensesThisMonth: transactionFilterHref({ date_from: dateFrom, date_to: dateTo, type: 'expense' }),
 		cashflowByMonth: Object.fromEntries(
 			cashflowPeriods.map((period) => [period.month, transactionFilterHref(monthRange(period.month))])
 		),
 		expensesByAccount: Object.fromEntries(
 			expenses.map((expense) => [
 				expense.account_id,
-				transactionFilterHref({ account_id: expense.account_id, date_from: dateFrom, date_to: dateTo })
+				transactionFilterHref({ account_ids: expense.account_id, date_from: dateFrom, date_to: dateTo })
 			])
 		)
 	};

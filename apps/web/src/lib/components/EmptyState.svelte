@@ -3,7 +3,7 @@
 		title?: string;
 		message?: string;
 		icon?: string;
-		role?: 'status' | 'note';
+		role?: 'status' | 'note' | 'alert';
 		ariaLabel?: string;
 		children?: import('svelte').Snippet;
 	}

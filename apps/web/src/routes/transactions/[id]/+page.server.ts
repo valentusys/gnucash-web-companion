@@ -3,6 +3,7 @@ import { redirect, type Actions } from '@sveltejs/kit';
 import { apiFetch, getAuthToken, getActiveBookContext } from '$lib/api/server';
 import type { TransactionDetail, TransactionWriteResult } from '$lib/api/types';
 import { localeFromCookie } from '$lib/i18n';
+import { safeTransactionsReturnTo } from '$lib/transactions/explorer';
 import type { PageServerLoad } from './$types';
 
 type ApiDeleteResult<T> = {
@@ -36,7 +37,7 @@ function hasDeleteAcknowledgement(formData: FormData): boolean {
 	return String(formData.get('delete_acknowledgement') ?? '') === 'experimental-delete-acknowledged';
 }
 
-export const load: PageServerLoad = async ({ cookies, fetch, params }) => {
+export const load: PageServerLoad = async ({ cookies, fetch, params, url }) => {
 	const token = getAuthToken(cookies);
 	const { activeBook, bookPrefix } = await getActiveBookContext(fetch, cookies, token);
 
@@ -46,7 +47,13 @@ export const load: PageServerLoad = async ({ cookies, fetch, params }) => {
 		token
 	);
 
-	return { transaction, activeBook, locale: localeFromCookie(cookies), writesEnabled: env.GNUCASH_WRITES_ENABLED === 'true' };
+	return {
+		transaction,
+		activeBook,
+		returnTo: safeTransactionsReturnTo(url.searchParams.get('return_to')),
+		locale: localeFromCookie(cookies),
+		writesEnabled: env.GNUCASH_WRITES_ENABLED === 'true'
+	};
 };
 
 export const actions: Actions = {
@@ -63,6 +70,7 @@ export const actions: Actions = {
 			};
 		}
 		const bookId = String(formData.get('book_id') ?? '');
+		const returnTo = safeTransactionsReturnTo(String(formData.get('return_to') ?? ''));
 		const transactionId = params.id;
 		if (!bookId || !transactionId) {
 			return { error: 'Missing book or transaction identifier for delete request.' };
@@ -74,7 +82,7 @@ export const actions: Actions = {
 				token
 			);
 			if (!result.ok) return { error: detailMessage(result.body) };
-			throw redirect(303, '/transactions');
+			throw redirect(303, returnTo);
 		} catch (err) {
 			if (typeof err === 'object' && err !== null && 'status' in err) throw err;
 			return { error: 'API service is unavailable.' };

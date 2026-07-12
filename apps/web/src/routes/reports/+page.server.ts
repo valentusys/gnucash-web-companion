@@ -13,6 +13,7 @@ import type {
 	ReportComparisonMode
 } from '$lib/api/types';
 import { localeFromCookie, t, type Locale } from '$lib/i18n';
+import { buildTransactionsExplorerUrl } from '$lib/transactions/explorer';
 import type { PageServerLoad } from './$types';
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -384,11 +385,14 @@ function buildComparisonModeOptions(period: ReportPeriod, comparison: Comparison
 }
 
 function transactionFilterHref(params: Record<string, string>): string {
-	const sp = new URLSearchParams({ limit: '50', offset: '0' });
-	for (const [key, value] of Object.entries(params)) {
-		if (value) sp.set(key, value);
-	}
-	return `/transactions?${sp.toString()}`;
+	return buildTransactionsExplorerUrl({
+		dateFrom: params.date_from,
+		dateTo: params.date_to,
+		accountIds: params.account_ids ? [params.account_ids] : params.account_id ? [params.account_id] : [],
+		type: params.type === 'income' || params.type === 'expense' ? params.type : '',
+		sort: 'date_desc',
+		pageSize: 50
+	});
 }
 
 function maxIsoDate(left: string, right: string): string {

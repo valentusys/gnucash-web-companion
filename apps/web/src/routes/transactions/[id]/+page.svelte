@@ -16,7 +16,7 @@
 </svelte:head>
 
 <main class="mx-auto max-w-4xl px-4 py-8">
-	<a href="/transactions" class="text-sm font-medium hover:underline" style="color: var(--app-accent);">
+	<a href={data.returnTo ?? '/transactions'} class="text-sm font-medium hover:underline" style="color: var(--app-accent);">
 		← {t(locale, 'transactionDetail.back')}
 	</a>
 
@@ -107,6 +107,7 @@
 				}}
 			>
 				<input type="hidden" name="book_id" value={data.activeBook.id} />
+				<input type="hidden" name="return_to" value={data.returnTo ?? '/transactions'} />
 				<p class="text-sm font-semibold" style="color: #92400e;">{t(locale, 'transactionDetail.deleteTitle')}</p>
 				<p class="mt-2 text-sm" style="color: #92400e;">
 					{t(locale, 'transactionDetail.deleteHelper')}

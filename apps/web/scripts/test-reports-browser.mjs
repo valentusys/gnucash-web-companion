@@ -392,6 +392,22 @@ async function stopProcess(child) {
 	});
 }
 
+function sleep(ms) {
+	return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function removeProfileDir(profileDir) {
+	for (let attempt = 1; attempt <= 5; attempt += 1) {
+		try {
+			rmSync(profileDir, { recursive: true, force: true });
+			return;
+		} catch (error) {
+			if (!['ENOTEMPTY', 'EBUSY', 'EPERM'].includes(error?.code) || attempt === 5) throw error;
+			await sleep(attempt * 250);
+		}
+	}
+}
+
 class CdpClient {
 	constructor(wsUrl) {
 		this.wsUrl = wsUrl;
@@ -625,12 +641,12 @@ async function assertFullComparisonPage(cdp) {
 		}
 	}
 	for (const href of [state.periodHref]) {
-		assertHrefParams(href, '/transactions', { limit: '50', offset: '0', date_from: '2026-07-01', date_to: '2026-07-31' }, 'primary period transaction drilldown');
+		assertHrefParams(href, '/transactions', { sort: 'date_desc', page_size: '50', date_from: '2026-07-01', date_to: '2026-07-31' }, 'primary period transaction drilldown');
 	}
-	assertHrefParams(state.primaryExpenseHref, '/transactions', { limit: '50', offset: '0', account_id: 'expense-rent', date_from: '2026-07-01', date_to: '2026-07-31' }, 'primary expense drilldown');
-	assertHrefParams(state.comparisonExpenseHref, '/transactions', { limit: '50', offset: '0', account_id: 'expense-rent', date_from: '2026-06-01', date_to: '2026-06-30' }, 'comparison expense drilldown');
-	assertHrefParams(state.primaryNotComparableHref, '/transactions', { limit: '50', offset: '0', account_id: 'expense-dining', date_from: '2026-07-01', date_to: '2026-07-31' }, 'row-local not_comparable primary expense drilldown');
-	assertHrefParams(state.comparisonNotComparableHref, '/transactions', { limit: '50', offset: '0', account_id: 'expense-dining', date_from: '2026-06-01', date_to: '2026-06-30' }, 'row-local not_comparable comparison expense drilldown');
+	assertHrefParams(state.primaryExpenseHref, '/transactions', { sort: 'date_desc', page_size: '50', account_ids: 'expense-rent', date_from: '2026-07-01', date_to: '2026-07-31' }, 'primary expense drilldown');
+	assertHrefParams(state.comparisonExpenseHref, '/transactions', { sort: 'date_desc', page_size: '50', account_ids: 'expense-rent', date_from: '2026-06-01', date_to: '2026-06-30' }, 'comparison expense drilldown');
+	assertHrefParams(state.primaryNotComparableHref, '/transactions', { sort: 'date_desc', page_size: '50', account_ids: 'expense-dining', date_from: '2026-07-01', date_to: '2026-07-31' }, 'row-local not_comparable primary expense drilldown');
+	assertHrefParams(state.comparisonNotComparableHref, '/transactions', { sort: 'date_desc', page_size: '50', account_ids: 'expense-dining', date_from: '2026-06-01', date_to: '2026-06-30' }, 'row-local not_comparable comparison expense drilldown');
 }
 
 async function runSmoke() {
@@ -842,7 +858,7 @@ async function runSmoke() {
 		await stopProcess(chromiumProcess);
 		await stopProcess(webProcess);
 		await api.close();
-		rmSync(profileDir, { recursive: true, force: true });
+		await removeProfileDir(profileDir);
 	}
 }
 

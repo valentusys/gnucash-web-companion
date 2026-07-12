@@ -403,6 +403,65 @@ export type MessageKey =
 	| 'transactions.listStatus.filtersApplied'
 	| 'transactions.listStatus.noFilters'
 	| 'transactions.listStatus.exportParity'
+	| 'transactions.explorer.formHelp'
+	| 'transactions.explorer.datePresetHelp'
+	| 'transactions.explorer.dateTextLegend'
+	| 'transactions.explorer.scopeLegend'
+	| 'transactions.explorer.scopeHelp'
+	| 'transactions.explorer.accountIds'
+	| 'transactions.explorer.accountIdsHelp'
+	| 'transactions.explorer.accountOptionsLimited'
+	| 'transactions.explorer.accountsDisabledByType'
+	| 'transactions.explorer.type'
+	| 'transactions.explorer.typeAny'
+	| 'transactions.explorer.typeIncome'
+	| 'transactions.explorer.typeExpense'
+	| 'transactions.explorer.direction'
+	| 'transactions.explorer.directionAny'
+	| 'transactions.explorer.directionIncrease'
+	| 'transactions.explorer.directionDecrease'
+	| 'transactions.explorer.directionHelp'
+	| 'transactions.explorer.amountPagingLegend'
+	| 'transactions.explorer.amountPagingHelp'
+	| 'transactions.explorer.sort'
+	| 'transactions.explorer.sortDateDesc'
+	| 'transactions.explorer.sortDateAsc'
+	| 'transactions.explorer.pageSize'
+	| 'transactions.explorer.reset'
+	| 'transactions.explorer.removeFilter'
+	| 'transactions.explorer.cursorChip'
+	| 'transactions.explorer.readyTitle'
+	| 'transactions.explorer.readyMessage'
+	| 'transactions.explorer.trueEmptyTitle'
+	| 'transactions.explorer.trueEmptyMessage'
+	| 'transactions.explorer.scanWindowEmptyTitle'
+	| 'transactions.explorer.scanWindowEmptyMessage'
+	| 'transactions.explorer.scanLimitedTitle'
+	| 'transactions.explorer.scanLimitedMessage'
+	| 'transactions.explorer.endTitle'
+	| 'transactions.explorer.endMessage'
+	| 'transactions.explorer.invalidFilterTitle'
+	| 'transactions.explorer.invalidFilterMessage'
+	| 'transactions.explorer.staleCursorTitle'
+	| 'transactions.explorer.staleCursorMessage'
+	| 'transactions.explorer.loadFailedTitle'
+	| 'transactions.explorer.loadFailedMessage'
+	| 'transactions.explorer.unknownFailureTitle'
+	| 'transactions.explorer.unknownFailureMessage'
+	| 'transactions.explorer.legacyCompatibility'
+	| 'transactions.explorer.legacyOffsetConflict'
+	| 'transactions.explorer.returnedStatus'
+	| 'transactions.explorer.filtersApplied'
+	| 'transactions.explorer.noFilters'
+	| 'transactions.explorer.order'
+	| 'transactions.explorer.noTotal'
+	| 'transactions.explorer.limitationsTitle'
+	| 'transactions.explorer.resetPagination'
+	| 'transactions.explorer.paginationLabel'
+	| 'transactions.explorer.cursorPagination'
+	| 'transactions.explorer.previous'
+	| 'transactions.explorer.next'
+	| 'transactions.explorer.continue'
 	| 'transactions.writeAlphaHistoryBadge'
 	| 'transactions.writeAlphaHistoryTitle'
 	| 'transactions.listStatus.writeAlphaHint'
@@ -419,6 +478,8 @@ export type MessageKey =
 	| 'transactions.export.accountButton'
 	| 'transactions.export.accountButtonWithFilters'
 	| 'transactions.export.accountStatus'
+	| 'transactions.export.explorerDisabled'
+	| 'transactions.export.explorerHonesty'
 	| 'scheduled.title'
 	| 'scheduled.kicker'
 	| 'scheduled.subtitle'
@@ -915,6 +976,66 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'transactions.listStatus.filtersApplied': '{count} active {filterLabel}; the list, pagination, and CSV export use the same URL filters.',
 		'transactions.listStatus.noFilters': 'No transaction filters are active; CSV export uses the current unfiltered read-only view.',
 		'transactions.listStatus.exportParity': 'CSV export ignores page offset, starts from the first matching row, and is capped at 10,000 rows.',
+		'transactions.explorer.formHelp':
+			'URL is the source of truth. The form submits a real GET request to /transactions; changing filters, sort, or page_size clears any cursor.',
+		'transactions.explorer.datePresetHelp': 'Presets set paired date_from/date_to values and keep the canonical explorer cursor cleared.',
+		'transactions.explorer.dateTextLegend': 'Dates, text, and state',
+		'transactions.explorer.scopeLegend': 'Account or type scope',
+		'transactions.explorer.scopeHelp': 'Choose up to 20 accounts, or choose income/expense type mode. These modes are mutually exclusive.',
+		'transactions.explorer.accountIds': 'Accounts (up to 20)',
+		'transactions.explorer.accountIdsHelp': 'Hold Ctrl/Cmd to select multiple accounts. Amount and direction use the exact selected-account split sum.',
+		'transactions.explorer.accountOptionsLimited': 'Only the first bounded account options are shown; paste a canonical account_ids URL for rarer accounts.',
+		'transactions.explorer.accountsDisabledByType': 'Account selection is disabled while income/expense type mode is active.',
+		'transactions.explorer.type': 'Type mode',
+		'transactions.explorer.typeAny': 'No type mode',
+		'transactions.explorer.typeIncome': 'Income',
+		'transactions.explorer.typeExpense': 'Expense',
+		'transactions.explorer.direction': 'Direction',
+		'transactions.explorer.directionAny': 'Any direction',
+		'transactions.explorer.directionIncrease': 'Increase selected accounts',
+		'transactions.explorer.directionDecrease': 'Decrease selected accounts',
+		'transactions.explorer.directionHelp': 'Direction is available only with account_ids; it is not combined with income/expense type mode.',
+		'transactions.explorer.amountPagingLegend': 'Exact amount and pagination controls',
+		'transactions.explorer.amountPagingHelp': 'Amount filters require account_ids or type mode, use canonical Decimal strings, and never use float arithmetic. page_size accepts 1–100.',
+		'transactions.explorer.sort': 'Sort',
+		'transactions.explorer.sortDateDesc': 'Newest first',
+		'transactions.explorer.sortDateAsc': 'Oldest first',
+		'transactions.explorer.pageSize': 'Page size',
+		'transactions.explorer.reset': 'Reset explorer',
+		'transactions.explorer.removeFilter': 'Remove filter',
+		'transactions.explorer.cursorChip': 'Pagination cursor active',
+		'transactions.explorer.readyTitle': 'Explorer page loaded',
+		'transactions.explorer.readyMessage': 'The explorer returned a bounded cursor page for the active filters.',
+		'transactions.explorer.trueEmptyTitle': 'No transactions match these exact filters',
+		'transactions.explorer.trueEmptyMessage': 'The explorer reached a true empty result for this URL. Clear filters or broaden the date/account/type/search scope.',
+		'transactions.explorer.scanWindowEmptyTitle': 'No rows in this scan window',
+		'transactions.explorer.scanWindowEmptyMessage': 'The backend stopped at a bounded scan window before proving the full result set. Continue pagination or narrow filters.',
+		'transactions.explorer.scanLimitedTitle': 'Partial bounded scan',
+		'transactions.explorer.scanLimitedMessage': 'This page is valid but scan-limited. Continue with the opaque cursor or narrow filters for a tighter window.',
+		'transactions.explorer.endTitle': 'End of cursor results',
+		'transactions.explorer.endMessage': 'No additional rows were returned for this cursor. Reset pagination to the first page or change filters.',
+		'transactions.explorer.invalidFilterTitle': 'Invalid explorer filters',
+		'transactions.explorer.invalidFilterMessage': 'The explorer rejected this filter combination before any transaction page was rendered. Fix the URL or reset filters.',
+		'transactions.explorer.staleCursorTitle': 'Pagination cursor is stale',
+		'transactions.explorer.staleCursorMessage': 'The opaque cursor no longer matches the filters or signing window. Reset pagination and retry.',
+		'transactions.explorer.loadFailedTitle': 'Transactions explorer failed',
+		'transactions.explorer.loadFailedMessage': 'The read-only explorer request failed safely. Backend details, paths, and private sentinels were redacted.',
+		'transactions.explorer.unknownFailureTitle': 'Transactions explorer unavailable',
+		'transactions.explorer.unknownFailureMessage': 'The API returned an unsupported failure shape. Unknown backend details were redacted.',
+		'transactions.explorer.legacyCompatibility': 'Legacy /transactions URL compatibility mode is active for account_id, limit/offset, or one-sided date parameters. New explorer links use account_ids, page_size, and cursor.',
+		'transactions.explorer.legacyOffsetConflict': 'Legacy offset pagination cannot be mixed with advanced explorer fields. Remove offset or reset to the canonical explorer URL.',
+		'transactions.explorer.returnedStatus': 'Returned {count} row(s) on this cursor page; requested page_size={pageSize}.',
+		'transactions.explorer.filtersApplied': '{count} active {filterLabel}; the URL, form, detail return link, and cursor pagination all preserve them.',
+		'transactions.explorer.noFilters': 'No advanced explorer filters are active; the URL still records sort and page_size.',
+		'transactions.explorer.order': 'Sorted by {sort}; transaction date plus GUID is the stable cursor key.',
+		'transactions.explorer.noTotal': 'No total count or page number is fabricated; navigation uses opaque Previous/Next/Continue cursors only.',
+		'transactions.explorer.limitationsTitle': 'Explorer limitations',
+		'transactions.explorer.resetPagination': 'Reset pagination',
+		'transactions.explorer.paginationLabel': 'Transactions explorer cursor pagination',
+		'transactions.explorer.cursorPagination': 'Cursor pagination: no page numbers or fabricated totals.',
+		'transactions.explorer.previous': 'Previous',
+		'transactions.explorer.next': 'Next',
+		'transactions.explorer.continue': 'Continue',
 		'transactions.writeAlphaHistoryBadge': 'write-alpha-created',
 		'transactions.writeAlphaHistoryTitle':
 			'Created by write-alpha app metadata. Synthetic/disposable history hint only; backend ownership guards remain authoritative.',
@@ -940,6 +1061,10 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'transactions.export.accountButtonWithFilters': 'Export account CSV ({count} {filterLabel})',
 		'transactions.export.accountStatus':
 			'Exports this account-scoped read-only filtered view with the same search/date/amount/state filters.',
+		'transactions.export.explorerDisabled':
+			'CSV export is disabled for advanced explorer filters because exact legacy CSV parity is not proved for account_ids, type, direction, query, cursor, and scan-limited pages.',
+		'transactions.export.explorerHonesty':
+			'Use legacy account_id/limit URLs for the existing CSV endpoint; advanced explorer CSV remains disabled until exact parity is implemented.',
 		'scheduled.title': 'Scheduled transactions',
 		'scheduled.kicker': 'Read-only scheduled transaction awareness',
 		'scheduled.subtitle':
@@ -1440,6 +1565,66 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'transactions.listStatus.filtersApplied': '{count} активных {filterLabel}; список, пагинация и CSV export используют те же URL-фильтры.',
 		'transactions.listStatus.noFilters': 'Активных фильтров транзакций нет; CSV export использует текущий нефильтрованный read-only вид.',
 		'transactions.listStatus.exportParity': 'CSV export игнорирует page offset, начинает с первой подходящей строки и ограничен 10 000 строк.',
+		'transactions.explorer.formHelp':
+			'URL — источник истины. Форма отправляет настоящий GET на /transactions; изменение фильтров, sort или page_size сбрасывает cursor.',
+		'transactions.explorer.datePresetHelp': 'Быстрые даты задают парные date_from/date_to и сбрасывают cursor canonical explorer.',
+		'transactions.explorer.dateTextLegend': 'Даты, текст и состояние',
+		'transactions.explorer.scopeLegend': 'Счета или type scope',
+		'transactions.explorer.scopeHelp': 'Выберите до 20 счетов или режим income/expense. Эти режимы взаимоисключающие.',
+		'transactions.explorer.accountIds': 'Счета (до 20)',
+		'transactions.explorer.accountIdsHelp': 'Ctrl/Cmd выбирает несколько счетов. Amount и direction используют точную сумму split выбранных счетов.',
+		'transactions.explorer.accountOptionsLimited': 'Показан только ограниченный список счетов; для редких счетов используйте canonical URL с account_ids.',
+		'transactions.explorer.accountsDisabledByType': 'Выбор счетов отключён, пока активен режим income/expense.',
+		'transactions.explorer.type': 'Type mode',
+		'transactions.explorer.typeAny': 'Без type mode',
+		'transactions.explorer.typeIncome': 'Доходы',
+		'transactions.explorer.typeExpense': 'Расходы',
+		'transactions.explorer.direction': 'Direction',
+		'transactions.explorer.directionAny': 'Любое направление',
+		'transactions.explorer.directionIncrease': 'Увеличение выбранных счетов',
+		'transactions.explorer.directionDecrease': 'Уменьшение выбранных счетов',
+		'transactions.explorer.directionHelp': 'Direction доступен только с account_ids; он не совмещается с income/expense type mode.',
+		'transactions.explorer.amountPagingLegend': 'Точная сумма и pagination controls',
+		'transactions.explorer.amountPagingHelp': 'Amount filters требуют account_ids или type mode, используют canonical Decimal strings и не используют float arithmetic. page_size принимает 1–100.',
+		'transactions.explorer.sort': 'Сортировка',
+		'transactions.explorer.sortDateDesc': 'Новые сначала',
+		'transactions.explorer.sortDateAsc': 'Старые сначала',
+		'transactions.explorer.pageSize': 'Размер страницы',
+		'transactions.explorer.reset': 'Сбросить explorer',
+		'transactions.explorer.removeFilter': 'Убрать фильтр',
+		'transactions.explorer.cursorChip': 'Активен cursor пагинации',
+		'transactions.explorer.readyTitle': 'Страница explorer загружена',
+		'transactions.explorer.readyMessage': 'Explorer вернул ограниченную cursor page для активных фильтров.',
+		'transactions.explorer.trueEmptyTitle': 'Нет транзакций для этих точных фильтров',
+		'transactions.explorer.trueEmptyMessage': 'Explorer доказал пустой результат для этого URL. Сбросьте фильтры или расширьте даты/счета/type/search.',
+		'transactions.explorer.scanWindowEmptyTitle': 'В этом scan window нет строк',
+		'transactions.explorer.scanWindowEmptyMessage': 'Backend остановился на bounded scan window до полного доказательства результата. Продолжите pagination или сузьте фильтры.',
+		'transactions.explorer.scanLimitedTitle': 'Частичный bounded scan',
+		'transactions.explorer.scanLimitedMessage': 'Эта страница валидна, но scan-limited. Продолжите opaque cursor или сузьте фильтры.',
+		'transactions.explorer.endTitle': 'Конец cursor results',
+		'transactions.explorer.endMessage': 'Для этого cursor дополнительных строк не вернулось. Сбросьте pagination на первую страницу или измените фильтры.',
+		'transactions.explorer.invalidFilterTitle': 'Некорректные фильтры explorer',
+		'transactions.explorer.invalidFilterMessage': 'Explorer отклонил комбинацию фильтров до рендера страницы транзакций. Исправьте URL или сбросьте фильтры.',
+		'transactions.explorer.staleCursorTitle': 'Cursor пагинации устарел',
+		'transactions.explorer.staleCursorMessage': 'Opaque cursor больше не соответствует фильтрам или signing window. Сбросьте pagination и повторите.',
+		'transactions.explorer.loadFailedTitle': 'Transactions explorer завершился ошибкой',
+		'transactions.explorer.loadFailedMessage': 'Read-only explorer request безопасно завершился ошибкой. Backend details, paths и private sentinels скрыты.',
+		'transactions.explorer.unknownFailureTitle': 'Transactions explorer недоступен',
+		'transactions.explorer.unknownFailureMessage': 'API вернул неподдержанную форму ошибки. Неизвестные backend details скрыты.',
+		'transactions.explorer.legacyCompatibility': 'Активен legacy compatibility mode для /transactions URL с account_id, limit/offset или one-sided date параметрами. Новые explorer ссылки используют account_ids, page_size и cursor.',
+		'transactions.explorer.legacyOffsetConflict': 'Legacy offset pagination нельзя смешивать с advanced explorer fields. Уберите offset или сбросьте canonical explorer URL.',
+		'transactions.explorer.returnedStatus': 'Вернулось {count} строк(и) на этой cursor page; запрошено page_size={pageSize}.',
+		'transactions.explorer.filtersApplied': '{count} активных {filterLabel}; URL, форма, return link деталей и cursor pagination сохраняют их.',
+		'transactions.explorer.noFilters': 'Advanced explorer filters не активны; URL всё равно фиксирует sort и page_size.',
+		'transactions.explorer.order': 'Сортировка {sort}; date транзакции плюс GUID — стабильный cursor key.',
+		'transactions.explorer.noTotal': 'Total count и номер страницы не придумываются; навигация использует только opaque Previous/Next/Continue cursors.',
+		'transactions.explorer.limitationsTitle': 'Ограничения explorer',
+		'transactions.explorer.resetPagination': 'Сбросить pagination',
+		'transactions.explorer.paginationLabel': 'Cursor pagination transactions explorer',
+		'transactions.explorer.cursorPagination': 'Cursor pagination: без page numbers и fabricated totals.',
+		'transactions.explorer.previous': 'Назад',
+		'transactions.explorer.next': 'Вперёд',
+		'transactions.explorer.continue': 'Продолжить',
 		'transactions.writeAlphaHistoryBadge': 'write-alpha-created',
 		'transactions.writeAlphaHistoryTitle':
 			'Создано по app metadata write-alpha. Это только synthetic/disposable подсказка истории; backend ownership guards остаются главным enforcement.',
@@ -1465,6 +1650,10 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'transactions.export.accountButtonWithFilters': 'Экспорт CSV по счёту ({count} {filterLabel})',
 		'transactions.export.accountStatus':
 			'Экспортирует read-only отфильтрованный вид в рамках этого счёта с теми же фильтрами поиска/дат/сумм/состояния.',
+		'transactions.export.explorerDisabled':
+			'CSV export отключён для advanced explorer filters, потому что exact legacy CSV parity не доказана для account_ids, type, direction, query, cursor и scan-limited pages.',
+		'transactions.export.explorerHonesty':
+			'Используйте legacy account_id/limit URLs для существующего CSV endpoint; advanced explorer CSV остаётся отключённым до exact parity.',
 		'scheduled.title': 'Плановые транзакции',
 		'scheduled.kicker': 'Read-only просмотр плановых транзакций',
 		'scheduled.subtitle':
