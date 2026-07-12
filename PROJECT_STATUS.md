@@ -1,6 +1,6 @@
 # PROJECT_STATUS
 
-Last updated: 2026-07-11
+Last updated: 2026-07-12
 
 ## Quick navigation
 
@@ -16,33 +16,24 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
 - Current safety posture: writes are disabled by default; see
   [docs/write-alpha/copied-book-write-alpha-posture.md](docs/write-alpha/copied-book-write-alpha-posture.md)
   for controlled-write boundaries.
-- Active issue queue:
-  [#36](https://github.com/valentusys/gnucash-web-companion/issues/36) is closed as
-  `CLOSE_36_AS_MAINTENANCE_BOUNDARY`; no open-ended controlled-write maintenance queue remains.
-  [#44](https://github.com/valentusys/gnucash-web-companion/issues/44) completed the first owner
-  real-book CREATE trial and is closed as successful-trial evidence, not ongoing mutation approval.
-  Current trackers are [#45](https://github.com/valentusys/gnucash-web-companion/issues/45),
-  Owner real-book CREATE-only operating mode, [#46](https://github.com/valentusys/gnucash-web-companion/issues/46),
-  Owner real-book PATCH app-created transaction trial,
-  [#47](https://github.com/valentusys/gnucash-web-companion/issues/47), Owner real-book CREATE + PATCH
-  app-created metadata-only operating mode,
-  [#48](https://github.com/valentusys/gnucash-web-companion/issues/48), Owner web transaction-entry UI for
-  CREATE + optional PATCH app-created metadata,
-  [#49](https://github.com/valentusys/gnucash-web-companion/issues/49), Owner web UI CREATE execution trial,
-  [#50](https://github.com/valentusys/gnucash-web-companion/issues/50), Disposable copied-book web UI CREATE drill, and
-  [#51](https://github.com/valentusys/gnucash-web-companion/issues/51), Disposable copied-book UI execution rehearsal.
-  #45 remains the CREATE-only tracker, #46 remains the PATCH app-created metadata-only boundary/evidence
-  tracker, #47 remains the active mixed CREATE + PATCH app-created metadata-only operating-mode tracker after
-  the owner-verified first mixed session, #48 remains open as the sufficiently validated non-mutating
-  preview-only owner web transaction-entry UI evidence tracker, #49 remains the non-mutating owner web UI
-  CREATE execution-shell tracker, #50 completed disposable/synthetic routed write drill evidence with CREATE/PATCH/
-  DELETE exercised only on synthetic/disposable fixtures, and #51 is the next recommended disposable copied-book UI
-  execution rehearsal tracker. Owner/private/original/working/Syncthing books stayed untouched, `GNUCASH_WRITES_ENABLED=false`
-  remains default, and none of these issues are historical/manual/non-owned DELETE approval, release approval, public write
-  beta approval, or stable/production-ready/security-audited claims.
+- Current product issue:
+  [#53](https://github.com/valentusys/gnucash-web-companion/issues/53) has an accepted integrated
+  read-only period comparison implementation at exact product head `3b094cd`; it remains open pending
+  the final documentation QA, exact-head docs CI, and factual issue closeout.
+- Recently completed product issues:
+  [#51](https://github.com/valentusys/gnucash-web-companion/issues/51) and
+  [#52](https://github.com/valentusys/gnucash-web-companion/issues/52) are closed as completed.
+- Controlled-write boundary: [#36](https://github.com/valentusys/gnucash-web-companion/issues/36)
+  is closed as `CLOSE_36_AS_MAINTENANCE_BOUNDARY`. Trackers #45–#50 remain separate experimental
+  evidence/workflow history; they do not authorize owner/private DELETE or batch, release publication,
+  a public write beta, or stable/production-ready/security-audited claims.
+  Owner/private/original/working/Syncthing books were not accessed in product run 2, and
+  `GNUCASH_WRITES_ENABLED=false` remains default.
+- Closed documentation/compatibility queues:
   [#22](https://github.com/valentusys/gnucash-web-companion/issues/22) and
-  [#28](https://github.com/valentusys/gnucash-web-companion/issues/28) are closed.
-- Latest handoffs/docs: `docs/handoff/issue51-disposable-ui-execution-rehearsal.md`,
+  [#28](https://github.com/valentusys/gnucash-web-companion/issues/28).
+- Latest handoffs/docs: `docs/handoff/hermes-kanban-product-run-2.md`,
+  `docs/handoff/issue51-disposable-ui-execution-rehearsal.md`,
   `docs/handoff/hermes-kanban-product-run.md`,
   `docs/handoff/issue51-delete-app-owned-ui-rehearsal.md`,
   `docs/handoff/issue50-disposable-copied-book-create-drill.md`,
@@ -97,6 +88,16 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
 
 ## Current status snapshot
 
+- The second Hermes Kanban product run accepted issue #53 at exact product head
+  `3b094cdb318c017b9a607abe87f98326e8a6ab2b`. `/reports` now compares a primary period with the
+  previous equivalent period, the same period last year, or a custom period; keeps state in the URL;
+  renders Decimal-string total and spending changes; distinguishes empty/error/not-comparable states;
+  and provides exact paired transaction drilldowns. Reporting remains base-currency-only with no FX
+  conversion. QA gate 2 passed 270 focused and 1134 full backend tests, the full frontend/static/build/
+  browser matrix, root safety/hygiene gates, and exact-product-head GitHub CI. Local generated-only
+  `TestClient` evidence improved the 10k comparison median from 26003.68 ms to 5948.77 ms, but makes
+  no production performance claim. Issue #53 stays open until docs QA and issue closeout. Evidence:
+  `docs/handoff/hermes-kanban-product-run-2.md`.
 - The first production-development Hermes Kanban run used the dedicated
   `gnucash-web-companion-product-dev` board and produced a locally green tested integration head for
   [#52](https://github.com/valentusys/gnucash-web-companion/issues/52): an authenticated read-only
@@ -167,7 +168,8 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   claims. No release was published; `NO_RELEASE` remains current. #50 completed the disposable copied-book
   routed write drill evidence: CREATE/PATCH/DELETE were exercised only on synthetic/disposable fixtures,
   owner/private/original/working/Syncthing books stayed untouched, and `GNUCASH_WRITES_ENABLED=false` remains
-  default. #51 is the next recommended disposable copied-book UI execution rehearsal tracker.
+  default. #51 later completed its disposable copied-book UI execution rehearsal, #52 completed the
+  read-only period reports explorer, and #53 is the current read-only comparison closeout tracker.
   Current HEAD contains synthetic/disposable fixture-only coverage for fail-closed target preflight, routed
   CREATE with backup/read-back/audit/ownership/lock evidence, read-only reopen/balance verification,
   default-disabled route-family probes, failure drills, explicit synthetic web CREATE harness boundaries,

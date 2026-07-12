@@ -4,8 +4,8 @@
 > experimentation, but it is not feature-complete, audited, or production-ready.
 
 A modern, self-hosted web companion for existing [GnuCash](https://www.gnucash.org/) books. It is
-designed to browse accounts, transactions, dashboards, and basic reports in a browser while keeping
-GnuCash Desktop as the authoritative editor.
+designed to browse accounts, transactions, dashboards, period reports, and read-only period
+comparisons in a browser while keeping GnuCash Desktop as the authoritative editor.
 
 Short pitch: **read-only browser/mobile visibility for existing GnuCash SQL books, without turning
 the web app into the authoritative accounting editor.**
@@ -66,17 +66,16 @@ the current write-alpha publication baseline remains Phase 261.
 - **Recently completed owner real-book trial:** #44 completed one owner-approved real-book CREATE trial
   with redacted backup/read-back/audit/reset/probe evidence and manual Desktop verification. #44 is
   closed and is not ongoing mutation approval.
-- **Current active issues:** #45 remains the CREATE-only tracker. #46 remains the PATCH app-created
-  metadata-only boundary/evidence tracker. #47 is the active mixed CREATE + PATCH app-created metadata-only
-  operating-mode tracker after an owner-verified first mixed session. #48 remains open as the sufficiently
-  validated non-mutating preview-only owner web transaction-entry UI evidence tracker. #49 records the
-  non-mutating owner web UI CREATE execution shell. #50 completed disposable/synthetic routed write drill
-  evidence: CREATE/PATCH/DELETE were exercised only on synthetic/disposable fixtures; owner/private/original/
-  working/Syncthing books stayed untouched; `GNUCASH_WRITES_ENABLED=false` remains the default; and no public
-  write beta, release, stable, production-ready, or security-audited claim is made. #51 is the next recommended
-  disposable copied-book UI execution rehearsal tracker. None are mutation approval by themselves, DELETE/batch
-  approval for owner/private books, release approval, or public write beta approval.
-- **Recently closed:** #22 compatibility fixtures, #28 Markdown readability, #13, #41, #42, and #43.
+- **Read-only reports:** #52 is closed after the accepted period reports explorer. #53 now adds
+  URL-backed previous-period, prior-year, and custom comparisons, Decimal-string total/spending
+  changes, honest empty/error/not-comparable states, and exact paired transaction drilldowns.
+  Reporting remains base-currency-only with no FX conversion. The implementation passed product QA
+  and exact-product-head CI; #53 remains open only for final documentation/issue closeout.
+- **Controlled-write trackers:** #45–#50 remain separate experimental post-MVP evidence/workflow
+  boundaries. They do not authorize owner/private DELETE or batch, release publication, or public
+  write beta. `GNUCASH_WRITES_ENABLED=false` remains the default.
+- **Recently completed:** #51 disposable copied-book UI execution rehearsal and #52 read-only period
+  reports explorer, plus #22 compatibility fixtures, #28 Markdown readability, #13, #41, #42, and #43.
 - **Issue #22 closure:** accepted narrowly for one isolated GnuCash 5.14
   Desktop-generated synthetic SQLite fixture only. It is not a broad Desktop-version, SQL-backend,
   real-book, or write-compatibility claim.
@@ -86,19 +85,11 @@ the current write-alpha publication baseline remains Phase 261.
 
 ## Current queue map
 
-- #36 controlled-write readiness: closed as `CLOSE_36_AS_MAINTENANCE_BOUNDARY`; no open-ended
-  maintenance queue remains. #44 Owner real-book trial safety model is closed after one successful
-  owner-approved CREATE trial and manual Desktop verification. #45 and #46 record owner-verified CREATE-only
-  and PATCH app-created metadata-only test-copy evidence. #47 is the active owner-only mixed CREATE + PATCH
-  app-created metadata-only operating-mode tracker after the owner-verified first mixed session. #48 remains open
-  as the sufficiently validated preview-only owner web transaction-entry UI evidence tracker. #49 records the
-  non-mutating owner web UI CREATE execution shell. #50 completed disposable/synthetic routed write drill evidence
-  only: CREATE/PATCH/DELETE were exercised on synthetic/disposable fixtures, owner/private/original/working/
-  Syncthing books stayed untouched, and `GNUCASH_WRITES_ENABLED=false` remains default. #51 is the next
-  recommended disposable copied-book UI execution rehearsal tracker. Compact text/CSV-like input is local/debug-
-  helper only, not the main user-facing product workflow. CREATE/PATCH remain unauthorized for owner/private
-  books until fresh same-context owner/PM approval with exact counts; DELETE, batch, amount/account/split/date/
-  currency/balance-affecting changes, release, and public write beta remain forbidden.
+- #53: accepted integrated read-only comparison milestone; final docs/status and issue closeout remain.
+- #51 and #52: closed after accepted disposable UI rehearsal and read-only period reports work.
+- #36: closed maintenance boundary. #45–#50 remain separate experimental controlled-write history;
+  CREATE/PATCH still require fresh same-context owner/PM approval with exact counts, while DELETE,
+  batch, release, public write beta, and broad write-safety claims remain forbidden.
 - #22 compatibility fixtures: closed narrowly for isolated Desktop-generated synthetic SQLite read-only
   evidence only; future Desktop/backend/version fixture expansion remains separate work.
 - #28 Markdown readability: closed after terminal-readability/status guard cleanup.

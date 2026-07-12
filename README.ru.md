@@ -5,7 +5,8 @@
 
 `gnucash-web-companion` — self-hosted web companion для существующих GnuCash SQL books. Цель
 текущего MVP — безопасный read-only просмотр в браузере/на мобильном устройстве, пока GnuCash
-Desktop остаётся главным редактором.
+Desktop остаётся главным редактором. `/reports` включает period reports и read-only сравнение
+периодов без FX-конвертации.
 
 ## Что это
 
@@ -47,33 +48,24 @@ release docs и handoff-файлах, чтобы этот файл не стан
   maintenance evidence only, не approval для real-book mutation.
 - #44 Owner real-book trial safety model закрыта после одного успешного owner-approved real-book
   CREATE trial и manual Desktop verification; это не ongoing mutation approval.
-- Current active issues: #45 remains the CREATE-only tracker. #46 remains the PATCH app-created
-  metadata-only boundary/evidence tracker. #47 is the active mixed CREATE + PATCH app-created metadata-only
-  operating-mode tracker after an owner-verified first mixed session. #48 remains open as the sufficiently
-  validated non-mutating preview-only owner web transaction-entry UI evidence tracker. #49 records the
-  non-mutating owner web UI CREATE execution shell. #50 completed disposable/synthetic routed write drill evidence:
-  CREATE/PATCH/DELETE были выполнены только на synthetic/disposable fixtures; owner/private/original/working/
-  Syncthing books не трогались; `GNUCASH_WRITES_ENABLED=false` остаётся дефолтом; public write beta/release/stable/
-  security-audited claim нет. #51 is the next recommended disposable copied-book UI execution rehearsal tracker.
-  None are mutation approval by themselves, DELETE/batch approval for owner/private books, release approval, or
-  public write beta approval.
-- Недавно закрытые очереди: #22 compatibility fixtures, #28 markdown readability, #13, #41, #42, #43.
+- Read-only reports: #52 закрыта после принятого period reports explorer. #53 добавляет URL-backed
+  сравнение с предыдущим эквивалентным периодом, тем же периодом прошлого года или custom period,
+  Decimal-string изменения totals/spending, честные empty/error/not-comparable states и точные paired
+  transaction drilldowns. Reporting остаётся base-currency-only, без FX conversion. Product QA и
+  exact-product-head CI зелёные; #53 остаётся открытой только до финального docs/issue closeout.
+- Controlled-write trackers #45–#50 остаются отдельными experimental post-MVP boundaries. Они не
+  разрешают owner/private DELETE или batch, release publication или public write beta.
+  `GNUCASH_WRITES_ENABLED=false` остаётся дефолтом.
+- Недавно завершены: #51 disposable copied-book UI rehearsal, #52 read-only period reports, #22
+  compatibility fixtures, #28 markdown readability, #13, #41, #42 и #43.
 
 ## Карта открытых очередей
 
-- #36: controlled-write readiness закрыта как `CLOSE_36_AS_MAINTENANCE_BOUNDARY`; open-ended
-  maintenance queue больше нет. #44 Owner real-book trial safety model закрыта после одного успешного
-  owner-approved CREATE trial и manual Desktop verification. #45 and #46 record owner-verified CREATE-only
-  and PATCH app-created metadata-only test-copy evidence. #47 is the active owner-only mixed CREATE + PATCH
-  app-created metadata-only operating-mode tracker after the owner-verified first mixed session. #48 remains open
-  as the sufficiently validated preview-only owner web transaction-entry UI evidence tracker. #49 records the
-  non-mutating owner web UI CREATE execution shell. #50 completed disposable/synthetic routed write drill evidence:
-  CREATE/PATCH/DELETE только на synthetic/disposable fixtures, owner/private/original/working/Syncthing books не
-  трогались, `GNUCASH_WRITES_ENABLED=false` остаётся дефолтом. #51 is the next recommended disposable copied-book UI
-  execution rehearsal tracker. Compact text/CSV-like input is local/debug-helper only, not the main user-facing
-  product workflow. CREATE/PATCH remain unauthorized for owner/private books until fresh same-context owner/PM
-  approval with exact counts; DELETE, batch, amount/account/split/date/currency/balance-affecting changes, release,
-  and public write beta remain forbidden.
+- #53: accepted integrated read-only comparison milestone; остаются final docs/status и issue closeout.
+- #51 и #52 закрыты после принятого disposable UI rehearsal и read-only period reports explorer.
+- #36 закрыта как maintenance boundary. #45–#50 остаются отдельной experimental controlled-write
+  историей; CREATE/PATCH требуют fresh same-context owner/PM approval с точными counts, а DELETE,
+  batch, release, public write beta и broad write-safety claims остаются запрещены.
 - #22: compatibility fixtures закрыта narrowly for isolated Desktop-generated synthetic SQLite fixture
   read-only evidence only; future Desktop/backend/version fixture expansion остаётся separate work.
 - #28: raw Markdown readability закрыта после terminal-readability/status guard cleanup без whole-repo reflow.
