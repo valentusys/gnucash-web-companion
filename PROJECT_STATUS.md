@@ -16,13 +16,15 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
 - Current safety posture: writes are disabled by default; see
   [docs/write-alpha/copied-book-write-alpha-posture.md](docs/write-alpha/copied-book-write-alpha-posture.md)
   for controlled-write boundaries.
-- Current product issue:
-  [#53](https://github.com/valentusys/gnucash-web-companion/issues/53) has an accepted integrated
-  read-only period comparison implementation at exact product head `3b094cd`; it remains open pending
-  the final documentation QA, exact-head docs CI, and factual issue closeout.
 - Recently completed product issues:
-  [#51](https://github.com/valentusys/gnucash-web-companion/issues/51) and
-  [#52](https://github.com/valentusys/gnucash-web-companion/issues/52) are closed as completed.
+  [#51](https://github.com/valentusys/gnucash-web-companion/issues/51),
+  [#52](https://github.com/valentusys/gnucash-web-companion/issues/52), and
+  [#53](https://github.com/valentusys/gnucash-web-companion/issues/53) are closed as completed. #53
+  has accepted read-only period comparison implementation at exact product head `3b094cd`, final
+  documentation closeout at `3eeaf5f`, successful operational closeout CI
+  [29180390237](https://github.com/valentusys/gnucash-web-companion/actions/runs/29180390237), and
+  final acceptance comment
+  [#issuecomment-4950026271](https://github.com/valentusys/gnucash-web-companion/issues/53#issuecomment-4950026271).
 - Controlled-write boundary: [#36](https://github.com/valentusys/gnucash-web-companion/issues/36)
   is closed as `CLOSE_36_AS_MAINTENANCE_BOUNDARY`. Trackers #45–#50 remain separate experimental
   evidence/workflow history; they do not authorize owner/private DELETE or batch, release publication,
@@ -88,15 +90,20 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
 
 ## Current status snapshot
 
-- The second Hermes Kanban product run accepted issue #53 at exact product head
-  `3b094cdb318c017b9a607abe87f98326e8a6ab2b`. `/reports` now compares a primary period with the
+- The second Hermes Kanban product run completed issue #53. Product head
+  `3b094cdb318c017b9a607abe87f98326e8a6ab2b` makes `/reports` compare a primary period with the
   previous equivalent period, the same period last year, or a custom period; keeps state in the URL;
   renders Decimal-string total and spending changes; distinguishes empty/error/not-comparable states;
   and provides exact paired transaction drilldowns. Reporting remains base-currency-only with no FX
   conversion. QA gate 2 passed 270 focused and 1134 full backend tests, the full frontend/static/build/
   browser matrix, root safety/hygiene gates, and exact-product-head GitHub CI. Local generated-only
   `TestClient` evidence improved the 10k comparison median from 26003.68 ms to 5948.77 ms, but makes
-  no production performance claim. Issue #53 stays open until docs QA and issue closeout. Evidence:
+  no production performance claim. Operator closeout then fast-forwarded main/origin to
+  `3eeaf5f0bf0f90cffaaa8505e26788bfcc01ebb9`; CI `29180390237` succeeded at
+  `2026-07-12T05:00:18Z`; issue #53 received final acceptance comment
+  [#issuecomment-4950026271](https://github.com/valentusys/gnucash-web-companion/issues/53#issuecomment-4950026271)
+  and closed as completed at `2026-07-12T05:01:29Z`. The final factual addendum is docs-only and is
+  subject to the same exact-head CI gate after integration; it records no future run ID. Evidence:
   `docs/handoff/hermes-kanban-product-run-2.md`.
 - The first production-development Hermes Kanban run used the dedicated
   `gnucash-web-companion-product-dev` board and produced a locally green tested integration head for
@@ -169,7 +176,7 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   routed write drill evidence: CREATE/PATCH/DELETE were exercised only on synthetic/disposable fixtures,
   owner/private/original/working/Syncthing books stayed untouched, and `GNUCASH_WRITES_ENABLED=false` remains
   default. #51 later completed its disposable copied-book UI execution rehearsal, #52 completed the
-  read-only period reports explorer, and #53 is the current read-only comparison closeout tracker.
+  read-only period reports explorer, and #53 completed the read-only comparison closeout.
   Current HEAD contains synthetic/disposable fixture-only coverage for fail-closed target preflight, routed
   CREATE with backup/read-back/audit/ownership/lock evidence, read-only reopen/balance verification,
   default-disabled route-family probes, failure drills, explicit synthetic web CREATE harness boundaries,
