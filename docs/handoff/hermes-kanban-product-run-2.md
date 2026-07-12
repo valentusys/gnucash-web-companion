@@ -1,12 +1,13 @@
 # Hermes Kanban product-development run 2
 
-Status: **PRODUCT ACCEPTED; DOCUMENTATION CLOSEOUT PENDING**
+Status: **PRODUCT ACCEPTED; CORRECTIVE FINAL DOCS QA LOCALLY ACCEPTED; OPERATOR CLOSEOUT PENDING**
 
 This handoff records the second product-development run on the dedicated Hermes Kanban board.
-It covers product head `3b094cdb318c017b9a607abe87f98326e8a6ab2b`, before this documentation
-commit. Final documentation QA task `t_8d77ebb9` must append this docs task result, the documentation
-commit, its verdict, and final exact-head CI. Those outcome facts are not known here and are not
-guessed.
+It covers product head `3b094cdb318c017b9a607abe87f98326e8a6ab2b`, parent docs commit
+`39a87c011f278a732b2298b2031648f5b31db99e`, and corrective final documentation QA task
+`t_4e627530`. The corrective local docs-QA verdict is **ACCEPT**. Operator-only fast-forward/push,
+exact-final-head GitHub CI, and issue #53 user-status comment/closure remain pending after this local
+handoff; they are not blocked by GitHub auth and are not performed by this task.
 
 ## Environment and baseline
 
@@ -82,10 +83,10 @@ design t_5958d2d3 ──────┤                                      ├
 
 QA1 t_8398da6f ──> performance t_614060f6 ──┐
 QA1 t_8398da6f ──────────────────────────────┴─> QA2 t_a23ddfba
-QA2 t_a23ddfba ──> docs t_e285b665 ──> final docs QA t_8d77ebb9
+QA2 t_a23ddfba ──> docs t_e285b665 ──> corrective final docs QA t_4e627530
 ```
 
-| Task | Outcome before docs | Branch |
+| Task | Outcome / closeout state | Branch |
 |---|---|---|
 | `t_ff454b21` PM #52 acceptance | done, ACCEPT | `kanban-product-2/pm-accept-52` |
 | `t_2744b8da` QA #52 acceptance | done, ACCEPT | `kanban-product-2/qa-accept-52` |
@@ -96,12 +97,21 @@ QA2 t_a23ddfba ──> docs t_e285b665 ──> final docs QA t_8d77ebb9
 | `t_8398da6f` QA gate 1 | done, ACCEPT | `kanban-product-2/issue53-qa-gate1` |
 | `t_614060f6` performance follow-up | done after review-required handoff | `kanban-product-2/issue53-comparison-performance` |
 | `t_a23ddfba` QA gate 2 | done, ACCEPT | `kanban-product-2/issue53-qa-gate2` |
-| `t_e285b665` documentation closeout | running while this file is written | `kanban-product-2/run2-docs` |
+| `t_e285b665` documentation closeout | done; source commit `39a87c0` | `kanban-product-2/run2-docs` |
+| `t_8d77ebb9` superseded final docs QA | archived; rejected operational correction | `wt/t_8d77ebb9` |
+| `t_4e627530` corrective final docs QA | local ACCEPT; operator FF/push/CI/#53 closeout pending | `kanban-product-2/run2-docs-qa-corrective` |
 
-Before this docs card, run 2 had `12` task rows: `9` useful done and `3` malformed archived.
-It had `13` task-run rows: `9` completed and `4` review-required blocked handoffs that the operator
-later completed after diff/test review. There were no failed, crashed, reclaimed, or content-retry
-runs.
+Before the corrective completion of `t_4e627530`, the live board showed `15` task rows: `10` done,
+`1` running for this corrective QA, and `4` archived. The expected final count after this card
+completes is `15` task rows: `11` useful done including `t_e285b665` and `t_4e627530`, plus `4`
+archived cards (`t_9229b35a`, `t_041eca69`, `t_4a5c208e`, and `t_8d77ebb9`).
+
+The live board showed `16` task-run rows before this card completed: `10` completed outcomes,
+`5` blocked outcomes, and `1` running outcome for this corrective QA. The expected final run count
+after this card completes is `16`: `11` completed outcomes plus `5` blocked handoff outcomes. The
+five blocked outcomes are the accepted review-required source handoffs for `t_c7cc5a4d`,
+`t_549ef9f1`, `t_4e61c87d`, and `t_614060f6`, plus the rejected `t_8d77ebb9` run. There were no
+failed, crashed, reclaimed, timed-out, or content-retry runs.
 
 ## Corrected malformed cards
 
@@ -116,6 +126,18 @@ project/worktree linkage. They were archived before any worker run:
 Operational finding: every project coding/QA card must set both project linkage and worktree scope.
 Dependency correctness alone is insufficient if the dispatcher cannot build the intended isolated
 branch workspace.
+
+## Corrected final docs QA card
+
+The original final docs QA card `t_8d77ebb9` is archived and rejected for final-record purposes. Its
+instructions were over-broad because they assigned push/main integration, exact-head CI watching, and
+issue #53 comment/closure to a worker; those actions are operator-only after this local handoff. Its
+GitHub check also omitted the operator `gh` setup (`/home/val/.local/bin/gh` with `HOME=/home/val`),
+which produced a false auth-blocker conclusion. The process had ended before archive, no active PID
+remained, and no push, main update, issue comment, issue closure, release, tag, package, or container
+mutation occurred. Its local commits `de44e89954f2c2c8296a5da004258fda4e761b0d` and
+`a1b557107219a65fe60954cdf8be6ae9ba5d4d8b` are rejected and are not reused by this corrective
+branch.
 
 ## Worktrees, source scope, and integration
 
@@ -219,9 +241,18 @@ Exact accepted-product GitHub CI succeeded at
 `3b094cdb318c017b9a607abe87f98326e8a6ab2b`:
 <https://github.com/valentusys/gnucash-web-companion/actions/runs/29179124360>.
 
-At this checkpoint issue #52 is closed as completed. Issue #53 remains open; its final user-facing
-status/closure must be handled by final docs QA task `t_8d77ebb9` after the documentation commit and
-exact-head CI are known.
+Corrective docs QA read-only GitHub state was checked with `/home/val/.local/bin/gh` and
+`HOME=/home/val`:
+
+- issue #52: closed as completed, 2 comments,
+  <https://github.com/valentusys/gnucash-web-companion/issues/52>;
+- issue #53: open, 0 comments,
+  <https://github.com/valentusys/gnucash-web-companion/issues/53>.
+
+Issue #53 remains open for operator-only fast-forward/push, exact-final-head docs CI, factual
+user-status comment, and closure after CI succeeds. The exact final integrated documentation head and
+CI run URL are not yet known in this local handoff; recording them is pending operator integration,
+not a GitHub-auth blocker.
 
 ## Safety and publication counters
 
@@ -261,8 +292,10 @@ production-ready, or security-audited claim was added.
 
 ## Comparison with product run 1
 
-Run 1 recorded `10` useful done tasks and `1` archived task. Run 2 recorded `9` useful done tasks and
-`3` malformed archived cards before docs. Raw task counts are not comparable productivity metrics.
+Run 1 recorded `10` useful done tasks and `1` archived task. Run 2 had `9` useful done tasks and
+`3` malformed archived cards before docs; after the docs and corrective docs-QA cards, its expected
+final board count is `11` useful done tasks and `4` archived cards. Raw task counts are not
+comparable productivity metrics.
 
 Run 2 added:
 
@@ -281,10 +314,12 @@ and worktree linkage and had to be archived before dispatch.
 
 Immediate closeout:
 
-1. Review and accept this docs commit.
-2. Append this docs task result and final docs QA task `t_8d77ebb9` result to this handoff.
-3. Run exact-head documentation CI and record its head/run URL.
-4. Post the final factual user-status update to issue #53 and close it only if final docs QA accepts.
+1. Operator fast-forwards or cherry-picks the reviewed docs commits from the exact product head,
+   excluding rejected `t_8d77ebb9` commits.
+2. Operator pushes the integrated documentation head.
+3. Operator waits for exact-final-head GitHub CI and records its head/run URL.
+4. Operator posts the final factual user-status update to issue #53 and closes it only after exact-head
+   CI succeeds.
 
 Product limitations/backlog:
 
