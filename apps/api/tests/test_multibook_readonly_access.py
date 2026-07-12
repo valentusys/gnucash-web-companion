@@ -26,6 +26,10 @@ from app.schemas.gnucash import (
     TransactionDetailDTO,
     TransactionListItemDTO,
 )
+from app.schemas.transaction_explorer import (
+    TransactionExplorerPageDTO,
+    TransactionExplorerScanMetadataDTO,
+)
 from app.services.auth import hash_password
 
 TEST_SETTINGS = Settings(
@@ -247,6 +251,26 @@ class ReadOnlyServiceProbe:
             )
         ]
 
+    def explore_transactions(self, request):
+        return TransactionExplorerPageDTO(
+            items=[],
+            normalized_filters=request.normalized_filters,
+            sort=request.sort,
+            page_size=request.page_size,
+            returned_count=0,
+            has_more=False,
+            has_previous=False,
+            scan=TransactionExplorerScanMetadataDTO(
+                candidate_rows=0,
+                split_rows=0,
+                query_count=0,
+                scan_limited=False,
+                exhausted=True,
+                limits={},
+            ),
+            limitations=[],
+        )
+
     def get_transaction(self, transaction_id: str):
         return TransactionDetailDTO(
             id=transaction_id,
@@ -406,6 +430,7 @@ class TestMultiBookReadOnlyRouteFamilies:
             "/books/{book_id}/accounts/acct-1",
             "/books/{book_id}/scheduled-transactions",
             "/books/{book_id}/transactions",
+            "/books/{book_id}/transactions/explorer?date_from=2026-01-01&date_to=2026-01-31",
             "/books/{book_id}/transactions/export",
             "/books/{book_id}/transactions/tx-1",
             "/books/{book_id}/accounts/acct-1/transactions",
@@ -431,6 +456,7 @@ class TestMultiBookReadOnlyRouteFamilies:
             "/books/{book_id}/accounts/acct-1",
             "/books/{book_id}/scheduled-transactions",
             "/books/{book_id}/transactions",
+            "/books/{book_id}/transactions/explorer?date_from=2026-01-01&date_to=2026-01-31",
             "/books/{book_id}/transactions/export",
             "/books/{book_id}/transactions/tx-1",
             "/books/{book_id}/accounts/acct-1/transactions",
@@ -461,6 +487,7 @@ class TestMultiBookReadOnlyRouteFamilies:
             "/books/{book_id}/accounts/acct-1",
             "/books/{book_id}/scheduled-transactions",
             "/books/{book_id}/transactions",
+            "/books/{book_id}/transactions/explorer?date_from=2026-01-01&date_to=2026-01-31",
             "/books/{book_id}/transactions/export",
             "/books/{book_id}/transactions/tx-1",
             "/books/{book_id}/accounts/acct-1/transactions",

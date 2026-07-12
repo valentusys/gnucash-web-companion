@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any, Literal, cast
 
 import piecash
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import joinedload
 
 from app.schemas.gnucash import (
@@ -38,11 +39,22 @@ from app.schemas.gnucash import (
     TransactionListItemDTO,
     TransactionSplitDTO,
 )
+from app.schemas.transaction_explorer import (
+    TransactionExplorerAccountRefDTO,
+    TransactionExplorerItemDTO,
+    TransactionExplorerPageDTO,
+    TransactionExplorerScanMetadataDTO,
+)
 from app.services.gnucash_exceptions import (
     BookNotConfiguredError,
     BookNotFoundError,
     EntityNotFoundError,
     GnuCashReadError,
+)
+from app.services.transaction_explorer import (
+    TransactionExplorerError,
+    TransactionExplorerQuery,
+    encode_explorer_cursor,
 )
 
 MONEY_QUANT = Decimal("0.01")
@@ -55,6 +67,13 @@ SUPPORTED_TRANSACTION_STATES = {
     "reconciled": "y",
     "voided": "v",
 }
+EXPLORER_CANDIDATE_CHUNK_LIMIT = 200
+EXPLORER_CANDIDATE_ROW_LIMIT = 2_000
+EXPLORER_SPLIT_ROW_LIMIT = 20_000
+EXPLORER_CANDIDATE_QUERY_LIMIT = 10
+EXPLORER_BULK_SPLIT_QUERY_LIMIT = 10
+EXPLORER_ACCOUNT_QUERY_LIMIT = 3
+EXPLORER_METADATA_QUERY_LIMIT = 3
 
 
 @dataclass
@@ -218,7 +237,7 @@ class GnuCashBookService:
         try:
             book = self._open_piecash_book(uri_or_path)
             yield book
-        except (BookNotConfiguredError, BookNotFoundError, EntityNotFoundError):
+        except (BookNotConfiguredError, BookNotFoundError, EntityNotFoundError, TransactionExplorerError):
             raise
         except Exception as exc:  # pragma: no cover - exact piecash exceptions vary by backend
             raise GnuCashReadError(str(exc)) from exc
@@ -346,6 +365,154 @@ class GnuCashBookService:
                     min_decimal,
                     max_decimal,
                 )
+            )
+
+    def explore_transactions(self, request: TransactionExplorerQuery) -> TransactionExplorerPageDTO:
+        """Return one bounded date/GUID keyset page for the transaction explorer.
+
+        This deliberately avoids the legacy count/list offset path: no total
+        count, no full transaction materialization for real piecash sessions, and
+        no route-layer GnuCash access. Text and amount filters that cannot be
+        pushed into SQLite are guarded by candidate/split limits.
+        """
+        with self._open_book() as book:
+            account_queries = 0
+            selected_accounts: dict[str, Any] = {}
+            if request.account_ids:
+                account_queries += 1
+                selected_accounts = self._explorer_selected_accounts(book, request.account_ids)
+
+            matches: list[TransactionExplorerItemDTO] = []
+            candidate_rows_scanned = 0
+            split_rows_scanned = 0
+            candidate_queries = 0
+            bulk_split_queries = 0
+            scan_limited = False
+            scan_key = request.cursor
+            last_candidate_key: tuple[date, str] | None = None
+            target_count = request.page_size + 1
+
+            while len(matches) < target_count and candidate_rows_scanned < EXPLORER_CANDIDATE_ROW_LIMIT:
+                remaining_budget = EXPLORER_CANDIDATE_ROW_LIMIT - candidate_rows_scanned
+                chunk_limit = min(EXPLORER_CANDIDATE_CHUNK_LIMIT, remaining_budget)
+                chunk = self._explorer_candidate_chunk(book, request, scan_key, limit=chunk_limit)
+                if not chunk:
+                    break
+                candidate_queries += 1
+                if candidate_queries > EXPLORER_CANDIDATE_QUERY_LIMIT:
+                    scan_limited = True
+                    break
+
+                for transaction in chunk:
+                    candidate_rows_scanned += 1
+                    tx_key = self._explorer_transaction_key(transaction)
+                    if tx_key is not None:
+                        last_candidate_key = tx_key
+                    splits = self._splits(transaction)
+                    split_rows_scanned += len(splits)
+                    if split_rows_scanned > EXPLORER_SPLIT_ROW_LIMIT:
+                        raise TransactionExplorerError(
+                            "result_too_complex",
+                            "Explorer result is too complex for one bounded request; narrow the filters.",
+                        )
+                    item = self._explorer_match_to_item(transaction, request, selected_accounts)
+                    if item is not None:
+                        matches.append(item)
+                        if len(matches) >= target_count:
+                            break
+                if candidate_rows_scanned >= EXPLORER_CANDIDATE_ROW_LIMIT and len(matches) < target_count:
+                    scan_limited = True
+                    break
+                if len(chunk) < chunk_limit:
+                    break
+                if last_candidate_key is None:
+                    break
+                scan_key = self._explorer_scan_cursor(request, last_candidate_key)
+
+            if request.cursor is not None and request.cursor.mode == "previous":
+                raw_page = matches[: request.page_size]
+                items = list(reversed(raw_page))
+                has_previous = len(matches) > request.page_size or scan_limited
+                has_more = bool(items)
+            else:
+                items = matches[: request.page_size]
+                has_more = len(matches) > request.page_size or scan_limited
+                has_previous = request.cursor is not None
+
+            next_cursor: str | None = None
+            previous_cursor: str | None = None
+            if items:
+                if has_more:
+                    next_key = self._explorer_item_key(items[-1])
+                    if scan_limited and len(matches) <= request.page_size and last_candidate_key is not None:
+                        next_key = last_candidate_key
+                    next_cursor = encode_explorer_cursor(
+                        mode="next",
+                        cursor_date=next_key[0],
+                        cursor_guid=next_key[1],
+                        filter_hash=request.filter_hash,
+                        sort=request.sort,
+                        secret=request.cursor_secret,
+                    )
+                if has_previous:
+                    previous_key = self._explorer_item_key(items[0])
+                    previous_cursor = encode_explorer_cursor(
+                        mode="previous",
+                        cursor_date=previous_key[0],
+                        cursor_guid=previous_key[1],
+                        filter_hash=request.filter_hash,
+                        sort=request.sort,
+                        secret=request.cursor_secret,
+                    )
+            elif scan_limited and last_candidate_key is not None:
+                next_cursor = encode_explorer_cursor(
+                    mode="next",
+                    cursor_date=last_candidate_key[0],
+                    cursor_guid=last_candidate_key[1],
+                    filter_hash=request.filter_hash,
+                    sort=request.sort,
+                    secret=request.cursor_secret,
+                )
+                has_more = True
+
+            limitations = [
+                "No total count is computed; pagination is bounded keyset traversal.",
+                "Text search is a literal Unicode casefold substring over description and split memos only; transaction notes are excluded.",
+                "Money scopes are base-currency only and include no FX conversion.",
+            ]
+            if scan_limited:
+                limitations.append(
+                    "candidate_scan_limited: continue with the returned cursor or narrow filters to distinguish partial scan from end of results."
+                )
+
+            scan_exhausted = not scan_limited and len(matches) <= request.page_size
+            return TransactionExplorerPageDTO(
+                items=items,
+                normalized_filters=request.normalized_filters,
+                sort=request.sort,
+                page_size=request.page_size,
+                returned_count=len(items),
+                has_more=has_more,
+                has_previous=has_previous,
+                next_cursor=next_cursor,
+                previous_cursor=previous_cursor,
+                scan=TransactionExplorerScanMetadataDTO(
+                    candidate_rows=candidate_rows_scanned,
+                    split_rows=split_rows_scanned,
+                    query_count=candidate_queries + bulk_split_queries + account_queries,
+                    scan_limited=scan_limited,
+                    exhausted=scan_exhausted,
+                    limits={
+                        "candidate_chunk": EXPLORER_CANDIDATE_CHUNK_LIMIT,
+                        "candidate_rows": EXPLORER_CANDIDATE_ROW_LIMIT,
+                        "split_rows": EXPLORER_SPLIT_ROW_LIMIT,
+                        "candidate_queries": EXPLORER_CANDIDATE_QUERY_LIMIT,
+                        "bulk_split_queries": EXPLORER_BULK_SPLIT_QUERY_LIMIT,
+                        "account_queries": EXPLORER_ACCOUNT_QUERY_LIMIT,
+                        "metadata_queries": EXPLORER_METADATA_QUERY_LIMIT,
+                    },
+                ),
+                limitations=limitations,
             )
 
     def get_summary(self) -> BookSummaryDTO:
@@ -1147,6 +1314,261 @@ class GnuCashBookService:
         if candidates:
             return candidates
         return self._transactions(book)
+
+    def _explorer_selected_accounts(self, book: Any, account_ids: tuple[str, ...]) -> dict[str, Any]:
+        accounts = {self._account_id(account).lower(): account for account in self._accounts(book)}
+        selected: dict[str, Any] = {}
+        for account_id in account_ids:
+            account = accounts.get(account_id)
+            if account is None:
+                raise TransactionExplorerError("unknown_account", "One or more selected accounts were not found")
+            currency = self._account_currency(account)
+            if currency != self.base_currency:
+                raise TransactionExplorerError(
+                    "unsupported_currency_scope",
+                    "Explorer account scopes require selected accounts in the configured base currency; no FX is performed.",
+                )
+            selected[account_id] = account
+        return selected
+
+    def _explorer_candidate_chunk(
+        self,
+        book: Any,
+        request: TransactionExplorerQuery,
+        cursor: Any,
+        *,
+        limit: int,
+    ) -> list[Any]:
+        session = getattr(book, "session", None)
+        query = getattr(session, "query", None) if session is not None else None
+        if callable(query):
+            return self._explorer_sql_candidate_chunk(book, request, cursor, limit=limit)
+        return self._explorer_fallback_candidate_chunk(book, request, cursor, limit=limit)
+
+    def _explorer_sql_candidate_chunk(
+        self,
+        book: Any,
+        request: TransactionExplorerQuery,
+        cursor: Any,
+        *,
+        limit: int,
+    ) -> list[Any]:
+        session = getattr(book, "session", None)
+        query = getattr(session, "query")
+        result = (
+            query(piecash.Transaction)
+            .options(joinedload(piecash.Transaction.splits).joinedload(piecash.Split.account))
+            .filter(piecash.Transaction.post_date >= request.date_from)
+            .filter(piecash.Transaction.post_date <= request.date_to)
+        )
+        if request.account_ids:
+            result = (
+                result.join(piecash.Transaction.splits)
+                .filter(piecash.Split.account_guid.in_(request.account_ids))
+                .distinct()
+            )
+        if cursor is not None:
+            result = result.filter(self._explorer_sql_keyset_filter(request, cursor))
+        order_desc = self._explorer_scan_order_desc(request, cursor)
+        date_order = piecash.Transaction.post_date.desc() if order_desc else piecash.Transaction.post_date.asc()
+        guid_order = piecash.Transaction.guid.desc() if order_desc else piecash.Transaction.guid.asc()
+        return list(result.order_by(date_order, guid_order).limit(limit).all())
+
+    def _explorer_fallback_candidate_chunk(
+        self,
+        book: Any,
+        request: TransactionExplorerQuery,
+        cursor: Any,
+        *,
+        limit: int,
+    ) -> list[Any]:
+        rows: list[Any] = []
+        selected_ids = set(request.account_ids)
+        for transaction in self._transactions(book):
+            key = self._explorer_transaction_key(transaction)
+            if key is None:
+                continue
+            tx_date, _ = key
+            if tx_date < request.date_from or tx_date > request.date_to:
+                continue
+            if selected_ids and not any(
+                self._account_id(getattr(split, "account", None)).lower() in selected_ids
+                for split in self._splits(transaction)
+            ):
+                continue
+            if cursor is not None and not self._explorer_key_in_cursor_window(key, request, cursor):
+                continue
+            rows.append(transaction)
+        rows.sort(key=lambda item: self._explorer_transaction_key(item) or (date.min, ""), reverse=self._explorer_scan_order_desc(request, cursor))
+        return rows[:limit]
+
+    def _explorer_scan_cursor(self, request: TransactionExplorerQuery, key: tuple[date, str]) -> Any:
+        from app.services.transaction_explorer import TransactionExplorerCursor
+
+        mode = request.cursor.mode if request.cursor is not None else "next"
+        return TransactionExplorerCursor(mode=mode, date=key[0], guid=key[1])
+
+    @staticmethod
+    def _explorer_scan_order_desc(request: TransactionExplorerQuery, cursor: Any) -> bool:
+        display_desc = request.sort == "date_desc"
+        if cursor is not None and getattr(cursor, "mode", None) == "previous":
+            return not display_desc
+        return display_desc
+
+    def _explorer_sql_keyset_filter(self, request: TransactionExplorerQuery, cursor: Any) -> Any:
+        tx_date = piecash.Transaction.post_date
+        tx_guid = piecash.Transaction.guid
+        before_display = cursor.mode == "previous"
+        if request.sort == "date_desc":
+            if before_display:
+                return or_(tx_date > cursor.date, and_(tx_date == cursor.date, tx_guid > cursor.guid))
+            return or_(tx_date < cursor.date, and_(tx_date == cursor.date, tx_guid < cursor.guid))
+        if before_display:
+            return or_(tx_date < cursor.date, and_(tx_date == cursor.date, tx_guid < cursor.guid))
+        return or_(tx_date > cursor.date, and_(tx_date == cursor.date, tx_guid > cursor.guid))
+
+    @staticmethod
+    def _explorer_key_in_cursor_window(
+        key: tuple[date, str],
+        request: TransactionExplorerQuery,
+        cursor: Any,
+    ) -> bool:
+        before_display = cursor.mode == "previous"
+        if request.sort == "date_desc":
+            return key > (cursor.date, cursor.guid) if before_display else key < (cursor.date, cursor.guid)
+        return key < (cursor.date, cursor.guid) if before_display else key > (cursor.date, cursor.guid)
+
+    def _explorer_match_to_item(
+        self,
+        transaction: Any,
+        request: TransactionExplorerQuery,
+        selected_accounts: dict[str, Any],
+    ) -> TransactionExplorerItemDTO | None:
+        splits = self._splits(transaction)
+        if not splits:
+            raise TransactionExplorerError(
+                "transaction_unreadable",
+                "A transaction in the requested range could not be read safely.",
+            )
+        if request.query and not self._explorer_text_matches(transaction, request.query):
+            return None
+
+        state_code = self._normalize_transaction_state(request.transaction_state)
+        display_split = splits[0]
+        matched_amount: Decimal | None = None
+        matched_account_ids: list[str] = []
+        amount_basis: Literal["selected_accounts", "income", "expense", "representative_split"] = "representative_split"
+
+        if request.account_ids:
+            selected_splits = [
+                split
+                for split in splits
+                if self._account_id(getattr(split, "account", None)).lower() in selected_accounts
+            ]
+            if not selected_splits:
+                return None
+            if state_code and not self._explorer_splits_state_match(selected_splits, state_code):
+                return None
+            matched_amount = sum((self._split_amount(split) for split in selected_splits), Decimal("0"))
+            if request.direction == "increase" and matched_amount <= 0:
+                return None
+            if request.direction == "decrease" and matched_amount >= 0:
+                return None
+            if not self._explorer_amount_in_range(abs(matched_amount), request):
+                return None
+            display_split = selected_splits[0]
+            matched_account_ids = [account_id for account_id in request.account_ids if account_id in {
+                self._account_id(getattr(split, "account", None)).lower() for split in selected_splits
+            }]
+            amount_basis = "selected_accounts"
+        elif request.transaction_type is not None:
+            type_splits, type_amount = self._explorer_type_splits_and_amount(splits, request.transaction_type)
+            if not type_splits or type_amount <= 0:
+                return None
+            if state_code and not self._explorer_splits_state_match(type_splits, state_code):
+                return None
+            if not self._explorer_amount_in_range(abs(type_amount), request):
+                return None
+            display_split = type_splits[0]
+            matched_amount = type_amount
+            matched_account_ids = sorted({self._account_id(getattr(split, "account", None)).lower() for split in type_splits})
+            amount_basis = request.transaction_type
+        else:
+            if state_code and not self._explorer_splits_state_match(splits, state_code):
+                return None
+
+        account = getattr(display_split, "account", None)
+        if account is None:
+            raise TransactionExplorerError(
+                "transaction_unreadable",
+                "A transaction in the requested range could not be read safely.",
+            )
+        display_amount = self._split_amount(display_split)
+        display_currency = self._account_currency(account)
+        return TransactionExplorerItemDTO(
+            id=_guid(transaction),
+            date=_date_string(self._transaction_date(transaction)),
+            description=str(getattr(transaction, "description", "")),
+            representative_amount=self._money(display_amount, display_currency),
+            representative_account=TransactionExplorerAccountRefDTO(
+                id=self._account_id(account),
+                name=account_full_name(account),
+            ),
+            matched_amount=self._money(matched_amount, self.base_currency) if matched_amount is not None else None,
+            amount_basis=amount_basis,
+            matched_account_ids=matched_account_ids,
+            counter_account_name=self._counter_account_name(splits, account),
+        )
+
+    def _explorer_type_splits_and_amount(self, splits: list[Any], transaction_type: str) -> tuple[list[Any], Decimal]:
+        matched: list[Any] = []
+        total = Decimal("0")
+        for split in splits:
+            account = getattr(split, "account", None)
+            if self._account_currency(account) != self.base_currency:
+                continue
+            account_type = str(getattr(account, "type", "") or "").upper()
+            amount = self._split_amount(split)
+            include = False
+            contribution = Decimal("0")
+            if transaction_type == "income" and account_type == "INCOME":
+                include = True
+                contribution = -amount
+            elif transaction_type == "expense" and account_type == "EXPENSE":
+                include = True
+                contribution = amount
+            if include:
+                matched.append(split)
+                total += contribution
+        return matched, total
+
+    @staticmethod
+    def _explorer_splits_state_match(splits: list[Any], expected_state: str) -> bool:
+        return any(str(getattr(split, "reconcile_state", "") or "").lower() == expected_state for split in splits)
+
+    def _explorer_text_matches(self, transaction: Any, query: str) -> bool:
+        needle = query.casefold()
+        if needle in str(getattr(transaction, "description", "") or "").casefold():
+            return True
+        return any(needle in str(getattr(split, "memo", "") or "").casefold() for split in self._splits(transaction))
+
+    @staticmethod
+    def _explorer_amount_in_range(amount: Decimal, request: TransactionExplorerQuery) -> bool:
+        if request.min_amount is not None and amount < request.min_amount:
+            return False
+        if request.max_amount is not None and amount > request.max_amount:
+            return False
+        return True
+
+    def _explorer_transaction_key(self, transaction: Any) -> tuple[date, str] | None:
+        tx_date = _coerce_date(self._transaction_date(transaction))
+        if tx_date is None:
+            return None
+        return tx_date, _guid(transaction)
+
+    @staticmethod
+    def _explorer_item_key(item: TransactionExplorerItemDTO) -> tuple[date, str]:
+        return date.fromisoformat(item.date), item.id
 
     def _scheduled_transactions(self, book: Any) -> Iterable[Any]:
         scheduled = getattr(book, "scheduled_transactions", None)

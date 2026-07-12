@@ -58,6 +58,10 @@ from app.services.gnucash_write import GnuCashWriteService, GnuCashWriteError
 from app.services.book_access import AccessDenied, BookAccessService
 from app.services.write_lock import WriteLockError
 from app.services.gnucash_book import SUPPORTED_TRANSACTION_STATES
+from app.services.transaction_explorer import (
+    TransactionExplorerError,
+    build_transaction_explorer_query,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -152,6 +156,19 @@ def _serialize_transaction_list_items(
         _serialize_transaction_list_item(item, is_write_alpha_owned=item.id in owned_ids)
         for item in items
     ]
+
+
+def _serialize_transaction_explorer_page(page: Any, *, session: Session, book_id: int) -> dict[str, Any]:
+    """Add app-metadata ownership hints without involving any write path."""
+    payload = page.model_dump()
+    owned_ids = _write_alpha_owned_transaction_ids(
+        session,
+        book_id,
+        [str(item.get("id", "")) for item in payload.get("items", [])],
+    )
+    for item in payload.get("items", []):
+        item["is_write_alpha_owned"] = item.get("id") in owned_ids
+    return payload
 
 
 def _is_write_alpha_owned_transaction(session: Session, book_id: int, transaction_id: str) -> bool:
@@ -345,6 +362,61 @@ async def export_book_transactions_csv(
             "X-CSV-Export-Timeout-Policy": "synchronous-request-timeout",
         },
     )
+
+
+def _raise_transaction_explorer_error(exc: TransactionExplorerError) -> NoReturn:
+    raise HTTPException(status_code=exc.status_code, detail=exc.detail()) from exc
+
+
+@router.get("/books/{book_id}/transactions/explorer")
+async def list_book_transactions_explorer(
+    book_id: int,
+    request: Request,
+    date_from: str | None = None,
+    date_to: str | None = None,
+    account_ids: list[str] | None = Query(None),
+    direction: str | None = None,
+    transaction_type: str | None = Query(None, alias="type"),
+    min_amount: str | None = None,
+    max_amount: str | None = None,
+    query: str | None = None,
+    transaction_state: str | None = None,
+    sort: str | None = None,
+    page_size: str | None = None,
+    cursor: str | None = None,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> dict[str, Any]:
+    """Bounded read-only date/GUID keyset transaction explorer for a viewable book."""
+    try:
+        explorer_query = build_transaction_explorer_query(
+            date_from=date_from,
+            date_to=date_to,
+            account_ids=account_ids,
+            legacy_account_id_present="account_id" in request.query_params,
+            direction=direction,
+            transaction_type=transaction_type,
+            min_amount=min_amount,
+            max_amount=max_amount,
+            query=query,
+            transaction_state=transaction_state,
+            sort=sort,
+            page_size=page_size,
+            cursor=cursor,
+            secret=settings.jwt_secret,
+        )
+    except TransactionExplorerError as exc:
+        _raise_transaction_explorer_error(exc)
+
+    book = _resolve_readonly_data_book(book_id, user, session)
+    try:
+        page = transaction_service_for(book).explore_transactions(explorer_query)
+    except TransactionExplorerError as exc:
+        _raise_transaction_explorer_error(exc)
+    except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
+        handle_gnucash_error(exc)
+    return _serialize_transaction_explorer_page(page, session=session, book_id=book.id)
 
 
 @router.get("/books/{book_id}/transactions/create-readiness-status")
