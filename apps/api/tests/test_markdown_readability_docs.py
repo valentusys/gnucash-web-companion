@@ -87,11 +87,11 @@ def test_readme_ru_starts_with_compact_public_status_and_safety_navigation() -> 
     text = README_RU.read_text(encoding="utf-8")
 
     status = text.index("## Текущий публичный статус")
-    queue_map = text.index("## Карта открытых очередей")
+    status_map = text.index("## Карта текущих статусов")
     details = text.index("## Где смотреть подробности")
     post_release = text.index("## Последние post-release фазы")
 
-    assert status < queue_map < details < post_release
+    assert status < status_map < details < post_release
     assert "Короткая версия для review в терминале" in text
     assert "`v0.5.1-public-readonly-beta` не опубликован" in text
     assert "`v0.4.0-owner-writebeta` отложен" in text
@@ -107,8 +107,8 @@ def test_readme_en_has_compact_public_status_and_queue_map() -> None:
     text = README_EN.read_text(encoding="utf-8")
 
     status = text.index("## Current status")
-    queue_map = text.index("## Current queue map")
-    assert status < queue_map
+    status_map = text.index("## Current status map")
+    assert status < status_map
     assert "`v0.5.0-public-readonly-beta` remains current" in text
     assert "`v0.5.1-public-readonly-beta` is not published" in text
     assert "`GNUCASH_WRITES_ENABLED=false` remains default" in text
