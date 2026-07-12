@@ -430,6 +430,8 @@ export type MessageKey =
 	| 'transactions.explorer.reset'
 	| 'transactions.explorer.removeFilter'
 	| 'transactions.explorer.cursorChip'
+	| 'transactions.explorer.dateRangeRequiredTitle'
+	| 'transactions.explorer.dateRangeRequiredMessage'
 	| 'transactions.explorer.readyTitle'
 	| 'transactions.explorer.readyMessage'
 	| 'transactions.explorer.trueEmptyTitle'
@@ -1004,6 +1006,9 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'transactions.explorer.reset': 'Reset explorer',
 		'transactions.explorer.removeFilter': 'Remove filter',
 		'transactions.explorer.cursorChip': 'Pagination cursor active',
+		'transactions.explorer.dateRangeRequiredTitle': 'Choose a bounded date range',
+		'transactions.explorer.dateRangeRequiredMessage':
+			'Set both date_from and date_to (up to 366 days) before loading the read-only explorer. The reset/default route does not request an unbounded transaction page.',
 		'transactions.explorer.readyTitle': 'Explorer page loaded',
 		'transactions.explorer.readyMessage': 'The explorer returned a bounded cursor page for the active filters.',
 		'transactions.explorer.trueEmptyTitle': 'No transactions match these exact filters',
@@ -1593,6 +1598,9 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'transactions.explorer.reset': 'Сбросить explorer',
 		'transactions.explorer.removeFilter': 'Убрать фильтр',
 		'transactions.explorer.cursorChip': 'Активен cursor пагинации',
+		'transactions.explorer.dateRangeRequiredTitle': 'Выберите ограниченный диапазон дат',
+		'transactions.explorer.dateRangeRequiredMessage':
+			'Задайте date_from и date_to (до 366 дней), прежде чем загружать read-only explorer. Reset/default route не запрашивает unbounded список транзакций.',
 		'transactions.explorer.readyTitle': 'Страница explorer загружена',
 		'transactions.explorer.readyMessage': 'Explorer вернул ограниченную cursor page для активных фильтров.',
 		'transactions.explorer.trueEmptyTitle': 'Нет транзакций для этих точных фильтров',

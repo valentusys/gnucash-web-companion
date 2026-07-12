@@ -38,6 +38,7 @@ type LegacyFilters = {
 
 type ExplorerStatusKind =
 	| 'ok'
+	| 'date_range_required'
 	| 'true_empty'
 	| 'scan_window_empty'
 	| 'scan_limited'
@@ -286,6 +287,19 @@ function emptyExplorerPage(
 		previous_cursor: null,
 		scan: { candidate_rows: 0, split_rows: 0, query_count: 0, scan_limited: false, exhausted: true },
 		limitations: []
+	};
+}
+
+function hasBoundedExplorerDateRange(filters: TransactionExplorerValidatedInput): boolean {
+	return Boolean(filters.dateFrom && filters.dateTo);
+}
+
+function dateRangeRequiredStatus(locale: Locale): ExplorerStatus {
+	return {
+		kind: 'date_range_required',
+		title: t(locale, 'transactions.explorer.dateRangeRequiredTitle'),
+		message: t(locale, 'transactions.explorer.dateRangeRequiredMessage'),
+		role: 'status'
 	};
 }
 
@@ -586,6 +600,27 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 			exportCsv: { enabled: false, href: '#', reason: t(locale, 'transactions.export.explorerDisabled') },
 			txs: emptyExplorerPage(filters.sort, filters.pageSize),
 			status: { kind: 'invalid_filter', title: t(locale, 'transactions.explorer.invalidFilterTitle'), message: validation.message, role: 'alert' } satisfies ExplorerStatus,
+			detailHrefs: {}
+		};
+	}
+
+	if (!hasBoundedExplorerDateRange(filters)) {
+		return {
+			mode: 'explorer' as const,
+			accounts,
+			accountOptions,
+			accountOptionsLimited: accounts.length > ACCOUNT_OPTION_LIMIT,
+			activeBook,
+			writesEnabled,
+			filters,
+			pageSizeOptions: TRANSACTIONS_EXPLORER_PAGE_SIZES,
+			datePresets: buildExplorerDatePresets(filters),
+			activeFilters,
+			resetHref,
+			resetPaginationHref,
+			exportCsv: { enabled: false, href: '#', reason: t(locale, 'transactions.export.explorerDisabled') },
+			txs: emptyExplorerPage(filters.sort, filters.pageSize),
+			status: dateRangeRequiredStatus(locale),
 			detailHrefs: {}
 		};
 	}

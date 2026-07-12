@@ -374,6 +374,36 @@ function assertNoMutationRequestsObserved(api, browserRequests, label) {
 	assert.deepEqual(forbiddenBrowserMutationRequests(browserRequests), [], `${label}: browser must issue zero mutation-capable requests`);
 }
 
+async function assertBoundedDateRangeRequiredState(cdp, api, browserRequests, expectedExplorerRequests, label, locale = 'en') {
+	const state = await evaluate(cdp, `(() => {
+		const form = document.querySelector('form[action="/transactions"][method="GET"]');
+		const resetHref = Array.from(document.querySelectorAll('a')).map((a) => a.getAttribute('href')).find((href) => href === '/transactions?sort=date_desc&page_size=50') ?? '';
+		return {
+			bodyText: document.body?.innerText ?? '',
+			dateFromValue: document.querySelector('#tx-date-from')?.value ?? null,
+			dateToValue: document.querySelector('#tx-date-to')?.value ?? null,
+			pageSizeValue: document.querySelector('#tx-page-size')?.value ?? null,
+			resetHref,
+			formControls: form?.querySelectorAll('input, select, button, a').length ?? 0
+		};
+	})()`);
+	if (locale === 'ru') {
+		assert.match(state.bodyText, /Выберите ограниченный диапазон дат/, `${label}: RU bounded-date message must be rendered`);
+		assert.match(state.bodyText, /Задайте date_from и date_to/, `${label}: RU bounded-date help must be rendered`);
+	} else {
+		assert.match(state.bodyText, /Choose a bounded date range/, `${label}: EN bounded-date message must be rendered`);
+		assert.match(state.bodyText, /Set both date_from and date_to/, `${label}: EN bounded-date help must be rendered`);
+	}
+	assert.equal(state.dateFromValue, '', `${label}: no hidden date_from may be invented`);
+	assert.equal(state.dateToValue, '', `${label}: no hidden date_to may be invented`);
+	assert.equal(state.pageSizeValue, '50', `${label}: canonical reset/default must preserve page_size=50`);
+	assert.equal(state.resetHref, '/transactions?sort=date_desc&page_size=50', `${label}: reset link must stay canonical no-date state`);
+	assert.ok(state.formControls >= 8, `${label}: bounded-date state must preserve explorer controls`);
+	assert.equal(explorerRequests(api).length, expectedExplorerRequests, `${label}: no-date route must issue zero new explorer requests`);
+	assertNoMutationRequestsObserved(api, browserRequests, label);
+	return state;
+}
+
 async function assertNoMobileOverflowAndAccessibleExplorer(cdp, label) {
 	const state = await evaluate(cdp, `(() => {
 		const root = document.documentElement;
@@ -404,7 +434,7 @@ async function assertNoMobileOverflowAndAccessibleExplorer(cdp, label) {
 	assert.ok(state.describedControls, `${label}: explorer help text must be associated with controlled fields`);
 	assert.ok(state.submitFocused, `${label}: explorer submit control must be keyboard-focusable`);
 	assert.equal(state.shortTargets, 0, `${label}: explorer form controls must expose at least 40px rendered touch height`);
-	assert.match(state.bodyText, /Transaction Explorer|Обзор транзакций|Transactions/i, `${label}: transactions page title must be visible at 320px`);
+	assert.match(state.bodyText, /Transaction Explorer|Обзор транзакций|Transactions|Транзакции|Просмотр транзакций/i, `${label}: transactions page title must be visible at 320px`);
 	return state;
 }
 
@@ -471,6 +501,23 @@ async function runSmoke() {
 		await cdp.send('Network.enable');
 		await cdp.send('Emulation.setDeviceMetricsOverride', { width: 320, height: 820, deviceScaleFactor: 2, mobile: true });
 		await cdp.send('Network.setCookie', { name: 'access_token', value: syntheticToken, url: webBase, path: '/', sameSite: 'Lax' });
+		await cdp.send('Network.setCookie', { name: 'ui_locale', value: 'en', url: webBase, path: '/', sameSite: 'Lax' });
+
+		await navigate(cdp, webBase, '/transactions', 'default bounded date required');
+		await waitForExpression(cdp, `document.body.innerText.includes('Choose a bounded date range')`, 'default bounded date body', 20000);
+		await assertBoundedDateRangeRequiredState(cdp, api, browserRequests, 0, 'default /transactions bounded-date state', 'en');
+		const noDateMobileState = await assertNoMobileOverflowAndAccessibleExplorer(cdp, 'default /transactions bounded-date state');
+
+		await navigate(cdp, webBase, '/transactions?sort=date_desc&page_size=50', 'canonical reset bounded date required');
+		await waitForExpression(cdp, `document.body.innerText.includes('Choose a bounded date range')`, 'canonical reset bounded date body', 20000);
+		await assertBoundedDateRangeRequiredState(cdp, api, browserRequests, 0, 'canonical reset bounded-date state', 'en');
+
+		await cdp.send('Network.setCookie', { name: 'ui_locale', value: 'ru', url: webBase, path: '/', sameSite: 'Lax' });
+		await navigate(cdp, webBase, '/transactions?sort=date_desc&page_size=50', 'canonical reset bounded date required ru');
+		await waitForExpression(cdp, `document.body.innerText.includes('Выберите ограниченный диапазон дат')`, 'canonical reset bounded date body ru', 20000);
+		await assertBoundedDateRangeRequiredState(cdp, api, browserRequests, 0, 'canonical reset bounded-date RU state', 'ru');
+		await assertNoMobileOverflowAndAccessibleExplorer(cdp, 'canonical reset bounded-date RU state');
+		await cdp.send('Network.setCookie', { name: 'ui_locale', value: 'en', url: webBase, path: '/', sameSite: 'Lax' });
 
 		const initialPath = `/transactions?date_from=2026-07-01&date_to=2026-07-31&account_ids=${accountId}&sort=date_desc&page_size=2`;
 		await navigate(cdp, webBase, initialPath, 'initial explorer');
@@ -527,8 +574,29 @@ async function runSmoke() {
 		await navigate(cdp, webBase, backHref, 'return from detail');
 		await waitForExpression(cdp, `location.pathname === '/transactions' && location.search.includes('query=coffee') && document.body.innerText.includes('Synthetic coffee explorer transaction')`, 'returned explorer context', 20000);
 
+		const resetHref = await evaluate(cdp, `Array.from(document.querySelectorAll('a')).map((a) => a.getAttribute('href')).find((href) => href === '/transactions?sort=date_desc&page_size=50')`);
+		assert.equal(resetHref, '/transactions?sort=date_desc&page_size=50', 'returned explorer context must expose the canonical Reset explorer link');
+		const beforeResetExplorerRequestCount = explorerRequests(api).length;
+		await navigate(cdp, webBase, resetHref, 'follow reset to bounded date required');
+		await waitForExpression(cdp, `location.search === '?sort=date_desc&page_size=50' && document.body.innerText.includes('Choose a bounded date range')`, 'reset bounded date body', 20000);
+		await assertBoundedDateRangeRequiredState(cdp, api, browserRequests, beforeResetExplorerRequestCount, 'followed Reset bounded-date state', 'en');
+
+		const beforePairedRangeExplorerRequestCount = explorerRequests(api).length;
+		await evaluate(cdp, `(() => {
+			document.querySelector('#tx-date-from').value = '2026-07-01';
+			document.querySelector('#tx-date-to').value = '2026-07-31';
+			document.querySelector('form[action="/transactions"]').requestSubmit();
+		})()`);
+		await waitForExpression(cdp, `location.search.includes('date_from=2026-07-01') && location.search.includes('date_to=2026-07-31') && document.body.innerText.includes('Synthetic explorer transaction')`, 'paired date range explorer body', 20000);
+		lastExplorer = explorerRequests(api).at(-1);
+		lastParams = new URLSearchParams(lastExplorer.search);
+		assert.equal(explorerRequests(api).length, beforePairedRangeExplorerRequestCount + 1, 'selecting a paired date range from reset state must issue exactly one explorer request');
+		assert.equal(lastParams.get('date_from'), '2026-07-01', 'paired date range request must include date_from');
+		assert.equal(lastParams.get('date_to'), '2026-07-31', 'paired date range request must include date_to');
+		assert.equal(lastParams.get('page_size'), '50', 'paired date range request must preserve canonical page_size');
+
 		assertNoMutationRequestsObserved(api, browserRequests, 'transactions explorer browser smoke');
-		console.log(`transactions explorer browser smoke passed: explorer_requests=${explorerRequests(api).length} api_forbidden=${api.forbiddenRequests.length} browser_forbidden=${forbiddenBrowserMutationRequests(browserRequests).length} mobile_width=${mobileState.viewportWidth} scroll_width=${mobileState.scrollWidth}`);
+		console.log(`transactions explorer browser smoke passed: explorer_requests=${explorerRequests(api).length} no_date_explorer_requests=0 api_forbidden=${api.forbiddenRequests.length} browser_forbidden=${forbiddenBrowserMutationRequests(browserRequests).length} mobile_width=${noDateMobileState.viewportWidth}/${mobileState.viewportWidth} scroll_width=${noDateMobileState.scrollWidth}/${mobileState.scrollWidth}`);
 	} catch (error) {
 		const webTail = webProcess?.outputTail?.() ?? '';
 		const chromiumTail = chromiumProcess?.outputTail?.() ?? '';

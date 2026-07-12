@@ -48,6 +48,9 @@ assert.match(explorer, /safeTransactionsReturnTo[\s\S]*parsed\.origin !== 'http:
 assert.match(explorer, /detailHrefWithReturnTo[\s\S]*encodeURIComponent\(safeReturnTo\)/s, 'detail links must URL-encode sanitized return_to');
 
 assert.match(server, /getActiveBookContext\(fetch, cookies, token\)[\s\S]*`\$\{bookPrefix\}\/accounts\?limit=\$\{ACCOUNT_OPTION_LIMIT\}`[\s\S]*validateTransactionsExplorerUrl\(url\)[\s\S]*`\$\{bookPrefix\}\/transactions\/explorer\?\$\{explorerParams\.toString\(\)\}`/s, '/transactions SSR load must resolve active book, bounded account options, validate URL state, and call the explorer API');
+assert.match(server, /hasBoundedExplorerDateRange[\s\S]*filters\.dateFrom[\s\S]*filters\.dateTo/s, '/transactions SSR load must have an explicit paired date-range gate before explorer API calls');
+assert.match(server, /dateRangeRequiredStatus[\s\S]*transactions\.explorer\.dateRangeRequiredTitle[\s\S]*transactions\.explorer\.dateRangeRequiredMessage/s, 'bounded date range required state must use localized i18n copy');
+assert.match(server, /if \(!hasBoundedExplorerDateRange\(filters\)\)[\s\S]*emptyExplorerPage\(filters\.sort, filters\.pageSize\)[\s\S]*dateRangeRequiredStatus\(locale\)[\s\S]*detailHrefs: \{\}[\s\S]*const explorerParams/s, 'no-date reset/default route must render a bounded date range required state before any explorer request');
 assert.match(server, /legacyCanonicalExplorerHref[\s\S]*throw redirect\(303, canonicalLegacyHref\)[\s\S]*isLegacyCompatibilityUrl[\s\S]*mode: 'legacy'/s, 'legacy URLs must either redirect to canonical explorer URLs or remain bounded compatibility mode for offset/one-sided date semantics');
 assert.match(server, /hasAdvancedFieldsWithLegacyOffset[\s\S]*'sort'[\s\S]*legacyOffsetConflict/s, 'legacy offset compatibility must reject advanced sort/page/cursor/account modes instead of silently dropping them');
 assert.match(server, /params\.getAll\('account_id'\)\.length > 1 \|\| \(params\.has\('account_id'\) && params\.has\('account_ids'\)\)/, 'legacy account_id normalization must not silently discard duplicate or mixed account selector parameters');
@@ -79,6 +82,8 @@ assert.match(dashboardServer, /incomeThisMonth: transactionFilterHref\(\{ date_f
 
 for (const key of [
 	'transactions.explorer.formHelp',
+	'transactions.explorer.dateRangeRequiredTitle',
+	'transactions.explorer.dateRangeRequiredMessage',
 	'transactions.explorer.scanLimitedTitle',
 	'transactions.explorer.staleCursorTitle',
 	'transactions.explorer.legacyOffsetConflict',
