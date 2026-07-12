@@ -6,7 +6,7 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.orm import Session
 
@@ -15,6 +15,7 @@ from app.routers.auth import get_current_user, get_db
 from app.services.book_access import AccessDenied, BookAccessService
 from app.services.book_registry import BookRegistryService
 from app.services.gnucash_book import GnuCashBookService
+from app.services.account_explorer import AccountExplorerError, build_account_explorer_query
 from app.services.gnucash_exceptions import (
     BookNotConfiguredError,
     BookNotFoundError,
@@ -523,6 +524,32 @@ async def get_book_account_tree(
     except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
         handle_gnucash_error(exc)
     return [node.model_dump() for node in tree]
+
+
+@router.get("/{book_id}/accounts/explorer")
+async def explore_book_accounts(
+    book_id: int,
+    request: Request,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+) -> dict[str, Any]:
+    """Return bounded flat preorder account hierarchy for an openable book."""
+    book = resolve_readonly_data_book(book_id, user, session)
+    try:
+        explorer_query = build_account_explorer_query(
+            mode=request.query_params.get("mode"),
+            query=request.query_params.get("query"),
+            types=request.query_params.getlist("type"),
+            hidden=request.query_params.get("hidden"),
+            placeholder=request.query_params.get("placeholder"),
+        )
+        result = account_service_for(book).explore_accounts(explorer_query, book_id=book.id)
+    except AccountExplorerError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail()) from exc
+    except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
+        handle_gnucash_error(exc)
+        raise
+    return result.model_dump()
 
 
 @router.get("/{book_id}/accounts/{account_id}")

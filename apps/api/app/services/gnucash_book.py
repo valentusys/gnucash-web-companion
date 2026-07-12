@@ -39,6 +39,12 @@ from app.schemas.gnucash import (
     TransactionListItemDTO,
     TransactionSplitDTO,
 )
+from app.schemas.accounts import AccountExplorerResponseDTO
+from app.services.account_explorer import (
+    AccountExplorerError,
+    AccountExplorerQuery,
+    build_account_explorer_response,
+)
 from app.schemas.transaction_explorer import (
     TransactionExplorerAccountRefDTO,
     TransactionExplorerItemDTO,
@@ -237,7 +243,7 @@ class GnuCashBookService:
         try:
             book = self._open_piecash_book(uri_or_path)
             yield book
-        except (BookNotConfiguredError, BookNotFoundError, EntityNotFoundError, TransactionExplorerError):
+        except (BookNotConfiguredError, BookNotFoundError, EntityNotFoundError, TransactionExplorerError, AccountExplorerError):
             raise
         except Exception as exc:  # pragma: no cover - exact piecash exceptions vary by backend
             raise GnuCashReadError(str(exc)) from exc
@@ -277,6 +283,16 @@ class GnuCashBookService:
                 else:
                     roots.append(node)
             return roots
+
+    def explore_accounts(self, request: AccountExplorerQuery, *, book_id: int | None = None) -> AccountExplorerResponseDTO:
+        """Return a bounded flat preorder hierarchy without legacy recursive/FX balances."""
+        with self._open_book() as book:
+            return build_account_explorer_response(
+                book,
+                request,
+                book_id=book_id if book_id is not None else self._get_book_id(self.book_config) or 0,
+                base_currency=self.base_currency,
+            )
 
     def list_transactions(
         self,

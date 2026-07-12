@@ -16,6 +16,7 @@ from app.database import Base
 from app.main import app
 from app.models import Book, User, UserBookAccess
 from app.routers.auth import get_db
+from app.schemas.accounts import AccountExplorerResponseDTO, AccountExplorerScanDTO
 from app.schemas.gnucash import (
     AccountDTO,
     AccountTreeNodeDTO,
@@ -224,6 +225,18 @@ class ReadOnlyServiceProbe:
             )
         ]
 
+    def explore_accounts(self, request, *, book_id: int | None = None):
+        return AccountExplorerResponseDTO(
+            book_id=book_id or self.book_id,
+            mode=request.mode,
+            normalized_filters=request.normalized_filters,
+            root_ids=[],
+            nodes=[],
+            returned_count=0,
+            scan=AccountExplorerScanDTO(query_count=0, exhausted=True, limits={}),
+            limitations=[],
+        )
+
     def get_account(self, account_id: str):
         return AccountDTO(
             id=account_id,
@@ -427,6 +440,7 @@ class TestMultiBookReadOnlyRouteFamilies:
         [
             "/books/{book_id}/accounts",
             "/books/{book_id}/accounts/tree",
+            "/books/{book_id}/accounts/explorer",
             "/books/{book_id}/accounts/acct-1",
             "/books/{book_id}/scheduled-transactions",
             "/books/{book_id}/transactions",
@@ -453,6 +467,7 @@ class TestMultiBookReadOnlyRouteFamilies:
         [
             "/books/{book_id}/accounts",
             "/books/{book_id}/accounts/tree",
+            "/books/{book_id}/accounts/explorer",
             "/books/{book_id}/accounts/acct-1",
             "/books/{book_id}/scheduled-transactions",
             "/books/{book_id}/transactions",
@@ -484,6 +499,7 @@ class TestMultiBookReadOnlyRouteFamilies:
         [
             "/books/{book_id}/accounts",
             "/books/{book_id}/accounts/tree",
+            "/books/{book_id}/accounts/explorer",
             "/books/{book_id}/accounts/acct-1",
             "/books/{book_id}/scheduled-transactions",
             "/books/{book_id}/transactions",

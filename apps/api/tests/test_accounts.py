@@ -153,6 +153,7 @@ def viewer_headers(viewer_token):
 
 @dataclass
 class FakeCommodity:
+    namespace: str = "CURRENCY"
     mnemonic: str = "SEK"
 
 
@@ -169,6 +170,11 @@ class FakeAccount:
     splits: list = field(default_factory=list)
 
 
+@dataclass
+class FakeSplit:
+    quantity: Decimal
+
+
 class FakeBook:
     def __init__(self, accounts=None):
         self.accounts = accounts or []
@@ -176,6 +182,75 @@ class FakeBook:
 
     def close(self):
         self.closed = True
+
+
+def _hex_guid(value: int) -> str:
+    return f"{value:032x}"
+
+
+def _set_book_path(session_factory, book_id: int, path: Path) -> None:
+    with session_factory() as session:
+        book = session.query(Book).filter(Book.id == book_id).first()
+        book.uri_or_path = str(path)
+        session.commit()
+
+
+@pytest.fixture
+def install_explorer_fake_book(tmp_path, monkeypatch):
+    opened: list[str] = []
+
+    def install(accounts, *, book_cls=FakeBook):
+        book_path = tmp_path / "explorer.gnucash"
+        book_path.write_text("fake")
+
+        def fake_open_book(path, readonly=False):
+            assert readonly is True
+            opened.append(str(path))
+            return book_cls(accounts=accounts)
+
+        import app.services.gnucash_book as gb_module
+
+        monkeypatch.setattr(gb_module.piecash, "open_book", fake_open_book)
+        return book_path, opened
+
+    return install
+
+
+def _explorer_accounts():
+    root = FakeAccount(guid=_hex_guid(1), name="Root", type="ROOT")
+    assets = FakeAccount(guid=_hex_guid(2), name="Assets", type="ASSET", parent=root)
+    bank = FakeAccount(
+        guid=_hex_guid(3),
+        name="Bank",
+        type="BANK",
+        parent=assets,
+        splits=[FakeSplit(Decimal("123.4567"))],
+    )
+    cafe = FakeAccount(
+        guid=_hex_guid(4),
+        name="Cafe\u0301",
+        type="BANK",
+        parent=assets,
+        splits=[FakeSplit(Decimal("1.2345"))],
+    )
+    income = FakeAccount(
+        guid=_hex_guid(5),
+        name="Salary",
+        type="INCOME",
+        parent=root,
+        splits=[FakeSplit(Decimal("-10.5"))],
+    )
+    hidden = FakeAccount(guid=_hex_guid(6), name="Hidden", type="BANK", parent=root, hidden=True)
+    placeholder = FakeAccount(guid=_hex_guid(7), name="Placeholder", type="EXPENSE", parent=assets, placeholder=True)
+    usd = FakeAccount(
+        guid=_hex_guid(8),
+        name="USD cash",
+        type="CASH",
+        commodity=FakeCommodity(mnemonic="USD"),
+        parent=assets,
+        splits=[FakeSplit(Decimal("2"))],
+    )
+    return [root, assets, bank, cafe, income, hidden, placeholder, usd]
 
 
 @pytest.fixture
@@ -387,6 +462,307 @@ class TestAccountTree:
             f"/books/{sample_book}/accounts/tree", headers=viewer_headers
         )
         assert response.status_code == 403
+
+
+# ---------------------------------------------------------------------------
+# Tests: GET /books/{book_id}/accounts/explorer
+# ---------------------------------------------------------------------------
+
+class TestAccountExplorer:
+    def test_requires_auth(self, client, sample_book):
+        response = client.get(f"/books/{sample_book}/accounts/explorer")
+        assert response.status_code == 401
+
+    def test_tree_preorder_exact_balances_and_metadata(
+        self, client, auth_headers, sample_book, install_explorer_fake_book, session_factory
+    ):
+        book_path, opened = install_explorer_fake_book(_explorer_accounts())
+        _set_book_path(session_factory, sample_book, book_path)
+
+        response = client.get(f"/books/{sample_book}/accounts/explorer", headers=auth_headers)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert opened == [str(book_path)]
+        assert data["book_id"] == sample_book
+        assert data["mode"] == "tree"
+        assert data["normalized_filters"] == {
+            "query": None,
+            "types": [],
+            "hidden": "exclude",
+            "placeholder": "include",
+        }
+        assert data["balance_basis"] == "native_commodity_account_natural_sign"
+        assert data["includes_currency_conversion"] is False
+        assert any("currency conversion" in item for item in data["limitations"])
+        assert data["root_ids"] == [_hex_guid(1)]
+        assert [node["id"] for node in data["nodes"]] == [
+            _hex_guid(1),
+            _hex_guid(2),
+            _hex_guid(3),
+            _hex_guid(4),
+            _hex_guid(7),
+            _hex_guid(8),
+            _hex_guid(5),
+        ]
+        assert data["returned_count"] == 7
+        assert data["scan"]["candidate_accounts"] == 8
+        assert data["scan"]["returned_nodes"] == 7
+        assert data["scan"]["split_rows"] == 4
+        assert data["scan"]["query_count"] <= 8
+
+        by_id = {node["id"]: node for node in data["nodes"]}
+        bank = by_id[_hex_guid(3)]
+        assert bank["source_parent_id"] == _hex_guid(2)
+        assert bank["parent_id"] == _hex_guid(2)
+        assert bank["root_id"] == _hex_guid(1)
+        assert bank["depth"] == 2
+        assert bank["path"] == [
+            {"id": _hex_guid(1), "name": "Root"},
+            {"id": _hex_guid(2), "name": "Assets"},
+            {"id": _hex_guid(3), "name": "Bank"},
+        ]
+        assert bank["full_path"] == "Root:Assets:Bank"
+        assert bank["type"] == "BANK"
+        assert bank["commodity_namespace"] == "CURRENCY"
+        assert bank["commodity_mnemonic"] == "SEK"
+        assert bank["direct_balance"] == {
+            "amount": "123.4567",
+            "commodity_namespace": "CURRENCY",
+            "commodity_mnemonic": "SEK",
+        }
+        assert bank["recursive_balances"] == [bank["direct_balance"]]
+        assert bank["child_count"] == 0
+        assert bank["match_state"] == "self"
+        assert bank["structure_status"] == "ok"
+
+        cafe = by_id[_hex_guid(4)]
+        assert cafe["name"] == "Café"
+        assert cafe["full_path"] == "Root:Assets:Café"
+        assert cafe["direct_balance"]["amount"] == "1.2345"
+
+        assets = by_id[_hex_guid(2)]
+        assert assets["child_count"] == 4
+        assert assets["recursive_balances"] == [
+            {"amount": "124.6912", "commodity_namespace": "CURRENCY", "commodity_mnemonic": "SEK"},
+            {"amount": "2", "commodity_namespace": "CURRENCY", "commodity_mnemonic": "USD"},
+        ]
+        income = by_id[_hex_guid(5)]
+        assert income["direct_balance"]["amount"] == "10.5"
+        assert _hex_guid(6) not in by_id
+
+    def test_query_type_flat_tree_and_context_filters(
+        self, client, auth_headers, sample_book, install_explorer_fake_book, session_factory
+    ):
+        book_path, _ = install_explorer_fake_book(_explorer_accounts())
+        _set_book_path(session_factory, sample_book, book_path)
+
+        tree = client.get(
+            f"/books/{sample_book}/accounts/explorer",
+            headers=auth_headers,
+            params={"query": " cafe\u0301 "},
+        )
+        assert tree.status_code == 200
+        tree_data = tree.json()
+        assert tree_data["normalized_filters"]["query"] == "café"
+        assert [node["id"] for node in tree_data["nodes"]] == [_hex_guid(1), _hex_guid(2), _hex_guid(4)]
+        assert [node["match_state"] for node in tree_data["nodes"]] == ["ancestor_context", "ancestor_context", "self"]
+
+        flat = client.get(
+            f"/books/{sample_book}/accounts/explorer",
+            headers=auth_headers,
+            params={"mode": "flat", "query": "CAFÉ"},
+        )
+        assert flat.status_code == 200
+        flat_data = flat.json()
+        assert flat_data["mode"] == "flat"
+        assert [node["id"] for node in flat_data["nodes"]] == [_hex_guid(4)]
+        assert flat_data["nodes"][0]["root_id"] == _hex_guid(1)
+
+        typed = client.get(
+            f"/books/{sample_book}/accounts/explorer",
+            headers=auth_headers,
+            params=[("type", "bank"), ("type", " asset ")],
+        )
+        assert typed.status_code == 200
+        typed_data = typed.json()
+        assert typed_data["normalized_filters"]["types"] == ["ASSET", "BANK"]
+        assert [node["id"] for node in typed_data["nodes"]] == [
+            _hex_guid(1),
+            _hex_guid(2),
+            _hex_guid(3),
+            _hex_guid(4),
+        ]
+
+    def test_hidden_placeholder_modes(
+        self, client, auth_headers, sample_book, install_explorer_fake_book, session_factory
+    ):
+        book_path, _ = install_explorer_fake_book(_explorer_accounts())
+        _set_book_path(session_factory, sample_book, book_path)
+
+        hidden_only = client.get(
+            f"/books/{sample_book}/accounts/explorer",
+            headers=auth_headers,
+            params={"hidden": "only"},
+        )
+        assert hidden_only.status_code == 200
+        assert [node["id"] for node in hidden_only.json()["nodes"]] == [_hex_guid(1), _hex_guid(6)]
+        assert [node["match_state"] for node in hidden_only.json()["nodes"]] == ["ancestor_context", "self"]
+
+        placeholder_excluded = client.get(
+            f"/books/{sample_book}/accounts/explorer",
+            headers=auth_headers,
+            params={"placeholder": "exclude"},
+        )
+        assert placeholder_excluded.status_code == 200
+        assert _hex_guid(7) not in {node["id"] for node in placeholder_excluded.json()["nodes"]}
+
+    def test_invalid_filters_are_typed_and_redacted(
+        self, client, auth_headers, sample_book, install_explorer_fake_book, session_factory
+    ):
+        book_path, _ = install_explorer_fake_book(_explorer_accounts())
+        _set_book_path(session_factory, sample_book, book_path)
+
+        duplicate = client.get(
+            f"/books/{sample_book}/accounts/explorer",
+            headers=auth_headers,
+            params=[("type", "bank"), ("type", " BANK ")],
+        )
+        assert duplicate.status_code == 422
+        assert duplicate.json()["detail"]["code"] == "duplicate_type"
+        assert "bank" not in duplicate.text.lower()
+
+        hidden = client.get(
+            f"/books/{sample_book}/accounts/explorer",
+            headers=auth_headers,
+            params={"hidden": "private-account-name"},
+        )
+        assert hidden.status_code == 422
+        assert hidden.json()["detail"]["code"] == "invalid_hidden"
+        assert "private-account-name" not in hidden.text
+
+    def test_orphans_and_cycles_are_promoted_without_losing_source_parent(
+        self, client, auth_headers, sample_book, install_explorer_fake_book, session_factory
+    ):
+        external = FakeAccount(guid=_hex_guid(31), name="External")
+        orphan = FakeAccount(guid=_hex_guid(30), name="Orphan", type="BANK", parent=external)
+        cycle_a = FakeAccount(guid=_hex_guid(20), name="Cycle A", type="ASSET")
+        cycle_b = FakeAccount(guid=_hex_guid(21), name="Cycle B", type="ASSET")
+        cycle_c = FakeAccount(guid=_hex_guid(22), name="Cycle C", type="ASSET")
+        cycle_a.parent = cycle_c
+        cycle_b.parent = cycle_a
+        cycle_c.parent = cycle_b
+        book_path, _ = install_explorer_fake_book([orphan, cycle_c, cycle_b, cycle_a])
+        _set_book_path(session_factory, sample_book, book_path)
+
+        response = client.get(f"/books/{sample_book}/accounts/explorer", headers=auth_headers)
+
+        assert response.status_code == 200
+        by_id = {node["id"]: node for node in response.json()["nodes"]}
+        assert by_id[_hex_guid(30)]["source_parent_id"] == _hex_guid(31)
+        assert by_id[_hex_guid(30)]["parent_id"] is None
+        assert by_id[_hex_guid(30)]["structure_status"] == "orphan_promoted"
+        assert by_id[_hex_guid(20)]["parent_id"] is None
+        assert by_id[_hex_guid(20)]["structure_status"] == "cycle_broken_root"
+        assert by_id[_hex_guid(21)]["parent_id"] == _hex_guid(20)
+        assert by_id[_hex_guid(21)]["structure_status"] == "cycle_member"
+        assert by_id[_hex_guid(22)]["parent_id"] == _hex_guid(21)
+        assert by_id[_hex_guid(22)]["structure_status"] == "cycle_member"
+
+    def test_result_bounds_are_typed_and_safe(
+        self, client, auth_headers, sample_book, install_explorer_fake_book, session_factory, monkeypatch
+    ):
+        import app.services.account_explorer as ae
+
+        book_path, _ = install_explorer_fake_book(_explorer_accounts())
+        _set_book_path(session_factory, sample_book, book_path)
+
+        monkeypatch.setattr(ae, "MAX_CANDIDATE_ACCOUNTS", 1)
+        too_many = client.get(f"/books/{sample_book}/accounts/explorer", headers=auth_headers)
+        assert too_many.status_code == 422
+        assert too_many.json()["detail"]["code"] == "result_too_large"
+        assert "Assets" not in too_many.text
+
+        monkeypatch.setattr(ae, "MAX_CANDIDATE_ACCOUNTS", 10_000)
+        monkeypatch.setattr(ae, "MAX_COMMODITY_BUCKETS", 1)
+        too_many_buckets = client.get(f"/books/{sample_book}/accounts/explorer", headers=auth_headers)
+        assert too_many_buckets.status_code == 422
+        assert too_many_buckets.json()["detail"]["code"] == "too_many_commodities"
+
+    def test_depth_response_and_rollup_bounds_are_typed(
+        self, client, auth_headers, sample_book, install_explorer_fake_book, session_factory, monkeypatch
+    ):
+        import app.services.account_explorer as ae
+
+        root = FakeAccount(guid=_hex_guid(40), name="Root", type="ROOT", splits=[FakeSplit(Decimal("1"))])
+        child = FakeAccount(
+            guid=_hex_guid(41),
+            name="Child",
+            type="ASSET",
+            parent=root,
+            splits=[FakeSplit(Decimal("2"))],
+        )
+        grandchild = FakeAccount(guid=_hex_guid(42), name="Grandchild", type="BANK", parent=child)
+        book_path, _ = install_explorer_fake_book([root, child, grandchild])
+        _set_book_path(session_factory, sample_book, book_path)
+
+        monkeypatch.setattr(ae, "MAX_DEPTH", 1)
+        too_deep = client.get(f"/books/{sample_book}/accounts/explorer", headers=auth_headers)
+        assert too_deep.status_code == 422
+        assert too_deep.json()["detail"]["code"] == "result_too_deep"
+
+        monkeypatch.setattr(ae, "MAX_DEPTH", 64)
+        monkeypatch.setattr(ae, "MAX_ROLLUP_CELLS", 1)
+        too_complex = client.get(f"/books/{sample_book}/accounts/explorer", headers=auth_headers)
+        assert too_complex.status_code == 422
+        assert too_complex.json()["detail"]["code"] == "result_too_complex"
+
+        monkeypatch.setattr(ae, "MAX_ROLLUP_CELLS", 50_000)
+        monkeypatch.setattr(ae, "MAX_SERIALIZED_RESPONSE_BYTES", 128)
+        too_large = client.get(f"/books/{sample_book}/accounts/explorer", headers=auth_headers)
+        assert too_large.status_code == 422
+        assert too_large.json()["detail"]["code"] == "result_too_large"
+
+    def test_does_not_use_legacy_balance_formatter_transactions_or_mutations(
+        self, client, auth_headers, sample_book, install_explorer_fake_book, session_factory, monkeypatch
+    ):
+        import app.services.gnucash_book as gb_module
+
+        class GuardAccount(FakeAccount):
+            mutation_count = 0
+
+            def get_balance(self):
+                raise AssertionError("legacy get_balance must not be used by account explorer")
+
+        class GuardBook(FakeBook):
+            @property
+            def transactions(self):
+                raise AssertionError("account explorer must not materialize transactions")
+
+        def forbidden_format_money(value):
+            raise AssertionError("account explorer must not use cent formatter")
+
+        monkeypatch.setattr(gb_module, "format_money", forbidden_format_money)
+
+        root = GuardAccount(guid=_hex_guid(50), name="Root", type="ROOT")
+        child = GuardAccount(
+            guid=_hex_guid(51),
+            name="Precise",
+            type="BANK",
+            parent=root,
+            splits=[FakeSplit(Decimal("1.234567"))],
+        )
+        book_path, opened = install_explorer_fake_book([root, child], book_cls=GuardBook)
+        _set_book_path(session_factory, sample_book, book_path)
+
+        response = client.get(f"/books/{sample_book}/accounts/explorer", headers=auth_headers)
+
+        assert response.status_code == 200
+        assert opened == [str(book_path)]
+        assert response.json()["nodes"][1]["direct_balance"]["amount"] == "1.234567"
+        assert response.json()["scan"]["query_count"] <= 8
+        assert root.mutation_count == 0
+        assert child.mutation_count == 0
 
 
 # ---------------------------------------------------------------------------
