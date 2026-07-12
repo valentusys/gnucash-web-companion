@@ -16,11 +16,13 @@ import statistics
 import sqlite3
 import sys
 import time
+from contextlib import contextmanager
 from dataclasses import asdict, dataclass
 from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
 from typing import Any, Callable
+from urllib.parse import quote
 
 import piecash
 from fastapi.testclient import TestClient
@@ -46,6 +48,38 @@ from app.services.gnucash_write import GnuCashWriteService
 
 BASE_CURRENCY = "SEK"
 CSV_EXPORT_LIMIT = 10_000
+SPARSE_QUERY_TEXT = "sparse-ζ-needle"
+EXPLORER_DATE_FROM = "2026-01-01"
+EXPLORER_DATE_TO = "2026-12-31"
+EXPLORER_PAGE_SIZE = 25
+EXPLORER_FILTERED_PAGE_SIZE = 5
+EXPLORER_LATER_PAGE_NUMBER = 20
+EXPLORER_FIRST_PAGE_TEMPLATE = (
+    "/books/{book_id}/transactions/explorer"
+    f"?date_from={EXPLORER_DATE_FROM}&date_to={EXPLORER_DATE_TO}"
+    f"&page_size={EXPLORER_PAGE_SIZE}&sort=date_desc"
+)
+EXPLORER_FILTERED_PAGE_TEMPLATE = (
+    "/books/{book_id}/transactions/explorer"
+    f"?date_from={EXPLORER_DATE_FROM}&date_to={EXPLORER_DATE_TO}"
+    f"&page_size={EXPLORER_FILTERED_PAGE_SIZE}&sort=date_desc&query={quote(SPARSE_QUERY_TEXT, safe='')}"
+)
+LOCAL_TIMING_BUDGETS_MS = {
+    "1k": {
+        "period_comparison_previous_equivalent": 1_500,
+        "transaction_explorer_first_page": 1_500,
+        "transaction_explorer_sparse_scan_limited": 2_500,
+        "transaction_explorer_later_forward_page": 1_500,
+        "transaction_explorer_previous_page": 1_500,
+    },
+    "10k": {
+        "period_comparison_previous_equivalent": 12_000,
+        "transaction_explorer_first_page": 4_000,
+        "transaction_explorer_sparse_scan_limited": 8_000,
+        "transaction_explorer_later_forward_page": 4_000,
+        "transaction_explorer_previous_page": 4_000,
+    },
+}
 DEFAULT_OUTPUT_PATH = (
     Path(__file__).resolve().parents[2]
     / "tests"
@@ -75,6 +109,22 @@ BENCHMARK_CASES: list[BenchmarkCase] = [
         "transaction_filters",
         "GET",
         "/books/{book_id}/transactions?limit=50&offset=0&query=synthetic&date_from=2026-01-01&date_to=2026-12-31",
+    ),
+    BenchmarkCase("transaction_explorer_first_page", "GET", EXPLORER_FIRST_PAGE_TEMPLATE),
+    BenchmarkCase(
+        "transaction_explorer_sparse_scan_limited",
+        "GET",
+        EXPLORER_FILTERED_PAGE_TEMPLATE,
+    ),
+    BenchmarkCase(
+        "transaction_explorer_later_forward_page",
+        "GET",
+        EXPLORER_FIRST_PAGE_TEMPLATE + "&cursor={cursor}",
+    ),
+    BenchmarkCase(
+        "transaction_explorer_previous_page",
+        "GET",
+        EXPLORER_FIRST_PAGE_TEMPLATE + "&cursor={cursor}",
     ),
     BenchmarkCase(
         "account_detail_transactions",
@@ -154,6 +204,7 @@ class BenchmarkConfig:
     account_depth: int = 4
     many_split_count: int = 60
     repeats: int = 3
+    warmups: int = 1
 
 
 @dataclass(frozen=True)
@@ -185,6 +236,33 @@ class BenchmarkResult:
     csv_truncated: bool | None = None
     csv_expected_body_rows: int | None = None
     csv_body_matches_expected: bool | None = None
+    warmup_count: int = 1
+    measured_samples: int = 3
+    returned_count: int | None = None
+    page_size: int | None = None
+    has_more: bool | None = None
+    has_previous: bool | None = None
+    next_cursor_length: int | None = None
+    previous_cursor_length: int | None = None
+    scan_candidate_rows: int | None = None
+    scan_split_rows: int | None = None
+    scan_query_count: int | None = None
+    scan_limited: bool | None = None
+    scan_exhausted: bool | None = None
+    scan_limits: dict[str, int] | None = None
+    stable_unique_order: bool | None = None
+    cursor_roundtrip_matches: bool | None = None
+    read_only_book_open_count_min: int | None = None
+    read_only_book_open_count_max: int | None = None
+    legacy_count_call_count_max: int | None = None
+    full_transaction_materialization_count_max: int | None = None
+    report_transaction_visit_count_max: int | None = None
+    mutation_capable_request_count: int = 0
+    local_timing_budget_dataset: str | None = None
+    local_timing_budget_ms: int | None = None
+    local_timing_budget_passed: bool | None = None
+    local_relative_timing_budget_reference_ms: float | None = None
+    local_relative_timing_budget_passed: bool | None = None
 
     def __post_init__(self) -> None:
         if self.name not in {"csv_export_up_to_cap", "account_detail_csv_export"}:
@@ -204,6 +282,20 @@ def benchmark_plan(case_names: set[str] | None = None) -> list[BenchmarkCase]:
     if unknown:
         raise ValueError(f"unknown benchmark case(s): {', '.join(sorted(unknown))}")
     return [case for case in BENCHMARK_CASES if case.name in case_names]
+
+
+def _synthetic_guid(namespace: int, index: int) -> str:
+    """Return a stable 32-hex synthetic GUID for reproducible fixture rows."""
+    if namespace < 0 or namespace > 0xFFFF:
+        raise ValueError("namespace must fit in 16 bits")
+    if index < 0 or index >= 16**28:
+        raise ValueError("index must fit in 28 hex digits")
+    return f"{namespace:04x}{index:028x}"
+
+
+def _assign_guid(item: Any, guid: str) -> Any:
+    setattr(item, "guid", guid)
+    return item
 
 
 def create_large_synthetic_book(
@@ -233,70 +325,114 @@ def create_large_synthetic_book(
         output.unlink()
 
     book = piecash.create_book(currency=BASE_CURRENCY, sqlite_file=str(output))
-    currency = book.commodities[0]
-    root = book.root_account
+    currency = _assign_guid(book.commodities[0], _synthetic_guid(0xC001, 1))
+    root = _assign_guid(book.root_account, _synthetic_guid(0xA001, 0))
 
-    assets = Account(name="Synthetic Assets", type="ASSET", parent=root, commodity=currency)
-    checking = Account(name="Synthetic Checking", type="BANK", parent=assets, commodity=currency)
-    savings = Account(name="Synthetic Savings", type="BANK", parent=assets, commodity=currency)
+    account_index = 0
+    split_index = 0
 
-    liabilities = Account(name="Synthetic Liabilities", type="LIABILITY", parent=root, commodity=currency)
-    credit_card = Account(name="Synthetic Credit Card", type="CREDIT", parent=liabilities, commodity=currency)
-
-    income = Account(name="Synthetic Income", type="INCOME", parent=root, commodity=currency)
-    salary = Account(name="Synthetic Salary", type="INCOME", parent=income, commodity=currency)
-
-    expenses = Account(name="Synthetic Expenses", type="EXPENSE", parent=root, commodity=currency)
-    expense_accounts = [
-        Account(
-            name=f"Synthetic Expense {idx:02d}",
-            type="EXPENSE",
-            parent=expenses,
-            commodity=currency,
+    def synthetic_account(name: str, account_type: str, parent: Account) -> Account:
+        nonlocal account_index
+        account_index += 1
+        return _assign_guid(
+            Account(name=name, type=account_type, parent=parent, commodity=currency),
+            _synthetic_guid(0xA001, account_index),
         )
+
+    def synthetic_split(account: Account, value: Decimal, *, memo: str = "") -> Split:
+        nonlocal split_index
+        split_index += 1
+        return _assign_guid(
+            Split(account=account, value=value, memo=memo),
+            _synthetic_guid(0x5001, split_index),
+        )
+
+    def synthetic_transaction(
+        idx: int,
+        *,
+        description: str,
+        post_date: date,
+        splits: list[Split],
+    ) -> Transaction:
+        return _assign_guid(
+            Transaction(currency=currency, description=description, post_date=post_date, splits=splits),
+            _synthetic_guid(0x7001, idx),
+        )
+
+    def synthetic_description(kind: str, idx: int) -> str:
+        suffix = ""
+        if idx % 37 == 0:
+            suffix += " — Unicode café Привет 旅費"
+        if idx % 997 == 0:
+            suffix += f" {SPARSE_QUERY_TEXT}"
+        return f"Synthetic benchmark transaction {kind} {idx:05d}{suffix}"
+
+    def synthetic_memo(label: str, idx: int) -> str:
+        suffix = ""
+        if idx % 37 == 0:
+            suffix += " Unicode memo café Привет 旅費"
+        if idx % 997 == 0:
+            suffix += f" {SPARSE_QUERY_TEXT}"
+        return f"Synthetic benchmark memo {label} {idx:05d}{suffix}"
+
+    assets = synthetic_account("Synthetic Assets", "ASSET", root)
+    checking = synthetic_account("Synthetic Checking", "BANK", assets)
+    savings = synthetic_account("Synthetic Savings", "BANK", assets)
+
+    liabilities = synthetic_account("Synthetic Liabilities", "LIABILITY", root)
+    credit_card = synthetic_account("Synthetic Credit Card", "CREDIT", liabilities)
+
+    income = synthetic_account("Synthetic Income", "INCOME", root)
+    salary = synthetic_account("Synthetic Salary", "INCOME", income)
+
+    expenses = synthetic_account("Synthetic Expenses", "EXPENSE", root)
+    expense_accounts = [
+        synthetic_account(f"Synthetic Expense {idx:02d}", "EXPENSE", expenses)
         for idx in range(1, expense_account_count + 1)
     ]
 
     synthetic_hierarchy_accounts: list[Account] = []
     for branch_idx in range(1, account_branch_count + 1):
-        parent = Account(
-            name=f"Synthetic Hierarchy Branch {branch_idx:02d}",
-            type="ASSET",
-            parent=assets,
-            commodity=currency,
-        )
+        parent = synthetic_account(f"Synthetic Hierarchy Branch {branch_idx:02d}", "ASSET", assets)
         synthetic_hierarchy_accounts.append(parent)
         for depth_idx in range(1, account_depth + 1):
-            parent = Account(
-                name=f"Synthetic Hierarchy Branch {branch_idx:02d} Level {depth_idx:02d}",
-                type="ASSET",
-                parent=parent,
-                commodity=currency,
+            parent = synthetic_account(
+                f"Synthetic Hierarchy Branch {branch_idx:02d} Level {depth_idx:02d}",
+                "ASSET",
+                parent,
             )
             synthetic_hierarchy_accounts.append(parent)
 
-    equity = Account(name="Synthetic Equity", type="EQUITY", parent=root, commodity=currency)
-    opening = Account(name="Synthetic Opening Balances", type="EQUITY", parent=equity, commodity=currency)
+    equity = synthetic_account("Synthetic Equity", "EQUITY", root)
+    opening = synthetic_account("Synthetic Opening Balances", "EQUITY", equity)
 
-    Transaction(
-        currency=currency,
+    synthetic_transaction(
+        1,
         description="Synthetic benchmark transaction opening checking",
         post_date=date(2026, 1, 1),
         splits=[
-            Split(account=opening, value=Decimal("-10000.00")),
-            Split(account=checking, value=Decimal("10000.00")),
+            synthetic_split(opening, Decimal("-10000.00"), memo="Synthetic opening memo source"),
+            synthetic_split(checking, Decimal("10000.00"), memo="Synthetic opening memo checking"),
         ],
     )
 
     per_split_amount = Decimal("1.00")
-    Transaction(
-        currency=currency,
-        description="Synthetic benchmark transaction many splits",
+    synthetic_transaction(
+        2,
+        description="Synthetic benchmark transaction many splits — Unicode café Привет 旅費",
         post_date=date(2026, 1, 2),
         splits=[
-            Split(account=checking, value=-(per_split_amount * (many_split_count - 1))),
+            synthetic_split(
+                checking,
+                -(per_split_amount * (many_split_count - 1)),
+                memo="Synthetic many-split source memo",
+            ),
             *[
-                Split(account=expense_accounts[idx % expense_account_count], value=per_split_amount)
+                synthetic_split(
+                    expense_accounts[idx % expense_account_count],
+                    per_split_amount,
+                    memo=f"Synthetic many-split repeated memo {idx:03d}",
+                )
                 for idx in range(many_split_count - 1)
             ],
         ],
@@ -306,46 +442,47 @@ def create_large_synthetic_book(
     for idx in range(2, transaction_count):
         tx_date = start + timedelta(days=idx % 365)
         amount = Decimal((idx % 500) + 1).quantize(Decimal("0.01"))
+        tx_guid_index = idx + 1
         if idx % 10 == 0:
-            Transaction(
-                currency=currency,
-                description=f"Synthetic benchmark transaction salary {idx:05d}",
+            synthetic_transaction(
+                tx_guid_index,
+                description=synthetic_description("salary", idx),
                 post_date=tx_date,
                 splits=[
-                    Split(account=salary, value=-(amount + Decimal("1000.00"))),
-                    Split(account=checking, value=amount + Decimal("1000.00")),
+                    synthetic_split(salary, -(amount + Decimal("1000.00")), memo=synthetic_memo("salary", idx)),
+                    synthetic_split(checking, amount + Decimal("1000.00"), memo=synthetic_memo("checking", idx)),
                 ],
             )
         elif idx % 15 == 0:
-            Transaction(
-                currency=currency,
-                description=f"Synthetic benchmark transaction transfer {idx:05d}",
+            synthetic_transaction(
+                tx_guid_index,
+                description=synthetic_description("transfer", idx),
                 post_date=tx_date,
                 splits=[
-                    Split(account=checking, value=-amount),
-                    Split(account=savings, value=amount),
+                    synthetic_split(checking, -amount, memo=synthetic_memo("transfer-out", idx)),
+                    synthetic_split(savings, amount, memo=synthetic_memo("transfer-in", idx)),
                 ],
             )
         elif idx % 22 == 0:
             expense = expense_accounts[idx % expense_account_count]
-            Transaction(
-                currency=currency,
-                description=f"Synthetic benchmark transaction credit {idx:05d}",
+            synthetic_transaction(
+                tx_guid_index,
+                description=synthetic_description("credit", idx),
                 post_date=tx_date,
                 splits=[
-                    Split(account=credit_card, value=-amount),
-                    Split(account=expense, value=amount),
+                    synthetic_split(credit_card, -amount, memo=synthetic_memo("credit", idx)),
+                    synthetic_split(expense, amount, memo=synthetic_memo("expense", idx)),
                 ],
             )
         else:
             expense = expense_accounts[idx % expense_account_count]
-            Transaction(
-                currency=currency,
-                description=f"Synthetic benchmark transaction expense {idx:05d}",
+            synthetic_transaction(
+                tx_guid_index,
+                description=synthetic_description("expense", idx),
                 post_date=tx_date,
                 splits=[
-                    Split(account=checking, value=-amount),
-                    Split(account=expense, value=amount),
+                    synthetic_split(checking, -amount, memo=synthetic_memo("checking", idx)),
+                    synthetic_split(expense, amount, memo=synthetic_memo("expense", idx)),
                 ],
             )
 
@@ -497,8 +634,8 @@ def _select_preview_account_ids(client: TestClient, book_id: int, headers: dict[
 def _select_many_split_transaction_id(book_path: Path) -> str:
     with sqlite3.connect(book_path) as conn:
         row = conn.execute(
-            "select guid from transactions where description = ?",
-            ("Synthetic benchmark transaction many splits",),
+            "select guid from transactions where description like ?",
+            ("Synthetic benchmark transaction many splits%",),
         ).fetchone()
     if row is None:
         raise RuntimeError("benchmark fixture did not expose a many-splits transaction id")
@@ -607,6 +744,262 @@ def _summarize_response(
     return item_count, None, None, None
 
 
+@dataclass
+class _BenchmarkRequestCounters:
+    read_only_book_opens: int = 0
+    legacy_count_calls: int = 0
+    full_transaction_materializations: int = 0
+    report_transaction_visits: int = 0
+
+
+@dataclass(frozen=True)
+class _PreparedBenchmarkRequest:
+    path: str
+    output_path: str
+    expected_item_ids: list[str] | None = None
+
+
+@contextmanager
+def _instrument_benchmark_request():
+    counters = _BenchmarkRequestCounters()
+    original_open = GnuCashBookService._open_piecash_book
+    original_count = GnuCashBookService.count_transactions
+    original_transactions = GnuCashBookService._transactions
+    original_report_transactions = GnuCashBookService._report_transactions
+
+    def counted_open(self: GnuCashBookService, uri_or_path: str):
+        counters.read_only_book_opens += 1
+        return original_open(self, uri_or_path)
+
+    def counted_count(self: GnuCashBookService, *args: Any, **kwargs: Any):
+        counters.legacy_count_calls += 1
+        return original_count(self, *args, **kwargs)
+
+    def counted_transactions(self: GnuCashBookService, book: Any):
+        counters.full_transaction_materializations += 1
+        return original_transactions(self, book)
+
+    def counted_report_transactions(self: GnuCashBookService, book: Any):
+        rows = original_report_transactions(self, book)
+
+        def visit_counter():
+            for row in rows:
+                counters.report_transaction_visits += 1
+                yield row
+
+        return visit_counter()
+
+    GnuCashBookService._open_piecash_book = counted_open  # type: ignore[method-assign]
+    GnuCashBookService.count_transactions = counted_count  # type: ignore[method-assign]
+    GnuCashBookService._transactions = counted_transactions  # type: ignore[method-assign]
+    GnuCashBookService._report_transactions = counted_report_transactions  # type: ignore[method-assign]
+    try:
+        yield counters
+    finally:
+        GnuCashBookService._open_piecash_book = original_open  # type: ignore[method-assign]
+        GnuCashBookService.count_transactions = original_count  # type: ignore[method-assign]
+        GnuCashBookService._transactions = original_transactions  # type: ignore[method-assign]
+        GnuCashBookService._report_transactions = original_report_transactions  # type: ignore[method-assign]
+
+
+def _append_cursor(path: str, cursor: str) -> str:
+    return f"{path}&cursor={quote(cursor, safe='')}"
+
+
+def _redact_cursor_path(path: str) -> str:
+    if "cursor=" not in path:
+        return path
+    prefix, _separator, _cursor = path.partition("cursor=")
+    return f"{prefix}cursor=<redacted>"
+
+
+def _explorer_item_ids(payload: dict[str, Any]) -> list[str]:
+    items = payload.get("items")
+    if not isinstance(items, list):
+        return []
+    return [str(item.get("id")) for item in items if isinstance(item, dict) and item.get("id")]
+
+
+def _fetch_explorer_payload(client: TestClient, path: str, headers: dict[str, str]) -> dict[str, Any]:
+    response = client.get(path, headers=headers)
+    response.raise_for_status()
+    payload = response.json()
+    if not isinstance(payload, dict):
+        raise RuntimeError("explorer benchmark expected a JSON object response")
+    return payload
+
+
+def _prepare_explorer_page_path(
+    client: TestClient,
+    *,
+    headers: dict[str, str],
+    base_path: str,
+    page_number: int,
+) -> str:
+    if page_number < 1:
+        raise ValueError("page_number must be at least 1")
+    if page_number == 1:
+        return base_path
+    payload = _fetch_explorer_payload(client, base_path, headers)
+    for _page in range(2, page_number):
+        cursor = payload.get("next_cursor")
+        if not isinstance(cursor, str) or not cursor:
+            raise RuntimeError(f"synthetic fixture did not expose page {page_number} for explorer benchmark")
+        payload = _fetch_explorer_payload(client, _append_cursor(base_path, cursor), headers)
+    cursor = payload.get("next_cursor")
+    if not isinstance(cursor, str) or not cursor:
+        raise RuntimeError(f"synthetic fixture did not expose page {page_number} for explorer benchmark")
+    return _append_cursor(base_path, cursor)
+
+
+def _prepare_http_benchmark_request(
+    case: BenchmarkCase,
+    *,
+    client: TestClient,
+    book_id: int,
+    headers: dict[str, str],
+    account_id: str,
+    many_split_transaction_id: str,
+) -> _PreparedBenchmarkRequest:
+    base_path = EXPLORER_FIRST_PAGE_TEMPLATE.format(book_id=book_id)
+    if case.name == "transaction_explorer_later_forward_page":
+        path = _prepare_explorer_page_path(
+            client,
+            headers=headers,
+            base_path=base_path,
+            page_number=EXPLORER_LATER_PAGE_NUMBER,
+        )
+        return _PreparedBenchmarkRequest(path=path, output_path=_redact_cursor_path(path))
+    if case.name == "transaction_explorer_previous_page":
+        previous_page_path = _prepare_explorer_page_path(
+            client,
+            headers=headers,
+            base_path=base_path,
+            page_number=EXPLORER_LATER_PAGE_NUMBER - 1,
+        )
+        previous_payload = _fetch_explorer_payload(client, previous_page_path, headers)
+        expected_ids = _explorer_item_ids(previous_payload)
+        next_cursor = previous_payload.get("next_cursor")
+        if not isinstance(next_cursor, str) or not next_cursor:
+            raise RuntimeError("synthetic fixture did not expose a forward cursor for previous traversal")
+        later_payload = _fetch_explorer_payload(client, _append_cursor(base_path, next_cursor), headers)
+        previous_cursor = later_payload.get("previous_cursor")
+        if not isinstance(previous_cursor, str) or not previous_cursor:
+            raise RuntimeError("synthetic fixture did not expose a previous cursor")
+        path = _append_cursor(base_path, previous_cursor)
+        return _PreparedBenchmarkRequest(
+            path=path,
+            output_path=_redact_cursor_path(path),
+            expected_item_ids=expected_ids,
+        )
+    path = case.path_template.format(
+        book_id=book_id,
+        account_id=account_id,
+        many_split_transaction_id=many_split_transaction_id,
+    )
+    return _PreparedBenchmarkRequest(path=path, output_path=path)
+
+
+def _request_with_counters(
+    client: TestClient,
+    *,
+    method: str,
+    path: str,
+    request_kwargs: dict[str, Any],
+) -> tuple[Any, float, _BenchmarkRequestCounters]:
+    with _instrument_benchmark_request() as counters:
+        start = time.perf_counter()
+        response = client.request(method, path, **request_kwargs)
+        duration_ms = (time.perf_counter() - start) * 1000
+    response.raise_for_status()
+    return response, duration_ms, counters
+
+
+def _counter_summary(counters: list[_BenchmarkRequestCounters]) -> dict[str, int | None]:
+    if not counters:
+        return {
+            "read_only_book_open_count_min": None,
+            "read_only_book_open_count_max": None,
+            "legacy_count_call_count_max": None,
+            "full_transaction_materialization_count_max": None,
+            "report_transaction_visit_count_max": None,
+        }
+    return {
+        "read_only_book_open_count_min": min(counter.read_only_book_opens for counter in counters),
+        "read_only_book_open_count_max": max(counter.read_only_book_opens for counter in counters),
+        "legacy_count_call_count_max": max(counter.legacy_count_calls for counter in counters),
+        "full_transaction_materialization_count_max": max(
+            counter.full_transaction_materializations for counter in counters
+        ),
+        "report_transaction_visit_count_max": max(counter.report_transaction_visits for counter in counters),
+    }
+
+
+def _summarize_response_metadata(
+    response: Any,
+    *,
+    expected_item_ids: list[str] | None = None,
+) -> dict[str, Any]:
+    try:
+        payload = response.json()
+    except ValueError:
+        return {}
+    if not isinstance(payload, dict):
+        return {}
+    summary: dict[str, Any] = {}
+    items = payload.get("items")
+    if isinstance(items, list):
+        ids = [str(item.get("id")) for item in items if isinstance(item, dict) and item.get("id")]
+        keys = [
+            (str(item.get("date")), str(item.get("id")))
+            for item in items
+            if isinstance(item, dict) and item.get("date") and item.get("id")
+        ]
+        sort = payload.get("sort")
+        if keys:
+            summary["stable_unique_order"] = len(ids) == len(set(ids)) and keys == sorted(
+                keys,
+                reverse=sort == "date_desc",
+            )
+        if expected_item_ids is not None:
+            summary["cursor_roundtrip_matches"] = ids == expected_item_ids
+    for key in ("returned_count", "page_size", "has_more", "has_previous"):
+        if key in payload:
+            summary[key] = payload[key]
+    next_cursor = payload.get("next_cursor")
+    previous_cursor = payload.get("previous_cursor")
+    if isinstance(next_cursor, str):
+        summary["next_cursor_length"] = len(next_cursor)
+    if isinstance(previous_cursor, str):
+        summary["previous_cursor_length"] = len(previous_cursor)
+    scan = payload.get("scan")
+    if isinstance(scan, dict):
+        summary["scan_candidate_rows"] = scan.get("candidate_rows")
+        summary["scan_split_rows"] = scan.get("split_rows")
+        summary["scan_query_count"] = scan.get("query_count")
+        summary["scan_limited"] = scan.get("scan_limited")
+        summary["scan_exhausted"] = scan.get("exhausted")
+        limits = scan.get("limits")
+        if isinstance(limits, dict):
+            summary["scan_limits"] = {str(key): int(value) for key, value in limits.items()}
+    return summary
+
+
+def _count_book_transactions(book_path: Path) -> int:
+    with sqlite3.connect(book_path) as conn:
+        return int(conn.execute("select count(*) from transactions").fetchone()[0])
+
+
+def _local_timing_budget(case_name: str, transaction_count: int) -> tuple[str | None, int | None]:
+    if transaction_count >= 10_000:
+        dataset = "10k"
+    elif transaction_count >= 1_000:
+        dataset = "1k"
+    else:
+        return None, None
+    return dataset, LOCAL_TIMING_BUDGETS_MS.get(dataset, {}).get(case_name)
+
+
 def _run_service_benchmark_case(
     case: BenchmarkCase,
     *,
@@ -615,6 +1008,7 @@ def _run_service_benchmark_case(
     credit_account_id: str,
     many_split_transaction_id: str,
     repeats: int,
+    warmups: int,
 ) -> BenchmarkResult:
     """Run a non-mutating service/read-back benchmark case without enabling write routes."""
     durations: list[float] = []
@@ -632,6 +1026,8 @@ def _run_service_benchmark_case(
             raise RuntimeError("validation benchmark requires a synthetic payload")
         request = TransactionCreateRequestDTO(**payload)
         service = GnuCashWriteService({"uri_or_path": str(book_path), "base_currency": BASE_CURRENCY})
+        for _ in range(warmups):
+            service.validate_transaction_create(request)
         for _ in range(repeats):
             start = time.perf_counter()
             validation = service.validate_transaction_create(request)
@@ -658,6 +1054,8 @@ def _run_service_benchmark_case(
             transaction_id=many_split_transaction_id,
             backup_path="synthetic-readback-benchmark-ref",
         )
+        for _ in range(warmups):
+            _verify_transaction_create_readback(synthetic_book, request, result)
         for _ in range(repeats):
             start = time.perf_counter()
             last_payload = dict(_verify_transaction_create_readback(synthetic_book, request, result))
@@ -678,6 +1076,8 @@ def _run_service_benchmark_case(
         duration_ms_max=round(max(durations), 2),
         response_bytes=_json_response_size(last_payload),
         item_count=item_count,
+        warmup_count=warmups,
+        measured_samples=repeats,
     )
 
 
@@ -685,19 +1085,24 @@ def run_benchmark(
     book_path: str | Path,
     *,
     repeats: int = 3,
+    warmups: int = 1,
     case_names: set[str] | None = None,
 ) -> list[BenchmarkResult]:
     """Run selected synthetic benchmark cases without enabling mutation routes."""
     if repeats < 1:
         raise ValueError("repeats must be at least 1")
+    if warmups < 0:
+        raise ValueError("warmups must be zero or greater")
     selected_cases = benchmark_plan(case_names)
     resolved_book_path = Path(book_path)
+    transaction_count = _count_book_transactions(resolved_book_path)
     client, book_id, headers, cleanup = _build_client(resolved_book_path)
     try:
         account_id = _select_account_id(client, book_id, headers)
         preview_debit_account_id, preview_credit_account_id = _select_preview_account_ids(client, book_id, headers)
         many_split_transaction_id = _select_many_split_transaction_id(resolved_book_path)
         results: list[BenchmarkResult] = []
+        median_by_case: dict[str, float] = {}
         for case in selected_cases:
             if case.method == "SERVICE":
                 results.append(
@@ -708,15 +1113,20 @@ def run_benchmark(
                         credit_account_id=preview_credit_account_id,
                         many_split_transaction_id=many_split_transaction_id,
                         repeats=repeats,
+                        warmups=warmups,
                     )
                 )
                 continue
-            path = case.path_template.format(
+            prepared = _prepare_http_benchmark_request(
+                case,
+                client=client,
                 book_id=book_id,
+                headers=headers,
                 account_id=account_id,
                 many_split_transaction_id=many_split_transaction_id,
             )
             durations: list[float] = []
+            counters: list[_BenchmarkRequestCounters] = []
             last_response = None
             request_json = _build_case_request_json(
                 case,
@@ -726,31 +1136,65 @@ def run_benchmark(
             request_kwargs: dict[str, Any] = {"headers": headers}
             if request_json is not None:
                 request_kwargs["json"] = request_json
-            for _ in range(repeats):
-                start = time.perf_counter()
-                response = client.request(case.method, path, **request_kwargs)
-                durations.append((time.perf_counter() - start) * 1000)
+            for _ in range(warmups):
+                response = client.request(case.method, prepared.path, **request_kwargs)
                 response.raise_for_status()
+            for _ in range(repeats):
+                response, duration_ms, request_counters = _request_with_counters(
+                    client,
+                    method=case.method,
+                    path=prepared.path,
+                    request_kwargs=request_kwargs,
+                )
+                durations.append(duration_ms)
+                counters.append(request_counters)
                 last_response = response
             if last_response is None:  # pragma: no cover - repeats validation prevents this
                 raise RuntimeError("benchmark produced no response")
             item_count, csv_limit, csv_total, csv_truncated = _summarize_response(case, last_response)
+            counter_summary = _counter_summary(counters)
+            response_summary = _summarize_response_metadata(
+                last_response,
+                expected_item_ids=prepared.expected_item_ids,
+            )
+            budget_dataset, budget_ms = _local_timing_budget(case.name, transaction_count)
+            median_ms = round(statistics.median(durations), 2)
+            relative_reference_ms = None
+            relative_budget_passed = None
+            if budget_dataset == "10k" and case.name in {
+                "transaction_explorer_later_forward_page",
+                "transaction_explorer_previous_page",
+            }:
+                relative_reference_ms = median_by_case.get("transaction_explorer_first_page")
+                if relative_reference_ms is not None:
+                    relative_budget_passed = median_ms <= (2 * relative_reference_ms)
             results.append(
                 BenchmarkResult(
                     name=case.name,
                     method=case.method,
-                    path=path,
+                    path=prepared.output_path,
                     status_code=last_response.status_code,
                     duration_ms_min=round(min(durations), 2),
-                    duration_ms_median=round(statistics.median(durations), 2),
+                    duration_ms_median=median_ms,
                     duration_ms_max=round(max(durations), 2),
                     response_bytes=len(last_response.content),
                     item_count=item_count,
                     csv_limit=csv_limit,
                     csv_total=csv_total,
                     csv_truncated=csv_truncated,
+                    warmup_count=warmups,
+                    measured_samples=repeats,
+                    mutation_capable_request_count=0 if case.method in {"GET", "HEAD"} else 1,
+                    local_timing_budget_dataset=budget_dataset,
+                    local_timing_budget_ms=budget_ms,
+                    local_timing_budget_passed=(median_ms <= budget_ms) if budget_ms is not None else None,
+                    local_relative_timing_budget_reference_ms=relative_reference_ms,
+                    local_relative_timing_budget_passed=relative_budget_passed,
+                    **counter_summary,
+                    **response_summary,
                 )
             )
+            median_by_case[case.name] = median_ms
         return results
     finally:
         cleanup()
@@ -797,6 +1241,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--account-depth", type=int, default=BenchmarkConfig.account_depth)
     parser.add_argument("--many-splits", type=int, default=BenchmarkConfig.many_split_count)
     parser.add_argument("--repeats", type=int, default=BenchmarkConfig.repeats)
+    parser.add_argument("--warmups", type=int, default=BenchmarkConfig.warmups)
     parser.add_argument(
         "--case",
         action="append",
@@ -816,7 +1261,12 @@ def main(argv: list[str] | None = None) -> int:
         many_split_count=args.many_splits,
     )
     selected_case_names = set(args.case_names) if args.case_names else None
-    results = run_benchmark(metadata.path, repeats=args.repeats, case_names=selected_case_names)
+    results = run_benchmark(
+        metadata.path,
+        repeats=args.repeats,
+        warmups=args.warmups,
+        case_names=selected_case_names,
+    )
 
     print("Local synthetic large-book, many-splits, write-preview, validation, and read-back benchmark")
     print(f"Synthetic fixture: {metadata.path}")
@@ -826,6 +1276,8 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Synthetic hierarchy depth: {metadata.account_depth}")
     print(f"Synthetic account count: {metadata.synthetic_account_count}")
     print(f"Many-splits transaction splits: {metadata.many_split_count}")
+    print(f"Warm-up requests per case: {args.warmups}")
+    print(f"Measured samples per case: {args.repeats}")
     if selected_case_names:
         print(f"Selected benchmark cases: {', '.join(sorted(selected_case_names))}")
     print("Scope: local synthetic fixture only; non-mutating read, create-preview, validation, and read-back paths only.")
@@ -840,6 +1292,31 @@ def main(argv: list[str] | None = None) -> int:
                 f"truncated={result.csv_truncated}, "
                 f"expected_body_rows={result.csv_expected_body_rows}, "
                 f"body_matches_expected={result.csv_body_matches_expected}"
+            )
+        if result.next_cursor_length is not None:
+            extra += f", next_cursor_len={result.next_cursor_length}"
+        if result.previous_cursor_length is not None:
+            extra += f", previous_cursor_len={result.previous_cursor_length}"
+        if result.scan_candidate_rows is not None:
+            extra += (
+                f", scan_candidates={result.scan_candidate_rows}, scan_splits={result.scan_split_rows}, "
+                f"scan_queries={result.scan_query_count}, scan_limited={result.scan_limited}"
+            )
+        if result.read_only_book_open_count_max is not None:
+            extra += (
+                f", opens={result.read_only_book_open_count_min}-{result.read_only_book_open_count_max}, "
+                f"count_calls={result.legacy_count_call_count_max}, "
+                f"tx_materializations={result.full_transaction_materialization_count_max}"
+            )
+        if result.local_timing_budget_ms is not None:
+            extra += (
+                f", local_budget={result.local_timing_budget_dataset}:{result.local_timing_budget_ms}ms, "
+                f"budget_passed={result.local_timing_budget_passed}"
+            )
+        if result.local_relative_timing_budget_reference_ms is not None:
+            extra += (
+                f", relative_budget_ref={result.local_relative_timing_budget_reference_ms:.2f}ms, "
+                f"relative_budget_passed={result.local_relative_timing_budget_passed}"
             )
         print(
             f"{result.name}: status={result.status_code}, median={result.duration_ms_median:.2f} ms, "

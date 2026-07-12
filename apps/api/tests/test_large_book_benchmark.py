@@ -11,12 +11,17 @@ from app.performance.large_book_benchmark import (
     BenchmarkCase,
     BenchmarkConfig,
     BenchmarkResult,
+    EXPLORER_FILTERED_PAGE_SIZE,
+    EXPLORER_LATER_PAGE_NUMBER,
+    EXPLORER_PAGE_SIZE,
     FixtureMetadata,
+    SPARSE_QUERY_TEXT,
     _build_case_request_json,
     _build_readback_request_from_detail,
     _summarize_response,
     benchmark_plan,
     create_large_synthetic_book,
+    run_benchmark,
     write_results_json,
 )
 
@@ -30,6 +35,10 @@ def test_benchmark_plan_covers_phase_87_read_only_scope() -> None:
         "accounts_tree_large_hierarchy_filter_seed",
         "transactions_list_first_page",
         "transaction_filters",
+        "transaction_explorer_first_page",
+        "transaction_explorer_sparse_scan_limited",
+        "transaction_explorer_later_forward_page",
+        "transaction_explorer_previous_page",
         "account_detail_transactions",
         "account_detail_transactions_page_2",
         "account_detail_transactions_filtered",
@@ -47,6 +56,17 @@ def test_benchmark_plan_covers_phase_87_read_only_scope() -> None:
     ]
     assert plan == BENCHMARK_CASES
     assert all(case.read_only for case in plan)
+    explorer_first = next(case for case in plan if case.name == "transaction_explorer_first_page")
+    assert explorer_first.method == "GET"
+    assert "/books/{book_id}/transactions/explorer" in explorer_first.path_template
+    assert f"page_size={EXPLORER_PAGE_SIZE}" in explorer_first.path_template
+    explorer_filtered = next(case for case in plan if case.name == "transaction_explorer_sparse_scan_limited")
+    assert explorer_filtered.method == "GET"
+    assert f"page_size={EXPLORER_FILTERED_PAGE_SIZE}" in explorer_filtered.path_template
+    explorer_later = next(case for case in plan if case.name == "transaction_explorer_later_forward_page")
+    assert "cursor={cursor}" in explorer_later.path_template
+    explorer_previous = next(case for case in plan if case.name == "transaction_explorer_previous_page")
+    assert "cursor={cursor}" in explorer_previous.path_template
     preview_case = next(case for case in plan if case.name == "transaction_create_preview_validation")
     assert preview_case.method == "POST"
     assert preview_case.path_template == "/books/{book_id}/transactions/create-preview"
@@ -209,7 +229,7 @@ def test_create_large_synthetic_book_uses_only_disposable_data(tmp_path: Path) -
             ).fetchall()
         ]
         many_split_tx_guid = conn.execute(
-            "select guid from transactions where description = 'Synthetic benchmark transaction many splits'"
+            "select guid from transactions where description like 'Synthetic benchmark transaction many splits%'"
         ).fetchone()[0]
         many_split_count = conn.execute(
             "select count(*) from splits where tx_guid = ?",
@@ -224,6 +244,61 @@ def test_create_large_synthetic_book_uses_only_disposable_data(tmp_path: Path) -
     assert tx_count == 24
     assert many_split_count == 8
     assert all(description.startswith("Synthetic benchmark transaction") for description in descriptions)
+
+
+def test_create_large_synthetic_book_supports_issue54_reproducible_explorer_data(tmp_path: Path) -> None:
+    output = tmp_path / "issue54-1k.gnucash.sqlite"
+
+    metadata = create_large_synthetic_book(
+        output,
+        transaction_count=1_000,
+        expense_account_count=4,
+        account_branch_count=1,
+        account_depth=1,
+        many_split_count=8,
+    )
+
+    with sqlite3.connect(output) as conn:
+        tx_count = conn.execute("select count(*) from transactions").fetchone()[0]
+        duplicate_date_buckets = conn.execute(
+            "select count(*) from (select post_date from transactions group by post_date having count(*) > 1)"
+        ).fetchone()[0]
+        deterministic_tx_guids = conn.execute(
+            "select count(*) from transactions where guid like '7001%'"
+        ).fetchone()[0]
+        unicode_descriptions = conn.execute(
+            "select count(*) from transactions where description like '%Привет%' or description like '%旅費%'"
+        ).fetchone()[0]
+        sparse_descriptions = conn.execute(
+            "select count(*) from transactions where description like ?",
+            (f"%{SPARSE_QUERY_TEXT}%",),
+        ).fetchone()[0]
+        sparse_memos = conn.execute(
+            "select count(*) from splits where memo like ?",
+            (f"%{SPARSE_QUERY_TEXT}%",),
+        ).fetchone()[0]
+        repeated_amount_buckets = conn.execute(
+            """
+            select count(*)
+            from (
+                select value_num, value_denom, count(*) as c
+                from splits
+                group by value_num, value_denom
+                having c > 1
+            )
+            """
+        ).fetchone()[0]
+        split_account_count = conn.execute("select count(distinct account_guid) from splits").fetchone()[0]
+
+    assert metadata.transaction_count == 1_000
+    assert tx_count == 1_000
+    assert duplicate_date_buckets > 0
+    assert deterministic_tx_guids == 1_000
+    assert unicode_descriptions > 0
+    assert sparse_descriptions > 0
+    assert sparse_memos > 0
+    assert repeated_amount_buckets > 0
+    assert split_account_count >= 4
 
 
 def test_create_large_synthetic_book_rejects_too_small_scope(tmp_path: Path) -> None:
@@ -267,6 +342,127 @@ def test_create_large_synthetic_book_rejects_invalid_account_hierarchy(tmp_path:
         assert "account_branch_count" in str(exc)
     else:  # pragma: no cover - defensive assertion
         raise AssertionError("expected ValueError for empty account hierarchy scope")
+
+
+def _result_by_name(results: list[BenchmarkResult], name: str) -> BenchmarkResult:
+    return next(result for result in results if result.name == name)
+
+
+def test_issue54_explorer_benchmark_records_read_budget_counters(tmp_path: Path) -> None:
+    output = tmp_path / "issue54-explorer-pages.gnucash.sqlite"
+    create_large_synthetic_book(
+        output,
+        transaction_count=(EXPLORER_LATER_PAGE_NUMBER * EXPLORER_PAGE_SIZE) + 50,
+        expense_account_count=4,
+        account_branch_count=1,
+        account_depth=1,
+        many_split_count=8,
+    )
+
+    results = run_benchmark(
+        output,
+        case_names={
+            "transaction_explorer_first_page",
+            "transaction_explorer_later_forward_page",
+            "transaction_explorer_previous_page",
+        },
+    )
+
+    assert [result.name for result in results] == [
+        "transaction_explorer_first_page",
+        "transaction_explorer_later_forward_page",
+        "transaction_explorer_previous_page",
+    ]
+    for result in results:
+        assert result.status_code == 200
+        assert result.warmup_count == 1
+        assert result.measured_samples == 3
+        assert result.response_bytes <= 256 * 1024
+        assert result.mutation_capable_request_count == 0
+        assert result.read_only_book_open_count_min == 1
+        assert result.read_only_book_open_count_max == 1
+        assert result.legacy_count_call_count_max == 0
+        assert result.full_transaction_materialization_count_max == 0
+        assert result.page_size == EXPLORER_PAGE_SIZE
+        assert result.returned_count is not None and result.returned_count <= result.page_size
+        assert result.scan_limits is not None
+        assert result.scan_limits["candidate_chunk"] <= 200
+        assert result.scan_limits["candidate_rows"] <= 2_000
+        assert result.scan_limits["split_rows"] <= 20_000
+        assert result.scan_candidate_rows is not None and result.scan_candidate_rows <= 2_000
+        assert result.scan_split_rows is not None and result.scan_split_rows <= 20_000
+        assert result.scan_query_count is not None and result.scan_query_count <= 23
+        assert result.stable_unique_order is True
+        if result.next_cursor_length is not None:
+            assert result.next_cursor_length <= 1024
+        if result.previous_cursor_length is not None:
+            assert result.previous_cursor_length <= 1024
+
+    later = _result_by_name(results, "transaction_explorer_later_forward_page")
+    previous = _result_by_name(results, "transaction_explorer_previous_page")
+    assert "cursor=<redacted>" in later.path
+    assert "cursor=<redacted>" in previous.path
+    assert previous.cursor_roundtrip_matches is True
+
+
+def test_issue54_sparse_explorer_benchmark_records_scan_limited_page_and_local_budget(tmp_path: Path) -> None:
+    output = tmp_path / "issue54-sparse-scan.gnucash.sqlite"
+    create_large_synthetic_book(
+        output,
+        transaction_count=2_050,
+        expense_account_count=4,
+        account_branch_count=1,
+        account_depth=1,
+        many_split_count=8,
+    )
+
+    result = run_benchmark(output, case_names={"transaction_explorer_sparse_scan_limited"})[0]
+
+    assert result.status_code == 200
+    assert result.warmup_count == 1
+    assert result.measured_samples == 3
+    assert result.returned_count is not None and result.returned_count <= EXPLORER_FILTERED_PAGE_SIZE
+    assert result.scan_limited is True
+    assert result.has_more is True
+    assert result.scan_candidate_rows == 2_000
+    assert result.scan_split_rows is not None and result.scan_split_rows <= 20_000
+    assert result.scan_query_count is not None and result.scan_query_count <= 23
+    assert result.next_cursor_length is not None and result.next_cursor_length <= 1024
+    assert result.response_bytes <= 256 * 1024
+    assert result.mutation_capable_request_count == 0
+    assert result.read_only_book_open_count_min == 1
+    assert result.read_only_book_open_count_max == 1
+    assert result.legacy_count_call_count_max == 0
+    assert result.full_transaction_materialization_count_max == 0
+    assert result.local_timing_budget_dataset == "1k"
+    assert result.local_timing_budget_ms == 2_500
+    assert isinstance(result.local_timing_budget_passed, bool)
+
+
+def test_issue54_report_comparison_benchmark_records_one_open_and_visit_bound(tmp_path: Path) -> None:
+    output = tmp_path / "issue54-report-comparison.gnucash.sqlite"
+    metadata = create_large_synthetic_book(
+        output,
+        transaction_count=180,
+        expense_account_count=4,
+        account_branch_count=1,
+        account_depth=1,
+        many_split_count=8,
+    )
+
+    result = run_benchmark(output, case_names={"period_comparison_previous_equivalent"})[0]
+
+    assert result.status_code == 200
+    assert result.warmup_count == 1
+    assert result.measured_samples == 3
+    assert result.response_bytes <= 128 * 1024
+    assert result.mutation_capable_request_count == 0
+    assert result.read_only_book_open_count_min == 1
+    assert result.read_only_book_open_count_max == 1
+    assert result.full_transaction_materialization_count_max is not None
+    assert result.full_transaction_materialization_count_max <= 1
+    assert result.report_transaction_visit_count_max is not None
+    assert result.report_transaction_visit_count_max <= 8 * metadata.transaction_count
 
 
 def test_csv_export_benchmark_summary_records_limit_header() -> None:
