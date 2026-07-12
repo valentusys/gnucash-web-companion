@@ -69,11 +69,15 @@ the current write-alpha publication baseline remains Phase 261.
   closed and is not ongoing mutation approval.
 - **Read-only reports and transactions:** #52 is closed after the accepted period reports explorer.
   #53 adds URL-backed previous-period, prior-year, and custom comparisons with exact paired
-  transaction drilldowns. #54 adds a bounded, URL-backed read-only transaction explorer with paired
-  dates, account/type/direction/exact-amount/text filters, cursor pagination, safe detail back links,
-  report/dashboard drilldowns, and EN/RU mobile/browser coverage. Reporting remains
-  base-currency-only with no FX conversion. #53 is closed as completed; #54 has local final-QA
-  evidence and still needs operator exact-head GitHub CI and issue closeout.
+  transaction drilldowns. #54 is closed as completed at exact head
+  `0d9381544118a64795827b24d787d1a8e7d998c0` after adding the bounded, URL-backed read-only
+  transaction explorer with paired dates, account/type/direction/exact-amount/text filters, cursor
+  pagination, safe detail back links, report/dashboard drilldowns, and EN/RU mobile/browser coverage.
+  Exact-head GitHub Actions CI run
+  [29197662815](https://github.com/valentusys/gnucash-web-companion/actions/runs/29197662815)
+  succeeded for Backend, Frontend, Docker Compose, and Foundation; final closeout comment
+  [#issuecomment-4951703096](https://github.com/valentusys/gnucash-web-companion/issues/54#issuecomment-4951703096)
+  is recorded. Reporting remains base-currency-only with no FX conversion.
 - **Controlled-write trackers:** #45–#50 remain separate experimental post-MVP evidence/workflow
   boundaries. They do not authorize owner/private DELETE or batch, release publication, or public
   write beta. `GNUCASH_WRITES_ENABLED=false` remains the default.
@@ -88,8 +92,12 @@ the current write-alpha publication baseline remains Phase 261.
 
 ## Current status map
 
-- #54: local final-QA accepted for the bounded read-only transaction explorer; operator exact-head
-  GitHub CI and issue closeout remain pending.
+- #54: closed as completed for the bounded read-only transaction explorer at exact head
+  `0d9381544118a64795827b24d787d1a8e7d998c0`; exact-head GitHub Actions run
+  [29197662815](https://github.com/valentusys/gnucash-web-companion/actions/runs/29197662815)
+  succeeded, and final closeout comment
+  [#issuecomment-4951703096](https://github.com/valentusys/gnucash-web-companion/issues/54#issuecomment-4951703096)
+  is recorded.
 - #53: closed as completed for the accepted read-only comparison milestone after independent acceptance,
   exact-product-head CI, and final documentation/issue closeout.
 - #51 and #52: closed after accepted disposable UI rehearsal and read-only period reports work.

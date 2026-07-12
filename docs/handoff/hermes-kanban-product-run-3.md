@@ -1,14 +1,25 @@
 # Hermes Kanban product-development run 3
 
-Status: **LOCAL FINAL QA ACCEPTANCE; OPERATOR EXACT-HEAD CI AND ISSUE #54 CLOSEOUT PENDING**
+Status: **FINAL CLOSEOUT COMPLETED; HISTORICAL PRE-CLOSEOUT NARRATIVE PRESERVED BELOW**
 
 This handoff records the third product-development run on the dedicated Hermes Kanban board. It
 covers the #53 acceptance correction, safe product-task wrapper, and [issue #54](https://github.com/valentusys/gnucash-web-companion/issues/54): an advanced read-only transaction explorer with bounded
 filtering, pagination, and report drilldowns.
 
-This file is part of the final docs/status integration commit. GitHub push, exact-head GitHub CI,
-issue #54 comment/closure, and any main fast-forward remain operator-only after this commit; this
-handoff does not invent a future CI run, issue comment, closure time, or run ID.
+This file was originally part of the final docs/status integration commit. The closeout addendum below
+records the later operator push, exact-head GitHub CI, issue #54 final comment, closure time, and run ID;
+historical pre-closeout sections are preserved as author-time narrative rather than current status.
+
+## Final closeout addendum
+
+- Push/main closeout completed at accepted head `0d9381544118a64795827b24d787d1a8e7d998c0`.
+- Exact-head GitHub Actions CI run
+  [29197662815](https://github.com/valentusys/gnucash-web-companion/actions/runs/29197662815)
+  completed success for Backend, Frontend, Docker Compose, and Foundation.
+- Issue #54 is closed as completed at `2026-07-12T15:21:40Z`; final closeout comment:
+  [#issuecomment-4951703096](https://github.com/valentusys/gnucash-web-companion/issues/54#issuecomment-4951703096).
+- Main/origin exact-head state is clean at the accepted head; no #54 implementation follow-up remains in
+  this run. Public status drift after this closeout is corrected by the run-4 factual closeout update.
 
 ## Environment and baseline
 
@@ -209,10 +220,13 @@ Performance-focused tests and local synthetic benchmarks:
 - Write posture flips: `0`; `GNUCASH_WRITES_ENABLED=false` remains default.
 - FX conversion: `0`; reporting/explorer copy remains base-currency-only/no-FX.
 
-## Remaining backlog and operator closeout
+## Historical pre-closeout backlog and operator closeout
 
-- Operator-only pending after this commit: fast-forward or merge the QA-tested branch, push, watch exact-head
-  GitHub CI, comment on issue #54 with exact evidence, and close #54 only after CI succeeds.
+This section preserves the author-time operator-pending state before the final closeout addendum above.
+
+- Operator-only pending after the original run-3 docs commit: fast-forward or merge the QA-tested branch,
+  push, watch exact-head GitHub CI, comment on issue #54 with exact evidence, and close #54 only after CI
+  succeeds. This is historical and was completed by the final closeout addendum above.
 - Explicit operator merge instruction for this branch:
   `git merge --ff-only run/product/issue54-final-qa-20260712T142445Z-91a4b227`.
 - Public read-only beta remains `v0.5.0-public-readonly-beta`; `v0.5.1-public-readonly-beta` is not published,

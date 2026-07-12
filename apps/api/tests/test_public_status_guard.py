@@ -19,7 +19,12 @@ def test_public_status_guard_reuses_write_safety_defaults_guard() -> None:
 
 
 def test_public_status_guard_reads_only_declared_public_files():
-    checked = set(guard.PUBLIC_STATUS_FILES + guard.CONFIG_FILES + guard.COMPATIBILITY_STATUS_FILES)
+    checked = set(
+        guard.PUBLIC_STATUS_FILES
+        + guard.CONFIG_FILES
+        + guard.COMPATIBILITY_STATUS_FILES
+        + guard.ISSUE_54_CLOSEOUT_STATUS_FILES
+    )
 
     assert Path(".env") not in checked
     assert all(not str(path).startswith("data/") for path in checked)
@@ -154,6 +159,50 @@ def test_public_status_guard_accepts_historical_prior_phase_baseline_context():
     historical = "Completed through Phase 630 was the prior public-status guard baseline before this run."
 
     guard.reject_patterns(Path("PROJECT_STATUS.md"), historical, guard.RECENT_STALE_CURRENT_PATTERNS)
+
+
+def test_public_status_guard_requires_issue_54_closeout_markers():
+    for path, required in guard.ISSUE_54_REQUIRED_FRAGMENTS.items():
+        guard.check_issue54_closeout_status_claims(path, " ".join(required))
+
+
+def test_public_status_guard_rejects_missing_issue_54_closeout_marker():
+    path = Path("PROJECT_STATUS.md")
+    text = " ".join(fragment for fragment in guard.ISSUE_54_REQUIRED_FRAGMENTS[path][1:])
+
+    try:
+        guard.check_issue54_closeout_status_claims(path, text)
+    except AssertionError as exc:
+        assert "missing #54 closeout status text" in str(exc)
+    else:
+        raise AssertionError("missing #54 factual closeout marker should fail guard")
+
+
+def test_public_status_guard_rejects_issue_54_pending_closeout_after_closeout():
+    required = " ".join(guard.ISSUE_54_REQUIRED_FRAGMENTS[Path("README.md")])
+    stale = (
+        f"{required} #54 has local final-QA evidence and still needs operator exact-head "
+        "GitHub CI and issue closeout."
+    )
+
+    try:
+        guard.check_issue54_closeout_status_claims(Path("README.md"), stale)
+    except AssertionError as exc:
+        assert "pending-closeout" in str(exc)
+    else:
+        raise AssertionError("stale #54 pending closeout wording should fail guard")
+
+
+def test_public_status_guard_rejects_issue_54_ru_pending_closeout_after_closeout():
+    required = " ".join(guard.ISSUE_54_REQUIRED_FRAGMENTS[Path("README.ru.md")])
+    stale = f"{required} #54 имеет local final-QA evidence и ждёт operator exact-head GitHub CI."
+
+    try:
+        guard.check_issue54_closeout_status_claims(Path("README.ru.md"), stale)
+    except AssertionError as exc:
+        assert "pending-closeout" in str(exc)
+    else:
+        raise AssertionError("stale #54 RU pending closeout wording should fail guard")
 
 
 def test_public_status_guard_rejects_phase_264_as_current_baseline():

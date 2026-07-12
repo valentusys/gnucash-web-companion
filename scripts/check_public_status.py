@@ -23,6 +23,13 @@ CURRENT_READONLY_RELEASE = "v0.5.0-public-readonly-beta"
 CURRENT_WRITE_ALPHA_RELEASE = "v0.2.8-writealpha"
 WRITE_DEFAULT = "GNUCASH_WRITES_ENABLED=false"
 APP_ENV_GATE = "APP_ENV=test"
+ISSUE_54_ACCEPTED_HEAD = "0d9381544118a64795827b24d787d1a8e7d998c0"
+ISSUE_54_CI_RUN = "29197662815"
+ISSUE_54_CI_URL = f"https://github.com/valentusys/gnucash-web-companion/actions/runs/{ISSUE_54_CI_RUN}"
+ISSUE_54_COMMENT_URL = (
+    "https://github.com/valentusys/gnucash-web-companion/issues/54#issuecomment-4951703096"
+)
+ISSUE_54_CLOSED_AT = "2026-07-12T15:21:40Z"
 
 
 def _completed_phase_number() -> int:
@@ -108,6 +115,50 @@ DEFAULT_WRITE_SAFETY_GUARD_FILES = (
     Path("docker-compose.yml"),
     Path("docs/write-alpha/owner-writebeta-operating-guide.md"),
 )
+ISSUE_54_CLOSEOUT_STATUS_FILES = [
+    Path("README.md"),
+    Path("README.ru.md"),
+    Path("PROJECT_STATUS.md"),
+    Path("docs/handoff/hermes-kanban-product-run-3.md"),
+]
+ISSUE_54_CURRENT_STATUS_FILES = {
+    Path("README.md"),
+    Path("README.ru.md"),
+    Path("PROJECT_STATUS.md"),
+}
+ISSUE_54_REQUIRED_FRAGMENTS = {
+    Path("README.md"): [
+        "#54 is closed as completed",
+        ISSUE_54_ACCEPTED_HEAD,
+        ISSUE_54_CI_URL,
+        ISSUE_54_COMMENT_URL,
+        "Backend, Frontend, Docker Compose, and Foundation",
+    ],
+    Path("README.ru.md"): [
+        "#54 закрыта как completed",
+        ISSUE_54_ACCEPTED_HEAD,
+        ISSUE_54_CI_URL,
+        ISSUE_54_COMMENT_URL,
+        "Backend, Frontend, Docker Compose, and Foundation",
+    ],
+    Path("PROJECT_STATUS.md"): [
+        "#54 has accepted head",
+        ISSUE_54_ACCEPTED_HEAD,
+        ISSUE_54_CI_URL,
+        ISSUE_54_COMMENT_URL,
+        ISSUE_54_CLOSED_AT,
+        "closed as completed",
+    ],
+    Path("docs/handoff/hermes-kanban-product-run-3.md"): [
+        "Final closeout addendum",
+        ISSUE_54_ACCEPTED_HEAD,
+        ISSUE_54_CI_URL,
+        ISSUE_54_COMMENT_URL,
+        ISSUE_54_CLOSED_AT,
+        "completed success for Backend, Frontend, Docker Compose, and Foundation",
+        "historical pre-closeout sections are preserved as author-time narrative",
+    ],
+}
 
 # Historical mentions are allowed in changelog/history, but not as current posture.
 def _legacy_stale_current_patterns() -> list[re.Pattern[str]]:
@@ -334,6 +385,52 @@ def assert_unreleased_section_is_honest(changelog: str) -> None:
         raise AssertionError("CHANGELOG.md: v0.2.5 references in Unreleased must be tied to the Phase 231 publication")
 
 
+def normalized_public_text(text: str) -> str:
+    return " ".join(text.split())
+
+
+ISSUE_54_PENDING_WORDS = (
+    r"still needs|remain(?:s)? pending|pending|awaits|waiting for|operator-only pending|"
+    r"жд[её]т|ожида[ею]т|оста[её]тся|остаются"
+)
+ISSUE_54_CLOSEOUT_NOUNS = (
+    r"(?:exact-head\s+)?(?:GitHub\s+)?CI|issue(?:\s+#54)?\s+(?:closeout|closure)|"
+    r"issue\s+closeout|closeout|closure|comment|комментарий|закрытие"
+)
+ISSUE_54_PENDING_CLOSEOUT_PATTERNS = [
+    re.compile(
+        rf"#54\b(?:(?!#\d+\b).){{0,260}}\b(?:{ISSUE_54_PENDING_WORDS})\b"
+        rf"(?:(?!#\d+\b).){{0,260}}\b(?:{ISSUE_54_CLOSEOUT_NOUNS})\b",
+        re.I,
+    ),
+    re.compile(
+        rf"#54\b(?:(?!#\d+\b).){{0,260}}\b(?:{ISSUE_54_CLOSEOUT_NOUNS})\b"
+        rf"(?:(?!#\d+\b).){{0,260}}\b(?:{ISSUE_54_PENDING_WORDS})\b",
+        re.I,
+    ),
+]
+
+
+def check_issue54_closeout_status_claims(path: Path, text: str) -> None:
+    """Guard current #54 closeout docs against reverting to pending-closeout wording."""
+
+    normalized_text = normalized_public_text(text)
+    required = ISSUE_54_REQUIRED_FRAGMENTS.get(path, [])
+    missing = [needle for needle in required if needle not in normalized_text]
+    if missing:
+        raise AssertionError(f"{path}: missing #54 closeout status text: {missing}")
+
+    if path not in ISSUE_54_CURRENT_STATUS_FILES:
+        return
+
+    for pattern in ISSUE_54_PENDING_CLOSEOUT_PATTERNS:
+        if pattern.search(normalized_text):
+            raise AssertionError(
+                f"{path}: forbidden #54 pending-closeout claim after factual closeout matched "
+                f"{pattern.pattern!r}"
+            )
+
+
 def check_default_write_safety() -> list[str]:
     """Run the dedicated committed-default write-safety guard for public status."""
 
@@ -346,7 +443,9 @@ def main() -> int:
     texts: dict[Path, str] = {}
 
     try:
-        for path in PUBLIC_STATUS_FILES + CONFIG_FILES + COMPATIBILITY_STATUS_FILES:
+        for path in dict.fromkeys(
+            PUBLIC_STATUS_FILES + CONFIG_FILES + COMPATIBILITY_STATUS_FILES + ISSUE_54_CLOSEOUT_STATUS_FILES
+        ):
             texts[path] = read_public_text(path)
     except AssertionError as exc:
         errors.append(str(exc))
@@ -559,6 +658,13 @@ def main() -> int:
             assert_unreleased_section_is_honest(texts[Path("CHANGELOG.md")])
         except AssertionError as exc:
             errors.append(str(exc))
+
+    for path in ISSUE_54_CLOSEOUT_STATUS_FILES:
+        if path in texts:
+            try:
+                check_issue54_closeout_status_claims(path, texts[path])
+            except AssertionError as exc:
+                errors.append(str(exc))
 
     try:
         errors.extend(check_default_write_safety())

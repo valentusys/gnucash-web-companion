@@ -49,11 +49,15 @@ release docs и handoff-файлах, чтобы этот файл не стан
 - #44 Owner real-book trial safety model закрыта после одного успешного owner-approved real-book
   CREATE trial и manual Desktop verification; это не ongoing mutation approval.
 - Read-only reports/transactions: #52 закрыта после принятого period reports explorer. #53 добавляет
-  URL-backed comparisons и точные paired transaction drilldowns. #54 добавляет bounded, URL-backed
-  read-only transaction explorer с paired dates, account/type/direction/exact-amount/text filters,
-  cursor pagination, safe detail back links, report/dashboard drilldowns и EN/RU mobile/browser
-  coverage. Reporting остаётся base-currency-only, без FX conversion. #53 закрыта как completed;
-  #54 имеет local final-QA evidence и ждёт operator exact-head GitHub CI и issue closeout.
+  URL-backed comparisons и точные paired transaction drilldowns. #54 закрыта как completed на exact
+  head `0d9381544118a64795827b24d787d1a8e7d998c0` после bounded, URL-backed read-only
+  transaction explorer с paired dates, account/type/direction/exact-amount/text filters, cursor
+  pagination, safe detail back links, report/dashboard drilldowns и EN/RU mobile/browser coverage.
+  Exact-head GitHub Actions CI run
+  [29197662815](https://github.com/valentusys/gnucash-web-companion/actions/runs/29197662815)
+  succeeded for Backend, Frontend, Docker Compose, and Foundation; final closeout comment
+  [#issuecomment-4951703096](https://github.com/valentusys/gnucash-web-companion/issues/54#issuecomment-4951703096)
+  recorded. Reporting остаётся base-currency-only, без FX conversion.
 - Controlled-write trackers #45–#50 остаются отдельными experimental post-MVP boundaries. Они не
   разрешают owner/private DELETE или batch, release publication или public write beta.
   `GNUCASH_WRITES_ENABLED=false` остаётся дефолтом.
@@ -62,8 +66,12 @@ release docs и handoff-файлах, чтобы этот файл не стан
 
 ## Карта текущих статусов
 
-- #54: local final-QA accepted для bounded read-only transaction explorer; operator exact-head
-  GitHub CI и issue closeout остаются pending.
+- #54: закрыта как completed для bounded read-only transaction explorer на exact head
+  `0d9381544118a64795827b24d787d1a8e7d998c0`; exact-head GitHub Actions run
+  [29197662815](https://github.com/valentusys/gnucash-web-companion/actions/runs/29197662815)
+  succeeded, final closeout comment
+  [#issuecomment-4951703096](https://github.com/valentusys/gnucash-web-companion/issues/54#issuecomment-4951703096)
+  recorded.
 - #53: закрыта как completed для accepted read-only comparison milestone после independent acceptance,
   exact-product-head CI и final documentation/issue closeout.
 - #51 и #52 закрыты после принятого disposable UI rehearsal и read-only period reports explorer.
