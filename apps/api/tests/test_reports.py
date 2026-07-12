@@ -1410,3 +1410,360 @@ class TestBookPeriodReport:
         assert report.partial_failure is False
         assert readonly_flags
         assert all(readonly_flags)
+
+
+# ---------------------------------------------------------------------------
+# Tests: GET /books/{book_id}/reports/comparison
+# ---------------------------------------------------------------------------
+
+
+class TestBookPeriodComparisonReport:
+    previous_equivalent_query = (
+        "date_from=2026-05-10&date_to=2026-05-15"
+        "&comparison_mode=previous_equivalent"
+        "&comparison_date_from=2026-05-04&comparison_date_to=2026-05-09"
+    )
+
+    @staticmethod
+    def _point_book_at(session_factory, book_id: int, path: Path, *, base_currency: str | None = "SEK") -> None:
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == book_id).first()
+            book.uri_or_path = str(path)
+            book.base_currency = base_currency
+            session.commit()
+
+    def test_comparison_report_requires_auth_and_has_no_default_book_alias(self, client, auth_headers, sample_book):
+        response = client.get(f"/books/{sample_book}/reports/comparison?{self.previous_equivalent_query}")
+        alias = client.get(f"/reports/comparison?{self.previous_equivalent_query}", headers=auth_headers)
+
+        assert response.status_code == 401
+        assert alias.status_code == 404
+
+    def test_previous_equivalent_returns_contract_shape_decimal_deltas_and_account_union(
+        self, client, auth_headers, sample_book, fake_book_for_reports, session_factory
+    ):
+        self._point_book_at(session_factory, sample_book, fake_book_for_reports)
+
+        response = client.get(
+            f"/books/{sample_book}/reports/comparison?{self.previous_equivalent_query}",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["book_id"] == sample_book
+        assert data["comparison_mode"] == "previous_equivalent"
+        assert "date_from" not in data
+        assert "date_to" not in data
+        assert "comparison_date_from" not in data
+        assert "comparison_date_to" not in data
+        assert "delta" not in data
+        assert data["primary"]["date_from"] == "2026-05-10"
+        assert data["primary"]["date_to"] == "2026-05-15"
+        assert data["comparison"]["date_from"] == "2026-05-04"
+        assert data["comparison"]["date_to"] == "2026-05-09"
+        assert data["primary"]["cashflow"]["outflow"] == "2150.00"
+        assert data["comparison"]["cashflow"]["outflow"] == "850.00"
+        assert data["cashflow_delta"]["outflow"] == {
+            "currency": "SEK",
+            "primary": "2150.00",
+            "comparison": "850.00",
+            "delta": "1300.00",
+            "absolute_delta": "1300.00",
+        }
+        assert data["cashflow_delta"]["net"]["delta"] == "-1300.00"
+        assert data["cashflow_delta"]["net"]["absolute_delta"] == "1300.00"
+        assert {status["section"]: status["status"] for status in data["delta_section_statuses"]} == {
+            "summary": "ok",
+            "cashflow": "ok",
+            "expenses_by_account": "ok",
+        }
+
+        expense_rows = data["expense_changes"]
+        assert [row["account_id"] for row in expense_rows] == ["utilities", "food"]
+        assert expense_rows[0]["primary_total"] == "1530.00"
+        assert expense_rows[0]["comparison_total"] == "0.00"
+        assert expense_rows[0]["delta"] == "1530.00"
+        assert expense_rows[0]["absolute_delta"] == "1530.00"
+        assert expense_rows[1]["primary_total"] == "620.00"
+        assert expense_rows[1]["comparison_total"] == "850.00"
+        assert expense_rows[1]["delta"] == "-230.00"
+        assert expense_rows[1]["absolute_delta"] == "230.00"
+        assert all(isinstance(row["delta"], str) for row in expense_rows)
+
+    def test_preset_modes_require_exact_server_derived_comparison_dates(
+        self, client, auth_headers, sample_book, empty_fake_book_for_reports, session_factory
+    ):
+        self._point_book_at(session_factory, sample_book, empty_fake_book_for_reports)
+
+        previous_mismatch = client.get(
+            f"/books/{sample_book}/reports/comparison?"
+            "date_from=2026-05-10&date_to=2026-05-15"
+            "&comparison_mode=previous_equivalent"
+            "&comparison_date_from=2026-05-03&comparison_date_to=2026-05-08",
+            headers=auth_headers,
+        )
+        leap_match = client.get(
+            f"/books/{sample_book}/reports/comparison?"
+            "date_from=2024-02-29&date_to=2024-03-31"
+            "&comparison_mode=same_period_last_year"
+            "&comparison_date_from=2023-02-28&comparison_date_to=2023-03-31",
+            headers=auth_headers,
+        )
+        leap_mismatch = client.get(
+            f"/books/{sample_book}/reports/comparison?"
+            "date_from=2024-02-29&date_to=2024-03-31"
+            "&comparison_mode=same_period_last_year"
+            "&comparison_date_from=2023-03-01&comparison_date_to=2023-03-31",
+            headers=auth_headers,
+        )
+
+        assert previous_mismatch.status_code == 422
+        assert "previous_equivalent range 2026-05-04..2026-05-09" in previous_mismatch.json()["detail"]
+        assert leap_match.status_code == 200
+        assert leap_match.json()["comparison"]["date_from"] == "2023-02-28"
+        assert leap_match.json()["comparison"]["date_to"] == "2023-03-31"
+        assert leap_mismatch.status_code == 422
+        assert "same_period_last_year range 2023-02-28..2023-03-31" in leap_mismatch.json()["detail"]
+
+    def test_custom_comparison_accepts_any_ordered_pair_and_rejects_reversed_comparison_range(
+        self, client, auth_headers, sample_book, fake_book_for_reports, session_factory
+    ):
+        self._point_book_at(session_factory, sample_book, fake_book_for_reports)
+
+        custom = client.get(
+            f"/books/{sample_book}/reports/comparison?"
+            "date_from=2026-05-10&date_to=2026-05-15"
+            "&comparison_mode=custom"
+            "&comparison_date_from=2026-05-01&comparison_date_to=2026-05-02",
+            headers=auth_headers,
+        )
+        reversed_comparison = client.get(
+            f"/books/{sample_book}/reports/comparison?"
+            "date_from=2026-05-10&date_to=2026-05-15"
+            "&comparison_mode=custom"
+            "&comparison_date_from=2026-05-03&comparison_date_to=2026-05-02",
+            headers=auth_headers,
+        )
+
+        assert custom.status_code == 200
+        assert custom.json()["comparison_mode"] == "custom"
+        assert custom.json()["comparison"]["date_from"] == "2026-05-01"
+        assert custom.json()["comparison"]["date_to"] == "2026-05-02"
+        assert reversed_comparison.status_code == 422
+        assert reversed_comparison.json()["detail"] == "comparison_date_from must be on or before comparison_date_to"
+
+    def test_account_union_preserves_zero_negative_one_sided_rows_and_tie_order(
+        self, client, auth_headers, sample_book, fake_book_for_reports, session_factory, monkeypatch
+    ):
+        sek = FakeCommodity(mnemonic="SEK")
+        root = FakeAccount(guid="root", name="Root Account", type="ROOT", commodity=sek)
+        checking = FakeAccount(guid="checking", name="Checking", type="BANK", commodity=sek, parent=root)
+        expense_accounts = {
+            "comparison-only": FakeAccount(guid="comparison-only", name="Comparison Only", type="EXPENSE", commodity=sek, parent=root),
+            "alpha": FakeAccount(guid="alpha", name="Alpha", type="EXPENSE", commodity=sek, parent=root),
+            "tie-a": FakeAccount(guid="tie-a", name="alpha tie", type="EXPENSE", commodity=sek, parent=root),
+            "tie-b": FakeAccount(guid="tie-b", name="Beta tie", type="EXPENSE", commodity=sek, parent=root),
+            "primary-only": FakeAccount(guid="primary-only", name="Primary Only", type="EXPENSE", commodity=sek, parent=root),
+            "refund": FakeAccount(guid="refund", name="Refunds", type="EXPENSE", commodity=sek, parent=root),
+            "zero": FakeAccount(guid="zero", name="Zero", type="EXPENSE", commodity=sek, parent=root),
+        }
+
+        def expense_tx(guid: str, posted: date, account_key: str, amount: str) -> FakeTransaction:
+            value = Decimal(amount)
+            account = expense_accounts[account_key]
+            return FakeTransaction(
+                guid=guid,
+                post_date=posted,
+                description=guid,
+                splits=[FakeSplit(account=checking, value=-value), FakeSplit(account=account, value=value)],
+            )
+
+        accounts = [root, checking, *expense_accounts.values()]
+        transactions = [
+            expense_tx("primary-alpha", date(2026, 6, 1), "alpha", "100.00"),
+            expense_tx("comparison-alpha", date(2026, 5, 1), "alpha", "40.00"),
+            expense_tx("primary-tie-a", date(2026, 6, 1), "tie-a", "30.00"),
+            expense_tx("primary-tie-b", date(2026, 6, 1), "tie-b", "30.00"),
+            expense_tx("primary-only", date(2026, 6, 1), "primary-only", "25.00"),
+            expense_tx("comparison-only", date(2026, 5, 1), "comparison-only", "70.00"),
+            expense_tx("primary-refund", date(2026, 6, 1), "refund", "-15.00"),
+            expense_tx("comparison-refund", date(2026, 5, 1), "refund", "5.00"),
+            expense_tx("primary-zero", date(2026, 6, 1), "zero", "10.00"),
+            expense_tx("comparison-zero", date(2026, 5, 1), "zero", "10.00"),
+        ]
+
+        def fake_open_book(path, readonly=False):
+            return FakeBookForReports(accounts=accounts, transactions=transactions)
+
+        import app.services.gnucash_book as gb_module
+
+        monkeypatch.setattr(gb_module.piecash, "open_book", fake_open_book)
+        self._point_book_at(session_factory, sample_book, fake_book_for_reports)
+
+        response = client.get(
+            f"/books/{sample_book}/reports/comparison?"
+            "date_from=2026-06-01&date_to=2026-06-10"
+            "&comparison_mode=custom"
+            "&comparison_date_from=2026-05-01&comparison_date_to=2026-05-10",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        rows = response.json()["expense_changes"]
+        assert [row["account_id"] for row in rows] == [
+            "comparison-only",
+            "alpha",
+            "tie-a",
+            "tie-b",
+            "primary-only",
+            "refund",
+            "zero",
+        ]
+        by_id = {row["account_id"]: row for row in rows}
+        assert by_id["comparison-only"]["primary_total"] == "0.00"
+        assert by_id["comparison-only"]["comparison_total"] == "70.00"
+        assert by_id["comparison-only"]["delta"] == "-70.00"
+        assert by_id["primary-only"]["comparison_total"] == "0.00"
+        assert by_id["primary-only"]["delta"] == "25.00"
+        assert by_id["refund"]["primary_total"] == "-15.00"
+        assert by_id["refund"]["delta"] == "-20.00"
+        assert by_id["zero"]["delta"] == "0.00"
+        assert by_id["zero"]["absolute_delta"] == "0.00"
+
+    def test_account_identity_conflicts_suppress_only_affected_row_delta(
+        self, client, auth_headers, sample_book, fake_book_for_reports, session_factory, monkeypatch
+    ):
+        sek = FakeCommodity(mnemonic="SEK")
+        root = FakeAccount(guid="root", name="Root Account", type="ROOT", commodity=sek)
+        checking = FakeAccount(guid="checking", name="Checking", type="BANK", commodity=sek, parent=root)
+        primary_name = FakeAccount(guid="shared-expense", name="Dining", type="EXPENSE", commodity=sek, parent=root)
+        comparison_name = FakeAccount(guid="shared-expense", name="Food", type="EXPENSE", commodity=sek, parent=root)
+        accounts = [root, checking, primary_name, comparison_name]
+        transactions = [
+            FakeTransaction(
+                guid="primary-shared",
+                post_date=date(2026, 6, 1),
+                description="primary shared",
+                splits=[FakeSplit(account=checking, value=Decimal("-100.00")), FakeSplit(account=primary_name, value=Decimal("100.00"))],
+            ),
+            FakeTransaction(
+                guid="comparison-shared",
+                post_date=date(2026, 5, 1),
+                description="comparison shared",
+                splits=[FakeSplit(account=checking, value=Decimal("-80.00")), FakeSplit(account=comparison_name, value=Decimal("80.00"))],
+            ),
+        ]
+
+        def fake_open_book(path, readonly=False):
+            return FakeBookForReports(accounts=accounts, transactions=transactions)
+
+        import app.services.gnucash_book as gb_module
+
+        monkeypatch.setattr(gb_module.piecash, "open_book", fake_open_book)
+        self._point_book_at(session_factory, sample_book, fake_book_for_reports)
+
+        response = client.get(
+            f"/books/{sample_book}/reports/comparison?"
+            "date_from=2026-06-01&date_to=2026-06-01"
+            "&comparison_mode=custom"
+            "&comparison_date_from=2026-05-01&comparison_date_to=2026-05-01",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        [row] = response.json()["expense_changes"]
+        assert row["account_id"] == "shared-expense"
+        assert row["primary_total"] == "100.00"
+        assert row["comparison_total"] == "80.00"
+        assert row["status"] == "not_comparable"
+        assert row["delta"] is None
+        assert row["absolute_delta"] is None
+        assert "changed between periods" in row["detail"]
+
+    def test_unknown_base_currency_suppresses_delta_sections_as_not_comparable(
+        self, client, auth_headers, sample_book, fake_book_for_reports, session_factory
+    ):
+        self._point_book_at(session_factory, sample_book, fake_book_for_reports, base_currency=None)
+
+        response = client.get(
+            f"/books/{sample_book}/reports/comparison?{self.previous_equivalent_query}",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["comparable"] is False
+        assert {status["section"]: status["status"] for status in data["delta_section_statuses"]} == {
+            "summary": "not_comparable",
+            "cashflow": "not_comparable",
+            "expenses_by_account": "not_comparable",
+        }
+        assert data["summary_delta"] is None
+        assert data["cashflow_delta"] is None
+        assert data["expense_changes"] == []
+        assert "unknown (XXX)" in " ".join(data["limitations"])
+
+    def test_partial_section_errors_are_redacted_and_do_not_zero_failed_side(
+        self, client, auth_headers, sample_book, fake_book_for_reports, session_factory, monkeypatch
+    ):
+        self._point_book_at(session_factory, sample_book, fake_book_for_reports)
+
+        def fail_expenses(self, date_from=None, date_to=None):
+            raise GnuCashReadError("cannot read /private/books/leaked.gnucash.sqlite")
+
+        monkeypatch.setattr(GnuCashBookService, "get_expenses_by_account", fail_expenses)
+
+        response = client.get(
+            f"/books/{sample_book}/reports/comparison?{self.previous_equivalent_query}",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        statuses = {status["section"]: status for status in data["delta_section_statuses"]}
+        assert statuses["summary"]["status"] == "ok"
+        assert statuses["cashflow"]["status"] == "ok"
+        assert statuses["expenses_by_account"]["status"] == "error"
+        assert statuses["expenses_by_account"]["detail"] == "Report section could not be read safely from this runtime."
+        assert data["expense_changes"] == []
+        assert "/private" not in response.text
+        assert "leaked.gnucash" not in response.text
+
+    def test_comparison_service_opens_books_readonly_without_mutation_helpers(
+        self, fake_report_data, tmp_path, monkeypatch
+    ):
+        book_path = tmp_path / "readonly-comparison-report.gnucash"
+        book_path.write_text("fake")
+        accounts, transactions = fake_report_data
+        readonly_flags: list[bool] = []
+
+        class MutationGuardBook(FakeBookForReports):
+            def save(self):  # pragma: no cover - failure path only
+                raise AssertionError("comparison reports must not save GnuCash books")
+
+            def flush(self):  # pragma: no cover - failure path only
+                raise AssertionError("comparison reports must not flush GnuCash books")
+
+        def fake_open_book(path, readonly=False):
+            readonly_flags.append(readonly)
+            return MutationGuardBook(accounts=accounts, transactions=transactions)
+
+        import app.services.gnucash_book as gb_module
+
+        monkeypatch.setattr(gb_module.piecash, "open_book", fake_open_book)
+
+        service = GnuCashBookService({"uri_or_path": str(book_path), "base_currency": "SEK"})
+        report = service.get_period_report_comparison(
+            date(2026, 5, 10),
+            date(2026, 5, 15),
+            date(2026, 5, 4),
+            date(2026, 5, 9),
+            comparison_mode="previous_equivalent",
+            book_id=123,
+        )
+
+        assert report.book_id == 123
+        assert report.partial_failure is False
+        assert readonly_flags
+        assert all(readonly_flags)

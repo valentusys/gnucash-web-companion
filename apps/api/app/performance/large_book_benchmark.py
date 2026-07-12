@@ -135,6 +135,13 @@ BENCHMARK_CASES: list[BenchmarkCase] = [
         "GET",
         "/books/{book_id}/reports/recent-transactions?limit=10",
     ),
+    BenchmarkCase(
+        "period_comparison_previous_equivalent",
+        "GET",
+        "/books/{book_id}/reports/comparison?date_from=2026-07-02&date_to=2026-12-30"
+        "&comparison_mode=previous_equivalent"
+        "&comparison_date_from=2026-01-01&comparison_date_to=2026-07-01",
+    ),
     BenchmarkCase("csv_export_up_to_cap", "GET", "/books/{book_id}/transactions/export"),
 ]
 
@@ -189,9 +196,14 @@ class BenchmarkResult:
         object.__setattr__(self, "csv_body_matches_expected", self.item_count == expected_body_rows)
 
 
-def benchmark_plan() -> list[BenchmarkCase]:
-    """Return the conservative synthetic read and non-mutating write-path benchmark plan."""
-    return BENCHMARK_CASES
+def benchmark_plan(case_names: set[str] | None = None) -> list[BenchmarkCase]:
+    """Return the conservative synthetic benchmark plan, optionally filtered by case name."""
+    if case_names is None:
+        return BENCHMARK_CASES
+    unknown = case_names - {case.name for case in BENCHMARK_CASES}
+    if unknown:
+        raise ValueError(f"unknown benchmark case(s): {', '.join(sorted(unknown))}")
+    return [case for case in BENCHMARK_CASES if case.name in case_names]
 
 
 def create_large_synthetic_book(
@@ -588,6 +600,10 @@ def _summarize_response(
         item_count = len(payload["items"])
     elif isinstance(payload, dict) and isinstance(payload.get("splits"), list):
         item_count = len(payload["splits"])
+    elif case.name == "period_comparison_previous_equivalent" and isinstance(payload, dict):
+        expense_changes = payload.get("expense_changes")
+        if isinstance(expense_changes, list):
+            item_count = len(expense_changes)
     return item_count, None, None, None
 
 
@@ -669,10 +685,12 @@ def run_benchmark(
     book_path: str | Path,
     *,
     repeats: int = 3,
+    case_names: set[str] | None = None,
 ) -> list[BenchmarkResult]:
-    """Run synthetic read plus non-mutating write-preview/validation/read-back checks."""
+    """Run selected synthetic benchmark cases without enabling mutation routes."""
     if repeats < 1:
         raise ValueError("repeats must be at least 1")
+    selected_cases = benchmark_plan(case_names)
     resolved_book_path = Path(book_path)
     client, book_id, headers, cleanup = _build_client(resolved_book_path)
     try:
@@ -680,7 +698,7 @@ def run_benchmark(
         preview_debit_account_id, preview_credit_account_id = _select_preview_account_ids(client, book_id, headers)
         many_split_transaction_id = _select_many_split_transaction_id(resolved_book_path)
         results: list[BenchmarkResult] = []
-        for case in BENCHMARK_CASES:
+        for case in selected_cases:
             if case.method == "SERVICE":
                 results.append(
                     _run_service_benchmark_case(
@@ -741,6 +759,11 @@ def run_benchmark(
 def write_results_json(path: str | Path, metadata: FixtureMetadata, results: list[BenchmarkResult]) -> Path:
     output = Path(path)
     output.parent.mkdir(parents=True, exist_ok=True)
+    result_names = {result.name for result in results}
+    read_only_api_paths_only = all(result.method in {"GET", "HEAD"} for result in results)
+    includes_write_preview = "transaction_create_preview_validation" in result_names
+    includes_validation_service = "transaction_create_validation_service" in result_names
+    includes_readback_service = "transaction_create_readback_existing_synthetic" in result_names
     payload = {
         "fixture": {**asdict(metadata), "path": str(metadata.path)},
         "results": [asdict(result) for result in results],
@@ -749,10 +772,10 @@ def write_results_json(path: str | Path, metadata: FixtureMetadata, results: lis
             "local_synthetic_measurements_only": True,
             "non_mutating_read_and_preview_paths_only": True,
             "non_mutating_read_preview_validation_readback_paths_only": True,
-            "read_only_api_paths_only": False,
-            "includes_write_preview_validation_path": True,
-            "includes_transaction_validation_service_path": True,
-            "includes_existing_synthetic_readback_path": True,
+            "read_only_api_paths_only": read_only_api_paths_only,
+            "includes_write_preview_validation_path": includes_write_preview,
+            "includes_transaction_validation_service_path": includes_validation_service,
+            "includes_existing_synthetic_readback_path": includes_readback_service,
             "write_alpha_mutation_routes_called": False,
             "contains_private_book": False,
             "writes_enabled": False,
@@ -774,6 +797,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--account-depth", type=int, default=BenchmarkConfig.account_depth)
     parser.add_argument("--many-splits", type=int, default=BenchmarkConfig.many_split_count)
     parser.add_argument("--repeats", type=int, default=BenchmarkConfig.repeats)
+    parser.add_argument(
+        "--case",
+        action="append",
+        dest="case_names",
+        default=None,
+        help="Run only the named benchmark case; repeat for multiple cases.",
+    )
     parser.add_argument("--json-output", type=Path, default=None)
     args = parser.parse_args(argv)
 
@@ -785,7 +815,8 @@ def main(argv: list[str] | None = None) -> int:
         account_depth=args.account_depth,
         many_split_count=args.many_splits,
     )
-    results = run_benchmark(metadata.path, repeats=args.repeats)
+    selected_case_names = set(args.case_names) if args.case_names else None
+    results = run_benchmark(metadata.path, repeats=args.repeats, case_names=selected_case_names)
 
     print("Local synthetic large-book, many-splits, write-preview, validation, and read-back benchmark")
     print(f"Synthetic fixture: {metadata.path}")
@@ -795,6 +826,8 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Synthetic hierarchy depth: {metadata.account_depth}")
     print(f"Synthetic account count: {metadata.synthetic_account_count}")
     print(f"Many-splits transaction splits: {metadata.many_split_count}")
+    if selected_case_names:
+        print(f"Selected benchmark cases: {', '.join(sorted(selected_case_names))}")
     print("Scope: local synthetic fixture only; non-mutating read, create-preview, validation, and read-back paths only.")
     print("No private book data used; no writes executed; no production performance claim.")
     for result in results:

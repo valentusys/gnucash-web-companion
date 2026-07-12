@@ -42,6 +42,7 @@ def test_benchmark_plan_covers_phase_87_read_only_scope() -> None:
         "dashboard_cashflow_monthly",
         "dashboard_expenses_by_account_month",
         "dashboard_recent_transactions",
+        "period_comparison_previous_equivalent",
         "csv_export_up_to_cap",
     ]
     assert plan == BENCHMARK_CASES
@@ -58,6 +59,24 @@ def test_benchmark_plan_covers_phase_87_read_only_scope() -> None:
     assert readback_case.method == "SERVICE"
     assert readback_case.path_template == "transactions._verify_transaction_create_readback"
     assert readback_case.request_json == "synthetic_existing_transaction_readback"
+    comparison_case = next(case for case in plan if case.name == "period_comparison_previous_equivalent")
+    assert comparison_case.method == "GET"
+    assert comparison_case.read_only is True
+    assert comparison_case.request_json is None
+    assert comparison_case.path_template == (
+        "/books/{book_id}/reports/comparison?date_from=2026-07-02&date_to=2026-12-30"
+        "&comparison_mode=previous_equivalent"
+        "&comparison_date_from=2026-01-01&comparison_date_to=2026-07-01"
+    )
+
+
+def test_benchmark_plan_can_select_issue53_comparison_without_mutation_adjacent_cases() -> None:
+    plan = benchmark_plan(case_names={"period_comparison_previous_equivalent"})
+
+    assert [case.name for case in plan] == ["period_comparison_previous_equivalent"]
+    assert all(case.method == "GET" for case in plan)
+    assert all(case.request_json is None for case in plan)
+    assert not any("create" in case.name or case.method in {"POST", "SERVICE"} for case in plan)
 
 
 def test_synthetic_create_preview_benchmark_payload_is_local_disposable_only() -> None:
@@ -308,6 +327,30 @@ def test_account_detail_csv_benchmark_summary_records_limit_header() -> None:
     assert result.csv_body_matches_expected is True
 
 
+def test_comparison_benchmark_summary_counts_expense_delta_rows() -> None:
+    class Response:
+        headers = {}
+
+        def json(self):
+            return {"expense_changes": [{"account_id": "a"}, {"account_id": "b"}]}
+
+    item_count, csv_limit, csv_total, csv_truncated = _summarize_response(
+        BenchmarkCase(
+            "period_comparison_previous_equivalent",
+            "GET",
+            "/books/{book_id}/reports/comparison?date_from=2026-07-02&date_to=2026-12-30"
+            "&comparison_mode=previous_equivalent"
+            "&comparison_date_from=2026-01-01&comparison_date_to=2026-07-01",
+        ),
+        Response(),
+    )
+
+    assert item_count == 2
+    assert csv_limit is None
+    assert csv_total is None
+    assert csv_truncated is None
+
+
 def test_benchmark_json_records_csv_body_row_consistency(tmp_path: Path) -> None:
     metadata = FixtureMetadata(
         path=tmp_path / "synthetic.gnucash.sqlite",
@@ -343,8 +386,9 @@ def test_benchmark_json_records_csv_body_row_consistency(tmp_path: Path) -> None
     assert '"local_synthetic_measurements_only": true' in content
     assert '"non_mutating_read_and_preview_paths_only": true' in content
     assert '"non_mutating_read_preview_validation_readback_paths_only": true' in content
-    assert '"includes_write_preview_validation_path": true' in content
-    assert '"includes_transaction_validation_service_path": true' in content
-    assert '"includes_existing_synthetic_readback_path": true' in content
+    assert '"read_only_api_paths_only": true' in content
+    assert '"includes_write_preview_validation_path": false' in content
+    assert '"includes_transaction_validation_service_path": false' in content
+    assert '"includes_existing_synthetic_readback_path": false' in content
     assert '"write_alpha_mutation_routes_called": false' in content
     assert '"production_performance_claim": false' in content

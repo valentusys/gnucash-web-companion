@@ -10,7 +10,8 @@ Multi-currency limitation:
 
 from __future__ import annotations
 
-from datetime import date
+from calendar import monthrange
+from datetime import date, timedelta
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -28,6 +29,7 @@ from app.schemas.gnucash import (
     CashflowDTO,
     CashflowPeriodDTO,
     ExpenseByAccountDTO,
+    PeriodReportComparisonDTO,
     PeriodReportDTO,
     ReportSummaryDTO,
     TransactionListItemDTO,
@@ -40,6 +42,8 @@ from app.services.gnucash_exceptions import (
 )
 
 router = APIRouter(tags=["reports"])
+
+COMPARISON_MODES = {"previous_equivalent", "same_period_last_year", "custom"}
 
 
 def _serialize_transaction_list_item(item: TransactionListItemDTO) -> dict[str, Any]:
@@ -98,9 +102,98 @@ def _normalize_required_report_date_range(date_from: str, date_to: str) -> tuple
     return parsed_from, parsed_to
 
 
+def _previous_equivalent_range(date_from: date, date_to: date) -> tuple[date, date]:
+    inclusive_days = (date_to - date_from).days + 1
+    return date_from - timedelta(days=inclusive_days), date_from - timedelta(days=1)
+
+
+def _one_year_back_clamped(value: date) -> date:
+    target_year = value.year - 1
+    target_day = min(value.day, monthrange(target_year, value.month)[1])
+    return date(target_year, value.month, target_day)
+
+
+def _same_period_last_year_range(date_from: date, date_to: date) -> tuple[date, date]:
+    return _one_year_back_clamped(date_from), _one_year_back_clamped(date_to)
+
+
+def _normalize_comparison_query(
+    date_from: date,
+    date_to: date,
+    comparison_mode: str,
+    comparison_date_from: str,
+    comparison_date_to: str,
+) -> tuple[str, date, date]:
+    if comparison_mode not in COMPARISON_MODES:
+        raise HTTPException(
+            status_code=422,
+            detail="comparison_mode must be previous_equivalent, same_period_last_year, or custom",
+        )
+    parsed_comparison_from = _parse_report_date(comparison_date_from, "comparison_date_from")
+    parsed_comparison_to = _parse_report_date(comparison_date_to, "comparison_date_to")
+    assert parsed_comparison_from is not None and parsed_comparison_to is not None
+    if parsed_comparison_from > parsed_comparison_to:
+        raise HTTPException(
+            status_code=422,
+            detail="comparison_date_from must be on or before comparison_date_to",
+        )
+    if comparison_mode == "custom":
+        return comparison_mode, parsed_comparison_from, parsed_comparison_to
+
+    expected_from, expected_to = (
+        _previous_equivalent_range(date_from, date_to)
+        if comparison_mode == "previous_equivalent"
+        else _same_period_last_year_range(date_from, date_to)
+    )
+    if (parsed_comparison_from, parsed_comparison_to) != (expected_from, expected_to):
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "comparison_date_from and comparison_date_to must match "
+                f"{comparison_mode} range {expected_from.isoformat()}..{expected_to.isoformat()}"
+            ),
+        )
+    return comparison_mode, parsed_comparison_from, parsed_comparison_to
+
+
 # ---------------------------------------------------------------------------
 # Book-aware endpoints
 # ---------------------------------------------------------------------------
+
+
+@router.get("/books/{book_id}/reports/comparison", response_model=PeriodReportComparisonDTO)
+async def get_book_period_report_comparison(
+    book_id: int,
+    date_from: str = Query(..., description="Inclusive primary period start as YYYY-MM-DD"),
+    date_to: str = Query(..., description="Inclusive primary period end as YYYY-MM-DD"),
+    comparison_mode: str = Query(..., description="previous_equivalent, same_period_last_year, or custom"),
+    comparison_date_from: str = Query(..., description="Inclusive comparison period start as YYYY-MM-DD"),
+    comparison_date_to: str = Query(..., description="Inclusive comparison period end as YYYY-MM-DD"),
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+) -> PeriodReportComparisonDTO:
+    """Return a read-only comparison between two explicit period reports for a viewable book."""
+    parsed_from, parsed_to = _normalize_required_report_date_range(date_from, date_to)
+    normalized_mode, parsed_comparison_from, parsed_comparison_to = _normalize_comparison_query(
+        parsed_from,
+        parsed_to,
+        comparison_mode,
+        comparison_date_from,
+        comparison_date_to,
+    )
+    book = resolve_readonly_data_book(book_id, user, session)
+    try:
+        return transaction_service_for(book).get_period_report_comparison(
+            parsed_from,
+            parsed_to,
+            parsed_comparison_from,
+            parsed_comparison_to,
+            comparison_mode=normalized_mode,
+            book_id=book.id,
+        )
+    except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
+        handle_gnucash_error(exc)
+        raise
 
 
 @router.get("/books/{book_id}/reports", response_model=PeriodReportDTO)

@@ -279,6 +279,59 @@ class ReadOnlyServiceProbe:
     def get_expenses_by_account(self, date_from: str, date_to: str):
         return [ExpenseByAccountDTO(account_id="acct", account_name="Expenses:Synthetic", total="0.00", currency="SEK")]
 
+    def get_period_report_comparison(
+        self,
+        date_from: str,
+        date_to: str,
+        comparison_date_from: str,
+        comparison_date_to: str,
+        *,
+        comparison_mode: str,
+        book_id: int | None = None,
+    ):
+        period = {
+            "book_id": book_id or self.book_id,
+            "date_from": str(date_from),
+            "date_to": str(date_to),
+            "currency": "SEK",
+            "reporting_basis": "base_currency_only",
+            "includes_currency_conversion": False,
+            "limitations": [],
+            "partial_failure": False,
+            "empty": True,
+            "section_statuses": [
+                {"section": "summary", "status": "empty", "detail": None},
+                {"section": "cashflow", "status": "empty", "detail": None},
+                {"section": "monthly_cashflow", "status": "empty", "detail": None},
+                {"section": "expenses_by_account", "status": "empty", "detail": None},
+            ],
+            "summary": None,
+            "cashflow": None,
+            "monthly_cashflow": [],
+            "expenses_by_account": [],
+        }
+        comparison = {**period, "date_from": str(comparison_date_from), "date_to": str(comparison_date_to)}
+        return {
+            "book_id": book_id or self.book_id,
+            "comparison_mode": comparison_mode,
+            "reporting_basis": "base_currency_only",
+            "includes_currency_conversion": False,
+            "primary": period,
+            "comparison": comparison,
+            "limitations": [],
+            "comparable": True,
+            "partial_failure": False,
+            "empty": True,
+            "delta_section_statuses": [
+                {"section": "summary", "status": "empty", "detail": None},
+                {"section": "cashflow", "status": "empty", "detail": None},
+                {"section": "expenses_by_account", "status": "empty", "detail": None},
+            ],
+            "summary_delta": None,
+            "cashflow_delta": None,
+            "expense_changes": [],
+        }
+
 
 @pytest.fixture
 def read_service_probe(monkeypatch):
@@ -293,6 +346,13 @@ def read_service_probe(monkeypatch):
     monkeypatch.setattr("app.routers.transactions.transaction_service_for", factory)
     monkeypatch.setattr("app.routers.reports.transaction_service_for", factory)
     return calls
+
+
+COMPARISON_REPORT_ROUTE = (
+    "/books/{book_id}/reports/comparison?date_from=2026-07-02&date_to=2026-12-30"
+    "&comparison_mode=previous_equivalent"
+    "&comparison_date_from=2026-01-01&comparison_date_to=2026-07-01"
+)
 
 
 class TestMultiBookMetadataBoundaries:
@@ -353,6 +413,7 @@ class TestMultiBookReadOnlyRouteFamilies:
             "/books/{book_id}/reports/cashflow",
             "/books/{book_id}/reports/expenses-by-account",
             "/books/{book_id}/reports/recent-transactions",
+            COMPARISON_REPORT_ROUTE,
         ],
     )
     def test_accessible_independent_books_route_to_the_selected_book_only(
@@ -377,6 +438,7 @@ class TestMultiBookReadOnlyRouteFamilies:
             "/books/{book_id}/reports/cashflow",
             "/books/{book_id}/reports/expenses-by-account",
             "/books/{book_id}/reports/recent-transactions",
+            COMPARISON_REPORT_ROUTE,
             "/books/{book_id}/write-alpha-audit-summary",
         ],
     )
@@ -406,6 +468,7 @@ class TestMultiBookReadOnlyRouteFamilies:
             "/books/{book_id}/reports/cashflow",
             "/books/{book_id}/reports/expenses-by-account",
             "/books/{book_id}/reports/recent-transactions",
+            COMPARISON_REPORT_ROUTE,
             "/books/{book_id}/write-alpha-audit-summary",
         ],
     )

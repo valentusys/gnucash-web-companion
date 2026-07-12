@@ -7,7 +7,7 @@ from contextlib import contextmanager
 from datetime import date, datetime
 from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 import piecash
 from sqlalchemy.orm import joinedload
@@ -18,11 +18,18 @@ from app.schemas.gnucash import (
     BookSummaryDTO,
     CashflowDTO,
     CashflowPeriodDTO,
+    ExpenseAccountComparisonDeltaDTO,
     ExpenseByAccountDTO,
     MoneyDTO,
+    PeriodReportComparisonDTO,
     PeriodReportDTO,
     PeriodReportSectionStatusDTO,
     PeriodReportSummaryDTO,
+    CashflowComparisonDeltaDTO,
+    ReportComparisonDeltaDTO,
+    ReportComparisonSectionStatusDTO,
+    ReportMoneyDeltaDTO,
+    ReportSummaryComparisonDeltaDTO,
     ReportSummaryDTO,
     ScheduledTransactionDTO,
     ScheduledTransactionRecurrenceDTO,
@@ -663,6 +670,307 @@ class GnuCashBookService:
             monthly_cashflow=monthly_cashflow,
             expenses_by_account=expenses_by_account,
         )
+
+    def get_period_report_comparison(
+        self,
+        date_from: date | str,
+        date_to: date | str,
+        comparison_date_from: date | str,
+        comparison_date_to: date | str,
+        *,
+        comparison_mode: str,
+        book_id: int | None = None,
+    ) -> PeriodReportComparisonDTO:
+        """Return two read-only period reports plus Decimal-string comparison deltas."""
+        primary = self.get_period_report(date_from, date_to, book_id=book_id)
+        comparison = self.get_period_report(comparison_date_from, comparison_date_to, book_id=book_id)
+        delta = self._period_report_comparison_delta(primary, comparison)
+        limitations = self._merge_limitations(
+            [
+                "Comparison deltas use exact Decimal arithmetic over base-currency-only period report values.",
+                "Comparison deltas include no currency conversion; non-base currencies remain excluded from source reports.",
+            ],
+            primary.limitations,
+            comparison.limitations,
+            [
+                "One or more comparison deltas are not comparable because a source section failed or currencies/account identities were unsafe to combine."
+            ]
+            if not delta.comparable
+            else [],
+        )
+        return PeriodReportComparisonDTO(
+            book_id=book_id if book_id is not None else primary.book_id,
+            comparison_mode=cast(
+                Literal["previous_equivalent", "same_period_last_year", "custom"],
+                comparison_mode,
+            ),
+            reporting_basis=delta.reporting_basis,
+            includes_currency_conversion=delta.includes_currency_conversion,
+            primary=primary,
+            comparison=comparison,
+            limitations=limitations,
+            comparable=delta.comparable,
+            partial_failure=delta.partial_failure,
+            empty=primary.empty and comparison.empty and not delta.partial_failure,
+            delta_section_statuses=delta.section_statuses,
+            summary_delta=delta.summary,
+            cashflow_delta=delta.cashflow,
+            expense_changes=delta.expenses_by_account,
+        )
+
+    def _period_report_comparison_delta(
+        self,
+        primary: PeriodReportDTO,
+        comparison: PeriodReportDTO,
+    ) -> ReportComparisonDeltaDTO:
+        shared_currency, currency_detail = self._comparison_shared_currency(primary, comparison)
+        currency = shared_currency or primary.currency or comparison.currency or self.base_currency
+        section_statuses: list[ReportComparisonSectionStatusDTO] = []
+
+        summary = self._summary_comparison_delta(
+            primary,
+            comparison,
+            shared_currency=shared_currency,
+            currency_detail=currency_detail,
+            section_statuses=section_statuses,
+        )
+        cashflow = self._cashflow_comparison_delta(
+            primary,
+            comparison,
+            shared_currency=shared_currency,
+            currency_detail=currency_detail,
+            section_statuses=section_statuses,
+        )
+        expenses = self._expenses_comparison_delta(
+            primary,
+            comparison,
+            shared_currency=shared_currency,
+            currency_detail=currency_detail,
+            section_statuses=section_statuses,
+        )
+
+        partial_failure = primary.partial_failure or comparison.partial_failure or any(
+            status.status == "error" for status in section_statuses
+        )
+        comparable = (
+            shared_currency is not None
+            and not partial_failure
+            and all(status.status in {"ok", "empty"} for status in section_statuses)
+            and all(row.status == "ok" for row in expenses)
+        )
+        return ReportComparisonDeltaDTO(
+            currency=currency,
+            reporting_basis="base_currency_only",
+            includes_currency_conversion=False,
+            comparable=comparable,
+            partial_failure=partial_failure,
+            section_statuses=section_statuses,
+            summary=summary,
+            cashflow=cashflow,
+            expenses_by_account=expenses,
+        )
+
+    @staticmethod
+    def _comparison_shared_currency(
+        primary: PeriodReportDTO,
+        comparison: PeriodReportDTO,
+    ) -> tuple[str | None, str | None]:
+        if primary.currency == "XXX" or comparison.currency == "XXX":
+            return None, "Comparison deltas are not comparable when either period currency is unknown (XXX)."
+        if primary.currency != comparison.currency:
+            return None, "Comparison deltas are not comparable across different period currencies."
+        return primary.currency, None
+
+    def _summary_comparison_delta(
+        self,
+        primary: PeriodReportDTO,
+        comparison: PeriodReportDTO,
+        *,
+        shared_currency: str | None,
+        currency_detail: str | None,
+        section_statuses: list[ReportComparisonSectionStatusDTO],
+    ) -> ReportSummaryComparisonDeltaDTO | None:
+        primary_status = self._period_report_section_status_value(primary, "summary")
+        comparison_status = self._period_report_section_status_value(comparison, "summary")
+        if primary_status == "error" or comparison_status == "error" or primary.summary is None or comparison.summary is None:
+            section_statuses.append(self._comparison_section_status("summary", "error", PERIOD_REPORT_SECTION_ERROR_DETAIL))
+            return None
+        if shared_currency is None:
+            section_statuses.append(self._comparison_section_status("summary", "not_comparable", currency_detail))
+            return None
+        section_statuses.append(
+            self._comparison_section_status(
+                "summary",
+                "empty" if primary_status == "empty" and comparison_status == "empty" else "ok",
+            )
+        )
+        return ReportSummaryComparisonDeltaDTO(
+            currency=shared_currency,
+            net_worth=self._money_delta(primary.summary.net_worth, comparison.summary.net_worth, shared_currency),
+            assets=self._money_delta(primary.summary.assets, comparison.summary.assets, shared_currency),
+            liabilities=self._money_delta(primary.summary.liabilities, comparison.summary.liabilities, shared_currency),
+        )
+
+    def _cashflow_comparison_delta(
+        self,
+        primary: PeriodReportDTO,
+        comparison: PeriodReportDTO,
+        *,
+        shared_currency: str | None,
+        currency_detail: str | None,
+        section_statuses: list[ReportComparisonSectionStatusDTO],
+    ) -> CashflowComparisonDeltaDTO | None:
+        primary_status = self._period_report_section_status_value(primary, "cashflow")
+        comparison_status = self._period_report_section_status_value(comparison, "cashflow")
+        if primary_status == "error" or comparison_status == "error" or primary.cashflow is None or comparison.cashflow is None:
+            section_statuses.append(self._comparison_section_status("cashflow", "error", PERIOD_REPORT_SECTION_ERROR_DETAIL))
+            return None
+        if shared_currency is None:
+            section_statuses.append(self._comparison_section_status("cashflow", "not_comparable", currency_detail))
+            return None
+        if primary.cashflow.currency != shared_currency or comparison.cashflow.currency != shared_currency:
+            section_statuses.append(
+                self._comparison_section_status("cashflow", "not_comparable", "Cashflow currencies do not match the shared comparison currency.")
+            )
+            return None
+        section_statuses.append(
+            self._comparison_section_status(
+                "cashflow",
+                "empty" if primary_status == "empty" and comparison_status == "empty" else "ok",
+            )
+        )
+        return CashflowComparisonDeltaDTO(
+            currency=shared_currency,
+            inflow=self._money_delta(primary.cashflow.inflow, comparison.cashflow.inflow, shared_currency),
+            outflow=self._money_delta(primary.cashflow.outflow, comparison.cashflow.outflow, shared_currency),
+            net=self._money_delta(primary.cashflow.net, comparison.cashflow.net, shared_currency),
+        )
+
+    def _expenses_comparison_delta(
+        self,
+        primary: PeriodReportDTO,
+        comparison: PeriodReportDTO,
+        *,
+        shared_currency: str | None,
+        currency_detail: str | None,
+        section_statuses: list[ReportComparisonSectionStatusDTO],
+    ) -> list[ExpenseAccountComparisonDeltaDTO]:
+        primary_status = self._period_report_section_status_value(primary, "expenses_by_account")
+        comparison_status = self._period_report_section_status_value(comparison, "expenses_by_account")
+        if primary_status == "error" or comparison_status == "error":
+            section_statuses.append(
+                self._comparison_section_status("expenses_by_account", "error", PERIOD_REPORT_SECTION_ERROR_DETAIL)
+            )
+            return []
+        if shared_currency is None:
+            section_statuses.append(self._comparison_section_status("expenses_by_account", "not_comparable", currency_detail))
+            return []
+
+        primary_rows = {row.account_id: row for row in primary.expenses_by_account}
+        comparison_rows = {row.account_id: row for row in comparison.expenses_by_account}
+        result: list[ExpenseAccountComparisonDeltaDTO] = []
+        for account_id in sorted(set(primary_rows) | set(comparison_rows)):
+            primary_row = primary_rows.get(account_id)
+            comparison_row = comparison_rows.get(account_id)
+            account_name = (primary_row.account_name if primary_row is not None else comparison_row.account_name) if (primary_row or comparison_row) else ""
+            currency = (primary_row.currency if primary_row is not None else comparison_row.currency) if (primary_row or comparison_row) else shared_currency
+            primary_total = primary_row.total if primary_row is not None else "0.00"
+            comparison_total = comparison_row.total if comparison_row is not None else "0.00"
+            row_status: Literal["ok", "not_comparable"] = "ok"
+            detail: str | None = None
+            if primary_row is not None and comparison_row is not None and primary_row.account_name != comparison_row.account_name:
+                row_status = "not_comparable"
+                detail = "Expense account identity changed between periods for this account_id."
+            row_currencies = {
+                row.currency
+                for row in (primary_row, comparison_row)
+                if row is not None
+            }
+            if len(row_currencies) > 1 or (row_currencies and shared_currency not in row_currencies):
+                row_status = "not_comparable"
+                detail = "Expense account currency changed or does not match the shared comparison currency."
+            if row_status == "ok":
+                money_delta = self._money_delta(primary_total, comparison_total, shared_currency)
+                result.append(
+                    ExpenseAccountComparisonDeltaDTO(
+                        account_id=account_id,
+                        account_name=account_name,
+                        currency=shared_currency,
+                        primary_total=money_delta.primary,
+                        comparison_total=money_delta.comparison,
+                        delta=money_delta.delta,
+                        absolute_delta=money_delta.absolute_delta,
+                        status="ok",
+                        detail=None,
+                    )
+                )
+            else:
+                result.append(
+                    ExpenseAccountComparisonDeltaDTO(
+                        account_id=account_id,
+                        account_name=account_name,
+                        currency=currency,
+                        primary_total=format_money(Decimal(primary_total)),
+                        comparison_total=format_money(Decimal(comparison_total)),
+                        delta=None,
+                        absolute_delta=None,
+                        status="not_comparable",
+                        detail=detail,
+                    )
+                )
+
+        if not result and primary_status == "empty" and comparison_status == "empty":
+            section_statuses.append(self._comparison_section_status("expenses_by_account", "empty"))
+        elif result and all(row.status == "not_comparable" for row in result):
+            section_statuses.append(
+                self._comparison_section_status(
+                    "expenses_by_account",
+                    "not_comparable",
+                    "No expense account delta rows were comparable between periods.",
+                )
+            )
+        else:
+            section_statuses.append(self._comparison_section_status("expenses_by_account", "ok"))
+        result.sort(
+            key=lambda row: (
+                -(Decimal(row.absolute_delta) if row.absolute_delta is not None else Decimal("-1")),
+                row.account_name.casefold(),
+                row.account_name,
+                row.account_id,
+            )
+        )
+        return result
+
+    @staticmethod
+    def _money_delta(primary_value: str, comparison_value: str, currency: str) -> ReportMoneyDeltaDTO:
+        primary_decimal = Decimal(primary_value)
+        comparison_decimal = Decimal(comparison_value)
+        delta = primary_decimal - comparison_decimal
+        return ReportMoneyDeltaDTO(
+            currency=currency,
+            primary=format_money(primary_decimal),
+            comparison=format_money(comparison_decimal),
+            delta=format_money(delta),
+            absolute_delta=format_money(abs(delta)),
+        )
+
+    @staticmethod
+    def _period_report_section_status_value(
+        report: PeriodReportDTO,
+        section: Literal["summary", "cashflow", "monthly_cashflow", "expenses_by_account"],
+    ) -> Literal["ok", "empty", "error"]:
+        for item in report.section_statuses:
+            if item.section == section:
+                return item.status
+        return "ok"
+
+    @staticmethod
+    def _comparison_section_status(
+        section: Literal["summary", "cashflow", "expenses_by_account"],
+        status: Literal["ok", "empty", "error", "not_comparable"],
+        detail: str | None = None,
+    ) -> ReportComparisonSectionStatusDTO:
+        return ReportComparisonSectionStatusDTO(section=section, status=status, detail=detail)
 
     @staticmethod
     def _period_report_section_status(

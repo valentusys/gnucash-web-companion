@@ -219,6 +219,95 @@ class PeriodReportDTO(BaseModel):
     expenses_by_account: list[ExpenseByAccountDTO] = Field(default_factory=list)
 
 
+class ReportMoneyDeltaDTO(BaseModel):
+    """Signed Decimal-string delta for one comparable money field."""
+
+    currency: str
+    primary: str
+    comparison: str
+    delta: str = Field(..., description="primary minus comparison as a signed Decimal string")
+    absolute_delta: str = Field(..., description="Absolute value of delta as a Decimal string")
+
+
+class ReportSummaryComparisonDeltaDTO(BaseModel):
+    """Comparable balance-summary deltas between two period reports."""
+
+    currency: str
+    net_worth: ReportMoneyDeltaDTO
+    assets: ReportMoneyDeltaDTO
+    liabilities: ReportMoneyDeltaDTO
+
+
+class CashflowComparisonDeltaDTO(BaseModel):
+    """Comparable cashflow deltas between two period reports."""
+
+    currency: str
+    inflow: ReportMoneyDeltaDTO
+    outflow: ReportMoneyDeltaDTO
+    net: ReportMoneyDeltaDTO
+
+
+class ExpenseAccountComparisonDeltaDTO(BaseModel):
+    """Comparable or explicitly non-comparable expense-account delta row."""
+
+    account_id: str
+    account_name: str
+    currency: str
+    primary_total: str
+    comparison_total: str
+    delta: str | None = None
+    absolute_delta: str | None = None
+    status: Literal["ok", "not_comparable"] = "ok"
+    detail: str | None = Field(
+        None,
+        description="User-safe reason when this row is not comparable; never includes paths or internals.",
+    )
+
+
+class ReportComparisonSectionStatusDTO(BaseModel):
+    """Per-delta-section status for a period comparison report."""
+
+    section: Literal["summary", "cashflow", "expenses_by_account"]
+    status: Literal["ok", "empty", "error", "not_comparable"]
+    detail: str | None = Field(
+        None,
+        description="User-safe status detail for failed or non-comparable sections.",
+    )
+
+
+class ReportComparisonDeltaDTO(BaseModel):
+    """Typed deltas derived from two read-only period reports."""
+
+    currency: str
+    reporting_basis: Literal["base_currency_only"] = "base_currency_only"
+    includes_currency_conversion: bool = False
+    comparable: bool = False
+    partial_failure: bool = False
+    section_statuses: list[ReportComparisonSectionStatusDTO] = Field(default_factory=list)
+    summary: ReportSummaryComparisonDeltaDTO | None = None
+    cashflow: CashflowComparisonDeltaDTO | None = None
+    expenses_by_account: list[ExpenseAccountComparisonDeltaDTO] = Field(default_factory=list)
+
+
+class PeriodReportComparisonDTO(BaseModel):
+    """Read-only comparison of two explicit period reports for one book."""
+
+    book_id: int
+    comparison_mode: Literal["previous_equivalent", "same_period_last_year", "custom"]
+    reporting_basis: Literal["base_currency_only"] = "base_currency_only"
+    includes_currency_conversion: bool = False
+    primary: PeriodReportDTO
+    comparison: PeriodReportDTO
+    limitations: list[str] = Field(default_factory=list)
+    comparable: bool = False
+    partial_failure: bool = False
+    empty: bool = False
+    delta_section_statuses: list[ReportComparisonSectionStatusDTO] = Field(default_factory=list)
+    summary_delta: ReportSummaryComparisonDeltaDTO | None = None
+    cashflow_delta: CashflowComparisonDeltaDTO | None = None
+    expense_changes: list[ExpenseAccountComparisonDeltaDTO] = Field(default_factory=list)
+
+
 class PaginatedResponse(BaseModel):
     """Generic paginated response wrapper."""
 

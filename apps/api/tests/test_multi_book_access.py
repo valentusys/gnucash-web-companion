@@ -221,6 +221,11 @@ BOOK_AWARE_READ_ONLY_ROUTES = [
     "/books/{book_id}/reports/cashflow",
     "/books/{book_id}/reports/expenses-by-account",
     "/books/{book_id}/reports/recent-transactions",
+    (
+        "/books/{book_id}/reports/comparison?date_from=2026-07-02&date_to=2026-12-30"
+        "&comparison_mode=previous_equivalent"
+        "&comparison_date_from=2026-01-01&comparison_date_to=2026-07-01"
+    ),
 ]
 
 
