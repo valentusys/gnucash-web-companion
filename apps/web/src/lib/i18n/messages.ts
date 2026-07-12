@@ -132,6 +132,7 @@ export type MessageKey =
 	| 'reports.comparison.validation.inconsistentRange'
 	| 'reports.comparison.deltaError'
 	| 'reports.comparison.notComparable'
+	| 'reports.comparison.rowNotComparable'
 	| 'reports.comparison.emptyDelta'
 	| 'reports.comparison.zeroHint'
 	| 'reports.comparison.technicalLimitation'
@@ -607,6 +608,8 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'reports.comparison.deltaError': 'Comparison delta is unavailable because one source section returned an explicit error. Backend details were redacted.',
 		'reports.comparison.notComparable':
 			'Comparison is not comparable for this section. Unknown or mismatched currency/no-FX limitations are preserved below as technical backend limitation text.',
+		'reports.comparison.rowNotComparable':
+			'This account row is not comparable. Side totals and exact drilldowns are shown, but the backend row detail is redacted and no delta is calculated.',
 		'reports.comparison.emptyDelta': 'No comparable delta rows were returned for this section.',
 		'reports.comparison.zeroHint':
 			'Exact 0.00 values are genuine data and unchanged deltas remain visible; one-sided successful zero values are not treated as missing.',
@@ -1130,6 +1133,8 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'reports.comparison.deltaError': 'Comparison delta недоступна, потому что одна source section вернула явную ошибку. Backend details скрыты.',
 		'reports.comparison.notComparable':
 			'Эту секцию нельзя корректно сравнить. Unknown or mismatched currency/no-FX limitations сохранены ниже как technical backend limitation text.',
+		'reports.comparison.rowNotComparable':
+			'Эту строку счёта нельзя корректно сравнить. Итоги сторон и точные drilldown-ссылки показаны, но detail строки от backend скрыт и delta не рассчитывается.',
 		'reports.comparison.emptyDelta': 'Для этой секции не вернулись сравнимые delta rows.',
 		'reports.comparison.zeroHint':
 			'Точные значения 0.00 — реальные данные; unchanged deltas остаются видимыми, а one-sided successful zero не считается missing.',

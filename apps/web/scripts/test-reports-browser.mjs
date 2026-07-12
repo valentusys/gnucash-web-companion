@@ -202,6 +202,7 @@ function comparisonReportPayload(params, mode = 'full') {
 		summary_delta:
 			comparable && !empty
 				? {
+						currency: 'SEK',
 						assets: moneyDelta('2000.00', '1800.00', '200.00', '200.00'),
 						liabilities: moneyDelta('-550.00', '-550.00', '0.00', '0.00'),
 						net_worth: moneyDelta('1450.00', '1250.00', '200.00', '200.00')
@@ -210,6 +211,7 @@ function comparisonReportPayload(params, mode = 'full') {
 		cashflow_delta:
 			comparable && !empty && !partial
 				? {
+						currency: 'SEK',
 						inflow: moneyDelta('125.00', '100.00', '25.00', '25.00'),
 						outflow: moneyDelta('45.67', '60.00', '-14.33', '14.33'),
 						net: moneyDelta('79.33', '40.00', '39.33', '39.33')
@@ -244,6 +246,17 @@ function comparisonReportPayload(params, mode = 'full') {
 							delta: '0.00',
 							absolute_delta: '0.00',
 							currency: 'SEK'
+						},
+						{
+							account_id: 'expense-dining',
+							account_name: 'Synthetic Dining',
+							primary_total: '80.00',
+							comparison_total: '75.00',
+							delta: null,
+							absolute_delta: null,
+							currency: 'SEK',
+							status: 'not_comparable',
+							detail: privateReportSentinel
 						}
 					]
 				: []
@@ -563,9 +576,12 @@ async function assertFullComparisonPage(cdp) {
 			comparisonDateFrom: document.querySelector('input[name="comparison_date_from"]')?.value ?? '',
 			comparisonDateTo: document.querySelector('input[name="comparison_date_to"]')?.value ?? '',
 			bodyText,
+			html: document.documentElement.outerHTML,
 			periodHref: linkRows.find((link) => link.text.includes('View /transactions for this period'))?.href ?? '',
 			primaryExpenseHref: linkRows.find((link) => link.text.includes('Primary period: 0.00'))?.href ?? '',
 			comparisonExpenseHref: linkRows.find((link) => link.text.includes('Comparison period: 100.00'))?.href ?? '',
+			primaryNotComparableHref: linkRows.find((link) => link.text.includes('Primary period: 80.00'))?.href ?? '',
+			comparisonNotComparableHref: linkRows.find((link) => link.text.includes('Comparison period: 75.00'))?.href ?? '',
 			rowOrder: Array.from(document.querySelectorAll('section[aria-labelledby="reports-expense-changes-title"] li')).map((row) => row.textContent.replace(/\\s+/g, ' ').trim()),
 			presetHrefs: linkRows.filter((link) => /This month|Last month|Year to date/.test(link.text)).map((link) => link.href),
 			comparisonModeHrefs: linkRows.filter((link) => /Previous equivalent|Same period last year/.test(link.text)).map((link) => link.href)
@@ -587,9 +603,13 @@ async function assertFullComparisonPage(cdp) {
 	assert.match(state.bodyText, /Unchanged/, 'zero delta must be labeled unchanged');
 	assert.match(state.bodyText, /Synthetic Rent[\s\S]*0\.00[\s\S]*100\.00/, 'one-sided successful zero expense row must stay visible');
 	assert.match(state.bodyText, /Synthetic Refund[\s\S]*-10\.00[\s\S]*5\.00/, 'negative expense totals must stay visible and signed');
+	assert.match(state.bodyText, /Synthetic Dining[\s\S]*80\.00[\s\S]*75\.00/, 'row-local not_comparable expense row must preserve side totals');
+	assert.match(state.bodyText, /This account row is not comparable/, 'row-local not_comparable expense row must render fixed redacted copy');
+	assert.doesNotMatch(state.html, new RegExp(privateReportSentinel), 'row-local backend detail must not be serialized into the browser HTML');
 	assert.ok(state.rowOrder[0]?.includes('Synthetic Rent'), 'backend-ranked expense rows must be preserved: largest absolute delta first');
 	assert.ok(state.rowOrder[1]?.includes('Synthetic Refund'), 'backend-ranked expense rows must preserve second row');
 	assert.ok(state.rowOrder[2]?.includes('Synthetic Food'), 'backend-ranked expense rows must preserve unchanged zero row');
+	assert.ok(state.rowOrder[3]?.includes('Synthetic Dining'), 'backend-ranked expense rows must preserve row-local not_comparable row after comparable rows');
 	for (const href of state.presetHrefs) {
 		const url = new URL(href);
 		assert.equal(url.pathname, '/reports', 'preset link path');
@@ -609,6 +629,8 @@ async function assertFullComparisonPage(cdp) {
 	}
 	assertHrefParams(state.primaryExpenseHref, '/transactions', { limit: '50', offset: '0', account_id: 'expense-rent', date_from: '2026-07-01', date_to: '2026-07-31' }, 'primary expense drilldown');
 	assertHrefParams(state.comparisonExpenseHref, '/transactions', { limit: '50', offset: '0', account_id: 'expense-rent', date_from: '2026-06-01', date_to: '2026-06-30' }, 'comparison expense drilldown');
+	assertHrefParams(state.primaryNotComparableHref, '/transactions', { limit: '50', offset: '0', account_id: 'expense-dining', date_from: '2026-07-01', date_to: '2026-07-31' }, 'row-local not_comparable primary expense drilldown');
+	assertHrefParams(state.comparisonNotComparableHref, '/transactions', { limit: '50', offset: '0', account_id: 'expense-dining', date_from: '2026-06-01', date_to: '2026-06-30' }, 'row-local not_comparable comparison expense drilldown');
 }
 
 async function runSmoke() {
@@ -775,9 +797,11 @@ async function runSmoke() {
 			'Partial report'
 		);
 		const partialText = await evaluate(cdp, `document.body?.innerText ?? ''`);
+		const partialHtml = await evaluate(cdp, `document.documentElement.outerHTML`);
 		assert.match(partialText, /Partial report/, 'partial source section failure must render a partial report alert');
 		assert.match(partialText, /Comparison delta is unavailable/, 'partial delta section failure must render fixed redacted copy');
 		assert.doesNotMatch(partialText, new RegExp(privateReportSentinel), 'partial section failure must redact backend details');
+		assert.doesNotMatch(partialHtml, new RegExp(privateReportSentinel), 'partial section backend detail must not be serialized into browser HTML');
 		assert.match(partialText, /Synthetic Rent/, 'unaffected expense-change section must remain visible after a partial error');
 		assertNoMutationRequestsObserved(api, browserRequests, 'partial reports comparison page');
 

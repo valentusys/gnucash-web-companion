@@ -101,9 +101,10 @@ type ExpenseChangeView = {
 	accountName: string;
 	primaryTotal: string;
 	comparisonTotal: string;
-	delta: string;
-	absoluteDelta: string;
+	delta: string | null;
+	absoluteDelta: string | null;
 	currency: string;
+	status: 'ok' | 'not_comparable';
 };
 
 type ComparisonReportView = {
@@ -117,7 +118,6 @@ type ComparisonReportView = {
 	partialFailure: boolean;
 	empty: boolean;
 	comparable: boolean;
-	deltaSectionStatuses: DeltaSectionStatus[];
 	deltaSectionMessages: DeltaSectionMessages;
 	summaryDelta: SummaryDeltaView | null;
 	cashflowDelta: CashflowDeltaView | null;
@@ -624,7 +624,8 @@ function normalizeExpenseChanges(value: ExpenseAccountComparison[] | null | unde
 					comparisonTotal: stringValue(expense.comparison_total),
 					delta: stringValue(expense.delta),
 					absoluteDelta: stringValue(expense.absolute_delta),
-					currency: stringValue(expense.currency)
+					currency: stringValue(expense.currency),
+					status: expense.status === 'not_comparable' ? ('not_comparable' as const) : ('ok' as const)
 				}))
 				.filter(
 					(expense): expense is ExpenseChangeView =>
@@ -633,9 +634,8 @@ function normalizeExpenseChanges(value: ExpenseAccountComparison[] | null | unde
 								expense.accountName &&
 								expense.primaryTotal &&
 								expense.comparisonTotal &&
-								expense.delta &&
-								expense.absoluteDelta &&
-								expense.currency
+								expense.currency &&
+								(expense.status === 'not_comparable' || (expense.delta && expense.absoluteDelta))
 						)
 				)
 		: [];
@@ -686,7 +686,6 @@ async function loadComparisonReport(
 				partialFailure: payload.partial_failure === true,
 				empty: payload.empty === true,
 				comparable: payload.comparable === true,
-				deltaSectionStatuses,
 				deltaSectionMessages: deltaSectionMessagesFromStatuses(deltaSectionStatuses, locale),
 				summaryDelta: normalizeSummaryDelta(payload.summary_delta),
 				cashflowDelta: normalizeCashflowDelta(payload.cashflow_delta),

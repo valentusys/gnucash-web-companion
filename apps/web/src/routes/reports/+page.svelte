@@ -13,10 +13,12 @@
 	type SummaryDelta = NonNullable<ComparisonReport['summaryDelta']>;
 	type CashflowDelta = NonNullable<ComparisonReport['cashflowDelta']>;
 	type ExpenseChangeItem = ComparisonReport['expenseChanges'][number];
+	type ComparableExpenseChangeItem = ExpenseChangeItem & { status: 'ok'; delta: string; absoluteDelta: string };
 
 	let locale = $derived<Locale>(data.locale ?? DEFAULT_LOCALE);
 	let isRouteLoading = $derived(navigating.to?.url.pathname === '/reports');
 	let comparisonReport = $derived(data.comparisonReport);
+	let comparableExpenseChanges = $derived(comparisonReport?.expenseChanges.filter(isComparableExpenseChange) ?? []);
 	let sectionWarnings = $derived(data.sectionWarnings);
 	let hasComparisonData = $derived(
 		Boolean(
@@ -89,11 +91,22 @@
 		);
 	}
 
-	function expenseChangeBar(expense: ExpenseChangeItem): string {
-		return decimalBarWidthPercent(
-			expense.absoluteDelta,
-			comparisonReport?.expenseChanges.map((item) => item.absoluteDelta) ?? []
-		);
+	function isComparableExpenseChange(expense: ExpenseChangeItem): expense is ComparableExpenseChangeItem {
+		return expense.status === 'ok' && Boolean(expense.delta && expense.absoluteDelta);
+	}
+
+	function expenseDeltaItem(expense: ComparableExpenseChangeItem): MoneyDeltaItem {
+		return {
+			primary: expense.primaryTotal,
+			comparison: expense.comparisonTotal,
+			delta: expense.delta,
+			absoluteDelta: expense.absoluteDelta,
+			currency: expense.currency
+		};
+	}
+
+	function expenseChangeBar(expense: ComparableExpenseChangeItem, allExpenses: ComparableExpenseChangeItem[]): string {
+		return decimalBarWidthPercent(expense.absoluteDelta, allExpenses.map((item) => item.absoluteDelta));
 	}
 
 	function sourceName(source: 'primary' | 'comparison', locale: Locale): string {
@@ -415,12 +428,25 @@
 								<div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
 									<div class="min-w-0">
 										<p class="truncate font-semibold">{expense.accountName}</p>
-										<p class="text-sm" style="color: var(--app-muted);">{changeLabel({ primary: expense.primaryTotal, comparison: expense.comparisonTotal, delta: expense.delta, absoluteDelta: expense.absoluteDelta, currency: expense.currency }, locale)}</p>
+										{#if isComparableExpenseChange(expense)}
+											{@const rowDelta = expenseDeltaItem(expense)}
+											<p class="text-sm" style="color: var(--app-muted);">{changeLabel(rowDelta, locale)}</p>
+										{:else}
+											<p class="text-sm" style="color: var(--app-warning);">{t(locale, 'reports.comparison.rowNotComparable')}</p>
+										{/if}
 									</div>
-									<div class="text-right tabular-nums">
-										<p class="text-lg font-bold" style={`color: ${toneFor(expense.delta)};`}>{expense.delta}</p>
-										<p class="text-xs" style="color: var(--app-muted);">{t(locale, 'reports.comparison.absoluteChange')}: {expense.absoluteDelta} {expense.currency}</p>
-									</div>
+									{#if isComparableExpenseChange(expense)}
+										{@const rowDelta = expenseDeltaItem(expense)}
+										<div class="text-right tabular-nums">
+											<p class="text-lg font-bold" style={`color: ${deltaTone(rowDelta)};`}>{expense.delta}</p>
+											<p class="text-xs" style="color: var(--app-muted);">{t(locale, 'reports.comparison.absoluteChange')}: {expense.absoluteDelta} {expense.currency}</p>
+										</div>
+									{:else}
+										<div class="text-left tabular-nums sm:text-right">
+											<p class="text-lg font-bold" style="color: var(--app-warning);">—</p>
+											<p class="text-xs" style="color: var(--app-muted);">{expense.currency}</p>
+										</div>
+									{/if}
 								</div>
 								<div class="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
 									<a class="rounded-lg border p-2 font-semibold" style="border-color: var(--app-border); color: var(--app-accent);" href={data.drilldowns.expenseChanges[expense.accountId]?.primary ?? data.drilldowns.primary.period}>
@@ -430,9 +456,11 @@
 										{t(locale, 'reports.comparison.comparisonSide')}: <span class="tabular-nums">{expense.comparisonTotal}</span>
 									</a>
 								</div>
-								<div class="mt-3 h-2 w-full overflow-hidden rounded-full" style="background: var(--app-elevated-bg);" aria-hidden="true">
-									<div class="h-full rounded-full" style={`width: ${expenseChangeBar(expense)}; background: var(--app-danger);`}></div>
-								</div>
+								{#if isComparableExpenseChange(expense)}
+									<div class="mt-3 h-2 w-full overflow-hidden rounded-full" style="background: var(--app-elevated-bg);" aria-hidden="true">
+										<div class="h-full rounded-full" style={`width: ${expenseChangeBar(expense, comparableExpenseChanges)}; background: var(--app-danger);`}></div>
+									</div>
+								{/if}
 							</li>
 						{/each}
 					</ul>

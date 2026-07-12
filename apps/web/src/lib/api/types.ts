@@ -218,12 +218,14 @@ export type MoneyDelta = {
 };
 
 export type SummaryDelta = {
+	currency: string;
 	assets: MoneyDelta;
 	liabilities: MoneyDelta;
 	net_worth: MoneyDelta;
 };
 
 export type CashflowDelta = {
+	currency: string;
 	inflow: MoneyDelta;
 	outflow: MoneyDelta;
 	net: MoneyDelta;
@@ -234,9 +236,11 @@ export type ExpenseAccountComparison = {
 	account_name: string;
 	primary_total: string;
 	comparison_total: string;
-	delta: string;
-	absolute_delta: string;
+	delta: string | null;
+	absolute_delta: string | null;
 	currency: string;
+	status: 'ok' | 'not_comparable' | string;
+	detail: string | null;
 };
 
 export type PeriodReportComparison = {
