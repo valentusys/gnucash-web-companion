@@ -3,21 +3,39 @@
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import LoadingState from '$lib/components/LoadingState.svelte';
 	import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
-	import { decimalBarWidthPercent, isNonNegativeDecimalString } from '$lib/money.js';
+	import { compareDecimalStrings, decimalBarWidthPercent, isNonNegativeDecimalString } from '$lib/money.js';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
-	let locale = $derived<Locale>(data.locale ?? DEFAULT_LOCALE);
+	type ComparisonReport = NonNullable<PageData['comparisonReport']>;
+	type SourceReport = ComparisonReport['primary'];
+	type MoneyDeltaItem = NonNullable<ComparisonReport['cashflowDelta']>['inflow'];
+	type SummaryDelta = NonNullable<ComparisonReport['summaryDelta']>;
+	type CashflowDelta = NonNullable<ComparisonReport['cashflowDelta']>;
+	type ExpenseChangeItem = ComparisonReport['expenseChanges'][number];
 
+	let locale = $derived<Locale>(data.locale ?? DEFAULT_LOCALE);
 	let isRouteLoading = $derived(navigating.to?.url.pathname === '/reports');
-	let report = $derived(data.report);
+	let comparisonReport = $derived(data.comparisonReport);
 	let sectionWarnings = $derived(data.sectionWarnings);
-	let hasReportData = $derived(
-		Boolean(report && !report.empty && (report.summary || report.cashflow || report.cashflowMonthly.length || report.expensesByAccount.length))
+	let hasComparisonData = $derived(
+		Boolean(
+			comparisonReport &&
+				!comparisonReport.empty &&
+				(sourceHasData(comparisonReport.primary) ||
+					sourceHasData(comparisonReport.comparison) ||
+					comparisonReport.summaryDelta ||
+					comparisonReport.cashflowDelta ||
+					comparisonReport.expenseChanges.length)
+		)
 	);
 
 	function displayMoney(value: string | null | undefined): string {
 		return value && value.trim() ? value : '—';
+	}
+
+	function sourceHasData(source: SourceReport | null | undefined): boolean {
+		return Boolean(source && (source.summary || source.cashflow || source.cashflowMonthly.length || source.expensesByAccount.length));
 	}
 
 	function toneFor(value: string | null | undefined): string {
@@ -25,7 +43,19 @@
 		return isNonNegativeDecimalString(value) ? 'var(--app-success)' : 'var(--app-danger)';
 	}
 
-	function summaryItems(summary: NonNullable<NonNullable<PageData['report']>['summary']>, locale: Locale) {
+	function deltaTone(delta: MoneyDeltaItem): string {
+		const comparison = compareDecimalStrings(delta.delta, '0');
+		if (comparison === 0) return 'var(--app-muted)';
+		return comparison > 0 ? 'var(--app-success)' : 'var(--app-danger)';
+	}
+
+	function changeLabel(delta: MoneyDeltaItem, locale: Locale): string {
+		const comparison = compareDecimalStrings(delta.delta, '0');
+		if (comparison === 0) return t(locale, 'reports.comparison.unchanged');
+		return comparison > 0 ? t(locale, 'reports.comparison.increase') : t(locale, 'reports.comparison.decrease');
+	}
+
+	function summaryItems(summary: NonNullable<SourceReport['summary']>, locale: Locale) {
 		return [
 			{ label: t(locale, 'reports.summary.income'), value: summary.income, tone: 'var(--app-success)' },
 			{ label: t(locale, 'reports.summary.expenses'), value: summary.expenses, tone: 'var(--app-danger)' },
@@ -36,18 +66,38 @@
 		].filter((item) => item.value !== null && item.value !== undefined && item.value !== '');
 	}
 
-	function expenseBar(total: string): string {
+	function summaryDeltaItems(delta: SummaryDelta, locale: Locale) {
+		return [
+			{ id: 'net-worth', label: t(locale, 'reports.summary.netWorth'), delta: delta.netWorth },
+			{ id: 'assets', label: t(locale, 'reports.summary.assets'), delta: delta.assets },
+			{ id: 'liabilities', label: t(locale, 'reports.summary.liabilities'), delta: delta.liabilities }
+		];
+	}
+
+	function cashflowDeltaItems(delta: CashflowDelta, locale: Locale) {
+		return [
+			{ id: 'inflow', label: t(locale, 'reports.cashflow.inflow'), delta: delta.inflow },
+			{ id: 'outflow', label: t(locale, 'reports.cashflow.outflow'), delta: delta.outflow },
+			{ id: 'net', label: t(locale, 'reports.cashflow.net'), delta: delta.net }
+		];
+	}
+
+	function deltaBar(delta: MoneyDeltaItem, allDeltas: MoneyDeltaItem[]): string {
 		return decimalBarWidthPercent(
-			total,
-			report?.expensesByAccount.map((expense) => expense.total) ?? []
+			delta.absoluteDelta,
+			allDeltas.map((item) => item.absoluteDelta)
 		);
 	}
 
-	function monthlyOutflowBar(outflow: string): string {
+	function expenseChangeBar(expense: ExpenseChangeItem): string {
 		return decimalBarWidthPercent(
-			outflow,
-			report?.cashflowMonthly.map((period) => period.outflow) ?? []
+			expense.absoluteDelta,
+			comparisonReport?.expenseChanges.map((item) => item.absoluteDelta) ?? []
 		);
+	}
+
+	function sourceName(source: 'primary' | 'comparison', locale: Locale): string {
+		return source === 'primary' ? t(locale, 'reports.comparison.primarySide') : t(locale, 'reports.comparison.comparisonSide');
 	}
 </script>
 
@@ -68,16 +118,16 @@
 		<a
 			class="inline-flex min-h-11 items-center justify-center rounded-xl border px-4 py-2 text-sm font-semibold"
 			style="border-color: var(--app-border); color: var(--app-text); background: var(--app-panel);"
-			href={data.drilldowns.period}
+			href={data.drilldowns.primary.period}
 		>
 			{t(locale, 'reports.viewTransactionsPeriod')}
 		</a>
 	</header>
 
 	<section class="mb-6 rounded-2xl border p-4" style="border-color: var(--app-border); background: var(--app-panel);" aria-labelledby="report-period-heading">
-		<div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-			<div>
-				<h2 id="report-period-heading" class="text-lg font-semibold">{t(locale, 'reports.period.title')}</h2>
+		<div class="grid gap-5 lg:grid-cols-2">
+			<fieldset class="min-w-0 rounded-xl border p-3" style="border-color: var(--app-border);">
+				<legend id="report-period-heading" class="px-1 text-lg font-semibold">{t(locale, 'reports.period.title')}</legend>
 				<p class="mt-1 text-sm" style="color: var(--app-muted);">
 					{t(locale, 'reports.period.urlBackedHelp', { dateFrom: data.period.dateFrom, dateTo: data.period.dateTo })}
 				</p>
@@ -95,36 +145,92 @@
 						</a>
 					{/each}
 				</nav>
-			</div>
 
-			<form method="GET" action="/reports" class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]" aria-label={t(locale, 'reports.period.customAria')}>
-				<input type="hidden" name="preset" value="custom" />
-				<label class="text-sm font-medium">
-					<span>{t(locale, 'reports.period.dateFrom')}</span>
-					<input
-						class="mt-1 min-h-11 w-full rounded-xl border px-3 py-2"
-						style="border-color: var(--app-border); background: var(--app-bg); color: var(--app-text);"
-						type="date"
-						name="date_from"
-						value={data.period.dateFrom}
-						required
-					/>
-				</label>
-				<label class="text-sm font-medium">
-					<span>{t(locale, 'reports.period.dateTo')}</span>
-					<input
-						class="mt-1 min-h-11 w-full rounded-xl border px-3 py-2"
-						style="border-color: var(--app-border); background: var(--app-bg); color: var(--app-text);"
-						type="date"
-						name="date_to"
-						value={data.period.dateTo}
-						required
-					/>
-				</label>
-				<button class="min-h-11 rounded-xl px-4 py-2 text-sm font-semibold text-white" style="background: var(--app-accent);" type="submit">
-					{t(locale, 'reports.period.applyCustom')}
-				</button>
-			</form>
+				<form method="GET" action="/reports" class="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]" aria-label={t(locale, 'reports.period.customAria')}>
+					<input type="hidden" name="preset" value="custom" />
+					<input type="hidden" name="comparison_mode" value={data.comparisonPeriod.mode} />
+					<input type="hidden" name="comparison_date_from" value={data.comparisonPeriod.dateFrom} />
+					<input type="hidden" name="comparison_date_to" value={data.comparisonPeriod.dateTo} />
+					<label class="text-sm font-medium">
+						<span>{t(locale, 'reports.period.dateFrom')}</span>
+						<input
+							class="mt-1 min-h-11 w-full rounded-xl border px-3 py-2"
+							style="border-color: var(--app-border); background: var(--app-bg); color: var(--app-text);"
+							type="date"
+							name="date_from"
+							value={data.period.dateFrom}
+							required
+						/>
+					</label>
+					<label class="text-sm font-medium">
+						<span>{t(locale, 'reports.period.dateTo')}</span>
+						<input
+							class="mt-1 min-h-11 w-full rounded-xl border px-3 py-2"
+							style="border-color: var(--app-border); background: var(--app-bg); color: var(--app-text);"
+							type="date"
+							name="date_to"
+							value={data.period.dateTo}
+							required
+						/>
+					</label>
+					<button class="min-h-11 rounded-xl px-4 py-2 text-sm font-semibold text-white" style="background: var(--app-accent);" type="submit">
+						{t(locale, 'reports.period.applyCustom')}
+					</button>
+				</form>
+			</fieldset>
+
+			<fieldset class="min-w-0 rounded-xl border p-3" style="border-color: var(--app-border);">
+				<legend class="px-1 text-lg font-semibold">{t(locale, 'reports.comparison.title')}</legend>
+				<p class="mt-1 text-sm" style="color: var(--app-muted);">
+					{t(locale, 'reports.comparison.urlBackedHelp', { dateFrom: data.comparisonPeriod.dateFrom, dateTo: data.comparisonPeriod.dateTo })}
+				</p>
+				<nav class="mt-3 flex flex-wrap gap-2" aria-label={t(locale, 'reports.comparison.modeAria')}>
+					{#each data.comparisonModeOptions as mode}
+						<a
+							href={mode.href}
+							aria-current={mode.active ? 'page' : undefined}
+							class="inline-flex min-h-11 items-center rounded-xl border px-3 py-2 text-sm font-semibold"
+							style={mode.active
+								? 'border-color: var(--app-accent); background: var(--app-accent); color: white;'
+								: 'border-color: var(--app-border); background: var(--app-bg); color: var(--app-text);'}
+						>
+							{mode.label}
+						</a>
+					{/each}
+				</nav>
+
+				<form method="GET" action="/reports" class="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]" aria-label={t(locale, 'reports.comparison.customAria')}>
+					<input type="hidden" name="preset" value={data.selectedPreset} />
+					<input type="hidden" name="date_from" value={data.period.dateFrom} />
+					<input type="hidden" name="date_to" value={data.period.dateTo} />
+					<input type="hidden" name="comparison_mode" value="custom" />
+					<label class="text-sm font-medium">
+						<span>{t(locale, 'reports.comparison.dateFrom')}</span>
+						<input
+							class="mt-1 min-h-11 w-full rounded-xl border px-3 py-2"
+							style="border-color: var(--app-border); background: var(--app-bg); color: var(--app-text);"
+							type="date"
+							name="comparison_date_from"
+							value={data.comparisonPeriod.dateFrom}
+							required
+						/>
+					</label>
+					<label class="text-sm font-medium">
+						<span>{t(locale, 'reports.comparison.dateTo')}</span>
+						<input
+							class="mt-1 min-h-11 w-full rounded-xl border px-3 py-2"
+							style="border-color: var(--app-border); background: var(--app-bg); color: var(--app-text);"
+							type="date"
+							name="comparison_date_to"
+							value={data.comparisonPeriod.dateTo}
+							required
+						/>
+					</label>
+					<button class="min-h-11 rounded-xl px-4 py-2 text-sm font-semibold text-white" style="background: var(--app-accent);" type="submit">
+						{t(locale, 'reports.comparison.applyCustom')}
+					</button>
+				</form>
+			</fieldset>
 		</div>
 	</section>
 
@@ -155,7 +261,7 @@
 			</section>
 		{/if}
 
-		{#if !hasReportData && !data.loadError && !sectionWarnings.length}
+		{#if !hasComparisonData && !data.loadError && !sectionWarnings.length}
 			<EmptyState
 				title={t(locale, 'reports.empty.title')}
 				message={t(locale, 'reports.empty.message')}
@@ -163,23 +269,26 @@
 				icon="📊"
 			>
 				<a
-					href={data.drilldowns.period}
+					href={data.drilldowns.primary.period}
 					class="inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold text-white"
 					style="background: var(--app-accent);"
 				>
 					{t(locale, 'reports.empty.action')}
 				</a>
 			</EmptyState>
-		{:else if report}
+		{:else if comparisonReport}
 			<section class="mb-6 rounded-2xl border p-4" style="border-color: var(--app-border); background: var(--app-panel);" aria-labelledby="reports-limitations-title">
 				<h2 id="reports-limitations-title" class="text-lg font-semibold">{t(locale, 'reports.limitations.title')}</h2>
 				<p class="mt-1 text-sm" style="color: var(--app-muted);">
-					{t(locale, 'reports.limitations.reportingBasis', { reportingBasis: report.reportingBasis || 'base_currency_only' })}
+					{t(locale, 'reports.limitations.reportingBasis', { reportingBasis: comparisonReport.reportingBasis || 'base_currency_only' })}
 				</p>
-				{#if report.limitations.length}
+				<p class="mt-2 text-sm" style="color: var(--app-muted);">
+					{t(locale, 'reports.comparison.zeroHint')}
+				</p>
+				{#if comparisonReport.limitations.length}
 					<ul class="mt-3 list-disc space-y-1 pl-5 text-sm" style="color: var(--app-muted);">
-						{#each report.limitations as limitation}
-							<li>{limitation}</li>
+						{#each comparisonReport.limitations as limitation}
+							<li>{t(locale, 'reports.comparison.technicalLimitation', { limitation })}</li>
 						{/each}
 					</ul>
 				{:else}
@@ -199,118 +308,136 @@
 					<p class="mt-1 text-sm" style="color: var(--app-muted);">{t(locale, 'reports.partial.help')}</p>
 					<ul class="mt-3 list-disc space-y-1 pl-5 text-sm">
 						{#each sectionWarnings as warning}
-							<li><span class="font-semibold">{warning.section}</span>: {warning.message}</li>
+							<li><span class="font-semibold">{sourceName(warning.source, locale)} · {warning.section}</span>: {warning.message}</li>
 						{/each}
 					</ul>
 				</section>
 			{/if}
 
-			<section class="mb-6" aria-labelledby="reports-summary-title">
-				<div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-					<div>
-						<h2 id="reports-summary-title" class="text-xl font-semibold">{t(locale, 'reports.summary.title')}</h2>
-						<p class="text-sm" style="color: var(--app-muted);">{t(locale, 'reports.summary.help', { dateFrom: report.requestedPeriod.dateFrom, dateTo: report.requestedPeriod.dateTo })}</p>
-					</div>
-					<a class="inline-flex text-sm font-semibold" style="color: var(--app-accent);" href={data.drilldowns.period}>{t(locale, 'reports.summary.openFilter')}</a>
+			<section class="mb-6" aria-labelledby="reports-source-periods-title">
+				<h2 id="reports-source-periods-title" class="text-xl font-semibold">{t(locale, 'reports.comparison.sourcePeriodsTitle')}</h2>
+				<p class="mt-1 text-sm" style="color: var(--app-muted);">{t(locale, 'reports.comparison.sourcePeriodsHelp')}</p>
+				<div class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+					{#each [
+						{ id: 'primary', title: t(locale, 'reports.comparison.primarySide'), report: comparisonReport.primary, href: data.drilldowns.primary.period },
+						{ id: 'comparison', title: t(locale, 'reports.comparison.comparisonSide'), report: comparisonReport.comparison, href: data.drilldowns.comparison.period }
+					] as source (source.id)}
+						<article class="rounded-2xl border p-4" style="border-color: var(--app-border); background: var(--app-panel);">
+							<div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+								<div>
+									<h3 class="text-lg font-semibold">{source.title}</h3>
+									<p class="text-sm" style="color: var(--app-muted);">{source.report.requestedPeriod.dateFrom} → {source.report.requestedPeriod.dateTo}</p>
+								</div>
+								<a class="inline-flex text-sm font-semibold" style="color: var(--app-accent);" href={source.href}>{t(locale, 'reports.summary.openFilter')}</a>
+							</div>
+							{#if source.report.summary}
+								<div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+									{#each summaryItems(source.report.summary, locale) as item}
+										<div class="rounded-xl p-3" style="background: var(--app-bg);">
+											<p class="text-xs font-medium uppercase tracking-wide" style="color: var(--app-muted);">{item.label}</p>
+											<p class="mt-1 text-lg font-bold tabular-nums" style={`color: ${item.tone};`}>{displayMoney(item.value)}</p>
+											<p class="text-xs" style="color: var(--app-muted);">{source.report.summary.currency}</p>
+										</div>
+									{/each}
+								</div>
+							{:else}
+								<p class="mt-4 rounded-xl border p-3 text-sm" style="border-color: var(--app-border); color: var(--app-muted);" role="status">{t(locale, 'reports.summary.noTotals')}</p>
+							{/if}
+						</article>
+					{/each}
 				</div>
-				{#if report.sectionErrors.summary}
-					<p class="rounded-xl border p-4 text-sm" style="border-color: var(--app-warning); background: var(--app-panel);" role="alert">{report.sectionErrors.summary}</p>
-				{:else if report.summary}
-					<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-						{#each summaryItems(report.summary, locale) as item}
-							<article class="rounded-2xl border p-4" style="border-color: var(--app-border); background: var(--app-panel);">
+			</section>
+
+			<section class="mb-6 rounded-2xl border p-4" style="border-color: var(--app-border); background: var(--app-panel);" aria-labelledby="reports-summary-delta-title">
+				<h2 id="reports-summary-delta-title" class="text-xl font-semibold">{t(locale, 'reports.comparison.summaryDeltaTitle')}</h2>
+				{#if comparisonReport.deltaSectionMessages.summary}
+					<p class="mt-3 rounded-xl border p-3 text-sm" style="border-color: var(--app-warning);" role="alert">{comparisonReport.deltaSectionMessages.summary}</p>
+				{:else if comparisonReport.summaryDelta}
+					<div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+						{#each summaryDeltaItems(comparisonReport.summaryDelta, locale) as item (item.id)}
+							<article class="rounded-xl border p-4" style="border-color: var(--app-border); background: var(--app-bg);">
 								<p class="text-sm font-medium" style="color: var(--app-muted);">{item.label}</p>
-								<p class="mt-2 text-2xl font-bold tabular-nums" style={`color: ${item.tone};`}>{displayMoney(item.value)}</p>
-								<p class="mt-1 text-xs" style="color: var(--app-muted);">{report.summary.currency}</p>
+								<p class="mt-2 text-2xl font-bold tabular-nums" style={`color: ${deltaTone(item.delta)};`}>{item.delta.delta}</p>
+								<p class="mt-1 text-sm font-semibold" style={`color: ${deltaTone(item.delta)};`}>{changeLabel(item.delta, locale)}</p>
+								<dl class="mt-3 grid grid-cols-2 gap-2 text-xs">
+									<div><dt style="color: var(--app-muted);">{t(locale, 'reports.comparison.primarySide')}</dt><dd class="tabular-nums">{item.delta.primary}</dd></div>
+									<div><dt style="color: var(--app-muted);">{t(locale, 'reports.comparison.comparisonSide')}</dt><dd class="tabular-nums">{item.delta.comparison}</dd></div>
+								</dl>
+								<p class="mt-2 text-xs" style="color: var(--app-muted);">{t(locale, 'reports.comparison.absoluteChange')}: {item.delta.absoluteDelta} {item.delta.currency}</p>
 							</article>
 						{/each}
 					</div>
 				{:else}
-					<p class="rounded-xl border p-4 text-sm" style="border-color: var(--app-border); background: var(--app-panel); color: var(--app-muted);" role="status">{t(locale, 'reports.summary.noTotals')}</p>
+					<p class="mt-3 text-sm" style="color: var(--app-muted);" role="status">{t(locale, 'reports.comparison.emptyDelta')}</p>
 				{/if}
 			</section>
 
-			<section class="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]" aria-labelledby="reports-cashflow-title">
-				<article class="rounded-2xl border p-4" style="border-color: var(--app-border); background: var(--app-panel);">
-					<h2 id="reports-cashflow-title" class="text-xl font-semibold">{t(locale, 'reports.cashflow.title')}</h2>
-					{#if report.sectionErrors.cashflow}
-						<p class="mt-3 rounded-xl border p-3 text-sm" style="border-color: var(--app-warning);" role="alert">{report.sectionErrors.cashflow}</p>
-					{:else if report.cashflow}
-						<dl class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-1">
-							<div class="rounded-xl p-3" style="background: var(--app-bg);">
-								<dt class="text-sm" style="color: var(--app-muted);">{t(locale, 'reports.cashflow.inflow')}</dt>
-								<dd class="mt-1 text-xl font-bold tabular-nums" style="color: var(--app-success);">{report.cashflow.inflow} <span class="text-xs" style="color: var(--app-muted);">{report.cashflow.currency}</span></dd>
-							</div>
-							<div class="rounded-xl p-3" style="background: var(--app-bg);">
-								<dt class="text-sm" style="color: var(--app-muted);">{t(locale, 'reports.cashflow.outflow')}</dt>
-								<dd class="mt-1 text-xl font-bold tabular-nums" style="color: var(--app-danger);">{report.cashflow.outflow} <span class="text-xs" style="color: var(--app-muted);">{report.cashflow.currency}</span></dd>
-							</div>
-							<div class="rounded-xl p-3" style="background: var(--app-bg);">
-								<dt class="text-sm" style="color: var(--app-muted);">{t(locale, 'reports.cashflow.net')}</dt>
-								<dd class="mt-1 text-xl font-bold tabular-nums" style={`color: ${toneFor(report.cashflow.net)};`}>{report.cashflow.net} <span class="text-xs" style="color: var(--app-muted);">{report.cashflow.currency}</span></dd>
-							</div>
-						</dl>
-					{:else}
-						<p class="mt-3 text-sm" style="color: var(--app-muted);" role="status">{t(locale, 'reports.cashflow.noTotals')}</p>
-					{/if}
-				</article>
-
-				<article class="rounded-2xl border p-4" style="border-color: var(--app-border); background: var(--app-panel);">
-					<h2 class="text-xl font-semibold">{t(locale, 'reports.cashflow.monthlyTitle')}</h2>
-					<p class="mt-1 text-sm" style="color: var(--app-muted);">{t(locale, 'reports.cashflow.monthlyHelp')}</p>
-					{#if report.sectionErrors.monthly_cashflow}
-						<p class="mt-3 rounded-xl border p-3 text-sm" style="border-color: var(--app-warning);" role="alert">{report.sectionErrors.monthly_cashflow}</p>
-					{:else if report.cashflowMonthly.length}
-						<ul class="mt-4 space-y-3">
-							{#each report.cashflowMonthly as period (period.month)}
-								<li class="rounded-xl p-3" style="background: var(--app-bg);">
-									<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-										<a class="font-semibold" style="color: var(--app-accent);" href={data.drilldowns.cashflowByMonth[period.month] ?? data.drilldowns.period}>{period.month}</a>
-										<span class="text-sm tabular-nums" style={`color: ${toneFor(period.net)};`}>{t(locale, 'reports.cashflow.net')} {period.net}</span>
-									</div>
-									<div class="mt-3 grid grid-cols-3 gap-2 text-sm">
-										<p><span style="color: var(--app-muted);">{t(locale, 'reports.cashflow.inflow')}</span><br /><span class="font-semibold tabular-nums" style="color: var(--app-success);">{period.inflow}</span></p>
-										<p><span style="color: var(--app-muted);">{t(locale, 'reports.cashflow.outflow')}</span><br /><span class="font-semibold tabular-nums" style="color: var(--app-danger);">{period.outflow}</span></p>
-										<p><span style="color: var(--app-muted);">{t(locale, 'reports.cashflow.net')}</span><br /><span class="font-semibold tabular-nums" style={`color: ${toneFor(period.net)};`}>{period.net}</span></p>
-									</div>
-									<div class="mt-3 h-2 w-full overflow-hidden rounded-full" style="background: var(--app-elevated-bg);" aria-hidden="true">
-										<div class="h-full rounded-full" style={`width: ${monthlyOutflowBar(period.outflow)}; background: var(--app-danger);`}></div>
-									</div>
-								</li>
-							{/each}
-						</ul>
-					{:else}
-						<p class="mt-3 text-sm" style="color: var(--app-muted);" role="status">{t(locale, 'reports.cashflow.noMonthly')}</p>
-					{/if}
-				</article>
+			<section class="mb-6 rounded-2xl border p-4" style="border-color: var(--app-border); background: var(--app-panel);" aria-labelledby="reports-cashflow-delta-title">
+				<h2 id="reports-cashflow-delta-title" class="text-xl font-semibold">{t(locale, 'reports.comparison.cashflowDeltaTitle')}</h2>
+				{#if comparisonReport.deltaSectionMessages.cashflow}
+					<p class="mt-3 rounded-xl border p-3 text-sm" style="border-color: var(--app-warning);" role="alert">{comparisonReport.deltaSectionMessages.cashflow}</p>
+				{:else if comparisonReport.cashflowDelta}
+					{@const cashflowItems = cashflowDeltaItems(comparisonReport.cashflowDelta, locale)}
+					<div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+						{#each cashflowItems as item (item.id)}
+							<article class="rounded-xl border p-4" style="border-color: var(--app-border); background: var(--app-bg);">
+								<p class="text-sm font-medium" style="color: var(--app-muted);">{item.label}</p>
+								<p class="mt-2 text-2xl font-bold tabular-nums" style={`color: ${deltaTone(item.delta)};`}>{item.delta.delta}</p>
+								<p class="mt-1 text-sm font-semibold" style={`color: ${deltaTone(item.delta)};`}>{changeLabel(item.delta, locale)}</p>
+								<dl class="mt-3 grid grid-cols-2 gap-2 text-xs">
+									<div><dt style="color: var(--app-muted);">{t(locale, 'reports.comparison.primarySide')}</dt><dd class="tabular-nums">{item.delta.primary}</dd></div>
+									<div><dt style="color: var(--app-muted);">{t(locale, 'reports.comparison.comparisonSide')}</dt><dd class="tabular-nums">{item.delta.comparison}</dd></div>
+								</dl>
+								<div class="mt-3 h-2 w-full overflow-hidden rounded-full" style="background: var(--app-elevated-bg);" aria-hidden="true">
+									<div class="h-full rounded-full" style={`width: ${deltaBar(item.delta, cashflowItems.map((entry) => entry.delta))}; background: var(--app-accent);`}></div>
+								</div>
+							</article>
+						{/each}
+					</div>
+				{:else}
+					<p class="mt-3 text-sm" style="color: var(--app-muted);" role="status">{t(locale, 'reports.comparison.emptyDelta')}</p>
+				{/if}
 			</section>
 
-			<section class="rounded-2xl border p-4" style="border-color: var(--app-border); background: var(--app-panel);" aria-labelledby="reports-expenses-title">
+			<section class="rounded-2xl border p-4" style="border-color: var(--app-border); background: var(--app-panel);" aria-labelledby="reports-expense-changes-title">
 				<div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
 					<div>
-						<h2 id="reports-expenses-title" class="text-xl font-semibold">{t(locale, 'reports.expenses.title')}</h2>
-						<p class="text-sm" style="color: var(--app-muted);">{t(locale, 'reports.expenses.help')}</p>
+						<h2 id="reports-expense-changes-title" class="text-xl font-semibold">{t(locale, 'reports.comparison.expenseChangesTitle')}</h2>
+						<p class="text-sm" style="color: var(--app-muted);">{t(locale, 'reports.comparison.expenseChangesHelp')}</p>
 					</div>
-					<a class="inline-flex text-sm font-semibold" style="color: var(--app-accent);" href={data.drilldowns.period}>{t(locale, 'reports.expenses.allPeriod')}</a>
 				</div>
-				{#if report.sectionErrors.expenses_by_account}
-					<p class="mt-4 rounded-xl border p-3 text-sm" style="border-color: var(--app-warning);" role="alert">{report.sectionErrors.expenses_by_account}</p>
-				{:else if report.expensesByAccount.length}
+				{#if comparisonReport.deltaSectionMessages.expenses_by_account}
+					<p class="mt-4 rounded-xl border p-3 text-sm" style="border-color: var(--app-warning);" role="alert">{comparisonReport.deltaSectionMessages.expenses_by_account}</p>
+				{:else if comparisonReport.expenseChanges.length}
 					<ul class="mt-4 space-y-3">
-						{#each report.expensesByAccount as expense (expense.account_id)}
-							<li>
-								<div class="flex items-center justify-between gap-3 text-sm">
-									<a class="min-w-0 truncate font-semibold" style="color: var(--app-accent);" href={data.drilldowns.expensesByAccount[expense.account_id] ?? data.drilldowns.period}>{expense.account_name}</a>
-									<span class="whitespace-nowrap tabular-nums">{expense.total} <span class="text-xs" style="color: var(--app-muted);">{expense.currency}</span></span>
+						{#each comparisonReport.expenseChanges as expense (expense.accountId)}
+							<li class="rounded-xl p-3" style="background: var(--app-bg);">
+								<div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+									<div class="min-w-0">
+										<p class="truncate font-semibold">{expense.accountName}</p>
+										<p class="text-sm" style="color: var(--app-muted);">{changeLabel({ primary: expense.primaryTotal, comparison: expense.comparisonTotal, delta: expense.delta, absoluteDelta: expense.absoluteDelta, currency: expense.currency }, locale)}</p>
+									</div>
+									<div class="text-right tabular-nums">
+										<p class="text-lg font-bold" style={`color: ${toneFor(expense.delta)};`}>{expense.delta}</p>
+										<p class="text-xs" style="color: var(--app-muted);">{t(locale, 'reports.comparison.absoluteChange')}: {expense.absoluteDelta} {expense.currency}</p>
+									</div>
 								</div>
-								<div class="mt-2 h-2 w-full overflow-hidden rounded-full" style="background: var(--app-elevated-bg);" aria-hidden="true">
-									<div class="h-full rounded-full" style={`width: ${expenseBar(expense.total)}; background: var(--app-danger);`}></div>
+								<div class="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+									<a class="rounded-lg border p-2 font-semibold" style="border-color: var(--app-border); color: var(--app-accent);" href={data.drilldowns.expenseChanges[expense.accountId]?.primary ?? data.drilldowns.primary.period}>
+										{t(locale, 'reports.comparison.primarySide')}: <span class="tabular-nums">{expense.primaryTotal}</span>
+									</a>
+									<a class="rounded-lg border p-2 font-semibold" style="border-color: var(--app-border); color: var(--app-accent);" href={data.drilldowns.expenseChanges[expense.accountId]?.comparison ?? data.drilldowns.comparison.period}>
+										{t(locale, 'reports.comparison.comparisonSide')}: <span class="tabular-nums">{expense.comparisonTotal}</span>
+									</a>
+								</div>
+								<div class="mt-3 h-2 w-full overflow-hidden rounded-full" style="background: var(--app-elevated-bg);" aria-hidden="true">
+									<div class="h-full rounded-full" style={`width: ${expenseChangeBar(expense)}; background: var(--app-danger);`}></div>
 								</div>
 							</li>
 						{/each}
 					</ul>
 				{:else}
-					<p class="mt-4 text-sm" style="color: var(--app-muted);" role="status">{t(locale, 'reports.expenses.noRows')}</p>
+					<p class="mt-4 text-sm" style="color: var(--app-muted);" role="status">{t(locale, 'reports.comparison.noExpenseChanges')}</p>
 				{/if}
 			</section>
 		{/if}

@@ -77,10 +77,11 @@ function jsonResponse(res, status, body) {
 	res.end(payload);
 }
 
-function summaryPayload(dateTo, mode = 'full') {
+function summaryPayload(dateTo, side = 'primary', mode = 'full') {
+	const currency = mode === 'not_comparable' && side === 'primary' ? 'XXX' : 'SEK';
 	if (mode === 'empty') {
 		return {
-			currency: 'SEK',
+			currency,
 			net_worth: '0.00',
 			assets: '0.00',
 			liabilities: '0.00',
@@ -91,10 +92,10 @@ function summaryPayload(dateTo, mode = 'full') {
 		};
 	}
 	return {
-		currency: 'SEK',
-		net_worth: '1450.00',
-		assets: '2000.00',
-		liabilities: '-550.00',
+		currency,
+		net_worth: side === 'primary' ? '1450.00' : '1250.00',
+		assets: side === 'primary' ? '2000.00' : '1800.00',
+		liabilities: side === 'primary' ? '-550.00' : '-550.00',
 		as_of_date: dateTo,
 		reporting_basis: 'base_currency_only',
 		includes_currency_conversion: false,
@@ -102,21 +103,36 @@ function summaryPayload(dateTo, mode = 'full') {
 	};
 }
 
-function cashflowPayload(dateFrom, dateTo, mode = 'full') {
+function cashflowPayload(dateFrom, dateTo, side = 'primary', mode = 'full') {
+	const currency = mode === 'not_comparable' && side === 'primary' ? 'XXX' : 'SEK';
 	if (mode === 'empty') {
-		return { date_from: dateFrom, date_to: dateTo, currency: 'SEK', inflow: '0.00', outflow: '0.00', net: '0.00' };
+		return { date_from: dateFrom, date_to: dateTo, currency, inflow: '0.00', outflow: '0.00', net: '0.00' };
 	}
-	return { date_from: dateFrom, date_to: dateTo, currency: 'SEK', inflow: '125.00', outflow: '45.67', net: '79.33' };
+	return side === 'primary'
+		? { date_from: dateFrom, date_to: dateTo, currency, inflow: '125.00', outflow: '45.67', net: '79.33' }
+		: { date_from: dateFrom, date_to: dateTo, currency, inflow: '100.00', outflow: '60.00', net: '40.00' };
 }
 
-function monthlyPayload(mode = 'full') {
+function monthlyPayload(side = 'primary', mode = 'full') {
 	if (mode === 'empty' || mode === 'partial') return [];
-	return [{ month: '2026-07', inflow: '125.00', outflow: '45.67', net: '79.33' }];
+	return side === 'primary'
+		? [{ month: '2026-07', inflow: '125.00', outflow: '45.67', net: '79.33' }]
+		: [{ month: '2026-06', inflow: '100.00', outflow: '60.00', net: '40.00' }];
 }
 
-function expensesPayload(mode = 'full') {
-	if (mode === 'empty') return [];
-	return [{ account_id: 'expense-food', account_name: 'Synthetic Food', total: '45.67', currency: 'SEK' }];
+function expensesPayload(side = 'primary', mode = 'full') {
+	if (mode === 'empty' || mode === 'not_comparable') return [];
+	return side === 'primary'
+		? [
+				{ account_id: 'expense-food', account_name: 'Synthetic Food', total: '45.67', currency: 'SEK' },
+				{ account_id: 'expense-rent', account_name: 'Synthetic Rent', total: '0.00', currency: 'SEK' },
+				{ account_id: 'expense-refund', account_name: 'Synthetic Refund', total: '-10.00', currency: 'SEK' }
+			]
+		: [
+				{ account_id: 'expense-food', account_name: 'Synthetic Food', total: '45.67', currency: 'SEK' },
+				{ account_id: 'expense-rent', account_name: 'Synthetic Rent', total: '100.00', currency: 'SEK' },
+				{ account_id: 'expense-refund', account_name: 'Synthetic Refund', total: '5.00', currency: 'SEK' }
+			];
 }
 
 function sectionStatuses(mode = 'full') {
@@ -130,32 +146,107 @@ function sectionStatuses(mode = 'full') {
 	}
 	return [
 		{ section: 'summary', status: 'ok', detail: null },
-		{ section: 'cashflow', status: 'ok', detail: null },
-		{
-			section: 'monthly_cashflow',
-			status: mode === 'partial' ? 'error' : 'ok',
-			detail: mode === 'partial' ? privateReportSentinel : null
-		},
+		{ section: 'cashflow', status: mode === 'partial' ? 'error' : 'ok', detail: mode === 'partial' ? privateReportSentinel : null },
+		{ section: 'monthly_cashflow', status: mode === 'partial' ? 'error' : 'ok', detail: mode === 'partial' ? privateReportSentinel : null },
 		{ section: 'expenses_by_account', status: 'ok', detail: null }
 	];
 }
 
-function periodReportPayload(dateFrom, dateTo, mode = 'full') {
+function periodReportPayload(dateFrom, dateTo, side = 'primary', mode = 'full') {
 	return {
 		book_id: 1,
 		date_from: dateFrom,
 		date_to: dateTo,
-		currency: 'SEK',
+		currency: mode === 'not_comparable' && side === 'primary' ? 'XXX' : 'SEK',
 		reporting_basis: 'base_currency_only',
 		includes_currency_conversion: false,
 		limitations: ['base_currency_only: No FX conversion; synthetic fixture excludes non-base currencies.'],
 		partial_failure: mode === 'partial',
 		empty: mode === 'empty',
 		section_statuses: sectionStatuses(mode),
-		summary: summaryPayload(dateTo, mode),
-		cashflow: cashflowPayload(dateFrom, dateTo, mode),
-		monthly_cashflow: monthlyPayload(mode),
-		expenses_by_account: expensesPayload(mode)
+		summary: summaryPayload(dateTo, side, mode),
+		cashflow: cashflowPayload(dateFrom, dateTo, side, mode),
+		monthly_cashflow: monthlyPayload(side, mode),
+		expenses_by_account: expensesPayload(side, mode)
+	};
+}
+
+function moneyDelta(primary, comparison, delta, absoluteDelta, currency = 'SEK') {
+	return { primary, comparison, delta, absolute_delta: absoluteDelta, currency };
+}
+
+function comparisonReportPayload(params, mode = 'full') {
+	const comparable = mode !== 'not_comparable';
+	const partial = mode === 'partial';
+	const empty = mode === 'empty';
+	const deltaStatus = mode === 'not_comparable' ? 'not_comparable' : empty ? 'empty' : 'ok';
+	return {
+		book_id: 1,
+		comparison_mode: params.comparison_mode,
+		primary: periodReportPayload(params.date_from, params.date_to, 'primary', mode),
+		comparison: periodReportPayload(params.comparison_date_from, params.comparison_date_to, 'comparison', mode),
+		reporting_basis: 'base_currency_only',
+		includes_currency_conversion: false,
+		limitations:
+			mode === 'not_comparable'
+				? ['currency_mismatch: XXX vs SEK; no FX conversion configured.']
+				: ['base_currency_only: No FX conversion; synthetic comparison fixture excludes non-base currencies.'],
+		partial_failure: partial,
+		empty,
+		comparable,
+		delta_section_statuses: [
+			{ section: 'summary', status: deltaStatus, detail: null },
+			{ section: 'cashflow', status: partial ? 'error' : deltaStatus, detail: partial ? privateReportSentinel : null },
+			{ section: 'expenses_by_account', status: deltaStatus, detail: null }
+		],
+		summary_delta:
+			comparable && !empty
+				? {
+						assets: moneyDelta('2000.00', '1800.00', '200.00', '200.00'),
+						liabilities: moneyDelta('-550.00', '-550.00', '0.00', '0.00'),
+						net_worth: moneyDelta('1450.00', '1250.00', '200.00', '200.00')
+					}
+				: null,
+		cashflow_delta:
+			comparable && !empty && !partial
+				? {
+						inflow: moneyDelta('125.00', '100.00', '25.00', '25.00'),
+						outflow: moneyDelta('45.67', '60.00', '-14.33', '14.33'),
+						net: moneyDelta('79.33', '40.00', '39.33', '39.33')
+					}
+				: null,
+		expense_changes:
+			comparable && !empty
+				? [
+						{
+							account_id: 'expense-rent',
+							account_name: 'Synthetic Rent',
+							primary_total: '0.00',
+							comparison_total: '100.00',
+							delta: '-100.00',
+							absolute_delta: '100.00',
+							currency: 'SEK'
+						},
+						{
+							account_id: 'expense-refund',
+							account_name: 'Synthetic Refund',
+							primary_total: '-10.00',
+							comparison_total: '5.00',
+							delta: '-15.00',
+							absolute_delta: '15.00',
+							currency: 'SEK'
+						},
+						{
+							account_id: 'expense-food',
+							account_name: 'Synthetic Food',
+							primary_total: '45.67',
+							comparison_total: '45.67',
+							delta: '0.00',
+							absolute_delta: '0.00',
+							currency: 'SEK'
+						}
+					]
+				: []
 	};
 }
 
@@ -163,6 +254,7 @@ function reportMode(dateFrom, dateTo) {
 	if (dateFrom === '2026-08-01' || dateTo === '2026-08-31') return 'empty';
 	if (dateFrom === '2026-07-10') return 'partial';
 	if (dateFrom === '2026-09-01' || dateTo === '2026-09-30') return 'error';
+	if (dateFrom === '2026-10-01') return 'not_comparable';
 	return 'full';
 }
 
@@ -192,18 +284,23 @@ async function startSyntheticApi() {
 			return jsonResponse(res, 200, [syntheticBook]);
 		}
 
-		if (url.pathname !== '/books/1/reports' || req.method !== 'GET') {
-			return jsonResponse(res, 404, { detail: 'Synthetic reports smoke endpoint not found.' });
+		if (url.pathname !== '/books/1/reports/comparison' || req.method !== 'GET') {
+			return jsonResponse(res, 404, { detail: 'Synthetic reports comparison smoke endpoint not found.' });
 		}
 
-		const dateFrom = url.searchParams.get('date_from') ?? '2026-07-01';
-		const dateTo = url.searchParams.get('date_to') ?? '2026-07-31';
-		const mode = reportMode(dateFrom, dateTo);
+		const params = {
+			date_from: url.searchParams.get('date_from') ?? '',
+			date_to: url.searchParams.get('date_to') ?? '',
+			comparison_mode: url.searchParams.get('comparison_mode') ?? '',
+			comparison_date_from: url.searchParams.get('comparison_date_from') ?? '',
+			comparison_date_to: url.searchParams.get('comparison_date_to') ?? ''
+		};
+		const mode = reportMode(params.date_from, params.date_to);
 
 		if (mode === 'error') {
 			return jsonResponse(res, 500, { detail: privateReportSentinel });
 		}
-		return jsonResponse(res, 200, periodReportPayload(dateFrom, dateTo, mode));
+		return jsonResponse(res, 200, comparisonReportPayload(params, mode));
 	});
 
 	await new Promise((resolve, reject) => {
@@ -397,7 +494,13 @@ async function navigateReports(cdp, webBase, path, label, readyText = 'Period re
 }
 
 function reportRequests(api) {
-	return api.requests.filter((request) => request.path === '/books/1/reports');
+	return api.requests.filter((request) => request.path === '/books/1/reports/comparison');
+}
+
+function lastReportRequest(api) {
+	const requests = reportRequests(api);
+	assert.ok(requests.length > 0, 'at least one reports comparison request must be observed');
+	return requests.at(-1);
 }
 
 function forbiddenBrowserMutationRequests(browserRequests) {
@@ -424,10 +527,12 @@ async function assertNoMobileOverflowAndActiveReportsNav(cdp, label) {
 		viewportWidth: document.documentElement.clientWidth,
 		scrollWidth: document.documentElement.scrollWidth,
 		activeReportsLinks: Array.from(document.querySelectorAll('a[href="/reports"][aria-current="page"][data-active-route="true"]')).length,
+		fieldsets: document.querySelectorAll('fieldset legend').length,
 		bodyText: document.body?.innerText ?? ''
 	}))()`);
 	assert.ok(state.scrollWidth <= state.viewportWidth + 8, `${label}: 320px viewport must not have obvious horizontal overflow (${state.scrollWidth} > ${state.viewportWidth})`);
 	assert.ok(state.activeReportsLinks >= 1, `${label}: Reports navigation must expose active aria-current route state`);
+	assert.ok(state.fieldsets >= 2, `${label}: primary and comparison controls must use fieldset/legend semantics`);
 	assert.match(state.bodyText, /Period reports explorer|Просмотр отчётов за период/, `${label}: reports page title must be visible at 320px`);
 }
 
@@ -439,42 +544,71 @@ function assertHrefParams(href, expectedPath, expectedParams, label) {
 	}
 }
 
-async function assertFullReportPage(cdp) {
+function assertRequestParams(request, expectedParams, label) {
+	const url = new URL(`${request.path}${request.search}`, 'http://127.0.0.1');
+	for (const [key, value] of Object.entries(expectedParams)) {
+		assert.equal(url.searchParams.get(key), value, `${label}: ${key}`);
+	}
+}
+
+async function assertFullComparisonPage(cdp) {
 	const state = await evaluate(cdp, `(() => {
 		const linkRows = Array.from(document.querySelectorAll('a')).map((link) => ({ text: link.textContent.replace(/\\s+/g, ' ').trim(), href: link.href }));
+		const bodyText = document.body?.innerText ?? '';
 		return {
 			pathname: location.pathname,
 			search: location.search,
 			dateFrom: document.querySelector('input[name="date_from"]')?.value ?? '',
 			dateTo: document.querySelector('input[name="date_to"]')?.value ?? '',
-			bodyText: document.body?.innerText ?? '',
+			comparisonDateFrom: document.querySelector('input[name="comparison_date_from"]')?.value ?? '',
+			comparisonDateTo: document.querySelector('input[name="comparison_date_to"]')?.value ?? '',
+			bodyText,
 			periodHref: linkRows.find((link) => link.text.includes('View /transactions for this period'))?.href ?? '',
-			summaryHref: linkRows.find((link) => link.text.includes('Open matching transaction filter'))?.href ?? '',
-			expenseHref: linkRows.find((link) => link.text.includes('Synthetic Food'))?.href ?? '',
-			monthHref: linkRows.find((link) => link.text === '2026-07')?.href ?? '',
-			presetHrefs: linkRows.filter((link) => /This month|Last month|Year to date/.test(link.text)).map((link) => link.href)
+			primaryExpenseHref: linkRows.find((link) => link.text.includes('Primary period: 0.00'))?.href ?? '',
+			comparisonExpenseHref: linkRows.find((link) => link.text.includes('Comparison period: 100.00'))?.href ?? '',
+			rowOrder: Array.from(document.querySelectorAll('section[aria-labelledby="reports-expense-changes-title"] li')).map((row) => row.textContent.replace(/\\s+/g, ' ').trim()),
+			presetHrefs: linkRows.filter((link) => /This month|Last month|Year to date/.test(link.text)).map((link) => link.href),
+			comparisonModeHrefs: linkRows.filter((link) => /Previous equivalent|Same period last year/.test(link.text)).map((link) => link.href)
 		};
 	})()`);
-	assert.equal(state.pathname, '/reports', 'custom report page path must persist');
-	assert.match(state.search, /preset=custom/, 'custom preset must remain in URL');
+	assert.equal(state.pathname, '/reports', 'custom comparison page path must persist');
+	assert.match(state.search, /comparison_mode=custom/, 'comparison mode must remain in URL');
 	assert.equal(state.dateFrom, '2026-07-01', 'custom date_from input must persist selected value');
 	assert.equal(state.dateTo, '2026-07-31', 'custom date_to input must persist selected value');
+	assert.equal(state.comparisonDateFrom, '2026-06-01', 'comparison date_from input must persist selected value');
+	assert.equal(state.comparisonDateTo, '2026-06-30', 'comparison date_to input must persist selected value');
 	assert.match(state.bodyText, /No FX conversion/, 'base-currency/no-FX limitation must render');
-	assert.match(state.bodyText, /base_currency_only/, 'base currency reporting basis must render');
-	assert.match(state.bodyText, /Release-critical safety copy is localized/, 'bounded i18n notice must render without claiming full localization');
-	assert.ok(state.presetHrefs.length >= 3, 'preset links must render with URL-backed hrefs');
+	assert.match(state.bodyText, /Backend limitation:/, 'raw limitations must be visibly technical backend limitation text');
+	assert.match(state.bodyText, /Exact 0\.00 values are genuine data/, 'zero-vs-missing safety copy must render');
+	assert.match(state.bodyText, /Primary and comparison totals/, 'source period cards must render');
+	assert.match(state.bodyText, /Balance change/, 'summary delta section must render');
+	assert.match(state.bodyText, /Cashflow change/, 'cashflow delta section must render');
+	assert.match(state.bodyText, /Spending changes by account/, 'expense change section must render');
+	assert.match(state.bodyText, /Unchanged/, 'zero delta must be labeled unchanged');
+	assert.match(state.bodyText, /Synthetic Rent[\s\S]*0\.00[\s\S]*100\.00/, 'one-sided successful zero expense row must stay visible');
+	assert.match(state.bodyText, /Synthetic Refund[\s\S]*-10\.00[\s\S]*5\.00/, 'negative expense totals must stay visible and signed');
+	assert.ok(state.rowOrder[0]?.includes('Synthetic Rent'), 'backend-ranked expense rows must be preserved: largest absolute delta first');
+	assert.ok(state.rowOrder[1]?.includes('Synthetic Refund'), 'backend-ranked expense rows must preserve second row');
+	assert.ok(state.rowOrder[2]?.includes('Synthetic Food'), 'backend-ranked expense rows must preserve unchanged zero row');
 	for (const href of state.presetHrefs) {
 		const url = new URL(href);
 		assert.equal(url.pathname, '/reports', 'preset link path');
-		assert.ok(url.searchParams.get('preset'), 'preset link keeps preset query');
-		assert.ok(url.searchParams.get('date_from'), 'preset link keeps date_from query');
-		assert.ok(url.searchParams.get('date_to'), 'preset link keeps date_to query');
+		for (const key of ['preset', 'date_from', 'date_to', 'comparison_mode', 'comparison_date_from', 'comparison_date_to']) {
+			assert.ok(url.searchParams.get(key), `preset link keeps ${key} query`);
+		}
 	}
-	for (const href of [state.periodHref, state.summaryHref]) {
-		assertHrefParams(href, '/transactions', { limit: '50', offset: '0', date_from: '2026-07-01', date_to: '2026-07-31' }, 'period transaction drilldown');
+	for (const href of state.comparisonModeHrefs) {
+		const url = new URL(href);
+		assert.equal(url.pathname, '/reports', 'comparison mode link path');
+		for (const key of ['preset', 'date_from', 'date_to', 'comparison_mode', 'comparison_date_from', 'comparison_date_to']) {
+			assert.ok(url.searchParams.get(key), `comparison link keeps ${key} query`);
+		}
 	}
-	assertHrefParams(state.expenseHref, '/transactions', { limit: '50', offset: '0', account_id: 'expense-food', date_from: '2026-07-01', date_to: '2026-07-31' }, 'expense account drilldown');
-	assertHrefParams(state.monthHref, '/transactions', { limit: '50', offset: '0', date_from: '2026-07-01', date_to: '2026-07-31' }, 'monthly cashflow drilldown');
+	for (const href of [state.periodHref]) {
+		assertHrefParams(href, '/transactions', { limit: '50', offset: '0', date_from: '2026-07-01', date_to: '2026-07-31' }, 'primary period transaction drilldown');
+	}
+	assertHrefParams(state.primaryExpenseHref, '/transactions', { limit: '50', offset: '0', account_id: 'expense-rent', date_from: '2026-07-01', date_to: '2026-07-31' }, 'primary expense drilldown');
+	assertHrefParams(state.comparisonExpenseHref, '/transactions', { limit: '50', offset: '0', account_id: 'expense-rent', date_from: '2026-06-01', date_to: '2026-06-30' }, 'comparison expense drilldown');
 }
 
 async function runSmoke() {
@@ -547,40 +681,132 @@ async function runSmoke() {
 		await cdp.send('Emulation.setDeviceMetricsOverride', { width: 320, height: 760, deviceScaleFactor: 2, mobile: true });
 		await cdp.send('Network.setCookie', { name: 'access_token', value: syntheticToken, url: webBase, path: '/', sameSite: 'Lax' });
 
-		await navigateReports(cdp, webBase, '/reports?preset=custom&date_from=2026-07-01&date_to=2026-07-31', 'full reports page');
-		await assertNoMobileOverflowAndActiveReportsNav(cdp, 'full reports page');
-		await assertFullReportPage(cdp);
-		assert.equal(reportRequests(api).length, 1, 'full reports page must call exactly the combined read-only period report endpoint');
-		assertNoMutationRequestsObserved(api, browserRequests, 'full reports page');
+		await navigateReports(
+			cdp,
+			webBase,
+			'/reports?preset=custom&date_from=2026-07-01&date_to=2026-07-31&comparison_mode=custom&comparison_date_from=2026-06-01&comparison_date_to=2026-06-30',
+			'full reports comparison page'
+		);
+		await assertNoMobileOverflowAndActiveReportsNav(cdp, 'full reports comparison page');
+		await assertFullComparisonPage(cdp);
+		assert.equal(reportRequests(api).length, 1, 'full reports page must call exactly one combined read-only comparison endpoint');
+		assertRequestParams(lastReportRequest(api), {
+			date_from: '2026-07-01',
+			date_to: '2026-07-31',
+			comparison_mode: 'custom',
+			comparison_date_from: '2026-06-01',
+			comparison_date_to: '2026-06-30'
+		}, 'custom comparison request');
+		assertNoMutationRequestsObserved(api, browserRequests, 'full reports comparison page');
+
+		await navigateReports(
+			cdp,
+			webBase,
+			'/reports?preset=custom&date_from=2026-07-02&date_to=2026-12-30&comparison_mode=previous_equivalent&comparison_date_from=2026-01-01&comparison_date_to=2026-07-01',
+			'previous equivalent reports comparison page'
+		);
+		assertRequestParams(lastReportRequest(api), {
+			date_from: '2026-07-02',
+			date_to: '2026-12-30',
+			comparison_mode: 'previous_equivalent',
+			comparison_date_from: '2026-01-01',
+			comparison_date_to: '2026-07-01'
+		}, 'previous-equivalent inclusive request');
+		assertNoMutationRequestsObserved(api, browserRequests, 'previous equivalent reports comparison page');
+
+		await navigateReports(
+			cdp,
+			webBase,
+			'/reports?preset=custom&date_from=2024-02-01&date_to=2024-02-29&comparison_mode=same_period_last_year&comparison_date_from=2023-02-01&comparison_date_to=2023-02-28',
+			'prior year leap-clamp comparison page'
+		);
+		assertRequestParams(lastReportRequest(api), {
+			date_from: '2024-02-01',
+			date_to: '2024-02-29',
+			comparison_mode: 'same_period_last_year',
+			comparison_date_from: '2023-02-01',
+			comparison_date_to: '2023-02-28'
+		}, 'prior-year leap-clamp request');
+		assertNoMutationRequestsObserved(api, browserRequests, 'prior year leap-clamp comparison page');
 
 		const reportCountBeforeInvalid = reportRequests(api).length;
-		await navigateReports(cdp, webBase, '/reports?preset=custom&date_from=bad&date_to=2026-07-31', 'invalid reports range', 'Invalid range');
+		await navigateReports(
+			cdp,
+			webBase,
+			'/reports?preset=custom&date_from=2026-07-01&date_to=2026-07-31&comparison_mode=custom&comparison_date_from=2026-07-31&comparison_date_to=2026-07-01',
+			'invalid custom comparison range',
+			'Invalid range'
+		);
 		const invalidText = await evaluate(cdp, `document.body?.innerText ?? ''`);
-		assert.match(invalidText, /No reports API request was made for this invalid range/, 'invalid date range must explicitly skip reports API calls');
-		assert.equal(reportRequests(api).length, reportCountBeforeInvalid, 'invalid date range must not add report endpoint requests');
-		assertNoMutationRequestsObserved(api, browserRequests, 'invalid reports range');
+		assert.match(invalidText, /No reports API request was made for this invalid range/, 'invalid comparison range must explicitly skip reports API calls');
+		assert.equal(reportRequests(api).length, reportCountBeforeInvalid, 'invalid comparison range must not add report endpoint requests');
+		assertNoMutationRequestsObserved(api, browserRequests, 'invalid custom comparison range');
 
-		await navigateReports(cdp, webBase, '/reports?preset=custom&date_from=2026-08-01&date_to=2026-08-31', 'empty reports page', 'No report data');
+		const reportCountBeforeInconsistent = reportRequests(api).length;
+		await navigateReports(
+			cdp,
+			webBase,
+			'/reports?preset=custom&date_from=2026-07-02&date_to=2026-12-30&comparison_mode=previous_equivalent&comparison_date_from=2026-01-02&comparison_date_to=2026-07-01',
+			'inconsistent derived comparison range',
+			'Invalid range'
+		);
+		const inconsistentText = await evaluate(cdp, `document.body?.innerText ?? ''`);
+		assert.match(inconsistentText, /comparison_date_from=2026-01-01 and comparison_date_to=2026-07-01/, 'inconsistent derived comparison dates must show canonical required dates');
+		assert.equal(reportRequests(api).length, reportCountBeforeInconsistent, 'inconsistent derived comparison range must not add report endpoint requests');
+		assertNoMutationRequestsObserved(api, browserRequests, 'inconsistent derived comparison range');
+
+		await navigateReports(
+			cdp,
+			webBase,
+			'/reports?preset=custom&date_from=2026-08-01&date_to=2026-08-31&comparison_mode=custom&comparison_date_from=2026-07-01&comparison_date_to=2026-07-31',
+			'empty reports comparison page',
+			'No report data'
+		);
 		const emptyText = await evaluate(cdp, `document.body?.innerText ?? ''`);
-		assert.match(emptyText, /No report data/, 'empty report response must render the empty state');
+		assert.match(emptyText, /No report data/, 'empty comparison response must render the empty state');
 		assert.doesNotMatch(emptyText, /Report request failed|Partial report/, 'empty state must not be confused with API or partial errors');
-		assertNoMutationRequestsObserved(api, browserRequests, 'empty reports page');
+		assertNoMutationRequestsObserved(api, browserRequests, 'empty reports comparison page');
 
-		await navigateReports(cdp, webBase, '/reports?preset=custom&date_from=2026-07-10&date_to=2026-07-20', 'partial reports page', 'Partial report');
+		await navigateReports(
+			cdp,
+			webBase,
+			'/reports?preset=custom&date_from=2026-07-10&date_to=2026-07-20&comparison_mode=custom&comparison_date_from=2026-06-10&comparison_date_to=2026-06-20',
+			'partial reports comparison page',
+			'Partial report'
+		);
 		const partialText = await evaluate(cdp, `document.body?.innerText ?? ''`);
-		assert.match(partialText, /Partial report/, 'partial section failure must render a partial report alert');
-		assert.match(partialText, /Reports API returned a section error/, 'partial section failure must render fixed redacted copy');
+		assert.match(partialText, /Partial report/, 'partial source section failure must render a partial report alert');
+		assert.match(partialText, /Comparison delta is unavailable/, 'partial delta section failure must render fixed redacted copy');
 		assert.doesNotMatch(partialText, new RegExp(privateReportSentinel), 'partial section failure must redact backend details');
-		assert.match(partialText, /Synthetic Food/, 'unaffected sections must remain visible after a partial error');
-		assertNoMutationRequestsObserved(api, browserRequests, 'partial reports page');
+		assert.match(partialText, /Synthetic Rent/, 'unaffected expense-change section must remain visible after a partial error');
+		assertNoMutationRequestsObserved(api, browserRequests, 'partial reports comparison page');
 
-		await navigateReports(cdp, webBase, '/reports?preset=custom&date_from=2026-09-01&date_to=2026-09-30', 'all-error reports page', 'Report request failed');
+		await navigateReports(
+			cdp,
+			webBase,
+			'/reports?preset=custom&date_from=2026-10-01&date_to=2026-10-31&comparison_mode=custom&comparison_date_from=2026-09-01&comparison_date_to=2026-09-30',
+			'not comparable reports comparison page',
+			'Comparison is not comparable'
+		);
+		const notComparableText = await evaluate(cdp, `document.body?.innerText ?? ''`);
+		assert.match(notComparableText, /Comparison is not comparable/, 'unknown/mismatched currency must render not_comparable copy');
+		assert.match(notComparableText, /Backend limitation: currency_mismatch: XXX vs SEK; no FX conversion configured\./, 'technical backend limitation text must remain visibly technical');
+		assert.doesNotMatch(notComparableText, /No report data/, 'not_comparable must not masquerade as empty');
+		assertNoMutationRequestsObserved(api, browserRequests, 'not comparable reports comparison page');
+
+		await navigateReports(
+			cdp,
+			webBase,
+			'/reports?preset=custom&date_from=2026-09-01&date_to=2026-09-30&comparison_mode=custom&comparison_date_from=2026-08-01&comparison_date_to=2026-08-31',
+			'all-error reports comparison page',
+			'Report request failed'
+		);
 		const errorText = await evaluate(cdp, `document.body?.innerText ?? ''`);
-		assert.match(errorText, /Report request failed/, 'all-section failure must render load error state');
-		assert.match(errorText, /Reports API request failed safely|Reports API is unavailable/, 'all-section failure must use fixed safe copy');
-		assert.doesNotMatch(errorText, new RegExp(privateReportSentinel), 'all-section failure must redact unknown backend detail');
-		assert.doesNotMatch(errorText, /No report data/, 'all-section failure must not be presented as an empty report');
-		assertNoMutationRequestsObserved(api, browserRequests, 'all-error reports page');
+		assert.match(errorText, /Report request failed/, 'whole-request failure must render load error state');
+		assert.match(errorText, /Reports API request failed safely|Reports API is unavailable/, 'whole-request failure must use fixed safe copy');
+		assert.doesNotMatch(errorText, new RegExp(privateReportSentinel), 'whole-request failure must redact unknown backend detail');
+		assert.doesNotMatch(errorText, /No report data/, 'whole-request failure must not be presented as an empty report');
+		assertNoMutationRequestsObserved(api, browserRequests, 'all-error reports comparison page');
 
 		console.log(`reports browser smoke passed: api_report_requests=${reportRequests(api).length} api_forbidden=${api.forbiddenRequests.length} browser_forbidden=${forbiddenBrowserMutationRequests(browserRequests).length}`);
 	} catch (error) {

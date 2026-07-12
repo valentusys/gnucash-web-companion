@@ -201,6 +201,61 @@ export type PeriodReport = {
 	expenses_by_account: ExpenseByAccount[];
 };
 
+export type ReportComparisonMode = 'previous_equivalent' | 'same_period_last_year' | 'custom';
+
+export type DeltaSectionStatus = {
+	section: 'summary' | 'cashflow' | 'expenses_by_account' | string;
+	status: 'ok' | 'empty' | 'error' | 'not_comparable' | string;
+	detail: string | null;
+};
+
+export type MoneyDelta = {
+	primary: string;
+	comparison: string;
+	delta: string;
+	absolute_delta: string;
+	currency: string;
+};
+
+export type SummaryDelta = {
+	assets: MoneyDelta;
+	liabilities: MoneyDelta;
+	net_worth: MoneyDelta;
+};
+
+export type CashflowDelta = {
+	inflow: MoneyDelta;
+	outflow: MoneyDelta;
+	net: MoneyDelta;
+};
+
+export type ExpenseAccountComparison = {
+	account_id: string;
+	account_name: string;
+	primary_total: string;
+	comparison_total: string;
+	delta: string;
+	absolute_delta: string;
+	currency: string;
+};
+
+export type PeriodReportComparison = {
+	book_id: number;
+	comparison_mode: ReportComparisonMode;
+	primary: PeriodReport;
+	comparison: PeriodReport;
+	reporting_basis: 'base_currency_only' | string;
+	includes_currency_conversion: boolean;
+	limitations: string[];
+	partial_failure: boolean;
+	empty: boolean;
+	comparable: boolean;
+	delta_section_statuses: DeltaSectionStatus[];
+	summary_delta: SummaryDelta | null;
+	cashflow_delta: CashflowDelta | null;
+	expense_changes: ExpenseAccountComparison[];
+};
+
 export type TransactionCreatePreview = {
 	preview_only: boolean;
 	writes_enabled_required_for_create: boolean;

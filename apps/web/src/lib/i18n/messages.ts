@@ -117,6 +117,37 @@ export type MessageKey =
 	| 'reports.period.dateFrom'
 	| 'reports.period.dateTo'
 	| 'reports.period.applyCustom'
+	| 'reports.comparison.title'
+	| 'reports.comparison.urlBackedHelp'
+	| 'reports.comparison.modeAria'
+	| 'reports.comparison.mode.previousEquivalent'
+	| 'reports.comparison.mode.samePeriodLastYear'
+	| 'reports.comparison.customAria'
+	| 'reports.comparison.dateFrom'
+	| 'reports.comparison.dateTo'
+	| 'reports.comparison.applyCustom'
+	| 'reports.comparison.validation.unsupportedMode'
+	| 'reports.comparison.validation.invalidDateRange'
+	| 'reports.comparison.validation.invalidRange'
+	| 'reports.comparison.validation.inconsistentRange'
+	| 'reports.comparison.deltaError'
+	| 'reports.comparison.notComparable'
+	| 'reports.comparison.emptyDelta'
+	| 'reports.comparison.zeroHint'
+	| 'reports.comparison.technicalLimitation'
+	| 'reports.comparison.primarySide'
+	| 'reports.comparison.comparisonSide'
+	| 'reports.comparison.sourcePeriodsTitle'
+	| 'reports.comparison.sourcePeriodsHelp'
+	| 'reports.comparison.summaryDeltaTitle'
+	| 'reports.comparison.cashflowDeltaTitle'
+	| 'reports.comparison.expenseChangesTitle'
+	| 'reports.comparison.expenseChangesHelp'
+	| 'reports.comparison.unchanged'
+	| 'reports.comparison.increase'
+	| 'reports.comparison.decrease'
+	| 'reports.comparison.absoluteChange'
+	| 'reports.comparison.noExpenseChanges'
 	| 'reports.preset.thisMonth'
 	| 'reports.preset.lastMonth'
 	| 'reports.preset.yearToDate'
@@ -557,6 +588,44 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'reports.period.dateFrom': 'Date from',
 		'reports.period.dateTo': 'Date to',
 		'reports.period.applyCustom': 'Apply custom range',
+		'reports.comparison.title': 'Comparison period',
+		'reports.comparison.urlBackedHelp':
+			'URL-backed comparison: {dateFrom} to {dateTo}. The comparison endpoint receives primary and comparison dates in one read-only GET request.',
+		'reports.comparison.modeAria': 'Comparison period modes',
+		'reports.comparison.mode.previousEquivalent': 'Previous equivalent',
+		'reports.comparison.mode.samePeriodLastYear': 'Same period last year',
+		'reports.comparison.customAria': 'Custom comparison period',
+		'reports.comparison.dateFrom': 'Comparison date from',
+		'reports.comparison.dateTo': 'Comparison date to',
+		'reports.comparison.applyCustom': 'Apply comparison',
+		'reports.comparison.validation.unsupportedMode': 'Choose a supported comparison mode.',
+		'reports.comparison.validation.invalidDateRange':
+			'Enter valid comparison_date_from/comparison_date_to values using YYYY-MM-DD dates.',
+		'reports.comparison.validation.invalidRange': 'Invalid comparison range: comparison_date_from must be on or before comparison_date_to.',
+		'reports.comparison.validation.inconsistentRange':
+			'This comparison mode requires comparison_date_from={dateFrom} and comparison_date_to={dateTo}. No reports API request was made.',
+		'reports.comparison.deltaError': 'Comparison delta is unavailable because one source section returned an explicit error. Backend details were redacted.',
+		'reports.comparison.notComparable':
+			'Comparison is not comparable for this section. Unknown or mismatched currency/no-FX limitations are preserved below as technical backend limitation text.',
+		'reports.comparison.emptyDelta': 'No comparable delta rows were returned for this section.',
+		'reports.comparison.zeroHint':
+			'Exact 0.00 values are genuine data and unchanged deltas remain visible; one-sided successful zero values are not treated as missing.',
+		'reports.comparison.technicalLimitation': 'Backend limitation: {limitation}',
+		'reports.comparison.primarySide': 'Primary period',
+		'reports.comparison.comparisonSide': 'Comparison period',
+		'reports.comparison.sourcePeriodsTitle': 'Primary and comparison totals',
+		'reports.comparison.sourcePeriodsHelp':
+			'Each side links to /transactions with its exact date_from/date_to. Balance totals remain as-of each side date_to.',
+		'reports.comparison.summaryDeltaTitle': 'Balance change',
+		'reports.comparison.cashflowDeltaTitle': 'Cashflow change',
+		'reports.comparison.expenseChangesTitle': 'Spending changes by account',
+		'reports.comparison.expenseChangesHelp':
+			'Rows preserve the backend-ranked account union. Each side opens /transactions with the side dates and account_id.',
+		'reports.comparison.unchanged': 'Unchanged',
+		'reports.comparison.increase': 'Increase',
+		'reports.comparison.decrease': 'Decrease',
+		'reports.comparison.absoluteChange': 'Absolute change',
+		'reports.comparison.noExpenseChanges': 'No expense-account comparison rows were returned.',
 		'reports.preset.thisMonth': 'This month',
 		'reports.preset.lastMonth': 'Last month',
 		'reports.preset.yearToDate': 'Year to date',
@@ -1042,6 +1111,44 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'reports.period.dateFrom': 'Дата с',
 		'reports.period.dateTo': 'Дата по',
 		'reports.period.applyCustom': 'Применить свой диапазон',
+		'reports.comparison.title': 'Период сравнения',
+		'reports.comparison.urlBackedHelp':
+			'URL-сравнение: {dateFrom} — {dateTo}. Comparison endpoint получает primary и comparison dates одним read-only GET request.',
+		'reports.comparison.modeAria': 'Режимы периода сравнения',
+		'reports.comparison.mode.previousEquivalent': 'Предыдущий равный период',
+		'reports.comparison.mode.samePeriodLastYear': 'Тот же период год назад',
+		'reports.comparison.customAria': 'Свой период сравнения',
+		'reports.comparison.dateFrom': 'Дата сравнения с',
+		'reports.comparison.dateTo': 'Дата сравнения по',
+		'reports.comparison.applyCustom': 'Применить сравнение',
+		'reports.comparison.validation.unsupportedMode': 'Выберите поддерживаемый comparison mode.',
+		'reports.comparison.validation.invalidDateRange':
+			'Введите корректные comparison_date_from/comparison_date_to в формате YYYY-MM-DD.',
+		'reports.comparison.validation.invalidRange': 'Некорректный диапазон сравнения: comparison_date_from должен быть не позже comparison_date_to.',
+		'reports.comparison.validation.inconsistentRange':
+			'Этот comparison mode требует comparison_date_from={dateFrom} и comparison_date_to={dateTo}. Запрос к reports API не выполнялся.',
+		'reports.comparison.deltaError': 'Comparison delta недоступна, потому что одна source section вернула явную ошибку. Backend details скрыты.',
+		'reports.comparison.notComparable':
+			'Эту секцию нельзя корректно сравнить. Unknown or mismatched currency/no-FX limitations сохранены ниже как technical backend limitation text.',
+		'reports.comparison.emptyDelta': 'Для этой секции не вернулись сравнимые delta rows.',
+		'reports.comparison.zeroHint':
+			'Точные значения 0.00 — реальные данные; unchanged deltas остаются видимыми, а one-sided successful zero не считается missing.',
+		'reports.comparison.technicalLimitation': 'Backend limitation: {limitation}',
+		'reports.comparison.primarySide': 'Основной период',
+		'reports.comparison.comparisonSide': 'Период сравнения',
+		'reports.comparison.sourcePeriodsTitle': 'Итоги основного периода и сравнения',
+		'reports.comparison.sourcePeriodsHelp':
+			'Каждая сторона ведёт в /transactions с точными date_from/date_to. Балансовые итоги остаются as-of date_to каждой стороны.',
+		'reports.comparison.summaryDeltaTitle': 'Изменение баланса',
+		'reports.comparison.cashflowDeltaTitle': 'Изменение cashflow',
+		'reports.comparison.expenseChangesTitle': 'Изменения расходов по счетам',
+		'reports.comparison.expenseChangesHelp':
+			'Строки сохраняют backend-ranked account union. Каждая сторона открывает /transactions с датами стороны и account_id.',
+		'reports.comparison.unchanged': 'Без изменений',
+		'reports.comparison.increase': 'Рост',
+		'reports.comparison.decrease': 'Снижение',
+		'reports.comparison.absoluteChange': 'Абсолютное изменение',
+		'reports.comparison.noExpenseChanges': 'Expense-account comparison rows не вернулись.',
 		'reports.preset.thisMonth': 'Этот месяц',
 		'reports.preset.lastMonth': 'Прошлый месяц',
 		'reports.preset.yearToDate': 'С начала года',
