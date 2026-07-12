@@ -1491,6 +1491,31 @@ class TestBookPeriodComparisonReport:
         assert expense_rows[1]["absolute_delta"] == "230.00"
         assert all(isinstance(row["delta"], str) for row in expense_rows)
 
+    def test_comparison_service_matches_independent_period_report_semantics(
+        self, fake_book_for_reports
+    ):
+        service = GnuCashBookService(
+            {"uri_or_path": str(fake_book_for_reports), "base_currency": "SEK", "id": 123}
+        )
+
+        primary = service.get_period_report(date(2026, 5, 10), date(2026, 5, 15), book_id=123)
+        comparison = service.get_period_report(date(2026, 5, 4), date(2026, 5, 9), book_id=123)
+        report = service.get_period_report_comparison(
+            date(2026, 5, 10),
+            date(2026, 5, 15),
+            date(2026, 5, 4),
+            date(2026, 5, 9),
+            comparison_mode="previous_equivalent",
+            book_id=123,
+        )
+
+        assert report.primary.model_dump() == primary.model_dump()
+        assert report.comparison.model_dump() == comparison.model_dump()
+        assert report.comparable is True
+        assert report.cashflow_delta is not None
+        assert report.cashflow_delta.net.delta == "-1300.00"
+        assert [row.account_id for row in report.expense_changes] == ["utilities", "food"]
+
     def test_preset_modes_require_exact_server_derived_comparison_dates(
         self, client, auth_headers, sample_book, empty_fake_book_for_reports, session_factory
     ):
@@ -1737,8 +1762,26 @@ class TestBookPeriodComparisonReport:
         book_path.write_text("fake")
         accounts, transactions = fake_report_data
         readonly_flags: list[bool] = []
+        opened_books: list["MutationGuardBook"] = []
 
         class MutationGuardBook(FakeBookForReports):
+            def __init__(self, accounts=None, transactions=None):
+                self.closed = False
+                self._accounts = accounts or []
+                self._transactions = transactions or []
+                self.accounts_reads = 0
+                self.transactions_reads = 0
+
+            @property
+            def accounts(self):
+                self.accounts_reads += 1
+                return self._accounts
+
+            @property
+            def transactions(self):
+                self.transactions_reads += 1
+                return self._transactions
+
             def save(self):  # pragma: no cover - failure path only
                 raise AssertionError("comparison reports must not save GnuCash books")
 
@@ -1747,7 +1790,9 @@ class TestBookPeriodComparisonReport:
 
         def fake_open_book(path, readonly=False):
             readonly_flags.append(readonly)
-            return MutationGuardBook(accounts=accounts, transactions=transactions)
+            book = MutationGuardBook(accounts=accounts, transactions=transactions)
+            opened_books.append(book)
+            return book
 
         import app.services.gnucash_book as gb_module
 
@@ -1767,3 +1812,6 @@ class TestBookPeriodComparisonReport:
         assert report.partial_failure is False
         assert readonly_flags
         assert all(readonly_flags)
+        assert len(readonly_flags) == 1
+        assert opened_books[0].accounts_reads <= 2
+        assert opened_books[0].transactions_reads <= 2

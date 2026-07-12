@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from contextlib import contextmanager
+from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
@@ -54,6 +55,15 @@ SUPPORTED_TRANSACTION_STATES = {
     "reconciled": "y",
     "voided": "v",
 }
+
+
+@dataclass
+class _ReportReadContext:
+    """Per-request report read cache scoped to one read-only piecash book open."""
+
+    book: Any
+    accounts: list[Any] | None = None
+    transactions: list[Any] | None = None
 
 
 def format_money(value: Any) -> str:
@@ -119,6 +129,7 @@ class GnuCashBookService:
         self.book_config = book_config
         self.uri_or_path = self._get_uri_or_path(book_config)
         self.base_currency = self._get_base_currency(book_config)
+        self._active_report_context: _ReportReadContext | None = None
 
     @staticmethod
     def _get_uri_or_path(book_config: Any) -> str | None:
@@ -159,6 +170,46 @@ class GnuCashBookService:
         if "://" in uri_or_path:
             return piecash.open_book(uri_conn=uri_or_path, readonly=True)
         return piecash.open_book(uri_or_path, readonly=True)
+
+    @contextmanager
+    def _open_report_section_book(self):
+        """Yield the active report book or open a short-lived read-only section book.
+
+        Period report sections keep their historical error boundaries. The
+        comparison endpoint installs a request-local context so repeated sections
+        can reuse one read-only piecash handle and loaded account/transaction
+        lists without caching private book data beyond this service call.
+        """
+        if self._active_report_context is not None:
+            yield self._active_report_context.book
+            return
+        with self._open_book() as book:
+            yield book
+
+    @contextmanager
+    def _use_report_read_context(self, book: Any):
+        previous = self._active_report_context
+        self._active_report_context = _ReportReadContext(book=book)
+        try:
+            yield
+        finally:
+            self._active_report_context = previous
+
+    def _report_accounts(self, book: Any) -> Iterable[Any]:
+        context = self._active_report_context
+        if context is not None and context.book is book:
+            if context.accounts is None:
+                context.accounts = list(self._accounts(book))
+            return context.accounts
+        return self._accounts(book)
+
+    def _report_transactions(self, book: Any) -> Iterable[Any]:
+        context = self._active_report_context
+        if context is not None and context.book is book:
+            if context.transactions is None:
+                context.transactions = list(self._transactions(book))
+            return context.transactions
+        return self._transactions(book)
 
     @contextmanager
     def _open_book(self):
@@ -314,8 +365,8 @@ class GnuCashBookService:
             raise ValueError("date_from and date_to are required")
         inflow = Decimal("0")
         outflow = Decimal("0")
-        with self._open_book() as book:
-            for transaction in self._transactions(book):
+        with self._open_report_section_book() as book:
+            for transaction in self._report_transactions(book):
                 tx_date = _coerce_date(self._transaction_date(transaction))
                 if tx_date is None or tx_date < start or tx_date > end:
                     continue
@@ -369,8 +420,8 @@ class GnuCashBookService:
         base_currency_account_count = 0
         income_this_month = Decimal("0")
         expenses_this_month = Decimal("0")
-        with self._open_book() as book:
-            for account in self._accounts(book):
+        with self._open_report_section_book() as book:
+            for account in self._report_accounts(book):
                 account_type = str(getattr(account, "type", "")).upper()
                 currency = self._account_currency(account)
                 if currency != self.base_currency:
@@ -381,7 +432,7 @@ class GnuCashBookService:
                     assets += self._account_balance(account)
                 elif account_type in liability_account_types:
                     liabilities += self._account_balance(account)
-            for transaction in self._transactions(book):
+            for transaction in self._report_transactions(book):
                 tx_date = _coerce_date(self._transaction_date(transaction))
                 if tx_date is None or tx_date > today:
                     continue
@@ -483,8 +534,8 @@ class GnuCashBookService:
         totals: dict[str, Decimal] = {}
         account_names: dict[str, str] = {}
         account_currencies: dict[str, str] = {}
-        with self._open_book() as book:
-            for transaction in self._transactions(book):
+        with self._open_report_section_book() as book:
+            for transaction in self._report_transactions(book):
                 tx_date = _coerce_date(self._transaction_date(transaction))
                 if tx_date is None:
                     continue
@@ -535,8 +586,8 @@ class GnuCashBookService:
         if start is None or end is None:
             raise ValueError("date_from and date_to are required")
         months: dict[str, dict[str, Decimal]] = {}
-        with self._open_book() as book:
-            for transaction in self._transactions(book):
+        with self._open_report_section_book() as book:
+            for transaction in self._report_transactions(book):
                 tx_date = _coerce_date(self._transaction_date(transaction))
                 if tx_date is None or tx_date < start or tx_date > end:
                     continue
@@ -682,8 +733,14 @@ class GnuCashBookService:
         book_id: int | None = None,
     ) -> PeriodReportComparisonDTO:
         """Return two read-only period reports plus Decimal-string comparison deltas."""
-        primary = self.get_period_report(date_from, date_to, book_id=book_id)
-        comparison = self.get_period_report(comparison_date_from, comparison_date_to, book_id=book_id)
+        try:
+            with self._open_book() as book:
+                with self._use_report_read_context(book):
+                    primary = self.get_period_report(date_from, date_to, book_id=book_id)
+                    comparison = self.get_period_report(comparison_date_from, comparison_date_to, book_id=book_id)
+        except REPORT_SECTION_EXCEPTIONS:
+            primary = self.get_period_report(date_from, date_to, book_id=book_id)
+            comparison = self.get_period_report(comparison_date_from, comparison_date_to, book_id=book_id)
         delta = self._period_report_comparison_delta(primary, comparison)
         limitations = self._merge_limitations(
             [
