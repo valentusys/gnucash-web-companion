@@ -34,7 +34,8 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
 - Closed documentation/compatibility queues:
   [#22](https://github.com/valentusys/gnucash-web-companion/issues/22) and
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28).
-- Latest handoffs/docs: `docs/handoff/hermes-kanban-product-run-2.md`,
+- Latest handoffs/docs: `docs/handoff/hermes-kanban-product-run-3.md`,
+  `docs/handoff/hermes-kanban-product-run-2.md`,
   `docs/handoff/issue51-disposable-ui-execution-rehearsal.md`,
   `docs/handoff/hermes-kanban-product-run.md`,
   `docs/handoff/issue51-delete-app-owned-ui-rehearsal.md`,
@@ -90,6 +91,19 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
 
 ## Current status snapshot
 
+- The third Hermes Kanban product run locally accepted
+  [#54](https://github.com/valentusys/gnucash-web-companion/issues/54) on final QA branch
+  `run/product/issue54-final-qa-20260712T142445Z-91a4b227`. The integrated work adds a bounded,
+  authenticated read-only transaction explorer with required paired dates, date/GUID cursor pagination,
+  repeated account filters, income/expense type mode, selected-account direction, exact Decimal-string
+  min/max amount filters, Unicode description/memo search, typed/redacted errors, URL-backed SSR filter
+  chips/reset/pagination/back links, report/dashboard first-page drilldowns, EN/RU copy, and 320 px
+  browser coverage. Reporting remains base-currency-only with no FX conversion; no default-book explorer
+  API alias or write route was added. Final local evidence on the source-inclusive head passed full API
+  `1182` tests, focused backend `240` tests, frontend check/build/static/browser gates, Docker Compose,
+  root safety/hygiene guards, and local synthetic 1k/10k explorer/comparison benchmarks. GitHub
+  exact-head CI, issue #54 comment, and issue #54 closure are operator-only and pending after this docs
+  commit. Evidence: `docs/handoff/hermes-kanban-product-run-3.md`.
 - The second Hermes Kanban product run completed issue #53. Product head
   `3b094cdb318c017b9a607abe87f98326e8a6ab2b` makes `/reports` compare a primary period with the
   previous equivalent period, the same period last year, or a custom period; keeps state in the URL;

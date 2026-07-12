@@ -5,8 +5,8 @@
 
 `gnucash-web-companion` — self-hosted web companion для существующих GnuCash SQL books. Цель
 текущего MVP — безопасный read-only просмотр в браузере/на мобильном устройстве, пока GnuCash
-Desktop остаётся главным редактором. `/reports` включает period reports и read-only сравнение
-периодов без FX-конвертации.
+Desktop остаётся главным редактором. `/transactions` теперь включает bounded read-only explorer, а
+`/reports` включает period reports и read-only сравнение периодов без FX-конвертации.
 
 ## Что это
 
@@ -48,11 +48,12 @@ release docs и handoff-файлах, чтобы этот файл не стан
   maintenance evidence only, не approval для real-book mutation.
 - #44 Owner real-book trial safety model закрыта после одного успешного owner-approved real-book
   CREATE trial и manual Desktop verification; это не ongoing mutation approval.
-- Read-only reports: #52 закрыта после принятого period reports explorer. #53 добавляет URL-backed
-  сравнение с предыдущим эквивалентным периодом, тем же периодом прошлого года или custom period,
-  Decimal-string изменения totals/spending, честные empty/error/not-comparable states и точные paired
-  transaction drilldowns. Reporting остаётся base-currency-only, без FX conversion. #53 закрыта как
-  completed после independent acceptance, exact-product-head CI и final documentation/issue closeout.
+- Read-only reports/transactions: #52 закрыта после принятого period reports explorer. #53 добавляет
+  URL-backed comparisons и точные paired transaction drilldowns. #54 добавляет bounded, URL-backed
+  read-only transaction explorer с paired dates, account/type/direction/exact-amount/text filters,
+  cursor pagination, safe detail back links, report/dashboard drilldowns и EN/RU mobile/browser
+  coverage. Reporting остаётся base-currency-only, без FX conversion. #53 закрыта как completed;
+  #54 имеет local final-QA evidence и ждёт operator exact-head GitHub CI и issue closeout.
 - Controlled-write trackers #45–#50 остаются отдельными experimental post-MVP boundaries. Они не
   разрешают owner/private DELETE или batch, release publication или public write beta.
   `GNUCASH_WRITES_ENABLED=false` остаётся дефолтом.
@@ -61,6 +62,8 @@ release docs и handoff-файлах, чтобы этот файл не стан
 
 ## Карта текущих статусов
 
+- #54: local final-QA accepted для bounded read-only transaction explorer; operator exact-head
+  GitHub CI и issue closeout остаются pending.
 - #53: закрыта как completed для accepted read-only comparison milestone после independent acceptance,
   exact-product-head CI и final documentation/issue closeout.
 - #51 и #52 закрыты после принятого disposable UI rehearsal и read-only period reports explorer.
