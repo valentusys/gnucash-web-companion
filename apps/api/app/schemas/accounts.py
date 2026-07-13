@@ -49,8 +49,7 @@ class AccountExplorerNodeDTO(BaseModel):
     depth: int
     name: str
     type: str
-    commodity_namespace: str
-    commodity_mnemonic: str
+    commodity: CommodityRefDTO
     hidden: bool = False
     placeholder: bool = False
     child_count: int = 0
@@ -68,7 +67,7 @@ class AccountExplorerScanDTO(BaseModel):
     split_rows: int = 0
     split_aggregate_rows: int = 0
     query_count: int = 0
-    rollup_cells: int = 0
+    rollup_bucket_cells: int = 0
     serialized_bytes: int = 0
     exhausted: bool = True
     limits: dict[str, int] = Field(default_factory=dict)
@@ -101,8 +100,7 @@ class AccountOverviewChildDTO(BaseModel):
     depth: int
     name: str
     type: str
-    commodity_namespace: str
-    commodity_mnemonic: str
+    commodity: CommodityRefDTO
     hidden: bool = False
     placeholder: bool = False
     child_count: int = 0
@@ -124,8 +122,7 @@ class AccountOverviewResponseDTO(BaseModel):
     depth: int
     name: str
     type: str
-    commodity_namespace: str
-    commodity_mnemonic: str
+    commodity: CommodityRefDTO
     hidden: bool = False
     placeholder: bool = False
     direct_balance: AccountExplorerBalanceDTO
@@ -182,8 +179,7 @@ class AccountActivityResponseDTO(BaseModel):
     date_from: str
     date_to: str
     scope: Literal["direct_account"] = "direct_account"
-    commodity_namespace: str
-    commodity_mnemonic: str
+    commodity: CommodityRefDTO
     change: AccountExplorerBalanceDTO | None = None
     inflow: AccountExplorerBalanceDTO | None = None
     outflow: AccountExplorerBalanceDTO | None = None

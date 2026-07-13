@@ -72,6 +72,16 @@ class AccountExplorerError(ValueError):
         return {"code": self.code, "field": self.field, "message": self.message}
 
 
+class _ActivitySectionReadError(RuntimeError):
+    """Internal safe section failure with counters for already-completed reads."""
+
+    def __init__(self, *, query_count: int = 0, transaction_objects: int = 0, split_rows: int = 0) -> None:
+        super().__init__("account activity section failed safely")
+        self.query_count = query_count
+        self.transaction_objects = transaction_objects
+        self.split_rows = split_rows
+
+
 @dataclass(frozen=True)
 class AccountExplorerQuery:
     mode: AccountExplorerMode
@@ -218,7 +228,7 @@ def build_account_explorer_response(
         split_rows=split_stats.split_rows,
         split_aggregate_rows=split_stats.aggregate_rows,
         query_count=query_count,
-        rollup_cells=rollup_cells,
+        rollup_bucket_cells=rollup_cells,
         serialized_bytes=0,
         exhausted=True,
         limits=_limits(),
@@ -375,7 +385,7 @@ def build_account_overview_response(
         split_rows=prepared.split_stats.split_rows,
         split_aggregate_rows=prepared.split_stats.aggregate_rows,
         query_count=prepared.query_count,
-        rollup_cells=prepared.rollup_cells,
+        rollup_bucket_cells=prepared.rollup_cells,
         serialized_bytes=0,
         exhausted=True,
         limits=_overview_limits(),
@@ -391,8 +401,7 @@ def build_account_overview_response(
         depth=prepared.depth_by_id[record.id],
         name=record.name,
         type=record.type,
-        commodity_namespace=record.commodity_namespace,
-        commodity_mnemonic=record.commodity_mnemonic,
+        commodity=_commodity_ref_dto(record.commodity_key),
         hidden=record.hidden,
         placeholder=record.placeholder,
         direct_balance=_balance_dto(_natural_sign(record.direct_raw, record.type), record.commodity_key),
@@ -462,6 +471,13 @@ def build_account_activity_response(
         recent_split_rows = recent_result.split_rows
         query_count += recent_result.query_count
         statuses.append(_activity_status("recent_transactions", "empty" if recent_result.empty else "ok"))
+    except _ActivitySectionReadError as exc:
+        query_count += exc.query_count
+        recent_transaction_objects = exc.transaction_objects
+        recent_split_rows = exc.split_rows
+        statuses.append(
+            _activity_status("recent_transactions", "error", _activity_error_detail("recent_transactions"))
+        )
     except Exception:
         statuses.append(
             _activity_status("recent_transactions", "error", _activity_error_detail("recent_transactions"))
@@ -488,8 +504,7 @@ def build_account_activity_response(
         date_from=query.date_from.isoformat(),
         date_to=query.date_to.isoformat(),
         scope="direct_account",
-        commodity_namespace=record.commodity_namespace,
-        commodity_mnemonic=record.commodity_mnemonic,
+        commodity=_commodity_ref_dto(record.commodity_key),
         change=change,
         inflow=None,
         outflow=None,
@@ -518,8 +533,6 @@ def build_account_activity_response(
         response.returned_count = 0
         response.has_more = False
         response.partial_failure = True
-        response.scan.recent_transaction_objects = 0
-        response.scan.recent_split_rows = 0
         response.section_statuses = [
             status
             if status.section != "recent_transactions"
@@ -677,8 +690,7 @@ def _overview_child_dto(
         depth=depth_by_id[record.id],
         name=record.name,
         type=record.type,
-        commodity_namespace=record.commodity_namespace,
-        commodity_mnemonic=record.commodity_mnemonic,
+        commodity=_commodity_ref_dto(record.commodity_key),
         hidden=record.hidden,
         placeholder=record.placeholder,
         child_count=len(children_by_parent.get(record.id, [])),
@@ -768,29 +780,43 @@ def _build_activity_recent_section(
 ) -> _ActivityRecentResult:
     session = getattr(book, "session", None)
     prechecked_split_rows: int | None = None
-    if callable(getattr(session, "query", None)):
-        recent = _activity_sql_recent_transactions(session, record.id, query)
-        transactions = recent.transactions
-        prechecked_split_rows = recent.split_rows
-        query_count = recent.query_count
-    else:
-        transactions = _activity_fallback_recent_transactions(account, record.id, query)
-        query_count = 0
-    probe = transactions[: query.limit + 1]
-    has_more = len(probe) > query.limit
-    returned = probe[: query.limit]
-    split_rows = prechecked_split_rows
-    if split_rows is None:
-        split_rows = sum(len(_transaction_splits(transaction)) for transaction in probe)
-    if split_rows > MAX_ACTIVITY_SPLIT_ROWS:
-        raise AccountExplorerError("result_too_complex", "Account activity recent split scan exceeded the bounded request limit.")
-    items = [_activity_recent_item(transaction, record) for transaction in returned]
+    transactions: list[Any] = []
+    probe: list[Any] = []
+    split_rows = 0
+    query_count = 0
+    try:
+        if callable(getattr(session, "query", None)):
+            recent = _activity_sql_recent_transactions(session, record.id, query)
+            transactions = recent.transactions
+            prechecked_split_rows = recent.split_rows
+            query_count = recent.query_count
+        else:
+            transactions = _activity_fallback_recent_transactions(account, record.id, query)
+        probe = transactions[: query.limit + 1]
+        has_more = len(probe) > query.limit
+        returned = probe[: query.limit]
+        if prechecked_split_rows is None:
+            split_rows = sum(len(_transaction_splits(transaction)) for transaction in probe)
+        else:
+            split_rows = prechecked_split_rows
+        if split_rows > MAX_ACTIVITY_SPLIT_ROWS:
+            raise _ActivitySectionReadError(query_count=query_count)
+        items = [_activity_recent_item(transaction, record) for transaction in returned]
+    except _ActivitySectionReadError:
+        raise
+    except Exception as exc:
+        raise _ActivitySectionReadError(
+            query_count=query_count,
+            transaction_objects=len(probe),
+            split_rows=split_rows,
+        ) from exc
     return _ActivityRecentResult(items, has_more, len(probe), split_rows, query_count, len(items) == 0)
 
 
 def _activity_sql_recent_transactions(session: Any, account_id: str, query: AccountActivityQuery) -> _SqlRecentTransactions:
     split_table = piecash.Split.__table__
     tx_table = piecash.Transaction.__table__
+    query_count = 0
     candidate_rows = (
         session.query(tx_table.c.guid.label("tx_guid"))
         .select_from(tx_table.join(split_table, tx_table.c.guid == split_table.c.tx_guid))
@@ -802,9 +828,10 @@ def _activity_sql_recent_transactions(session: Any, account_id: str, query: Acco
         .limit(query.limit + 1)
         .all()
     )
+    query_count += 1
     candidate_guids = [_guid(_row_value(row, "tx_guid", 0)) for row in candidate_rows]
     if not candidate_guids:
-        return _SqlRecentTransactions(transactions=[], split_rows=0, query_count=1)
+        return _SqlRecentTransactions(transactions=[], split_rows=0, query_count=query_count)
 
     split_rows = _non_negative_int(
         session.query(func.count())
@@ -813,8 +840,9 @@ def _activity_sql_recent_transactions(session: Any, account_id: str, query: Acco
         .scalar()
         or 0
     )
+    query_count += 1
     if split_rows > MAX_ACTIVITY_SPLIT_ROWS:
-        raise AccountExplorerError("result_too_complex", "Account activity recent split scan exceeded the bounded request limit.")
+        raise _ActivitySectionReadError(query_count=query_count)
 
     rows = (
         session.query(piecash.Transaction)
@@ -823,11 +851,12 @@ def _activity_sql_recent_transactions(session: Any, account_id: str, query: Acco
         .order_by(piecash.Transaction.post_date.desc(), piecash.Transaction.guid.desc())
         .all()
     )
+    query_count += 1
     transactions_by_id = {_guid(row): row for row in rows}
     return _SqlRecentTransactions(
         transactions=[transactions_by_id[tx_guid] for tx_guid in candidate_guids if tx_guid in transactions_by_id],
         split_rows=split_rows,
-        query_count=3,
+        query_count=query_count,
     )
 
 
@@ -1327,8 +1356,7 @@ def _node_dto(
         depth=depth_by_id[record.id],
         name=record.name,
         type=record.type,
-        commodity_namespace=record.commodity_namespace,
-        commodity_mnemonic=record.commodity_mnemonic,
+        commodity=_commodity_ref_dto(record.commodity_key),
         hidden=record.hidden,
         placeholder=record.placeholder,
         child_count=len(children_by_parent.get(record.id, [])),
@@ -1345,8 +1373,12 @@ def _node_dto(
 def _balance_dto(amount: Decimal, key: CommodityKey) -> AccountExplorerBalanceDTO:
     return AccountExplorerBalanceDTO(
         amount=_decimal_string(amount),
-        commodity=CommodityRefDTO(namespace=key[0], mnemonic=key[1]),
+        commodity=_commodity_ref_dto(key),
     )
+
+
+def _commodity_ref_dto(key: CommodityKey) -> CommodityRefDTO:
+    return CommodityRefDTO(namespace=key[0], mnemonic=key[1])
 
 
 def _natural_sign(value: Decimal, account_type: str) -> Decimal:
@@ -1462,7 +1494,7 @@ def _limits() -> dict[str, int]:
         "returned_nodes": MAX_RETURNED_NODES,
         "depth": MAX_DEPTH,
         "commodity_buckets_per_subtree": MAX_COMMODITY_BUCKETS,
-        "rollup_cells": MAX_ROLLUP_CELLS,
+        "rollup_bucket_cells": MAX_ROLLUP_CELLS,
         "serialized_bytes": MAX_SERIALIZED_RESPONSE_BYTES,
         "data_queries": MAX_DATA_QUERIES,
         "query_codepoints": MAX_QUERY_CODEPOINTS,

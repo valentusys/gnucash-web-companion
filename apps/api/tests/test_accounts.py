@@ -192,6 +192,12 @@ def _amount(amount: str, *, namespace: str = "CURRENCY", mnemonic: str = "SEK") 
     return {"amount": amount, "commodity": {"namespace": namespace, "mnemonic": mnemonic}}
 
 
+def _assert_identity_commodity(payload: dict, *, namespace: str = "CURRENCY", mnemonic: str = "SEK") -> None:
+    assert payload["commodity"] == {"namespace": namespace, "mnemonic": mnemonic}
+    assert "commodity_namespace" not in payload
+    assert "commodity_mnemonic" not in payload
+
+
 def _set_book_path(session_factory, book_id: int, path: Path) -> None:
     with session_factory() as session:
         book = session.query(Book).filter(Book.id == book_id).first()
@@ -404,6 +410,11 @@ class TestListAccounts:
         names = [a["name"] for a in data]
         assert "Assets" in names
         assert "Checking" in names
+        checking = next(a for a in data if a["name"] == "Checking")
+        assert checking["currency"] == "SEK"
+        assert "commodity" not in checking
+        assert "commodity_namespace" not in checking
+        assert "commodity_mnemonic" not in checking
 
     def test_access_denied(
         self, client, viewer_headers, sample_book, fake_book_path, session_factory
@@ -514,6 +525,10 @@ class TestAccountExplorer:
         assert data["scan"]["returned_nodes"] == 7
         assert data["scan"]["split_rows"] == 4
         assert data["scan"]["query_count"] <= 8
+        assert data["scan"]["rollup_bucket_cells"] >= 0
+        assert "rollup_cells" not in data["scan"]
+        assert "rollup_bucket_cells" in data["scan"]["limits"]
+        assert "rollup_cells" not in data["scan"]["limits"]
 
         by_id = {node["id"]: node for node in data["nodes"]}
         bank = by_id[_hex_guid(3)]
@@ -528,8 +543,7 @@ class TestAccountExplorer:
         ]
         assert bank["full_path"] == "Root:Assets:Bank"
         assert bank["type"] == "BANK"
-        assert bank["commodity_namespace"] == "CURRENCY"
-        assert bank["commodity_mnemonic"] == "SEK"
+        _assert_identity_commodity(bank)
         assert bank["direct_balance"] == _amount("123.4567")
         assert bank["recursive_balances"] == [bank["direct_balance"]]
         assert bank["child_count"] == 0

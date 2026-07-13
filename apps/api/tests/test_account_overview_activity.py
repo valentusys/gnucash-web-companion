@@ -276,6 +276,12 @@ def _amount(amount: str, *, namespace: str = "CURRENCY", mnemonic: str = "SEK") 
     return {"amount": amount, "commodity": {"namespace": namespace, "mnemonic": mnemonic}}
 
 
+def _assert_identity_commodity(payload: dict, *, namespace: str = "CURRENCY", mnemonic: str = "SEK") -> None:
+    assert payload["commodity"] == {"namespace": namespace, "mnemonic": mnemonic}
+    assert "commodity_namespace" not in payload
+    assert "commodity_mnemonic" not in payload
+
+
 def _create_activity_book_with_candidate_split_count(path: Path, *, total_splits: int) -> None:
     book = piecash.create_book(currency="SEK", sqlite_file=str(path), overwrite=True)
     sek = _assign_guid(book.commodities[0], "99999999999999999999999999999999")
@@ -406,9 +412,15 @@ class TestAccountOverviewEndpoint:
         assert data["children_returned"] == 2
         assert data["children_truncated"] is True
         assert [child["id"] for child in data["children"]] == [CASH, CHECKING]
+        _assert_identity_commodity(data)
+        _assert_identity_commodity(data["children"][0])
         assert data["children"][0]["direct_balance"] == _amount("-97")
         assert data["scan"]["candidate_accounts"] == 10
         assert data["scan"]["query_count"] <= 8
+        assert data["scan"]["rollup_bucket_cells"] >= 0
+        assert "rollup_cells" not in data["scan"]
+        assert "rollup_bucket_cells" in data["scan"]["limits"]
+        assert "rollup_cells" not in data["scan"]["limits"]
         assert data["scan"]["serialized_bytes"] <= data["scan"]["limits"]["serialized_bytes"]
         assert data["balance_basis"] == "native_commodity_account_natural_sign"
         assert data["includes_currency_conversion"] is False
@@ -605,7 +617,7 @@ class TestAccountActivityEndpoint:
         assert data["date_from"] == "2026-05-01"
         assert data["date_to"] == "2026-05-31"
         assert data["scope"] == "direct_account"
-        assert data["commodity_mnemonic"] == "SEK"
+        _assert_identity_commodity(data)
         assert data["limit"] == 2
         assert data["returned_count"] == 2
         assert data["change"] == _amount("984.75")
@@ -643,7 +655,7 @@ class TestAccountActivityEndpoint:
 
         assert response.status_code == 200
         data = response.json()
-        assert data["commodity_mnemonic"] == "EUR"
+        _assert_identity_commodity(data, mnemonic="EUR")
         assert data["change"]["amount"] == "0"
         assert data["recent_transactions"] == []
         assert data["limit"] == 10
@@ -679,8 +691,7 @@ class TestAccountActivityEndpoint:
 
         assert response.status_code == 200
         data = response.json()
-        assert data["commodity_namespace"] == "NASDAQ"
-        assert data["commodity_mnemonic"] == "SEK"
+        _assert_identity_commodity(data, namespace="NASDAQ")
         assert data["transaction_explorer_compatible"] is False
 
     def test_activity_section_failure_is_partial_and_redacted(
@@ -749,6 +760,8 @@ class TestAccountActivityEndpoint:
         assert data["recent_transactions"] == []
         assert data["has_more"] is False
         assert data["partial_failure"] is True
+        assert data["scan"]["recent_transaction_objects"] == 3
+        assert data["scan"]["recent_split_rows"] == 6
         statuses = {item["section"]: item for item in data["section_statuses"]}
         assert statuses["recent_transactions"]["status"] == "error"
 
@@ -864,6 +877,8 @@ class TestAccountActivitySqlInstrumentation:
         assert statuses["recent_transactions"].status == "error"
         assert response.scan.recent_transaction_objects == 0
         assert response.scan.recent_split_rows == 0
+        assert response.scan.query_count == 4
+        assert response.scan.query_count <= 10
 
     def test_recent_split_row_limit_allows_exact_maximum(self, tmp_path):
         book_path = tmp_path / "activity-max-splits.gnucash.sqlite"
@@ -891,8 +906,48 @@ class TestAccountActivitySqlInstrumentation:
         assert response.returned_count == 1
         assert response.scan.recent_transaction_objects == 1
         assert response.scan.recent_split_rows == 20_000
+        assert response.scan.query_count == 5
+        assert response.scan.query_count <= 10
         assert split_load_count == 20_000
         assert len(response.recent_transactions) == 1
+
+    def test_recent_section_error_after_transaction_query_preserves_query_count_and_redacts(self, tmp_path, monkeypatch):
+        import app.services.account_explorer as account_explorer
+
+        book_path = tmp_path / "activity-recent-private-failure.gnucash.sqlite"
+        _create_activity_book_with_candidate_split_count(book_path, total_splits=2)
+
+        def fail_recent_item(*args, **kwargs):
+            raise account_explorer.AccountExplorerError(
+                "private_failure",
+                "private /data/books/source.gnucash.sqlite account Checking amount 123",
+            )
+
+        monkeypatch.setattr(account_explorer, "_activity_recent_item", fail_recent_item)
+
+        response = GnuCashBookService({"uri_or_path": str(book_path), "base_currency": "SEK"}).get_account_activity(
+            CHECKING,
+            date_from=date(2026, 5, 1),
+            date_to=date(2026, 5, 31),
+            limit=1,
+            book_id=42,
+        )
+
+        assert response.partial_failure is True
+        assert response.returned_count == 0
+        assert response.recent_transactions == []
+        assert response.scan.query_count == 5
+        assert response.scan.query_count <= 10
+        assert response.scan.recent_transaction_objects == 1
+        assert response.scan.recent_split_rows == 2
+        statuses = {item.section: item for item in response.section_statuses}
+        assert statuses["recent_transactions"].status == "error"
+        assert statuses["recent_transactions"].detail == (
+            "Account activity recent transactions could not be read safely from this runtime."
+        )
+        assert "/data/books" not in statuses["recent_transactions"].detail
+        assert "Checking" not in statuses["recent_transactions"].detail
+        assert "123" not in statuses["recent_transactions"].detail
 
     def test_counter_account_name_is_leaf_and_does_not_lazy_load_parent_per_row(self, tmp_path):
         def create_book(path: Path, *, transaction_count: int) -> None:
