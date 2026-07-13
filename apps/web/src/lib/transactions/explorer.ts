@@ -1,3 +1,4 @@
+import { safeAccountDetailReturnTo } from '$lib/accounts/explorer';
 import { compareDecimalStrings } from '$lib/money.js';
 
 export const TRANSACTIONS_EXPLORER_DEFAULT_SORT = 'date_desc' as const;
@@ -251,10 +252,14 @@ export function validateTransactionsExplorerUrl(url: URL): TransactionExplorerVa
 }
 
 export function safeTransactionsReturnTo(value: string | null | undefined): string {
-	if (!value || value.length > 2048) return '/transactions';
+	if (!value || value.length > 2048 || value.startsWith('//')) return '/transactions';
 	try {
 		const parsed = new URL(value, 'http://127.0.0.1');
 		if (parsed.origin !== 'http://127.0.0.1') return '/transactions';
+		if (parsed.hash) return '/transactions';
+		if (/^\/accounts\/[0-9a-f]{32}$/.test(parsed.pathname)) {
+			return safeAccountDetailReturnTo(value, '/transactions');
+		}
 		if (parsed.pathname !== '/transactions') return '/transactions';
 		return `${parsed.pathname}${parsed.search}` || '/transactions';
 	} catch {

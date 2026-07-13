@@ -1,227 +1,239 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import AccountBalance from '$lib/components/AccountBalance.svelte';
-	import TransactionTable from '$lib/components/TransactionTable.svelte';
-	import TransactionCard from '$lib/components/TransactionCard.svelte';
-	import TransactionFilters from '$lib/components/TransactionFilters.svelte';
-	import Pagination from '$lib/components/Pagination.svelte';
+	import { navigating } from '$app/state';
+	import EmptyState from '$lib/components/EmptyState.svelte';
+	import LoadingState from '$lib/components/LoadingState.svelte';
+	import Money from '$lib/components/Money.svelte';
+	import type { AccountActivitySectionStatus, AccountCommodityAmount, AccountOverviewChild } from '$lib/api/types';
 	import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 
-	let { data } = $props();
+	let { data }: { data: any } = $props();
 	let locale = $derived<Locale>(data.locale ?? DEFAULT_LOCALE);
-	const account = $derived(data.account);
-	const txs = $derived(data.txs);
-	const limit = $derived(txs.limit);
-	const offset = $derived(txs.offset);
-	const total = $derived(txs.total);
-	const accountPath = $derived.by(() =>
-		account.full_name
-			.split(':')
-			.map((part: string) => part.trim())
-			.filter(Boolean)
-	);
+	let isRouteLoading = $derived(navigating.to?.url.pathname?.startsWith('/accounts/'));
+	const overview = $derived(data.overview);
+	const activity = $derived(data.activity);
+	const structureWarnings = $derived(overview ? [overview, ...(overview.children ?? [])].filter((node) => node.structure_status !== 'root' && node.structure_status !== 'normal') : []);
+	const hasMixedCommodities = $derived(overview ? overview.recursive_balances.length > 1 || overview.children.some((child: AccountOverviewChild) => child.recursive_balances.length > 1) : false);
+	const hasActivityDates = $derived(Boolean(data.filters?.dateFrom && data.filters?.dateTo));
 
-	const activeFilterCount = $derived(
-		[
-			data.filters.query,
-			data.filters.dateFrom,
-			data.filters.dateTo,
-			data.filters.minAmount,
-			data.filters.maxAmount,
-			data.filters.transactionState
-		].filter(Boolean).length
-	);
-	const filterLabel = $derived(
-		locale === 'ru'
-			? activeFilterCount === 1
-				? 'фильтр'
-				: activeFilterCount > 1 && activeFilterCount < 5
-					? 'фильтра'
-					: 'фильтров'
-			: activeFilterCount === 1
-				? 'filter'
-				: 'filters'
-	);
-	const accountExportButtonLabel = $derived(
-		activeFilterCount
-			? t(locale, 'transactions.export.accountButtonWithFilters')
-					.replace('{count}', String(activeFilterCount))
-					.replace('{filterLabel}', filterLabel)
-			: t(locale, 'transactions.export.accountButton')
-	);
-	const accountCsvReliabilityStatus = $derived(
-		total === 0
-			? t(locale, 'transactions.export.emptyStatus')
-			: total > 10000
-				? t(locale, 'transactions.export.truncatedStatus').replace('{total}', String(total))
-				: t(locale, 'transactions.export.countStatus').replace('{total}', String(total))
-	);
-	const exportCsvUrl = $derived.by(() => {
-		const bookId = data.activeBook?.id;
-		if (!bookId) return '#';
-		const sp = new URLSearchParams({ account_id: account.id });
-		if (data.filters.query) sp.set('query', data.filters.query);
-		if (data.filters.dateFrom) sp.set('date_from', data.filters.dateFrom);
-		if (data.filters.dateTo) sp.set('date_to', data.filters.dateTo);
-		if (data.filters.minAmount) sp.set('min_amount', data.filters.minAmount);
-		if (data.filters.maxAmount) sp.set('max_amount', data.filters.maxAmount);
-		if (data.filters.transactionState) sp.set('transaction_state', data.filters.transactionState);
-		return `/books/${bookId}/transactions/export?${sp.toString()}`;
-	});
-	const transactionStatus = $derived(
-		activeFilterCount
-			? `${txs.total} transaction${txs.total !== 1 ? 's' : ''} match the active filters for this account.`
-			: `${txs.total} transaction${txs.total !== 1 ? 's' : ''} for this account.`
-	);
-
-	function paramsToUrl(params: {
-		query?: string;
-		dateFrom?: string;
-		dateTo?: string;
-		minAmount?: string;
-		maxAmount?: string;
-		transactionState?: string;
-		offset?: number;
-	}) {
-		const sp = new URLSearchParams();
-		if (params.query) sp.set('query', params.query);
-		if (params.dateFrom) sp.set('date_from', params.dateFrom);
-		if (params.dateTo) sp.set('date_to', params.dateTo);
-		if (params.minAmount) sp.set('min_amount', params.minAmount);
-		if (params.maxAmount) sp.set('max_amount', params.maxAmount);
-		if (params.transactionState) sp.set('transaction_state', params.transactionState);
-		sp.set('limit', String(limit));
-		sp.set('offset', String(params.offset ?? 0));
-		return `/accounts/${encodeURIComponent(account.id)}?${sp.toString()}`;
+	function commodityLabel(balance: AccountCommodityAmount): string {
+		return balance.commodity.namespace === 'CURRENCY'
+			? balance.commodity.mnemonic
+			: `${balance.commodity.namespace}:${balance.commodity.mnemonic}`;
 	}
 
-	function handleFilter(params: {
-		query: string;
-		dateFrom: string;
-		dateTo: string;
-		accountId: string;
-		minAmount: string;
-		maxAmount: string;
-		transactionState: string;
-	}) {
-		goto(paramsToUrl({ ...params, offset: 0 }));
+	function activitySection(section: string): AccountActivitySectionStatus | undefined {
+		return activity?.section_statuses?.find((item: AccountActivitySectionStatus) => item.section === section);
 	}
 
-	function handleSelect(id: string) {
-		goto(`/transactions/${encodeURIComponent(id)}`);
+	function childHref(child: AccountOverviewChild): string {
+		return data.childHrefs?.[child.id] ?? `/accounts/${encodeURIComponent(child.id)}`;
 	}
 
-	function handlePageChange(newOffset: number) {
-		goto(
-			paramsToUrl({
-				query: data.filters.query,
-				dateFrom: data.filters.dateFrom,
-				dateTo: data.filters.dateTo,
-				minAmount: data.filters.minAmount,
-				maxAmount: data.filters.maxAmount,
-				transactionState: data.filters.transactionState,
-				offset: newOffset
-			})
-		);
+	function transactionHref(id: string): string {
+		return data.transactionHrefs?.[id] ?? `/transactions/${encodeURIComponent(id)}`;
 	}
 </script>
 
+{#snippet amountBadge(balance: AccountCommodityAmount | null)}
+	{#if balance}
+		<span class="inline-flex max-w-full min-w-0 items-center rounded-lg border px-2 py-1 text-sm" style="border-color: var(--app-border); background: var(--app-bg); color: var(--app-text);" title={commodityLabel(balance)}>
+			<Money amount={balance.amount} currency={balance.commodity.mnemonic} />
+		</span>
+	{:else}
+		<span class="text-sm" style="color: var(--app-muted);">{t(locale, 'accounts.detail.notAvailable')}</span>
+	{/if}
+{/snippet}
+
+{#snippet balancePanel(title: string, balances: AccountCommodityAmount[])}
+	<div class="rounded-xl p-4" style="background: var(--app-elevated-bg);">
+		<p class="text-xs font-semibold uppercase tracking-wide" style="color: var(--app-muted);">{title}</p>
+		<div class="mt-2 flex flex-wrap gap-2">
+			{#each balances as balance, index (`${title}-${balance.commodity.namespace}-${balance.commodity.mnemonic}-${index}`)}
+				{@render amountBadge(balance)}
+			{:else}
+				<span class="text-sm" style="color: var(--app-muted);">{t(locale, 'accounts.explorer.noRecursiveBuckets')}</span>
+			{/each}
+		</div>
+	</div>
+{/snippet}
+
 <svelte:head>
-	<title>{account.name} — GnuCash Web Companion</title>
+	<title>{overview?.name ?? t(locale, 'accounts.detail.kicker')} — GnuCash Web Companion</title>
 </svelte:head>
 
-<main class="mx-auto max-w-4xl px-4 py-8">
-	<nav class="text-sm font-medium" aria-label="Account breadcrumb">
-		<ol class="flex flex-wrap items-center gap-2">
-			<li><a href="/accounts" class="hover:underline" style="color: var(--app-accent);">Accounts</a></li>
-			{#each accountPath as part, index}
-				<li aria-hidden="true" style="color: var(--app-muted);">/</li>
-				<li style={index === accountPath.length - 1 ? 'color: var(--app-text);' : 'color: var(--app-muted);'} aria-current={index === accountPath.length - 1 ? 'page' : undefined}>{part}</li>
-			{/each}
-		</ol>
-	</nav>
+<main class="mx-auto max-w-6xl px-4 py-8">
+	{#if isRouteLoading}
+		<LoadingState variant="accounts" message={t(locale, 'accounts.detail.loading')} />
+	{:else if !overview}
+		<section class="rounded-xl border p-4" style={data.status.role === 'alert' ? 'border-color: var(--app-danger); background: color-mix(in srgb, var(--app-danger) 8%, var(--app-panel)); color: var(--app-text);' : 'border-color: var(--app-border); background: var(--app-panel); color: var(--app-text);'} role={data.status.role} aria-live={data.status.role === 'alert' ? 'assertive' : 'polite'}>
+			<p class="font-semibold">{data.status.title}</p>
+			<p class="mt-1 text-sm">{data.status.message}</p>
+			<a class="mt-3 inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold text-white" style="background: var(--app-accent);" href={data.returnTo ?? '/accounts'}>{t(locale, 'accounts.detail.backToExplorer')}</a>
+		</section>
+	{:else}
+		<nav class="text-sm font-medium" aria-label={t(locale, 'accounts.detail.breadcrumbAria')}>
+			<ol class="flex flex-wrap items-center gap-2">
+				<li><a href={data.returnTo} class="hover:underline" style="color: var(--app-accent);">{t(locale, 'accounts.kicker')}</a></li>
+				{#each [...overview.breadcrumbs, { id: overview.id, name: overview.name }] as segment, index}
+					<li aria-hidden="true" style="color: var(--app-muted);">/</li>
+					<li>
+						{#if index === overview.breadcrumbs.length}
+							<span style="color: var(--app-text);" aria-current="page">{segment.name}</span>
+						{:else}
+							<span style="color: var(--app-muted);">{segment.name}</span>
+						{/if}
+					</li>
+				{/each}
+			</ol>
+		</nav>
 
-	<section class="mt-4 rounded-2xl p-6" style="background-color: var(--app-panel); box-shadow: 0 1px 3px var(--app-panel-shadow); border: 1px solid var(--app-border);">
-		<div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-			<div>
-				<p class="text-sm font-medium uppercase tracking-wide" style="color: var(--app-accent);">Account detail</p>
-				<h1 class="mt-1 text-3xl font-bold" style="color: var(--app-text);">{account.name}</h1>
-				<p class="mt-2 break-words" style="color: var(--app-muted);">{account.full_name}</p>
-			</div>
-			<div class="rounded-xl px-4 py-3 text-right" style="background-color: var(--app-elevated-bg);">
-				<p class="text-xs font-semibold uppercase tracking-wide" style="color: var(--app-muted);">Balance</p>
-				<p class="mt-1 text-xl"><AccountBalance balance={account.balance} currency={account.currency} /></p>
-			</div>
-		</div>
-
-		<dl class="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
-			<div class="rounded-xl p-4" style="background-color: var(--app-elevated-bg);">
-				<dt class="text-xs font-semibold uppercase" style="color: var(--app-muted);">Type</dt>
-				<dd class="mt-1" style="color: var(--app-text);">{account.type}</dd>
-			</div>
-			<div class="rounded-xl p-4" style="background-color: var(--app-elevated-bg);">
-				<dt class="text-xs font-semibold uppercase" style="color: var(--app-muted);">Currency</dt>
-				<dd class="mt-1" style="color: var(--app-text);">{account.currency}</dd>
-			</div>
-			<div class="rounded-xl p-4" style="background-color: var(--app-elevated-bg);">
-				<dt class="text-xs font-semibold uppercase" style="color: var(--app-muted);">Placeholder</dt>
-				<dd class="mt-1" style="color: var(--app-text);">{account.placeholder ? 'Yes' : 'No'}</dd>
-			</div>
-			<div class="rounded-xl p-4" style="background-color: var(--app-elevated-bg);">
-				<dt class="text-xs font-semibold uppercase" style="color: var(--app-muted);">Hidden</dt>
-				<dd class="mt-1" style="color: var(--app-text);">{account.hidden ? 'Yes' : 'No'}</dd>
-			</div>
-		</dl>
-	</section>
-
-	<section class="mt-6 rounded-2xl p-6" style="background-color: var(--app-panel); box-shadow: 0 1px 3px var(--app-panel-shadow); border: 1px solid var(--app-border);">
-		<div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-			<div>
-				<h2 class="text-lg font-semibold" style="color: var(--app-text);">Transactions</h2>
-				<p class="mt-1 text-sm" style="color: var(--app-muted);">{transactionStatus}</p>
-				{#if activeFilterCount && txs.total === 0}
-					<p class="mt-1 text-sm" style="color: var(--app-muted);">
-						No transactions match these filters for this account. Clear filters to return to the full read-only account transaction list.
-					</p>
-				{/if}
-			</div>
-			{#if data.activeBook}
-				<div class="flex flex-col gap-1 md:items-end">
-					<a
-						class="inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2 text-center text-sm font-semibold"
-						style="background: var(--app-panel); color: var(--app-text); border: 1px solid var(--app-border);"
-						href={exportCsvUrl}
-						aria-describedby="account-csv-export-status account-csv-export-reliability-status"
-						>{accountExportButtonLabel}</a
-					>
-					<p id="account-csv-export-status" class="max-w-xs text-xs" style="color: var(--app-muted);">
-						{t(locale, 'transactions.export.accountStatus')}
-					</p>
-					<p id="account-csv-export-reliability-status" class="max-w-xs text-xs" style="color: var(--app-muted);">
-						{accountCsvReliabilityStatus}
-					</p>
+		<section class="mt-4 rounded-2xl border p-6" style="background-color: var(--app-panel); box-shadow: 0 1px 3px var(--app-panel-shadow); border-color: var(--app-border);">
+			<div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+				<div class="min-w-0">
+					<p class="text-sm font-medium uppercase tracking-wide" style="color: var(--app-accent);">{t(locale, 'accounts.detail.kicker')}</p>
+					<h1 class="mt-1 break-words text-3xl font-bold" style="color: var(--app-text);">{overview.name}</h1>
+					<p class="mt-2 break-words" style="color: var(--app-muted);">{overview.full_path}</p>
+					<p class="mt-1 break-all text-xs" style="color: var(--app-muted);">{t(locale, 'transactionSplits.accountId')}: {overview.id}</p>
+					<div class="mt-3 flex flex-wrap gap-2 text-xs">
+						<span class="rounded-full px-2 py-1" style="background: var(--app-elevated-bg); color: var(--app-muted);">{overview.type}</span>
+						<span class="rounded-full px-2 py-1" style="background: var(--app-elevated-bg); color: var(--app-muted);">{overview.commodity.namespace}:{overview.commodity.mnemonic}</span>
+						{#if overview.hidden}<span class="rounded-full px-2 py-1" style="background: color-mix(in srgb, var(--app-warning) 14%, var(--app-panel)); color: var(--app-text);">{t(locale, 'accounts.explorer.hiddenBadge')}</span>{/if}
+						{#if overview.placeholder}<span class="rounded-full px-2 py-1" style="background: color-mix(in srgb, var(--app-accent) 10%, var(--app-panel)); color: var(--app-text);">{t(locale, 'accounts.explorer.placeholderBadge')}</span>{/if}
+						{#if overview.structure_status !== 'root' && overview.structure_status !== 'normal'}<span class="rounded-full px-2 py-1" style="background: color-mix(in srgb, var(--app-danger) 10%, var(--app-panel)); color: var(--app-text);">{t(locale, 'accounts.explorer.repairedBadge')}: {overview.structure_status}</span>{/if}
+					</div>
 				</div>
-			{/if}
-		</div>
+				<div class="grid min-w-0 gap-3 sm:grid-cols-2 lg:w-[36rem]">
+					<div class="rounded-xl p-4" style="background: var(--app-elevated-bg);">
+						<p class="text-xs font-semibold uppercase tracking-wide" style="color: var(--app-muted);">{t(locale, 'accounts.explorer.directBalance')}</p>
+						<p class="mt-2">{@render amountBadge(overview.direct_balance)}</p>
+					</div>
+					{@render balancePanel(t(locale, 'accounts.explorer.recursiveBuckets'), overview.recursive_balances)}
+				</div>
+			</div>
+			<dl class="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+				<div class="rounded-xl p-4" style="background: var(--app-elevated-bg);"><dt class="text-xs font-semibold uppercase" style="color: var(--app-muted);">{t(locale, 'accounts.detail.subtreeCount')}</dt><dd class="mt-1" style="color: var(--app-text);">{overview.subtree_account_count}</dd></div>
+				<div class="rounded-xl p-4" style="background: var(--app-elevated-bg);"><dt class="text-xs font-semibold uppercase" style="color: var(--app-muted);">{t(locale, 'accounts.detail.childCount')}</dt><dd class="mt-1" style="color: var(--app-text);">{overview.child_count}</dd></div>
+				<div class="rounded-xl p-4" style="background: var(--app-elevated-bg);"><dt class="text-xs font-semibold uppercase" style="color: var(--app-muted);">{t(locale, 'accounts.detail.childrenReturned')}</dt><dd class="mt-1" style="color: var(--app-text);">{overview.children_returned}{overview.children_truncated ? ` / ${overview.child_count}` : ''}</dd></div>
+			</dl>
+		</section>
 
-		<div class="mt-4">
-			<TransactionFilters
-				query={data.filters.query}
-				dateFrom={data.filters.dateFrom}
-				dateTo={data.filters.dateTo}
-				accountId={account.id}
-				minAmount={data.filters.minAmount}
-				maxAmount={data.filters.maxAmount}
-				transactionState={data.filters.transactionState}
-				datePresets={data.datePresets}
-				clearFiltersHref={data.clearFiltersHref}
-				lockedAccountLabel={account.full_name}
-				{locale}
-				onChange={handleFilter}
-			/>
-			<TransactionTable transactions={txs.items} onSelect={handleSelect} {locale} />
-			<TransactionCard transactions={txs.items} onSelect={handleSelect} {locale} />
-			<Pagination {offset} {limit} {total} onChange={handlePageChange} />
-		</div>
-	</section>
+		{#if data.legacyNotice || structureWarnings.length || hasMixedCommodities || overview.children_truncated || overview.limitations?.length}
+			<section class="mt-4 rounded-xl border p-4 text-sm" style="border-color: var(--app-warning); background: color-mix(in srgb, var(--app-warning) 10%, var(--app-panel)); color: var(--app-text);" aria-labelledby="account-detail-warnings-title">
+				<p id="account-detail-warnings-title" class="font-semibold">{t(locale, 'accounts.explorer.warningsTitle')}</p>
+				<ul class="mt-2 list-disc space-y-1 pl-5">
+					{#if data.legacyNotice}<li>{data.legacyNotice}</li>{/if}
+					{#if structureWarnings.length}<li>{t(locale, 'accounts.explorer.repairedWarning')}</li>{/if}
+					{#if hasMixedCommodities}<li>{t(locale, 'accounts.explorer.mixedCommodityWarning')}</li>{/if}
+					{#if overview.children_truncated}<li>{t(locale, 'accounts.detail.childrenTruncated')}</li>{/if}
+					{#each overview.limitations ?? [] as limitation}<li>{limitation}</li>{/each}
+				</ul>
+			</section>
+		{/if}
+
+		<section class="mt-6 rounded-2xl border p-6" style="background-color: var(--app-panel); box-shadow: 0 1px 3px var(--app-panel-shadow); border-color: var(--app-border);">
+			<div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+				<div>
+					<h2 class="text-lg font-semibold" style="color: var(--app-text);">{t(locale, 'accounts.detail.childrenTitle')}</h2>
+					<p class="mt-1 text-sm" style="color: var(--app-muted);">{t(locale, 'accounts.detail.childrenHelp')}</p>
+				</div>
+				<a class="inline-flex min-h-11 items-center justify-center rounded-xl border px-4 py-2 text-sm font-semibold" style="border-color: var(--app-border); color: var(--app-text);" href={data.returnTo}>{t(locale, 'accounts.detail.backToExplorer')}</a>
+			</div>
+			{#if overview.children.length}
+				<ul class="mt-4 space-y-3">
+					{#each overview.children as child (child.id)}
+						<li class="rounded-xl border p-4" style="border-color: var(--app-border); background: var(--app-elevated-bg);">
+							<div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+								<div class="min-w-0">
+									<a class="break-words font-semibold hover:underline" style="color: var(--app-accent);" href={childHref(child)}>{child.name}</a>
+									<p class="mt-1 break-words text-sm" style="color: var(--app-muted);">{child.full_path}</p>
+									<p class="mt-1 text-xs" style="color: var(--app-muted);">{child.type} · {child.child_count} {t(locale, 'accounts.detail.childrenTitle')}</p>
+								</div>
+								<div class="min-w-0 md:w-80">{@render balancePanel(t(locale, 'accounts.explorer.recursiveBuckets'), child.recursive_balances)}</div>
+							</div>
+						</li>
+					{/each}
+				</ul>
+			{:else}
+				<p class="mt-4 text-sm" style="color: var(--app-muted);">{t(locale, 'accounts.detail.noChildren')}</p>
+			{/if}
+		</section>
+
+		<section class="mt-6 rounded-2xl border p-6" style="background-color: var(--app-panel); box-shadow: 0 1px 3px var(--app-panel-shadow); border-color: var(--app-border);">
+			<div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+				<div>
+					<h2 class="text-lg font-semibold" style="color: var(--app-text);">{t(locale, 'accounts.detail.activityTitle')}</h2>
+					<p class="mt-1 text-sm" style="color: var(--app-muted);">{t(locale, 'accounts.detail.activityHelp')}</p>
+				</div>
+				<a class="inline-flex min-h-11 items-center justify-center rounded-xl border px-4 py-2 text-sm font-semibold" style="border-color: var(--app-border); color: var(--app-text);" href={data.resetActivityHref}>{t(locale, 'accounts.detail.resetActivity')}</a>
+			</div>
+
+			<form method="GET" action={`/accounts/${overview.id}`} class="mt-4 rounded-xl border p-4" style="border-color: var(--app-border); background: var(--app-elevated-bg);" aria-describedby="account-activity-form-help">
+				{#if data.returnTo && data.returnTo !== '/accounts'}<input type="hidden" name="return_to" value={data.returnTo} />{/if}
+				<p id="account-activity-form-help" class="text-xs" style="color: var(--app-muted);">{t(locale, 'accounts.detail.activityFormHelp')}</p>
+				<div class="mt-3 grid gap-3 sm:grid-cols-3">
+					<label class="text-sm font-medium" for="account-date-from"><span>{t(locale, 'transactions.filters.from')}</span><input id="account-date-from" name="date_from" type="date" value={data.filters.dateFrom} class="mt-1 min-h-11 w-full rounded-xl border px-3 py-2" style="border-color: var(--app-input-border); background: var(--app-input-bg); color: var(--app-text);" /></label>
+					<label class="text-sm font-medium" for="account-date-to"><span>{t(locale, 'transactions.filters.to')}</span><input id="account-date-to" name="date_to" type="date" value={data.filters.dateTo} class="mt-1 min-h-11 w-full rounded-xl border px-3 py-2" style="border-color: var(--app-input-border); background: var(--app-input-bg); color: var(--app-text);" /></label>
+					<label class="text-sm font-medium" for="account-limit"><span>{t(locale, 'accounts.detail.limit')}</span><select id="account-limit" name="limit" class="mt-1 min-h-11 w-full rounded-xl border px-3 py-2" style="border-color: var(--app-input-border); background: var(--app-input-bg); color: var(--app-text);"><option value="5" selected={data.filters.limit === 5}>5</option><option value="10" selected={data.filters.limit === 10}>10</option><option value="20" selected={data.filters.limit === 20}>20</option></select></label>
+				</div>
+				<div class="mt-4 flex flex-wrap gap-2">
+					<button class="inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold text-white" style="background: var(--app-accent);" type="submit">{t(locale, 'accounts.detail.applyActivity')}</button>
+					<a class="inline-flex min-h-11 items-center justify-center rounded-xl border px-4 py-2 text-sm font-semibold" style="border-color: var(--app-border); color: var(--app-text);" href={data.resetActivityHref}>{t(locale, 'accounts.detail.resetActivity')}</a>
+				</div>
+			</form>
+
+			<section class="mt-4 rounded-xl border p-4" style={data.status.role === 'alert' ? 'border-color: var(--app-danger); background: color-mix(in srgb, var(--app-danger) 8%, var(--app-panel)); color: var(--app-text);' : 'border-color: var(--app-border); background: var(--app-elevated-bg); color: var(--app-text);'} role={data.status.role} aria-live={data.status.role === 'alert' ? 'assertive' : 'polite'}>
+				<p class="font-semibold">{data.status.title}</p>
+				<p class="mt-1 text-sm">{data.status.message}</p>
+				<p class="mt-1 text-xs" style="color: var(--app-muted);">{t(locale, 'accounts.detail.requestCounters', { overview: data.activityRequestCounters?.overview ?? 0, activity: data.activityRequestCounters?.activity ?? 0 })}</p>
+			</section>
+
+			{#if activity}
+				<div class="mt-4 grid gap-4 lg:grid-cols-3">
+					<div class="rounded-xl p-4" style="background: var(--app-elevated-bg);"><p class="text-xs font-semibold uppercase" style="color: var(--app-muted);">{t(locale, 'accounts.detail.exactChange')}</p><p class="mt-2">{@render amountBadge(activity.change)}</p><p class="mt-1 text-xs" style="color: var(--app-muted);">{activitySection('change')?.status ?? ''}</p></div>
+					<div class="rounded-xl p-4" style="background: var(--app-elevated-bg);"><p class="text-xs font-semibold uppercase" style="color: var(--app-muted);">{t(locale, 'reports.cashflow.inflow')} / {t(locale, 'reports.cashflow.outflow')}</p><p class="mt-2 text-sm" style="color: var(--app-muted);">{t(locale, 'accounts.detail.flowNotApplicable')}</p></div>
+					<div class="rounded-xl p-4" style="background: var(--app-elevated-bg);"><p class="text-xs font-semibold uppercase" style="color: var(--app-muted);">{t(locale, 'accounts.detail.recentReturned')}</p><p class="mt-2 text-xl font-semibold" style="color: var(--app-text);">{activity.returned_count}{activity.has_more ? '+' : ''}</p><p class="mt-1 text-xs" style="color: var(--app-muted);">{activitySection('recent_transactions')?.status ?? ''}</p></div>
+				</div>
+
+				<div class="mt-4 flex flex-wrap gap-2">
+					{#if activity.transaction_explorer_compatible && data.transactionExplorerHref}
+						<a class="inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold text-white" style="background: var(--app-accent);" href={data.transactionExplorerHref}>{t(locale, 'accounts.detail.openTransactionExplorer')}</a>
+					{:else}
+						<span class="inline-flex min-h-11 items-center justify-center rounded-xl border px-4 py-2 text-sm font-semibold" style="border-color: var(--app-border); color: var(--app-muted);" aria-disabled="true">{t(locale, 'accounts.detail.unavailableNoFxScope')}</span>
+					{/if}
+					{#if hasActivityDates && data.reportHref}
+						<a class="inline-flex min-h-11 items-center justify-center rounded-xl border px-4 py-2 text-sm font-semibold" style="border-color: var(--app-border); color: var(--app-text);" href={data.reportHref}>{t(locale, 'accounts.detail.openBaseReport')}</a>
+					{/if}
+				</div>
+
+				{#if activity.limitations?.length}
+					<section class="mt-4 rounded-xl border p-4 text-sm" style="border-color: var(--app-warning); background: color-mix(in srgb, var(--app-warning) 10%, var(--app-panel)); color: var(--app-text);">
+						<p class="font-semibold">{t(locale, 'transactions.explorer.limitationsTitle')}</p>
+						<ul class="mt-2 list-disc space-y-1 pl-5">{#each activity.limitations as limitation}<li>{limitation}</li>{/each}</ul>
+					</section>
+				{/if}
+
+				<section class="mt-4" aria-labelledby="account-recent-title">
+					<h3 id="account-recent-title" class="text-base font-semibold" style="color: var(--app-text);">{t(locale, 'accounts.detail.recentTitle')}</h3>
+					{#if activity.recent_transactions.length}
+						<ul class="mt-3 space-y-3">
+							{#each activity.recent_transactions as tx (tx.id)}
+								<li class="rounded-xl border p-4" style="border-color: var(--app-border); background: var(--app-elevated-bg);">
+									<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+										<div class="min-w-0">
+											<a class="break-words font-semibold hover:underline" style="color: var(--app-accent);" href={transactionHref(tx.id)}>{tx.description || t(locale, 'transactionDetail.noDescription')}</a>
+											<p class="mt-1 text-sm" style="color: var(--app-muted);">{tx.date} · {tx.counter_account_name}</p>
+											{#if tx.is_write_alpha_owned}<span class="mt-2 inline-flex rounded-full px-2 py-1 text-xs font-semibold" style="background: #fffbeb; color: #92400e; border: 1px solid #fcd34d;">{t(locale, 'transactions.writeAlphaHistoryBadge')}</span>{/if}
+										</div>
+										<div>{@render amountBadge(tx.matched_quantity)}</div>
+									</div>
+								</li>
+							{/each}
+						</ul>
+					{:else}
+						<p class="mt-3 text-sm" style="color: var(--app-muted);">{t(locale, 'accounts.detail.noRecentTransactions')}</p>
+					{/if}
+				</section>
+			{/if}
+		</section>
+	{/if}
 </main>

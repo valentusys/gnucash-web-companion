@@ -1,119 +1,249 @@
-import { apiFetch, getAuthToken, getActiveBookContext } from '$lib/api/server';
-import type { Account, PaginatedTransactions } from '$lib/api/types';
+import { redirect } from '@sveltejs/kit';
+import { getAuthToken, getActiveBookContext } from '$lib/api/server';
+import type { AccountActivity, AccountOverview } from '$lib/api/types';
+import {
+	ACCOUNT_DETAIL_DEFAULT_ACTIVITY_LIMIT,
+	buildAccountDetailUrl,
+	buildAccountTransactionExplorerUrl,
+	buildBaseReportUrl,
+	hasAccountActivityDateRange,
+	validateAccountDetailUrl
+} from '$lib/accounts/explorer';
+import { localeFromCookie, t, type Locale } from '$lib/i18n';
 import type { PageServerLoad } from './$types';
 
-type AccountTransactionFilters = {
-	query: string;
-	dateFrom: string;
-	dateTo: string;
-	minAmount: string;
-	maxAmount: string;
-	transactionState: string;
-	limit: number;
+type ApiResult<T> = {
+	ok: boolean;
+	status: number;
+	body: T | { detail?: unknown };
 };
 
-type DatePresetDates = {
-	dateFrom: string;
-	dateTo: string;
+type AccountDetailStatus = {
+	kind: 'overview_only' | 'activity_loaded' | 'invalid_filter' | 'activity_empty' | 'partial_activity' | 'load_failed' | 'unknown_failure';
+	title: string;
+	message: string;
+	role: 'status' | 'alert';
 };
 
-function positiveInt(value: string | null, fallback: number, max: number): number {
-	const parsed = Number(value ?? fallback);
-	if (!Number.isFinite(parsed) || parsed < 0) return fallback;
-	return Math.min(Math.floor(parsed), max);
+async function apiJson<T>(fetchFn: typeof fetch, path: string, token: string): Promise<ApiResult<T>> {
+	const apiBase = process.env.API_INTERNAL_URL ?? 'http://localhost:8000';
+	let response: Response;
+	try {
+		response = await fetchFn(`${apiBase}${path}`, {
+			headers: { authorization: `Bearer ${token}` }
+		});
+	} catch {
+		return { ok: false, status: 502, body: {} };
+	}
+	if (response.status === 401) throw redirect(303, '/login');
+	const body = await response.json().catch(() => ({}));
+	return { ok: response.ok, status: response.status, body: body as T | { detail?: unknown } };
 }
 
-function formatDate(date: Date): string {
-	const year = date.getFullYear();
-	const month = String(date.getMonth() + 1).padStart(2, '0');
-	const day = String(date.getDate()).padStart(2, '0');
-	return `${year}-${month}-${day}`;
-}
-
-function appendAccountTransactionFilters(sp: URLSearchParams, filters: AccountTransactionFilters) {
-	if (filters.query) sp.set('query', filters.query);
-	if (filters.dateFrom) sp.set('date_from', filters.dateFrom);
-	if (filters.dateTo) sp.set('date_to', filters.dateTo);
-	if (filters.minAmount) sp.set('min_amount', filters.minAmount);
-	if (filters.maxAmount) sp.set('max_amount', filters.maxAmount);
-	if (filters.transactionState) sp.set('transaction_state', filters.transactionState);
-}
-
-function buildAccountFilterUrl(accountId: string, filters: AccountTransactionFilters, dates: DatePresetDates): string {
-	const sp = new URLSearchParams();
-	appendAccountTransactionFilters(sp, { ...filters, dateFrom: dates.dateFrom, dateTo: dates.dateTo });
-	sp.set('limit', String(filters.limit));
-	sp.set('offset', '0');
-	return `/accounts/${encodeURIComponent(accountId)}?${sp.toString()}`;
-}
-
-function buildClearFiltersUrl(accountId: string, limit: number): string {
-	const sp = new URLSearchParams({ limit: String(limit), offset: '0' });
-	return `/accounts/${encodeURIComponent(accountId)}?${sp.toString()}`;
-}
-
-function buildDatePresets(accountId: string, filters: AccountTransactionFilters, now = new Date()) {
-	const year = now.getFullYear();
-	const month = now.getMonth();
-	const thisMonth = {
-		dateFrom: formatDate(new Date(year, month, 1)),
-		dateTo: formatDate(now)
+function classifyLoadFailure(status: number, locale: Locale): AccountDetailStatus {
+	if (status === 403 || status === 404 || status === 502 || status === 503 || status >= 500) {
+		return {
+			kind: 'load_failed',
+			title: t(locale, 'accounts.detail.loadFailedTitle'),
+			message: t(locale, 'accounts.detail.loadFailedMessage'),
+			role: 'alert'
+		};
+	}
+	return {
+		kind: 'unknown_failure',
+		title: t(locale, 'accounts.detail.unknownFailureTitle'),
+		message: t(locale, 'accounts.detail.unknownFailureMessage'),
+		role: 'alert'
 	};
-	const lastMonth = {
-		dateFrom: formatDate(new Date(year, month - 1, 1)),
-		dateTo: formatDate(new Date(year, month, 0))
-	};
-	const yearToDate = {
-		dateFrom: formatDate(new Date(year, 0, 1)),
-		dateTo: formatDate(now)
-	};
-	const clearDates = { dateFrom: '', dateTo: '' };
+}
 
-	return [
-		{ label: 'This month', dates: thisMonth },
-		{ label: 'Last month', dates: lastMonth },
-		{ label: 'Year to date', dates: yearToDate },
-		{ label: 'Clear dates', dates: clearDates }
-	].map((preset) => ({
-		label: preset.label,
-		href: buildAccountFilterUrl(accountId, filters, preset.dates),
-		active: filters.dateFrom === preset.dates.dateFrom && filters.dateTo === preset.dates.dateTo
-	}));
+function activityParams(dateFrom: string, dateTo: string, limit: number): URLSearchParams {
+	const params = new URLSearchParams();
+	params.append('date_from', dateFrom);
+	params.append('date_to', dateTo);
+	if (limit !== ACCOUNT_DETAIL_DEFAULT_ACTIVITY_LIMIT) params.append('limit', String(limit));
+	return params;
+}
+
+function activityStatus(activity: AccountActivity, locale: Locale): AccountDetailStatus {
+	if (activity.partial_failure) {
+		return {
+			kind: 'partial_activity',
+			title: t(locale, 'accounts.detail.partialActivityTitle'),
+			message: t(locale, 'accounts.detail.partialActivityMessage'),
+			role: 'alert'
+		};
+	}
+	if (activity.returned_count === 0 && activity.section_statuses.every((item) => item.status === 'empty')) {
+		return {
+			kind: 'activity_empty',
+			title: t(locale, 'accounts.detail.activityEmptyTitle'),
+			message: t(locale, 'accounts.detail.activityEmptyMessage'),
+			role: 'status'
+		};
+	}
+	return {
+		kind: 'activity_loaded',
+		title: t(locale, 'accounts.detail.activityLoadedTitle'),
+		message: t(locale, 'accounts.detail.activityLoadedMessage'),
+		role: 'status'
+	};
+}
+
+function overviewOnlyStatus(locale: Locale): AccountDetailStatus {
+	return {
+		kind: 'overview_only',
+		title: t(locale, 'accounts.detail.overviewOnlyTitle'),
+		message: t(locale, 'accounts.detail.overviewOnlyMessage'),
+		role: 'status'
+	};
+}
+
+function sanitizeLimitations(limitations: unknown): string[] {
+	if (!Array.isArray(limitations)) return [];
+	return limitations
+		.map((item) => (typeof item === 'string' ? item.trim() : ''))
+		.filter(Boolean)
+		.map((item) => (item.length > 180 || /[\\/]/.test(item) || /PRIVATE|SENTINEL|TOKEN|SECRET/i.test(item) ? 'Backend limitation detail redacted.' : item))
+		.slice(0, 8);
 }
 
 export const load: PageServerLoad = async ({ cookies, fetch, params, url }) => {
+	const locale = localeFromCookie(cookies);
 	const token = getAuthToken(cookies);
 	const { activeBook, bookPrefix } = await getActiveBookContext(fetch, cookies, token);
+	const validation = validateAccountDetailUrl(url, params.id);
+	const filters = validation.value;
+	const activityRequestCounters = { overview: 0, activity: 0 };
 
-	const limit = positiveInt(url.searchParams.get('limit'), 50, 200) || 50;
-	const offset = positiveInt(url.searchParams.get('offset'), 0, Number.MAX_SAFE_INTEGER);
-	const accountId = encodeURIComponent(params.id);
-	const query = url.searchParams.get('query') ?? '';
-	const dateFrom = url.searchParams.get('date_from') ?? '';
-	const dateTo = url.searchParams.get('date_to') ?? '';
-	const minAmount = url.searchParams.get('min_amount') ?? '';
-	const maxAmount = url.searchParams.get('max_amount') ?? '';
-	const transactionState = url.searchParams.get('transaction_state') ?? '';
-	const filters = { query, dateFrom, dateTo, minAmount, maxAmount, transactionState, limit };
+	if (!activeBook) {
+		return {
+			activeBook,
+			locale,
+			filters,
+			overview: null,
+			activity: null,
+			returnTo: filters.returnTo,
+			resetActivityHref: buildAccountDetailUrl(filters.accountId, { returnTo: filters.returnTo }),
+			status: classifyLoadFailure(503, locale),
+			activityRequestCounters,
+			legacyNotice: ''
+		};
+	}
 
-	const transactionParams = new URLSearchParams({ limit: String(limit), offset: String(offset) });
-	appendAccountTransactionFilters(transactionParams, filters);
+	if (!validation.ok) {
+		return {
+			activeBook,
+			locale,
+			filters,
+			overview: null,
+			activity: null,
+			returnTo: filters.returnTo,
+			resetActivityHref: buildAccountDetailUrl(filters.accountId, { returnTo: filters.returnTo }),
+			status: { kind: 'invalid_filter', title: t(locale, 'accounts.detail.invalidFilterTitle'), message: t(locale, 'accounts.detail.invalidFilterMessage'), role: 'alert' } satisfies AccountDetailStatus,
+			activityRequestCounters,
+			legacyNotice: ''
+		};
+	}
 
-	const [account, txs] = await Promise.all([
-		apiFetch<Account>(fetch, `${bookPrefix}/accounts/${accountId}`, token),
-		apiFetch<PaginatedTransactions>(
-			fetch,
-			`${bookPrefix}/accounts/${accountId}/transactions?${transactionParams.toString()}`,
-			token
-		)
-	]);
+	if (filters.legacyKeys.length === 0 && validation.canonicalHref !== `${url.pathname}${url.search}`) {
+		throw redirect(303, validation.canonicalHref);
+	}
 
+	activityRequestCounters.overview = 1;
+	const overviewResult = await apiJson<AccountOverview>(fetch, `${bookPrefix}/accounts/${encodeURIComponent(filters.accountId)}/overview`, token);
+	if (!overviewResult.ok) {
+		return {
+			activeBook,
+			locale,
+			filters,
+			overview: null,
+			activity: null,
+			returnTo: filters.returnTo,
+			resetActivityHref: buildAccountDetailUrl(filters.accountId, { returnTo: filters.returnTo }),
+			status: classifyLoadFailure(overviewResult.status, locale),
+			activityRequestCounters,
+			legacyNotice: filters.legacyKeys.length ? t(locale, 'accounts.detail.legacyNotice') : ''
+		};
+	}
+
+	const overview = overviewResult.body as AccountOverview;
+	overview.limitations = sanitizeLimitations(overview.limitations);
+	const resetActivityHref = buildAccountDetailUrl(filters.accountId, { returnTo: filters.returnTo });
+	const canonicalAccountDetailHref = buildAccountDetailUrl(filters.accountId, filters);
+	const childHrefs = Object.fromEntries(overview.children.map((child) => [child.id, buildAccountDetailUrl(child.id, { returnTo: filters.returnTo })]));
+
+	if (!hasAccountActivityDateRange(filters)) {
+		return {
+			activeBook,
+			locale,
+			filters,
+			overview,
+			activity: null,
+			returnTo: filters.returnTo,
+			resetActivityHref,
+			canonicalAccountDetailHref,
+			childHrefs,
+			transactionHrefs: {},
+			transactionExplorerHref: '',
+			reportHref: '',
+			status: overviewOnlyStatus(locale),
+			activityRequestCounters,
+			legacyNotice: filters.legacyKeys.length ? t(locale, 'accounts.detail.legacyNotice') : ''
+		};
+	}
+
+	const apiParams = activityParams(filters.dateFrom, filters.dateTo, filters.limit);
+	activityRequestCounters.activity = 1;
+	const activityEndpoint = `${bookPrefix}/accounts/${encodeURIComponent(filters.accountId)}/activity?${apiParams.toString()}`;
+	const activityResult = await apiJson<AccountActivity>(fetch, activityEndpoint, token);
+	if (!activityResult.ok) {
+		return {
+			activeBook,
+			locale,
+			filters,
+			overview,
+			activity: null,
+			returnTo: filters.returnTo,
+			resetActivityHref,
+			canonicalAccountDetailHref,
+			childHrefs,
+			transactionHrefs: {},
+			transactionExplorerHref: '',
+			reportHref: '',
+			status: classifyLoadFailure(activityResult.status, locale),
+			activityRequestCounters,
+			activityEndpoint,
+			legacyNotice: filters.legacyKeys.length ? t(locale, 'accounts.detail.legacyNotice') : ''
+		};
+	}
+
+	const activity = activityResult.body as AccountActivity;
+	activity.limitations = sanitizeLimitations(activity.limitations);
+	const transactionHrefs = Object.fromEntries(
+		activity.recent_transactions.map((tx) => [
+			tx.id,
+			`/transactions/${encodeURIComponent(tx.id)}?return_to=${encodeURIComponent(canonicalAccountDetailHref)}`
+		])
+	);
 	return {
-		account,
-		txs,
 		activeBook,
-		filters: { query, dateFrom, dateTo, minAmount, maxAmount, transactionState },
-		datePresets: buildDatePresets(params.id, filters),
-		clearFiltersHref: buildClearFiltersUrl(params.id, limit)
+		locale,
+		filters,
+		overview,
+		activity,
+		returnTo: filters.returnTo,
+		resetActivityHref,
+		canonicalAccountDetailHref,
+		childHrefs,
+		transactionHrefs,
+		transactionExplorerHref: activity.transaction_explorer_compatible
+			? buildAccountTransactionExplorerUrl(filters.accountId, filters.dateFrom, filters.dateTo)
+			: '',
+		reportHref: buildBaseReportUrl(filters.dateFrom, filters.dateTo),
+		status: activityStatus(activity, locale),
+		activityRequestCounters,
+		activityEndpoint,
+		legacyNotice: filters.legacyKeys.length ? t(locale, 'accounts.detail.legacyNotice') : ''
 	};
 };

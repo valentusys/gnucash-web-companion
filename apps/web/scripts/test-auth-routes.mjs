@@ -621,40 +621,40 @@ assert.match(
 const accountDetailServer = read('src/routes/accounts/[id]/+page.server.ts');
 assert.match(
 	accountDetailServer,
-	/appendAccountTransactionFilters[\s\S]*query[\s\S]*date_from[\s\S]*date_to[\s\S]*min_amount[\s\S]*max_amount[\s\S]*transaction_state/s,
-	'account detail server load must forward the approved account-scoped transaction filters'
+	/validateAccountDetailUrl\(url, params\.id\)[\s\S]*if \(!validation\.ok\)[\s\S]*activityRequestCounters[\s\S]*activityRequestCounters\.overview = 1/s,
+	'account detail server load must validate account/date/return filters before bounded overview/activity calls'
 );
 assert.match(
 	accountDetailServer,
-	/buildAccountFilterUrl[\s\S]*sp\.set\('offset', '0'\)[\s\S]*\/accounts\/\$\{encodeURIComponent\(accountId\)\}/s,
-	'account detail date presets must build account-scoped URLs and reset to the first page'
+	/activityRequestCounters\.overview = 1[\s\S]*if \(!hasAccountActivityDateRange\(filters\)\)[\s\S]*activity: null[\s\S]*activityRequestCounters,[\s\S]*const apiParams = activityParams/s,
+	'account detail no-date state must return overview only with zero bounded activity calls'
 );
 assert.match(
 	accountDetailServer,
-	/buildClearFiltersUrl[\s\S]*\/accounts\/\$\{encodeURIComponent\(accountId\)\}[\s\S]*clearFiltersHref:\s*buildClearFiltersUrl/s,
-	'account detail clear-filters URL must stay on the account page without saved browser state'
+	/`\$\{bookPrefix\}\/accounts\/\$\{encodeURIComponent\(filters\.accountId\)\}\/activity\?\$\{apiParams\.toString\(\)\}`[\s\S]*buildAccountTransactionExplorerUrl\(filters\.accountId, filters\.dateFrom, filters\.dateTo\)[\s\S]*buildBaseReportUrl\(filters\.dateFrom, filters\.dateTo\)/s,
+	'account detail activity must use bounded book-aware endpoint plus exact transaction/report links'
 );
 
 const accountDetailPage = read('src/routes/accounts/[id]/+page.svelte');
 assert.match(
 	accountDetailPage,
-	/TransactionFilters[\s\S]*lockedAccountLabel=\{account\.full_name\}[\s\S]*onChange=\{handleFilter\}/s,
-	'account detail page must reuse transaction filters with a locked account scope'
+	/method="GET"[\s\S]*name="date_from"[\s\S]*name="date_to"[\s\S]*name="limit"[\s\S]*href=\{data\.resetActivityHref\}/s,
+	'account detail page must expose URL-backed bounded activity controls and reset link'
 );
 assert.match(
 	accountDetailPage,
-	/new URLSearchParams\(\{ account_id: account\.id \}\)[\s\S]*query[\s\S]*date_from[\s\S]*date_to[\s\S]*min_amount[\s\S]*max_amount[\s\S]*transaction_state[\s\S]*\/books\/\$\{bookId\}\/transactions\/export/s,
-	'account detail CSV export URL must include the fixed account_id and the active filters'
+	/activity\.transaction_explorer_compatible[\s\S]*data\.transactionExplorerHref[\s\S]*unavailableNoFxScope[\s\S]*data\.reportHref/s,
+	'account detail page must distinguish compatible exact transaction drilldown, unavailable no-FX scope, and base report link'
 );
 assert.match(
 	accountDetailPage,
-	/inline-flex min-h-11 items-center justify-center rounded-xl[\s\S]*href=\{exportCsvUrl\}/s,
-	'account detail CSV export action must keep a touch-friendly 44px mobile target'
+	/recent_transactions[\s\S]*transactionHref\(tx\.id\)[\s\S]*matched_quantity/s,
+	'account detail page must link recent bounded activity rows to transaction detail with exact matched quantities'
 );
 assert.match(
 	accountDetailPage,
-	/No transactions match these filters for this account[\s\S]*Clear filters[\s\S]*TransactionTable[\s\S]*onSelect=\{handleSelect\}/s,
-	'account detail page must explain filtered empty states and keep transaction detail links'
+	/inline-flex min-h-11 items-center justify-center rounded-xl[\s\S]*href=\{data\.resetActivityHref\}/s,
+	'account detail activity controls must keep touch-friendly 44px mobile targets'
 );
 assert.match(
 	transactionListPage,
@@ -671,15 +671,20 @@ assert.doesNotMatch(
 	/Number\(|parseFloat\(|parseInt\(|localStorage|sessionStorage/,
 	'transactions page export/filter UI must keep financial filters URL-only and must not coerce money strings in the browser'
 );
-assert.match(
-	accountDetailPage,
-	/accountCsvReliabilityStatus[\s\S]*transactions\.export\.emptyStatus[\s\S]*transactions\.export\.truncatedStatus[\s\S]*transactions\.export\.countStatus[\s\S]*account-csv-export-reliability-status/s,
-	'account detail CSV export UX must explain empty, counted, and capped/truncated account-scoped export states'
-);
+for (const accountDetailCopyKey of [
+	'accounts.detail.activityEmptyTitle',
+	'accounts.detail.partialActivityTitle',
+	'accounts.detail.requestCounters'
+]) {
+	assert.ok(
+		(accountDetailServer + accountDetailPage).includes(accountDetailCopyKey),
+		`account detail bounded activity UX must include ${accountDetailCopyKey}`
+	);
+}
 assert.doesNotMatch(
 	accountDetailPage,
-	/Number\(|parseFloat\(|parseInt\(|localStorage|sessionStorage/,
-	'account detail export/filter UI must keep account-scoped financial filters URL-only and must not coerce money strings in the browser'
+	/Number\(|parseFloat\(|parseInt\(|localStorage|sessionStorage|\/transactions\/export|TransactionFilters/,
+	'account detail activity UI must stay URL-only/bounded and must not reintroduce account-scoped export or browser money coercion'
 );
 assert.match(
 	transactionListPage,

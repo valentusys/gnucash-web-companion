@@ -75,6 +75,89 @@ export type MessageKey =
 	| 'accounts.emptyTitle'
 	| 'accounts.emptyMessage'
 	| 'accounts.emptyAction'
+	| 'accounts.explorer.reset'
+	| 'accounts.explorer.filtersTitle'
+	| 'accounts.explorer.formHelp'
+	| 'accounts.explorer.mode'
+	| 'accounts.explorer.modeTree'
+	| 'accounts.explorer.modeFlat'
+	| 'accounts.explorer.query'
+	| 'accounts.explorer.type'
+	| 'accounts.explorer.hidden'
+	| 'accounts.explorer.placeholder'
+	| 'accounts.explorer.visibilityExclude'
+	| 'accounts.explorer.visibilityInclude'
+	| 'accounts.explorer.visibilityOnly'
+	| 'accounts.explorer.typesLegend'
+	| 'accounts.explorer.directBalance'
+	| 'accounts.explorer.recursiveBuckets'
+	| 'accounts.explorer.noRecursiveBuckets'
+	| 'accounts.explorer.hiddenBadge'
+	| 'accounts.explorer.placeholderBadge'
+	| 'accounts.explorer.contextBadge'
+	| 'accounts.explorer.repairedBadge'
+	| 'accounts.explorer.readyTitle'
+	| 'accounts.explorer.readyMessage'
+	| 'accounts.explorer.noMatchesTitle'
+	| 'accounts.explorer.noMatchesMessage'
+	| 'accounts.explorer.invalidFilterTitle'
+	| 'accounts.explorer.invalidFilterMessage'
+	| 'accounts.explorer.narrowFiltersTitle'
+	| 'accounts.explorer.narrowFiltersMessage'
+	| 'accounts.explorer.loadFailedTitle'
+	| 'accounts.explorer.loadFailedMessage'
+	| 'accounts.explorer.unknownFailureTitle'
+	| 'accounts.explorer.unknownFailureMessage'
+	| 'accounts.explorer.statusCounts'
+	| 'accounts.explorer.warningsTitle'
+	| 'accounts.explorer.contextWarning'
+	| 'accounts.explorer.hiddenWarning'
+	| 'accounts.explorer.placeholderWarning'
+	| 'accounts.explorer.repairedWarning'
+	| 'accounts.explorer.mixedCommodityWarning'
+	| 'accounts.explorer.resultsLabel'
+	| 'accounts.detail.loading'
+	| 'accounts.detail.kicker'
+	| 'accounts.detail.breadcrumbAria'
+	| 'accounts.detail.notAvailable'
+	| 'accounts.detail.loadFailedTitle'
+	| 'accounts.detail.loadFailedMessage'
+	| 'accounts.detail.unknownFailureTitle'
+	| 'accounts.detail.unknownFailureMessage'
+	| 'accounts.detail.invalidFilterTitle'
+	| 'accounts.detail.invalidFilterMessage'
+	| 'accounts.detail.legacyNotice'
+	| 'accounts.detail.overviewOnlyTitle'
+	| 'accounts.detail.overviewOnlyMessage'
+	| 'accounts.detail.activityLoadedTitle'
+	| 'accounts.detail.activityLoadedMessage'
+	| 'accounts.detail.activityEmptyTitle'
+	| 'accounts.detail.activityEmptyMessage'
+	| 'accounts.detail.partialActivityTitle'
+	| 'accounts.detail.partialActivityMessage'
+	| 'accounts.detail.backToExplorer'
+	| 'accounts.detail.subtreeCount'
+	| 'accounts.detail.childCount'
+	| 'accounts.detail.childrenReturned'
+	| 'accounts.detail.childrenTruncated'
+	| 'accounts.detail.childrenTitle'
+	| 'accounts.detail.childrenHelp'
+	| 'accounts.detail.noChildren'
+	| 'accounts.detail.activityTitle'
+	| 'accounts.detail.activityHelp'
+	| 'accounts.detail.resetActivity'
+	| 'accounts.detail.activityFormHelp'
+	| 'accounts.detail.limit'
+	| 'accounts.detail.applyActivity'
+	| 'accounts.detail.requestCounters'
+	| 'accounts.detail.exactChange'
+	| 'accounts.detail.flowNotApplicable'
+	| 'accounts.detail.recentReturned'
+	| 'accounts.detail.openTransactionExplorer'
+	| 'accounts.detail.unavailableNoFxScope'
+	| 'accounts.detail.openBaseReport'
+	| 'accounts.detail.recentTitle'
+	| 'accounts.detail.noRecentTransactions'
 	| 'dashboard.loading'
 	| 'dashboard.loadFailed'
 	| 'dashboard.sectionError.title'
@@ -607,6 +690,90 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'accounts.emptyTitle': 'No accounts found',
 		'accounts.emptyMessage': 'The selected read-only book did not return any accounts. Verify the active test-copy book and accessible book metadata before relying on this view.',
 		'accounts.emptyAction': 'Review available books',
+		'accounts.explorer.reset': 'Reset account explorer',
+		'accounts.explorer.filtersTitle': 'Account explorer filters',
+		'accounts.explorer.formHelp':
+			'URL is the source of truth. The form submits a read-only GET request to /accounts; the server validates filters before calling the bounded account explorer API.',
+		'accounts.explorer.mode': 'Display mode',
+		'accounts.explorer.modeTree': 'Tree with ancestor context',
+		'accounts.explorer.modeFlat': 'Flat matching rows',
+		'accounts.explorer.query': 'Search',
+		'accounts.explorer.type': 'Account type',
+		'accounts.explorer.hidden': 'Hidden accounts',
+		'accounts.explorer.placeholder': 'Placeholder accounts',
+		'accounts.explorer.visibilityExclude': 'Exclude',
+		'accounts.explorer.visibilityInclude': 'Include',
+		'accounts.explorer.visibilityOnly': 'Only',
+		'accounts.explorer.typesLegend': 'Type filters',
+		'accounts.explorer.directBalance': 'Direct native balance',
+		'accounts.explorer.recursiveBuckets': 'Recursive native-commodity buckets',
+		'accounts.explorer.noRecursiveBuckets': 'No native balance buckets returned.',
+		'accounts.explorer.hiddenBadge': 'Hidden',
+		'accounts.explorer.placeholderBadge': 'Placeholder',
+		'accounts.explorer.contextBadge': 'Ancestor context',
+		'accounts.explorer.repairedBadge': 'Repaired hierarchy',
+		'accounts.explorer.readyTitle': 'Account explorer loaded',
+		'accounts.explorer.readyMessage': 'The bounded account explorer returned server-filtered account rows for this URL.',
+		'accounts.explorer.noMatchesTitle': 'No accounts match these filters',
+		'accounts.explorer.noMatchesMessage': 'The server-filtered account explorer returned no rows. Clear filters or broaden search/type/visibility controls.',
+		'accounts.explorer.invalidFilterTitle': 'Invalid account explorer filters',
+		'accounts.explorer.invalidFilterMessage': 'The account explorer URL was rejected before any account explorer API call was made. Fix the URL or reset filters.',
+		'accounts.explorer.narrowFiltersTitle': 'Narrow account filters',
+		'accounts.explorer.narrowFiltersMessage': 'The bounded account explorer refused this result as too large or complex. Narrow query/type/visibility filters and retry.',
+		'accounts.explorer.loadFailedTitle': 'Account explorer failed',
+		'accounts.explorer.loadFailedMessage': 'The read-only account explorer request failed safely. Backend details, paths, and private sentinels were redacted.',
+		'accounts.explorer.unknownFailureTitle': 'Account explorer unavailable',
+		'accounts.explorer.unknownFailureMessage': 'The API returned an unsupported account explorer failure shape. Unknown backend details were redacted.',
+		'accounts.explorer.statusCounts': 'Returned {returned} account row(s) from {candidates} bounded candidates.',
+		'accounts.explorer.warningsTitle': 'Account explorer warnings',
+		'accounts.explorer.contextWarning': 'Some rows are ancestors included only to preserve search/filter context.',
+		'accounts.explorer.hiddenWarning': 'Hidden accounts are visible because the current URL explicitly includes or selects them.',
+		'accounts.explorer.placeholderWarning': 'Placeholder accounts are shown as metadata rows, not transaction-bearing totals.',
+		'accounts.explorer.repairedWarning': 'The hierarchy contained orphan or cycle repairs; source parent IDs are preserved where reported.',
+		'accounts.explorer.mixedCommodityWarning': 'Recursive balances are separate native-commodity buckets. No FX conversion or cross-commodity total is implied.',
+		'accounts.explorer.resultsLabel': 'Server-filtered account explorer results',
+		'accounts.detail.loading': 'Loading account overview for the selected read-only book…',
+		'accounts.detail.kicker': 'Account detail',
+		'accounts.detail.breadcrumbAria': 'Account breadcrumb',
+		'accounts.detail.notAvailable': 'Not available',
+		'accounts.detail.loadFailedTitle': 'Account detail failed',
+		'accounts.detail.loadFailedMessage': 'The read-only account overview or activity request failed safely. Backend details, paths, and private sentinels were redacted.',
+		'accounts.detail.unknownFailureTitle': 'Account detail unavailable',
+		'accounts.detail.unknownFailureMessage': 'The API returned an unsupported account detail failure shape. Unknown backend details were redacted.',
+		'accounts.detail.invalidFilterTitle': 'Invalid account detail URL',
+		'accounts.detail.invalidFilterMessage': 'Account id, date_from/date_to, limit, or return_to validation failed before any activity API call was made.',
+		'accounts.detail.legacyNotice': 'Legacy account-detail transaction query keys were ignored. This migrated page uses only paired date_from/date_to, limit, and safe account explorer return_to; it never calls the old unbounded account-transactions API.',
+		'accounts.detail.overviewOnlyTitle': 'Overview only',
+		'accounts.detail.overviewOnlyMessage': 'No date range is selected, so only the bounded account overview endpoint was called and no activity request was made.',
+		'accounts.detail.activityLoadedTitle': 'Account activity loaded',
+		'accounts.detail.activityLoadedMessage': 'The bounded direct-account activity endpoint returned exact change and recent direct rows for this date range.',
+		'accounts.detail.activityEmptyTitle': 'No direct activity in this date range',
+		'accounts.detail.activityEmptyMessage': 'The bounded direct-account activity endpoint returned empty change/recent sections for the selected account and dates.',
+		'accounts.detail.partialActivityTitle': 'Partial account activity',
+		'accounts.detail.partialActivityMessage': 'One activity section failed safely; unaffected sections remain visible and backend details were redacted.',
+		'accounts.detail.backToExplorer': 'Back to account explorer',
+		'accounts.detail.subtreeCount': 'Subtree accounts',
+		'accounts.detail.childCount': 'Immediate children',
+		'accounts.detail.childrenReturned': 'Children returned',
+		'accounts.detail.childrenTruncated': 'Only the bounded first child rows are shown; child_count reports the full bounded graph count.',
+		'accounts.detail.childrenTitle': 'Children',
+		'accounts.detail.childrenHelp': 'Immediate child summaries come from the bounded overview response; no transaction pages are aggregated in the browser.',
+		'accounts.detail.noChildren': 'No immediate children were returned for this account.',
+		'accounts.detail.activityTitle': 'Direct account activity',
+		'accounts.detail.activityHelp': 'Activity is scoped to direct splits in this account for a paired date range up to 366 days.',
+		'accounts.detail.resetActivity': 'Reset activity',
+		'accounts.detail.activityFormHelp': 'Set both dates to call the bounded activity endpoint. Reset removes date/limit and preserves the safe account explorer return link.',
+		'accounts.detail.limit': 'Recent row limit',
+		'accounts.detail.applyActivity': 'Load activity',
+		'accounts.detail.requestCounters': 'SSR request counters: overview={overview}, activity={activity}.',
+		'accounts.detail.exactChange': 'Exact direct change',
+		'accounts.detail.flowNotApplicable': 'Generic inflow/outflow classification is not applicable for account activity; exact direct change is shown instead.',
+		'accounts.detail.recentReturned': 'Recent rows returned',
+		'accounts.detail.openTransactionExplorer': 'Open exact /transactions drilldown',
+		'accounts.detail.unavailableNoFxScope': 'unavailable_no_fx_scope: non-base or non-currency account has no exact #54 explorer drilldown; no FX conversion is performed.',
+		'accounts.detail.openBaseReport': 'Open base-currency book report',
+		'accounts.detail.recentTitle': 'Recent direct transactions',
+		'accounts.detail.noRecentTransactions': 'No recent direct transactions were returned for this bounded date range.',
 		'dashboard.loading': 'Loading dashboard summary for the selected read-only book…',
 		'dashboard.loadFailed': 'Failed to load dashboard data',
 		'dashboard.sectionError.title': 'Dashboard section unavailable',
@@ -1199,6 +1366,90 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'accounts.emptyTitle': 'Счета не найдены',
 		'accounts.emptyMessage': 'Выбранная read-only книга не вернула счета. Проверьте активную test-copy книгу и доступные метаданные книги, прежде чем полагаться на этот вид.',
 		'accounts.emptyAction': 'Проверить доступные книги',
+		'accounts.explorer.reset': 'Сбросить account explorer',
+		'accounts.explorer.filtersTitle': 'Фильтры account explorer',
+		'accounts.explorer.formHelp':
+			'URL — источник истины. Форма отправляет read-only GET в /accounts; сервер валидирует фильтры до вызова bounded account explorer API.',
+		'accounts.explorer.mode': 'Режим отображения',
+		'accounts.explorer.modeTree': 'Дерево с ancestor context',
+		'accounts.explorer.modeFlat': 'Плоские matching rows',
+		'accounts.explorer.query': 'Поиск',
+		'accounts.explorer.type': 'Тип счёта',
+		'accounts.explorer.hidden': 'Hidden счета',
+		'accounts.explorer.placeholder': 'Placeholder счета',
+		'accounts.explorer.visibilityExclude': 'Исключить',
+		'accounts.explorer.visibilityInclude': 'Включить',
+		'accounts.explorer.visibilityOnly': 'Только',
+		'accounts.explorer.typesLegend': 'Фильтры типов',
+		'accounts.explorer.directBalance': 'Прямой native balance',
+		'accounts.explorer.recursiveBuckets': 'Recursive native-commodity buckets',
+		'accounts.explorer.noRecursiveBuckets': 'Native balance buckets не вернулись.',
+		'accounts.explorer.hiddenBadge': 'Hidden',
+		'accounts.explorer.placeholderBadge': 'Placeholder',
+		'accounts.explorer.contextBadge': 'Ancestor context',
+		'accounts.explorer.repairedBadge': 'Repaired hierarchy',
+		'accounts.explorer.readyTitle': 'Account explorer загружен',
+		'accounts.explorer.readyMessage': 'Bounded account explorer вернул server-filtered строки счетов для этого URL.',
+		'accounts.explorer.noMatchesTitle': 'Нет счетов по этим фильтрам',
+		'accounts.explorer.noMatchesMessage': 'Server-filtered account explorer не вернул строк. Сбросьте фильтры или расширьте search/type/visibility.',
+		'accounts.explorer.invalidFilterTitle': 'Некорректные фильтры account explorer',
+		'accounts.explorer.invalidFilterMessage': 'URL account explorer отклонён до любого API-вызова explorer. Исправьте URL или сбросьте фильтры.',
+		'accounts.explorer.narrowFiltersTitle': 'Сузьте фильтры счетов',
+		'accounts.explorer.narrowFiltersMessage': 'Bounded account explorer отказался от результата как слишком большого/сложного. Сузьте query/type/visibility и повторите.',
+		'accounts.explorer.loadFailedTitle': 'Account explorer не загрузился',
+		'accounts.explorer.loadFailedMessage': 'Read-only запрос account explorer безопасно завершился ошибкой. Backend details, paths и private sentinels скрыты.',
+		'accounts.explorer.unknownFailureTitle': 'Account explorer недоступен',
+		'accounts.explorer.unknownFailureMessage': 'API вернул неподдерживаемую форму ошибки account explorer. Unknown backend details скрыты.',
+		'accounts.explorer.statusCounts': 'Вернулось {returned} строк(и) счетов из {candidates} bounded candidates.',
+		'accounts.explorer.warningsTitle': 'Предупреждения account explorer',
+		'accounts.explorer.contextWarning': 'Некоторые строки — ancestors, добавленные только для сохранения search/filter context.',
+		'accounts.explorer.hiddenWarning': 'Hidden счета видны, потому что текущий URL явно включает или выбирает их.',
+		'accounts.explorer.placeholderWarning': 'Placeholder счета показаны как metadata rows, а не как transaction-bearing totals.',
+		'accounts.explorer.repairedWarning': 'В иерархии были orphan/cycle repairs; source parent IDs сохранены там, где API их сообщил.',
+		'accounts.explorer.mixedCommodityWarning': 'Recursive balances — отдельные native-commodity buckets. FX conversion и cross-commodity total не подразумеваются.',
+		'accounts.explorer.resultsLabel': 'Server-filtered результаты account explorer',
+		'accounts.detail.loading': 'Загрузка account overview для выбранной read-only книги…',
+		'accounts.detail.kicker': 'Детали счёта',
+		'accounts.detail.breadcrumbAria': 'Breadcrumb счёта',
+		'accounts.detail.notAvailable': 'Недоступно',
+		'accounts.detail.loadFailedTitle': 'Account detail не загрузился',
+		'accounts.detail.loadFailedMessage': 'Read-only account overview или activity request безопасно завершился ошибкой. Backend details, paths и private sentinels скрыты.',
+		'accounts.detail.unknownFailureTitle': 'Account detail недоступен',
+		'accounts.detail.unknownFailureMessage': 'API вернул неподдерживаемую форму ошибки account detail. Unknown backend details скрыты.',
+		'accounts.detail.invalidFilterTitle': 'Некорректный account detail URL',
+		'accounts.detail.invalidFilterMessage': 'Account id, date_from/date_to, limit или return_to не прошли validation до любого activity API-вызова.',
+		'accounts.detail.legacyNotice': 'Legacy account-detail transaction query keys проигнорированы. Эта migrated page использует только paired date_from/date_to, limit и safe account explorer return_to; old unbounded account-transactions API не вызывается.',
+		'accounts.detail.overviewOnlyTitle': 'Только overview',
+		'accounts.detail.overviewOnlyMessage': 'Date range не выбран, поэтому вызван только bounded account overview endpoint; activity request не выполнялся.',
+		'accounts.detail.activityLoadedTitle': 'Account activity загружена',
+		'accounts.detail.activityLoadedMessage': 'Bounded direct-account activity endpoint вернул exact change и recent direct rows для этого date range.',
+		'accounts.detail.activityEmptyTitle': 'Нет direct activity в этом date range',
+		'accounts.detail.activityEmptyMessage': 'Bounded direct-account activity endpoint вернул empty change/recent sections для выбранного счёта и дат.',
+		'accounts.detail.partialActivityTitle': 'Частичная account activity',
+		'accounts.detail.partialActivityMessage': 'Одна activity section безопасно упала; остальные секции видны, backend details скрыты.',
+		'accounts.detail.backToExplorer': 'Назад к account explorer',
+		'accounts.detail.subtreeCount': 'Счетов в subtree',
+		'accounts.detail.childCount': 'Immediate children',
+		'accounts.detail.childrenReturned': 'Children returned',
+		'accounts.detail.childrenTruncated': 'Показаны только bounded первые child rows; child_count сообщает полный bounded graph count.',
+		'accounts.detail.childrenTitle': 'Children',
+		'accounts.detail.childrenHelp': 'Immediate child summaries приходят из bounded overview response; transaction pages в браузере не агрегируются.',
+		'accounts.detail.noChildren': 'Для этого счёта immediate children не вернулись.',
+		'accounts.detail.activityTitle': 'Direct account activity',
+		'accounts.detail.activityHelp': 'Activity ограничена direct splits этого счёта для paired date range до 366 дней.',
+		'accounts.detail.resetActivity': 'Сбросить activity',
+		'accounts.detail.activityFormHelp': 'Укажите обе даты для вызова bounded activity endpoint. Reset удаляет date/limit и сохраняет safe account explorer return link.',
+		'accounts.detail.limit': 'Лимит recent rows',
+		'accounts.detail.applyActivity': 'Загрузить activity',
+		'accounts.detail.requestCounters': 'SSR request counters: overview={overview}, activity={activity}.',
+		'accounts.detail.exactChange': 'Exact direct change',
+		'accounts.detail.flowNotApplicable': 'Generic inflow/outflow classification неприменима для account activity; вместо неё показан exact direct change.',
+		'accounts.detail.recentReturned': 'Recent rows returned',
+		'accounts.detail.openTransactionExplorer': 'Открыть точный /transactions drilldown',
+		'accounts.detail.unavailableNoFxScope': 'unavailable_no_fx_scope: non-base или non-currency счёт не имеет точного #54 explorer drilldown; FX conversion не выполняется.',
+		'accounts.detail.openBaseReport': 'Открыть base-currency book report',
+		'accounts.detail.recentTitle': 'Recent direct transactions',
+		'accounts.detail.noRecentTransactions': 'Recent direct transactions для этого bounded date range не вернулись.',
 		'dashboard.loading': 'Загрузка dashboard summary для выбранной read-only книги…',
 		'dashboard.loadFailed': 'Не удалось загрузить данные обзора',
 		'dashboard.sectionError.title': 'Секция dashboard недоступна',

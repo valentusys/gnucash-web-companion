@@ -52,6 +52,128 @@ export type AccountTreeNode = Account & {
 	children: AccountTreeNode[];
 };
 
+export type AccountExplorerPathSegment = {
+	id: string;
+	name: string;
+};
+
+export type CommodityRef = {
+	namespace: string;
+	mnemonic: string;
+};
+
+export type AccountCommodityAmount = {
+	amount: string;
+	commodity: CommodityRef;
+};
+
+export type AccountExplorerNode = {
+	id: string;
+	source_parent_id: string | null;
+	parent_id: string | null;
+	root_id: string;
+	path: AccountExplorerPathSegment[];
+	full_path: string;
+	depth: number;
+	name: string;
+	type: string;
+	commodity: CommodityRef;
+	hidden: boolean;
+	placeholder: boolean;
+	child_count: number;
+	direct_balance: AccountCommodityAmount;
+	recursive_balances: AccountCommodityAmount[];
+	match_state: 'match' | 'ancestor_context' | string;
+	structure_status: 'root' | 'normal' | 'orphan_promoted' | 'cycle_broken_root' | 'cycle_member' | string;
+};
+
+export type AccountExplorerScan = {
+	candidate_accounts: number;
+	returned_nodes: number;
+	split_rows: number;
+	split_aggregate_rows: number;
+	query_count: number;
+	rollup_bucket_cells: number;
+	serialized_bytes: number;
+	exhausted: boolean;
+	limits: Record<string, number>;
+};
+
+export type AccountExplorerResponse = {
+	book_id: number;
+	mode: 'tree' | 'flat' | string;
+	normalized_filters: Record<string, unknown>;
+	root_ids: string[];
+	nodes: AccountExplorerNode[];
+	returned_count: number;
+	scan: AccountExplorerScan;
+	balance_basis: 'native_commodity_account_natural_sign' | string;
+	includes_currency_conversion: boolean;
+	limitations: string[];
+};
+
+export type AccountOverviewChild = Omit<AccountExplorerNode, 'match_state'>;
+
+export type AccountOverview = Omit<AccountExplorerNode, 'match_state' | 'child_count'> & {
+	breadcrumbs: AccountExplorerPathSegment[];
+	subtree_account_count: number;
+	child_count: number;
+	children: AccountOverviewChild[];
+	children_returned: number;
+	children_truncated: boolean;
+	scan: AccountExplorerScan;
+	balance_basis: 'native_commodity_account_natural_sign' | string;
+	includes_currency_conversion: boolean;
+	limitations: string[];
+};
+
+export type AccountActivityRecentTransaction = {
+	id: string;
+	date: string;
+	description: string;
+	matched_quantity: AccountCommodityAmount;
+	counter_account_name: string;
+	is_write_alpha_owned: boolean;
+};
+
+export type AccountActivitySectionStatus = {
+	section: 'change' | 'recent_transactions' | string;
+	status: 'ok' | 'empty' | 'error' | string;
+	detail: string | null;
+};
+
+export type AccountActivityScan = {
+	selected_accounts: number;
+	change_split_rows: number;
+	recent_transaction_objects: number;
+	recent_split_rows: number;
+	query_count: number;
+	serialized_bytes: number;
+	limits: Record<string, number>;
+};
+
+export type AccountActivity = {
+	book_id: number;
+	account_id: string;
+	date_from: string;
+	date_to: string;
+	scope: 'direct_account' | string;
+	commodity: CommodityRef;
+	change: AccountCommodityAmount | null;
+	inflow: AccountCommodityAmount | null;
+	outflow: AccountCommodityAmount | null;
+	flow_status: 'not_applicable_for_generic_account' | string;
+	recent_transactions: AccountActivityRecentTransaction[];
+	limit: number;
+	returned_count: number;
+	has_more: boolean;
+	transaction_explorer_compatible: boolean;
+	partial_failure: boolean;
+	section_statuses: AccountActivitySectionStatus[];
+	scan: AccountActivityScan;
+	limitations: string[];
+};
+
 export type TransactionSplit = {
 	account_id: string;
 	account_name: string;
