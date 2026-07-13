@@ -10,12 +10,17 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.orm import Session
 
-from app.models import Book, User, UserBookAccess
+from app.models import Book, User, UserBookAccess, WriteAlphaTransactionOwnership
 from app.routers.auth import get_current_user, get_db
 from app.services.book_access import AccessDenied, BookAccessService
 from app.services.book_registry import BookRegistryService
 from app.services.gnucash_book import GnuCashBookService
-from app.services.account_explorer import AccountExplorerError, build_account_explorer_query
+from app.services.account_explorer import (
+    AccountExplorerError,
+    build_account_activity_query,
+    build_account_explorer_query,
+    normalize_account_guid,
+)
 from app.services.gnucash_exceptions import (
     BookNotConfiguredError,
     BookNotFoundError,
@@ -382,6 +387,40 @@ def scheduled_transaction_service_for(book: Book) -> GnuCashBookService:
     return GnuCashBookService(book)
 
 
+def _write_alpha_owned_transaction_ids(
+    session: Session,
+    book_id: int,
+    transaction_ids: list[str],
+) -> set[str]:
+    """Return app-metadata ownership hints for read-only account activity rows."""
+    candidate_ids = [transaction_id for transaction_id in transaction_ids if transaction_id]
+    if not candidate_ids:
+        return set()
+    rows = (
+        session.query(WriteAlphaTransactionOwnership.transaction_id)
+        .filter(
+            WriteAlphaTransactionOwnership.book_id == book_id,
+            WriteAlphaTransactionOwnership.transaction_id.in_(candidate_ids),
+            WriteAlphaTransactionOwnership.created_by_write_alpha == True,  # noqa: E712
+        )
+        .all()
+    )
+    return {str(row[0]) for row in rows}
+
+
+def _serialize_account_activity(result: Any, *, session: Session, book_id: int) -> dict[str, Any]:
+    """Attach write-alpha ownership hints without invoking any write path."""
+    payload = result.model_dump()
+    owned_ids = _write_alpha_owned_transaction_ids(
+        session,
+        book_id,
+        [str(item.get("id", "")) for item in payload.get("recent_transactions", [])],
+    )
+    for item in payload.get("recent_transactions", []):
+        item["is_write_alpha_owned"] = item.get("id") in owned_ids
+    return payload
+
+
 @router.get("")
 async def list_books(
     user: User = Depends(get_current_user),
@@ -550,6 +589,54 @@ async def explore_book_accounts(
         handle_gnucash_error(exc)
         raise
     return result.model_dump()
+
+
+@router.get("/{book_id}/accounts/{account_id}/overview")
+async def get_book_account_overview(
+    book_id: int,
+    account_id: str,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+) -> dict[str, Any]:
+    """Return a bounded read-only overview for one account in an openable book."""
+    book = resolve_readonly_data_book(book_id, user, session)
+    try:
+        normalized_account_id = normalize_account_guid(account_id)
+        result = account_service_for(book).get_account_overview(normalized_account_id, book_id=book.id)
+    except AccountExplorerError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail()) from exc
+    except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
+        handle_gnucash_error(exc)
+        raise
+    return result.model_dump()
+
+
+@router.get("/{book_id}/accounts/{account_id}/activity")
+async def get_book_account_activity(
+    book_id: int,
+    account_id: str,
+    date_from: str | None = None,
+    date_to: str | None = None,
+    limit: str | None = None,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+) -> dict[str, Any]:
+    """Return bounded direct-account activity for one account in an openable book."""
+    book = resolve_readonly_data_book(book_id, user, session)
+    try:
+        normalized_account_id = normalize_account_guid(account_id)
+        activity_query = build_account_activity_query(date_from=date_from, date_to=date_to, limit=limit)
+        result = account_service_for(book).get_account_activity(
+            normalized_account_id,
+            activity_query,
+            book_id=book.id,
+        )
+    except AccountExplorerError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail()) from exc
+    except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
+        handle_gnucash_error(exc)
+        raise
+    return _serialize_account_activity(result, session=session, book_id=book.id)
 
 
 @router.get("/{book_id}/accounts/{account_id}")

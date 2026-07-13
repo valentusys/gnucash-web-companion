@@ -39,11 +39,14 @@ from app.schemas.gnucash import (
     TransactionListItemDTO,
     TransactionSplitDTO,
 )
-from app.schemas.accounts import AccountExplorerResponseDTO
+from app.schemas.accounts import AccountActivityResponseDTO, AccountExplorerResponseDTO, AccountOverviewResponseDTO
 from app.services.account_explorer import (
+    AccountActivityQuery,
     AccountExplorerError,
     AccountExplorerQuery,
+    build_account_activity_response,
     build_account_explorer_response,
+    build_account_overview_response,
 )
 from app.schemas.transaction_explorer import (
     TransactionExplorerAccountRefDTO,
@@ -290,6 +293,43 @@ class GnuCashBookService:
             return build_account_explorer_response(
                 book,
                 request,
+                book_id=book_id if book_id is not None else self._get_book_id(self.book_config) or 0,
+                base_currency=self.base_currency,
+            )
+
+    def get_account_overview(self, account_id: str, *, book_id: int | None = None) -> AccountOverviewResponseDTO:
+        """Return one bounded account overview using the account explorer balance basis."""
+        with self._open_book() as book:
+            return build_account_overview_response(
+                book,
+                account_id,
+                book_id=book_id if book_id is not None else self._get_book_id(self.book_config) or 0,
+                base_currency=self.base_currency,
+            )
+
+    def get_account_activity(
+        self,
+        account_id: str,
+        request: AccountActivityQuery | None = None,
+        *,
+        date_from: date | str | None = None,
+        date_to: date | str | None = None,
+        limit: int = 10,
+        book_id: int | None = None,
+    ) -> AccountActivityResponseDTO:
+        """Return bounded direct-account activity without legacy list/count traversal."""
+        activity_query = request
+        if activity_query is None:
+            start = _coerce_date(date_from)
+            end = _coerce_date(date_to)
+            if start is None or end is None:
+                raise ValueError("date_from and date_to are required")
+            activity_query = AccountActivityQuery(date_from=start, date_to=end, limit=limit)
+        with self._open_book() as book:
+            return build_account_activity_response(
+                book,
+                account_id,
+                activity_query,
                 book_id=book_id if book_id is not None else self._get_book_id(self.book_config) or 0,
                 base_currency=self.base_currency,
             )
