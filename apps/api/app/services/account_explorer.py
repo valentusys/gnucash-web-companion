@@ -5,11 +5,13 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
+from fractions import Fraction
 import re
 import unicodedata
 from typing import Any, Literal
 
 import piecash
+from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 
 from app.schemas.accounts import (
@@ -84,6 +86,13 @@ class _AccountRecord:
         return self.commodity_namespace, self.commodity_mnemonic
 
 
+@dataclass(frozen=True)
+class _SplitAggregateStats:
+    split_rows: int
+    aggregate_rows: int
+    query_count: int
+
+
 def build_account_explorer_query(
     *,
     mode: str | None,
@@ -120,7 +129,7 @@ def build_account_explorer_response(
     book_id: int,
     base_currency: str,
 ) -> AccountExplorerResponseDTO:
-    records, query_count, split_rows = _load_account_records(book, base_currency=base_currency)
+    records, query_count, split_stats = _load_account_records(book, base_currency=base_currency)
     if query_count > MAX_DATA_QUERIES:
         raise AccountExplorerError(
             "result_too_complex",
@@ -190,7 +199,8 @@ def build_account_explorer_response(
     scan = AccountExplorerScanDTO(
         candidate_accounts=len(records),
         returned_nodes=len(nodes),
-        split_rows=split_rows,
+        split_rows=split_stats.split_rows,
+        split_aggregate_rows=split_stats.aggregate_rows,
         query_count=query_count,
         rollup_cells=rollup_cells,
         serialized_bytes=0,
@@ -213,8 +223,7 @@ def build_account_explorer_response(
             "No transaction objects are materialized by this account hierarchy response.",
         ],
     )
-    response.scan.serialized_bytes = len(response.model_dump_json().encode("utf-8"))
-    response.scan.serialized_bytes = len(response.model_dump_json().encode("utf-8"))
+    response.scan.serialized_bytes = _serialized_response_bytes(response)
     if response.scan.serialized_bytes > MAX_SERIALIZED_RESPONSE_BYTES:
         raise AccountExplorerError(
             "result_too_large",
@@ -264,7 +273,7 @@ def _parse_visibility(value: str | None, *, default: VisibilityMode, field: str)
     raise AccountExplorerError(f"invalid_{field}", f"{field} must be exclude, include, or only", field=field)
 
 
-def _load_account_records(book: Any, *, base_currency: str) -> tuple[list[_AccountRecord], int, int]:
+def _load_account_records(book: Any, *, base_currency: str) -> tuple[list[_AccountRecord], int, _SplitAggregateStats]:
     session = getattr(book, "session", None)
     query = getattr(session, "query", None) if session is not None else None
     if callable(query):
@@ -277,47 +286,140 @@ def _load_account_records(book: Any, *, base_currency: str) -> tuple[list[_Accou
         records = [_account_record(account, base_currency=base_currency) for account in accounts]
         records_by_id = _records_by_id(records, allow_over_limit=True)
         if len(records) > MAX_CANDIDATE_ACCOUNTS:
-            return records, 1, 0
-        split_rows = _load_sql_split_totals(session, records_by_id)
-        return records, 2, split_rows
+            return records, 1, _SplitAggregateStats(split_rows=0, aggregate_rows=0, query_count=0)
+        split_stats = _load_sql_split_totals(session, records_by_id)
+        return records, 1 + split_stats.query_count, split_stats
 
     accounts = list(getattr(book, "accounts", []) or [])
     records = [_account_record(account, base_currency=base_currency) for account in accounts]
     records_by_id = _records_by_id(records, allow_over_limit=True)
     if len(records) > MAX_CANDIDATE_ACCOUNTS:
-        return records, 0, 0
-    split_rows = _load_fallback_split_totals(accounts, records_by_id)
-    return records, 0, split_rows
+        return records, 0, _SplitAggregateStats(split_rows=0, aggregate_rows=0, query_count=0)
+    split_stats = _load_fallback_split_totals(accounts, records_by_id)
+    return records, 0, split_stats
 
 
-def _load_sql_split_totals(session: Any, records_by_id: dict[str, _AccountRecord]) -> int:
+def _load_sql_split_totals(session: Any, records_by_id: dict[str, _AccountRecord]) -> _SplitAggregateStats:
     if not records_by_id:
-        return 0
-    split_rows = list(session.query(piecash.Split).all())
-    scanned = 0
-    for split in split_rows:
-        scanned += 1
-        account_id = _optional_guid(getattr(split, "account_guid", None))
+        return _SplitAggregateStats(split_rows=0, aggregate_rows=0, query_count=0)
+    _register_sqlite_rational_sum(session)
+    split_table = piecash.Split.__table__
+    account_guid = split_table.c.account_guid
+    quantity_num = split_table.c.quantity_num
+    quantity_denom = split_table.c.quantity_denom
+    rows = (
+        session.query(
+            account_guid.label("account_guid"),
+            func.gwc_rational_sum(quantity_num, quantity_denom).label("quantity_rational"),
+            func.count().label("split_count"),
+        )
+        .select_from(split_table)
+        .filter(account_guid.in_(tuple(records_by_id)))
+        .group_by(account_guid)
+        .all()
+    )
+    split_rows = 0
+    aggregate_rows = 0
+    for row in rows:
+        aggregate_rows += 1
+        account_id = _optional_guid(_row_value(row, "account_guid", 0))
         if account_id is None or account_id not in records_by_id:
             continue
         record = records_by_id[account_id]
-        record.direct_raw += _split_quantity(split)
-        record.direct_split_count += 1
-    return scanned
+        split_count = _non_negative_int(_row_value(row, "split_count", 2))
+        record.direct_raw += _decimal_from_rational_text(_row_value(row, "quantity_rational", 1))
+        record.direct_split_count += split_count
+        split_rows += split_count
+    if aggregate_rows > len(records_by_id):  # pragma: no cover - SQL GROUP BY defensive guard
+        raise AccountExplorerError("result_too_complex", "Account hierarchy split aggregation returned too many groups.")
+    return _SplitAggregateStats(split_rows=split_rows, aggregate_rows=aggregate_rows, query_count=1)
 
 
-def _load_fallback_split_totals(accounts: list[Any], records_by_id: dict[str, _AccountRecord]) -> int:
+def _load_fallback_split_totals(accounts: list[Any], records_by_id: dict[str, _AccountRecord]) -> _SplitAggregateStats:
     scanned = 0
+    aggregate_rows = 0
     for account in accounts:
         account_id = _guid(getattr(account, "guid", account))
         record = records_by_id.get(account_id)
         if record is None:
             continue
+        account_split_count = 0
         for split in getattr(account, "splits", []) or []:
             scanned += 1
+            account_split_count += 1
             record.direct_raw += _split_quantity(split)
             record.direct_split_count += 1
-    return scanned
+        if account_split_count:
+            aggregate_rows += 1
+    return _SplitAggregateStats(split_rows=scanned, aggregate_rows=aggregate_rows, query_count=0)
+
+
+class _SQLiteRationalSum:
+    def __init__(self) -> None:
+        self.total = Fraction(0, 1)
+        self.invalid = False
+
+    def step(self, numerator: Any, denominator: Any) -> None:
+        try:
+            if numerator is None or denominator is None:
+                self.invalid = True
+                return
+            denominator_int = int(denominator)
+            if denominator_int == 0:
+                self.invalid = True
+                return
+            self.total += Fraction(int(numerator), denominator_int)
+        except (ArithmeticError, TypeError, ValueError, OverflowError):
+            self.invalid = True
+
+    def finalize(self) -> str:
+        if self.invalid:
+            return "invalid"
+        return f"{self.total.numerator}/{self.total.denominator}"
+
+
+def _register_sqlite_rational_sum(session: Any) -> None:
+    bind = None
+    get_bind = getattr(session, "get_bind", None)
+    if callable(get_bind):
+        bind = get_bind()
+    dialect = getattr(bind, "dialect", None)
+    if getattr(dialect, "name", None) != "sqlite":
+        raise AccountExplorerError(
+            "result_too_complex",
+            "Account hierarchy split aggregation requires SQLite Decimal aggregation support in this runtime.",
+        )
+    connection = session.connection()
+    raw_connection = getattr(connection, "connection", connection)
+    raw_connection = getattr(raw_connection, "driver_connection", raw_connection)
+    raw_connection = getattr(raw_connection, "connection", raw_connection)
+    create_aggregate = getattr(raw_connection, "create_aggregate", None)
+    if not callable(create_aggregate):
+        raise AccountExplorerError(
+            "result_too_complex",
+            "Account hierarchy split aggregation could not install the bounded Decimal aggregate.",
+        )
+    create_aggregate("gwc_rational_sum", 2, _SQLiteRationalSum)
+
+
+def _row_value(row: Any, label: str, index: int) -> Any:
+    value = getattr(row, label, None)
+    if value is not None:
+        return value
+    mapping = getattr(row, "_mapping", None)
+    if mapping is not None and label in mapping:
+        return mapping[label]
+    return row[index]
+
+
+def _non_negative_int(value: Any) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError) as exc:
+        raise AccountExplorerError("result_too_complex", "Account hierarchy split aggregation returned invalid counters.") from exc
+    if parsed < 0:
+        raise AccountExplorerError("result_too_complex", "Account hierarchy split aggregation returned invalid counters.")
+    return parsed
 
 
 def _account_record(account: Any, *, base_currency: str) -> _AccountRecord:
@@ -591,6 +693,41 @@ def _decimal(value: Any) -> Decimal:
     return parsed
 
 
+def _decimal_from_rational_text(value: Any) -> Decimal:
+    text = str(value or "")
+    try:
+        numerator_text, denominator_text = text.split("/", 1)
+        numerator = int(numerator_text)
+        denominator = int(denominator_text)
+    except (AttributeError, TypeError, ValueError) as exc:
+        raise AccountExplorerError("result_too_complex", "Account hierarchy split aggregation returned unreadable Decimal data.") from exc
+    return _decimal_from_fraction(numerator, denominator)
+
+
+def _decimal_from_fraction(numerator: int, denominator: int) -> Decimal:
+    if denominator == 0:
+        raise AccountExplorerError("result_too_complex", "Account hierarchy contains invalid rational money data.")
+    fraction = Fraction(numerator, denominator)
+    numerator = fraction.numerator
+    denominator = fraction.denominator
+    twos = 0
+    while denominator % 2 == 0:
+        denominator //= 2
+        twos += 1
+    fives = 0
+    while denominator % 5 == 0:
+        denominator //= 5
+        fives += 1
+    if denominator != 1:
+        raise AccountExplorerError("result_too_complex", "Account hierarchy contains non-terminating Decimal money data.")
+    scale = max(twos, fives)
+    scaled = numerator * (2 ** (scale - twos)) * (5 ** (scale - fives))
+    result = Decimal(scaled).scaleb(-scale)
+    if not result.is_finite():
+        raise AccountExplorerError("result_too_complex", "Account hierarchy contains non-finite Decimal data.")
+    return result
+
+
 def _decimal_string(value: Decimal) -> str:
     if value.is_zero():
         return "0"
@@ -611,6 +748,17 @@ def _optional_guid(value: Any) -> str | None:
     if value in (None, ""):
         return None
     return _guid(value)
+
+
+def _serialized_response_bytes(response: AccountExplorerResponseDTO) -> int:
+    response.scan.serialized_bytes = 0
+    zero_size = len(response.model_dump_json().encode("utf-8"))
+    size_without_zero = zero_size - 1
+    for digits in range(1, 20):
+        candidate = size_without_zero + digits
+        if len(str(candidate)) == digits:
+            return candidate
+    raise AccountExplorerError("result_too_complex", "Account hierarchy response size could not be measured safely.")
 
 
 def _limits() -> dict[str, int]:

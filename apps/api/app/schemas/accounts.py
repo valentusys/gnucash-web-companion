@@ -55,6 +55,7 @@ class AccountExplorerScanDTO(BaseModel):
     candidate_accounts: int = 0
     returned_nodes: int = 0
     split_rows: int = 0
+    split_aggregate_rows: int = 0
     query_count: int = 0
     rollup_cells: int = 0
     serialized_bytes: int = 0
