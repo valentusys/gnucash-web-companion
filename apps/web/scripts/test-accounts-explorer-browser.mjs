@@ -343,7 +343,9 @@ function activityPayload(accountId, url) {
 	const limit = Number(url.searchParams.get('limit') ?? '10');
 	const isSecurity = accountId === securityAccountId;
 	const isEmpty = dateFrom === '2026-08-01';
-	const isPartial = dateFrom === '2026-09-01';
+	const isPartialRecent = dateFrom === '2026-09-01';
+	const isPartialChange = dateFrom === '2026-09-15';
+	const isPartial = isPartialRecent || isPartialChange;
 	const activityCommodity = isSecurity ? commodity('FUND', 'SEK') : commodity('CURRENCY', 'SEK');
 	if (isEmpty) {
 		return {
@@ -401,8 +403,8 @@ function activityPayload(accountId, url) {
 		transaction_explorer_compatible: !isSecurity,
 		partial_failure: isPartial,
 		section_statuses: [
-			{ section: 'change', status: 'ok', detail: null },
-			{ section: 'recent_transactions', status: isPartial ? 'error' : 'ok', detail: isPartial ? privateAccountSentinel : null }
+			{ section: 'change', status: isPartialChange ? 'error' : 'ok', detail: isPartialChange ? `${privateAccountSentinel}:change/raw/backend/diagnostic` : null },
+			{ section: 'recent_transactions', status: isPartialRecent ? 'error' : 'ok', detail: isPartialRecent ? `${privateAccountSentinel}:recent/raw/backend/diagnostic` : null }
 		],
 		scan: { selected_accounts: 1, change_split_rows: 3, recent_transaction_objects: recentTransactions.length, recent_split_rows: recentTransactions.length * 2, query_count: 2, serialized_bytes: 512, limits: { recent: limit } },
 		limitations: isPartial ? [`${privateAccountSentinel}/redacted/raw/backend/path`] : []
@@ -768,8 +770,10 @@ function assertRequestParamsAbsent(request, keys, label) {
 
 async function assertPageSanitized(cdp, label) {
 	const html = await evaluate(cdp, `document.documentElement?.outerHTML ?? ''`);
-	assert.doesNotMatch(html, new RegExp(privateAccountSentinel), `${label}: private sentinel/raw API detail must not be serialized into browser HTML`);
+	const htmlContainsPrivateSentinel = html.includes(privateAccountSentinel);
+	assert.equal(htmlContainsPrivateSentinel, false, `${label}: private sentinel/raw API detail must not be serialized into browser HTML`);
 	assert.doesNotMatch(html, /SECRET|TOKEN|PRIVATE_ACCOUNT_SENTINEL|RAW_API_DETAIL/i, `${label}: private sentinel/token markers must not be visible`);
+	return htmlContainsPrivateSentinel;
 }
 
 async function assertStorageEmpty(cdp, label) {
@@ -841,6 +845,7 @@ async function runSmoke() {
 	const runtimeExceptions = [];
 	const consoleErrors = [];
 	const screenshots = [];
+	let htmlContainsPrivateSentinel = false;
 
 	try {
 		webProcess = spawnLogged(process.execPath, [viteBin, 'preview', '--host', '127.0.0.1', '--port', String(webPort), '--strictPort'], {
@@ -1059,10 +1064,17 @@ async function runSmoke() {
 		assert.match(emptyActivityText, /No recent direct transactions were returned/, 'empty account activity must render a deterministic empty recent state');
 		assert.doesNotMatch(emptyActivityText, /Partial account activity|Account detail failed/, 'empty activity must not be confused with partial or failed states');
 
-		await navigateAndWait(cdp, webBase, `/accounts/${checkingAccountId}?date_from=2026-09-01&date_to=2026-09-30`, `document.body.innerText.includes('Partial account activity')`, 'partial account activity');
+		await navigateAndWait(cdp, webBase, `/accounts/${checkingAccountId}?date_from=2026-09-01&date_to=2026-09-30`, `document.body.innerText.includes('Partial account activity')`, 'partial account activity recent section redaction');
 		const partialActivityText = await evaluate(cdp, `document.body.innerText`);
 		assert.match(partialActivityText, /Partial account activity[\s\S]*125\.25/, 'partial account activity must keep unaffected exact-change evidence visible');
 		assert.doesNotMatch(partialActivityText, new RegExp(privateAccountSentinel), 'partial account activity must redact raw backend detail/private sentinel');
+		htmlContainsPrivateSentinel = htmlContainsPrivateSentinel || (await assertPageSanitized(cdp, 'partial account activity recent section redaction'));
+
+		await navigateAndWait(cdp, webBase, `/accounts/${checkingAccountId}?date_from=2026-09-15&date_to=2026-09-30`, `document.body.innerText.includes('Partial account activity')`, 'partial account activity change section redaction');
+		const partialChangeActivityText = await evaluate(cdp, `document.body.innerText`);
+		assert.match(partialChangeActivityText, /Partial account activity[\s\S]*125\.25/, 'partial change account activity must keep exact-change product evidence visible');
+		assert.doesNotMatch(partialChangeActivityText, new RegExp(privateAccountSentinel), 'partial change account activity must redact raw backend detail/private sentinel');
+		htmlContainsPrivateSentinel = htmlContainsPrivateSentinel || (await assertPageSanitized(cdp, 'partial account activity change section redaction'));
 
 		await navigateAndWait(cdp, webBase, `/accounts/${securityAccountId}?date_from=2026-07-01&date_to=2026-07-30`, `location.pathname === '/accounts/${securityAccountId}' && document.body.innerText.includes('Account activity loaded')`, 'security account activity no FX drilldown');
 		const securityState = await evaluate(cdp, `(() => ({
@@ -1092,7 +1104,7 @@ async function runSmoke() {
 
 		assertNoMutationRequestsObserved(api, browserRequests, 'accounts explorer browser smoke');
 		assertNoConsoleErrors(runtimeExceptions, consoleErrors);
-		console.log(`accounts explorer browser smoke passed: account_explorer_requests=${accountExplorerRequests(api).length} overview_requests=${accountOverviewRequests(api).length} activity_requests=${accountActivityRequests(api).length} transaction_explorer_requests=${transactionExplorerRequests(api).length} api_forbidden=${api.forbiddenRequests.length} browser_forbidden=${forbiddenBrowserMutationRequests(browserRequests).length} runtime_exceptions=${runtimeExceptions.length} console_errors=${consoleErrors.length} mobile_width=${mobileState.viewportWidth} mobile_scroll_width=${mobileState.scrollWidth} screenshots=${screenshots.join(',')}`);
+		console.log(`accounts explorer browser smoke passed: account_explorer_requests=${accountExplorerRequests(api).length} overview_requests=${accountOverviewRequests(api).length} activity_requests=${accountActivityRequests(api).length} transaction_explorer_requests=${transactionExplorerRequests(api).length} html_contains_private_sentinel=${htmlContainsPrivateSentinel} api_forbidden=${api.forbiddenRequests.length} browser_forbidden=${forbiddenBrowserMutationRequests(browserRequests).length} runtime_exceptions=${runtimeExceptions.length} console_errors=${consoleErrors.length} mobile_width=${mobileState.viewportWidth} mobile_scroll_width=${mobileState.scrollWidth} screenshots=${screenshots.join(',')}`);
 	} catch (error) {
 		let failureEvidence = '';
 		try {

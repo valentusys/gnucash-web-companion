@@ -81,9 +81,20 @@ assert.match(detailServer, /const activityRequestCounters = \{ overview: 0, acti
 assert.match(detailServer, /validateAccountDetailUrl\(url, params\.id\)[\s\S]*if \(!validation\.ok\)[\s\S]*activityRequestCounters[\s\S]*activityRequestCounters\.overview = 1/s, '/accounts/[id] load must validate account detail URL before overview/activity calls');
 assert.match(detailServer, /activityRequestCounters\.overview = 1[\s\S]*if \(!hasAccountActivityDateRange\(filters\)\)[\s\S]*activity: null[\s\S]*activityRequestCounters,[\s\S]*const apiParams = activityParams/s, '/accounts/[id] no-date state must load overview only and return before activity params/call');
 assert.match(detailServer, /const activityEndpoint = `\$\{bookPrefix\}\/accounts\/\$\{encodeURIComponent\(filters\.accountId\)\}\/activity\?\$\{apiParams\.toString\(\)\}`/, '/accounts/[id] bounded activity endpoint must be book-aware and explicit');
+assert.match(
+	detailServer,
+	/function sanitizeActivityForBrowser\(activity: AccountActivity\): AccountActivity[\s\S]*section_statuses: activity\.section_statuses\.map[\s\S]*detail: null[\s\S]*limitations: sanitizeLimitations\(activity\.limitations\)/s,
+	'/accounts/[id] load must redact activity section diagnostics before returning browser-serialized page data'
+);
+assert.match(detailServer, /const activity = sanitizeActivityForBrowser\(activityResult\.body as AccountActivity\)/, '/accounts/[id] load must return only the sanitized AccountActivity payload');
+assert.doesNotMatch(detailServer, /const activity = activityResult\.body as AccountActivity;\s*activity\.limitations = sanitizeLimitations\(activity\.limitations\);/, '/accounts/[id] load must not return the raw activity object with only limitations sanitized');
 assert.match(detailServer, /transactionHrefs[\s\S]*`\/transactions\/\$\{encodeURIComponent\(tx\.id\)\}\?return_to=\$\{encodeURIComponent\(canonicalAccountDetailHref\)\}`/s, 'recent transaction rows must link to transaction detail with encoded canonical account detail return_to');
 assert.match(detailServer, /transaction_explorer_compatible[\s\S]*buildAccountTransactionExplorerUrl\(filters\.accountId, filters\.dateFrom, filters\.dateTo\)[\s\S]*buildBaseReportUrl\(filters\.dateFrom, filters\.dateTo\)/s, 'account detail must build exact compatible transaction and base report links');
 assert.doesNotMatch(detailServer, /PaginatedTransactions|\/accounts\/\$\{[^}]+\}\/transactions|\/transactions\?\$\{legacy|method: 'POST'|method: 'DELETE'|method: 'PATCH'/s, 'account detail must never call old unbounded account-transactions API or mutation endpoints');
+
+assert.match(browserScript, /isPartialRecent[\s\S]*isPartialChange[\s\S]*privateAccountSentinel/s, 'accounts browser smoke must inject private diagnostics into both partial recent and partial change section details');
+assert.match(browserScript, /partial account activity recent section redaction[\s\S]*assertPageSanitized[\s\S]*partial account activity change section redaction[\s\S]*assertPageSanitized/s, 'accounts browser smoke must prove partial section details are absent from SSR browser HTML');
+assert.match(browserScript, /html_contains_private_sentinel=\$\{htmlContainsPrivateSentinel\}/, 'accounts browser smoke success evidence must report private sentinel serialization state');
 
 assert.match(detailPage, /method="GET"[\s\S]*name="date_from"[\s\S]*name="date_to"[\s\S]*name="limit"[\s\S]*href=\{data\.resetActivityHref\}/s, 'account detail page must render URL-backed bounded activity controls and reset link');
 assert.match(detailPage, /activity\.transaction_explorer_compatible[\s\S]*data\.transactionExplorerHref[\s\S]*unavailableNoFxScope[\s\S]*data\.reportHref/s, 'account detail page must distinguish compatible drilldown, no-FX unavailable state, and report link');

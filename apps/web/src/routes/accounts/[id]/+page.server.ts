@@ -108,6 +108,18 @@ function sanitizeLimitations(limitations: unknown): string[] {
 		.slice(0, 8);
 }
 
+function sanitizeActivityForBrowser(activity: AccountActivity): AccountActivity {
+	return {
+		...activity,
+		section_statuses: activity.section_statuses.map((item) => ({
+			section: item.section,
+			status: item.status,
+			detail: null
+		})),
+		limitations: sanitizeLimitations(activity.limitations)
+	};
+}
+
 export const load: PageServerLoad = async ({ cookies, fetch, params, url }) => {
 	const locale = localeFromCookie(cookies);
 	const token = getAuthToken(cookies);
@@ -218,8 +230,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, params, url }) => {
 		};
 	}
 
-	const activity = activityResult.body as AccountActivity;
-	activity.limitations = sanitizeLimitations(activity.limitations);
+	const activity = sanitizeActivityForBrowser(activityResult.body as AccountActivity);
 	const transactionHrefs = Object.fromEntries(
 		activity.recent_transactions.map((tx) => [
 			tx.id,
