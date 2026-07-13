@@ -39,6 +39,10 @@ def _hex_guid(value: int) -> str:
     return f"{value:032x}"
 
 
+def _amount(amount: str, *, namespace: str = "CURRENCY", mnemonic: str = "SEK") -> dict:
+    return {"amount": amount, "commodity": {"namespace": namespace, "mnemonic": mnemonic}}
+
+
 def _assign_guid(obj: Any, value: str):
     obj.guid = value
     return obj
@@ -266,8 +270,8 @@ def test_real_sqlite_book_aggregates_without_materializing_splits(tmp_path):
     assert by_name["Checking"].direct_balance.amount == str(Decimal("1.234567") - Decimal("0.01") * many_split_count)
     assert by_name["Food"].direct_balance.amount == "3"
     assert by_name["USD Cash"].direct_balance.amount == "1.2345"
-    assert by_name["USD Cash"].direct_balance.commodity_mnemonic == "USD"
+    assert by_name["USD Cash"].direct_balance.commodity.mnemonic == "USD"
     assert [bucket.model_dump() for bucket in by_name["Assets"].recursive_balances] == [
-        {"amount": "-1.765433", "commodity_namespace": "CURRENCY", "commodity_mnemonic": "SEK"},
-        {"amount": "1.2345", "commodity_namespace": "CURRENCY", "commodity_mnemonic": "USD"},
+        _amount("-1.765433"),
+        _amount("1.2345", mnemonic="USD"),
     ]

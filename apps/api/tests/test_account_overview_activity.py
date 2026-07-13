@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import inspect
+import sqlite3
 from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
@@ -14,6 +15,7 @@ import pytest
 from fastapi.testclient import TestClient
 from piecash import Account, Commodity, Split, Transaction
 from sqlalchemy import create_engine, event
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -270,6 +272,103 @@ def _assign_guid(obj: Any, value: str):
     return obj
 
 
+def _amount(amount: str, *, namespace: str = "CURRENCY", mnemonic: str = "SEK") -> dict:
+    return {"amount": amount, "commodity": {"namespace": namespace, "mnemonic": mnemonic}}
+
+
+def _create_activity_book_with_candidate_split_count(path: Path, *, total_splits: int) -> None:
+    book = piecash.create_book(currency="SEK", sqlite_file=str(path), overwrite=True)
+    sek = _assign_guid(book.commodities[0], "99999999999999999999999999999999")
+    root = _assign_guid(book.root_account, ROOT)
+    assets = _assign_guid(Account(name="Assets", type="ASSET", parent=root, commodity=sek), ASSETS)
+    checking = _assign_guid(Account(name="Checking", type="BANK", parent=assets, commodity=sek), CHECKING)
+    counter = _assign_guid(Account(name="Counter", type="EXPENSE", parent=root, commodity=sek), FOOD)
+    _assign_guid(
+        Transaction(
+            currency=sek,
+            description=f"candidate with {total_splits} splits",
+            post_date=date(2026, 5, 1),
+            splits=[
+                Split(account=checking, value=Decimal("-1")),
+                Split(account=counter, value=Decimal("1")),
+            ],
+        ),
+        TX1,
+    )
+    book.save()
+    book.close()
+
+    # Fixture seeding only: bulk insert synthetic split rows directly to avoid
+    # piecash per-object validation overhead for the 20,000-row boundary case.
+    with sqlite3.connect(path) as conn:
+        conn.execute("delete from splits where tx_guid = ?", (TX1,))
+        rows = [
+            (
+                "10000000000000000000000000000000",
+                TX1,
+                CHECKING,
+                "",
+                "",
+                "n",
+                None,
+                -(total_splits - 1),
+                1,
+                -(total_splits - 1),
+                1,
+                None,
+            )
+        ]
+        rows.extend(
+            (
+                f"{100_000 + index:032x}",
+                TX1,
+                FOOD,
+                "",
+                "",
+                "n",
+                None,
+                1,
+                1,
+                1,
+                1,
+                None,
+            )
+            for index in range(total_splits - 1)
+        )
+        conn.executemany(
+            """
+            insert into splits (
+                guid, tx_guid, account_guid, memo, action, reconcile_state,
+                reconcile_date, value_num, value_denom, quantity_num,
+                quantity_denom, lot_guid
+            ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            rows,
+        )
+
+
+def _select_counted_activity_response(path: Path, *, limit: int):
+    select_count = 0
+
+    def before_cursor_execute(conn, cursor, statement, parameters, context, executemany):
+        nonlocal select_count
+        if statement.lstrip().lower().startswith("select"):
+            select_count += 1
+
+    event.listen(Engine, "before_cursor_execute", before_cursor_execute)
+    try:
+        response = GnuCashBookService({"uri_or_path": str(path), "base_currency": "SEK"}).get_account_activity(
+            CHECKING,
+            date_from=date(2026, 5, 1),
+            date_to=date(2026, 5, 31),
+            limit=limit,
+            book_id=42,
+        )
+    finally:
+        event.remove(Engine, "before_cursor_execute", before_cursor_execute)
+    return response, select_count
+
+
 class TestAccountOverviewEndpoint:
     def test_overview_normalizes_guid_and_returns_breadcrumbs_children_and_bounds(
         self, client, auth_headers, session_factory, tmp_path, monkeypatch
@@ -295,20 +394,19 @@ class TestAccountOverviewEndpoint:
         assert data["parent_id"] == ROOT
         assert data["root_id"] == ROOT
         assert data["full_path"] == "Root Account:Assets"
-        assert data["breadcrumbs"] == [
+        assert data["path"] == [
             {"id": ROOT, "name": "Root Account"},
             {"id": ASSETS, "name": "Assets"},
+        ]
+        assert data["breadcrumbs"] == [
+            {"id": ROOT, "name": "Root Account"},
         ]
         assert data["subtree_account_count"] == 5
         assert data["child_count"] == 4
         assert data["children_returned"] == 2
         assert data["children_truncated"] is True
         assert [child["id"] for child in data["children"]] == [CASH, CHECKING]
-        assert data["children"][0]["direct_balance"] == {
-            "amount": "-97",
-            "commodity_namespace": "CURRENCY",
-            "commodity_mnemonic": "SEK",
-        }
+        assert data["children"][0]["direct_balance"] == _amount("-97")
         assert data["scan"]["candidate_accounts"] == 10
         assert data["scan"]["query_count"] <= 8
         assert data["scan"]["serialized_bytes"] <= data["scan"]["limits"]["serialized_bytes"]
@@ -442,8 +540,8 @@ class TestAccountOverviewEndpoint:
         assert split_loads == []
         assert response.scan.serialized_bytes <= response.scan.limits["serialized_bytes"]
         assert [bucket.model_dump() for bucket in response.recursive_balances] == [
-            {"amount": "1.25", "commodity_namespace": "CURRENCY", "commodity_mnemonic": "SEK"},
-            {"amount": "2.5", "commodity_namespace": "CURRENCY", "commodity_mnemonic": "USD"},
+            _amount("1.25"),
+            _amount("2.5", mnemonic="USD"),
         ]
 
 
@@ -508,18 +606,16 @@ class TestAccountActivityEndpoint:
         assert data["date_to"] == "2026-05-31"
         assert data["scope"] == "direct_account"
         assert data["commodity_mnemonic"] == "SEK"
-        assert data["change"] == {
-            "amount": "984.75",
-            "commodity_namespace": "CURRENCY",
-            "commodity_mnemonic": "SEK",
-        }
+        assert data["limit"] == 2
+        assert data["returned_count"] == 2
+        assert data["change"] == _amount("984.75")
         assert data["inflow"] is None
         assert data["outflow"] is None
         assert data["flow_status"] == "not_applicable_for_generic_account"
         assert data["transaction_explorer_compatible"] is True
         assert [item["id"] for item in data["recent_transactions"]] == [TX3, TX2]
-        assert data["recent_transactions"][0]["matched_quantity"]["amount"] == "-5.25"
-        assert data["recent_transactions"][0]["counter_account_name"] == "Expenses:Food"
+        assert data["recent_transactions"][0]["matched_quantity"] == _amount("-5.25")
+        assert data["recent_transactions"][0]["counter_account_name"] == "Food"
         assert data["recent_transactions"][0]["is_write_alpha_owned"] is True
         assert data["has_more"] is True
         assert data["partial_failure"] is False
@@ -550,6 +646,8 @@ class TestAccountActivityEndpoint:
         assert data["commodity_mnemonic"] == "EUR"
         assert data["change"]["amount"] == "0"
         assert data["recent_transactions"] == []
+        assert data["limit"] == 10
+        assert data["returned_count"] == 0
         assert data["has_more"] is False
         assert data["transaction_explorer_compatible"] is False
         assert any("no FX" in item or "currency conversion" in item for item in data["limitations"])
@@ -557,6 +655,33 @@ class TestAccountActivityEndpoint:
             "change": "empty",
             "recent_transactions": "empty",
         }
+
+    def test_activity_compatible_requires_currency_namespace_and_base_mnemonic(
+        self, client, auth_headers, session_factory, tmp_path, monkeypatch
+    ):
+        accounts, transactions = _fake_account_graph()
+        security = FakeAccount(
+            guid="dddddddddddddddddddddddddddddddd",
+            name="SEK Security",
+            type="STOCK",
+            commodity=FakeCommodity(namespace="NASDAQ", mnemonic="SEK"),
+            parent=accounts[1],
+        )
+        accounts.append(security)
+        path, _ = _install_fake_book(tmp_path, monkeypatch, accounts, transactions)
+        book_id = _create_book(session_factory, path)
+
+        response = client.get(
+            f"/books/{book_id}/accounts/{security.guid}/activity",
+            headers=auth_headers,
+            params={"date_from": "2026-05-01", "date_to": "2026-05-31"},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["commodity_namespace"] == "NASDAQ"
+        assert data["commodity_mnemonic"] == "SEK"
+        assert data["transaction_explorer_compatible"] is False
 
     def test_activity_section_failure_is_partial_and_redacted(
         self, client, auth_headers, session_factory, tmp_path, monkeypatch
@@ -585,6 +710,8 @@ class TestAccountActivityEndpoint:
         assert data["partial_failure"] is True
         assert data["change"] is None
         assert data["recent_transactions"]
+        assert data["limit"] == 10
+        assert data["returned_count"] == len(data["recent_transactions"])
         statuses = {item["section"]: item for item in data["section_statuses"]}
         assert statuses["change"]["status"] == "error"
         assert statuses["change"]["detail"] == "Account activity change could not be read safely from this runtime."
@@ -592,6 +719,38 @@ class TestAccountActivityEndpoint:
         assert "/data/books" not in statuses["change"]["detail"]
         assert "Salary" not in statuses["change"]["detail"]
         assert "123" not in statuses["change"]["detail"]
+
+    def test_activity_response_size_fallback_preserves_limit_and_returned_count(
+        self, client, auth_headers, session_factory, tmp_path, monkeypatch
+    ):
+        import app.services.account_explorer as account_explorer
+
+        accounts, transactions = _fake_account_graph()
+        path, _ = _install_fake_book(tmp_path, monkeypatch, accounts, transactions)
+        book_id = _create_book(session_factory, path)
+        real_serialized_size = account_explorer._serialized_model_bytes
+
+        def force_recent_size_failure(response):
+            if getattr(response, "recent_transactions", None):
+                return account_explorer.MAX_ACTIVITY_SERIALIZED_RESPONSE_BYTES + 1
+            return real_serialized_size(response)
+
+        monkeypatch.setattr(account_explorer, "_serialized_model_bytes", force_recent_size_failure)
+        response = client.get(
+            f"/books/{book_id}/accounts/{CHECKING}/activity",
+            headers=auth_headers,
+            params={"date_from": "2026-05-01", "date_to": "2026-05-31", "limit": "2"},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["limit"] == 2
+        assert data["returned_count"] == 0
+        assert data["recent_transactions"] == []
+        assert data["has_more"] is False
+        assert data["partial_failure"] is True
+        statuses = {item["section"]: item for item in data["section_statuses"]}
+        assert statuses["recent_transactions"]["status"] == "error"
 
 
 class TestAccountActivitySqlInstrumentation:
@@ -665,6 +824,8 @@ class TestAccountActivitySqlInstrumentation:
         assert response.account_id == CHECKING
         assert response.change is not None
         assert response.change.amount == "-30"
+        assert response.limit == 5
+        assert response.returned_count == 5
         assert response.has_more is True
         assert response.scan.query_count <= 10
         assert response.scan.recent_transaction_objects == 6
@@ -672,6 +833,118 @@ class TestAccountActivitySqlInstrumentation:
         assert len(split_loads) <= 12
         assert response.scan.recent_split_rows <= 12
         assert response.scan.serialized_bytes <= response.scan.limits["serialized_bytes"]
+
+    def test_recent_split_row_limit_is_checked_before_split_orm_load(self, tmp_path):
+        book_path = tmp_path / "activity-too-many-splits.gnucash.sqlite"
+        _create_activity_book_with_candidate_split_count(book_path, total_splits=20_001)
+        split_load_count = 0
+
+        def on_split_load(target, context):
+            nonlocal split_load_count
+            split_load_count += 1
+
+        event.listen(piecash.Split, "load", on_split_load)
+        try:
+            response = GnuCashBookService({"uri_or_path": str(book_path), "base_currency": "SEK"}).get_account_activity(
+                CHECKING,
+                date_from=date(2026, 5, 1),
+                date_to=date(2026, 5, 31),
+                limit=1,
+                book_id=42,
+            )
+        finally:
+            event.remove(piecash.Split, "load", on_split_load)
+
+        assert split_load_count == 0
+        assert response.partial_failure is True
+        assert response.limit == 1
+        assert response.returned_count == 0
+        assert response.recent_transactions == []
+        statuses = {item.section: item for item in response.section_statuses}
+        assert statuses["recent_transactions"].status == "error"
+        assert response.scan.recent_transaction_objects == 0
+        assert response.scan.recent_split_rows == 0
+
+    def test_recent_split_row_limit_allows_exact_maximum(self, tmp_path):
+        book_path = tmp_path / "activity-max-splits.gnucash.sqlite"
+        _create_activity_book_with_candidate_split_count(book_path, total_splits=20_000)
+        split_load_count = 0
+
+        def on_split_load(target, context):
+            nonlocal split_load_count
+            split_load_count += 1
+
+        event.listen(piecash.Split, "load", on_split_load)
+        try:
+            response = GnuCashBookService({"uri_or_path": str(book_path), "base_currency": "SEK"}).get_account_activity(
+                CHECKING,
+                date_from=date(2026, 5, 1),
+                date_to=date(2026, 5, 31),
+                limit=1,
+                book_id=42,
+            )
+        finally:
+            event.remove(piecash.Split, "load", on_split_load)
+
+        assert response.partial_failure is False
+        assert response.limit == 1
+        assert response.returned_count == 1
+        assert response.scan.recent_transaction_objects == 1
+        assert response.scan.recent_split_rows == 20_000
+        assert split_load_count == 20_000
+        assert len(response.recent_transactions) == 1
+
+    def test_counter_account_name_is_leaf_and_does_not_lazy_load_parent_per_row(self, tmp_path):
+        def create_book(path: Path, *, transaction_count: int) -> None:
+            book = piecash.create_book(currency="SEK", sqlite_file=str(path), overwrite=True)
+            sek = _assign_guid(book.commodities[0], "99999999999999999999999999999999")
+            root = _assign_guid(book.root_account, ROOT)
+            assets = _assign_guid(Account(name="Assets", type="ASSET", parent=root, commodity=sek), ASSETS)
+            checking = _assign_guid(Account(name="Checking", type="BANK", parent=assets, commodity=sek), CHECKING)
+            for index in range(transaction_count):
+                branch = _assign_guid(
+                    Account(name=f"Counter Branch {index:02d}", type="EXPENSE", parent=root, commodity=sek),
+                    f"{50_000 + index * 3:032x}",
+                )
+                sub = _assign_guid(
+                    Account(name=f"Counter Sub {index:02d}", type="EXPENSE", parent=branch, commodity=sek),
+                    f"{50_001 + index * 3:032x}",
+                )
+                leaf = _assign_guid(
+                    Account(name=f"Counter Leaf {index:02d}", type="EXPENSE", parent=sub, commodity=sek),
+                    f"{50_002 + index * 3:032x}",
+                )
+                _assign_guid(
+                    Transaction(
+                        currency=sek,
+                        description=f"counter {index:02d}",
+                        post_date=date(2026, 5, (index % 28) + 1),
+                        splits=[
+                            Split(account=checking, value=Decimal("-1")),
+                            Split(account=leaf, value=Decimal("1")),
+                        ],
+                    ),
+                    f"{index + 1:032x}",
+                )
+            book.save()
+            book.close()
+
+        one_path = tmp_path / "counter-one.gnucash.sqlite"
+        twenty_path = tmp_path / "counter-twenty.gnucash.sqlite"
+        create_book(one_path, transaction_count=1)
+        create_book(twenty_path, transaction_count=20)
+
+        one_response, one_selects = _select_counted_activity_response(one_path, limit=20)
+        twenty_response, twenty_selects = _select_counted_activity_response(twenty_path, limit=20)
+
+        assert one_response.returned_count == 1
+        assert twenty_response.returned_count == 20
+        assert all(":" not in item.counter_account_name for item in twenty_response.recent_transactions)
+        assert {item.counter_account_name for item in twenty_response.recent_transactions} == {
+            f"Counter Leaf {index:02d}" for index in range(20)
+        }
+        assert one_response.scan.query_count == twenty_response.scan.query_count
+        assert twenty_selects <= one_selects + 5
 
     def test_source_guards_do_not_use_legacy_transaction_list_or_count_paths(self):
         import app.routers.books as books_router

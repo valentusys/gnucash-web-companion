@@ -188,6 +188,10 @@ def _hex_guid(value: int) -> str:
     return f"{value:032x}"
 
 
+def _amount(amount: str, *, namespace: str = "CURRENCY", mnemonic: str = "SEK") -> dict:
+    return {"amount": amount, "commodity": {"namespace": namespace, "mnemonic": mnemonic}}
+
+
 def _set_book_path(session_factory, book_id: int, path: Path) -> None:
     with session_factory() as session:
         book = session.query(Book).filter(Book.id == book_id).first()
@@ -526,15 +530,12 @@ class TestAccountExplorer:
         assert bank["type"] == "BANK"
         assert bank["commodity_namespace"] == "CURRENCY"
         assert bank["commodity_mnemonic"] == "SEK"
-        assert bank["direct_balance"] == {
-            "amount": "123.4567",
-            "commodity_namespace": "CURRENCY",
-            "commodity_mnemonic": "SEK",
-        }
+        assert bank["direct_balance"] == _amount("123.4567")
         assert bank["recursive_balances"] == [bank["direct_balance"]]
         assert bank["child_count"] == 0
-        assert bank["match_state"] == "self"
-        assert bank["structure_status"] == "ok"
+        assert bank["match_state"] == "match"
+        assert bank["structure_status"] == "normal"
+        assert by_id[_hex_guid(1)]["structure_status"] == "root"
 
         cafe = by_id[_hex_guid(4)]
         assert cafe["name"] == "Café"
@@ -544,8 +545,8 @@ class TestAccountExplorer:
         assets = by_id[_hex_guid(2)]
         assert assets["child_count"] == 4
         assert assets["recursive_balances"] == [
-            {"amount": "124.6912", "commodity_namespace": "CURRENCY", "commodity_mnemonic": "SEK"},
-            {"amount": "2", "commodity_namespace": "CURRENCY", "commodity_mnemonic": "USD"},
+            _amount("124.6912"),
+            _amount("2", mnemonic="USD"),
         ]
         income = by_id[_hex_guid(5)]
         assert income["direct_balance"]["amount"] == "10.5"
@@ -566,7 +567,7 @@ class TestAccountExplorer:
         tree_data = tree.json()
         assert tree_data["normalized_filters"]["query"] == "café"
         assert [node["id"] for node in tree_data["nodes"]] == [_hex_guid(1), _hex_guid(2), _hex_guid(4)]
-        assert [node["match_state"] for node in tree_data["nodes"]] == ["ancestor_context", "ancestor_context", "self"]
+        assert [node["match_state"] for node in tree_data["nodes"]] == ["ancestor_context", "ancestor_context", "match"]
 
         flat = client.get(
             f"/books/{sample_book}/accounts/explorer",
@@ -607,7 +608,7 @@ class TestAccountExplorer:
         )
         assert hidden_only.status_code == 200
         assert [node["id"] for node in hidden_only.json()["nodes"]] == [_hex_guid(1), _hex_guid(6)]
-        assert [node["match_state"] for node in hidden_only.json()["nodes"]] == ["ancestor_context", "self"]
+        assert [node["match_state"] for node in hidden_only.json()["nodes"]] == ["ancestor_context", "match"]
 
         placeholder_excluded = client.get(
             f"/books/{sample_book}/accounts/explorer",
@@ -796,6 +797,7 @@ class TestGetAccount:
         assert data["balance"] == "12345.67"
         assert data["currency"] == "SEK"
         assert data["parent_id"] == "bank-guid"
+        assert set(data) == {"id", "name", "full_name", "type", "currency", "balance", "placeholder", "hidden", "parent_id"}
 
     def test_unknown_account_returns_404(
         self, client, auth_headers, sample_book, fake_book_path, session_factory

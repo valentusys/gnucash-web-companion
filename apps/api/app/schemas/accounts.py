@@ -7,8 +7,8 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 AccountExplorerMode = Literal["tree", "flat"]
-AccountExplorerMatchState = Literal["self", "ancestor_context"]
-AccountExplorerStructureStatus = Literal["ok", "orphan_promoted", "cycle_broken_root", "cycle_member"]
+AccountExplorerMatchState = Literal["match", "ancestor_context"]
+AccountExplorerStructureStatus = Literal["root", "normal", "orphan_promoted", "cycle_broken_root", "cycle_member"]
 AccountActivitySection = Literal["change", "recent_transactions"]
 AccountActivitySectionStatusValue = Literal["ok", "empty", "error"]
 
@@ -20,12 +20,21 @@ class AccountExplorerPathSegmentDTO(BaseModel):
     name: str
 
 
-class AccountExplorerBalanceDTO(BaseModel):
-    """Exact native-commodity Decimal balance bucket."""
+class CommodityRefDTO(BaseModel):
+    """Exact native commodity reference."""
+
+    namespace: str
+    mnemonic: str
+
+
+class CommodityAmountDTO(BaseModel):
+    """Exact finite non-exponent Decimal amount in one native commodity."""
 
     amount: str = Field(..., description="Finite non-exponent Decimal string")
-    commodity_namespace: str
-    commodity_mnemonic: str
+    commodity: CommodityRefDTO
+
+
+AccountExplorerBalanceDTO = CommodityAmountDTO
 
 
 class AccountExplorerNodeDTO(BaseModel):
@@ -47,8 +56,8 @@ class AccountExplorerNodeDTO(BaseModel):
     child_count: int = 0
     direct_balance: AccountExplorerBalanceDTO
     recursive_balances: list[AccountExplorerBalanceDTO] = Field(default_factory=list)
-    match_state: AccountExplorerMatchState = "self"
-    structure_status: AccountExplorerStructureStatus = "ok"
+    match_state: AccountExplorerMatchState = "match"
+    structure_status: AccountExplorerStructureStatus = "normal"
 
 
 class AccountExplorerScanDTO(BaseModel):
@@ -99,7 +108,7 @@ class AccountOverviewChildDTO(BaseModel):
     child_count: int = 0
     direct_balance: AccountExplorerBalanceDTO
     recursive_balances: list[AccountExplorerBalanceDTO] = Field(default_factory=list)
-    structure_status: AccountExplorerStructureStatus = "ok"
+    structure_status: AccountExplorerStructureStatus = "normal"
 
 
 class AccountOverviewResponseDTO(BaseModel):
@@ -121,7 +130,7 @@ class AccountOverviewResponseDTO(BaseModel):
     placeholder: bool = False
     direct_balance: AccountExplorerBalanceDTO
     recursive_balances: list[AccountExplorerBalanceDTO] = Field(default_factory=list)
-    structure_status: AccountExplorerStructureStatus = "ok"
+    structure_status: AccountExplorerStructureStatus = "normal"
     breadcrumbs: list[AccountExplorerPathSegmentDTO]
     subtree_account_count: int
     child_count: int
@@ -180,6 +189,8 @@ class AccountActivityResponseDTO(BaseModel):
     outflow: AccountExplorerBalanceDTO | None = None
     flow_status: Literal["not_applicable_for_generic_account"] = "not_applicable_for_generic_account"
     recent_transactions: list[AccountActivityRecentTransactionDTO] = Field(default_factory=list)
+    limit: int
+    returned_count: int
     has_more: bool = False
     transaction_explorer_compatible: bool = False
     partial_failure: bool = False

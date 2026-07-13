@@ -28,6 +28,7 @@ from app.schemas.accounts import (
     AccountExplorerScanDTO,
     AccountOverviewChildDTO,
     AccountOverviewResponseDTO,
+    CommodityRefDTO,
 )
 
 MAX_QUERY_CODEPOINTS = 120
@@ -53,7 +54,7 @@ ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 CREDIT_NATURAL_SIGN_TYPES = {"LIABILITY", "CREDIT", "PAYABLE", "EQUITY", "INCOME"}
 
 VisibilityMode = Literal["exclude", "include", "only"]
-StructureStatus = Literal["ok", "orphan_promoted", "cycle_broken_root", "cycle_member"]
+StructureStatus = Literal["root", "normal", "orphan_promoted", "cycle_broken_root", "cycle_member"]
 CommodityKey = tuple[str, str]
 
 
@@ -201,7 +202,7 @@ def build_account_explorer_response(
             depth_by_id=depth_by_id,
             children_by_parent=children_by_parent,
             raw_recursive_buckets=raw_recursive_buckets,
-            match_state="self" if account_id in self_matches else "ancestor_context",
+            match_state="match" if account_id in self_matches else "ancestor_context",
             structure_status=structure_status[account_id],
         )
         for account_id in returned_ids
@@ -286,6 +287,13 @@ class _ActivityRecentResult:
     split_rows: int
     query_count: int
     empty: bool
+
+
+@dataclass(frozen=True)
+class _SqlRecentTransactions:
+    transactions: list[Any]
+    split_rows: int
+    query_count: int
 
 
 def normalize_account_guid(value: str, *, field: str = "account_id") -> str:
@@ -390,7 +398,7 @@ def build_account_overview_response(
         direct_balance=_balance_dto(_natural_sign(record.direct_raw, record.type), record.commodity_key),
         recursive_balances=_recursive_balance_dtos(record, prepared.raw_recursive_buckets[record.id]),
         structure_status=prepared.structure_status[record.id],
-        breadcrumbs=prepared.path_by_id[record.id],
+        breadcrumbs=prepared.path_by_id[record.id][:-1],
         subtree_account_count=len(subtree_ids),
         child_count=len(child_ids),
         children=children,
@@ -464,7 +472,7 @@ def build_account_activity_response(
         "No exact total count is computed; recent activity fetches only limit+1 rows to determine has_more.",
         "Inflow and outflow are not classified for generic accounts.",
     ]
-    compatible = record.commodity_mnemonic == base_currency
+    compatible = record.commodity_namespace == "CURRENCY" and record.commodity_mnemonic == base_currency
     if compatible:
         limitations.append(
             "For this base-currency account, recent rows use the same selected-account amount basis as the transaction explorer."
@@ -487,6 +495,8 @@ def build_account_activity_response(
         outflow=None,
         flow_status="not_applicable_for_generic_account",
         recent_transactions=recent_transactions,
+        limit=query.limit,
+        returned_count=len(recent_transactions),
         has_more=has_more,
         transaction_explorer_compatible=compatible,
         partial_failure=any(item.status == "error" for item in statuses),
@@ -505,6 +515,7 @@ def build_account_activity_response(
     response.scan.serialized_bytes = _serialized_model_bytes(response)
     if response.scan.serialized_bytes > MAX_ACTIVITY_SERIALIZED_RESPONSE_BYTES:
         response.recent_transactions = []
+        response.returned_count = 0
         response.has_more = False
         response.partial_failure = True
         response.scan.recent_transaction_objects = 0
@@ -756,36 +767,68 @@ def _build_activity_recent_section(
     query: AccountActivityQuery,
 ) -> _ActivityRecentResult:
     session = getattr(book, "session", None)
+    prechecked_split_rows: int | None = None
     if callable(getattr(session, "query", None)):
-        transactions = _activity_sql_recent_transactions(session, record.id, query)
-        query_count = 1
+        recent = _activity_sql_recent_transactions(session, record.id, query)
+        transactions = recent.transactions
+        prechecked_split_rows = recent.split_rows
+        query_count = recent.query_count
     else:
         transactions = _activity_fallback_recent_transactions(account, record.id, query)
         query_count = 0
     probe = transactions[: query.limit + 1]
     has_more = len(probe) > query.limit
     returned = probe[: query.limit]
-    split_rows = sum(len(_transaction_splits(transaction)) for transaction in probe)
+    split_rows = prechecked_split_rows
+    if split_rows is None:
+        split_rows = sum(len(_transaction_splits(transaction)) for transaction in probe)
     if split_rows > MAX_ACTIVITY_SPLIT_ROWS:
         raise AccountExplorerError("result_too_complex", "Account activity recent split scan exceeded the bounded request limit.")
     items = [_activity_recent_item(transaction, record) for transaction in returned]
     return _ActivityRecentResult(items, has_more, len(probe), split_rows, query_count, len(items) == 0)
 
 
-def _activity_sql_recent_transactions(session: Any, account_id: str, query: AccountActivityQuery) -> list[Any]:
-    rows = (
-        session.query(piecash.Transaction)
-        .join(piecash.Split, piecash.Transaction.guid == piecash.Split.transaction_guid)
-        .options(joinedload(piecash.Transaction.splits).joinedload(piecash.Split.account).joinedload(piecash.Account.commodity))
-        .filter(piecash.Split.account_guid == account_id)
-        .filter(piecash.Transaction.post_date >= query.date_from)
-        .filter(piecash.Transaction.post_date <= query.date_to)
-        .order_by(piecash.Transaction.post_date.desc(), piecash.Transaction.guid.desc())
-        .distinct()
+def _activity_sql_recent_transactions(session: Any, account_id: str, query: AccountActivityQuery) -> _SqlRecentTransactions:
+    split_table = piecash.Split.__table__
+    tx_table = piecash.Transaction.__table__
+    candidate_rows = (
+        session.query(tx_table.c.guid.label("tx_guid"))
+        .select_from(tx_table.join(split_table, tx_table.c.guid == split_table.c.tx_guid))
+        .filter(split_table.c.account_guid == account_id)
+        .filter(tx_table.c.post_date >= query.date_from)
+        .filter(tx_table.c.post_date <= query.date_to)
+        .group_by(tx_table.c.guid, tx_table.c.post_date)
+        .order_by(tx_table.c.post_date.desc(), tx_table.c.guid.desc())
         .limit(query.limit + 1)
         .all()
     )
-    return list(rows)
+    candidate_guids = [_guid(_row_value(row, "tx_guid", 0)) for row in candidate_rows]
+    if not candidate_guids:
+        return _SqlRecentTransactions(transactions=[], split_rows=0, query_count=1)
+
+    split_rows = _non_negative_int(
+        session.query(func.count())
+        .select_from(split_table)
+        .filter(split_table.c.tx_guid.in_(tuple(candidate_guids)))
+        .scalar()
+        or 0
+    )
+    if split_rows > MAX_ACTIVITY_SPLIT_ROWS:
+        raise AccountExplorerError("result_too_complex", "Account activity recent split scan exceeded the bounded request limit.")
+
+    rows = (
+        session.query(piecash.Transaction)
+        .options(joinedload(piecash.Transaction.splits).joinedload(piecash.Split.account).joinedload(piecash.Account.commodity))
+        .filter(piecash.Transaction.guid.in_(candidate_guids))
+        .order_by(piecash.Transaction.post_date.desc(), piecash.Transaction.guid.desc())
+        .all()
+    )
+    transactions_by_id = {_guid(row): row for row in rows}
+    return _SqlRecentTransactions(
+        transactions=[transactions_by_id[tx_guid] for tx_guid in candidate_guids if tx_guid in transactions_by_id],
+        split_rows=split_rows,
+        query_count=3,
+    )
 
 
 def _activity_fallback_recent_transactions(account: Any, account_id: str, query: AccountActivityQuery) -> list[Any]:
@@ -874,7 +917,7 @@ def _counter_account_name(splits: list[Any], selected_account_id: str) -> str:
             continue
         account = getattr(split, "account", None)
         if account is not None:
-            return _account_full_name(account)
+            return str(getattr(account, "name", "") or "")
     return ""
 
 
@@ -1114,12 +1157,15 @@ def _effective_parent_map(records_by_id: dict[str, _AccountRecord]) -> tuple[dic
     structure_status: dict[str, StructureStatus] = {}
     for account_id, record in records_by_id.items():
         source_parent_id = record.source_parent_id
-        if source_parent_id is not None and source_parent_id not in records_by_id:
+        if source_parent_id is None:
+            parent_by_id[account_id] = None
+            structure_status[account_id] = "root"
+        elif source_parent_id not in records_by_id:
             parent_by_id[account_id] = None
             structure_status[account_id] = "orphan_promoted"
         else:
             parent_by_id[account_id] = source_parent_id
-            structure_status[account_id] = "ok"
+            structure_status[account_id] = "normal"
 
     state: dict[str, int] = {}
     stack: list[str] = []
@@ -1267,7 +1313,7 @@ def _node_dto(
     depth_by_id: dict[str, int],
     children_by_parent: dict[str | None, list[str]],
     raw_recursive_buckets: dict[str, dict[CommodityKey, Decimal]],
-    match_state: Literal["self", "ancestor_context"],
+    match_state: Literal["match", "ancestor_context"],
     structure_status: StructureStatus,
 ) -> AccountExplorerNodeDTO:
     direct_amount = _natural_sign(record.direct_raw, record.type)
@@ -1299,8 +1345,7 @@ def _node_dto(
 def _balance_dto(amount: Decimal, key: CommodityKey) -> AccountExplorerBalanceDTO:
     return AccountExplorerBalanceDTO(
         amount=_decimal_string(amount),
-        commodity_namespace=key[0],
-        commodity_mnemonic=key[1],
+        commodity=CommodityRefDTO(namespace=key[0], mnemonic=key[1]),
     )
 
 
