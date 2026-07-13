@@ -15,13 +15,19 @@ from app.performance.large_book_benchmark import (
     EXPLORER_LATER_PAGE_NUMBER,
     EXPLORER_PAGE_SIZE,
     FixtureMetadata,
+    ISSUE55_ACCOUNT_DATASETS,
+    ISSUE55_ACCOUNT_QUERY_TEXT,
+    ISSUE55_ACTIVITY_ACCOUNT_ID,
     SPARSE_QUERY_TEXT,
     _build_case_request_json,
     _build_readback_request_from_detail,
     _summarize_response,
     benchmark_plan,
+    create_issue55_account_performance_book,
     create_large_synthetic_book,
+    issue55_account_benchmark_plan,
     run_benchmark,
+    run_issue55_account_benchmark,
     write_results_json,
 )
 
@@ -342,6 +348,160 @@ def test_create_large_synthetic_book_rejects_invalid_account_hierarchy(tmp_path:
         assert "account_branch_count" in str(exc)
     else:  # pragma: no cover - defensive assertion
         raise AssertionError("expected ValueError for empty account hierarchy scope")
+
+
+def test_issue55_account_benchmark_plan_is_separate_read_only_scope() -> None:
+    one_k = issue55_account_benchmark_plan("1k")
+    ten_k = issue55_account_benchmark_plan("10k")
+
+    assert ISSUE55_ACCOUNT_DATASETS == {"1k": (1_000, 1_000), "10k": (10_000, 10_000)}
+    assert [case.name for case in one_k] == [
+        "issue55_1k_account_unfiltered_tree",
+        "issue55_1k_account_text_filtered_tree",
+        "issue55_1k_account_flat_search",
+        "issue55_1k_account_type_filtered_explorer",
+        "issue55_1k_root_overview",
+        "issue55_1k_recursive_native_buckets",
+        "issue55_1k_direct_period_activity",
+        "issue55_1k_account_transaction_explorer_first_page",
+    ]
+    assert [case.name for case in ten_k] == [
+        "issue55_10k_account_filtered_tree",
+        "issue55_10k_account_unfiltered_tree_expected_422",
+        "issue55_10k_root_overview",
+        "issue55_10k_direct_activity",
+        "issue55_10k_drilldown_first_page",
+    ]
+    assert all(case.method == "GET" and case.read_only for case in one_k + ten_k)
+    assert next(case for case in ten_k if case.name.endswith("expected_422")).expected_status_code == 422
+    assert issue55_account_benchmark_plan("1k", {"issue55_1k_direct_period_activity"}) == [one_k[6]]
+    try:
+        issue55_account_benchmark_plan("bad-dataset")
+    except ValueError as exc:
+        assert "unknown issue55 account dataset" in str(exc)
+    else:  # pragma: no cover - defensive assertion
+        raise AssertionError("expected ValueError for unknown issue55 dataset")
+
+
+def test_create_issue55_account_performance_book_uses_exact_deterministic_data(tmp_path: Path) -> None:
+    output = tmp_path / "issue55-1k.gnucash.sqlite"
+
+    metadata = create_issue55_account_performance_book(
+        output,
+        candidate_account_count=1_000,
+        transaction_count=1_000,
+    )
+
+    assert metadata.path == output
+    assert metadata.transaction_count == 1_000
+    assert metadata.synthetic_account_count == 1_000
+    assert metadata.candidate_account_count == 1_000
+    assert metadata.hidden_account_count == 450
+    assert metadata.placeholder_account_count == 11
+    assert metadata.commodity_count == 4
+    assert metadata.duplicate_account_name_count == 2
+    assert metadata.unicode_account_name_count == 14
+    assert metadata.synthetic is True
+    assert metadata.contains_real_data is False
+
+    with sqlite3.connect(output) as conn:
+        account_count = conn.execute("select count(*) from accounts").fetchone()[0]
+        tx_count = conn.execute("select count(*) from transactions").fetchone()[0]
+        split_count = conn.execute("select count(*) from splits").fetchone()[0]
+        deterministic_accounts = conn.execute(
+            "select count(*) from accounts where guid like 'a551%'"
+        ).fetchone()[0]
+        deterministic_transactions = conn.execute(
+            "select count(*) from transactions where guid like '7551%'"
+        ).fetchone()[0]
+        deterministic_splits = conn.execute("select count(*) from splits where guid like '5551%'").fetchone()[0]
+        template_roots = conn.execute("select count(*) from accounts where name = 'Template Root'").fetchone()[0]
+        direct_activity_account = conn.execute(
+            "select name, account_type, hidden, placeholder from accounts where guid = ?",
+            (ISSUE55_ACTIVITY_ACCOUNT_ID,),
+        ).fetchone()
+        query_accounts = conn.execute(
+            "select count(*) from accounts where name like ?",
+            (f"%{ISSUE55_ACCOUNT_QUERY_TEXT}%",),
+        ).fetchone()[0]
+        split_accounts = conn.execute("select count(distinct account_guid) from splits").fetchone()[0]
+
+    assert account_count == 1_000
+    assert tx_count == 1_000
+    assert split_count == 2_000
+    assert deterministic_accounts == 1_000
+    assert deterministic_transactions == 1_000
+    assert deterministic_splits == 2_000
+    assert template_roots == 0
+    assert direct_activity_account == ("Bank", "BANK", 0, 0)
+    assert query_accounts == 8
+    assert split_accounts >= 100
+
+
+def test_issue55_account_benchmark_records_account_counters_and_drilldown_consistency(tmp_path: Path) -> None:
+    output = tmp_path / "issue55-account-counters.gnucash.sqlite"
+    create_issue55_account_performance_book(
+        output,
+        candidate_account_count=1_000,
+        transaction_count=1_000,
+    )
+
+    results = run_issue55_account_benchmark(
+        output,
+        dataset="1k",
+        repeats=1,
+        warmups=0,
+        case_names={
+            "issue55_1k_account_text_filtered_tree",
+            "issue55_1k_direct_period_activity",
+            "issue55_1k_account_transaction_explorer_first_page",
+        },
+    )
+
+    assert [result.name for result in results] == [
+        "issue55_1k_account_text_filtered_tree",
+        "issue55_1k_direct_period_activity",
+        "issue55_1k_account_transaction_explorer_first_page",
+    ]
+    for result in results:
+        assert result.status_code == 200
+        assert result.warmup_count == 0
+        assert result.measured_samples == 1
+        assert result.mutation_capable_request_count == 0
+        assert result.read_only_book_open_count_min == 1
+        assert result.read_only_book_open_count_max == 1
+        assert result.legacy_count_call_count_max == 0
+        assert result.full_transaction_materialization_count_max == 0
+        assert result.local_timing_budget_dataset == "1k"
+        assert result.local_timing_budget_ms == 2_500
+        assert isinstance(result.local_timing_budget_passed, bool)
+
+    tree = _result_by_name(results, "issue55_1k_account_text_filtered_tree")
+    assert tree.item_count == 15
+    assert tree.account_candidate_accounts == 1_000
+    assert tree.account_returned_nodes == 15
+    assert tree.actual_query_count == 2
+    assert tree.account_split_rows is not None and tree.account_split_rows <= 20_000
+    assert tree.account_split_aggregate_rows is not None and tree.account_split_aggregate_rows <= 1_000
+    assert tree.account_serialized_bytes is not None and tree.account_serialized_bytes <= 256 * 1024
+
+    activity = _result_by_name(results, "issue55_1k_direct_period_activity")
+    assert activity.item_count == 10
+    assert activity.activity_recent_item_count == 10
+    assert activity.actual_query_count == 5
+    assert activity.activity_change_split_rows is not None
+    assert activity.activity_recent_split_rows is not None and activity.activity_recent_split_rows <= 40
+    assert activity.activity_recent_transaction_objects is not None
+    assert activity.activity_recent_transaction_objects <= 20
+
+    drilldown = _result_by_name(results, "issue55_1k_account_transaction_explorer_first_page")
+    assert drilldown.item_count == 10
+    assert drilldown.returned_count == 10
+    assert drilldown.page_size == 10
+    assert drilldown.actual_query_count == 2
+    assert drilldown.stable_unique_order is True
+    assert drilldown.activity_recent_ids_match is True
+    assert drilldown.activity_recent_amounts_match is True
 
 
 def _result_by_name(results: list[BenchmarkResult], name: str) -> BenchmarkResult:

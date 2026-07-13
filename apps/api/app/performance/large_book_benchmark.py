@@ -26,7 +26,7 @@ from urllib.parse import quote
 
 import piecash
 from fastapi.testclient import TestClient
-from piecash import Account, Split, Transaction
+from piecash import Account, Commodity, Split, Transaction
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -64,8 +64,33 @@ EXPLORER_FILTERED_PAGE_TEMPLATE = (
     f"?date_from={EXPLORER_DATE_FROM}&date_to={EXPLORER_DATE_TO}"
     f"&page_size={EXPLORER_FILTERED_PAGE_SIZE}&sort=date_desc&query={quote(SPARSE_QUERY_TEXT, safe='')}"
 )
+ISSUE55_ACCOUNT_QUERY_TEXT = "Needle ζ"
+ISSUE55_ACCOUNT_DATE_FROM = "2026-01-01"
+ISSUE55_ACCOUNT_DATE_TO = "2026-12-31"
+ISSUE55_ACCOUNT_ACTIVITY_LIMIT = 10
+ISSUE55_1K_VISIBLE_ACCOUNT_INDEX_LIMIT = 550
+ISSUE55_ACCOUNT_GUID_NAMESPACE = 0xA551
+ISSUE55_SPLIT_GUID_NAMESPACE = 0x5551
+ISSUE55_TRANSACTION_GUID_NAMESPACE = 0x7551
+ISSUE55_COMMODITY_GUID_NAMESPACE = 0xC551
+ISSUE55_ROOT_ACCOUNT_ID = f"{ISSUE55_ACCOUNT_GUID_NAMESPACE:04x}{0:028x}"
+ISSUE55_ASSETS_ACCOUNT_ID = f"{ISSUE55_ACCOUNT_GUID_NAMESPACE:04x}{1:028x}"
+ISSUE55_ACTIVITY_ACCOUNT_ID = f"{ISSUE55_ACCOUNT_GUID_NAMESPACE:04x}{6:028x}"
+ISSUE55_MIXED_PARENT_ACCOUNT_ID = f"{ISSUE55_ACCOUNT_GUID_NAMESPACE:04x}{8:028x}"
+ISSUE55_ACCOUNT_DATASETS: dict[str, tuple[int, int]] = {
+    "1k": (1_000, 1_000),
+    "10k": (10_000, 10_000),
+}
 LOCAL_TIMING_BUDGETS_MS = {
     "1k": {
+        "issue55_1k_account_unfiltered_tree": 2_500,
+        "issue55_1k_account_text_filtered_tree": 2_500,
+        "issue55_1k_account_flat_search": 2_500,
+        "issue55_1k_account_type_filtered_explorer": 2_500,
+        "issue55_1k_root_overview": 2_500,
+        "issue55_1k_recursive_native_buckets": 2_500,
+        "issue55_1k_direct_period_activity": 2_500,
+        "issue55_1k_account_transaction_explorer_first_page": 2_500,
         "period_comparison_previous_equivalent": 1_500,
         "transaction_explorer_first_page": 1_500,
         "transaction_explorer_sparse_scan_limited": 2_500,
@@ -73,6 +98,10 @@ LOCAL_TIMING_BUDGETS_MS = {
         "transaction_explorer_previous_page": 1_500,
     },
     "10k": {
+        "issue55_10k_account_filtered_tree": 8_000,
+        "issue55_10k_root_overview": 8_000,
+        "issue55_10k_direct_activity": 8_000,
+        "issue55_10k_drilldown_first_page": 8_000,
         "period_comparison_previous_equivalent": 12_000,
         "transaction_explorer_first_page": 4_000,
         "transaction_explorer_sparse_scan_limited": 8_000,
@@ -95,6 +124,7 @@ class BenchmarkCase:
     path_template: str
     read_only: bool = True
     request_json: str | None = None
+    expected_status_code: int = 200
 
 
 BENCHMARK_CASES: list[BenchmarkCase] = [
@@ -195,6 +225,72 @@ BENCHMARK_CASES: list[BenchmarkCase] = [
     BenchmarkCase("csv_export_up_to_cap", "GET", "/books/{book_id}/transactions/export"),
 ]
 
+ISSUE55_1K_ACCOUNT_CASES: list[BenchmarkCase] = [
+    BenchmarkCase("issue55_1k_account_unfiltered_tree", "GET", "/books/{book_id}/accounts/explorer"),
+    BenchmarkCase(
+        "issue55_1k_account_text_filtered_tree",
+        "GET",
+        f"/books/{{book_id}}/accounts/explorer?query={quote(ISSUE55_ACCOUNT_QUERY_TEXT, safe='')}",
+    ),
+    BenchmarkCase(
+        "issue55_1k_account_flat_search",
+        "GET",
+        f"/books/{{book_id}}/accounts/explorer?mode=flat&query={quote(ISSUE55_ACCOUNT_QUERY_TEXT, safe='')}",
+    ),
+    BenchmarkCase("issue55_1k_account_type_filtered_explorer", "GET", "/books/{book_id}/accounts/explorer?type=BANK"),
+    BenchmarkCase("issue55_1k_root_overview", "GET", "/books/{book_id}/accounts/{issue55_root_account_id}/overview"),
+    BenchmarkCase(
+        "issue55_1k_recursive_native_buckets",
+        "GET",
+        "/books/{book_id}/accounts/{issue55_mixed_account_id}/overview",
+    ),
+    BenchmarkCase(
+        "issue55_1k_direct_period_activity",
+        "GET",
+        "/books/{book_id}/accounts/{issue55_activity_account_id}/activity"
+        f"?date_from={ISSUE55_ACCOUNT_DATE_FROM}&date_to={ISSUE55_ACCOUNT_DATE_TO}"
+        f"&limit={ISSUE55_ACCOUNT_ACTIVITY_LIMIT}",
+    ),
+    BenchmarkCase(
+        "issue55_1k_account_transaction_explorer_first_page",
+        "GET",
+        "/books/{book_id}/transactions/explorer"
+        f"?date_from={ISSUE55_ACCOUNT_DATE_FROM}&date_to={ISSUE55_ACCOUNT_DATE_TO}"
+        f"&page_size={ISSUE55_ACCOUNT_ACTIVITY_LIMIT}&sort=date_desc"
+        "&account_ids={issue55_activity_account_id}",
+    ),
+]
+
+ISSUE55_10K_ACCOUNT_CASES: list[BenchmarkCase] = [
+    BenchmarkCase(
+        "issue55_10k_account_filtered_tree",
+        "GET",
+        f"/books/{{book_id}}/accounts/explorer?query={quote(ISSUE55_ACCOUNT_QUERY_TEXT, safe='')}",
+    ),
+    BenchmarkCase(
+        "issue55_10k_account_unfiltered_tree_expected_422",
+        "GET",
+        "/books/{book_id}/accounts/explorer",
+        expected_status_code=422,
+    ),
+    BenchmarkCase("issue55_10k_root_overview", "GET", "/books/{book_id}/accounts/{issue55_root_account_id}/overview"),
+    BenchmarkCase(
+        "issue55_10k_direct_activity",
+        "GET",
+        "/books/{book_id}/accounts/{issue55_activity_account_id}/activity"
+        f"?date_from={ISSUE55_ACCOUNT_DATE_FROM}&date_to={ISSUE55_ACCOUNT_DATE_TO}"
+        f"&limit={ISSUE55_ACCOUNT_ACTIVITY_LIMIT}",
+    ),
+    BenchmarkCase(
+        "issue55_10k_drilldown_first_page",
+        "GET",
+        "/books/{book_id}/transactions/explorer"
+        f"?date_from={ISSUE55_ACCOUNT_DATE_FROM}&date_to={ISSUE55_ACCOUNT_DATE_TO}"
+        f"&page_size={ISSUE55_ACCOUNT_ACTIVITY_LIMIT}&sort=date_desc"
+        "&account_ids={issue55_activity_account_id}",
+    ),
+]
+
 
 @dataclass(frozen=True)
 class BenchmarkConfig:
@@ -218,6 +314,12 @@ class FixtureMetadata:
     many_split_count: int
     synthetic: bool
     contains_real_data: bool
+    candidate_account_count: int | None = None
+    hidden_account_count: int | None = None
+    placeholder_account_count: int | None = None
+    commodity_count: int | None = None
+    duplicate_account_name_count: int | None = None
+    unicode_account_name_count: int | None = None
 
 
 @dataclass(frozen=True)
@@ -230,6 +332,7 @@ class BenchmarkResult:
     duration_ms_median: float
     duration_ms_max: float
     response_bytes: int
+    error_code: str | None = None
     item_count: int | None = None
     csv_limit: int | None = None
     csv_total: int | None = None
@@ -252,6 +355,24 @@ class BenchmarkResult:
     scan_limits: dict[str, int] | None = None
     stable_unique_order: bool | None = None
     cursor_roundtrip_matches: bool | None = None
+    activity_recent_ids_match: bool | None = None
+    activity_recent_amounts_match: bool | None = None
+    actual_query_count: int | None = None
+    account_candidate_accounts: int | None = None
+    account_returned_nodes: int | None = None
+    account_max_depth: int | None = None
+    account_max_recursive_commodity_buckets: int | None = None
+    account_rollup_bucket_cells: int | None = None
+    account_split_rows: int | None = None
+    account_split_aggregate_rows: int | None = None
+    account_serialized_bytes: int | None = None
+    overview_subtree_account_count: int | None = None
+    overview_child_count: int | None = None
+    overview_children_returned: int | None = None
+    activity_recent_item_count: int | None = None
+    activity_change_split_rows: int | None = None
+    activity_recent_split_rows: int | None = None
+    activity_recent_transaction_objects: int | None = None
     read_only_book_open_count_min: int | None = None
     read_only_book_open_count_max: int | None = None
     legacy_count_call_count_max: int | None = None
@@ -276,12 +397,25 @@ class BenchmarkResult:
 
 def benchmark_plan(case_names: set[str] | None = None) -> list[BenchmarkCase]:
     """Return the conservative synthetic benchmark plan, optionally filtered by case name."""
+    return _select_benchmark_cases(BENCHMARK_CASES, case_names)
+
+
+def issue55_account_benchmark_plan(dataset: str, case_names: set[str] | None = None) -> list[BenchmarkCase]:
+    """Return the issue #55 account performance plan for one exact synthetic dataset."""
+    if dataset == "1k":
+        return _select_benchmark_cases(ISSUE55_1K_ACCOUNT_CASES, case_names)
+    if dataset == "10k":
+        return _select_benchmark_cases(ISSUE55_10K_ACCOUNT_CASES, case_names)
+    raise ValueError(f"unknown issue55 account dataset: {dataset}")
+
+
+def _select_benchmark_cases(cases: list[BenchmarkCase], case_names: set[str] | None) -> list[BenchmarkCase]:
     if case_names is None:
-        return BENCHMARK_CASES
-    unknown = case_names - {case.name for case in BENCHMARK_CASES}
+        return cases
+    unknown = case_names - {case.name for case in cases}
     if unknown:
         raise ValueError(f"unknown benchmark case(s): {', '.join(sorted(unknown))}")
-    return [case for case in BENCHMARK_CASES if case.name in case_names]
+    return [case for case in cases if case.name in case_names]
 
 
 def _synthetic_guid(namespace: int, index: int) -> str:
@@ -503,6 +637,244 @@ def create_large_synthetic_book(
     )
 
 
+def create_issue55_account_performance_book(
+    output_path: str | Path,
+    *,
+    candidate_account_count: int,
+    transaction_count: int,
+) -> FixtureMetadata:
+    """Create an exact-cardinality issue #55 synthetic account performance book."""
+    if candidate_account_count < 100:
+        raise ValueError("candidate_account_count must be at least 100 for issue55 coverage")
+    if transaction_count < 100:
+        raise ValueError("transaction_count must be at least 100 for issue55 coverage")
+    if candidate_account_count > 10_000:
+        raise ValueError("candidate_account_count must not exceed the issue55 10k candidate guard")
+
+    output = Path(output_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    if output.exists():
+        output.unlink()
+
+    book = piecash.create_book(currency=BASE_CURRENCY, sqlite_file=str(output), overwrite=True)
+    sek = _assign_guid(book.commodities[0], _synthetic_guid(ISSUE55_COMMODITY_GUID_NAMESPACE, 1))
+    eur = _assign_guid(
+        Commodity(namespace="CURRENCY", mnemonic="EUR", fullname="Synthetic Euro", fraction=100),
+        _synthetic_guid(ISSUE55_COMMODITY_GUID_NAMESPACE, 2),
+    )
+    usd = _assign_guid(
+        Commodity(namespace="CURRENCY", mnemonic="USD", fullname="Synthetic Dollar", fraction=100),
+        _synthetic_guid(ISSUE55_COMMODITY_GUID_NAMESPACE, 3),
+    )
+    gbp = _assign_guid(
+        Commodity(namespace="CURRENCY", mnemonic="GBP", fullname="Synthetic Pound", fraction=100),
+        _synthetic_guid(ISSUE55_COMMODITY_GUID_NAMESPACE, 4),
+    )
+    commodities = [sek, eur, usd, gbp]
+    root = _assign_guid(book.root_account, ISSUE55_ROOT_ACCOUNT_ID)
+    root.commodity = sek
+    for existing_account in list(book.accounts):
+        if existing_account is not root:
+            book.session.delete(existing_account)
+    accounts: list[Account] = [root]
+    split_index = 0
+
+    def issue_account(
+        name: str,
+        account_type: str,
+        parent: Account,
+        commodity: Commodity,
+        *,
+        hidden: bool = False,
+        placeholder: bool = False,
+    ) -> Account:
+        account_index = len(accounts)
+        account = _assign_guid(
+            Account(name=name, type=account_type, parent=parent, commodity=commodity),
+            _synthetic_guid(ISSUE55_ACCOUNT_GUID_NAMESPACE, account_index),
+        )
+        account.hidden = hidden
+        account.placeholder = placeholder
+        accounts.append(account)
+        return account
+
+    def issue_split(account: Account, value: Decimal, *, quantity: Decimal | None = None, memo: str = "") -> Split:
+        nonlocal split_index
+        split_index += 1
+        return _assign_guid(
+            Split(account=account, value=value, quantity=quantity if quantity is not None else value, memo=memo),
+            _synthetic_guid(ISSUE55_SPLIT_GUID_NAMESPACE, split_index),
+        )
+
+    assets = issue_account("As", "ASSET", root, sek)
+    expenses = issue_account("Ex", "EXPENSE", root, sek)
+    income = issue_account("In", "INCOME", root, sek)
+    liabilities = issue_account("Li", "LIABILITY", root, sek)
+    equity = issue_account("Eq", "EQUITY", root, sek)
+    operating = issue_account("Bank", "BANK", assets, sek)
+    issue_account("Cash", "CASH", assets, sek)
+    mixed_parent = issue_account("Mix", "ASSET", assets, sek)
+    mixed_children = [
+        issue_account("MixSEK", "ASSET", mixed_parent, sek),
+        issue_account("MixEUR", "ASSET", mixed_parent, eur),
+        issue_account("MixUSD", "ASSET", mixed_parent, usd),
+        issue_account("MixGBP", "ASSET", mixed_parent, gbp),
+    ]
+    deep_parent = mixed_parent
+    for depth_index in range(1, 9):
+        deep_parent = issue_account(f"D{depth_index}", "ASSET", deep_parent, commodities[depth_index % len(commodities)])
+    duplicate_parent = issue_account("DupParent", "EXPENSE", expenses, sek)
+    issue_account("Duplicate ζ", "EXPENSE", expenses, sek)
+    issue_account("Duplicate ζ", "EXPENSE", duplicate_parent, sek)
+
+    parent_pools: dict[str, list[Account]] = {
+        "ASSET": [assets, mixed_parent, *mixed_children, deep_parent],
+        "BANK": [assets, mixed_parent],
+        "CASH": [assets, mixed_parent],
+        "EXPENSE": [expenses, duplicate_parent],
+        "INCOME": [income],
+        "LIABILITY": [liabilities],
+        "CREDIT": [liabilities],
+        "EQUITY": [equity],
+    }
+
+    def add_parent_candidate(account: Account, account_type: str, hidden: bool) -> None:
+        if hidden:
+            return
+        parent_pools[account_type].append(account)
+        if account_type == "ASSET":
+            parent_pools["BANK"].append(account)
+            parent_pools["CASH"].append(account)
+        elif account_type == "LIABILITY":
+            parent_pools["CREDIT"].append(account)
+
+    created_account_target = candidate_account_count
+    account_types = ["ASSET", "BANK", "CASH", "EXPENSE", "INCOME", "LIABILITY", "CREDIT", "EQUITY"]
+    while len(accounts) < created_account_target:
+        account_index = len(accounts)
+        account_type = account_types[account_index % len(account_types)]
+        parent = parent_pools[account_type][account_index % len(parent_pools[account_type])]
+        commodity = commodities[account_index % len(commodities)]
+        name = f"A{account_index:05d}"
+        if account_index % 113 == 0:
+            name = f"{ISSUE55_ACCOUNT_QUERY_TEXT} {account_index:05d}"
+        elif account_index % 211 == 0:
+            name = f"家計{account_index:05d}"
+        hidden = (
+            account_index >= ISSUE55_1K_VISIBLE_ACCOUNT_INDEX_LIMIT
+            if candidate_account_count <= 1_000
+            else account_index % 97 == 0
+        )
+        placeholder = account_index % 89 == 0
+        account = issue_account(name, account_type, parent, commodity, hidden=hidden, placeholder=placeholder)
+        add_parent_candidate(account, account_type, hidden)
+
+    visible_expenses = [
+        account
+        for account in accounts
+        if account.type == "EXPENSE" and not account.hidden and not account.placeholder
+    ]
+    visible_income = [
+        account
+        for account in accounts
+        if account.type == "INCOME" and not account.hidden and not account.placeholder
+    ]
+    if not visible_expenses or not visible_income:
+        raise RuntimeError("issue55 fixture did not create visible income/expense accounts")
+
+    start = date.fromisoformat(ISSUE55_ACCOUNT_DATE_FROM)
+    for tx_index in range(transaction_count):
+        post_date = start + timedelta(days=tx_index % 365)
+        amount = Decimal((tx_index % 250) + 1).quantize(Decimal("0.01"))
+        description = f"Issue55 synthetic transaction {tx_index:05d}"
+        if tx_index % 997 == 0:
+            description += f" {SPARSE_QUERY_TEXT}"
+        if tx_index % 40 == 0:
+            target = mixed_children[(tx_index // 40) % len(mixed_children)]
+            native_quantity = amount if target.commodity is sek else (amount / Decimal("2")).quantize(Decimal("0.01"))
+            splits = [
+                issue_split(operating, -amount, memo=f"issue55 bank transfer {tx_index:05d}"),
+                issue_split(target, amount, quantity=native_quantity, memo=f"issue55 mixed native {tx_index:05d}"),
+            ]
+        elif tx_index % 10 == 0:
+            target = visible_income[tx_index % len(visible_income)]
+            income_amount = amount + Decimal("1000.00")
+            splits = [
+                issue_split(operating, income_amount, memo=f"issue55 income bank {tx_index:05d}"),
+                issue_split(target, -income_amount, memo=f"issue55 income source {tx_index:05d}"),
+            ]
+        else:
+            target = visible_expenses[tx_index % len(visible_expenses)]
+            splits = [
+                issue_split(operating, -amount, memo=f"issue55 expense bank {tx_index:05d}"),
+                issue_split(target, amount, memo=f"issue55 expense target {tx_index:05d}"),
+            ]
+        _assign_guid(
+            Transaction(currency=sek, description=description, post_date=post_date, splits=splits),
+            _synthetic_guid(ISSUE55_TRANSACTION_GUID_NAMESPACE, tx_index),
+        )
+
+    book.save()
+    book.close()
+
+    with sqlite3.connect(output) as conn:
+        conn.execute(
+            "delete from accounts where account_type = 'ROOT' and name = 'Template Root' and guid != ?",
+            (ISSUE55_ROOT_ACCOUNT_ID,),
+        )
+        conn.execute(
+            "update accounts set commodity_guid = ? where commodity_guid is null or commodity_guid not in (?, ?, ?, ?)",
+            tuple(_synthetic_guid(ISSUE55_COMMODITY_GUID_NAMESPACE, idx) for idx in (1, 1, 2, 3, 4)),
+        )
+        conn.commit()
+        rows = conn.execute("select guid, name, account_type, parent_guid, hidden, placeholder from accounts").fetchall()
+        actual_candidate_accounts = len(rows)
+        tx_rows = int(conn.execute("select count(*) from transactions").fetchone()[0])
+        commodity_count = int(
+            conn.execute("select count(distinct commodity_guid) from accounts where commodity_guid is not null").fetchone()[0]
+        )
+        duplicate_account_name_count = sum(
+            int(row[1])
+            for row in conn.execute(
+                "select name, count(*) from accounts group by name having count(*) > 1"
+            ).fetchall()
+        )
+    if actual_candidate_accounts != candidate_account_count or tx_rows != transaction_count:
+        raise RuntimeError(
+            f"issue55 fixture cardinality mismatch: accounts={actual_candidate_accounts}, transactions={tx_rows}"
+        )
+    names = [str(row[1]) for row in rows]
+    parent_by_id = {str(row[0]): str(row[3]) if row[3] else None for row in rows}
+
+    def row_depth(account_id: str) -> int:
+        depth = 0
+        seen: set[str] = set()
+        parent_id = parent_by_id.get(account_id)
+        while parent_id is not None and parent_id not in seen:
+            seen.add(parent_id)
+            depth += 1
+            parent_id = parent_by_id.get(parent_id)
+        return depth
+
+    return FixtureMetadata(
+        path=output,
+        transaction_count=transaction_count,
+        expense_account_count=sum(1 for row in rows if str(row[2]).upper() == "EXPENSE"),
+        account_branch_count=sum(1 for row in rows if parent_by_id[str(row[0])] == ISSUE55_ROOT_ACCOUNT_ID),
+        account_depth=max(row_depth(str(row[0])) for row in rows),
+        synthetic_account_count=actual_candidate_accounts,
+        many_split_count=2,
+        synthetic=True,
+        contains_real_data=False,
+        candidate_account_count=actual_candidate_accounts,
+        hidden_account_count=sum(1 for row in rows if bool(row[4])),
+        placeholder_account_count=sum(1 for row in rows if bool(row[5])),
+        commodity_count=commodity_count,
+        duplicate_account_name_count=duplicate_account_name_count,
+        unicode_account_name_count=sum(1 for name in names if any(ord(char) > 127 for char in name)),
+    )
+
+
 def _test_settings() -> Settings:
     return Settings(
         app_env="benchmark",
@@ -642,6 +1014,14 @@ def _select_many_split_transaction_id(book_path: Path) -> str:
     return str(row[0])
 
 
+def _select_first_transaction_id(book_path: Path) -> str:
+    with sqlite3.connect(book_path) as conn:
+        row = conn.execute("select guid from transactions order by post_date, guid limit 1").fetchone()
+    if row is None:
+        raise RuntimeError("benchmark fixture did not expose a transaction id")
+    return str(row[0])
+
+
 def _build_case_request_json(
     case: BenchmarkCase,
     *,
@@ -735,6 +1115,10 @@ def _summarize_response(
         item_count = len(payload)
     elif isinstance(payload, dict) and isinstance(payload.get("items"), list):
         item_count = len(payload["items"])
+    elif isinstance(payload, dict) and isinstance(payload.get("nodes"), list):
+        item_count = len(payload["nodes"])
+    elif isinstance(payload, dict) and isinstance(payload.get("recent_transactions"), list):
+        item_count = len(payload["recent_transactions"])
     elif isinstance(payload, dict) and isinstance(payload.get("splits"), list):
         item_count = len(payload["splits"])
     elif case.name == "period_comparison_previous_equivalent" and isinstance(payload, dict):
@@ -757,6 +1141,7 @@ class _PreparedBenchmarkRequest:
     path: str
     output_path: str
     expected_item_ids: list[str] | None = None
+    expected_item_amounts: list[str] | None = None
 
 
 @contextmanager
@@ -818,6 +1203,42 @@ def _explorer_item_ids(payload: dict[str, Any]) -> list[str]:
     if not isinstance(items, list):
         return []
     return [str(item.get("id")) for item in items if isinstance(item, dict) and item.get("id")]
+
+
+def _explorer_item_amounts(payload: dict[str, Any]) -> list[str]:
+    items = payload.get("items")
+    if not isinstance(items, list):
+        return []
+    amounts: list[str] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        matched = item.get("matched_amount")
+        if isinstance(matched, dict) and matched.get("amount") is not None:
+            amounts.append(str(matched["amount"]))
+    return amounts
+
+
+def _activity_recent_ids_and_amounts(payload: dict[str, Any]) -> tuple[list[str], list[str]]:
+    recent = payload.get("recent_transactions")
+    if not isinstance(recent, list):
+        return [], []
+    ids: list[str] = []
+    amounts: list[str] = []
+    for item in recent:
+        if not isinstance(item, dict) or not item.get("id"):
+            continue
+        ids.append(str(item["id"]))
+        matched = item.get("matched_quantity")
+        if isinstance(matched, dict) and matched.get("amount") is not None:
+            amounts.append(str(matched["amount"]))
+    return ids, amounts
+
+
+def _decimal_lists_match(left: list[str], right: list[str]) -> bool:
+    if len(left) != len(right):
+        return False
+    return all(Decimal(left_item) == Decimal(right_item) for left_item, right_item in zip(left, right))
 
 
 def _fetch_explorer_payload(client: TestClient, path: str, headers: dict[str, str]) -> dict[str, Any]:
@@ -892,10 +1313,42 @@ def _prepare_http_benchmark_request(
             output_path=_redact_cursor_path(path),
             expected_item_ids=expected_ids,
         )
+    if case.name in {
+        "issue55_1k_account_transaction_explorer_first_page",
+        "issue55_10k_drilldown_first_page",
+    }:
+        activity_path = (
+            f"/books/{book_id}/accounts/{ISSUE55_ACTIVITY_ACCOUNT_ID}/activity"
+            f"?date_from={ISSUE55_ACCOUNT_DATE_FROM}&date_to={ISSUE55_ACCOUNT_DATE_TO}"
+            f"&limit={ISSUE55_ACCOUNT_ACTIVITY_LIMIT}"
+        )
+        activity_response = client.get(activity_path, headers=headers)
+        activity_response.raise_for_status()
+        activity_payload = activity_response.json()
+        if not isinstance(activity_payload, dict):
+            raise RuntimeError("issue55 activity benchmark expected a JSON object response")
+        expected_ids, expected_amounts = _activity_recent_ids_and_amounts(activity_payload)
+        path = case.path_template.format(
+            book_id=book_id,
+            account_id=account_id,
+            many_split_transaction_id=many_split_transaction_id,
+            issue55_root_account_id=ISSUE55_ROOT_ACCOUNT_ID,
+            issue55_mixed_account_id=ISSUE55_MIXED_PARENT_ACCOUNT_ID,
+            issue55_activity_account_id=ISSUE55_ACTIVITY_ACCOUNT_ID,
+        )
+        return _PreparedBenchmarkRequest(
+            path=path,
+            output_path=path,
+            expected_item_ids=expected_ids,
+            expected_item_amounts=expected_amounts,
+        )
     path = case.path_template.format(
         book_id=book_id,
         account_id=account_id,
         many_split_transaction_id=many_split_transaction_id,
+        issue55_root_account_id=ISSUE55_ROOT_ACCOUNT_ID,
+        issue55_mixed_account_id=ISSUE55_MIXED_PARENT_ACCOUNT_ID,
+        issue55_activity_account_id=ISSUE55_ACTIVITY_ACCOUNT_ID,
     )
     return _PreparedBenchmarkRequest(path=path, output_path=path)
 
@@ -906,12 +1359,15 @@ def _request_with_counters(
     method: str,
     path: str,
     request_kwargs: dict[str, Any],
+    expected_status_code: int = 200,
 ) -> tuple[Any, float, _BenchmarkRequestCounters]:
     with _instrument_benchmark_request() as counters:
         start = time.perf_counter()
         response = client.request(method, path, **request_kwargs)
         duration_ms = (time.perf_counter() - start) * 1000
-    response.raise_for_status()
+    if response.status_code != expected_status_code:
+        response.raise_for_status()
+        raise RuntimeError(f"expected HTTP {expected_status_code}, got {response.status_code} for {path}")
     return response, duration_ms, counters
 
 
@@ -939,6 +1395,7 @@ def _summarize_response_metadata(
     response: Any,
     *,
     expected_item_ids: list[str] | None = None,
+    expected_item_amounts: list[str] | None = None,
 ) -> dict[str, Any]:
     try:
         payload = response.json()
@@ -947,6 +1404,9 @@ def _summarize_response_metadata(
     if not isinstance(payload, dict):
         return {}
     summary: dict[str, Any] = {}
+    detail = payload.get("detail")
+    if isinstance(detail, dict) and detail.get("code"):
+        summary["error_code"] = str(detail["code"])
     items = payload.get("items")
     if isinstance(items, list):
         ids = [str(item.get("id")) for item in items if isinstance(item, dict) and item.get("id")]
@@ -963,6 +1423,48 @@ def _summarize_response_metadata(
             )
         if expected_item_ids is not None:
             summary["cursor_roundtrip_matches"] = ids == expected_item_ids
+        if expected_item_amounts is not None:
+            summary["activity_recent_ids_match"] = ids == (expected_item_ids or [])
+            summary["activity_recent_amounts_match"] = _decimal_lists_match(
+                _explorer_item_amounts(payload),
+                expected_item_amounts,
+            )
+    nodes = payload.get("nodes")
+    if isinstance(nodes, list):
+        depths = [int(node.get("depth", 0)) for node in nodes if isinstance(node, dict)]
+        recursive_counts = [
+            len(node.get("recursive_balances") or [])
+            for node in nodes
+            if isinstance(node, dict)
+        ]
+        summary["account_returned_nodes"] = len(nodes)
+        summary["account_max_depth"] = max(depths, default=0)
+        summary["account_max_recursive_commodity_buckets"] = max(recursive_counts, default=0)
+    children = payload.get("children")
+    if isinstance(children, list):
+        depths = [int(child.get("depth", 0)) for child in children if isinstance(child, dict)]
+        recursive_counts = [
+            len(child.get("recursive_balances") or [])
+            for child in children
+            if isinstance(child, dict)
+        ]
+        root_recursive = payload.get("recursive_balances") or []
+        summary["account_max_depth"] = max(depths + [int(payload.get("depth", 0))], default=0)
+        summary["account_max_recursive_commodity_buckets"] = max(
+            recursive_counts + [len(root_recursive) if isinstance(root_recursive, list) else 0],
+            default=0,
+        )
+        summary["overview_subtree_account_count"] = payload.get("subtree_account_count")
+        summary["overview_child_count"] = payload.get("child_count")
+        summary["overview_children_returned"] = payload.get("children_returned")
+    recent = payload.get("recent_transactions")
+    if isinstance(recent, list):
+        ids, amounts = _activity_recent_ids_and_amounts(payload)
+        summary["activity_recent_item_count"] = len(recent)
+        if expected_item_ids is not None:
+            summary["activity_recent_ids_match"] = ids == expected_item_ids
+        if expected_item_amounts is not None:
+            summary["activity_recent_amounts_match"] = _decimal_lists_match(amounts, expected_item_amounts)
     for key in ("returned_count", "page_size", "has_more", "has_previous"):
         if key in payload:
             summary[key] = payload[key]
@@ -979,6 +1481,20 @@ def _summarize_response_metadata(
         summary["scan_query_count"] = scan.get("query_count")
         summary["scan_limited"] = scan.get("scan_limited")
         summary["scan_exhausted"] = scan.get("exhausted")
+        if scan.get("query_count") is not None:
+            summary["actual_query_count"] = scan.get("query_count")
+        if scan.get("candidate_accounts") is not None:
+            summary["account_candidate_accounts"] = scan.get("candidate_accounts")
+            summary["account_returned_nodes"] = scan.get("returned_nodes")
+            summary["account_split_rows"] = scan.get("split_rows")
+            summary["account_split_aggregate_rows"] = scan.get("split_aggregate_rows")
+            summary["account_rollup_bucket_cells"] = scan.get("rollup_bucket_cells")
+            summary["account_serialized_bytes"] = scan.get("serialized_bytes")
+        if scan.get("change_split_rows") is not None:
+            summary["activity_change_split_rows"] = scan.get("change_split_rows")
+            summary["activity_recent_split_rows"] = scan.get("recent_split_rows")
+            summary["activity_recent_transaction_objects"] = scan.get("recent_transaction_objects")
+            summary["account_serialized_bytes"] = scan.get("serialized_bytes")
         limits = scan.get("limits")
         if isinstance(limits, dict):
             summary["scan_limits"] = {str(key): int(value) for key, value in limits.items()}
@@ -1094,13 +1610,59 @@ def run_benchmark(
     if warmups < 0:
         raise ValueError("warmups must be zero or greater")
     selected_cases = benchmark_plan(case_names)
+    return _run_benchmark_cases(book_path, selected_cases=selected_cases, repeats=repeats, warmups=warmups)
+
+
+def run_issue55_account_benchmark(
+    book_path: str | Path,
+    *,
+    dataset: str,
+    repeats: int = 3,
+    warmups: int = 1,
+    case_names: set[str] | None = None,
+) -> list[BenchmarkResult]:
+    """Run the issue #55 synthetic account performance cases for one dataset."""
+    if repeats < 1:
+        raise ValueError("repeats must be at least 1")
+    if warmups < 0:
+        raise ValueError("warmups must be zero or greater")
+    selected_cases = issue55_account_benchmark_plan(dataset, case_names)
+    return _run_benchmark_cases(book_path, selected_cases=selected_cases, repeats=repeats, warmups=warmups)
+
+
+def _run_benchmark_cases(
+    book_path: str | Path,
+    *,
+    selected_cases: list[BenchmarkCase],
+    repeats: int,
+    warmups: int,
+) -> list[BenchmarkResult]:
     resolved_book_path = Path(book_path)
     transaction_count = _count_book_transactions(resolved_book_path)
     client, book_id, headers, cleanup = _build_client(resolved_book_path)
     try:
-        account_id = _select_account_id(client, book_id, headers)
-        preview_debit_account_id, preview_credit_account_id = _select_preview_account_ids(client, book_id, headers)
-        many_split_transaction_id = _select_many_split_transaction_id(resolved_book_path)
+        needs_legacy_account_id = any("{account_id}" in case.path_template for case in selected_cases)
+        needs_preview_account_ids = any(case.request_json is not None for case in selected_cases)
+        account_id = (
+            _select_account_id(client, book_id, headers)
+            if needs_legacy_account_id
+            else ISSUE55_ACTIVITY_ACCOUNT_ID
+        )
+        if needs_preview_account_ids:
+            preview_debit_account_id, preview_credit_account_id = _select_preview_account_ids(client, book_id, headers)
+        else:
+            preview_debit_account_id = ISSUE55_ACTIVITY_ACCOUNT_ID
+            preview_credit_account_id = ISSUE55_MIXED_PARENT_ACCOUNT_ID
+        needs_many_split_transaction = any(
+            case.name == "many_splits_transaction_detail"
+            or case.request_json == "synthetic_existing_transaction_readback"
+            for case in selected_cases
+        )
+        many_split_transaction_id = (
+            _select_many_split_transaction_id(resolved_book_path)
+            if needs_many_split_transaction
+            else _select_first_transaction_id(resolved_book_path)
+        )
         results: list[BenchmarkResult] = []
         median_by_case: dict[str, float] = {}
         for case in selected_cases:
@@ -1138,13 +1700,18 @@ def run_benchmark(
                 request_kwargs["json"] = request_json
             for _ in range(warmups):
                 response = client.request(case.method, prepared.path, **request_kwargs)
-                response.raise_for_status()
+                if response.status_code != case.expected_status_code:
+                    response.raise_for_status()
+                    raise RuntimeError(
+                        f"expected HTTP {case.expected_status_code}, got {response.status_code} for {prepared.path}"
+                    )
             for _ in range(repeats):
                 response, duration_ms, request_counters = _request_with_counters(
                     client,
                     method=case.method,
                     path=prepared.path,
                     request_kwargs=request_kwargs,
+                    expected_status_code=case.expected_status_code,
                 )
                 durations.append(duration_ms)
                 counters.append(request_counters)
@@ -1156,6 +1723,7 @@ def run_benchmark(
             response_summary = _summarize_response_metadata(
                 last_response,
                 expected_item_ids=prepared.expected_item_ids,
+                expected_item_amounts=prepared.expected_item_amounts,
             )
             budget_dataset, budget_ms = _local_timing_budget(case.name, transaction_count)
             median_ms = round(statistics.median(durations), 2)
@@ -1232,7 +1800,7 @@ def write_results_json(path: str | Path, metadata: FixtureMetadata, results: lis
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Run local synthetic large-book, many-splits, write-preview, validation, and read-back benchmark"
+        description="Run local synthetic large-book and issue #55 account performance benchmarks"
     )
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT_PATH)
     parser.add_argument("--transactions", type=int, default=BenchmarkConfig.transaction_count)
@@ -1243,6 +1811,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--repeats", type=int, default=BenchmarkConfig.repeats)
     parser.add_argument("--warmups", type=int, default=BenchmarkConfig.warmups)
     parser.add_argument(
+        "--issue55-account-dataset",
+        choices=sorted(ISSUE55_ACCOUNT_DATASETS),
+        default=None,
+        help="Generate and run the issue #55 account benchmark dataset instead of the legacy large-book plan.",
+    )
+    parser.add_argument(
         "--case",
         action="append",
         dest="case_names",
@@ -1252,29 +1826,49 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--json-output", type=Path, default=None)
     args = parser.parse_args(argv)
 
-    metadata = create_large_synthetic_book(
-        args.output,
-        transaction_count=args.transactions,
-        expense_account_count=args.expense_accounts,
-        account_branch_count=args.account_branches,
-        account_depth=args.account_depth,
-        many_split_count=args.many_splits,
-    )
     selected_case_names = set(args.case_names) if args.case_names else None
-    results = run_benchmark(
-        metadata.path,
-        repeats=args.repeats,
-        warmups=args.warmups,
-        case_names=selected_case_names,
-    )
+    if args.issue55_account_dataset:
+        candidate_account_count, transaction_count = ISSUE55_ACCOUNT_DATASETS[args.issue55_account_dataset]
+        metadata = create_issue55_account_performance_book(
+            args.output,
+            candidate_account_count=candidate_account_count,
+            transaction_count=transaction_count,
+        )
+        results = run_issue55_account_benchmark(
+            metadata.path,
+            dataset=args.issue55_account_dataset,
+            repeats=args.repeats,
+            warmups=args.warmups,
+            case_names=selected_case_names,
+        )
+    else:
+        metadata = create_large_synthetic_book(
+            args.output,
+            transaction_count=args.transactions,
+            expense_account_count=args.expense_accounts,
+            account_branch_count=args.account_branches,
+            account_depth=args.account_depth,
+            many_split_count=args.many_splits,
+        )
+        results = run_benchmark(
+            metadata.path,
+            repeats=args.repeats,
+            warmups=args.warmups,
+            case_names=selected_case_names,
+        )
 
-    print("Local synthetic large-book, many-splits, write-preview, validation, and read-back benchmark")
+    print("Local synthetic large-book and issue #55 account benchmark")
     print(f"Synthetic fixture: {metadata.path}")
     print(f"Transactions: {metadata.transaction_count}")
     print(f"Expense accounts: {metadata.expense_account_count}")
     print(f"Synthetic hierarchy branches: {metadata.account_branch_count}")
     print(f"Synthetic hierarchy depth: {metadata.account_depth}")
     print(f"Synthetic account count: {metadata.synthetic_account_count}")
+    if metadata.candidate_account_count is not None:
+        print(f"Candidate accounts: {metadata.candidate_account_count}")
+        print(f"Hidden accounts: {metadata.hidden_account_count}")
+        print(f"Placeholder accounts: {metadata.placeholder_account_count}")
+        print(f"Native commodities: {metadata.commodity_count}")
     print(f"Many-splits transaction splits: {metadata.many_split_count}")
     print(f"Warm-up requests per case: {args.warmups}")
     print(f"Measured samples per case: {args.repeats}")
@@ -1284,6 +1878,8 @@ def main(argv: list[str] | None = None) -> int:
     print("No private book data used; no writes executed; no production performance claim.")
     for result in results:
         extra = ""
+        if result.error_code is not None:
+            extra += f", error_code={result.error_code}"
         if result.item_count is not None:
             extra += f", items={result.item_count}"
         if result.csv_total is not None:
@@ -1301,6 +1897,33 @@ def main(argv: list[str] | None = None) -> int:
             extra += (
                 f", scan_candidates={result.scan_candidate_rows}, scan_splits={result.scan_split_rows}, "
                 f"scan_queries={result.scan_query_count}, scan_limited={result.scan_limited}"
+            )
+        if result.account_candidate_accounts is not None:
+            extra += (
+                f", account_candidates={result.account_candidate_accounts}, "
+                f"returned_nodes={result.account_returned_nodes}, depth={result.account_max_depth}, "
+                f"bucket_max={result.account_max_recursive_commodity_buckets}, "
+                f"rollup_cells={result.account_rollup_bucket_cells}, data_queries={result.actual_query_count}, "
+                f"account_splits={result.account_split_rows}, "
+                f"account_aggregates={result.account_split_aggregate_rows}, "
+                f"serialized_bytes={result.account_serialized_bytes}"
+            )
+        if result.overview_subtree_account_count is not None:
+            extra += (
+                f", overview_subtree={result.overview_subtree_account_count}, "
+                f"overview_children={result.overview_children_returned}/{result.overview_child_count}"
+            )
+        if result.activity_recent_item_count is not None:
+            extra += (
+                f", recent_items={result.activity_recent_item_count}, "
+                f"activity_change_splits={result.activity_change_split_rows}, "
+                f"activity_recent_splits={result.activity_recent_split_rows}, "
+                f"activity_recent_tx_objects={result.activity_recent_transaction_objects}"
+            )
+        if result.activity_recent_ids_match is not None:
+            extra += (
+                f", activity_ids_match={result.activity_recent_ids_match}, "
+                f"activity_amounts_match={result.activity_recent_amounts_match}"
             )
         if result.read_only_book_open_count_max is not None:
             extra += (
