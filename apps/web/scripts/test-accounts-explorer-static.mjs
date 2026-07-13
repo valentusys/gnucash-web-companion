@@ -19,8 +19,10 @@ assert.ok(existsSync(pathOf('src', 'routes', 'accounts', '+page.svelte')), '/acc
 assert.ok(existsSync(pathOf('src', 'routes', 'accounts', '[id]', '+page.server.ts')), '/accounts/[id] server route must exist');
 assert.ok(existsSync(pathOf('src', 'routes', 'accounts', '[id]', '+page.svelte')), '/accounts/[id] page route must exist');
 assert.ok(existsSync(pathOf('src', 'lib', 'accounts', 'explorer.ts')), 'canonical account explorer helper must exist');
+assert.ok(existsSync(pathOf('scripts', 'test-accounts-explorer-browser.mjs')), 'accounts explorer browser smoke must exist');
 
 const packageJson = JSON.parse(read('package.json'));
+const browserScript = read('scripts', 'test-accounts-explorer-browser.mjs');
 const helper = read('src', 'lib', 'accounts', 'explorer.ts');
 const explorerServer = read('src', 'routes', 'accounts', '+page.server.ts');
 const explorerPage = read('src', 'routes', 'accounts', '+page.svelte');
@@ -29,8 +31,19 @@ const detailPage = read('src', 'routes', 'accounts', '[id]', '+page.svelte');
 const apiTypes = read('src', 'lib', 'api', 'types.ts');
 const txHelper = read('src', 'lib', 'transactions', 'explorer.ts');
 const i18nMessages = read('src', 'lib', 'i18n', 'messages.ts');
+const ciWorkflow = read('..', '..', '.github', 'workflows', 'ci.yml');
 
 assert.equal(packageJson.scripts?.['test:accounts-explorer'], 'node scripts/test-accounts-explorer-static.mjs', 'package.json must expose npm run test:accounts-explorer');
+assert.equal(packageJson.scripts?.['test:accounts-explorer-browser'], 'npm run build && node scripts/test-accounts-explorer-browser.mjs', 'package.json must expose npm run test:accounts-explorer-browser');
+assert.match(ciWorkflow, /npm run test:accounts-explorer\s+npm run test:transaction-entry-create-disposable-browser\s+npm run test:accounts-explorer-browser/s, 'CI must run account static and browser gates without weakening existing transaction/report browser gates');
+
+assert.match(browserScript, /Account explorer loaded[\s\S]*exactly one bounded account explorer request[\s\S]*cursor[\s\S]*offset/s, 'browser smoke must cover canonical /accounts default request bounds');
+assert.match(browserScript, /Invalid account explorer filters[\s\S]*zero explorer endpoint requests/s, 'browser smoke must cover invalid account explorer URL without API calls');
+assert.match(browserScript, /Overview only[\s\S]*zero activity requests[\s\S]*Invalid account detail URL[\s\S]*zero activity endpoint requests/s, 'browser smoke must cover overview-only and invalid account detail request counters');
+assert.match(browserScript, /account_ids=\$\{checkingAccountId\}[\s\S]*page_size[\s\S]*50[\s\S]*cursor[\s\S]*must not include cursor/s, 'browser smoke must cover exact account-to-transaction explorer link');
+assert.match(browserScript, /unavailable_no_fx_scope[\s\S]*must not expose exact transaction explorer link/s, 'browser smoke must cover non-base/non-currency no-FX drilldown state');
+assert.match(browserScript, /api_forbidden=\$\{api\.forbiddenRequests\.length\}[\s\S]*browser_forbidden=\$\{forbiddenBrowserMutationRequests\(browserRequests\)\.length\}[\s\S]*runtime_exceptions=\$\{runtimeExceptions\.length\}[\s\S]*console_errors=\$\{consoleErrors\.length\}/s, 'browser smoke must report console/network mutation guards');
+assert.doesNotMatch(browserScript, /Syncthing|\.gnucash\.sqlite|localStorage\.setItem|sessionStorage\.setItem|method:\s*'POST'|method:\s*'PATCH'|method:\s*'DELETE'/s, 'accounts browser smoke must stay synthetic/read-only and avoid private books or write endpoints');
 
 assert.match(apiTypes, /export type AccountExplorerResponse[\s\S]*root_ids: string\[\][\s\S]*nodes: AccountExplorerNode\[\][\s\S]*returned_count[\s\S]*scan: AccountExplorerScan[\s\S]*includes_currency_conversion: boolean[\s\S]*limitations: string\[\]/s, 'API types must model bounded account explorer response');
 assert.match(apiTypes, /export type AccountOverview[\s\S]*breadcrumbs[\s\S]*children_returned[\s\S]*children_truncated[\s\S]*balance_basis[\s\S]*includes_currency_conversion/s, 'API types must model account overview response');
