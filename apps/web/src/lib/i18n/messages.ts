@@ -345,6 +345,18 @@ export type MessageKey =
 	| 'books.browseTransactions'
 	| 'books.viewScheduled'
 	| 'books.dashboardSummary'
+	| 'books.settingsLink'
+	| 'books.lastSuccessfulAt'
+	| 'books.capabilitiesTitle'
+	| 'books.capabilityReadOnly'
+	| 'books.capabilityAccounts'
+	| 'books.capabilityTransactions'
+	| 'books.capabilityReports'
+	| 'books.capabilityUpload'
+	| 'books.capabilityEdit'
+	| 'books.capabilityDelete'
+	| 'books.yes'
+	| 'books.no'
 	| 'books.noManagementActions'
 	| 'books.registryManagement'
 	| 'books.registryManagementSafety'
@@ -394,10 +406,20 @@ export type MessageKey =
 	| 'books.status.remote_or_unchecked'
 	| 'books.status.invalid_gnucash_schema'
 	| 'books.status.action_required'
+	| 'books.status.not_checked'
+	| 'books.status.disabled'
+	| 'books.status.failed'
+	| 'books.status.empty'
+	| 'books.status.blocked'
+	| 'books.status.unsupported'
 	| 'books.problem.admin_required'
 	| 'books.problem.preflight_required'
 	| 'books.problem.preflight_rejected'
 	| 'books.problem.preflight_token_invalid'
+	| 'books.problem.missing_preflight_token'
+	| 'books.problem.invalid_preflight_token'
+	| 'books.problem.preflight_request_mismatch'
+	| 'books.problem.preflight_source_mismatch'
 	| 'books.problem.invalid_path'
 	| 'books.problem.unsupported_source'
 	| 'books.problem.outside_allowed_roots'
@@ -410,11 +432,18 @@ export type MessageKey =
 	| 'books.problem.source_changed'
 	| 'books.problem.open_failed'
 	| 'books.problem.duplicate_canonical_path'
+	| 'books.problem.book_not_enabled'
+	| 'books.problem.book_not_healthy'
+	| 'books.problem.book_health_not_checked'
 	| 'books.problem.api_unavailable'
 	| 'books.problem.book_registry_failed'
 	| 'books.problem.unknown_book_problem'
 	| 'books.manageSuccessSetDefault'
 	| 'books.manageSuccessRemoveRegistry'
+	| 'books.manageSuccessRecheck'
+	| 'books.manageSuccessRename'
+	| 'books.manageSuccessDisable'
+	| 'books.manageSuccessEnable'
 	| 'books.removeMetadataConfirm'
 	| 'books.reportsLink'
 	| 'books.statusDetailsTitle'
@@ -442,6 +471,38 @@ export type MessageKey =
 	| 'books.confirmRegisterSubmit'
 	| 'books.registrationSuccessTitle'
 	| 'books.registrationSuccessMessage'
+	| 'books.settingsTitle'
+	| 'books.settingsSubtitle'
+	| 'books.settingsSummaryTitle'
+	| 'books.healthTitle'
+	| 'books.healthHelp'
+	| 'books.healthSafeCode'
+	| 'books.healthSourceStatus'
+	| 'books.healthOpenStatus'
+	| 'books.healthAccountsStatus'
+	| 'books.healthTransactionsStatus'
+	| 'books.healthReportsStatus'
+	| 'books.adminLifecycleTitle'
+	| 'books.adminLifecycleSafety'
+	| 'books.renameTitle'
+	| 'books.renameHelp'
+	| 'books.renameAction'
+	| 'books.recheckTitle'
+	| 'books.recheckHelp'
+	| 'books.recheckAction'
+	| 'books.disableTitle'
+	| 'books.disableHelp'
+	| 'books.disableMetadataConfirm'
+	| 'books.disableAction'
+	| 'books.enableTitle'
+	| 'books.enablePreflightHelp'
+	| 'books.enablePath'
+	| 'books.enablePreflightSubmit'
+	| 'books.enablePreviewTitle'
+	| 'books.enableConfirmHelp'
+	| 'books.enableConfirmSubmit'
+	| 'books.unregisterTitle'
+	| 'books.unregisterHelp'
 	| 'books.section.source'
 	| 'books.section.open'
 	| 'books.section.accounts'
@@ -1083,6 +1144,18 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'books.browseTransactions': 'Browse transactions',
 		'books.viewScheduled': 'View scheduled metadata',
 		'books.dashboardSummary': 'Dashboard summary',
+		'books.settingsLink': 'Settings and health',
+		'books.lastSuccessfulAt': 'Last successful check',
+		'books.capabilitiesTitle': 'Read-only capabilities',
+		'books.capabilityReadOnly': 'Read-only mode',
+		'books.capabilityAccounts': 'Accounts',
+		'books.capabilityTransactions': 'Transactions',
+		'books.capabilityReports': 'Reports',
+		'books.capabilityUpload': 'Browser upload',
+		'books.capabilityEdit': 'GnuCash edits',
+		'books.capabilityDelete': 'Underlying file removal',
+		'books.yes': 'Yes',
+		'books.no': 'No',
 		'books.noManagementActions': 'No registry management actions are available on this read-only page.',
 		'books.registryManagement': 'Registry management',
 		'books.registryManagementSafety':
@@ -1141,10 +1214,20 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'books.status.remote_or_unchecked': 'Unchecked source',
 		'books.status.invalid_gnucash_schema': 'Invalid GnuCash SQL book',
 		'books.status.action_required': 'Action required',
+		'books.status.not_checked': 'Not checked',
+		'books.status.disabled': 'Disabled',
+		'books.status.failed': 'Failed',
+		'books.status.empty': 'Empty',
+		'books.status.blocked': 'Blocked',
+		'books.status.unsupported': 'Unsupported',
 		'books.problem.admin_required': 'Administrator privileges are required for book registry management.',
 		'books.problem.preflight_required': 'Run a successful preflight and confirm the metadata-only action before registration.',
 		'books.problem.preflight_rejected': 'Preflight rejected this source. The book was not registered.',
 		'books.problem.preflight_token_invalid': 'The preflight token is missing, expired, or does not match the form values. Run preflight again.',
+		'books.problem.missing_preflight_token': 'A fresh preflight token is required for this metadata lifecycle action. Run preflight again.',
+		'books.problem.invalid_preflight_token': 'The preflight token is invalid, expired, or tampered. Run preflight again.',
+		'books.problem.preflight_request_mismatch': 'The form no longer matches the preflight token. Run preflight again with the same display name, base currency, and default choice.',
+		'books.problem.preflight_source_mismatch': 'The source changed after preflight. Re-enter the mounted server-side path and run preflight again.',
 		'books.problem.invalid_path': 'The mounted server path is invalid. No book registry metadata was changed.',
 		'books.problem.unsupported_source': 'Only a supported server-side SQLite source under the allowed roots may be registered here.',
 		'books.problem.outside_allowed_roots': 'The source is outside the allowed server-side book roots.',
@@ -1157,19 +1240,26 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'books.problem.source_changed': 'The source changed after preflight. Run preflight again before confirming registration.',
 		'books.problem.open_failed': 'The API could not open the source in read-only mode.',
 		'books.problem.duplicate_canonical_path': 'This canonical book source is already registered in app metadata.',
+		'books.problem.book_not_enabled': 'This book metadata entry is disabled. Enable it with a fresh preflight before opening or making it default.',
+		'books.problem.book_not_healthy': 'Cached health is not ready. Recheck health successfully before opening or making this book default.',
+		'books.problem.book_health_not_checked': 'Cached health has not been checked yet. Run a health recheck first.',
 		'books.problem.api_unavailable': 'The API service is unavailable. No book registry metadata was changed.',
 		'books.problem.book_registry_failed': 'Book registry metadata update failed. No GnuCash source file was changed.',
 		'books.problem.unknown_book_problem': 'The API returned an unsupported book status. Private backend details are hidden.',
 		'books.manageSuccessSetDefault': 'Updated the default app metadata entry. No GnuCash accounting data was changed.',
 		'books.manageSuccessRemoveRegistry': 'Removed the book from the app registry only. The source GnuCash file is not deleted or modified.',
+		'books.manageSuccessRecheck': 'Refreshed cached health from a bounded read-only recheck. No GnuCash accounting data was changed.',
+		'books.manageSuccessRename': 'Updated display metadata only. No GnuCash source file was changed.',
+		'books.manageSuccessDisable': 'Disabled this app registration. The source GnuCash file remains present and unmodified.',
+		'books.manageSuccessEnable': 'Enabled this app registration after a fresh matching preflight. No GnuCash accounting data was changed.',
 		'books.removeMetadataConfirm':
 			'I understand this removes only app registration/access metadata. The source GnuCash file is not deleted or modified.',
 		'books.reportsLink': 'View reports',
-		'books.statusDetailsTitle': 'Status details and future management actions',
-		'books.statusDetailsHelp': 'This read-only detail pattern is ready for future rename, disable, and recheck wiring without exposing private paths.',
-		'books.renameFuture': 'Rename will update display metadata only when enabled in a later phase.',
-		'books.disableFuture': 'Disable/enable will control whether open links are exposed without touching the source file.',
-		'books.recheckFuture': 'Recheck will refresh typed health/status without registering a new book.',
+		'books.statusDetailsTitle': 'Status details and lifecycle route',
+		'books.statusDetailsHelp': 'Open Settings and health for path-redacted rename, disable/enable, unregister, and recheck actions.',
+		'books.renameFuture': 'Rename updates display metadata only.',
+		'books.disableFuture': 'Disable/enable controls app availability without touching the underlying file.',
+		'books.recheckFuture': 'Recheck refreshes typed health/status without registering a new book.',
 		'books.backToBooks': 'Back to books',
 		'books.newTitle': 'Add a GnuCash SQL SQLite book',
 		'books.newSubtitle': 'SSR-first admin flow: explain support, preflight the mounted source, then explicitly confirm metadata registration.',
@@ -1191,6 +1281,38 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'books.confirmRegisterSubmit': 'Confirm metadata registration',
 		'books.registrationSuccessTitle': 'Book metadata registered',
 		'books.registrationSuccessMessage': 'The app registry was updated only. The source GnuCash file was not deleted, modified, copied, or converted.',
+		'books.settingsTitle': 'Book settings and health',
+		'books.settingsSubtitle': 'Path-redacted read-only status for one registered book. Admin lifecycle actions affect app metadata/availability only.',
+		'books.settingsSummaryTitle': 'Registration summary',
+		'books.healthTitle': 'Cached health',
+		'books.healthHelp': 'Health fields are typed backend status codes mapped to local copy; backend messages, private paths, and arbitrary payloads are not rendered.',
+		'books.healthSafeCode': 'Safe code',
+		'books.healthSourceStatus': 'Source status',
+		'books.healthOpenStatus': 'Read-only open status',
+		'books.healthAccountsStatus': 'Accounts status',
+		'books.healthTransactionsStatus': 'Transactions status',
+		'books.healthReportsStatus': 'Reports status',
+		'books.adminLifecycleTitle': 'Admin lifecycle controls',
+		'books.adminLifecycleSafety': 'These controls call only the accepted app metadata lifecycle routes. They never upload, copy, edit, or remove the source GnuCash file.',
+		'books.renameTitle': 'Display metadata',
+		'books.renameHelp': 'Change only the app display name and base currency metadata.',
+		'books.renameAction': 'Save metadata',
+		'books.recheckTitle': 'Health recheck',
+		'books.recheckHelp': 'Run a bounded read-only health probe and update cached typed status fields.',
+		'books.recheckAction': 'Recheck health',
+		'books.disableTitle': 'Disable app availability',
+		'books.disableHelp': 'Disable this app registration and hide read-only open links. The source GnuCash file remains present and unmodified.',
+		'books.disableMetadataConfirm': 'I understand this changes only app registration/availability metadata. The source GnuCash file remains present, unmodified, and not deleted.',
+		'books.disableAction': 'Disable registration',
+		'books.enableTitle': 'Enable with fresh preflight',
+		'books.enablePreflightHelp': 'Enter the mounted server-side path again. The stored raw path is never shown; the preflight preview remains path-redacted and must be confirmed separately with an opaque token.',
+		'books.enablePath': 'Mounted server-side path for this registered book',
+		'books.enablePreflightSubmit': 'Run enable preflight',
+		'books.enablePreviewTitle': 'Path-redacted enable preflight preview',
+		'books.enableConfirmHelp': 'Confirm enable only if this preview matches the registered display name, base currency, and intended default choice.',
+		'books.enableConfirmSubmit': 'Confirm enable',
+		'books.unregisterTitle': 'Unregister app metadata',
+		'books.unregisterHelp': 'Remove this app registration/access metadata only. The source GnuCash file remains present, unmodified, and not deleted.',
 		'books.section.source': 'Source',
 		'books.section.open': 'Read-only open',
 		'books.section.accounts': 'Accounts',
@@ -1859,11 +1981,23 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'books.openSafeViews': 'Открыть безопасные разделы',
 		'books.unavailableViews':
 			'Read-only разделы с данными скрыты, пока книга недоступна из runtime; используйте безопасную диагностику выше без раскрытия приватных путей.',
-		'books.viewAccounts': 'Счета',
-		'books.browseTransactions': 'Транзакции',
-		'books.viewScheduled': 'Плановые метаданные',
-		'books.dashboardSummary': 'Обзор',
-		'books.noManagementActions': 'На этой read-only странице нет действий управления реестром книг.',
+		'books.viewAccounts': 'Открыть счета',
+		'books.browseTransactions': 'Открыть транзакции',
+		'books.viewScheduled': 'Открыть scheduled metadata',
+		'books.dashboardSummary': 'Сводка dashboard',
+		'books.settingsLink': 'Настройки и health',
+		'books.lastSuccessfulAt': 'Последняя успешная проверка',
+		'books.capabilitiesTitle': 'Read-only возможности',
+		'books.capabilityReadOnly': 'Read-only режим',
+		'books.capabilityAccounts': 'Счета',
+		'books.capabilityTransactions': 'Транзакции',
+		'books.capabilityReports': 'Отчёты',
+		'books.capabilityUpload': 'Browser upload',
+		'books.capabilityEdit': 'Редактирование GnuCash',
+		'books.capabilityDelete': 'Удаление underlying file',
+		'books.yes': 'Да',
+		'books.no': 'Нет',
+		'books.noManagementActions': 'На этой read-only странице нет доступных действий управления реестром.',
 		'books.registryManagement': 'Управление реестром',
 		'books.registryManagementSafety':
 			'Admin-only действия с метаданными. Они меняют только реестр/основную книгу приложения и никогда не удаляют и не редактируют файл GnuCash.',
@@ -1921,10 +2055,20 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'books.status.remote_or_unchecked': 'Источник не проверен',
 		'books.status.invalid_gnucash_schema': 'Некорректная GnuCash SQL книга',
 		'books.status.action_required': 'Требуется действие',
+		'books.status.not_checked': 'Не проверено',
+		'books.status.disabled': 'Отключено',
+		'books.status.failed': 'Ошибка',
+		'books.status.empty': 'Пусто',
+		'books.status.blocked': 'Заблокировано',
+		'books.status.unsupported': 'Не поддерживается',
 		'books.problem.admin_required': 'Для управления реестром книг нужны права администратора.',
 		'books.problem.preflight_required': 'Сначала выполните успешный preflight и подтвердите metadata-only действие регистрации.',
 		'books.problem.preflight_rejected': 'Preflight отклонил этот источник. Книга не зарегистрирована.',
 		'books.problem.preflight_token_invalid': 'Preflight token отсутствует, истёк или не соответствует значениям формы. Запустите preflight снова.',
+		'books.problem.missing_preflight_token': 'Для этого metadata lifecycle действия нужен свежий preflight token. Запустите preflight снова.',
+		'books.problem.invalid_preflight_token': 'Preflight token некорректен, истёк или изменён. Запустите preflight снова.',
+		'books.problem.preflight_request_mismatch': 'Форма больше не соответствует preflight token. Запустите preflight снова с тем же названием, базовой валютой и выбором default.',
+		'books.problem.preflight_source_mismatch': 'Источник изменился после preflight. Введите смонтированный server-side путь заново и запустите preflight снова.',
 		'books.problem.invalid_path': 'Смонтированный server path некорректен. Метаданные реестра книг не изменены.',
 		'books.problem.unsupported_source': 'Здесь можно регистрировать только поддержанный server-side SQLite источник внутри разрешённых roots.',
 		'books.problem.outside_allowed_roots': 'Источник находится вне разрешённых server-side roots для книг.',
@@ -1937,19 +2081,26 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'books.problem.source_changed': 'Источник изменился после preflight. Запустите preflight снова перед подтверждением регистрации.',
 		'books.problem.open_failed': 'API не смог открыть источник в read-only режиме.',
 		'books.problem.duplicate_canonical_path': 'Этот canonical source книги уже зарегистрирован в app metadata.',
+		'books.problem.book_not_enabled': 'Эта запись metadata отключена. Включите её через свежий preflight перед открытием или назначением default.',
+		'books.problem.book_not_healthy': 'Cached health не готов. Сначала успешно выполните health recheck.',
+		'books.problem.book_health_not_checked': 'Cached health ещё не проверен. Сначала запустите health recheck.',
 		'books.problem.api_unavailable': 'API service недоступен. Метаданные реестра книг не изменены.',
 		'books.problem.book_registry_failed': 'Обновление метаданных реестра книг не удалось. Файл GnuCash не изменён.',
 		'books.problem.unknown_book_problem': 'API вернул неподдержанный статус книги. Private backend details скрыты.',
 		'books.manageSuccessSetDefault': 'Обновлена основная запись app metadata. Бухгалтерские данные GnuCash не изменены.',
 		'books.manageSuccessRemoveRegistry': 'Книга удалена только из реестра приложения. Файл GnuCash не удаляется и не изменяется.',
+		'books.manageSuccessRecheck': 'Cached health обновлён bounded read-only проверкой. Бухгалтерские данные GnuCash не изменены.',
+		'books.manageSuccessRename': 'Обновлены только display metadata. Source file GnuCash не изменён.',
+		'books.manageSuccessDisable': 'Эта app registration отключена. Source file GnuCash остаётся на месте и не изменён.',
+		'books.manageSuccessEnable': 'App registration включена после свежего matching preflight. Бухгалтерские данные GnuCash не изменены.',
 		'books.removeMetadataConfirm':
 			'Я понимаю, что удаляется только регистрация/доступ в app metadata. Файл GnuCash не удаляется и не изменяется.',
 		'books.reportsLink': 'Открыть отчёты',
-		'books.statusDetailsTitle': 'Детали статуса и будущие действия управления',
-		'books.statusDetailsHelp': 'Этот read-only detail pattern готов для будущих rename, disable и recheck без раскрытия приватных путей.',
-		'books.renameFuture': 'Rename будет менять только display metadata, когда будет включён на поздней фазе.',
-		'books.disableFuture': 'Disable/enable будет управлять показом open links без изменения source file.',
-		'books.recheckFuture': 'Recheck будет обновлять typed health/status без регистрации новой книги.',
+		'books.statusDetailsTitle': 'Детали статуса и lifecycle route',
+		'books.statusDetailsHelp': 'Откройте Settings and health для path-redacted rename, disable/enable, unregister и recheck действий.',
+		'books.renameFuture': 'Rename меняет только display metadata.',
+		'books.disableFuture': 'Disable/enable управляет app availability без изменения underlying file.',
+		'books.recheckFuture': 'Recheck обновляет typed health/status без регистрации новой книги.',
 		'books.backToBooks': 'Назад к книгам',
 		'books.newTitle': 'Добавить GnuCash SQL SQLite книгу',
 		'books.newSubtitle': 'SSR-first admin flow: объяснить поддержку, выполнить preflight смонтированного источника, затем явно подтвердить регистрацию метаданных.',
@@ -1971,6 +2122,38 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'books.confirmRegisterSubmit': 'Подтвердить регистрацию метаданных',
 		'books.registrationSuccessTitle': 'Метаданные книги зарегистрированы',
 		'books.registrationSuccessMessage': 'App registry обновлён только metadata-only. Source GnuCash file не был удалён, изменён, скопирован или converted.',
+		'books.settingsTitle': 'Настройки и health книги',
+		'books.settingsSubtitle': 'Path-redacted read-only статус одной зарегистрированной книги. Admin lifecycle actions меняют только app metadata/availability.',
+		'books.settingsSummaryTitle': 'Сводка регистрации',
+		'books.healthTitle': 'Cached health',
+		'books.healthHelp': 'Health fields — typed backend status codes, показанные через локальные тексты; backend messages, private paths и arbitrary payloads не отображаются.',
+		'books.healthSafeCode': 'Safe code',
+		'books.healthSourceStatus': 'Статус source',
+		'books.healthOpenStatus': 'Статус read-only open',
+		'books.healthAccountsStatus': 'Статус счетов',
+		'books.healthTransactionsStatus': 'Статус транзакций',
+		'books.healthReportsStatus': 'Статус отчётов',
+		'books.adminLifecycleTitle': 'Admin lifecycle controls',
+		'books.adminLifecycleSafety': 'Эти controls вызывают только accepted app metadata lifecycle routes. Они никогда не upload/copy/edit/remove source GnuCash file.',
+		'books.renameTitle': 'Display metadata',
+		'books.renameHelp': 'Изменить только app display name и base currency metadata.',
+		'books.renameAction': 'Сохранить metadata',
+		'books.recheckTitle': 'Health recheck',
+		'books.recheckHelp': 'Запустить bounded read-only health probe и обновить cached typed status fields.',
+		'books.recheckAction': 'Проверить health',
+		'books.disableTitle': 'Отключить app availability',
+		'books.disableHelp': 'Отключить эту app registration и скрыть read-only open links. Source file GnuCash остаётся на месте и не изменяется.',
+		'books.disableMetadataConfirm': 'Я понимаю, что меняется только app registration/availability metadata. Source file GnuCash остаётся на месте, не изменяется и не удаляется.',
+		'books.disableAction': 'Отключить registration',
+		'books.enableTitle': 'Включить через fresh preflight',
+		'books.enablePreflightHelp': 'Введите смонтированный server-side path заново. Сохранённый raw path никогда не показывается; preflight preview остаётся path-redacted и подтверждается отдельно opaque token.',
+		'books.enablePath': 'Смонтированный server-side path для этой зарегистрированной книги',
+		'books.enablePreflightSubmit': 'Запустить enable preflight',
+		'books.enablePreviewTitle': 'Path-redacted preview для enable preflight',
+		'books.enableConfirmHelp': 'Подтверждайте enable только если preview соответствует registered display name, base currency и нужному default choice.',
+		'books.enableConfirmSubmit': 'Подтвердить enable',
+		'books.unregisterTitle': 'Unregister app metadata',
+		'books.unregisterHelp': 'Удалить только app registration/access metadata. Source file GnuCash остаётся на месте, не изменяется и не удаляется.',
 		'books.section.source': 'Источник',
 		'books.section.open': 'Read-only open',
 		'books.section.accounts': 'Счета',

@@ -34,6 +34,8 @@ assert.ok(existsSync(pathOf('src', 'routes', 'books', '+page.server.ts')), '/boo
 assert.ok(existsSync(pathOf('src', 'routes', 'books', '+page.svelte')), '/books page route must exist');
 assert.ok(existsSync(pathOf('src', 'routes', 'books', 'new', '+page.server.ts')), '/books/new server route must exist');
 assert.ok(existsSync(pathOf('src', 'routes', 'books', 'new', '+page.svelte')), '/books/new page route must exist');
+assert.ok(existsSync(pathOf('src', 'routes', 'books', '[bookId]', 'settings', '+page.server.ts')), '/books/[bookId]/settings server route must exist');
+assert.ok(existsSync(pathOf('src', 'routes', 'books', '[bookId]', 'settings', '+page.svelte')), '/books/[bookId]/settings page route must exist');
 
 const apiTypes = read('src', 'lib', 'api', 'types.ts');
 const apiServer = read('src', 'lib', 'api', 'server.ts');
@@ -41,11 +43,16 @@ const booksServer = read('src', 'routes', 'books', '+page.server.ts');
 const booksPage = read('src', 'routes', 'books', '+page.svelte');
 const newServer = read('src', 'routes', 'books', 'new', '+page.server.ts');
 const newPage = read('src', 'routes', 'books', 'new', '+page.svelte');
+const settingsServer = read('src', 'routes', 'books', '[bookId]', 'settings', '+page.server.ts');
+const settingsPage = read('src', 'routes', 'books', '[bookId]', 'settings', '+page.svelte');
 const selectRoute = read('src', 'routes', 'books', '[bookId]', 'select', '+server.ts');
 const i18nMessages = read('src', 'lib', 'i18n', 'messages.ts');
 
 assert.match(apiTypes, /export type CurrentUser[\s\S]*is_admin:\s*boolean/s, 'API types must model authenticated admin authority from /auth/me.is_admin');
 assert.match(apiTypes, /export type BookProblemCode[\s\S]*invalid_path[\s\S]*outside_allowed_roots[\s\S]*duplicate_canonical_path[\s\S]*unknown_book_problem/s, 'BookProblemCode must use the fixed backend safe-code union with a generic fallback');
+for (const lifecycleProblem of ['missing_preflight_token', 'invalid_preflight_token', 'preflight_request_mismatch', 'preflight_source_mismatch', 'book_not_enabled', 'book_not_healthy', 'book_health_not_checked']) {
+	assert.ok(apiTypes.includes(`'${lifecycleProblem}'`), `BookProblemCode must include lifecycle safe code ${lifecycleProblem}`);
+}
 const problemCodeBlock = apiTypes.slice(apiTypes.indexOf('export type BookProblemCode ='), apiTypes.indexOf('export type BookProblemDTO ='));
 assert.doesNotMatch(problemCodeBlock, /'ready'|'source_ready'|'accounts_ready'/, 'BookProblemCode must not include readiness/status codes');
 assert.match(apiTypes, /export type BookReadinessCode[\s\S]*'ready'[\s\S]*'source_ready'[\s\S]*'accounts_ready'[\s\S]*'reports_ready'/s, 'readiness codes must be modeled separately from BookProblemCode');
@@ -94,6 +101,7 @@ assert.doesNotMatch(publicBookBlock, /uri_or_path:\s*string/, 'public Book DTO m
 
 assert.match(apiServer, /getCurrentUser\(fetchFn: typeof fetch, token: string\)[\s\S]*apiFetch<CurrentUser>\(fetchFn, '\/auth\/me', token\)/s, 'frontend must derive admin authority from authenticated API user data');
 assert.match(apiServer, /isCurrentUserAdmin\(user: CurrentUser \| null\)[\s\S]*user\?\.is_admin === true/s, 'admin derivation must fail closed unless API explicitly says is_admin=true');
+assert.match(apiServer, /allowedBookProblemCodes[\s\S]*unknown_book_problem[\s\S]*fixedBookProblemCode[\s\S]*apiMutationFetch/s, 'shared server API mutation helper must reduce lifecycle/management errors to fixed safe codes with a generic fallback');
 const adminHelperBlock = apiServer.slice(apiServer.indexOf('export function isCurrentUserAdmin'), apiServer.indexOf('function getSelectedBookCookieState'));
 assert.doesNotMatch(adminHelperBlock, /username|display_name|books|management_actions/, 'admin derivation must not infer authority from username, display name, book contents, or management actions');
 
@@ -112,8 +120,9 @@ assert.doesNotMatch(booksPage, /href="\/login"|Sign in again|name="mounted_path"
 assert.match(booksPage, /capabilityLinks\(book\)[\s\S]*\/books\/\$\{book\.id\}\/select\?next=\$\{link\.next\}/s, 'book cards must build open links through the capability allowlist helper');
 assert.match(booksPage, /can_open_accounts[\s\S]*next: '\/accounts'[\s\S]*can_open_transactions[\s\S]*next: '\/transactions'[\s\S]*can_open_reports[\s\S]*next: '\/reports'/s, 'book cards must include Accounts, Transactions, and Reports safe links gated by exact capability names');
 assert.doesNotMatch(booksPage, /next: '\/scheduled'|next: '\/dashboard'|viewScheduled|dashboardSummary/, 'book cards must not expose non-contract scheduled/dashboard open links');
-assert.match(booksPage, /isBookEnabled\(book\)[\s\S]*canOpenCapability\(book, link\.capability\)/s, 'disabled/unavailable cards must not expose open links');
-for (const requiredBookField of ['book.health?.status', 'book.health?.checked_at', 'book.is_enabled']) {
+assert.match(booksPage, /isBookEnabled\(book\)[\s\S]*book\.capabilities\?\.\[capability\] === true/s, 'disabled/unavailable cards must not expose open links and must require explicit capability=true');
+assert.match(booksPage, /href=\{`\/books\/\$\{book\.id\}\/settings`\}/, 'book cards must link to the SSR settings/detail route');
+for (const requiredBookField of ['book.health?.status', 'book.health?.checked_at', 'book.health?.last_successful_at', 'book.is_enabled', 'book.capabilities?.can_open_accounts']) {
 	assert.ok(booksPage.includes(requiredBookField), `book cards must show typed health/check/enabled field: ${requiredBookField}`);
 }
 assert.match(booksPage, /books\.statusDetailsTitle[\s\S]*books\.renameFuture[\s\S]*books\.disableFuture[\s\S]*books\.recheckFuture/s, 'book cards must include an accessible detail pattern ready for rename/disable/recheck wiring');
@@ -146,6 +155,31 @@ assert.doesNotMatch(newPage, /item\.message|registration_status\.message|source_
 assert.match(newPage, /checked_at[\s\S]*books\.preflightTokenOpaque[\s\S]*preflight_token/s, 'preflight UI must show checked time and describe token as opaque without placing it in URL');
 assert.doesNotMatch(newPage, /type="file"|webkitdirectory|showOpenFilePicker|FileSystem|DataTransfer|localStorage|sessionStorage|fetch\(/i, '/books/new must not expose upload/client-filesystem/browser-persistence UI');
 assert.doesNotMatch(newPage, /overflow-x-auto|min-w-full/, '/books/new must not introduce fixed mobile horizontal overflow hazards');
+
+assert.match(settingsServer, /loadBook\(fetch, token, bookId\)[\s\S]*getCurrentUser\(fetch, token\)[\s\S]*isCurrentUserAdmin\(currentUser\)/s, '/books/[bookId]/settings load must fetch one authorized book and derive admin state from /auth/me');
+assert.match(settingsServer, /`\/books\/\$\{bookId\}\/health\/recheck`[\s\S]*'POST'/s, 'settings recheck action must POST /books/{id}/health/recheck');
+assert.match(settingsServer, /`\/books\/\$\{bookId\}`[\s\S]*'PATCH'[\s\S]*name[\s\S]*base_currency/s, 'settings rename action must PATCH /books/{id} with name/base_currency only');
+assert.match(settingsServer, /`\/books\/\$\{bookId\}\/disable`[\s\S]*'POST'[\s\S]*clearSelectedBookCookieIfMatches\(cookies, bookId\)/s, 'settings disable action must POST /books/{id}/disable and clear the active selected-book cookie when matched');
+assert.match(settingsServer, /'\/books\/preflight'[\s\S]*'POST'[\s\S]*enablePreflightRequest\(book, mountedPath, makeDefault\)/s, 'settings enable preflight must POST /books/preflight with registered display name/base currency and the re-entered mounted path');
+assert.match(settingsServer, /`\/books\/\$\{bookId\}\/enable`[\s\S]*'POST'[\s\S]*preflight_token[\s\S]*make_default/s, 'settings enable confirm must POST /books/{id}/enable with opaque token and make_default');
+assert.match(settingsServer, /`\/books\/\$\{bookId\}`[\s\S]*'DELETE'[\s\S]*clearSelectedBookCookieIfMatches\(cookies, bookId\)[\s\S]*\/books\?manage_success=remove_registry/s, 'settings unregister action must soft DELETE app metadata, clear selected cookie, and redirect to a safe books-list notice');
+assert.match(settingsServer, /apiMutationFetch[\s\S]*lifecycleErrorCode: result\.message/s, 'settings lifecycle errors must use the shared safe-code API mutation helper');
+assert.doesNotMatch(settingsServer, /return .*detail|message:\s*redactedApiError|safe_summary|safe_next_actions|exception|traceback/i, 'settings server actions must not pass arbitrary backend detail into rendered errors');
+
+assert.match(settingsPage, /data\.book\.health\?\.last_successful_at[\s\S]*healthRows[\s\S]*capabilityRows/s, 'settings page must show cached typed health fields, checked timestamps, and capabilities');
+assert.match(settingsPage, /canOpenCapability\(book[\s\S]*book\.capabilities\?\.\[capability\] === true/s, 'settings safe links must require enabled/openable books and explicit capability=true');
+assert.match(settingsPage, /books\.viewAccounts[\s\S]*books\.browseTransactions[\s\S]*books\.reportsLink[\s\S]*href=\{link\.href\}/s, 'settings page must expose safe Accounts/Transactions/Reports links only through the capability allowlist');
+const settingsAdminBlock = settingsPage.slice(settingsPage.indexOf('{#if data.isAdmin}'));
+const settingsViewerBlock = settingsPage.slice(settingsPage.indexOf('</script>'), settingsPage.indexOf('{#if data.isAdmin}'));
+assert.match(settingsAdminBlock, /action="\?\/renameBook"[\s\S]*action="\?\/recheckHealth"[\s\S]*action="\?\/disableBook"[\s\S]*action="\?\/enablePreflight"[\s\S]*action="\?\/enableBook"[\s\S]*action="\?\/removeBook"/s, 'admin-only settings block must render rename, recheck, disable, enable preflight/confirm, and unregister forms');
+assert.doesNotMatch(settingsViewerBlock, /action="\?\/(?:renameBook|recheckHealth|disableBook|enablePreflight|enableBook|removeBook)"|preflight_token/, 'normal-user settings content must not include admin forms or opaque tokens');
+assert.match(settingsPage, /books\.enablePreflightHelp[\s\S]*name="mounted_path" required autocomplete="off"/s, 'enable flow must explicitly ask the admin to re-enter the mounted server-side path');
+const enableConfirmBlock = settingsPage.slice(settingsPage.indexOf('action="?/enableBook"'), settingsPage.indexOf('books.enableConfirmSubmit'));
+assert.doesNotMatch(enableConfirmBlock, /mounted_path|uri_or_path|data\.book\.storage|storage_diagnostics/, 'enable confirm must submit only the opaque preflight token and make_default, never a raw/stored path');
+assert.match(settingsPage, /books\.disableMetadataConfirm[\s\S]*books\.removeMetadataConfirm/s, 'disable and unregister confirmations must use metadata-only/no-source-delete copy');
+assert.doesNotMatch(settingsPage, /item\.message|registration_status\.message|source_status\.message|safe_message|operator_guidance\.message|safe_next_actions|uri_or_path/, 'settings page must not render backend messages, raw paths, safe_message, or guidance passthrough');
+assert.doesNotMatch(settingsPage, /type="file"|webkitdirectory|showOpenFilePicker|FileSystem|DataTransfer|localStorage|sessionStorage|fetch\(/i, 'settings page must not expose upload/client-filesystem/browser-persistence UI');
+assert.doesNotMatch(settingsPage, /overflow-x-auto|min-w-full/, 'settings page must not introduce fixed mobile horizontal overflow hazards');
 
 assert.match(selectRoute, /SAFE_NEXT_PATHS[\s\S]*'\/accounts'[\s\S]*'\/transactions'[\s\S]*'\/reports'/s, 'book safe-link route must allow Accounts/Transactions/Reports');
 assert.match(selectRoute, /selectedBook\.can_open_read_only_views[\s\S]*\/books\?book_context=unavailable_selected_book/s, 'book safe-link route must withhold unavailable books before redirecting');
@@ -180,6 +214,18 @@ for (const key of [
 	'books.removeMetadataConfirm',
 	'books.reportsLink',
 	'books.statusDetailsTitle',
+	'books.settingsLink',
+	'books.settingsTitle',
+	'books.healthTitle',
+	'books.lastSuccessfulAt',
+	'books.capabilitiesTitle',
+	'books.enablePreflightHelp',
+	'books.enableConfirmSubmit',
+	'books.disableMetadataConfirm',
+	'books.problem.missing_preflight_token',
+	'books.problem.preflight_request_mismatch',
+	'books.problem.book_not_healthy',
+	'books.manageSuccessEnable',
 	'books.statusCode.source_ready',
 	'books.statusCode.accounts_ready',
 	'books.statusCode.registration_available',

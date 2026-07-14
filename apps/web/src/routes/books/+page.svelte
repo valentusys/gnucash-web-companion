@@ -7,6 +7,27 @@
 
 	type ManageSuccessCode = 'set_default' | 'remove_registry';
 
+	const knownStatusCodes = new Set([
+		'ready',
+		'available',
+		'ok',
+		'warning',
+		'rejected',
+		'unavailable',
+		'unknown',
+		'missing_file',
+		'not_configured',
+		'remote_or_unchecked',
+		'invalid_gnucash_schema',
+		'action_required',
+		'not_checked',
+		'disabled',
+		'failed',
+		'empty',
+		'blocked',
+		'unsupported'
+	]);
+
 	let { data, form }: {
 		data: {
 			locale?: Locale;
@@ -14,6 +35,7 @@
 			activeBook: Book | null;
 			isAdmin: boolean;
 			bookContextNotice: string | null;
+			manageSuccessNotice: ManageSuccessCode | null;
 		};
 		form?: {
 			manageSuccessCode?: ManageSuccessCode;
@@ -49,8 +71,13 @@
 		return book.health?.checked_at ?? book.updated_at ?? book.created_at ?? t(locale, 'books.notChecked');
 	}
 
+	function bookLastSuccessfulAt(book: Book): string {
+		return book.health?.last_successful_at ?? t(locale, 'books.notChecked');
+	}
+
 	function statusLabel(status: string): string {
-		return t(locale, `books.status.${status || 'unknown'}` as MessageKey);
+		const safeStatus = knownStatusCodes.has(status) ? status : 'unknown';
+		return t(locale, `books.status.${safeStatus}` as MessageKey);
 	}
 
 	function bookProblemMessage(locale: Locale, code: BookProblemCode | undefined): string {
@@ -64,7 +91,7 @@
 	}
 
 	function canOpenCapability(book: Book, capability: 'can_open_accounts' | 'can_open_transactions' | 'can_open_reports'): boolean {
-		return isBookEnabled(book) && book.can_open_read_only_views && book.capabilities?.[capability] !== false;
+		return isBookEnabled(book) && book.can_open_read_only_views && book.capabilities?.[capability] === true;
 	}
 
 	function capabilityLinks(book: Book) {
@@ -118,6 +145,8 @@
 
 	{#if form?.manageSuccessCode}
 		<p class="mb-6 rounded-xl border p-3 text-sm" style="border-color: var(--app-accent); color: var(--app-text); background-color: var(--app-accent-soft);" role="status">{successMessage(form.manageSuccessCode)}</p>
+	{:else if data.manageSuccessNotice}
+		<p class="mb-6 rounded-xl border p-3 text-sm" style="border-color: var(--app-accent); color: var(--app-text); background-color: var(--app-accent-soft);" role="status">{successMessage(data.manageSuccessNotice)}</p>
 	{/if}
 	{#if form?.manageErrorCode}
 		<p class="mb-6 rounded-xl border p-3 text-sm" style="border-color: var(--app-danger); color: var(--app-text); background-color: var(--app-card-bg);" role="alert">{bookProblemMessage(locale, form.manageErrorCode)}</p>
@@ -149,14 +178,25 @@
 									<span class="rounded-full px-2 py-1 text-xs font-semibold" style="background-color: var(--app-hover-bg); color: var(--app-muted);">{t(locale, 'books.readOnlyBadge')}</span>
 								</div>
 							</div>
+							<a class="inline-flex min-h-11 w-fit items-center rounded-lg border px-3 py-2 text-sm font-medium" style="border-color: var(--app-border); color: var(--app-text);" href={`/books/${book.id}/settings`}>{t(locale, 'books.settingsLink')}</a>
 						</div>
 
-						<dl class="mt-4 grid min-w-0 gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+						<dl class="mt-4 grid min-w-0 gap-3 text-sm sm:grid-cols-2 lg:grid-cols-5">
 							<div class="min-w-0"><dt class="font-medium" style="color: var(--app-muted);">{t(locale, 'books.baseCurrency')}</dt><dd class="mt-1 break-words" style="color: var(--app-text);">{formatBaseCurrency(book.base_currency)}</dd></div>
 							<div class="min-w-0"><dt class="font-medium" style="color: var(--app-muted);">{t(locale, 'books.status')}</dt><dd class="mt-1 break-words" style="color: var(--app-text);">{statusLabel(bookHealthStatus(book))}</dd></div>
 							<div class="min-w-0"><dt class="font-medium" style="color: var(--app-muted);">{t(locale, 'books.preflightCheckedAt')}</dt><dd class="mt-1 break-words" style="color: var(--app-text);">{bookCheckedAt(book)}</dd></div>
+							<div class="min-w-0"><dt class="font-medium" style="color: var(--app-muted);">{t(locale, 'books.lastSuccessfulAt')}</dt><dd class="mt-1 break-words" style="color: var(--app-text);">{bookLastSuccessfulAt(book)}</dd></div>
 							<div class="min-w-0"><dt class="font-medium" style="color: var(--app-muted);">{t(locale, 'books.accessRole')}</dt><dd class="mt-1 break-words" style="color: var(--app-text);">{book.access_role_label || book.access_role || t(locale, 'books.unknown')}</dd></div>
 						</dl>
+
+						<section class="mt-4 rounded-xl border p-3 text-sm" style="border-color: var(--app-border); background-color: var(--app-card-bg);" aria-label={t(locale, 'books.capabilitiesTitle')}>
+							<h4 class="font-semibold" style="color: var(--app-text);">{t(locale, 'books.capabilitiesTitle')}</h4>
+							<ul class="mt-2 grid gap-1 sm:grid-cols-3" style="color: var(--app-muted);">
+								<li>{t(locale, 'books.capabilityAccounts')}: {book.capabilities?.can_open_accounts ? t(locale, 'books.yes') : t(locale, 'books.no')}</li>
+								<li>{t(locale, 'books.capabilityTransactions')}: {book.capabilities?.can_open_transactions ? t(locale, 'books.yes') : t(locale, 'books.no')}</li>
+								<li>{t(locale, 'books.capabilityReports')}: {book.capabilities?.can_open_reports ? t(locale, 'books.yes') : t(locale, 'books.no')}</li>
+							</ul>
+						</section>
 
 						<section class="mt-4 rounded-xl border p-3 text-sm" style="border-color: var(--app-border); background-color: var(--app-card-bg);" aria-label={t(locale, 'books.storageDiagnostics')}>
 							<h4 class="font-semibold" style="color: var(--app-text);">{t(locale, 'books.storageDiagnostics')}</h4>

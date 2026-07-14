@@ -1,5 +1,5 @@
 import { error, redirect, type Cookies } from '@sveltejs/kit';
-import type { Book, CurrentUser } from '$lib/api/types';
+import type { Book, BookProblemCode, CurrentUser } from '$lib/api/types';
 
 const SELECTED_BOOK_COOKIE = 'selected_book_id';
 const SELECTED_BOOK_MAX_AGE = 60 * 60 * 24 * 30;
@@ -27,6 +27,64 @@ type SelectedBookCookieState = {
 	selectedBookId: number | null;
 	invalid: boolean;
 };
+
+type ApiMutationMethod = 'POST' | 'PATCH' | 'DELETE';
+
+export type ApiMutationResult<T> =
+	| { ok: true; payload: T }
+	| { ok: false; status: number; message: BookProblemCode };
+
+const allowedBookProblemCodes = new Set<BookProblemCode>([
+	'admin_required',
+	'preflight_required',
+	'preflight_rejected',
+	'preflight_token_invalid',
+	'missing_preflight_token',
+	'invalid_preflight_token',
+	'preflight_request_mismatch',
+	'preflight_source_mismatch',
+	'invalid_path',
+	'unsupported_source',
+	'outside_allowed_roots',
+	'symlink_forbidden',
+	'missing_file',
+	'not_regular_file',
+	'permission_denied',
+	'unsupported_format',
+	'invalid_gnucash_schema',
+	'source_changed',
+	'open_failed',
+	'duplicate_canonical_path',
+	'book_not_enabled',
+	'book_not_healthy',
+	'book_health_not_checked',
+	'api_unavailable',
+	'book_registry_failed',
+	'unknown_book_problem'
+]);
+
+export function fixedBookProblemCode(payload: unknown, fallback: BookProblemCode): BookProblemCode {
+	let candidate: unknown = null;
+	if (payload && typeof payload === 'object') {
+		const record = payload as Record<string, unknown>;
+		candidate = record.safe_code ?? record.code;
+		if (!candidate && record.detail && typeof record.detail === 'object') {
+			const detail = record.detail as Record<string, unknown>;
+			candidate = detail.safe_code ?? detail.code;
+		}
+	}
+	return typeof candidate === 'string' && allowedBookProblemCodes.has(candidate as BookProblemCode)
+		? (candidate as BookProblemCode)
+		: fallback;
+}
+
+async function safeJson(response: Response): Promise<unknown> {
+	try {
+		return await response.json();
+	} catch {
+		return null;
+	}
+}
 
 export function getAuthToken(cookies: Cookies): string {
 	const token = cookies.get('access_token');
@@ -56,6 +114,13 @@ function getSelectedBookCookieState(cookies: Cookies): SelectedBookCookieState {
 
 export function getActiveBookId(cookies: Cookies): number | null {
 	return getSelectedBookCookieState(cookies).selectedBookId;
+}
+
+export function clearSelectedBookCookieIfMatches(cookies: Cookies, bookId: number): void {
+	const selected = getSelectedBookCookieState(cookies).selectedBookId;
+	if (selected === bookId) {
+		cookies.delete(SELECTED_BOOK_COOKIE, { path: '/' });
+	}
 }
 
 export function resolveActiveBook(books: Book[], selectedBookId: number | null): Book | null {
@@ -158,4 +223,45 @@ export async function apiFetch<T>(
 		throw error(response.status, 'API request failed.');
 	}
 	return (await response.json()) as T;
+}
+
+export async function apiMutationFetch<T>(
+	fetchFn: typeof fetch,
+	token: string,
+	path: string,
+	method: ApiMutationMethod,
+	body?: Record<string, unknown>
+): Promise<ApiMutationResult<T>> {
+	const apiBase = process.env.API_INTERNAL_URL ?? 'http://localhost:8000';
+	const headers: Record<string, string> = {
+		authorization: `Bearer ${token}`
+	};
+	if (body !== undefined) {
+		headers['content-type'] = 'application/json';
+	}
+	try {
+		const response = await fetchFn(`${apiBase}${path}`, {
+			method,
+			headers,
+			body: body !== undefined ? JSON.stringify(body) : undefined
+		});
+		const payload = await safeJson(response);
+		if (!response.ok) {
+			return {
+				ok: false,
+				status: response.status,
+				message: fixedBookProblemCode(
+					payload,
+					response.status === 403 ? 'admin_required' : 'book_registry_failed'
+				)
+			};
+		}
+		return { ok: true, payload: payload as T };
+	} catch {
+		return {
+			ok: false,
+			status: 502,
+			message: 'api_unavailable'
+		};
+	}
 }

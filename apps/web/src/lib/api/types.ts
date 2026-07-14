@@ -28,6 +28,10 @@ export type BookProblemCode =
 	| 'preflight_required'
 	| 'preflight_rejected'
 	| 'preflight_token_invalid'
+	| 'missing_preflight_token'
+	| 'invalid_preflight_token'
+	| 'preflight_request_mismatch'
+	| 'preflight_source_mismatch'
 	| 'invalid_path'
 	| 'unsupported_source'
 	| 'outside_allowed_roots'
@@ -40,6 +44,9 @@ export type BookProblemCode =
 	| 'source_changed'
 	| 'open_failed'
 	| 'duplicate_canonical_path'
+	| 'book_not_enabled'
+	| 'book_not_healthy'
+	| 'book_health_not_checked'
 	| 'api_unavailable'
 	| 'book_registry_failed'
 	| 'unknown_book_problem';
@@ -81,6 +88,7 @@ export type BookSectionStatus = {
 };
 
 export type BookCapabilityFlags = {
+	read_only?: boolean;
 	can_register_metadata: boolean;
 	can_open_accounts: boolean;
 	can_open_transactions: boolean;
@@ -88,6 +96,8 @@ export type BookCapabilityFlags = {
 	can_upload: false;
 	can_edit: false;
 	can_delete: false;
+	can_edit_gnucash?: false;
+	can_delete_source?: false;
 };
 
 export type BookHealth = {
