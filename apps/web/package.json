@@ -16,6 +16,7 @@
 		"test:reports-browser": "npm run build && node scripts/test-reports-browser.mjs",
 		"test:dashboard-browser": "npm run build && node scripts/test-dashboard-browser.mjs",
 		"test:accounts-explorer": "node scripts/test-accounts-explorer-static.mjs",
+		"test:books-onboarding": "node scripts/test-books-onboarding-static.mjs",
 		"test:accounts-explorer-browser": "npm run build && node scripts/test-accounts-explorer-browser.mjs",
 		"test:transactions-explorer": "node scripts/test-transactions-explorer-static.mjs",
 		"test:transactions-explorer-browser": "npm run build && node scripts/test-transactions-explorer-browser.mjs",

@@ -1,5 +1,5 @@
 import { error, redirect, type Cookies } from '@sveltejs/kit';
-import type { Book } from '$lib/api/types';
+import type { Book, CurrentUser } from '$lib/api/types';
 
 const SELECTED_BOOK_COOKIE = 'selected_book_id';
 const SELECTED_BOOK_MAX_AGE = 60 * 60 * 24 * 30;
@@ -34,6 +34,14 @@ export function getAuthToken(cookies: Cookies): string {
 		throw redirect(303, '/login');
 	}
 	return token;
+}
+
+export async function getCurrentUser(fetchFn: typeof fetch, token: string): Promise<CurrentUser> {
+	return apiFetch<CurrentUser>(fetchFn, '/auth/me', token);
+}
+
+export function isCurrentUserAdmin(user: CurrentUser | null): boolean {
+	return user?.is_admin === true;
 }
 
 function getSelectedBookCookieState(cookies: Cookies): SelectedBookCookieState {

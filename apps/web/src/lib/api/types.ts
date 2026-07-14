@@ -16,13 +16,102 @@ export type BookStorageDiagnostics = {
 	safe_next_actions: string[];
 };
 
+export type CurrentUser = {
+	id: number;
+	username: string;
+	display_name: string;
+	is_admin?: boolean;
+};
+
+export type BookProblemCode =
+	| 'admin_required'
+	| 'preflight_required'
+	| 'preflight_rejected'
+	| 'preflight_token_invalid'
+	| 'invalid_path'
+	| 'unsupported_source'
+	| 'outside_allowed_roots'
+	| 'symlink_forbidden'
+	| 'missing_file'
+	| 'not_regular_file'
+	| 'permission_denied'
+	| 'unsupported_format'
+	| 'invalid_gnucash_schema'
+	| 'source_changed'
+	| 'open_failed'
+	| 'duplicate_canonical_path'
+	| 'api_unavailable'
+	| 'book_registry_failed'
+	| 'unknown_book_problem';
+
+export type BookProblemDTO = {
+	safe_code: BookProblemCode;
+	safe_message?: string;
+};
+
+export type BookSectionStatus = {
+	section: 'source' | 'open' | 'accounts' | 'transactions' | 'reports' | 'registration' | string;
+	status: 'ready' | 'ok' | 'warning' | 'rejected' | 'unavailable' | 'unknown' | string;
+	safe_code?: BookProblemCode | null;
+	safe_message?: string | null;
+};
+
+export type BookCapabilityFlags = {
+	can_register_metadata: boolean;
+	can_open_accounts: boolean;
+	can_open_transactions: boolean;
+	can_open_reports: boolean;
+	can_upload: false;
+	can_edit: false;
+	can_delete: false;
+};
+
+export type BookHealth = {
+	status: 'ready' | 'available' | 'warning' | 'rejected' | 'unavailable' | 'unknown' | string;
+	checked_at: string | null;
+	safe_code?: BookProblemCode | null;
+	registration_status?: BookSectionStatus;
+	source_status?: BookSectionStatus;
+	open_status?: BookSectionStatus;
+	accounts?: BookSectionStatus;
+	transactions?: BookSectionStatus;
+	reports?: BookSectionStatus;
+};
+
+export type BookPreflightRequest = {
+	name: string;
+	uri_or_path: string;
+	storage_type: 'sqlite';
+	base_currency: string;
+	make_default: boolean;
+};
+
+export type BookPreflightResponse = {
+	status: 'ready' | 'rejected';
+	format: 'gnucash_sqlite' | string;
+	preflight_token: string;
+	registration_status: BookSectionStatus;
+	source_status: BookSectionStatus;
+	open_status: BookSectionStatus;
+	accounts: BookSectionStatus;
+	transactions: BookSectionStatus;
+	reports: BookSectionStatus;
+	capabilities: BookCapabilityFlags;
+	checked_at: string;
+	safe_code: BookProblemCode;
+	safe_message?: string;
+};
+
 export type Book = {
 	id: number;
 	name: string;
 	storage_type: string;
-	base_currency: string | null;
+	base_currency: string;
 	is_default: boolean;
+	is_enabled?: boolean;
 	is_archived: boolean;
+	created_at?: string;
+	updated_at?: string;
 	access_role: 'owner' | 'editor' | 'viewer' | null;
 	access_role_label: string;
 	access_role_description: string;
@@ -31,8 +120,18 @@ export type Book = {
 	status_severity: 'ok' | 'warning' | 'action_required' | string;
 	access_status: string;
 	can_open_read_only_views: boolean;
+	health?: BookHealth;
+	capabilities?: BookCapabilityFlags;
 	storage_diagnostics: BookStorageDiagnostics;
-	management_actions: Array<'set_default' | 'remove_from_registry' | string>;
+	management_actions: Array<
+		| 'set_default'
+		| 'remove_from_registry'
+		| 'rename'
+		| 'disable'
+		| 'enable'
+		| 'recheck'
+		| string
+	>;
 	operator_guidance: BookOperatorGuidance;
 };
 

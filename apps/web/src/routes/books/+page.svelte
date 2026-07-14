@@ -2,40 +2,79 @@
 	import { navigating } from '$app/state';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import LoadingState from '$lib/components/LoadingState.svelte';
-	import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
+	import type { Book, BookCapabilityFlags, BookProblemCode } from '$lib/api/types';
+	import { DEFAULT_LOCALE, t, type Locale, type MessageKey } from '$lib/i18n';
+
+	type ManageSuccessCode = 'set_default' | 'remove_registry';
 
 	let { data, form }: {
-		data: any;
+		data: {
+			locale?: Locale;
+			books: Book[];
+			activeBook: Book | null;
+			isAdmin: boolean;
+			bookContextNotice: string | null;
+		};
 		form?: {
-			registerSuccess?: string;
-			registerError?: string;
-			registerName?: string;
-			registerBaseCurrency?: string;
-			manageSuccess?: string;
-			manageError?: string;
+			manageSuccessCode?: ManageSuccessCode;
+			manageErrorCode?: BookProblemCode;
 		} | null;
 	} = $props();
 	let locale = $derived<Locale>(data.locale ?? DEFAULT_LOCALE);
 	let isRouteLoading = $derived(navigating.to?.url.pathname === '/books');
 
+	const openLinkDefinitions: Array<{
+		capability: keyof Pick<BookCapabilityFlags, 'can_open_accounts' | 'can_open_transactions' | 'can_open_reports'>;
+		next: '/accounts' | '/transactions' | '/reports';
+		labelKey: MessageKey;
+	}> = [
+		{ capability: 'can_open_accounts', next: '/accounts', labelKey: 'books.viewAccounts' },
+		{ capability: 'can_open_transactions', next: '/transactions', labelKey: 'books.browseTransactions' },
+		{ capability: 'can_open_reports', next: '/reports', labelKey: 'books.reportsLink' }
+	];
+
 	function formatBaseCurrency(currency: string | null): string {
 		return currency?.trim() || t(locale, 'books.notConfigured');
 	}
 
-	function formatStorageType(storageType: string): string {
-		return storageType || t(locale, 'books.unknown');
+	function isBookEnabled(book: Book): boolean {
+		return book.is_enabled !== false;
 	}
 
-	function formatAccessRole(role: string | null): string {
-		return role || t(locale, 'books.unknown');
+	function bookHealthStatus(book: Book): string {
+		return book.health?.status ?? book.status ?? 'unknown';
 	}
 
-	function formatStatus(status: string): string {
-		return status ? status.replaceAll('_', ' ') : t(locale, 'books.unknown');
+	function bookCheckedAt(book: Book): string {
+		return book.health?.checked_at ?? book.updated_at ?? book.created_at ?? t(locale, 'books.notChecked');
 	}
 
-	function formatStatusSeverity(severity: string): string {
-		return severity ? severity.replaceAll('_', ' ') : t(locale, 'books.unknown');
+	function statusLabel(status: string): string {
+		return t(locale, `books.status.${status || 'unknown'}` as MessageKey);
+	}
+
+	function bookProblemMessage(locale: Locale, code: BookProblemCode | undefined): string {
+		return t(locale, `books.problem.${code ?? 'unknown_book_problem'}` as MessageKey);
+	}
+
+	function successMessage(code: ManageSuccessCode | undefined): string {
+		if (code === 'set_default') return t(locale, 'books.manageSuccessSetDefault');
+		if (code === 'remove_registry') return t(locale, 'books.manageSuccessRemoveRegistry');
+		return '';
+	}
+
+	function canOpenCapability(book: Book, capability: 'can_open_accounts' | 'can_open_transactions' | 'can_open_reports'): boolean {
+		return isBookEnabled(book) && book.can_open_read_only_views && book.capabilities?.[capability] !== false;
+	}
+
+	function capabilityLinks(book: Book) {
+		return openLinkDefinitions
+			.filter((link) => isBookEnabled(book) && canOpenCapability(book, link.capability))
+			.map((link) => ({
+				...link,
+				href: `/books/${book.id}/select?next=${link.next}`,
+				label: t(locale, link.labelKey)
+			}));
 	}
 </script>
 
@@ -62,191 +101,96 @@
 	<div class="mb-6 space-y-3">
 		<p class="text-sm font-medium uppercase tracking-wide" style="color: var(--app-accent);">{t(locale, 'books.kicker')}</p>
 		<div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-			<div>
-				<h1 class="text-3xl font-bold" style="color: var(--app-text);">{t(locale, 'books.title')}</h1>
-				<p class="mt-2 max-w-3xl text-sm" style="color: var(--app-muted);">
-					{t(locale, 'books.subtitle')}
-				</p>
+			<div class="min-w-0">
+				<h1 class="break-words text-3xl font-bold" style="color: var(--app-text);">{t(locale, 'books.title')}</h1>
+				<p class="mt-2 max-w-3xl text-sm" style="color: var(--app-muted);">{t(locale, 'books.subtitle')}</p>
 			</div>
-			{#if data.activeBook}
-				<div class="rounded-2xl border px-4 py-3 text-sm" style="border-color: var(--app-border); background-color: var(--app-card-bg);">
-					<p class="font-semibold" style="color: var(--app-text);">{t(locale, 'books.activeDefault')}</p>
-					<p class="mt-1" style="color: var(--app-muted);">{data.activeBook.name}</p>
-					<a class="mt-3 inline-flex min-h-11 items-center rounded-lg border px-3 py-2 font-medium" style="border-color: var(--app-border); color: var(--app-text);" href="/books/write-alpha-audit">{t(locale, 'books.auditEvidence')}</a>
-				</div>
-			{/if}
+			<div class="flex flex-wrap gap-2">
+				{#if data.isAdmin}
+					<a class="inline-flex min-h-11 items-center rounded-xl px-4 py-2 text-sm font-semibold text-white" style="background-color: var(--app-accent);" href="/books/new">{t(locale, 'books.addBookAction')}</a>
+				{/if}
+				{#if data.activeBook}
+					<a class="inline-flex min-h-11 items-center rounded-xl border px-4 py-2 text-sm font-medium" style="border-color: var(--app-border); color: var(--app-text);" href="/books/write-alpha-audit">{t(locale, 'books.auditEvidence')}</a>
+				{/if}
+			</div>
 		</div>
 	</div>
 
-	<section class="mb-6 rounded-2xl border p-4 shadow-sm" style="border-color: var(--app-border); background-color: var(--app-card-bg);" aria-label={t(locale, 'books.registerTitle')}>
-		<div class="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-			<div>
-				<h2 class="text-lg font-semibold" style="color: var(--app-text);">{t(locale, 'books.registerTitle')}</h2>
-				<p class="mt-1 text-sm" style="color: var(--app-muted);">{t(locale, 'books.registerIntro')}</p>
-			</div>
-			<span class="inline-flex w-fit rounded-full border px-3 py-1 text-xs font-semibold" style="border-color: var(--app-border); color: var(--app-muted);">{t(locale, 'books.adminOnlyBadge')}</span>
-		</div>
-
-		{#if form?.registerSuccess}
-			<p class="mt-4 rounded-xl border p-3 text-sm" style="border-color: var(--app-accent); color: var(--app-text); background-color: var(--app-accent-soft);">{form.registerSuccess}</p>
-		{/if}
-		{#if form?.registerError}
-			<p class="mt-4 rounded-xl border p-3 text-sm" style="border-color: var(--app-danger); color: var(--app-text); background-color: var(--app-card-bg);">{form.registerError}</p>
-		{/if}
-		{#if form?.manageSuccess}
-			<p class="mt-4 rounded-xl border p-3 text-sm" style="border-color: var(--app-accent); color: var(--app-text); background-color: var(--app-accent-soft);">{form.manageSuccess}</p>
-		{/if}
-		{#if form?.manageError}
-			<p class="mt-4 rounded-xl border p-3 text-sm" style="border-color: var(--app-danger); color: var(--app-text); background-color: var(--app-card-bg);">{form.manageError}</p>
-		{/if}
-
-		<form method="POST" action="?/registerBook" class="mt-4 grid gap-3 md:grid-cols-2">
-			<label class="text-sm font-medium" style="color: var(--app-text);">
-				{t(locale, 'books.registerName')}
-				<input name="name" required maxlength="256" value={form?.registerName ?? ''} class="mt-1 min-h-11 w-full rounded-lg border px-3 py-2" style="border-color: var(--app-border); background-color: var(--app-bg); color: var(--app-text);" />
-			</label>
-			<label class="text-sm font-medium" style="color: var(--app-text);">
-				{t(locale, 'books.registerCurrency')}
-				<input name="base_currency" maxlength="16" value={form?.registerBaseCurrency ?? ''} placeholder="USD" class="mt-1 min-h-11 w-full rounded-lg border px-3 py-2 uppercase" style="border-color: var(--app-border); background-color: var(--app-bg); color: var(--app-text);" />
-			</label>
-			<label class="text-sm font-medium md:col-span-2" style="color: var(--app-text);">
-				{t(locale, 'books.registerPath')}
-				<input name="mounted_path" required autocomplete="off" placeholder="/data/books/copied-test-book.gnucash.sqlite" class="mt-1 min-h-11 w-full rounded-lg border px-3 py-2 font-mono text-sm" style="border-color: var(--app-border); background-color: var(--app-bg); color: var(--app-text);" />
-			</label>
-			<label class="flex items-start gap-3 text-sm md:col-span-2" style="color: var(--app-muted);">
-				<input name="make_default" type="checkbox" class="mt-1" />
-				<span>{t(locale, 'books.registerMakeDefault')}</span>
-			</label>
-			<p class="text-xs md:col-span-2" style="color: var(--app-muted);">{t(locale, 'books.registerSafety')}</p>
-			<div class="md:col-span-2">
-				<button type="submit" class="min-h-11 rounded-xl px-4 py-2 text-sm font-semibold text-white" style="background-color: var(--app-accent);">{t(locale, 'books.registerSubmit')}</button>
-			</div>
-		</form>
-	</section>
+	{#if form?.manageSuccessCode}
+		<p class="mb-6 rounded-xl border p-3 text-sm" style="border-color: var(--app-accent); color: var(--app-text); background-color: var(--app-accent-soft);" role="status">{successMessage(form.manageSuccessCode)}</p>
+	{/if}
+	{#if form?.manageErrorCode}
+		<p class="mb-6 rounded-xl border p-3 text-sm" style="border-color: var(--app-danger); color: var(--app-text); background-color: var(--app-card-bg);" role="alert">{bookProblemMessage(locale, form.manageErrorCode)}</p>
+	{/if}
 
 	<section class="rounded-2xl border p-4 shadow-sm" style="border-color: var(--app-border); background-color: var(--app-card-bg);">
 		<div class="mb-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
 			<div>
 				<h2 class="text-lg font-semibold" style="color: var(--app-text);">{t(locale, 'books.configuredTitle')}</h2>
-				<p class="text-sm" style="color: var(--app-muted);">
-					{t(locale, 'books.hiddenPolicy')}
-				</p>
+				<p class="text-sm" style="color: var(--app-muted);">{t(locale, 'books.hiddenPolicy')}</p>
 			</div>
-			<span class="inline-flex w-fit rounded-full border px-3 py-1 text-xs font-semibold" style="border-color: var(--app-border); color: var(--app-muted);">
-				{t(locale, 'books.noMutationBadge')}
-			</span>
+			<span class="inline-flex w-fit rounded-full border px-3 py-1 text-xs font-semibold" style="border-color: var(--app-border); color: var(--app-muted);">{t(locale, 'books.noMutationBadge')}</span>
 		</div>
 
 		{#if isRouteLoading}
-			<LoadingState variant="books" message="Loading accessible read-only books…" />
+			<LoadingState variant="books" message={t(locale, 'books.loading')} />
 		{:else if data.books.length}
 			<div class="grid gap-3">
 				{#each data.books as book (book.id)}
-					<article class="rounded-xl border p-4" style="border-color: var(--app-border); background-color: var(--app-bg);">
-						<div class="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-							<div>
-								<h3 class="text-lg font-semibold" style="color: var(--app-text);">{book.name}</h3>
+					{@const links = capabilityLinks(book)}
+					<article class="min-w-0 rounded-xl border p-4" style="border-color: var(--app-border); background-color: var(--app-bg);">
+						<div class="flex min-w-0 flex-col gap-2 md:flex-row md:items-start md:justify-between">
+							<div class="min-w-0">
+								<h3 class="break-words text-lg font-semibold" style="color: var(--app-text);">{book.name}</h3>
 								<div class="mt-2 flex flex-wrap gap-2">
-									{#if book.id === data.activeBook?.id}
-										<span class="rounded-full px-2 py-1 text-xs font-semibold" style="background-color: var(--app-accent-soft); color: var(--app-accent);">{t(locale, 'books.currentBook')}</span>
-									{/if}
-									{#if book.is_default}
-										<span class="rounded-full px-2 py-1 text-xs font-semibold" style="background-color: var(--app-accent-soft); color: var(--app-accent);">{t(locale, 'books.defaultBook')}</span>
-									{/if}
+									{#if book.id === data.activeBook?.id}<span class="rounded-full px-2 py-1 text-xs font-semibold" style="background-color: var(--app-accent-soft); color: var(--app-accent);">{t(locale, 'books.currentBook')}</span>{/if}
+									{#if book.is_default}<span class="rounded-full px-2 py-1 text-xs font-semibold" style="background-color: var(--app-accent-soft); color: var(--app-accent);">{t(locale, 'books.defaultBook')}</span>{/if}
+									<span class="rounded-full px-2 py-1 text-xs font-semibold" style="background-color: var(--app-hover-bg); color: var(--app-muted);">{isBookEnabled(book) ? t(locale, 'books.enabledBook') : t(locale, 'books.disabledBook')}</span>
 									<span class="rounded-full px-2 py-1 text-xs font-semibold" style="background-color: var(--app-hover-bg); color: var(--app-muted);">{t(locale, 'books.readOnlyBadge')}</span>
-									<span class="rounded-full px-2 py-1 text-xs font-semibold" style="background-color: var(--app-hover-bg); color: var(--app-muted);">{t(locale, 'books.accessibleBadge')}</span>
 								</div>
 							</div>
 						</div>
 
-						<dl class="mt-4 grid min-w-0 gap-3 text-sm sm:grid-cols-2 lg:grid-cols-5">
-							<div>
-								<dt class="font-medium" style="color: var(--app-muted);">{t(locale, 'books.baseCurrency')}</dt>
-								<dd class="mt-1" style="color: var(--app-text);">{formatBaseCurrency(book.base_currency)}</dd>
-							</div>
-							<div>
-								<dt class="font-medium" style="color: var(--app-muted);">{t(locale, 'books.storageType')}</dt>
-								<dd class="mt-1" style="color: var(--app-text);">{formatStorageType(book.storage_type)}</dd>
-							</div>
-							<div>
-								<dt class="font-medium" style="color: var(--app-muted);">{t(locale, 'books.accessRole')}</dt>
-								<dd class="mt-1" style="color: var(--app-text);">{book.access_role_label || formatAccessRole(book.access_role)}</dd>
-								<dd class="mt-1 text-xs" style="color: var(--app-muted);">{book.access_role_description}</dd>
-							</div>
-							<div>
-								<dt class="font-medium" style="color: var(--app-muted);">{t(locale, 'books.status')}</dt>
-								<dd class="mt-1 capitalize" style="color: var(--app-text);">{formatStatus(book.status)}</dd>
-								<dd class="mt-1 text-xs capitalize" style="color: var(--app-muted);">{formatStatusSeverity(book.status_severity)}</dd>
-							</div>
-							<div>
-								<dt class="font-medium" style="color: var(--app-muted);">{t(locale, 'books.readonlyStatus')}</dt>
-								<dd class="mt-1" style="color: var(--app-text);">{book.read_only ? t(locale, 'books.safetyNote') : t(locale, 'books.unknown')}</dd>
-							</div>
+						<dl class="mt-4 grid min-w-0 gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+							<div class="min-w-0"><dt class="font-medium" style="color: var(--app-muted);">{t(locale, 'books.baseCurrency')}</dt><dd class="mt-1 break-words" style="color: var(--app-text);">{formatBaseCurrency(book.base_currency)}</dd></div>
+							<div class="min-w-0"><dt class="font-medium" style="color: var(--app-muted);">{t(locale, 'books.status')}</dt><dd class="mt-1 break-words" style="color: var(--app-text);">{statusLabel(bookHealthStatus(book))}</dd></div>
+							<div class="min-w-0"><dt class="font-medium" style="color: var(--app-muted);">{t(locale, 'books.preflightCheckedAt')}</dt><dd class="mt-1 break-words" style="color: var(--app-text);">{bookCheckedAt(book)}</dd></div>
+							<div class="min-w-0"><dt class="font-medium" style="color: var(--app-muted);">{t(locale, 'books.accessRole')}</dt><dd class="mt-1 break-words" style="color: var(--app-text);">{book.access_role_label || book.access_role || t(locale, 'books.unknown')}</dd></div>
 						</dl>
 
 						<section class="mt-4 rounded-xl border p-3 text-sm" style="border-color: var(--app-border); background-color: var(--app-card-bg);" aria-label={t(locale, 'books.storageDiagnostics')}>
 							<h4 class="font-semibold" style="color: var(--app-text);">{t(locale, 'books.storageDiagnostics')}</h4>
-							<p class="mt-2" style="color: var(--app-muted);">{book.storage_diagnostics.safe_summary}</p>
+							<p class="mt-2 break-words" style="color: var(--app-muted);">{book.storage_diagnostics.safe_summary}</p>
 							<p class="mt-2 text-xs" style="color: var(--app-muted);">{t(locale, 'books.privatePathRedacted')}</p>
-							{#if book.storage_diagnostics.safe_next_actions.length}
-								<p class="mt-3 font-medium" style="color: var(--app-muted);">{t(locale, 'books.safeNextActions')}</p>
-								<ul class="mt-2 list-disc space-y-1 pl-5" style="color: var(--app-muted);">
-									{#each book.storage_diagnostics.safe_next_actions as action}
-										<li>{action}</li>
-									{/each}
-								</ul>
-							{/if}
 						</section>
 
-						<section class="mt-4 rounded-xl border p-3 text-sm" style="border-color: var(--app-border); background-color: var(--app-card-bg);" aria-label={t(locale, 'books.operatorGuidanceTitle')}>
-							<h4 class="font-semibold" style="color: var(--app-text);">{t(locale, 'books.operatorGuidanceTitle')}</h4>
-							<p class="mt-2" style="color: var(--app-muted);">{t(locale, 'books.currentDefaultExplanation')}</p>
-							<p class="mt-2" style="color: var(--app-muted);">{t(locale, 'books.safeOperatorGuidance')}</p>
-							<dl class="mt-3 grid gap-2 md:grid-cols-3">
-								<div>
-									<dt class="font-medium" style="color: var(--app-muted);">{t(locale, 'books.metadataSource')}</dt>
-									<dd class="mt-1 font-mono text-xs" style="color: var(--app-text);">{book.operator_guidance.metadata_source}</dd>
-								</div>
-								<div>
-									<dt class="font-medium" style="color: var(--app-muted);">{t(locale, 'books.dataAccess')}</dt>
-									<dd class="mt-1 font-mono text-xs" style="color: var(--app-text);">{book.operator_guidance.data_access}</dd>
-								</div>
-								<div>
-									<dt class="font-medium" style="color: var(--app-muted);">{t(locale, 'books.readOnlyDefault')}</dt>
-									<dd class="mt-1" style="color: var(--app-text);">{book.operator_guidance.read_only_default ? 'true' : 'false'}</dd>
-								</div>
-							</dl>
-							<div class="mt-3">
-								<p class="font-medium" style="color: var(--app-muted);">{t(locale, 'books.unsupportedActions')}</p>
-								{#if book.operator_guidance.unsupported_management_actions.length}
-									<ul class="mt-2 flex flex-wrap gap-2">
-										{#each book.operator_guidance.unsupported_management_actions as action}
-											<li class="rounded-full px-2 py-1 font-mono text-xs" style="background-color: var(--app-hover-bg); color: var(--app-muted);">{action}</li>
-										{/each}
-									</ul>
-								{:else}
-									<p class="mt-1" style="color: var(--app-muted);">{t(locale, 'books.noUnsupportedActions')}</p>
-								{/if}
-							</div>
-						</section>
+						<details class="mt-4 rounded-xl border p-3 text-sm" style="border-color: var(--app-border); background-color: var(--app-card-bg);">
+							<summary class="min-h-11 cursor-pointer font-semibold" style="color: var(--app-text);">{t(locale, 'books.statusDetailsTitle')}</summary>
+							<p class="mt-2" style="color: var(--app-muted);">{t(locale, 'books.statusDetailsHelp')}</p>
+							<ul class="mt-2 list-disc space-y-1 pl-5" style="color: var(--app-muted);">
+								<li>{t(locale, 'books.renameFuture')}</li>
+								<li>{t(locale, 'books.disableFuture')}</li>
+								<li>{t(locale, 'books.recheckFuture')}</li>
+							</ul>
+						</details>
 
 						<div class="mt-4 rounded-xl border p-3" style="border-color: var(--app-border); background-color: var(--app-card-bg);">
 							<p class="text-sm font-semibold" style="color: var(--app-text);">{t(locale, 'books.openSafeViews')}</p>
-							{#if book.can_open_read_only_views}
+							{#if links.length}
 								<div class="mt-3 flex flex-wrap gap-2 text-sm">
-									<a class="inline-flex min-h-11 max-w-full items-center rounded-lg border px-3 py-2 font-medium" style="border-color: var(--app-border); color: var(--app-text);" href={`/books/${book.id}/select?next=/accounts`}>{t(locale, 'books.viewAccounts')}</a>
-									<a class="inline-flex min-h-11 max-w-full items-center rounded-lg border px-3 py-2 font-medium" style="border-color: var(--app-border); color: var(--app-text);" href={`/books/${book.id}/select?next=/transactions`}>{t(locale, 'books.browseTransactions')}</a>
-									<a class="inline-flex min-h-11 max-w-full items-center rounded-lg border px-3 py-2 font-medium" style="border-color: var(--app-border); color: var(--app-text);" href={`/books/${book.id}/select?next=/scheduled`}>{t(locale, 'books.viewScheduled')}</a>
-									<a class="inline-flex min-h-11 max-w-full items-center rounded-lg border px-3 py-2 font-medium" style="border-color: var(--app-border); color: var(--app-text);" href={`/books/${book.id}/select?next=/dashboard`}>{t(locale, 'books.dashboardSummary')}</a>
+									{#each links as link}
+										<a class="inline-flex min-h-11 max-w-full items-center rounded-lg border px-3 py-2 font-medium" style="border-color: var(--app-border); color: var(--app-text);" href={`/books/${book.id}/select?next=${link.next}`}>{link.label}</a>
+									{/each}
 								</div>
 							{:else}
 								<p class="mt-3 text-sm" style="color: var(--app-muted);">{t(locale, 'books.unavailableViews')}</p>
 							{/if}
-							{#if book.management_actions.includes('set_default') || book.management_actions.includes('remove_from_registry')}
+
+							{#if data.isAdmin && (book.management_actions.includes('set_default') || book.management_actions.includes('remove_from_registry'))}
 								<div class="mt-4 border-t pt-3" style="border-color: var(--app-border);">
 									<p class="text-sm font-semibold" style="color: var(--app-text);">{t(locale, 'books.registryManagement')}</p>
 									<p class="mt-1 text-xs" style="color: var(--app-muted);">{t(locale, 'books.registryManagementSafety')}</p>
-									<div class="mt-3 flex flex-wrap gap-2">
+									<div class="mt-3 grid gap-3 md:grid-cols-2">
 										{#if book.management_actions.includes('set_default') && !book.is_default}
 											<form method="POST" action="?/setDefaultBook">
 												<input type="hidden" name="book_id" value={book.id} />
@@ -254,9 +198,13 @@
 											</form>
 										{/if}
 										{#if book.management_actions.includes('remove_from_registry')}
-											<form method="POST" action="?/removeBook">
+											<form method="POST" action="?/removeBook" class="min-w-0 rounded-lg border p-3" style="border-color: var(--app-border);">
 												<input type="hidden" name="book_id" value={book.id} />
-												<button type="submit" class="inline-flex min-h-11 items-center rounded-lg border px-3 py-2 text-sm font-medium" style="border-color: var(--app-danger); color: var(--app-danger); background-color: var(--app-bg);">{t(locale, 'books.removeRegistryAction')}</button>
+												<label class="flex items-start gap-2 text-xs" style="color: var(--app-muted);">
+													<input required type="checkbox" name="confirm_metadata_only" class="mt-1" />
+													<span>{t(locale, 'books.removeMetadataConfirm')}</span>
+												</label>
+												<button type="submit" class="mt-3 inline-flex min-h-11 items-center rounded-lg border px-3 py-2 text-sm font-medium" style="border-color: var(--app-danger); color: var(--app-danger); background-color: var(--app-bg);">{t(locale, 'books.removeRegistryAction')}</button>
 											</form>
 										{/if}
 									</div>
@@ -268,21 +216,12 @@
 					</article>
 				{/each}
 			</div>
-		{:else}
-			<EmptyState
-				title={t(locale, 'books.emptyTitle')}
-				message={t(locale, 'books.emptyMessage')}
-				ariaLabel={t(locale, 'books.emptyTitle')}
-				icon="📚"
-			>
-				<a
-					href="/login"
-					class="rounded-xl px-4 py-2 text-sm font-semibold text-white"
-					style="background-color: var(--app-accent);"
-				>
-					Sign in again
-				</a>
+		{:else if data.isAdmin}
+			<EmptyState title={t(locale, 'books.firstRunAdminTitle')} message={t(locale, 'books.firstRunAdminMessage')} ariaLabel={t(locale, 'books.firstRunAdminTitle')} icon="📚">
+				<a href="/books/new" class="rounded-xl px-4 py-2 text-sm font-semibold text-white" style="background-color: var(--app-accent);">{t(locale, 'books.addBookAction')}</a>
 			</EmptyState>
+		{:else if !data.isAdmin}
+			<EmptyState title={t(locale, 'books.firstRunUserTitle')} message={t(locale, 'books.firstRunUserMessage')} ariaLabel={t(locale, 'books.firstRunUserTitle')} icon="📚" role="note" />
 		{/if}
 	</section>
 </main>

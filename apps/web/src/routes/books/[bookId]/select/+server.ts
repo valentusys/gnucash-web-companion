@@ -3,7 +3,7 @@ import { getActiveBookContext, getAuthToken } from '$lib/api/server';
 import type { RequestHandler } from './$types';
 
 const SELECTED_BOOK_MAX_AGE = 60 * 60 * 24 * 30;
-const SAFE_NEXT_PATHS = ['/dashboard', '/accounts', '/transactions', '/scheduled'];
+const SAFE_NEXT_PATHS = ['/dashboard', '/accounts', '/transactions', '/reports', '/scheduled'];
 
 function isSafeNextPath(pathname: string): boolean {
 	return SAFE_NEXT_PATHS.some((safePath) => pathname === safePath || pathname.startsWith(`${safePath}/`));

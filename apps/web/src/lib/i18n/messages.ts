@@ -372,6 +372,81 @@ export type MessageKey =
 	| 'books.registerMakeDefault'
 	| 'books.registerSafety'
 	| 'books.registerSubmit'
+	| 'books.loading'
+	| 'books.addBookAction'
+	| 'books.firstRunAdminTitle'
+	| 'books.firstRunAdminMessage'
+	| 'books.firstRunUserTitle'
+	| 'books.firstRunUserMessage'
+	| 'books.enabledBook'
+	| 'books.disabledBook'
+	| 'books.notChecked'
+	| 'books.statusUnknown'
+	| 'books.status.ready'
+	| 'books.status.available'
+	| 'books.status.ok'
+	| 'books.status.warning'
+	| 'books.status.rejected'
+	| 'books.status.unavailable'
+	| 'books.status.unknown'
+	| 'books.status.missing_file'
+	| 'books.status.not_configured'
+	| 'books.status.remote_or_unchecked'
+	| 'books.status.invalid_gnucash_schema'
+	| 'books.status.action_required'
+	| 'books.problem.admin_required'
+	| 'books.problem.preflight_required'
+	| 'books.problem.preflight_rejected'
+	| 'books.problem.preflight_token_invalid'
+	| 'books.problem.invalid_path'
+	| 'books.problem.unsupported_source'
+	| 'books.problem.outside_allowed_roots'
+	| 'books.problem.symlink_forbidden'
+	| 'books.problem.missing_file'
+	| 'books.problem.not_regular_file'
+	| 'books.problem.permission_denied'
+	| 'books.problem.unsupported_format'
+	| 'books.problem.invalid_gnucash_schema'
+	| 'books.problem.source_changed'
+	| 'books.problem.open_failed'
+	| 'books.problem.duplicate_canonical_path'
+	| 'books.problem.api_unavailable'
+	| 'books.problem.book_registry_failed'
+	| 'books.problem.unknown_book_problem'
+	| 'books.manageSuccessSetDefault'
+	| 'books.manageSuccessRemoveRegistry'
+	| 'books.removeMetadataConfirm'
+	| 'books.reportsLink'
+	| 'books.statusDetailsTitle'
+	| 'books.statusDetailsHelp'
+	| 'books.renameFuture'
+	| 'books.disableFuture'
+	| 'books.recheckFuture'
+	| 'books.backToBooks'
+	| 'books.newTitle'
+	| 'books.newSubtitle'
+	| 'books.adminRequiredTitle'
+	| 'books.newStep1Title'
+	| 'books.newStep2Title'
+	| 'books.newStep3Title'
+	| 'books.newStep4Title'
+	| 'books.supportedFormat'
+	| 'books.unsupportedFormatWarning'
+	| 'books.preflightSubmit'
+	| 'books.preflightReady'
+	| 'books.preflightRejected'
+	| 'books.preflightFormat'
+	| 'books.preflightCheckedAt'
+	| 'books.preflightTokenOpaque'
+	| 'books.confirmRegisterHelp'
+	| 'books.confirmRegisterSubmit'
+	| 'books.registrationSuccessTitle'
+	| 'books.registrationSuccessMessage'
+	| 'books.section.source'
+	| 'books.section.open'
+	| 'books.section.accounts'
+	| 'books.section.transactions'
+	| 'books.section.reports'
 	| 'audit.title'
 	| 'audit.bannerTitle'
 	| 'audit.bannerMessage'
@@ -1011,12 +1086,91 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 			'Admin-only app metadata flow for an already-mounted local copied/test SQLite book. The web UI does not upload, copy, open, or mutate GnuCash accounting data.',
 		'books.adminOnlyBadge': 'Admin metadata only',
 		'books.registerName': 'Display name',
-		'books.registerCurrency': 'Base currency (optional)',
+		'books.registerCurrency': 'Base currency',
 		'books.registerPath': 'Mounted local SQLite path',
 		'books.registerMakeDefault': 'Make this the default fallback book for this installation',
 		'books.registerSafety':
 			'Use only host-mounted copied/test books. Private filesystem paths are sent to the API for metadata registration but are never rendered back in the book list, and no accounts, transactions, memos, amounts, uploads, or screenshots are collected.',
 		'books.registerSubmit': 'Register metadata',
+		'books.loading': 'Loading accessible read-only books…',
+		'books.addBookAction': 'Add book',
+		'books.firstRunAdminTitle': 'No books are registered yet',
+		'books.firstRunAdminMessage':
+			'Register an existing server-mounted GnuCash SQL SQLite book to start. The web UI records app metadata only and keeps GnuCash Desktop as the authoritative editor.',
+		'books.firstRunUserTitle': 'No book is assigned to this account',
+		'books.firstRunUserMessage':
+			'An administrator must register or assign a book before this account can open read-only views. No server path fields, environment guidance, or management actions are shown for this role.',
+		'books.enabledBook': 'Enabled',
+		'books.disabledBook': 'Disabled',
+		'books.notChecked': 'Not checked',
+		'books.statusUnknown': 'Unknown',
+		'books.status.ready': 'Ready',
+		'books.status.available': 'Available',
+		'books.status.ok': 'OK',
+		'books.status.warning': 'Warning',
+		'books.status.rejected': 'Rejected',
+		'books.status.unavailable': 'Unavailable',
+		'books.status.unknown': 'Unknown',
+		'books.status.missing_file': 'Source unavailable',
+		'books.status.not_configured': 'Not configured',
+		'books.status.remote_or_unchecked': 'Unchecked source',
+		'books.status.invalid_gnucash_schema': 'Invalid GnuCash SQL book',
+		'books.status.action_required': 'Action required',
+		'books.problem.admin_required': 'Administrator privileges are required for book registry management.',
+		'books.problem.preflight_required': 'Run a successful preflight and confirm the metadata-only action before registration.',
+		'books.problem.preflight_rejected': 'Preflight rejected this source. The book was not registered.',
+		'books.problem.preflight_token_invalid': 'The preflight token is missing, expired, or does not match the form values. Run preflight again.',
+		'books.problem.invalid_path': 'The mounted server path is invalid. No book registry metadata was changed.',
+		'books.problem.unsupported_source': 'Only a supported server-side SQLite source under the allowed roots may be registered here.',
+		'books.problem.outside_allowed_roots': 'The source is outside the allowed server-side book roots.',
+		'books.problem.symlink_forbidden': 'The source path uses a symlink component that is not allowed for registration.',
+		'books.problem.missing_file': 'The configured server-side source was not found by the API runtime.',
+		'books.problem.not_regular_file': 'The configured server-side source is not a regular file.',
+		'books.problem.permission_denied': 'The API runtime does not have permission to read this source.',
+		'books.problem.unsupported_format': 'Only existing server-side GnuCash SQL SQLite books are supported here.',
+		'books.problem.invalid_gnucash_schema': 'The configured SQLite database does not match the expected GnuCash SQL schema.',
+		'books.problem.source_changed': 'The source changed after preflight. Run preflight again before confirming registration.',
+		'books.problem.open_failed': 'The API could not open the source in read-only mode.',
+		'books.problem.duplicate_canonical_path': 'This canonical book source is already registered in app metadata.',
+		'books.problem.api_unavailable': 'The API service is unavailable. No book registry metadata was changed.',
+		'books.problem.book_registry_failed': 'Book registry metadata update failed. No GnuCash source file was changed.',
+		'books.problem.unknown_book_problem': 'The API returned an unsupported book status. Private backend details are hidden.',
+		'books.manageSuccessSetDefault': 'Updated the default app metadata entry. No GnuCash accounting data was changed.',
+		'books.manageSuccessRemoveRegistry': 'Removed the book from the app registry only. The source GnuCash file is not deleted or modified.',
+		'books.removeMetadataConfirm':
+			'I understand this removes only app registration/access metadata. The source GnuCash file is not deleted or modified.',
+		'books.reportsLink': 'View reports',
+		'books.statusDetailsTitle': 'Status details and future management actions',
+		'books.statusDetailsHelp': 'This read-only detail pattern is ready for future rename, disable, and recheck wiring without exposing private paths.',
+		'books.renameFuture': 'Rename will update display metadata only when enabled in a later phase.',
+		'books.disableFuture': 'Disable/enable will control whether open links are exposed without touching the source file.',
+		'books.recheckFuture': 'Recheck will refresh typed health/status without registering a new book.',
+		'books.backToBooks': 'Back to books',
+		'books.newTitle': 'Add a GnuCash SQL SQLite book',
+		'books.newSubtitle': 'SSR-first admin flow: explain support, preflight the mounted source, then explicitly confirm metadata registration.',
+		'books.adminRequiredTitle': 'Administrator-only book registration',
+		'books.newStep1Title': 'Step 1 — supported source format',
+		'books.newStep2Title': 'Step 2 — mounted source metadata',
+		'books.newStep3Title': 'Step 3 — typed preflight checklist',
+		'books.newStep4Title': 'Step 4 — confirm registration',
+		'books.supportedFormat': 'Existing server-side GnuCash SQL SQLite only. The file must already be mounted where the API runtime can read it.',
+		'books.unsupportedFormatWarning':
+			'No browser upload, copy, import, XML, compressed XML, conversion, filesystem discovery, or source delete is available in this flow.',
+		'books.preflightSubmit': 'Run preflight',
+		'books.preflightReady': 'Preflight is ready. Registration has not happened yet.',
+		'books.preflightRejected': 'Preflight rejected this source. Registration has not happened.',
+		'books.preflightFormat': 'Detected format',
+		'books.preflightCheckedAt': 'Checked at',
+		'books.preflightTokenOpaque': 'The preflight token is opaque and never placed in the URL. It is sent only by the explicit confirmation form.',
+		'books.confirmRegisterHelp': 'Confirm only if the checklist matches the source you intended. This stores app registry metadata only.',
+		'books.confirmRegisterSubmit': 'Confirm metadata registration',
+		'books.registrationSuccessTitle': 'Book metadata registered',
+		'books.registrationSuccessMessage': 'The app registry was updated only. The source GnuCash file was not deleted, modified, copied, or converted.',
+		'books.section.source': 'Source',
+		'books.section.open': 'Read-only open',
+		'books.section.accounts': 'Accounts',
+		'books.section.transactions': 'Transactions',
+		'books.section.reports': 'Reports',
 		'audit.title': 'Write-alpha audit evidence',
 		'audit.bannerTitle': 'Write-alpha audit evidence for disposable runs',
 		'audit.bannerMessage':
@@ -1687,12 +1841,91 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 			'Admin-only поток app metadata для уже смонтированной локальной copied/test SQLite книги. Web UI не загружает, не копирует, не открывает и не изменяет бухгалтерские данные GnuCash.',
 		'books.adminOnlyBadge': 'Только admin metadata',
 		'books.registerName': 'Название',
-		'books.registerCurrency': 'Базовая валюта (необязательно)',
+		'books.registerCurrency': 'Базовая валюта',
 		'books.registerPath': 'Смонтированный локальный SQLite путь',
 		'books.registerMakeDefault': 'Сделать fallback книгой по умолчанию для этой установки',
 		'books.registerSafety':
 			'Используйте только host-mounted copied/test books. Приватные пути отправляются в API для регистрации метаданных, но не отображаются обратно в списке книг; счета, транзакции, memos, amounts, uploads и screenshots не собираются.',
 		'books.registerSubmit': 'Зарегистрировать метаданные',
+		'books.loading': 'Загрузка доступных read-only книг…',
+		'books.addBookAction': 'Добавить книгу',
+		'books.firstRunAdminTitle': 'Книги ещё не зарегистрированы',
+		'books.firstRunAdminMessage':
+			'Зарегистрируйте существующую server-mounted GnuCash SQL SQLite книгу, чтобы начать. Web UI сохраняет только app metadata, а GnuCash Desktop остаётся главным редактором.',
+		'books.firstRunUserTitle': 'Этой учётной записи книга не назначена',
+		'books.firstRunUserMessage':
+			'Администратор должен зарегистрировать или назначить книгу, прежде чем эта учётная запись сможет открыть read-only разделы. Для этой роли не показываются поля server path, environment guidance или действия управления.',
+		'books.enabledBook': 'Включена',
+		'books.disabledBook': 'Отключена',
+		'books.notChecked': 'Не проверено',
+		'books.statusUnknown': 'Неизвестно',
+		'books.status.ready': 'Готово',
+		'books.status.available': 'Доступно',
+		'books.status.ok': 'OK',
+		'books.status.warning': 'Предупреждение',
+		'books.status.rejected': 'Отклонено',
+		'books.status.unavailable': 'Недоступно',
+		'books.status.unknown': 'Неизвестно',
+		'books.status.missing_file': 'Источник недоступен',
+		'books.status.not_configured': 'Не настроено',
+		'books.status.remote_or_unchecked': 'Источник не проверен',
+		'books.status.invalid_gnucash_schema': 'Некорректная GnuCash SQL книга',
+		'books.status.action_required': 'Требуется действие',
+		'books.problem.admin_required': 'Для управления реестром книг нужны права администратора.',
+		'books.problem.preflight_required': 'Сначала выполните успешный preflight и подтвердите metadata-only действие регистрации.',
+		'books.problem.preflight_rejected': 'Preflight отклонил этот источник. Книга не зарегистрирована.',
+		'books.problem.preflight_token_invalid': 'Preflight token отсутствует, истёк или не соответствует значениям формы. Запустите preflight снова.',
+		'books.problem.invalid_path': 'Смонтированный server path некорректен. Метаданные реестра книг не изменены.',
+		'books.problem.unsupported_source': 'Здесь можно регистрировать только поддержанный server-side SQLite источник внутри разрешённых roots.',
+		'books.problem.outside_allowed_roots': 'Источник находится вне разрешённых server-side roots для книг.',
+		'books.problem.symlink_forbidden': 'В пути источника есть symlink-компонент, запрещённый для регистрации.',
+		'books.problem.missing_file': 'API runtime не нашёл настроенный server-side источник.',
+		'books.problem.not_regular_file': 'Настроенный server-side источник не является обычным файлом.',
+		'books.problem.permission_denied': 'У API runtime нет прав на чтение этого источника.',
+		'books.problem.unsupported_format': 'Здесь поддерживается только существующая server-side GnuCash SQL SQLite книга.',
+		'books.problem.invalid_gnucash_schema': 'Настроенная SQLite database не соответствует ожидаемой схеме GnuCash SQL.',
+		'books.problem.source_changed': 'Источник изменился после preflight. Запустите preflight снова перед подтверждением регистрации.',
+		'books.problem.open_failed': 'API не смог открыть источник в read-only режиме.',
+		'books.problem.duplicate_canonical_path': 'Этот canonical source книги уже зарегистрирован в app metadata.',
+		'books.problem.api_unavailable': 'API service недоступен. Метаданные реестра книг не изменены.',
+		'books.problem.book_registry_failed': 'Обновление метаданных реестра книг не удалось. Файл GnuCash не изменён.',
+		'books.problem.unknown_book_problem': 'API вернул неподдержанный статус книги. Private backend details скрыты.',
+		'books.manageSuccessSetDefault': 'Обновлена основная запись app metadata. Бухгалтерские данные GnuCash не изменены.',
+		'books.manageSuccessRemoveRegistry': 'Книга удалена только из реестра приложения. Файл GnuCash не удаляется и не изменяется.',
+		'books.removeMetadataConfirm':
+			'Я понимаю, что удаляется только регистрация/доступ в app metadata. Файл GnuCash не удаляется и не изменяется.',
+		'books.reportsLink': 'Открыть отчёты',
+		'books.statusDetailsTitle': 'Детали статуса и будущие действия управления',
+		'books.statusDetailsHelp': 'Этот read-only detail pattern готов для будущих rename, disable и recheck без раскрытия приватных путей.',
+		'books.renameFuture': 'Rename будет менять только display metadata, когда будет включён на поздней фазе.',
+		'books.disableFuture': 'Disable/enable будет управлять показом open links без изменения source file.',
+		'books.recheckFuture': 'Recheck будет обновлять typed health/status без регистрации новой книги.',
+		'books.backToBooks': 'Назад к книгам',
+		'books.newTitle': 'Добавить GnuCash SQL SQLite книгу',
+		'books.newSubtitle': 'SSR-first admin flow: объяснить поддержку, выполнить preflight смонтированного источника, затем явно подтвердить регистрацию метаданных.',
+		'books.adminRequiredTitle': 'Регистрация книг только для администратора',
+		'books.newStep1Title': 'Шаг 1 — поддерживаемый формат источника',
+		'books.newStep2Title': 'Шаг 2 — метаданные смонтированного источника',
+		'books.newStep3Title': 'Шаг 3 — typed preflight checklist',
+		'books.newStep4Title': 'Шаг 4 — подтверждение регистрации',
+		'books.supportedFormat': 'Существующая server-side GnuCash SQL SQLite книга только. Файл уже должен быть смонтирован там, где API runtime может его читать.',
+		'books.unsupportedFormatWarning':
+			'В этом flow нет browser upload, copy, import, XML, compressed XML, conversion, filesystem discovery или source delete.',
+		'books.preflightSubmit': 'Запустить preflight',
+		'books.preflightReady': 'Preflight готов. Регистрация ещё не выполнена.',
+		'books.preflightRejected': 'Preflight отклонил этот источник. Регистрация не выполнена.',
+		'books.preflightFormat': 'Определённый формат',
+		'books.preflightCheckedAt': 'Время проверки',
+		'books.preflightTokenOpaque': 'Preflight token opaque и никогда не помещается в URL. Он отправляется только явной формой подтверждения.',
+		'books.confirmRegisterHelp': 'Подтверждайте только если checklist соответствует нужному источнику. Это сохраняет только app registry metadata.',
+		'books.confirmRegisterSubmit': 'Подтвердить регистрацию метаданных',
+		'books.registrationSuccessTitle': 'Метаданные книги зарегистрированы',
+		'books.registrationSuccessMessage': 'App registry обновлён только metadata-only. Source GnuCash file не был удалён, изменён, скопирован или converted.',
+		'books.section.source': 'Источник',
+		'books.section.open': 'Read-only open',
+		'books.section.accounts': 'Счета',
+		'books.section.transactions': 'Транзакции',
+		'books.section.reports': 'Отчёты',
 		'audit.title': 'Write-alpha audit evidence',
 		'audit.bannerTitle': 'Write-alpha audit evidence для disposable запусков',
 		'audit.bannerMessage':

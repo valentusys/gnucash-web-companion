@@ -162,9 +162,12 @@ assert.doesNotMatch(localeRoute, /access_token/, 'locale route must not touch au
 
 const booksManagementServer = read('src/routes/books/+page.server.ts');
 const booksManagementPage = read('src/routes/books/+page.svelte');
-assert.match(booksManagementServer, /export const actions[\s\S]*registerBook[\s\S]*\/books[\s\S]*method: 'POST'/s, 'books page must expose an admin metadata-only registration action backed by POST /books');
-assert.match(booksManagementPage, /books\.registerTitle[\s\S]*name="mounted_path"[\s\S]*books\.registerSafety[\s\S]*books\.registerSubmit/s, 'books page must render a safe admin metadata registration form without upload widgets');
-assert.doesNotMatch(booksManagementPage, /type="file"|<input[^>]+name="(?:amount|account_name|memo|description)"/, 'books registration UI must not upload books or collect private accounting data');
+const booksNewServer = read('src/routes/books/new/+page.server.ts');
+const booksNewPage = read('src/routes/books/new/+page.svelte');
+assert.doesNotMatch(booksManagementServer, /registerBook\s*:/, 'books list page must not keep the old one-step registration action');
+assert.match(booksNewServer, /preflight:\s*async[\s\S]*\/books\/preflight[\s\S]*confirm:\s*async[\s\S]*preflight_token[\s\S]*\/books/s, '/books/new must split metadata registration into explicit preflight and confirm actions');
+assert.match(booksNewPage, /books\.newStep1Title[\s\S]*method="POST" action="\?\/preflight"[\s\S]*name="mounted_path"[\s\S]*preflight\?\.status === 'ready'[\s\S]*name="preflight_token"/s, '/books/new must render safe admin preflight/confirm forms without upload widgets');
+assert.doesNotMatch(`${booksManagementPage}\n${booksNewPage}`, /type="file"|<input[^>]+name="(?:amount|account_name|memo|description)"/, 'books registration UI must not upload books or collect private accounting data');
 
 for (const phrase of [
 	"DEFAULT_LOCALE = 'en'",
@@ -343,55 +346,53 @@ const booksPageServer = read('src/routes/books/+page.server.ts');
 assert.match(booksPageServer, /getActiveBookContext\(fetch, cookies, token\)/, '/books page must resolve accessible book metadata and the current/default book through the authenticated API context');
 assert.doesNotMatch(booksPageServer, /upload/i, '/books page server must not add GnuCash file upload handling');
 assert.doesNotMatch(booksPageServer, /transactions|accounts|splits|commodities/i, '/books page server actions must stay app-metadata-only and avoid accounting data routes');
-assert.match(booksPageServer, /removeBook[\s\S]*Removed the book from the app registry only[\s\S]*underlying GnuCash file was not deleted/s, '/books registry remove action must explicitly be registry-only and never file deletion');
+assert.match(booksPageServer, /removeBook[\s\S]*confirm_metadata_only[\s\S]*`\/books\/\$\{bookId\}`[\s\S]*'DELETE'/s, '/books registry remove action must require metadata-only confirmation and call only the registry DELETE endpoint');
+assert.match(i18nMessages, /Removed the book from the app registry only\. The source GnuCash file is not deleted or modified/s, '/books registry remove copy must explicitly be registry-only and never file deletion');
 
 const booksSelectRoute = read('src/routes/books/[bookId]/select/+server.ts');
 assert.match(booksSelectRoute, /getActiveBookContext\(fetch, cookies, token\)/, 'book safe-link route must verify selected book against accessible API context before setting a cookie');
 assert.match(booksSelectRoute, /selectedBook\.can_open_read_only_views[\s\S]*\/books\?book_context=unavailable_selected_book/s, 'book safe-link route must withhold direct navigation for accessible but unavailable/missing books');
 assert.match(booksSelectRoute, /cookies\.set\('selected_book_id'[\s\S]*sameSite:\s*'lax'/s, 'book safe-link route must preserve active book context with the existing non-secret sameSite cookie');
-assert.match(booksSelectRoute, /SAFE_NEXT_PATHS[\s\S]*'\/dashboard'[\s\S]*'\/accounts'[\s\S]*'\/transactions'[\s\S]*'\/scheduled'[\s\S]*isSafeNextPath[\s\S]*parsed\.pathname[\s\S]*parsed\.search/s, 'book safe-link route must redirect only to approved read-only views while preserving safe route query strings');
+assert.match(booksSelectRoute, /SAFE_NEXT_PATHS[\s\S]*'\/accounts'[\s\S]*'\/transactions'[\s\S]*'\/reports'[\s\S]*isSafeNextPath[\s\S]*parsed\.pathname[\s\S]*parsed\.search/s, 'book safe-link route must redirect only to approved read-only account/transaction/report views while preserving safe route query strings');
 assert.doesNotMatch(booksSelectRoute, /upload|delete|registry|admin|write|edit/i, 'book safe-link route must not expose management workflows');
 
 const booksPage = read('src/routes/books/+page.svelte');
 for (const requiredPhrase of [
 	'Book metadata',
 	'Read-only book metadata only',
-	'Active/default book',
+	'Configured books',
 	'Base currency',
-	'Storage type',
+	'Metadata status',
 	'Read-only',
-	'Access status: Accessible',
 	'Archived and unauthorized books are hidden or blocked by the API',
 	'Open safe views',
 	'View accounts',
 	'Browse transactions',
-	'View scheduled metadata',
-	'Dashboard summary',
+	'View reports',
 	'No registry management actions are available on this read-only page.',
-	'Self-hosting operator guidance',
-	'Metadata source',
-	'Listing data access',
-	'Unsupported MVP management actions',
-	'Use the host configuration and app metadata database to change registered books.',
 	'Storage diagnostics',
-	'Safe next actions',
 	'Private filesystem path is intentionally not shown.',
-	'For first run, also verify GNUCASH_DEFAULT_BOOK_PATH points to a mounted readable test-copy book and check /health for redacted diagnostics.'
+	'No books are registered yet',
+	'An administrator must register or assign a book',
+	'Existing server-side GnuCash SQL SQLite only',
+	'No browser upload, copy, import, XML, compressed XML, conversion, filesystem discovery, or source delete'
 ]) {
 	assert.ok(i18nMessages.includes(requiredPhrase), `books i18n catalog must include canonical English phrase: ${requiredPhrase}`);
 }
 assert.match(booksPage, /import EmptyState/, '/books page must reuse the accessible EmptyState component for no accessible books');
-assert.match(booksPage, /<EmptyState[\s\S]*title=\{t\(locale, 'books\.emptyTitle'\)\}[\s\S]*message=\{t\(locale, 'books\.emptyMessage'\)\}[\s\S]*href="\/login"[\s\S]*Sign in again/s, '/books page must give no-books users clear copy and a keyboard-focusable recovery action');
-assert.match(booksPage, /DEFAULT_LOCALE[\s\S]*t\(locale, 'books\.title'\)[\s\S]*t\(locale, 'books\.readonlyStatus'\)/s, '/books page must render localized titles and read-only safety labels from the i18n catalog');
-assert.match(booksPage, /t\(locale, 'books\.safetyNote'\)/, '/books page must render localized read-only safety note');
-assert.match(booksPage, /data\.books[\s\S]*book\.name[\s\S]*book\.base_currency[\s\S]*book\.storage_type[\s\S]*book\.access_role[\s\S]*book\.status/s, '/books page must render book name, base currency, storage type, access role, and status');
-assert.match(booksPage, /book\.access_role_label[\s\S]*book\.access_role_description[\s\S]*book\.status_severity/s, '/books page must render safe access-role copy and status severity diagnostics');
+assert.match(booksPage, /data\.isAdmin[\s\S]*books\.firstRunAdminTitle[\s\S]*href="\/books\/new"/s, '/books page must give first-run admins an Add book recovery action');
+assert.match(booksPage, /!data\.isAdmin[\s\S]*books\.firstRunUserTitle[\s\S]*books\.firstRunUserMessage/s, '/books page must give normal no-books users role-safe fixed copy');
+assert.match(booksPage, /DEFAULT_LOCALE[\s\S]*t\(locale, 'books\.title'\)[\s\S]*t\(locale, 'books\.noMutationBadge'\)/s, '/books page must render localized titles and read-only safety labels from the i18n catalog');
+for (const requiredBookField of ['data.books', 'book.name', 'book.base_currency', 'book.health?.status', 'book.health?.checked_at', 'book.access_role']) {
+	assert.ok(booksPage.includes(requiredBookField), `/books page must render or derive ${requiredBookField}`);
+}
+assert.match(booksPage, /book\.is_enabled[\s\S]*book\.is_default/s, '/books page must render enabled/default state diagnostics');
 assert.match(booksPage, /book\.can_open_read_only_views[\s\S]*books\.unavailableViews/s, '/books page must hide read-only view links for unavailable or not-configured books');
-assert.match(booksPage, /book\.operator_guidance\.metadata_source[\s\S]*book\.operator_guidance\.data_access[\s\S]*book\.operator_guidance\.read_only_default[\s\S]*book\.operator_guidance\.unsupported_management_actions/s, '/books page must render app-metadata-only operator guidance and unsupported MVP management actions');
-assert.match(booksPage, /book\.storage_diagnostics\.safe_summary[\s\S]*books\.privatePathRedacted[\s\S]*book\.storage_diagnostics\.safe_next_actions/s, '/books page must render safe storage diagnostics and next actions without private paths');
+assert.doesNotMatch(booksPage, /book\.operator_guidance\./, '/books page must not render arbitrary backend operator guidance copy');
+assert.match(booksPage, /book\.storage_diagnostics\.safe_summary[\s\S]*books\.privatePathRedacted/s, '/books page must render safe storage diagnostics without private paths');
 assert.doesNotMatch(booksPage, /uri_or_path|book\.operator_guidance\.message/, '/books page must not render private book paths or raw backend guidance copy');
 assert.match(booksPage, /book\.is_default[\s\S]*t\(locale, 'books\.defaultBook'\)/s, '/books page must clearly mark the active/default book');
-assert.match(booksPage, /\/books\/\$\{book\.id\}\/select\?next=\/accounts[\s\S]*\/books\/\$\{book\.id\}\/select\?next=\/transactions[\s\S]*\/books\/\$\{book\.id\}\/select\?next=\/scheduled[\s\S]*\/books\/\$\{book\.id\}\/select\?next=\/dashboard/s, '/books page must expose safe book-context links to read-only views');
+assert.match(booksPage, /can_open_accounts[\s\S]*next: '\/accounts'[\s\S]*can_open_transactions[\s\S]*next: '\/transactions'[\s\S]*can_open_reports[\s\S]*next: '\/reports'[\s\S]*\/books\/\$\{book\.id\}\/select\?next=\$\{link\.next\}/s, '/books page must expose capability-gated safe book-context links to read-only views');
 assert.doesNotMatch(booksPage, /type="file"|Upload book|Delete book|collaborative|shared wallet|family wallet/i, '/books page must not offer upload/delete controls or collaborative/family-wallet framing');
 assert.match(booksPage, /href="\/books\/write-alpha-audit"[\s\S]*books\.auditEvidence/s, '/books page must link operators to the localized safe write-alpha audit evidence view');
 
