@@ -360,14 +360,62 @@ def test_duplicate_display_names_are_allowed_when_canonical_sources_differ(api_c
     assert first.json()["name"] == second.json()["name"] == "Same Display Name"
 
 
-def test_list_and_health_use_cached_health_and_malformed_ready_rows_become_not_checked(
+def test_list_detail_and_health_use_only_cached_health_and_never_probe_source(
     api_context, monkeypatch
 ):
-    def forbidden_probe(*args, **kwargs):  # pragma: no cover - fails only on regression
-        raise AssertionError("listing must not touch source probes or piecash opens")
+    source_probe_calls: list[str] = []
 
-    monkeypatch.setattr("app.routers.books.run_book_health_probe", forbidden_probe)
-    monkeypatch.setattr("app.services.book_preflight.run_book_health_probe", forbidden_probe)
+    def forbidden_source_probe(name: str):
+        def fail(*args, **kwargs):  # pragma: no cover - fails only on regression
+            source_probe_calls.append(name)
+            raise AssertionError(f"list/detail/health must not touch source helper {name}")
+
+        return fail
+
+    monkeypatch.setattr(
+        "app.routers.books._legacy_uncached_storage_status_for",
+        forbidden_source_probe("legacy_uncached_storage_status"),
+    )
+    monkeypatch.setattr(
+        "app.routers.books._local_sqlite_gnucash_shape_is_valid",
+        forbidden_source_probe("local_sqlite_shape_is_valid"),
+    )
+    monkeypatch.setattr(
+        "app.routers.books._sqlite_gnucash_shape_error",
+        forbidden_source_probe("sqlite_gnucash_shape_error"),
+    )
+    monkeypatch.setattr(
+        "app.routers.books.Path",
+        forbidden_source_probe("path_constructor"),
+    )
+    monkeypatch.setattr(
+        "app.routers.books.sqlite3.connect",
+        forbidden_source_probe("sqlite_connect"),
+    )
+    monkeypatch.setattr(
+        "app.routers.books.run_book_health_probe",
+        forbidden_source_probe("router_health_probe"),
+    )
+    monkeypatch.setattr(
+        "app.services.book_preflight.inspect_source_file",
+        forbidden_source_probe("inspect_source_file"),
+    )
+    monkeypatch.setattr(
+        "app.services.book_preflight._verify_sqlite_gnucash_schema",
+        forbidden_source_probe("verify_sqlite_schema"),
+    )
+    monkeypatch.setattr(
+        "app.services.book_preflight._open_piecash_readonly_once",
+        forbidden_source_probe("piecash_readonly_open"),
+    )
+    monkeypatch.setattr(
+        "app.services.book_preflight.run_book_health_probe",
+        forbidden_source_probe("service_health_probe"),
+    )
+    monkeypatch.setattr(
+        "app.services.book_preflight.piecash.open_book",
+        forbidden_source_probe("piecash_open_book"),
+    )
 
     with api_context["session_factory"]() as session:
         ready = Book(
@@ -410,21 +458,30 @@ def test_list_and_health_use_cached_health_and_malformed_ready_rows_become_not_c
         session.commit()
 
     listing = api_context["client"].get("/books", headers=api_context["admin_headers"])
+    detail = api_context["client"].get(
+        f"/books/{missing_snapshot_id}", headers=api_context["admin_headers"]
+    )
     health = api_context["client"].get(
         f"/books/{malformed_id}/health", headers=api_context["admin_headers"]
     )
 
     assert listing.status_code == 200
+    assert detail.status_code == 200
     by_id = {item["id"]: item for item in listing.json()}
     assert by_id[ready_id]["status"] == "available"
     assert by_id[ready_id]["can_open_read_only_views"] is True
     assert by_id[malformed_id]["status"] == "not_checked"
     assert by_id[malformed_id]["health"]["safe_code"] == "not_checked"
     assert by_id[malformed_id]["can_open_read_only_views"] is True
-    assert by_id[missing_snapshot_id]["status"] == "missing_file"
-    assert by_id[missing_snapshot_id]["can_open_read_only_views"] is False
+    assert by_id[missing_snapshot_id]["status"] == "not_checked"
+    assert by_id[missing_snapshot_id]["health"]["safe_code"] == "not_checked"
+    assert by_id[missing_snapshot_id]["can_open_read_only_views"] is True
+    assert detail.json()["status"] == "not_checked"
+    assert detail.json()["health"]["safe_code"] == "not_checked"
+    assert detail.json()["can_open_read_only_views"] is True
     assert health.status_code == 200
     assert health.json()["safe_code"] == "not_checked"
+    assert source_probe_calls == []
     for forbidden in (
         "ready-private.gnucash.sqlite",
         "malformed-private.gnucash.sqlite",

@@ -321,7 +321,8 @@ class TestListBooks:
         book = next(b for b in data if b["id"] == sample_book)
         assert book["access_role"] == "owner"
         assert book["read_only"] is True
-        assert book["status"] == "missing_file"
+        assert book["status"] == "not_checked"
+        assert book["health"]["safe_code"] == "not_checked"
         assert book["management_actions"] == ["set_default", "remove_from_registry"]
 
     def test_excludes_books_without_access(
@@ -363,7 +364,8 @@ class TestGetBook:
         assert data["name"] == "Test Book"
         assert data["access_role"] == "owner"
         assert data["read_only"] is True
-        assert data["status"] == "missing_file"
+        assert data["status"] == "not_checked"
+        assert data["health"]["safe_code"] == "not_checked"
         assert data["access_status"] == "accessible"
         assert "uri_or_path" not in data
         assert data["management_actions"] == ["set_default", "remove_from_registry"]

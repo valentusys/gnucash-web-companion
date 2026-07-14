@@ -385,8 +385,6 @@ def _storage_diagnostics_for(book: Book) -> dict[str, Any]:
 
     snapshot = getattr(book, "health_snapshot", None)
     safe_code = _cached_health_safe_code(book)
-    if snapshot is None:
-        safe_code = _legacy_uncached_storage_status_for(book)
     if safe_code in {"ready", "available"}:
         safe_summary = (
             "Cached app metadata health is ready; listing did not touch the GnuCash source."
