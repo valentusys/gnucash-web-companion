@@ -13,10 +13,11 @@ import secrets
 import sqlite3
 import stat
 import time
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
-from typing import Any
+from typing import Any, Iterator
 from urllib.parse import quote
 
 import piecash
@@ -53,6 +54,10 @@ _PROBLEM_MESSAGES: dict[str, tuple[str, bool]] = {
     "invalid_gnucash_schema": ("The SQLite file does not contain required GnuCash SQL markers.", False),
     "source_changed": ("The book source changed while it was being checked; retry the preflight.", True),
     "open_failed": ("The book could not be opened read-only as a GnuCash SQL book.", False),
+    "pinned_source_unavailable": (
+        "A safe read-only source descriptor probe is not available on this runtime.",
+        False,
+    ),
 }
 
 
@@ -88,6 +93,15 @@ class SourceIdentity:
 class SourceInspection:
     identity: SourceIdentity
     magic: bytes
+
+
+@dataclass(frozen=True)
+class _PinnedSourceInspection:
+    identity: SourceIdentity
+    magic: bytes
+    fd: int
+    fd_path: str
+    roots: tuple[Path, ...]
 
 
 @dataclass
@@ -246,7 +260,19 @@ def _reject_symlink_components(path: Path) -> None:
             raise
 
 
+def _require_no_follow_support() -> None:
+    if os.name != "posix" or getattr(os, "O_NOFOLLOW", 0) == 0:
+        raise _problem("pinned_source_unavailable")
+
+
+def _require_pinned_fd_primitives() -> None:
+    _require_no_follow_support()
+    if not Path("/proc/self/fd").is_dir():
+        raise _problem("pinned_source_unavailable")
+
+
 def _open_allowed_root_fd(root: Path) -> int:
+    _require_no_follow_support()
     flags = (
         os.O_RDONLY
         | getattr(os, "O_CLOEXEC", 0)
@@ -339,10 +365,10 @@ def _regular_file_stat_at(parent_fd: int, leaf_name: str) -> os.stat_result:
     return file_stat
 
 
-def _read_regular_file_magic_no_follow(
+def _open_regular_file_no_follow(
     canonical_path: Path,
     roots: list[Path],
-) -> tuple[bytes, os.stat_result]:
+) -> tuple[int, bytes, os.stat_result]:
     root = _matching_allowed_root(canonical_path, roots)
     if root is None:
         raise _problem("outside_allowed_roots")
@@ -359,11 +385,15 @@ def _read_regular_file_magic_no_follow(
         if not _same_file_stat(before, opened):
             raise _problem("source_changed")
         magic = os.read(fd, len(SQLITE_MAGIC))
+        os.lseek(fd, 0, os.SEEK_SET)
         after = _regular_file_stat_at(parent_fd, leaf_name)
         if not _same_file_stat(opened, after):
             raise _problem("source_changed")
-        return magic, opened
+        return fd, magic, opened
     except OSError as exc:
+        if fd is not None:
+            os.close(fd)
+            fd = None
         if exc.errno == errno.ELOOP:
             raise _problem("symlink_forbidden") from exc
         if exc.errno in {errno.EACCES, errno.EPERM}:
@@ -371,10 +401,80 @@ def _read_regular_file_magic_no_follow(
         if exc.errno in {errno.ENOENT, errno.ENOTDIR}:
             raise _problem("missing_file") from exc
         raise _problem("permission_denied") from exc
+    except Exception:
+        if fd is not None:
+            os.close(fd)
+            fd = None
+        raise
+    finally:
+        os.close(parent_fd)
+
+
+def _read_regular_file_magic_no_follow(
+    canonical_path: Path,
+    roots: list[Path],
+) -> tuple[bytes, os.stat_result]:
+    fd, magic, opened = _open_regular_file_no_follow(canonical_path, roots)
+    try:
+        return magic, opened
+    finally:
+        os.close(fd)
+
+
+def _verify_pinned_source_identity_unchanged(identity: SourceIdentity, fd: int) -> None:
+    try:
+        current = os.fstat(fd)
+    except OSError as exc:
+        raise _problem("source_changed") from exc
+    if not stat.S_ISREG(current.st_mode) or not _identity_matches_stat(identity, current):
+        raise _problem("source_changed")
+
+
+def _pinned_fd_path(fd: int, identity: SourceIdentity) -> str:
+    _require_pinned_fd_primitives()
+    fd_path = Path("/proc/self/fd") / str(fd)
+    try:
+        fd_stat = os.fstat(fd)
+        proc_stat = os.stat(fd_path)
+    except OSError as exc:
+        raise _problem("pinned_source_unavailable") from exc
+    if (
+        not stat.S_ISREG(fd_stat.st_mode)
+        or not _identity_matches_stat(identity, fd_stat)
+        or not _same_file_stat(fd_stat, proc_stat)
+    ):
+        raise _problem("pinned_source_unavailable")
+    return os.fspath(fd_path)
+
+
+@contextmanager
+def _open_source_file_for_full_probe(
+    raw_path: str, settings: Settings
+) -> Iterator[_PinnedSourceInspection]:
+    request_path = _validate_absolute_request_path(raw_path)
+    roots = _allowed_roots(settings)
+    if not _is_under_allowed_root(request_path, roots):
+        raise _problem("outside_allowed_roots")
+    _reject_symlink_components(request_path)
+    canonical_path = request_path.resolve(strict=False)
+    if not _is_under_allowed_root(canonical_path, roots):
+        raise _problem("outside_allowed_roots")
+
+    fd: int | None = None
+    try:
+        fd, magic, file_stat = _open_regular_file_no_follow(canonical_path, roots)
+        identity = _stable_identity(str(canonical_path), file_stat)
+        fd_path = _pinned_fd_path(fd, identity)
+        yield _PinnedSourceInspection(
+            identity=identity,
+            magic=magic,
+            fd=fd,
+            fd_path=fd_path,
+            roots=tuple(roots),
+        )
     finally:
         if fd is not None:
             os.close(fd)
-        os.close(parent_fd)
 
 
 def _verify_source_identity_unchanged(identity: SourceIdentity, roots: list[Path]) -> None:
@@ -506,35 +606,36 @@ def run_book_health_probe(raw_path: str, settings: Settings) -> BookHealthProbeR
     read-only open on success.
     """
 
-    inspection = inspect_source_file(raw_path, settings)
-    if inspection.magic != SQLITE_MAGIC:
-        raise _problem("unsupported_format")
-    sqlite_probe = _verify_sqlite_gnucash_schema(inspection.identity.canonical_path)
-    roots = _allowed_roots(settings)
-    _verify_source_identity_unchanged(inspection.identity, roots)
-    _open_piecash_readonly_once(inspection.identity.canonical_path)
-    _verify_source_identity_unchanged(inspection.identity, roots)
-    return BookHealthProbeResult(
-        identity=inspection.identity,
-        source_status=_ready_status(
-            "source_ready",
-            "The source is an allowed local regular file and was opened read-only without following symlinks.",
-        ),
-        open_status=_ready_status(
-            "piecash_readonly_open_ready",
-            "The book opened once with piecash in read-only mode.",
-        ),
-        accounts=sqlite_probe.accounts,
-        transactions=sqlite_probe.transactions,
-        reports=sqlite_probe.reports,
-        checked_at=datetime.now(timezone.utc),
-        read_counters=BookPreflightReadCountersDTO(
-            sqlite_query_count=sqlite_probe.sqlite_query_count,
-            piecash_open_count=1,
-            account_materialization_count=0,
-            transaction_materialization_count=0,
-        ),
-    )
+    with _open_source_file_for_full_probe(raw_path, settings) as inspection:
+        if inspection.magic != SQLITE_MAGIC:
+            raise _problem("unsupported_format")
+        _verify_pinned_source_identity_unchanged(inspection.identity, inspection.fd)
+        sqlite_probe = _verify_sqlite_gnucash_schema(inspection.fd_path)
+        _verify_pinned_source_identity_unchanged(inspection.identity, inspection.fd)
+        _open_piecash_readonly_once(inspection.fd_path)
+        _verify_pinned_source_identity_unchanged(inspection.identity, inspection.fd)
+        _verify_source_identity_unchanged(inspection.identity, list(inspection.roots))
+        return BookHealthProbeResult(
+            identity=inspection.identity,
+            source_status=_ready_status(
+                "source_ready",
+                "The source is an allowed local regular file and was opened read-only without following symlinks.",
+            ),
+            open_status=_ready_status(
+                "piecash_readonly_open_ready",
+                "The book opened once with piecash in read-only mode.",
+            ),
+            accounts=sqlite_probe.accounts,
+            transactions=sqlite_probe.transactions,
+            reports=sqlite_probe.reports,
+            checked_at=datetime.now(timezone.utc),
+            read_counters=BookPreflightReadCountersDTO(
+                sqlite_query_count=sqlite_probe.sqlite_query_count,
+                piecash_open_count=1,
+                account_materialization_count=0,
+                transaction_materialization_count=0,
+            ),
+        )
 
 
 def _registration_status(session: Session | None, identity: SourceIdentity) -> BookSectionStatusDTO:

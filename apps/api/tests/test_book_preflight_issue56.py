@@ -9,6 +9,7 @@ import os
 import shutil
 from pathlib import Path
 from typing import Any
+from urllib.parse import unquote
 
 import pytest
 from fastapi.testclient import TestClient
@@ -36,6 +37,40 @@ def _copy_fixture(target: Path) -> Path:
 
 def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _sqlite_database_path(database: object) -> Path:
+    text = str(database)
+    if text.startswith("file:"):
+        text = text[5:].split("?", 1)[0]
+        text = unquote(text)
+    return Path(text)
+
+
+def _path_resolves_to(candidate: object, expected: Path) -> bool:
+    try:
+        return Path(str(candidate)).resolve(strict=True) == expected.resolve(strict=True)
+    except OSError:
+        return False
+
+
+def _same_inode(left: os.stat_result, right: os.stat_result) -> bool:
+    return int(left.st_dev) == int(right.st_dev) and int(left.st_ino) == int(right.st_ino)
+
+
+def _fd_targets_containing(needle: str) -> list[str]:
+    proc_fd = Path("/proc/self/fd")
+    if not proc_fd.exists():
+        pytest.skip("/proc/self/fd is required for fd leak inspection")
+    matches: list[str] = []
+    for entry in proc_fd.iterdir():
+        try:
+            target = os.readlink(entry)
+        except OSError:
+            continue
+        if needle in target:
+            matches.append(target)
+    return sorted(matches)
 
 
 @pytest.fixture
@@ -371,15 +406,16 @@ def test_preflight_rejects_parent_symlink_swap_after_canonicalization(
     outside = tmp_path / "outside-race-target"
     outside.mkdir()
     _copy_fixture(outside / book_path.name)
-    real_read = book_preflight._read_regular_file_magic_no_follow
+    retained_dir = allowed / "retained-raced-dir"
+    real_open = book_preflight._open_regular_file_no_follow
 
-    def swapped_parent_read(canonical_path: Path, *args, **kwargs):
+    def swapped_parent_open(canonical_path: Path, *args, **kwargs):
         assert Path(canonical_path) == book_path.resolve(strict=True)
-        shutil.rmtree(raced_dir)
+        raced_dir.rename(retained_dir)
         raced_dir.symlink_to(outside, target_is_directory=True)
-        return real_read(canonical_path, *args, **kwargs)
+        return real_open(canonical_path, *args, **kwargs)
 
-    monkeypatch.setattr(book_preflight, "_read_regular_file_magic_no_follow", swapped_parent_read)
+    monkeypatch.setattr(book_preflight, "_open_regular_file_no_follow", swapped_parent_open)
 
     response = _post_preflight(api_context, book_path)
 
@@ -388,6 +424,191 @@ def test_preflight_rejects_parent_symlink_swap_after_canonicalization(
     assert str(outside) not in response.text
     assert outside.name not in response.text
     assert book_path.name not in response.text
+
+
+def test_full_probe_parent_swap_before_sqlite_uses_no_outside_source_schema_or_piecash(
+    api_context, tmp_path, monkeypatch
+):
+    from app.services import book_preflight
+
+    allowed = api_context["allowed_root"]
+    raced_dir = allowed / "schema-raced-dir"
+    raced_dir.mkdir()
+    book_path = _copy_fixture(raced_dir / "schema-raced.gnucash.sqlite")
+    outside = tmp_path / "schema-outside-target"
+    outside.mkdir()
+    outside_book = _copy_fixture(outside / book_path.name)
+    retained_dir = allowed / "schema-retained-dir"
+    outside_opens = {"source": 0, "schema": 0, "piecash": 0}
+
+    source_open_name = (
+        "_open_regular_file_no_follow"
+        if hasattr(book_preflight, "_open_regular_file_no_follow")
+        else "_read_regular_file_magic_no_follow"
+    )
+    real_source_open = getattr(book_preflight, source_open_name)
+    real_schema_probe = book_preflight._verify_sqlite_gnucash_schema
+    real_connect = book_preflight.sqlite3.connect
+    real_open_book = book_preflight.piecash.open_book
+
+    def counted_source_open(canonical_path: Path, *args, **kwargs):
+        if _path_resolves_to(canonical_path, outside_book):
+            outside_opens["source"] += 1
+        return real_source_open(canonical_path, *args, **kwargs)
+
+    def counted_connect(database, *args, **kwargs):
+        if _path_resolves_to(_sqlite_database_path(database), outside_book):
+            outside_opens["schema"] += 1
+        return real_connect(database, *args, **kwargs)
+
+    def counted_open_book(path, *args, **kwargs):
+        if _path_resolves_to(path, outside_book):
+            outside_opens["piecash"] += 1
+        return real_open_book(path, *args, **kwargs)
+
+    def swapped_schema_probe(source_path: str):
+        raced_dir.rename(retained_dir)
+        raced_dir.symlink_to(outside, target_is_directory=True)
+        return real_schema_probe(source_path)
+
+    monkeypatch.setattr(book_preflight, source_open_name, counted_source_open)
+    monkeypatch.setattr(book_preflight.sqlite3, "connect", counted_connect)
+    monkeypatch.setattr(book_preflight.piecash, "open_book", counted_open_book)
+    monkeypatch.setattr(book_preflight, "_verify_sqlite_gnucash_schema", swapped_schema_probe)
+
+    response = _post_preflight(api_context, book_path)
+
+    assert response.status_code == 422
+    assert response.json()["detail"]["code"] in {"source_changed", "symlink_forbidden"}
+    assert outside_opens == {"source": 0, "schema": 0, "piecash": 0}
+    assert str(outside) not in response.text
+    assert outside.name not in response.text
+    assert book_path.name not in response.text
+
+
+def test_full_probe_parent_swap_before_piecash_uses_no_outside_source_schema_or_piecash(
+    api_context, tmp_path, monkeypatch
+):
+    from app.services import book_preflight
+
+    allowed = api_context["allowed_root"]
+    raced_dir = allowed / "piecash-raced-dir"
+    raced_dir.mkdir()
+    book_path = _copy_fixture(raced_dir / "piecash-raced.gnucash.sqlite")
+    outside = tmp_path / "piecash-outside-target"
+    outside.mkdir()
+    outside_book = _copy_fixture(outside / book_path.name)
+    retained_dir = allowed / "piecash-retained-dir"
+    outside_opens = {"source": 0, "schema": 0, "piecash": 0}
+
+    source_open_name = (
+        "_open_regular_file_no_follow"
+        if hasattr(book_preflight, "_open_regular_file_no_follow")
+        else "_read_regular_file_magic_no_follow"
+    )
+    real_source_open = getattr(book_preflight, source_open_name)
+    real_connect = book_preflight.sqlite3.connect
+    real_health_open = book_preflight._open_piecash_readonly_once
+    real_open_book = book_preflight.piecash.open_book
+
+    def counted_source_open(canonical_path: Path, *args, **kwargs):
+        if _path_resolves_to(canonical_path, outside_book):
+            outside_opens["source"] += 1
+        return real_source_open(canonical_path, *args, **kwargs)
+
+    def counted_connect(database, *args, **kwargs):
+        if _path_resolves_to(_sqlite_database_path(database), outside_book):
+            outside_opens["schema"] += 1
+        return real_connect(database, *args, **kwargs)
+
+    def counted_open_book(path, *args, **kwargs):
+        if _path_resolves_to(path, outside_book):
+            outside_opens["piecash"] += 1
+        return real_open_book(path, *args, **kwargs)
+
+    def swapped_piecash_open(source_path: str) -> None:
+        raced_dir.rename(retained_dir)
+        raced_dir.symlink_to(outside, target_is_directory=True)
+        return real_health_open(source_path)
+
+    monkeypatch.setattr(book_preflight, source_open_name, counted_source_open)
+    monkeypatch.setattr(book_preflight.sqlite3, "connect", counted_connect)
+    monkeypatch.setattr(book_preflight.piecash, "open_book", counted_open_book)
+    monkeypatch.setattr(book_preflight, "_open_piecash_readonly_once", swapped_piecash_open)
+
+    response = _post_preflight(api_context, book_path)
+
+    assert response.status_code == 422
+    assert response.json()["detail"]["code"] in {"source_changed", "symlink_forbidden"}
+    assert outside_opens == {"source": 0, "schema": 0, "piecash": 0}
+    assert str(outside) not in response.text
+    assert outside.name not in response.text
+    assert book_path.name not in response.text
+
+
+def test_full_probe_leaf_replacement_before_piecash_does_not_open_replacement_inode(
+    api_context, tmp_path, monkeypatch
+):
+    from app.services import book_preflight
+
+    book_path = _copy_fixture(api_context["allowed_root"] / "leaf-raced.gnucash.sqlite")
+    replacement = _copy_fixture(tmp_path / "replacement.gnucash.sqlite")
+    retained_original = book_path.with_name("leaf-raced-retained.gnucash.sqlite")
+    original_stat = book_path.stat()
+    replacement_open_count = 0
+
+    real_health_open = book_preflight._open_piecash_readonly_once
+    real_open_book = book_preflight.piecash.open_book
+
+    def counted_open_book(path, *args, **kwargs):
+        nonlocal replacement_open_count
+        try:
+            opened_stat = Path(str(path)).stat()
+        except OSError:
+            opened_stat = None
+        if opened_stat is not None and _same_inode(opened_stat, replacement.stat()):
+            replacement_open_count += 1
+        return real_open_book(path, *args, **kwargs)
+
+    def swapped_piecash_open(source_path: str) -> None:
+        book_path.rename(retained_original)
+        shutil.copy2(replacement, book_path)
+        assert not _same_inode(original_stat, book_path.stat())
+        return real_health_open(source_path)
+
+    monkeypatch.setattr(book_preflight.piecash, "open_book", counted_open_book)
+    monkeypatch.setattr(book_preflight, "_open_piecash_readonly_once", swapped_piecash_open)
+
+    response = _post_preflight(api_context, book_path)
+
+    assert response.status_code == 422
+    assert response.json()["detail"]["code"] == "source_changed"
+    assert replacement_open_count == 0
+    assert str(book_path) not in response.text
+    assert book_path.name not in response.text
+
+
+def test_full_probe_closes_pinned_source_fd_on_success_and_error(api_context, monkeypatch):
+    from app.services import book_preflight
+
+    success_path = _copy_fixture(api_context["allowed_root"] / "fd-success.gnucash.sqlite")
+    assert _fd_targets_containing(success_path.name) == []
+    success = _post_preflight(api_context, success_path)
+    assert success.status_code == 200
+    assert _fd_targets_containing(success_path.name) == []
+
+    error_path = _copy_fixture(api_context["allowed_root"] / "fd-error.gnucash.sqlite")
+
+    def failing_schema_probe(source_path: str):
+        raise book_preflight._problem("invalid_gnucash_schema")
+
+    monkeypatch.setattr(book_preflight, "_verify_sqlite_gnucash_schema", failing_schema_probe)
+
+    assert _fd_targets_containing(error_path.name) == []
+    failure = _post_preflight(api_context, error_path)
+    assert failure.status_code == 422
+    assert failure.json()["detail"]["code"] == "invalid_gnucash_schema"
+    assert _fd_targets_containing(error_path.name) == []
 
 
 def test_preflight_rejects_outside_allowed_root_before_component_probes(

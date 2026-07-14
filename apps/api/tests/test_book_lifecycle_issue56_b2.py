@@ -193,7 +193,15 @@ def test_register_requires_fresh_matching_token_and_exactly_one_readonly_open(ap
     open_calls: list[dict[str, Any]] = []
 
     def counting_open_book(*args, **kwargs):
-        open_calls.append({"args": args, "kwargs": kwargs})
+        opened_stat = Path(str(args[0])).stat()
+        open_calls.append(
+            {
+                "path": str(args[0]),
+                "kwargs": kwargs,
+                "st_dev": int(opened_stat.st_dev),
+                "st_ino": int(opened_stat.st_ino),
+            }
+        )
         return real_open_book(*args, **kwargs)
 
     monkeypatch.setattr(book_preflight.piecash, "open_book", counting_open_book)
@@ -209,9 +217,14 @@ def test_register_requires_fresh_matching_token_and_exactly_one_readonly_open(ap
     assert data["status"] == "available"
     assert data["health"]["safe_code"] == "ready"
     assert "uri_or_path" not in data
-    assert open_calls == [
-        {"args": (str(book_path.resolve(strict=True)),), "kwargs": {"readonly": True}}
-    ]
+    assert len(open_calls) == 1
+    assert open_calls[0]["path"].startswith("/proc/self/fd/")
+    assert open_calls[0]["path"] != str(book_path.resolve(strict=True))
+    assert open_calls[0]["kwargs"] == {"readonly": True}
+    assert (open_calls[0]["st_dev"], open_calls[0]["st_ino"]) == (
+        int(before_stat.st_dev),
+        int(before_stat.st_ino),
+    )
     assert _sha256(book_path) == before_hash
     assert book_path.stat().st_size == before_stat.st_size
     assert book_path.stat().st_mtime_ns == before_stat.st_mtime_ns
