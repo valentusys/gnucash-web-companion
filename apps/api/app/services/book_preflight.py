@@ -217,14 +217,20 @@ def _allowed_roots(settings: Settings) -> list[Path]:
 
 
 def _is_under_allowed_root(candidate: Path, roots: list[Path]) -> bool:
+    return _matching_allowed_root(candidate, roots) is not None
+
+
+def _matching_allowed_root(candidate: Path, roots: list[Path]) -> Path | None:
     candidate_text = os.fspath(candidate)
+    best_match: Path | None = None
     for root in roots:
         try:
             if os.path.commonpath([candidate_text, os.fspath(root)]) == os.fspath(root):
-                return True
+                if best_match is None or len(root.parts) > len(best_match.parts):
+                    best_match = root
         except ValueError:
             continue
-    return False
+    return best_match
 
 
 def _reject_symlink_components(path: Path) -> None:
@@ -240,9 +246,85 @@ def _reject_symlink_components(path: Path) -> None:
             raise
 
 
-def _read_regular_file_magic_no_follow(canonical_path: Path) -> tuple[bytes, os.stat_result]:
+def _open_allowed_root_fd(root: Path) -> int:
+    flags = (
+        os.O_RDONLY
+        | getattr(os, "O_CLOEXEC", 0)
+        | getattr(os, "O_DIRECTORY", 0)
+        | getattr(os, "O_NOFOLLOW", 0)
+    )
     try:
-        before = os.stat(canonical_path, follow_symlinks=False)
+        fd = os.open(root, flags)
+    except OSError as exc:
+        raise _problem("invalid_allowed_root_config") from exc
+    try:
+        root_stat = os.fstat(fd)
+        if not stat.S_ISDIR(root_stat.st_mode):
+            raise _problem("invalid_allowed_root_config")
+    except Exception:
+        os.close(fd)
+        raise
+    return fd
+
+
+def _raise_component_open_error(exc: OSError, parent_fd: int, part: str) -> None:
+    if exc.errno == errno.ELOOP:
+        raise _problem("symlink_forbidden") from exc
+    if exc.errno == errno.ENOTDIR:
+        try:
+            component_stat = os.stat(part, dir_fd=parent_fd, follow_symlinks=False)
+        except OSError:
+            raise _problem("missing_file") from exc
+        if stat.S_ISLNK(component_stat.st_mode):
+            raise _problem("symlink_forbidden") from exc
+        raise _problem("missing_file") from exc
+    if exc.errno in {errno.EACCES, errno.EPERM}:
+        raise _problem("permission_denied") from exc
+    if exc.errno == errno.ENOENT:
+        raise _problem("missing_file") from exc
+    raise _problem("permission_denied") from exc
+
+
+def _open_parent_directory_no_follow(canonical_path: Path, root: Path) -> tuple[int, str]:
+    try:
+        relative = canonical_path.relative_to(root)
+    except ValueError as exc:
+        raise _problem("outside_allowed_roots") from exc
+    if not relative.parts:
+        raise _problem("not_regular_file")
+
+    current_fd = _open_allowed_root_fd(root)
+    dir_flags = (
+        os.O_RDONLY
+        | getattr(os, "O_CLOEXEC", 0)
+        | getattr(os, "O_DIRECTORY", 0)
+        | getattr(os, "O_NOFOLLOW", 0)
+    )
+    try:
+        for part in relative.parts[:-1]:
+            try:
+                next_fd = os.open(part, dir_flags, dir_fd=current_fd)
+            except OSError as exc:
+                _raise_component_open_error(exc, current_fd, part)
+                raise AssertionError("unreachable component-open error path") from exc
+            try:
+                component_stat = os.fstat(next_fd)
+                if not stat.S_ISDIR(component_stat.st_mode):
+                    os.close(next_fd)
+                    raise _problem("missing_file")
+            except Exception:
+                raise
+            os.close(current_fd)
+            current_fd = next_fd
+        return current_fd, relative.parts[-1]
+    except Exception:
+        os.close(current_fd)
+        raise
+
+
+def _regular_file_stat_at(parent_fd: int, leaf_name: str) -> os.stat_result:
+    try:
+        file_stat = os.stat(leaf_name, dir_fd=parent_fd, follow_symlinks=False)
     except FileNotFoundError as exc:
         raise _problem("missing_file") from exc
     except NotADirectoryError as exc:
@@ -250,22 +332,34 @@ def _read_regular_file_magic_no_follow(canonical_path: Path) -> tuple[bytes, os.
     except PermissionError as exc:
         raise _problem("permission_denied") from exc
 
-    if stat.S_ISLNK(before.st_mode):
+    if stat.S_ISLNK(file_stat.st_mode):
         raise _problem("symlink_forbidden")
-    if not stat.S_ISREG(before.st_mode):
+    if not stat.S_ISREG(file_stat.st_mode):
         raise _problem("not_regular_file")
+    return file_stat
 
+
+def _read_regular_file_magic_no_follow(
+    canonical_path: Path,
+    roots: list[Path],
+) -> tuple[bytes, os.stat_result]:
+    root = _matching_allowed_root(canonical_path, roots)
+    if root is None:
+        raise _problem("outside_allowed_roots")
+
+    parent_fd, leaf_name = _open_parent_directory_no_follow(canonical_path, root)
     flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
     fd: int | None = None
     try:
-        fd = os.open(canonical_path, flags)
+        before = _regular_file_stat_at(parent_fd, leaf_name)
+        fd = os.open(leaf_name, flags, dir_fd=parent_fd)
         opened = os.fstat(fd)
         if not stat.S_ISREG(opened.st_mode):
             raise _problem("not_regular_file")
         if not _same_file_stat(before, opened):
             raise _problem("source_changed")
         magic = os.read(fd, len(SQLITE_MAGIC))
-        after = os.stat(canonical_path, follow_symlinks=False)
+        after = _regular_file_stat_at(parent_fd, leaf_name)
         if not _same_file_stat(opened, after):
             raise _problem("source_changed")
         return magic, opened
@@ -280,21 +374,19 @@ def _read_regular_file_magic_no_follow(canonical_path: Path) -> tuple[bytes, os.
     finally:
         if fd is not None:
             os.close(fd)
+        os.close(parent_fd)
 
 
-def _verify_source_identity_unchanged(identity: SourceIdentity) -> None:
+def _verify_source_identity_unchanged(identity: SourceIdentity, roots: list[Path]) -> None:
+    canonical_path = Path(identity.canonical_path)
+    root = _matching_allowed_root(canonical_path, roots)
+    if root is None:
+        raise _problem("outside_allowed_roots")
+    parent_fd, leaf_name = _open_parent_directory_no_follow(canonical_path, root)
     try:
-        current = os.stat(identity.canonical_path, follow_symlinks=False)
-    except FileNotFoundError as exc:
-        raise _problem("missing_file") from exc
-    except NotADirectoryError as exc:
-        raise _problem("missing_file") from exc
-    except PermissionError as exc:
-        raise _problem("permission_denied") from exc
-    if stat.S_ISLNK(current.st_mode):
-        raise _problem("symlink_forbidden")
-    if not stat.S_ISREG(current.st_mode):
-        raise _problem("not_regular_file")
+        current = _regular_file_stat_at(parent_fd, leaf_name)
+    finally:
+        os.close(parent_fd)
     if not _identity_matches_stat(identity, current):
         raise _problem("source_changed")
 
@@ -310,7 +402,7 @@ def inspect_source_file(raw_path: str, settings: Settings) -> SourceInspection:
     canonical_path = request_path.resolve(strict=False)
     if not _is_under_allowed_root(canonical_path, roots):
         raise _problem("outside_allowed_roots")
-    magic, file_stat = _read_regular_file_magic_no_follow(canonical_path)
+    magic, file_stat = _read_regular_file_magic_no_follow(canonical_path, roots)
     identity = _stable_identity(str(canonical_path), file_stat)
     return SourceInspection(identity=identity, magic=magic)
 
@@ -418,9 +510,10 @@ def run_book_health_probe(raw_path: str, settings: Settings) -> BookHealthProbeR
     if inspection.magic != SQLITE_MAGIC:
         raise _problem("unsupported_format")
     sqlite_probe = _verify_sqlite_gnucash_schema(inspection.identity.canonical_path)
-    _verify_source_identity_unchanged(inspection.identity)
+    roots = _allowed_roots(settings)
+    _verify_source_identity_unchanged(inspection.identity, roots)
     _open_piecash_readonly_once(inspection.identity.canonical_path)
-    _verify_source_identity_unchanged(inspection.identity)
+    _verify_source_identity_unchanged(inspection.identity, roots)
     return BookHealthProbeResult(
         identity=inspection.identity,
         source_status=_ready_status(

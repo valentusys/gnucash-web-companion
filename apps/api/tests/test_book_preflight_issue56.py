@@ -359,6 +359,37 @@ def test_preflight_rejects_symlinks_escape_and_similar_prefix_roots(api_context,
     assert outside_book.name not in combined
 
 
+def test_preflight_rejects_parent_symlink_swap_after_canonicalization(
+    api_context, tmp_path, monkeypatch
+):
+    from app.services import book_preflight
+
+    allowed = api_context["allowed_root"]
+    raced_dir = allowed / "raced-dir"
+    raced_dir.mkdir()
+    book_path = _copy_fixture(raced_dir / "raced.gnucash.sqlite")
+    outside = tmp_path / "outside-race-target"
+    outside.mkdir()
+    _copy_fixture(outside / book_path.name)
+    real_read = book_preflight._read_regular_file_magic_no_follow
+
+    def swapped_parent_read(canonical_path: Path, *args, **kwargs):
+        assert Path(canonical_path) == book_path.resolve(strict=True)
+        shutil.rmtree(raced_dir)
+        raced_dir.symlink_to(outside, target_is_directory=True)
+        return real_read(canonical_path, *args, **kwargs)
+
+    monkeypatch.setattr(book_preflight, "_read_regular_file_magic_no_follow", swapped_parent_read)
+
+    response = _post_preflight(api_context, book_path)
+
+    assert response.status_code == 422
+    assert response.json()["detail"]["code"] == "symlink_forbidden"
+    assert str(outside) not in response.text
+    assert outside.name not in response.text
+    assert book_path.name not in response.text
+
+
 def test_preflight_rejects_outside_allowed_root_before_component_probes(
     api_context, tmp_path, monkeypatch
 ):
