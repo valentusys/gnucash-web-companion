@@ -1,8 +1,10 @@
 """Book access control service."""
 
-from typing import Optional
+from typing import Any, Optional
 
+from sqlalchemy import inspect
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import NO_VALUE
 
 from app.models import Book, User, UserBookAccess
 
@@ -28,6 +30,14 @@ class BookAccessService:
         self.session = session
 
     def get_role(self, user: User, book: Book) -> Optional[str]:
+        book_state: Any = inspect(book)
+        access_entries_state = book_state.attrs.access_entries
+        access_entries = access_entries_state.loaded_value
+        if access_entries is not NO_VALUE:
+            for access in access_entries:
+                if access.user_id == user.id:
+                    return access.role
+            return None
         access = (
             self.session.query(UserBookAccess)
             .filter(

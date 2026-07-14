@@ -10,7 +10,7 @@ from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -99,6 +99,7 @@ def api_context(tmp_path):
 
     yield {
         "client": client,
+        "engine": engine,
         "session_factory": SessionLocal,
         "settings": settings,
         "allowed_root": allowed_root,
@@ -488,6 +489,73 @@ def test_list_detail_and_health_use_only_cached_health_and_never_probe_source(
         "missing-snapshot-private.gnucash.sqlite",
     ):
         assert forbidden not in listing.text
+
+
+def _request_with_app_db_statement_count(api_context, method: str, path: str):
+    statements: list[str] = []
+
+    def before_cursor_execute(conn, cursor, statement, parameters, context, executemany):
+        statements.append(str(statement))
+
+    event.listen(api_context["engine"], "before_cursor_execute", before_cursor_execute)
+    try:
+        response = api_context["client"].request(
+            method,
+            path,
+            headers=api_context["admin_headers"],
+        )
+    finally:
+        event.remove(api_context["engine"], "before_cursor_execute", before_cursor_execute)
+    return response, len(statements)
+
+
+def test_cached_metadata_routes_have_bounded_app_db_query_count_independent_of_book_count(
+    api_context, monkeypatch
+):
+    def forbidden_source_probe(*args, **kwargs):  # pragma: no cover - regression guard
+        raise AssertionError("cached metadata route must not probe GnuCash source")
+
+    monkeypatch.setattr("app.routers.books.run_book_health_probe", forbidden_source_probe)
+    monkeypatch.setattr("app.services.book_preflight.piecash.open_book", forbidden_source_probe)
+
+    with api_context["session_factory"]() as session:
+        admin = session.query(User).filter(User.username == "admin").one()
+        first_book_id: int | None = None
+        for index in range(6):
+            book = Book()
+            book.name = f"Cached Book {index}"
+            book.storage_type = "sqlite"
+            book.uri_or_path = str(api_context["allowed_root"] / f"private-{index}.gnucash.sqlite")
+            book.base_currency = "USD"
+            book.is_enabled = True
+            session.add(book)
+            session.flush()
+            if first_book_id is None:
+                first_book_id = int(book.id)
+            access = UserBookAccess()
+            access.user_id = admin.id
+            access.book_id = book.id
+            access.role = "owner"
+            session.add(access)
+            _add_health_snapshot(session, book.id, "ready")
+        session.commit()
+    assert first_book_id is not None
+
+    listing, list_statements = _request_with_app_db_statement_count(api_context, "GET", "/books")
+    detail, detail_statements = _request_with_app_db_statement_count(
+        api_context, "GET", f"/books/{first_book_id}"
+    )
+    health, health_statements = _request_with_app_db_statement_count(
+        api_context, "GET", f"/books/{first_book_id}/health"
+    )
+
+    assert listing.status_code == 200
+    assert len(listing.json()) == 6
+    assert detail.status_code == 200
+    assert health.status_code == 200
+    assert list_statements <= 2
+    assert detail_statements <= 2
+    assert health_statements <= 2
 
 
 def test_patch_default_disable_enable_and_soft_unregister_are_metadata_only(api_context, monkeypatch):

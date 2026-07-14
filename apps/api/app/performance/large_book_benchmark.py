@@ -27,14 +27,14 @@ from urllib.parse import quote
 import piecash
 from fastapi.testclient import TestClient
 from piecash import Account, Commodity, Split, Transaction
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.config import Settings, get_settings
 from app.database import Base
 from app.main import app
-from app.models import Book, User, UserBookAccess
+from app.models import Book, BookHealthSnapshot, User, UserBookAccess
 from app.routers.auth import get_db
 from app.schemas.gnucash import TransactionDetailDTO
 from app.schemas.gnucash_writes import (
@@ -42,6 +42,7 @@ from app.schemas.gnucash_writes import (
     TransactionSplitWriteDTO,
     TransactionWriteResultDTO,
 )
+from app.services import book_preflight
 from app.services.auth import hash_password
 from app.services.gnucash_book import GnuCashBookService
 from app.services.gnucash_write import GnuCashWriteService
@@ -81,6 +82,7 @@ ISSUE55_ACCOUNT_DATASETS: dict[str, tuple[int, int]] = {
     "1k": (1_000, 1_000),
     "10k": (10_000, 10_000),
 }
+ISSUE56_EXTRA_REGISTERED_BOOKS = 5
 LOCAL_TIMING_BUDGETS_MS = {
     "1k": {
         "issue55_1k_account_unfiltered_tree": 2_500,
@@ -291,6 +293,29 @@ ISSUE55_10K_ACCOUNT_CASES: list[BenchmarkCase] = [
     ),
 ]
 
+ISSUE56_LIFECYCLE_CASES: list[BenchmarkCase] = [
+    BenchmarkCase("issue56_list_registered_books", "GET", "/books"),
+    BenchmarkCase(
+        "issue56_preflight",
+        "POST",
+        "/books/preflight",
+        request_json="issue56_book_payload",
+    ),
+    BenchmarkCase("issue56_cached_health", "GET", "/books/{book_id}/health"),
+    BenchmarkCase("issue56_health_recheck", "POST", "/books/{book_id}/health/recheck"),
+    BenchmarkCase(
+        "issue56_first_readonly_open_after_registration",
+        "GET",
+        "/books/{book_id}/accounts/tree",
+    ),
+    BenchmarkCase(
+        "issue56_unavailable_source_cached_health",
+        "GET",
+        "/books/{missing_book_id}/health",
+    ),
+    BenchmarkCase("issue56_multiple_registered_books", "GET", "/books"),
+]
+
 
 @dataclass(frozen=True)
 class BenchmarkConfig:
@@ -378,6 +403,14 @@ class BenchmarkResult:
     legacy_count_call_count_max: int | None = None
     full_transaction_materialization_count_max: int | None = None
     report_transaction_visit_count_max: int | None = None
+    app_db_statement_count_min: int | None = None
+    app_db_statement_count_max: int | None = None
+    preflight_sqlite_query_count_min: int | None = None
+    preflight_sqlite_query_count_max: int | None = None
+    preflight_piecash_open_count_min: int | None = None
+    preflight_piecash_open_count_max: int | None = None
+    preflight_account_materialization_count_max: int | None = None
+    preflight_transaction_materialization_count_max: int | None = None
     mutation_capable_request_count: int = 0
     local_timing_budget_dataset: str | None = None
     local_timing_budget_ms: int | None = None
@@ -407,6 +440,11 @@ def issue55_account_benchmark_plan(dataset: str, case_names: set[str] | None = N
     if dataset == "10k":
         return _select_benchmark_cases(ISSUE55_10K_ACCOUNT_CASES, case_names)
     raise ValueError(f"unknown issue55 account dataset: {dataset}")
+
+
+def issue56_lifecycle_benchmark_plan(case_names: set[str] | None = None) -> list[BenchmarkCase]:
+    """Return issue #56 synthetic lifecycle/preflight benchmark cases."""
+    return _select_benchmark_cases(ISSUE56_LIFECYCLE_CASES, case_names)
 
 
 def _select_benchmark_cases(cases: list[BenchmarkCase], case_names: set[str] | None) -> list[BenchmarkCase]:
@@ -875,15 +913,18 @@ def create_issue55_account_performance_book(
     )
 
 
-def _test_settings() -> Settings:
-    return Settings(
-        app_env="benchmark",
-        app_database_url="sqlite:///:memory:",
-        jwt_secret="benchmark-secret-key-for-local-phase-87-only",
-        jwt_token_expire_minutes=30,
-        app_admin_username="admin",
-        app_admin_password="benchmark-password",
-    )
+def _test_settings(allowed_root: Path | None = None) -> Settings:
+    kwargs: dict[str, Any] = {
+        "app_env": "benchmark",
+        "app_database_url": "sqlite:///:memory:",
+        "jwt_secret": "benchmark-secret-key-for-local-phase-87-only",
+        "jwt_token_expire_minutes": 30,
+        "app_admin_username": "admin",
+        "app_admin_password": "benchmark-password",
+    }
+    if allowed_root is not None:
+        kwargs["gnucash_book_allowed_roots"] = [str(allowed_root)]
+    return Settings(**kwargs)
 
 
 def _build_client(book_path: Path) -> tuple[TestClient, int, dict[str, str], Callable[[], None]]:
@@ -892,7 +933,7 @@ def _build_client(book_path: Path) -> tuple[TestClient, int, dict[str, str], Cal
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
-    Base.metadata.create_all(engine)
+    getattr(Base, "metadata").create_all(engine)
     session_factory = sessionmaker(bind=engine)
 
     def override_get_db():
@@ -938,6 +979,133 @@ def _build_client(book_path: Path) -> tuple[TestClient, int, dict[str, str], Cal
         engine.dispose()
 
     return client, book_id, headers, cleanup
+
+
+def _add_health_snapshot(session: Any, book_id: int, safe_code: str) -> None:
+    snapshot = BookHealthSnapshot()
+    snapshot.book_id = book_id
+    if safe_code == "ready":
+        snapshot.source_status = "ready"
+        snapshot.open_status = "ready"
+        snapshot.accounts_status = "ready"
+        snapshot.transactions_status = "ready"
+        snapshot.reports_status = "ready"
+        snapshot.safe_code = "ready"
+        session.add(snapshot)
+        return
+    snapshot.source_status = "failed"
+    snapshot.open_status = "not_checked"
+    snapshot.accounts_status = "not_checked"
+    snapshot.transactions_status = "not_checked"
+    snapshot.reports_status = "not_checked"
+    snapshot.safe_code = safe_code
+    session.add(snapshot)
+
+
+def _add_book_access(session: Any, *, user_id: int, book_id: int) -> None:
+    access = UserBookAccess()
+    access.user_id = user_id
+    access.book_id = book_id
+    access.role = "owner"
+    session.add(access)
+
+
+def _issue56_book_payload(book_path: Path, *, name: str = "Issue 56 Synthetic Lifecycle Book") -> dict[str, Any]:
+    return {
+        "name": name,
+        "storage_type": "sqlite",
+        "uri_or_path": str(book_path),
+        "base_currency": BASE_CURRENCY,
+        "make_default": False,
+    }
+
+
+def _build_issue56_lifecycle_client(
+    book_path: Path,
+    *,
+    extra_book_count: int = ISSUE56_EXTRA_REGISTERED_BOOKS,
+) -> tuple[TestClient, int, int, dict[str, str], Any, Callable[[], None]]:
+    """Build an in-memory app DB with synthetic registered and unavailable books."""
+
+    settings = _test_settings(book_path.parent)
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    getattr(Base, "metadata").create_all(engine)
+    session_factory = sessionmaker(bind=engine)
+
+    def override_get_db():
+        with session_factory() as session:
+            yield session
+
+    app.dependency_overrides[get_settings] = lambda: settings
+    app.dependency_overrides[get_db] = override_get_db
+
+    with session_factory() as session:
+        user = User()
+        user.username = "admin"
+        user.display_name = "Benchmark Admin"
+        user.password_hash = hash_password("benchmark-password")
+        user.is_admin = True
+        session.add(user)
+        session.flush()
+
+        primary = Book()
+        primary.name = "Issue 56 Synthetic Registered Book"
+        primary.storage_type = "sqlite"
+        primary.uri_or_path = str(book_path)
+        primary.base_currency = BASE_CURRENCY
+        primary.is_default = True
+        primary.is_enabled = True
+        session.add(primary)
+        session.flush()
+        primary_id = int(primary.id)
+        _add_book_access(session, user_id=int(user.id), book_id=primary_id)
+        _add_health_snapshot(session, primary_id, "ready")
+
+        missing_book = Book()
+        missing_book.name = "Issue 56 Synthetic Missing Source"
+        missing_book.storage_type = "sqlite"
+        missing_book.uri_or_path = str(book_path.parent / "issue56-unavailable-synthetic.gnucash.sqlite")
+        missing_book.base_currency = BASE_CURRENCY
+        missing_book.is_default = False
+        missing_book.is_enabled = True
+        session.add(missing_book)
+        session.flush()
+        missing_id = int(missing_book.id)
+        _add_book_access(session, user_id=int(user.id), book_id=missing_id)
+        _add_health_snapshot(session, missing_id, "missing_file")
+
+        for index in range(extra_book_count):
+            extra = Book()
+            extra.name = f"Issue 56 Synthetic Extra Book {index}"
+            extra.storage_type = "sqlite"
+            extra.uri_or_path = str(book_path.parent / f"issue56-extra-{index}.gnucash.sqlite")
+            extra.base_currency = BASE_CURRENCY
+            extra.is_default = False
+            extra.is_enabled = True
+            session.add(extra)
+            session.flush()
+            _add_book_access(session, user_id=int(user.id), book_id=int(extra.id))
+            _add_health_snapshot(session, int(extra.id), "missing_file")
+        session.commit()
+
+    client = TestClient(app)
+    login = client.post(
+        "/auth/login",
+        json={"username": "admin", "password": "benchmark-password"},
+    )
+    login.raise_for_status()
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+    def cleanup() -> None:
+        app.dependency_overrides.clear()
+        get_settings.cache_clear()
+        engine.dispose()
+
+    return client, primary_id, missing_id, headers, engine, cleanup
 
 
 def _load_account_tree(client: TestClient, book_id: int, headers: dict[str, str]) -> list[dict[str, Any]]:
@@ -1134,6 +1302,11 @@ class _BenchmarkRequestCounters:
     legacy_count_calls: int = 0
     full_transaction_materializations: int = 0
     report_transaction_visits: int = 0
+    app_db_statements: int = 0
+    preflight_piecash_opens: int = 0
+    preflight_sqlite_queries: int = 0
+    preflight_account_materializations: int = 0
+    preflight_transaction_materializations: int = 0
 
 
 @dataclass(frozen=True)
@@ -1145,12 +1318,17 @@ class _PreparedBenchmarkRequest:
 
 
 @contextmanager
-def _instrument_benchmark_request():
+def _instrument_benchmark_request(app_db_engine: Any | None = None):
     counters = _BenchmarkRequestCounters()
     original_open = GnuCashBookService._open_piecash_book
     original_count = GnuCashBookService.count_transactions
     original_transactions = GnuCashBookService._transactions
     original_report_transactions = GnuCashBookService._report_transactions
+    original_health_open = book_preflight._open_piecash_readonly_once
+    original_sqlite_schema_probe = book_preflight._verify_sqlite_gnucash_schema
+
+    def before_cursor_execute(conn, cursor, statement, parameters, context, executemany):
+        counters.app_db_statements += 1
 
     def counted_open(self: GnuCashBookService, uri_or_path: str):
         counters.read_only_book_opens += 1
@@ -1174,17 +1352,34 @@ def _instrument_benchmark_request():
 
         return visit_counter()
 
+    def counted_health_open(canonical_path: str) -> None:
+        counters.preflight_piecash_opens += 1
+        return original_health_open(canonical_path)
+
+    def counted_sqlite_schema_probe(canonical_path: str):
+        result = original_sqlite_schema_probe(canonical_path)
+        counters.preflight_sqlite_queries += int(result.sqlite_query_count)
+        return result
+
     GnuCashBookService._open_piecash_book = counted_open  # type: ignore[method-assign]
     GnuCashBookService.count_transactions = counted_count  # type: ignore[method-assign]
     GnuCashBookService._transactions = counted_transactions  # type: ignore[method-assign]
     GnuCashBookService._report_transactions = counted_report_transactions  # type: ignore[method-assign]
+    book_preflight._open_piecash_readonly_once = counted_health_open  # type: ignore[assignment]
+    book_preflight._verify_sqlite_gnucash_schema = counted_sqlite_schema_probe  # type: ignore[assignment]
+    if app_db_engine is not None:
+        event.listen(app_db_engine, "before_cursor_execute", before_cursor_execute)
     try:
         yield counters
     finally:
+        if app_db_engine is not None:
+            event.remove(app_db_engine, "before_cursor_execute", before_cursor_execute)
         GnuCashBookService._open_piecash_book = original_open  # type: ignore[method-assign]
         GnuCashBookService.count_transactions = original_count  # type: ignore[method-assign]
         GnuCashBookService._transactions = original_transactions  # type: ignore[method-assign]
         GnuCashBookService._report_transactions = original_report_transactions  # type: ignore[method-assign]
+        book_preflight._open_piecash_readonly_once = original_health_open  # type: ignore[assignment]
+        book_preflight._verify_sqlite_gnucash_schema = original_sqlite_schema_probe  # type: ignore[assignment]
 
 
 def _append_cursor(path: str, cursor: str) -> str:
@@ -1360,8 +1555,9 @@ def _request_with_counters(
     path: str,
     request_kwargs: dict[str, Any],
     expected_status_code: int = 200,
+    app_db_engine: Any | None = None,
 ) -> tuple[Any, float, _BenchmarkRequestCounters]:
-    with _instrument_benchmark_request() as counters:
+    with _instrument_benchmark_request(app_db_engine=app_db_engine) as counters:
         start = time.perf_counter()
         response = client.request(method, path, **request_kwargs)
         duration_ms = (time.perf_counter() - start) * 1000
@@ -1379,6 +1575,14 @@ def _counter_summary(counters: list[_BenchmarkRequestCounters]) -> dict[str, int
             "legacy_count_call_count_max": None,
             "full_transaction_materialization_count_max": None,
             "report_transaction_visit_count_max": None,
+            "app_db_statement_count_min": None,
+            "app_db_statement_count_max": None,
+            "preflight_sqlite_query_count_min": None,
+            "preflight_sqlite_query_count_max": None,
+            "preflight_piecash_open_count_min": None,
+            "preflight_piecash_open_count_max": None,
+            "preflight_account_materialization_count_max": None,
+            "preflight_transaction_materialization_count_max": None,
         }
     return {
         "read_only_book_open_count_min": min(counter.read_only_book_opens for counter in counters),
@@ -1388,6 +1592,18 @@ def _counter_summary(counters: list[_BenchmarkRequestCounters]) -> dict[str, int
             counter.full_transaction_materializations for counter in counters
         ),
         "report_transaction_visit_count_max": max(counter.report_transaction_visits for counter in counters),
+        "app_db_statement_count_min": min(counter.app_db_statements for counter in counters),
+        "app_db_statement_count_max": max(counter.app_db_statements for counter in counters),
+        "preflight_sqlite_query_count_min": min(counter.preflight_sqlite_queries for counter in counters),
+        "preflight_sqlite_query_count_max": max(counter.preflight_sqlite_queries for counter in counters),
+        "preflight_piecash_open_count_min": min(counter.preflight_piecash_opens for counter in counters),
+        "preflight_piecash_open_count_max": max(counter.preflight_piecash_opens for counter in counters),
+        "preflight_account_materialization_count_max": max(
+            counter.preflight_account_materializations for counter in counters
+        ),
+        "preflight_transaction_materialization_count_max": max(
+            counter.preflight_transaction_materializations for counter in counters
+        ),
     }
 
 
@@ -1630,6 +1846,95 @@ def run_issue55_account_benchmark(
     return _run_benchmark_cases(book_path, selected_cases=selected_cases, repeats=repeats, warmups=warmups)
 
 
+def run_issue56_lifecycle_benchmark(
+    book_path: str | Path,
+    *,
+    repeats: int = 3,
+    warmups: int = 1,
+    case_names: set[str] | None = None,
+    extra_book_count: int = ISSUE56_EXTRA_REGISTERED_BOOKS,
+) -> list[BenchmarkResult]:
+    """Run issue #56 lifecycle/preflight cases on synthetic local books only."""
+    if repeats < 1:
+        raise ValueError("repeats must be at least 1")
+    if warmups < 0:
+        raise ValueError("warmups must be zero or greater")
+    selected_cases = issue56_lifecycle_benchmark_plan(case_names)
+    resolved_book_path = Path(book_path)
+    client, book_id, missing_book_id, headers, app_db_engine, cleanup = _build_issue56_lifecycle_client(
+        resolved_book_path,
+        extra_book_count=extra_book_count,
+    )
+    try:
+        results: list[BenchmarkResult] = []
+        transaction_count = _count_book_transactions(resolved_book_path)
+        for case in selected_cases:
+            path = case.path_template.format(book_id=book_id, missing_book_id=missing_book_id)
+            request_kwargs: dict[str, Any] = {"headers": headers}
+            if case.request_json == "issue56_book_payload":
+                request_kwargs["json"] = _issue56_book_payload(resolved_book_path)
+            elif case.request_json is not None:
+                raise ValueError(f"unsupported issue56 request_json: {case.request_json}")
+
+            for _ in range(warmups):
+                response = client.request(case.method, path, **request_kwargs)
+                if response.status_code != case.expected_status_code:
+                    response.raise_for_status()
+                    raise RuntimeError(
+                        f"expected HTTP {case.expected_status_code}, got {response.status_code} for {path}"
+                    )
+
+            durations: list[float] = []
+            counters: list[_BenchmarkRequestCounters] = []
+            last_response = None
+            for _ in range(repeats):
+                response, duration_ms, request_counters = _request_with_counters(
+                    client,
+                    method=case.method,
+                    path=path,
+                    request_kwargs=request_kwargs,
+                    expected_status_code=case.expected_status_code,
+                    app_db_engine=app_db_engine,
+                )
+                durations.append(duration_ms)
+                counters.append(request_counters)
+                last_response = response
+            if last_response is None:  # pragma: no cover - repeats validation prevents this
+                raise RuntimeError("issue56 benchmark produced no response")
+            item_count, csv_limit, csv_total, csv_truncated = _summarize_response(case, last_response)
+            counter_summary = _counter_summary(counters)
+            response_summary = _summarize_response_metadata(last_response)
+            budget_dataset, budget_ms = _local_timing_budget(case.name, transaction_count)
+            median_ms = round(statistics.median(durations), 2)
+            results.append(
+                BenchmarkResult(
+                    name=case.name,
+                    method=case.method,
+                    path=path,
+                    status_code=last_response.status_code,
+                    duration_ms_min=round(min(durations), 2),
+                    duration_ms_median=median_ms,
+                    duration_ms_max=round(max(durations), 2),
+                    response_bytes=len(last_response.content),
+                    item_count=item_count,
+                    csv_limit=csv_limit,
+                    csv_total=csv_total,
+                    csv_truncated=csv_truncated,
+                    warmup_count=warmups,
+                    measured_samples=repeats,
+                    mutation_capable_request_count=0 if case.method in {"GET", "HEAD"} else 1,
+                    local_timing_budget_dataset=budget_dataset,
+                    local_timing_budget_ms=budget_ms,
+                    local_timing_budget_passed=(median_ms <= budget_ms) if budget_ms is not None else None,
+                    **counter_summary,
+                    **response_summary,
+                )
+            )
+        return results
+    finally:
+        cleanup()
+
+
 def _run_benchmark_cases(
     book_path: str | Path,
     *,
@@ -1776,18 +2081,24 @@ def write_results_json(path: str | Path, metadata: FixtureMetadata, results: lis
     includes_write_preview = "transaction_create_preview_validation" in result_names
     includes_validation_service = "transaction_create_validation_service" in result_names
     includes_readback_service = "transaction_create_readback_existing_synthetic" in result_names
+    includes_lifecycle_probe = any(name.startswith("issue56_") for name in result_names)
+    includes_health_recheck = "issue56_health_recheck" in result_names
     payload = {
         "fixture": {**asdict(metadata), "path": str(metadata.path)},
         "results": [asdict(result) for result in results],
         "scope": {
             "synthetic_generated_data_only": True,
             "local_synthetic_measurements_only": True,
-            "non_mutating_read_and_preview_paths_only": True,
-            "non_mutating_read_preview_validation_readback_paths_only": True,
+            "non_mutating_read_and_preview_paths_only": not includes_lifecycle_probe,
+            "non_mutating_read_preview_validation_readback_paths_only": not includes_lifecycle_probe,
             "read_only_api_paths_only": read_only_api_paths_only,
             "includes_write_preview_validation_path": includes_write_preview,
             "includes_transaction_validation_service_path": includes_validation_service,
             "includes_existing_synthetic_readback_path": includes_readback_service,
+            "includes_lifecycle_preflight_probe_path": includes_lifecycle_probe,
+            "includes_lifecycle_health_recheck_metadata_write_path": includes_health_recheck,
+            "app_metadata_write_routes_called": includes_health_recheck,
+            "source_book_writes_executed": False,
             "write_alpha_mutation_routes_called": False,
             "contains_private_book": False,
             "writes_enabled": False,
@@ -1800,7 +2111,7 @@ def write_results_json(path: str | Path, metadata: FixtureMetadata, results: lis
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Run local synthetic large-book and issue #55 account performance benchmarks"
+        description="Run local synthetic large-book, issue #55 account, and issue #56 lifecycle benchmarks"
     )
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT_PATH)
     parser.add_argument("--transactions", type=int, default=BenchmarkConfig.transaction_count)
@@ -1817,6 +2128,11 @@ def main(argv: list[str] | None = None) -> int:
         help="Generate and run the issue #55 account benchmark dataset instead of the legacy large-book plan.",
     )
     parser.add_argument(
+        "--issue56-lifecycle",
+        action="store_true",
+        help="Generate a local synthetic book and run issue #56 lifecycle/preflight benchmark cases.",
+    )
+    parser.add_argument(
         "--case",
         action="append",
         dest="case_names",
@@ -1827,7 +2143,24 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     selected_case_names = set(args.case_names) if args.case_names else None
-    if args.issue55_account_dataset:
+    if args.issue56_lifecycle and args.issue55_account_dataset:
+        parser.error("--issue56-lifecycle cannot be combined with --issue55-account-dataset")
+    if args.issue56_lifecycle:
+        metadata = create_large_synthetic_book(
+            args.output,
+            transaction_count=args.transactions,
+            expense_account_count=args.expense_accounts,
+            account_branch_count=args.account_branches,
+            account_depth=args.account_depth,
+            many_split_count=args.many_splits,
+        )
+        results = run_issue56_lifecycle_benchmark(
+            metadata.path,
+            repeats=args.repeats,
+            warmups=args.warmups,
+            case_names=selected_case_names,
+        )
+    elif args.issue55_account_dataset:
         candidate_account_count, transaction_count = ISSUE55_ACCOUNT_DATASETS[args.issue55_account_dataset]
         metadata = create_issue55_account_performance_book(
             args.output,
@@ -1857,7 +2190,7 @@ def main(argv: list[str] | None = None) -> int:
             case_names=selected_case_names,
         )
 
-    print("Local synthetic large-book and issue #55 account benchmark")
+    print("Local synthetic large-book, issue #55 account, and issue #56 lifecycle benchmark")
     print(f"Synthetic fixture: {metadata.path}")
     print(f"Transactions: {metadata.transaction_count}")
     print(f"Expense accounts: {metadata.expense_account_count}")
@@ -1874,8 +2207,16 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Measured samples per case: {args.repeats}")
     if selected_case_names:
         print(f"Selected benchmark cases: {', '.join(sorted(selected_case_names))}")
-    print("Scope: local synthetic fixture only; non-mutating read, create-preview, validation, and read-back paths only.")
-    print("No private book data used; no writes executed; no production performance claim.")
+    if any(result.name.startswith("issue56_") for result in results):
+        print(
+            "Scope: local synthetic fixture only; lifecycle/preflight probes may update synthetic app metadata only."
+        )
+        print("No private book data used; no GnuCash source writes executed; no production performance claim.")
+    else:
+        print(
+            "Scope: local synthetic fixture only; non-mutating read, create-preview, validation, and read-back paths only."
+        )
+        print("No private book data used; no writes executed; no production performance claim.")
     for result in results:
         extra = ""
         if result.error_code is not None:
@@ -1930,6 +2271,14 @@ def main(argv: list[str] | None = None) -> int:
                 f", opens={result.read_only_book_open_count_min}-{result.read_only_book_open_count_max}, "
                 f"count_calls={result.legacy_count_call_count_max}, "
                 f"tx_materializations={result.full_transaction_materialization_count_max}"
+            )
+        if result.app_db_statement_count_max is not None:
+            extra += (
+                f", app_db_statements={result.app_db_statement_count_min}-{result.app_db_statement_count_max}, "
+                f"preflight_sqlite_queries={result.preflight_sqlite_query_count_min}-"
+                f"{result.preflight_sqlite_query_count_max}, "
+                f"preflight_opens={result.preflight_piecash_open_count_min}-"
+                f"{result.preflight_piecash_open_count_max}"
             )
         if result.local_timing_budget_ms is not None:
             extra += (

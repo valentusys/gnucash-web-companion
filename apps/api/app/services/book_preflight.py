@@ -42,6 +42,7 @@ TOKEN_VERSION = 1
 
 _PROBLEM_MESSAGES: dict[str, tuple[str, bool]] = {
     "invalid_path": ("The supplied book path is not an accepted absolute POSIX path.", False),
+    "invalid_allowed_root_config": ("Configured allowed book roots are not valid local directories.", False),
     "unsupported_source": ("Only an existing server-side local SQLite GnuCash file is supported.", False),
     "outside_allowed_roots": ("The supplied book path is outside configured allowed roots.", False),
     "symlink_forbidden": ("Symlinked book path components are not supported.", False),
@@ -141,6 +142,15 @@ def _same_file_stat(left: os.stat_result, right: os.stat_result) -> bool:
     )
 
 
+def _identity_matches_stat(identity: SourceIdentity, file_stat: os.stat_result) -> bool:
+    return (
+        int(identity.st_dev) == int(file_stat.st_dev)
+        and int(identity.st_ino) == int(file_stat.st_ino)
+        and int(identity.st_size) == int(file_stat.st_size)
+        and int(identity.st_mtime_ns) == int(file_stat.st_mtime_ns)
+    )
+
+
 def _validate_absolute_request_path(raw_path: str) -> Path:
     value = str(raw_path or "")
     if (
@@ -168,7 +178,41 @@ def _validate_absolute_request_path(raw_path: str) -> Path:
 def _allowed_roots(settings: Settings) -> list[Path]:
     roots: list[Path] = []
     for root in settings.gnucash_book_allowed_roots:
-        roots.append(Path(root).resolve(strict=False))
+        root_text = str(root or "")
+        if (
+            not root_text
+            or "\x00" in root_text
+            or root_text.startswith("~")
+            or "$" in root_text
+            or "${" in root_text
+            or "\\" in root_text
+            or "://" in root_text
+            or re.match(r"^[A-Za-z][A-Za-z0-9+.-]*:", root_text)
+        ):
+            raise _problem("invalid_allowed_root_config")
+        parsed = PurePosixPath(root_text)
+        if not parsed.is_absolute() or any(part in {".", ".."} for part in parsed.parts):
+            raise _problem("invalid_allowed_root_config")
+        root_path = Path(root_text)
+        current = Path(root_path.anchor or "/")
+        try:
+            for part in root_path.parts[1:]:
+                current = current / part
+                if current.is_symlink():
+                    raise _problem("invalid_allowed_root_config")
+            resolved = root_path.resolve(strict=True)
+            root_stat = os.stat(resolved, follow_symlinks=False)
+        except BookPreflightError:
+            raise
+        except FileNotFoundError:
+            continue
+        except OSError as exc:
+            raise _problem("invalid_allowed_root_config") from exc
+        if stat.S_ISLNK(root_stat.st_mode) or not stat.S_ISDIR(root_stat.st_mode):
+            raise _problem("invalid_allowed_root_config")
+        roots.append(resolved)
+    if not roots:
+        raise _problem("invalid_allowed_root_config")
     return roots
 
 
@@ -238,13 +282,33 @@ def _read_regular_file_magic_no_follow(canonical_path: Path) -> tuple[bytes, os.
             os.close(fd)
 
 
+def _verify_source_identity_unchanged(identity: SourceIdentity) -> None:
+    try:
+        current = os.stat(identity.canonical_path, follow_symlinks=False)
+    except FileNotFoundError as exc:
+        raise _problem("missing_file") from exc
+    except NotADirectoryError as exc:
+        raise _problem("missing_file") from exc
+    except PermissionError as exc:
+        raise _problem("permission_denied") from exc
+    if stat.S_ISLNK(current.st_mode):
+        raise _problem("symlink_forbidden")
+    if not stat.S_ISREG(current.st_mode):
+        raise _problem("not_regular_file")
+    if not _identity_matches_stat(identity, current):
+        raise _problem("source_changed")
+
+
 def inspect_source_file(raw_path: str, settings: Settings) -> SourceInspection:
     """Inspect only path safety and file identity, without opening SQLite/piecash."""
 
     request_path = _validate_absolute_request_path(raw_path)
+    roots = _allowed_roots(settings)
+    if not _is_under_allowed_root(request_path, roots):
+        raise _problem("outside_allowed_roots")
     _reject_symlink_components(request_path)
     canonical_path = request_path.resolve(strict=False)
-    if not _is_under_allowed_root(canonical_path, _allowed_roots(settings)):
+    if not _is_under_allowed_root(canonical_path, roots):
         raise _problem("outside_allowed_roots")
     magic, file_stat = _read_regular_file_magic_no_follow(canonical_path)
     identity = _stable_identity(str(canonical_path), file_stat)
@@ -354,7 +418,9 @@ def run_book_health_probe(raw_path: str, settings: Settings) -> BookHealthProbeR
     if inspection.magic != SQLITE_MAGIC:
         raise _problem("unsupported_format")
     sqlite_probe = _verify_sqlite_gnucash_schema(inspection.identity.canonical_path)
+    _verify_source_identity_unchanged(inspection.identity)
     _open_piecash_readonly_once(inspection.identity.canonical_path)
+    _verify_source_identity_unchanged(inspection.identity)
     return BookHealthProbeResult(
         identity=inspection.identity,
         source_status=_ready_status(
@@ -486,7 +552,7 @@ def decode_preflight_token(
     expires_at = payload.get("exp")
     if not isinstance(expires_at, int):
         return None
-    if (int(time.time()) if now_epoch is None else int(now_epoch)) > expires_at:
+    if (int(time.time()) if now_epoch is None else int(now_epoch)) >= expires_at:
         return None
     if not isinstance(payload.get("request"), dict) or not isinstance(payload.get("source"), dict):
         return None

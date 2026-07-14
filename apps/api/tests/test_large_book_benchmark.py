@@ -18,6 +18,7 @@ from app.performance.large_book_benchmark import (
     ISSUE55_ACCOUNT_DATASETS,
     ISSUE55_ACCOUNT_QUERY_TEXT,
     ISSUE55_ACTIVITY_ACCOUNT_ID,
+    ISSUE56_EXTRA_REGISTERED_BOOKS,
     SPARSE_QUERY_TEXT,
     _build_case_request_json,
     _build_readback_request_from_detail,
@@ -26,8 +27,10 @@ from app.performance.large_book_benchmark import (
     create_issue55_account_performance_book,
     create_large_synthetic_book,
     issue55_account_benchmark_plan,
+    issue56_lifecycle_benchmark_plan,
     run_benchmark,
     run_issue55_account_benchmark,
+    run_issue56_lifecycle_benchmark,
     write_results_json,
 )
 
@@ -381,6 +384,112 @@ def test_issue55_account_benchmark_plan_is_separate_read_only_scope() -> None:
         assert "unknown issue55 account dataset" in str(exc)
     else:  # pragma: no cover - defensive assertion
         raise AssertionError("expected ValueError for unknown issue55 dataset")
+
+
+def test_issue56_lifecycle_benchmark_plan_covers_preflight_cached_health_and_registration_scale() -> None:
+    plan = issue56_lifecycle_benchmark_plan()
+
+    assert [case.name for case in plan] == [
+        "issue56_list_registered_books",
+        "issue56_preflight",
+        "issue56_cached_health",
+        "issue56_health_recheck",
+        "issue56_first_readonly_open_after_registration",
+        "issue56_unavailable_source_cached_health",
+        "issue56_multiple_registered_books",
+    ]
+    assert [case.name for case in issue56_lifecycle_benchmark_plan({"issue56_preflight"})] == [
+        "issue56_preflight"
+    ]
+    preflight = next(case for case in plan if case.name == "issue56_preflight")
+    assert preflight.method == "POST"
+    assert preflight.path_template == "/books/preflight"
+    assert preflight.request_json == "issue56_book_payload"
+    assert preflight.read_only is True
+    assert next(case for case in plan if case.name == "issue56_health_recheck").method == "POST"
+    assert next(case for case in plan if case.name == "issue56_cached_health").method == "GET"
+
+
+def test_issue56_lifecycle_benchmark_records_bounded_probe_and_app_db_counters(tmp_path: Path) -> None:
+    output = tmp_path / "issue56-lifecycle.gnucash.sqlite"
+    create_large_synthetic_book(
+        output,
+        transaction_count=24,
+        expense_account_count=4,
+        account_branch_count=1,
+        account_depth=1,
+        many_split_count=8,
+    )
+
+    results = run_issue56_lifecycle_benchmark(
+        output,
+        repeats=1,
+        warmups=0,
+        case_names={
+            "issue56_preflight",
+            "issue56_cached_health",
+            "issue56_health_recheck",
+            "issue56_first_readonly_open_after_registration",
+            "issue56_unavailable_source_cached_health",
+            "issue56_multiple_registered_books",
+        },
+    )
+
+    assert [result.name for result in results] == [
+        "issue56_preflight",
+        "issue56_cached_health",
+        "issue56_health_recheck",
+        "issue56_first_readonly_open_after_registration",
+        "issue56_unavailable_source_cached_health",
+        "issue56_multiple_registered_books",
+    ]
+    for result in results:
+        assert result.status_code == 200
+        assert result.warmup_count == 0
+        assert result.measured_samples == 1
+        assert result.app_db_statement_count_min is not None
+        assert result.app_db_statement_count_min >= 0
+        assert result.app_db_statement_count_max is not None
+        assert result.app_db_statement_count_max <= 8
+        assert result.full_transaction_materialization_count_max == 0
+
+    preflight = _result_by_name(results, "issue56_preflight")
+    assert preflight.preflight_sqlite_query_count_min == 5
+    assert preflight.preflight_sqlite_query_count_max == 5
+    assert preflight.preflight_piecash_open_count_min == 1
+    assert preflight.preflight_piecash_open_count_max == 1
+    assert preflight.preflight_account_materialization_count_max == 0
+    assert preflight.preflight_transaction_materialization_count_max == 0
+    assert preflight.read_only_book_open_count_max == 0
+
+    cached_health = _result_by_name(results, "issue56_cached_health")
+    assert cached_health.preflight_sqlite_query_count_max == 0
+    assert cached_health.preflight_piecash_open_count_max == 0
+    assert cached_health.read_only_book_open_count_max == 0
+
+    recheck = _result_by_name(results, "issue56_health_recheck")
+    assert recheck.preflight_sqlite_query_count_max == 5
+    assert recheck.preflight_piecash_open_count_max == 1
+    assert recheck.read_only_book_open_count_max == 0
+
+    first_open = _result_by_name(results, "issue56_first_readonly_open_after_registration")
+    assert first_open.item_count is not None and first_open.item_count > 0
+    assert first_open.preflight_sqlite_query_count_max == 0
+    assert first_open.preflight_piecash_open_count_max == 0
+    assert first_open.read_only_book_open_count_min == 1
+    assert first_open.read_only_book_open_count_max == 1
+    assert first_open.legacy_count_call_count_max == 0
+
+    missing_health = _result_by_name(results, "issue56_unavailable_source_cached_health")
+    assert missing_health.preflight_sqlite_query_count_max == 0
+    assert missing_health.preflight_piecash_open_count_max == 0
+    assert missing_health.read_only_book_open_count_max == 0
+
+    listed = _result_by_name(results, "issue56_multiple_registered_books")
+    assert listed.item_count == ISSUE56_EXTRA_REGISTERED_BOOKS + 2
+    assert listed.preflight_sqlite_query_count_max == 0
+    assert listed.preflight_piecash_open_count_max == 0
+    assert listed.read_only_book_open_count_max == 0
 
 
 def test_create_issue55_account_performance_book_uses_exact_deterministic_data(tmp_path: Path) -> None:

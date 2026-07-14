@@ -77,6 +77,10 @@ SAFE_OPERATOR_NEXT_ACTIONS = {
         "Run source preflight again from an admin session before opening this book.",
         "Check allowed roots and mounted source files without exposing private paths in the UI.",
     ],
+    "invalid_allowed_root_config": [
+        "Fix the server-side allowed-root configuration before checking this book again.",
+        "Do not expose or browse private file paths from the web UI.",
+    ],
 }
 
 STATUS_SEVERITY = {
@@ -88,6 +92,7 @@ STATUS_SEVERITY = {
     "not_configured": "action_required",
     "invalid_gnucash_schema": "action_required",
     "disabled": "action_required",
+    "invalid_allowed_root_config": "action_required",
 }
 
 KNOWN_HEALTH_SAFE_CODES = frozenset(
@@ -98,6 +103,7 @@ KNOWN_HEALTH_SAFE_CODES = frozenset(
         "missing_file",
         "not_configured",
         "invalid_path",
+        "invalid_allowed_root_config",
         "unsupported_source",
         "outside_allowed_roots",
         "symlink_forbidden",

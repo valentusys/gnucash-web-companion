@@ -5,6 +5,7 @@ from __future__ import annotations
 import gzip
 import hashlib
 import json
+import os
 import shutil
 from pathlib import Path
 from typing import Any
@@ -202,7 +203,12 @@ def test_preflight_success_is_typed_path_safe_and_has_no_metadata_or_source_side
     assert decode_preflight_token(
         data["preflight_token"],
         api_context["settings"],
-        now_epoch=int(token_payload["exp"]) + 1,
+        now_epoch=int(token_payload["exp"]) - 1,
+    ) is not None
+    assert decode_preflight_token(
+        data["preflight_token"],
+        api_context["settings"],
+        now_epoch=int(token_payload["exp"]),
     ) is None
     tampered_token = data["preflight_token"][:-1] + (
         "A" if data["preflight_token"][-1] != "A" else "B"
@@ -311,6 +317,22 @@ def test_preflight_normalizes_base_currency_into_opaque_token_and_requires_it(ap
     assert missing.status_code == 422
 
 
+def test_preflight_validation_errors_do_not_echo_private_path_inputs(api_context):
+    oversized_private_path = "/" + ("private-ledger-" * 90) + "only-copy.gnucash.sqlite"
+
+    response = api_context["client"].post(
+        "/books/preflight",
+        headers=api_context["admin_headers"],
+        json=_preflight_payload(Path(oversized_private_path)),
+    )
+
+    assert response.status_code == 422
+    assert "input" not in response.text
+    assert oversized_private_path not in response.text
+    assert "only-copy.gnucash.sqlite" not in response.text
+    assert "uri_or_path" in response.text
+
+
 def test_preflight_rejects_symlinks_escape_and_similar_prefix_roots(api_context, tmp_path):
     allowed = api_context["allowed_root"]
     outside = tmp_path / "allowed-root-neighbor"
@@ -335,6 +357,101 @@ def test_preflight_rejects_symlinks_escape_and_similar_prefix_roots(api_context,
     combined = similar_prefix.text + final_link.text + component_link.text
     assert str(outside) not in combined
     assert outside_book.name not in combined
+
+
+def test_preflight_rejects_outside_allowed_root_before_component_probes(
+    api_context, tmp_path, monkeypatch
+):
+    from app.services import book_preflight
+
+    outside = _copy_fixture(tmp_path / "outside-unprobed.gnucash.sqlite")
+
+    def forbidden_component_probe(path: Path) -> None:  # pragma: no cover - regression guard
+        raise AssertionError(f"outside-root path must not be component-probed: {path}")
+
+    monkeypatch.setattr(book_preflight, "_reject_symlink_components", forbidden_component_probe)
+
+    response = _post_preflight(api_context, outside)
+
+    assert response.status_code == 422
+    assert response.json()["detail"]["code"] == "outside_allowed_roots"
+    assert str(outside) not in response.text
+    assert outside.name not in response.text
+
+
+def test_preflight_fails_closed_when_allowed_root_config_is_not_directory(
+    api_context, tmp_path
+):
+    root_file = tmp_path / "configured-root-is-file"
+    root_file.write_text("not a directory", encoding="utf-8")
+    api_context["settings"].gnucash_book_allowed_roots = [str(root_file)]
+
+    response = _post_preflight(api_context, root_file / "candidate.gnucash.sqlite")
+
+    assert response.status_code == 422
+    detail = response.json()["detail"]
+    assert detail["code"] == "invalid_allowed_root_config"
+    assert detail["retryable"] is False
+    assert str(root_file) not in response.text
+    assert root_file.name not in response.text
+
+
+def test_preflight_ignores_unmounted_extra_allowed_roots(api_context):
+    book_path = _copy_fixture(api_context["allowed_root"] / "available-root.gnucash.sqlite")
+    api_context["settings"].gnucash_book_allowed_roots = [
+        str(api_context["allowed_root"]),
+        str(api_context["allowed_root"] / "future-unmounted-root"),
+    ]
+
+    response = _post_preflight(api_context, book_path)
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "ready"
+
+
+def test_preflight_rejects_permission_denied_when_reproducible(api_context):
+    if os.name != "posix" or getattr(os, "geteuid", lambda: 1)() == 0:
+        pytest.skip("POSIX non-root chmod-based permission denial required")
+    book_path = _copy_fixture(api_context["allowed_root"] / "permission-denied.gnucash.sqlite")
+    original_mode = book_path.stat().st_mode
+    book_path.chmod(0)
+    try:
+        response = _post_preflight(api_context, book_path)
+    finally:
+        book_path.chmod(original_mode)
+
+    assert response.status_code == 422
+    detail = response.json()["detail"]
+    assert detail["code"] == "permission_denied"
+    assert detail["retryable"] is True
+    assert str(book_path) not in response.text
+    assert book_path.name not in response.text
+
+
+def test_preflight_detects_source_change_between_schema_probe_and_piecash_open(
+    api_context, monkeypatch
+):
+    from app.services import book_preflight
+
+    book_path = _copy_fixture(api_context["allowed_root"] / "changed-during-probe.gnucash.sqlite")
+    real_verify = book_preflight._verify_sqlite_gnucash_schema
+
+    def changing_schema_probe(canonical_path: str):
+        result = real_verify(canonical_path)
+        with open(canonical_path, "ab") as handle:
+            handle.write(b"\n")
+        return result
+
+    monkeypatch.setattr(book_preflight, "_verify_sqlite_gnucash_schema", changing_schema_probe)
+
+    response = _post_preflight(api_context, book_path)
+
+    assert response.status_code == 422
+    detail = response.json()["detail"]
+    assert detail["code"] == "source_changed"
+    assert detail["retryable"] is True
+    assert str(book_path) not in response.text
+    assert book_path.name not in response.text
 
 
 @pytest.mark.parametrize(
