@@ -7,6 +7,7 @@ and that the book-aware data routes enforce the same access control.
 from __future__ import annotations
 
 import sqlite3
+import shutil
 from pathlib import Path
 
 import pytest
@@ -18,7 +19,7 @@ from sqlalchemy.pool import StaticPool
 from app.config import Settings, get_settings
 from app.database import Base
 from app.main import app
-from app.models import User, Book, UserBookAccess
+from app.models import User, Book, BookHealthSnapshot, UserBookAccess
 from app.routers.auth import get_db
 from app.services.auth import hash_password
 
@@ -31,6 +32,8 @@ TEST_SETTINGS = Settings(
     app_admin_password="testpassword123",
     gnucash_book_allowed_roots=["/tmp", "/data/books"],
 )
+
+FIXTURE_BOOK = Path(__file__).parent / "fixtures" / "test-book.gnucash.sqlite"
 
 
 @pytest.fixture
@@ -114,6 +117,8 @@ def book_a(session_factory):
             is_default=False,
         )
         session.add(book)
+        session.flush()
+        _add_health_snapshot(session, book, "missing_file")
         session.commit()
         book_id = book.id
     return book_id
@@ -129,6 +134,8 @@ def book_b(session_factory):
             is_default=False,
         )
         session.add(book)
+        session.flush()
+        _add_health_snapshot(session, book, "missing_file")
         session.commit()
         book_id = book.id
     return book_id
@@ -145,6 +152,8 @@ def archived_book(session_factory):
             is_archived=True,
         )
         session.add(book)
+        session.flush()
+        _add_health_snapshot(session, book, "missing_file")
         session.commit()
         book_id = book.id
     return book_id
@@ -209,6 +218,35 @@ def _create_minimal_gnucash_sqlite(path: Path) -> None:
         conn.execute("create table splits (guid text primary key, memo text)")
         conn.execute("create table commodities (guid text primary key, fullname text)")
         conn.execute("create table books (guid text primary key, root_account_guid text)")
+
+
+def _add_health_snapshot(session, book: Book, safe_code: str = "ready") -> None:
+    session.add(
+        BookHealthSnapshot(
+            book_id=book.id,
+            source_status="ready" if safe_code == "ready" else safe_code,
+            open_status="ready" if safe_code == "ready" else "not_checked",
+            accounts_status="ready" if safe_code == "ready" else "not_checked",
+            transactions_status="ready" if safe_code == "ready" else "not_checked",
+            reports_status="ready" if safe_code == "ready" else "not_checked",
+            safe_code=safe_code,
+        )
+    )
+
+
+def _preflight_register_payload(client: TestClient, headers: dict[str, str], book_path: Path, **overrides):
+    payload = {
+        "name": "Registered Copy",
+        "storage_type": "sqlite",
+        "uri_or_path": str(book_path),
+        "base_currency": "USD",
+        "make_default": False,
+    }
+    payload.update(overrides)
+    preflight = client.post("/books/preflight", headers=headers, json=payload)
+    assert preflight.status_code == 200
+    payload["preflight_token"] = preflight.json()["preflight_token"]
+    return payload
 
 BOOK_AWARE_READ_ONLY_ROUTES = [
     "/books/{book_id}/accounts",
@@ -332,6 +370,12 @@ class TestMultiBookAccessFiltering:
         with session_factory() as session:
             book = session.query(Book).filter(Book.id == book_a).one()
             book.uri_or_path = str(book_path)
+            book.health_snapshot.safe_code = "ready"
+            book.health_snapshot.source_status = "ready"
+            book.health_snapshot.open_status = "ready"
+            book.health_snapshot.accounts_status = "ready"
+            book.health_snapshot.transactions_status = "ready"
+            book.health_snapshot.reports_status = "ready"
             session.commit()
 
         response = client.get(f"/books/{book_a}", headers=headers_a)
@@ -352,6 +396,8 @@ class TestMultiBookAccessFiltering:
         with session_factory() as session:
             book = session.query(Book).filter(Book.id == book_a).one()
             book.uri_or_path = str(private_path)
+            book.health_snapshot.safe_code = "invalid_gnucash_schema"
+            book.health_snapshot.source_status = "invalid_gnucash_schema"
             session.commit()
 
         response = client.get(f"/books/{book_a}", headers=headers_a)
@@ -381,6 +427,8 @@ class TestMultiBookAccessFiltering:
         with session_factory() as session:
             book = session.query(Book).filter(Book.id == book_a).one()
             book.uri_or_path = str(private_path)
+            book.health_snapshot.safe_code = "invalid_gnucash_schema"
+            book.health_snapshot.source_status = "invalid_gnucash_schema"
             session.commit()
 
         response = client.get(f"/books/{book_a}/accounts", headers=headers_a)
@@ -394,6 +442,8 @@ class TestMultiBookAccessFiltering:
         with session_factory() as session:
             book = session.query(Book).filter(Book.id == book_a).one()
             book.uri_or_path = ""
+            book.health_snapshot.safe_code = "not_configured"
+            book.health_snapshot.source_status = "not_configured"
             session.commit()
 
         response = client.get(f"/books/{book_a}", headers=headers_a)
@@ -418,6 +468,8 @@ class TestMultiBookAccessFiltering:
         with session_factory() as session:
             book = session.query(Book).filter(Book.id == book_a).one()
             book.uri_or_path = "postgresql://example.invalid/book"
+            book.health_snapshot.safe_code = "remote_or_unchecked"
+            book.health_snapshot.source_status = "not_checked"
             session.commit()
 
         response = client.get(f"/books/{book_a}", headers=headers_a)
@@ -432,18 +484,19 @@ class TestMultiBookAccessFiltering:
         self, client, session_factory, admin_headers, tmp_path
     ):
         book_path = tmp_path / "registered-copy.gnucash.sqlite"
-        _create_minimal_gnucash_sqlite(book_path)
+        shutil.copy2(FIXTURE_BOOK, book_path)
+        payload = _preflight_register_payload(
+            client,
+            admin_headers,
+            book_path,
+            name="Registered Copy",
+            make_default=True,
+        )
 
         response = client.post(
             "/books",
             headers=admin_headers,
-            json={
-                "name": "Registered Copy",
-                "storage_type": "sqlite",
-                "uri_or_path": str(book_path),
-                "base_currency": "USD",
-                "make_default": True,
-            },
+            json=payload,
         )
 
         assert response.status_code == 201
@@ -502,8 +555,8 @@ class TestMultiBookAccessFiltering:
         )
 
         assert response.status_code == 422
-        assert response.json()["detail"] == "Configured local book path is not a readable SQLite GnuCash book."
-        assert str(private_path) not in response.json()["detail"]
+        assert response.json()["detail"]["code"] == "missing_preflight_token"
+        assert str(private_path) not in response.text
         with session_factory() as session:
             assert session.query(Book).filter(Book.name == "Not SQLite").first() is None
 
@@ -525,8 +578,8 @@ class TestMultiBookAccessFiltering:
         )
 
         assert response.status_code == 422
-        assert response.json()["detail"] == "Configured local SQLite file does not look like a GnuCash book."
-        assert str(private_path) not in response.json()["detail"]
+        assert response.json()["detail"]["code"] == "missing_preflight_token"
+        assert str(private_path) not in response.text
         with session_factory() as session:
             assert session.query(Book).filter(Book.name == "Plain SQLite").first() is None
 
@@ -546,14 +599,24 @@ class TestMultiBookAccessFiltering:
         )
 
         assert response.status_code == 422
-        assert "does not exist" in response.json()["detail"]
-        assert str(missing_path) not in response.json()["detail"]
+        assert response.json()["detail"]["code"] == "missing_preflight_token"
+        assert str(missing_path) not in response.text
         with session_factory() as session:
             assert session.query(Book).filter(Book.name == "Missing Copy").first() is None
 
     def test_admin_can_set_default_book_without_exposing_private_path(
         self, client, session_factory, admin_headers, book_a, book_b
     ):
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == book_b).one()
+            book.health_snapshot.safe_code = "ready"
+            book.health_snapshot.source_status = "ready"
+            book.health_snapshot.open_status = "ready"
+            book.health_snapshot.accounts_status = "ready"
+            book.health_snapshot.transactions_status = "ready"
+            book.health_snapshot.reports_status = "ready"
+            session.commit()
+
         response = client.post(f"/books/{book_b}/default", headers=admin_headers)
 
         assert response.status_code == 200

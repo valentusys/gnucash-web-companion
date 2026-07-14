@@ -93,6 +93,7 @@ class BookHealthSnapshot(Base):
     reports_status = Column(String(64), default="not_checked", nullable=False)
     safe_code = Column(String(64), default="not_checked", nullable=False)
     checked_at = Column(DateTime, nullable=True)
+    last_successful_at = Column(DateTime, nullable=True)
 
     book = relationship("Book", back_populates="health_snapshot")
 

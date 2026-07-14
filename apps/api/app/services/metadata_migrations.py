@@ -42,6 +42,7 @@ def _create_health_snapshot_table(conn) -> None:
             "reports_status varchar(64) not null default 'not_checked', "
             "safe_code varchar(64) not null default 'not_checked', "
             "checked_at datetime null, "
+            "last_successful_at datetime null, "
             "foreign key(book_id) references books(id) on delete cascade)"
         )
     )
@@ -61,8 +62,8 @@ def _ensure_book_health_rows(conn) -> None:
     conn.execute(
         text(
             "insert or ignore into book_health_snapshots "
-            "(book_id, source_status, open_status, accounts_status, transactions_status, reports_status, safe_code, checked_at) "
-            "select id, 'not_checked', 'not_checked', 'not_checked', 'not_checked', 'not_checked', 'not_checked', null "
+            "(book_id, source_status, open_status, accounts_status, transactions_status, reports_status, safe_code, checked_at, last_successful_at) "
+            "select id, 'not_checked', 'not_checked', 'not_checked', 'not_checked', 'not_checked', 'not_checked', null, null "
             "from books"
         )
     )
@@ -135,6 +136,12 @@ def run_app_metadata_migrations(engine: Engine, settings: Settings) -> None:
             {"updated_at": _utc_now_text()},
         )
         _create_health_snapshot_table(conn)
+        _add_column_if_missing(
+            conn,
+            "book_health_snapshots",
+            "last_successful_at",
+            "last_successful_at datetime",
+        )
         _ensure_book_health_rows(conn)
         _canonicalize_legacy_rows(conn, settings)
         _create_canonical_unique_index(conn)

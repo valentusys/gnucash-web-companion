@@ -20,7 +20,9 @@ from app.services.book_access import AccessDenied, BookAccessService
 from app.services.book_preflight import (
     BookPreflightError,
     BookPreflightService,
-    inspect_source_file,
+    BookHealthProbeResult,
+    decode_preflight_token,
+    run_book_health_probe,
 )
 from app.services.book_registry import BookRegistryService
 from app.services.gnucash_book import GnuCashBookService
@@ -78,13 +80,37 @@ SAFE_OPERATOR_NEXT_ACTIONS = {
 }
 
 STATUS_SEVERITY = {
+    "ready": "ok",
     "available": "ok",
+    "not_checked": "warning",
     "remote_or_unchecked": "warning",
     "missing_file": "action_required",
     "not_configured": "action_required",
     "invalid_gnucash_schema": "action_required",
     "disabled": "action_required",
 }
+
+KNOWN_HEALTH_SAFE_CODES = frozenset(
+    {
+        "ready",
+        "not_checked",
+        "remote_or_unchecked",
+        "missing_file",
+        "not_configured",
+        "invalid_path",
+        "unsupported_source",
+        "outside_allowed_roots",
+        "symlink_forbidden",
+        "not_regular_file",
+        "permission_denied",
+        "unsupported_format",
+        "invalid_gnucash_schema",
+        "source_changed",
+        "open_failed",
+    }
+)
+
+READY_SECTION_STATUSES = frozenset({"ready", "empty"})
 
 ACCESS_ROLE_COPY = {
     "owner": {
@@ -114,6 +140,7 @@ class BookRegistrationRequest(BaseModel):
     uri_or_path: str = Field(min_length=1, max_length=1024)
     base_currency: str | None = Field(default=None, max_length=16)
     make_default: bool = False
+    preflight_token: str | None = Field(default=None, min_length=1, max_length=4096)
 
     @field_validator("name", "storage_type", "uri_or_path", mode="before")
     @classmethod
@@ -131,6 +158,31 @@ class BookRegistrationRequest(BaseModel):
         return stripped or None
 
 
+class BookPatchRequest(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=256)
+    base_currency: str | None = Field(default=None, min_length=1, max_length=16)
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def _strip_name(cls, value: str | None) -> str | None:
+        if isinstance(value, str):
+            return value.strip()
+        return value
+
+    @field_validator("base_currency", mode="before")
+    @classmethod
+    def _normalize_base_currency(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        stripped = value.strip().upper()
+        return stripped or None
+
+
+class BookEnableRequest(BaseModel):
+    preflight_token: str = Field(min_length=1, max_length=4096)
+    make_default: bool = False
+
+
 def require_admin_user(user: User) -> None:
     if not user.is_admin:
         raise HTTPException(
@@ -139,48 +191,76 @@ def require_admin_user(user: User) -> None:
         )
 
 
-def validate_safe_registration_target(body: BookRegistrationRequest) -> None:
-    """Validate registration metadata without exposing private paths in errors."""
-    storage_type = body.storage_type.lower()
-    if storage_type != "sqlite":
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Only local sqlite book metadata registration is supported by this admin UI.",
-        )
-    if _is_uri(body.uri_or_path):
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="URI data sources are not supported by this metadata registration form.",
-        )
-    path = Path(body.uri_or_path)
-    if not path.exists():
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Configured local SQLite book path does not exist from this runtime.",
-        )
-    if not path.is_file():
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Configured local SQLite book path is not a file.",
-        )
-    shape_error = _sqlite_gnucash_shape_error(path)
-    if shape_error is not None:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=shape_error,
-        )
+_LIFECYCLE_PROBLEMS: dict[str, tuple[str, bool]] = {
+    "missing_preflight_token": ("A fresh preflight token is required for this metadata lifecycle action.", False),
+    "invalid_preflight_token": ("The supplied preflight token is invalid, expired, or tampered.", False),
+    "preflight_request_mismatch": ("The request no longer matches the supplied preflight token.", False),
+    "preflight_source_mismatch": ("The book source changed after preflight; repeat preflight before continuing.", True),
+    "duplicate_canonical_path": ("A book with the same canonical source is already registered.", False),
+    "book_not_enabled": ("Book metadata is disabled until a fresh successful preflight enables it.", True),
+    "book_not_healthy": ("Book cached health is not ready; run a successful health recheck first.", True),
+    "book_health_not_checked": ("Book cached health has not been verified yet.", True),
+}
 
 
-def _canonical_registration_identity(body: BookRegistrationRequest, settings: Settings):
-    """Return safe canonical identity for a registration target, or fail path-safely."""
+def _lifecycle_problem(code: str) -> dict[str, Any]:
+    message, retryable = _LIFECYCLE_PROBLEMS[code]
+    return {"code": code, "message": message, "retryable": retryable}
+
+
+def _raise_lifecycle_problem(code: str, status_code: int = status.HTTP_422_UNPROCESSABLE_ENTITY) -> None:
+    raise HTTPException(status_code=status_code, detail=_lifecycle_problem(code))
+
+
+def _normalize_token_request_for_registration(body: BookRegistrationRequest) -> dict[str, Any]:
+    return {
+        "name": body.name.strip(),
+        "storage_type": body.storage_type.strip().lower(),
+        "base_currency": body.base_currency,
+        "make_default": bool(body.make_default),
+    }
+
+
+def _normalize_token_request_for_book(book: Book, *, make_default: bool) -> dict[str, Any]:
+    return {
+        "name": str(book.name or "").strip(),
+        "storage_type": str(book.storage_type or "").strip().lower(),
+        "base_currency": str(book.base_currency).strip().upper() if book.base_currency else None,
+        "make_default": bool(make_default),
+    }
+
+
+def _decode_required_preflight_token(token: str | None, settings: Settings) -> dict[str, Any]:
+    if not token:
+        _raise_lifecycle_problem("missing_preflight_token")
+    token_value = str(token)
+    payload = decode_preflight_token(token_value, settings)
+    if payload is None:
+        _raise_lifecycle_problem("invalid_preflight_token")
+    assert payload is not None
+    return payload
+
+
+def _verify_preflight_bound_probe(
+    *,
+    raw_path: str,
+    token: str | None,
+    expected_request: dict[str, Any],
+    settings: Settings,
+) -> BookHealthProbeResult:
+    payload = _decode_required_preflight_token(token, settings)
+    if payload.get("request") != expected_request:
+        _raise_lifecycle_problem("preflight_request_mismatch")
     try:
-        inspection = inspect_source_file(body.uri_or_path, settings)
+        probe = run_book_health_probe(raw_path, settings)
     except BookPreflightError as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=exc.problem.message,
+            detail=exc.problem.model_dump(),
         ) from exc
-    return inspection.identity
+    if payload.get("source") != probe.identity.hmac_payload():
+        _raise_lifecycle_problem("preflight_source_mismatch", status.HTTP_409_CONFLICT)
+    return probe
 
 
 def _reject_duplicate_canonical_registration(session: Session, canonical_hash: str) -> None:
@@ -190,10 +270,63 @@ def _reject_duplicate_canonical_registration(session: Session, canonical_hash: s
         .first()
     )
     if existing is not None:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="A book with the same canonical source is already registered.",
+        _raise_lifecycle_problem("duplicate_canonical_path", status.HTTP_409_CONFLICT)
+
+
+def _safe_status_value(
+    value: Any,
+    default: str = "not_checked",
+    *,
+    allowed: frozenset[str] | None = None,
+) -> str:
+    if not isinstance(value, str):
+        return default
+    normalized = value.strip()
+    if not normalized or len(normalized) > 64:
+        return default
+    if allowed is not None and normalized not in allowed:
+        return default
+    return normalized
+
+
+def _ready_snapshot_is_well_formed(snapshot: BookHealthSnapshot) -> bool:
+    return (
+        _safe_status_value(getattr(snapshot, "source_status", None)) == "ready"
+        and _safe_status_value(getattr(snapshot, "open_status", None)) == "ready"
+        and _safe_status_value(
+            getattr(snapshot, "accounts_status", None), allowed=READY_SECTION_STATUSES
         )
+        in READY_SECTION_STATUSES
+        and _safe_status_value(
+            getattr(snapshot, "transactions_status", None), allowed=READY_SECTION_STATUSES
+        )
+        in READY_SECTION_STATUSES
+        and _safe_status_value(
+            getattr(snapshot, "reports_status", None), allowed=READY_SECTION_STATUSES
+        )
+        in READY_SECTION_STATUSES
+    )
+
+
+def _cached_health_safe_code(book: Book) -> str:
+    snapshot = getattr(book, "health_snapshot", None)
+    if snapshot is None:
+        # Unit tests and pre-#56 in-memory rows may construct Book objects
+        # directly without running metadata migrations. Never infer healthy
+        # from absence: serialize as unchecked while preserving legacy read-only
+        # route compatibility through the bounded service-layer open.
+        return "not_checked"
+    safe_code = _safe_status_value(
+        getattr(snapshot, "safe_code", None),
+        allowed=KNOWN_HEALTH_SAFE_CODES,
+    )
+    if safe_code == "ready" and not _ready_snapshot_is_well_formed(snapshot):
+        return "not_checked"
+    return safe_code
+
+
+def _is_uri(value: str) -> bool:
+    return "://" in value
 
 
 def _sqlite_gnucash_shape_error(path: Path) -> str | None:
@@ -214,18 +347,32 @@ def _sqlite_gnucash_shape_error(path: Path) -> str | None:
 
 
 def _local_sqlite_gnucash_shape_is_valid(path: Path) -> bool:
-    """Check read-only schema markers for diagnostics without exposing path details."""
+    """Check read-only schema markers for legacy diagnostics without exposing path details."""
     return _sqlite_gnucash_shape_error(path) is None
 
 
-def _is_uri(value: str) -> bool:
-    return "://" in value
+def _legacy_uncached_storage_status_for(book: Book) -> str:
+    """Classify pre-health-snapshot rows without opening through piecash."""
+    if not bool((book.uri_or_path or "").strip()):
+        return "not_configured"
+
+    storage_type = (book.storage_type or "").lower()
+    if storage_type == "sqlite" and not _is_uri(book.uri_or_path):
+        path = Path(book.uri_or_path)
+        exists = path.exists()
+        should_validate_shape = path.name.endswith((".sqlite", ".sqlite3", ".gnucash.sqlite"))
+        if exists and (not should_validate_shape or _local_sqlite_gnucash_shape_is_valid(path)):
+            return "available"
+        if exists:
+            return "invalid_gnucash_schema"
+        return "missing_file"
+
+    return "remote_or_unchecked"
 
 
 def _storage_diagnostics_for(book: Book) -> dict[str, Any]:
-    """Return safe operator diagnostics without exposing the configured path."""
+    """Return path-redacted diagnostics without opening the GnuCash source via piecash."""
     configured = bool((book.uri_or_path or "").strip())
-    storage_type = (book.storage_type or "").lower()
 
     if getattr(book, "is_enabled", True) is False:
         return {
@@ -236,49 +383,71 @@ def _storage_diagnostics_for(book: Book) -> dict[str, Any]:
             "safe_next_actions": SAFE_OPERATOR_NEXT_ACTIONS["disabled"],
         }
 
-    if not configured:
+    snapshot = getattr(book, "health_snapshot", None)
+    safe_code = _cached_health_safe_code(book)
+    if snapshot is None:
+        safe_code = _legacy_uncached_storage_status_for(book)
+    if safe_code in {"ready", "available"}:
+        safe_summary = (
+            "Cached app metadata health is ready; listing did not touch the GnuCash source."
+            if safe_code == "ready"
+            else "A configured local SQLite book path is present and exists; the file is not opened by the metadata listing."
+        )
         return {
-            "status": "not_configured",
-            "configured": False,
+            "status": "available",
+            "configured": configured,
             "checked": True,
-            "safe_summary": "No book location is configured in app metadata.",
-            "safe_next_actions": SAFE_OPERATOR_NEXT_ACTIONS["not_configured"],
+            "safe_summary": safe_summary,
+            "safe_next_actions": SAFE_OPERATOR_NEXT_ACTIONS["available"],
         }
 
-    if storage_type == "sqlite" and not _is_uri(book.uri_or_path):
-        path = Path(book.uri_or_path)
-        exists = path.exists()
-        should_validate_shape = path.name.endswith((".sqlite", ".sqlite3", ".gnucash.sqlite"))
-        if exists and (not should_validate_shape or _local_sqlite_gnucash_shape_is_valid(path)):
-            return {
-                "status": "available",
-                "configured": True,
-                "checked": True,
-                "safe_summary": "A configured local SQLite book path is present and exists; the file is not opened by the metadata listing.",
-                "safe_next_actions": SAFE_OPERATOR_NEXT_ACTIONS["available"],
-            }
-        if exists:
-            return {
-                "status": "invalid_gnucash_schema",
-                "configured": True,
-                "checked": True,
-                "safe_summary": "A configured local SQLite book path is present, but it does not look like a readable GnuCash SQLite book.",
-                "safe_next_actions": SAFE_OPERATOR_NEXT_ACTIONS["invalid_gnucash_schema"],
-            }
+    if safe_code == "not_checked":
+        return {
+            "status": "not_checked",
+            "configured": configured,
+            "checked": False,
+            "safe_summary": "Cached app metadata health has not been verified yet; run preflight/recheck from an admin session.",
+            "safe_next_actions": SAFE_OPERATOR_NEXT_ACTIONS["remote_or_unchecked"],
+        }
+    if safe_code == "remote_or_unchecked":
+        return {
+            "status": "remote_or_unchecked",
+            "configured": configured,
+            "checked": False,
+            "safe_summary": "This book source has not been checked by this runtime.",
+            "safe_next_actions": SAFE_OPERATOR_NEXT_ACTIONS["remote_or_unchecked"],
+        }
+    if safe_code == "missing_file":
         return {
             "status": "missing_file",
-            "configured": True,
+            "configured": configured,
             "checked": True,
             "safe_summary": "A configured local SQLite book path is present, but the file was not found from this runtime.",
             "safe_next_actions": SAFE_OPERATOR_NEXT_ACTIONS["missing_file"],
         }
+    if safe_code == "not_configured":
+        return {
+            "status": "not_configured",
+            "configured": configured,
+            "checked": True,
+            "safe_summary": "No book location is configured in app metadata.",
+            "safe_next_actions": SAFE_OPERATOR_NEXT_ACTIONS["not_configured"],
+        }
+    if safe_code == "invalid_gnucash_schema":
+        return {
+            "status": "invalid_gnucash_schema",
+            "configured": configured,
+            "checked": True,
+            "safe_summary": "A configured local SQLite book path is present, but it does not look like a readable GnuCash SQLite book.",
+            "safe_next_actions": SAFE_OPERATOR_NEXT_ACTIONS["invalid_gnucash_schema"],
+        }
 
     return {
-        "status": "remote_or_unchecked",
-        "configured": True,
-        "checked": False,
-        "safe_summary": "This storage type is configured, but listing metadata does not open or validate the GnuCash data source.",
-        "safe_next_actions": SAFE_OPERATOR_NEXT_ACTIONS["remote_or_unchecked"],
+        "status": safe_code,
+        "configured": configured,
+        "checked": True,
+        "safe_summary": "Cached app metadata health is not ready; no GnuCash source was opened for this listing.",
+        "safe_next_actions": SAFE_OPERATOR_NEXT_ACTIONS.get(safe_code, SAFE_OPERATOR_NEXT_ACTIONS["missing_file"]),
     }
 
 
@@ -313,18 +482,32 @@ def _iso_datetime(value: Any) -> str | None:
 def _book_health_dto(book: Book, storage_status: str) -> BookHealthDTO:
     snapshot = getattr(book, "health_snapshot", None)
     if snapshot is not None:
-        status_value = "ready" if snapshot.safe_code == "ready" else snapshot.safe_code
+        safe_code = _cached_health_safe_code(book)
+        status_value = "ready" if safe_code == "ready" else safe_code
         return BookHealthDTO(
             status=status_value,
-            source_status=snapshot.source_status,
-            open_status=snapshot.open_status,
-            accounts_status=snapshot.accounts_status,
-            transactions_status=snapshot.transactions_status,
-            reports_status=snapshot.reports_status,
-            safe_code=snapshot.safe_code,
+            source_status=_safe_status_value(getattr(snapshot, "source_status", None)),
+            open_status=_safe_status_value(getattr(snapshot, "open_status", None)),
+            accounts_status=_safe_status_value(getattr(snapshot, "accounts_status", None)),
+            transactions_status=_safe_status_value(getattr(snapshot, "transactions_status", None)),
+            reports_status=_safe_status_value(getattr(snapshot, "reports_status", None)),
+            safe_code=safe_code,
             checked_at=_iso_datetime(snapshot.checked_at),
+            last_successful_at=_iso_datetime(getattr(snapshot, "last_successful_at", None)),
         )
-    if storage_status == "available":
+    if storage_status in {"ready", "available"} and _cached_health_safe_code(book) == "ready":
+        return BookHealthDTO(
+            status="ready",
+            source_status="ready",
+            open_status="ready",
+            accounts_status="ready",
+            transactions_status="ready",
+            reports_status="ready",
+            safe_code="ready",
+            checked_at=None,
+            last_successful_at=None,
+        )
+    if storage_status in {"ready", "available"}:
         return BookHealthDTO(
             status="not_checked",
             source_status="not_checked",
@@ -334,6 +517,7 @@ def _book_health_dto(book: Book, storage_status: str) -> BookHealthDTO:
             reports_status="not_checked",
             safe_code="not_checked",
             checked_at=None,
+            last_successful_at=None,
         )
     return BookHealthDTO(
         status=storage_status,
@@ -344,7 +528,56 @@ def _book_health_dto(book: Book, storage_status: str) -> BookHealthDTO:
         reports_status="not_checked",
         safe_code=storage_status,
         checked_at=None,
+        last_successful_at=None,
     )
+
+
+def _health_dto_for(book: Book) -> BookHealthDTO:
+    return _book_health_dto(book, _storage_diagnostics_for(book)["status"])
+
+
+def _ensure_health_snapshot(session: Session, book: Book) -> BookHealthSnapshot:
+    snapshot = getattr(book, "health_snapshot", None)
+    if snapshot is None:
+        snapshot = BookHealthSnapshot()
+        snapshot.book_id = book.id
+        session.add(snapshot)
+        book.health_snapshot = snapshot
+    return snapshot
+
+
+def _persist_successful_health(session: Session, book: Book, probe: BookHealthProbeResult) -> None:
+    snapshot = _ensure_health_snapshot(session, book)
+    snapshot.source_status = probe.source_status.status
+    snapshot.open_status = probe.open_status.status
+    snapshot.accounts_status = probe.accounts.status
+    snapshot.transactions_status = probe.transactions.status
+    snapshot.reports_status = probe.reports.status
+    snapshot.safe_code = "ready"
+    snapshot.checked_at = probe.checked_at
+    snapshot.last_successful_at = probe.checked_at
+
+
+def _persist_failed_health(session: Session, book: Book, exc: BookPreflightError) -> None:
+    snapshot = _ensure_health_snapshot(session, book)
+    code = exc.problem.code
+    snapshot.source_status = "ready" if code == "open_failed" else "failed"
+    snapshot.open_status = "failed" if code == "open_failed" else "not_checked"
+    snapshot.accounts_status = "not_checked"
+    snapshot.transactions_status = "not_checked"
+    snapshot.reports_status = "not_checked"
+    snapshot.safe_code = code
+    snapshot.checked_at = datetime.now(timezone.utc)
+
+
+def _require_enabled_and_healthy_for_default(book: Book) -> None:
+    if not bool(getattr(book, "is_enabled", True)):
+        _raise_lifecycle_problem("book_not_enabled", status.HTTP_409_CONFLICT)
+    safe_code = _cached_health_safe_code(book)
+    if safe_code == "not_checked":
+        _raise_lifecycle_problem("book_health_not_checked", status.HTTP_409_CONFLICT)
+    if safe_code != "ready":
+        _raise_lifecycle_problem("book_not_healthy", status.HTTP_409_CONFLICT)
 
 
 def serialize_book(book: Book, user: User | None = None) -> dict[str, Any]:
@@ -355,12 +588,7 @@ def serialize_book(book: Book, user: User | None = None) -> dict[str, Any]:
     access_copy = _access_copy_for(access_role)
     health = _book_health_dto(book, status_value)
     enabled = bool(getattr(book, "is_enabled", True))
-    can_open_read_only_views = status_value not in {
-        "missing_file",
-        "not_configured",
-        "invalid_gnucash_schema",
-        "disabled",
-    }
+    can_open_read_only_views = enabled and health.safe_code in {"ready", "not_checked"}
     return {
         "id": book.id,
         "name": book.name,
@@ -424,27 +652,72 @@ def resolve_viewable_book(book_id: int, user: User, session: Session) -> Book:
 
 
 def require_book_storage_available_for_readonly(book: Book) -> None:
-    """Reject read-only data routes for unavailable local book storage before opening GnuCash."""
-    status_value = _storage_diagnostics_for(book)["status"]
-    if status_value == "disabled":
+    """Reject read-only data routes for disabled or explicitly unhealthy cached states."""
+    safe_code = _cached_health_safe_code(book)
+    if getattr(book, "health_snapshot", None) is None:
+        safe_code = _legacy_uncached_storage_status_for(book)
+    if getattr(book, "is_enabled", True) is False:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Configured GnuCash book metadata is disabled until source preflight is repeated.",
         )
-    if status_value == "missing_file":
+    if safe_code in {"ready", "available", "not_checked"}:
+        return
+    if safe_code == "missing_file":
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Configured GnuCash book storage is unavailable from this runtime.",
         )
-    if status_value == "not_configured":
+    if safe_code == "not_configured":
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="GnuCash book storage is not configured for this entry.",
         )
-    if status_value == "invalid_gnucash_schema":
+    if safe_code == "invalid_gnucash_schema":
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Configured GnuCash book storage is not a readable SQLite GnuCash book.",
+        )
+    raise HTTPException(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        detail="Configured GnuCash book storage is unavailable from this runtime.",
+    )
+
+
+def require_book_storage_configured_for_metadata_summary(book: Book) -> None:
+    """Reject metadata summaries for absent storage without opening the GnuCash source."""
+    if getattr(book, "is_enabled", True) is False:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Configured GnuCash book metadata is disabled until source preflight is repeated.",
+        )
+    snapshot = getattr(book, "health_snapshot", None)
+    if snapshot is not None:
+        safe_code = _cached_health_safe_code(book)
+        if safe_code == "missing_file":
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Configured GnuCash book storage is unavailable from this runtime.",
+            )
+        if safe_code == "not_configured":
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="GnuCash book storage is not configured for this entry.",
+            )
+        return
+
+    configured_value = str(getattr(book, "uri_or_path", "") or "").strip()
+    if not configured_value:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="GnuCash book storage is not configured for this entry.",
+        )
+    if _is_uri(configured_value):
+        return
+    if not Path(configured_value).expanduser().exists():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Configured GnuCash book storage is unavailable from this runtime.",
         )
 
 
@@ -579,12 +852,21 @@ async def register_book(
 ) -> dict[str, Any]:
     """Register an already-mounted local SQLite book in app metadata only."""
     require_admin_user(user)
-    validate_safe_registration_target(body)
-    identity = _canonical_registration_identity(body, settings)
+    probe = _verify_preflight_bound_probe(
+        raw_path=body.uri_or_path,
+        token=body.preflight_token,
+        expected_request=_normalize_token_request_for_registration(body),
+        settings=settings,
+    )
+    identity = probe.identity
     _reject_duplicate_canonical_registration(session, identity.canonical_path_hash)
 
     if body.make_default:
-        session.query(Book).update({Book.is_default: False})
+        active_defaults = session.query(Book).filter(
+            Book.is_archived.is_(False),
+            Book.is_enabled.is_(True),
+        )
+        active_defaults.update({Book.is_default: False}, synchronize_session=False)
 
     book = Book(
         name=body.name,
@@ -600,25 +882,12 @@ async def register_book(
     session.add(book)
     try:
         session.flush()
-        session.add(
-            BookHealthSnapshot(
-                book_id=book.id,
-                source_status="not_checked",
-                open_status="not_checked",
-                accounts_status="not_checked",
-                transactions_status="not_checked",
-                reports_status="not_checked",
-                safe_code="not_checked",
-            )
-        )
+        _persist_successful_health(session, book, probe)
         session.add(UserBookAccess(user_id=user.id, book_id=book.id, role="owner"))
         session.commit()
     except IntegrityError as exc:
         session.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="A book with the same canonical source is already registered.",
-        ) from exc
+        _raise_lifecycle_problem("duplicate_canonical_path", status.HTTP_409_CONFLICT)
     session.refresh(book)
     return serialize_book(book, user)
 
@@ -637,8 +906,12 @@ async def set_default_book(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Book not found",
         )
+    _require_enabled_and_healthy_for_default(book)
 
-    session.query(Book).update({Book.is_default: False})
+    session.query(Book).filter(
+        Book.is_archived.is_(False),
+        Book.is_enabled.is_(True),
+    ).update({Book.is_default: False}, synchronize_session=False)
     book.is_default = True
     book.updated_at = datetime.now(timezone.utc)
     session.commit()
@@ -662,6 +935,7 @@ async def remove_book_from_registry(
         )
 
     book.is_archived = True
+    book.is_enabled = False
     if book.is_default:
         book.is_default = False
     book.updated_at = datetime.now(timezone.utc)
@@ -671,6 +945,128 @@ async def remove_book_from_registry(
         "removed_from_registry": True,
         "underlying_file_deleted": False,
     }
+
+
+@router.get("/{book_id}/health", response_model=BookHealthDTO)
+async def get_book_health(
+    book_id: int,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+) -> BookHealthDTO:
+    """Return cached path-safe health for an authorized viewer."""
+    book = resolve_viewable_book(book_id, user, session)
+    return _health_dto_for(book)
+
+
+@router.post("/{book_id}/health/recheck", response_model=BookHealthDTO)
+async def recheck_book_health(
+    book_id: int,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> BookHealthDTO:
+    """Admin-only bounded read-only source health recheck."""
+    require_admin_user(user)
+    book = BookRegistryService(session).get_book(book_id)
+    if book is None or book.is_archived:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
+    try:
+        probe = run_book_health_probe(book.uri_or_path, settings)
+    except BookPreflightError as exc:
+        _persist_failed_health(session, book, exc)
+        book.updated_at = datetime.now(timezone.utc)
+        session.commit()
+        session.refresh(book)
+        return _health_dto_for(book)
+    _persist_successful_health(session, book, probe)
+    book.updated_at = datetime.now(timezone.utc)
+    session.commit()
+    session.refresh(book)
+    return _health_dto_for(book)
+
+
+@router.patch("/{book_id}", response_model=BookPublicDTO)
+async def patch_book_metadata(
+    book_id: int,
+    body: BookPatchRequest,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+) -> dict[str, Any]:
+    """Admin-only metadata edit for display name and base currency only."""
+    require_admin_user(user)
+    book = BookRegistryService(session).get_book(book_id)
+    if book is None or book.is_archived:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
+    if body.name is not None:
+        book.name = body.name
+    if body.base_currency is not None:
+        book.base_currency = body.base_currency
+    book.updated_at = datetime.now(timezone.utc)
+    session.commit()
+    session.refresh(book)
+    return serialize_book(book, user)
+
+
+@router.post("/{book_id}/disable", response_model=BookPublicDTO)
+async def disable_book(
+    book_id: int,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+) -> dict[str, Any]:
+    """Disable book metadata without opening the GnuCash source."""
+    require_admin_user(user)
+    book = BookRegistryService(session).get_book(book_id)
+    if book is None or book.is_archived:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
+    book.is_enabled = False
+    book.is_default = False
+    book.updated_at = datetime.now(timezone.utc)
+    session.commit()
+    session.refresh(book)
+    return serialize_book(book, user)
+
+
+@router.post("/{book_id}/enable", response_model=BookPublicDTO)
+async def enable_book(
+    book_id: int,
+    body: BookEnableRequest,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> dict[str, Any]:
+    """Enable disabled metadata only after a fresh matching successful preflight token."""
+    require_admin_user(user)
+    book = BookRegistryService(session).get_book(book_id)
+    if book is None or book.is_archived:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
+    probe = _verify_preflight_bound_probe(
+        raw_path=book.uri_or_path,
+        token=body.preflight_token,
+        expected_request=_normalize_token_request_for_book(book, make_default=body.make_default),
+        settings=settings,
+    )
+    if book.canonical_path_hash and probe.identity.canonical_path_hash != book.canonical_path_hash:
+        _raise_lifecycle_problem("preflight_source_mismatch", status.HTTP_409_CONFLICT)
+    if body.make_default:
+        session.query(Book).filter(
+            Book.is_archived.is_(False),
+            Book.is_enabled.is_(True),
+        ).update({Book.is_default: False}, synchronize_session=False)
+        book.is_default = True
+    else:
+        book.is_default = False
+    book.canonical_path = probe.identity.canonical_path
+    book.canonical_path_hash = probe.identity.canonical_path_hash
+    book.is_enabled = True
+    book.updated_at = datetime.now(timezone.utc)
+    _persist_successful_health(session, book, probe)
+    try:
+        session.commit()
+    except IntegrityError as exc:
+        session.rollback()
+        _raise_lifecycle_problem("duplicate_canonical_path", status.HTTP_409_CONFLICT)
+    session.refresh(book)
+    return serialize_book(book, user)
 
 
 @router.get("/{book_id}", response_model=BookPublicDTO)

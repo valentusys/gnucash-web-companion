@@ -38,6 +38,7 @@ class BookHealthDTO(BaseModel):
     reports_status: str = Field(min_length=1, max_length=64)
     safe_code: str = Field(min_length=1, max_length=64)
     checked_at: str | None = None
+    last_successful_at: str | None = None
 
 
 class BookCapabilitiesDTO(BaseModel):

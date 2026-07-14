@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.models import Book, User, UserBookAccess
 
@@ -14,6 +14,7 @@ class BookRegistryService:
     def get_default_book(self) -> Optional[Book]:
         return (
             self.session.query(Book)
+            .options(joinedload(Book.health_snapshot), joinedload(Book.access_entries))
             .filter(Book.is_default.is_(True), Book.is_archived.is_(False))
             .first()
         )
@@ -21,6 +22,7 @@ class BookRegistryService:
     def list_books_for_user(self, user: User) -> list[Book]:
         return (
             self.session.query(Book)
+            .options(joinedload(Book.health_snapshot), joinedload(Book.access_entries))
             .join(UserBookAccess, UserBookAccess.book_id == Book.id)
             .filter(
                 UserBookAccess.user_id == user.id,
@@ -30,4 +32,9 @@ class BookRegistryService:
         )
 
     def get_book(self, book_id: int) -> Optional[Book]:
-        return self.session.query(Book).filter(Book.id == book_id).first()
+        return (
+            self.session.query(Book)
+            .options(joinedload(Book.health_snapshot), joinedload(Book.access_entries))
+            .filter(Book.id == book_id)
+            .first()
+        )

@@ -97,6 +97,20 @@ class _SQLiteProbeResult:
     sqlite_query_count: int
 
 
+@dataclass(frozen=True)
+class BookHealthProbeResult:
+    """Path-safe successful read-only health probe result for one source."""
+
+    identity: SourceIdentity
+    source_status: BookSectionStatusDTO
+    open_status: BookSectionStatusDTO
+    accounts: BookSectionStatusDTO
+    transactions: BookSectionStatusDTO
+    reports: BookSectionStatusDTO
+    checked_at: datetime
+    read_counters: BookPreflightReadCountersDTO
+
+
 def canonical_path_hash(canonical_path: str) -> str:
     """Return the private deterministic canonical-path hash stored in app metadata."""
 
@@ -328,6 +342,42 @@ def _ready_status(code: str, message: str) -> BookSectionStatusDTO:
     return BookSectionStatusDTO(status="ready", safe_code=code, message=message)
 
 
+def run_book_health_probe(raw_path: str, settings: Settings) -> BookHealthProbeResult:
+    """Run the bounded read-only source/schema/piecash probe used by lifecycle routes.
+
+    The probe never writes app metadata and never copies/modifies/deletes the
+    source. It performs bounded SQLite schema reads and exactly one piecash
+    read-only open on success.
+    """
+
+    inspection = inspect_source_file(raw_path, settings)
+    if inspection.magic != SQLITE_MAGIC:
+        raise _problem("unsupported_format")
+    sqlite_probe = _verify_sqlite_gnucash_schema(inspection.identity.canonical_path)
+    _open_piecash_readonly_once(inspection.identity.canonical_path)
+    return BookHealthProbeResult(
+        identity=inspection.identity,
+        source_status=_ready_status(
+            "source_ready",
+            "The source is an allowed local regular file and was opened read-only without following symlinks.",
+        ),
+        open_status=_ready_status(
+            "piecash_readonly_open_ready",
+            "The book opened once with piecash in read-only mode.",
+        ),
+        accounts=sqlite_probe.accounts,
+        transactions=sqlite_probe.transactions,
+        reports=sqlite_probe.reports,
+        checked_at=datetime.now(timezone.utc),
+        read_counters=BookPreflightReadCountersDTO(
+            sqlite_query_count=sqlite_probe.sqlite_query_count,
+            piecash_open_count=1,
+            account_materialization_count=0,
+            transaction_materialization_count=0,
+        ),
+    )
+
+
 def _registration_status(session: Session | None, identity: SourceIdentity) -> BookSectionStatusDTO:
     if session is None:
         return BookSectionStatusDTO(
@@ -406,10 +456,17 @@ def decode_preflight_token(
     """
 
     try:
-        payload_part, signature_part = str(token).split(".", 1)
+        parts = str(token).split(".")
+        if len(parts) != 2:
+            return None
+        payload_part, signature_part = parts
+        if not payload_part or not signature_part:
+            return None
         payload_bytes = _base64url_decode(payload_part)
         supplied_signature = _base64url_decode(signature_part)
     except Exception:
+        return None
+    if _base64url(payload_bytes) != payload_part or _base64url(supplied_signature) != signature_part:
         return None
 
     expected_signature = hmac.new(
@@ -444,19 +501,14 @@ class BookPreflightService:
         self.session = session
 
     def run(self, request: BookPreflightRequest) -> BookPreflightResponse:
-        inspection = inspect_source_file(request.uri_or_path, self.settings)
-        if inspection.magic != SQLITE_MAGIC:
-            raise _problem("unsupported_format")
-        sqlite_probe = _verify_sqlite_gnucash_schema(inspection.identity.canonical_path)
-        _open_piecash_readonly_once(inspection.identity.canonical_path)
-        checked_at_dt = datetime.now(timezone.utc)
+        probe = run_book_health_probe(request.uri_or_path, self.settings)
         checked_at_epoch = int(time.time())
-        registration_status = _registration_status(self.session, inspection.identity)
+        registration_status = _registration_status(self.session, probe.identity)
         can_register = registration_status.status == "available"
         token = _preflight_token(
             settings=self.settings,
             request=request,
-            identity=inspection.identity,
+            identity=probe.identity,
             checked_at_epoch=checked_at_epoch,
         )
         return BookPreflightResponse(
@@ -464,35 +516,24 @@ class BookPreflightService:
             format="gnucash_sqlite",
             preflight_token=token,
             registration_status=registration_status,
-            source_status=_ready_status(
-                "source_ready",
-                "The source is an allowed local regular file and was opened read-only without following symlinks.",
-            ),
-            open_status=_ready_status(
-                "piecash_readonly_open_ready",
-                "The book opened once with piecash in read-only mode.",
-            ),
-            accounts=sqlite_probe.accounts,
-            transactions=sqlite_probe.transactions,
-            reports=sqlite_probe.reports,
+            source_status=probe.source_status,
+            open_status=probe.open_status,
+            accounts=probe.accounts,
+            transactions=probe.transactions,
+            reports=probe.reports,
             capabilities=BookCapabilitiesDTO(
                 read_only=True,
                 can_register_metadata=can_register,
-                can_open_accounts=sqlite_probe.accounts.status in {"ready", "empty"},
-                can_open_transactions=sqlite_probe.transactions.status in {"ready", "empty"},
-                can_open_reports=sqlite_probe.reports.status in {"ready", "empty"},
+                can_open_accounts=probe.accounts.status in {"ready", "empty"},
+                can_open_transactions=probe.transactions.status in {"ready", "empty"},
+                can_open_reports=probe.reports.status in {"ready", "empty"},
                 can_upload=False,
                 can_edit=False,
                 can_delete=False,
                 can_edit_gnucash=False,
                 can_delete_source=False,
             ),
-            checked_at=checked_at_dt.isoformat(),
+            checked_at=probe.checked_at.isoformat(),
             message="GnuCash SQLite source preflight completed without source or metadata writes.",
-            read_counters=BookPreflightReadCountersDTO(
-                sqlite_query_count=sqlite_probe.sqlite_query_count,
-                piecash_open_count=1,
-                account_materialization_count=0,
-                transaction_materialization_count=0,
-            ),
+            read_counters=probe.read_counters,
         )

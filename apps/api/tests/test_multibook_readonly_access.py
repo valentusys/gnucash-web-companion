@@ -14,7 +14,7 @@ from sqlalchemy.pool import StaticPool
 from app.config import Settings, get_settings
 from app.database import Base
 from app.main import app
-from app.models import Book, User, UserBookAccess
+from app.models import Book, BookHealthSnapshot, User, UserBookAccess
 from app.routers.auth import get_db
 from app.schemas.accounts import AccountExplorerResponseDTO, AccountExplorerScanDTO
 from app.schemas.gnucash import (
@@ -121,6 +121,20 @@ def _create_minimal_gnucash_sqlite(path):
             conn.execute(f"create table {table} (guid text)")
 
 
+def _add_health_snapshot(session, book: Book, safe_code: str) -> None:
+    session.add(
+        BookHealthSnapshot(
+            book_id=book.id,
+            source_status="ready" if safe_code == "ready" else safe_code,
+            open_status="ready" if safe_code == "ready" else "not_checked",
+            accounts_status="ready" if safe_code == "ready" else "not_checked",
+            transactions_status="ready" if safe_code == "ready" else "not_checked",
+            reports_status="ready" if safe_code == "ready" else "not_checked",
+            safe_code=safe_code,
+        )
+    )
+
+
 @pytest.fixture
 def multibook_registry(session_factory, tmp_path):
     present_one = tmp_path / "book-one.gnucash.sqlite"
@@ -178,6 +192,13 @@ def multibook_registry(session_factory, tmp_path):
         }
         session.add_all(books.values())
         session.flush()
+        for name, book in books.items():
+            if name in {"default", "second"}:
+                _add_health_snapshot(session, book, "ready")
+            elif name == "not_configured":
+                _add_health_snapshot(session, book, "not_configured")
+            else:
+                _add_health_snapshot(session, book, "missing_file")
         session.add_all(
             [
                 UserBookAccess(user_id=admin.id, book_id=books["default"].id, role="owner"),

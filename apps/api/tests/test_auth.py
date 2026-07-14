@@ -55,13 +55,21 @@ def client(session_factory):
     app.dependency_overrides[get_db] = override_get_db
 
     with session_factory() as session:
-        session.add(
-            User(
-                username="admin",
-                display_name="Admin",
-                password_hash=hash_password("testpassword123"),
-                is_admin=True,
-            )
+        session.add_all(
+            [
+                User(
+                    username="admin",
+                    display_name="Admin",
+                    password_hash=hash_password("testpassword123"),
+                    is_admin=True,
+                ),
+                User(
+                    username="viewer",
+                    display_name="Viewer",
+                    password_hash=hash_password("viewerpass"),
+                    is_admin=False,
+                ),
+            ]
         )
         session.commit()
 
@@ -98,7 +106,20 @@ class TestLoginEndpoint:
         assert data["token_type"] == "bearer"
         assert data["user"]["username"] == "admin"
         assert data["user"]["display_name"] == "Admin"
+        assert data["user"]["is_admin"] is True
         assert isinstance(data["user"]["id"], int)
+
+    def test_successful_login_exposes_normal_user_role_flag_only(self, client):
+        response = client.post(
+            "/auth/login",
+            json={"username": "viewer", "password": "viewerpass"},
+        )
+
+        assert response.status_code == 200
+        user = response.json()["user"]
+        assert user["username"] == "viewer"
+        assert user["is_admin"] is False
+        assert set(user) == {"id", "username", "display_name", "is_admin"}
 
     def test_failed_login_wrong_password(self, client):
         response = client.post(
@@ -132,7 +153,23 @@ class TestMeEndpoint:
         data = me_resp.json()
         assert data["username"] == "admin"
         assert data["display_name"] == "Admin"
+        assert data["is_admin"] is True
         assert isinstance(data["id"], int)
+
+    def test_me_returns_normal_user_admin_flag_false(self, client):
+        login_resp = client.post(
+            "/auth/login",
+            json={"username": "viewer", "password": "viewerpass"},
+        )
+        token = login_resp.json()["access_token"]
+
+        me_resp = client.get("/auth/me", headers={"Authorization": f"Bearer {token}"})
+
+        assert me_resp.status_code == 200
+        data = me_resp.json()
+        assert data["username"] == "viewer"
+        assert data["is_admin"] is False
+        assert set(data) == {"id", "username", "display_name", "is_admin"}
 
     def test_me_without_token_returns_401(self, client):
         response = client.get("/auth/me")

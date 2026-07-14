@@ -29,6 +29,7 @@ class UserResponse(BaseModel):
     id: int
     username: str
     display_name: str
+    is_admin: bool
 
 
 class LoginResponse(BaseModel):
@@ -45,7 +46,12 @@ def get_db() -> Generator[Session, None, None]:
 
 
 def _user_response(user: User) -> UserResponse:
-    return UserResponse(id=user.id, username=user.username, display_name=user.display_name)
+    return UserResponse(
+        id=user.id,
+        username=user.username,
+        display_name=user.display_name,
+        is_admin=bool(user.is_admin),
+    )
 
 
 async def get_current_user(
