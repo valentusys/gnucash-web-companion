@@ -50,8 +50,8 @@ const problemCodeBlock = apiTypes.slice(apiTypes.indexOf('export type BookProble
 assert.doesNotMatch(problemCodeBlock, /'ready'|'source_ready'|'accounts_ready'/, 'BookProblemCode must not include readiness/status codes');
 assert.match(apiTypes, /export type BookReadinessCode[\s\S]*'ready'[\s\S]*'source_ready'[\s\S]*'accounts_ready'[\s\S]*'reports_ready'/s, 'readiness codes must be modeled separately from BookProblemCode');
 const sectionStatusBlock = apiTypes.slice(apiTypes.indexOf('export type BookSectionStatus = {'), apiTypes.indexOf('export type BookCapabilityFlags = {'));
-assert.match(sectionStatusBlock, /code\?: BookSectionStatusCode \| null[\s\S]*message\?: string \| null/s, 'section statuses must model backend code/message fields');
-assert.doesNotMatch(sectionStatusBlock, /safe_code|safe_message/, 'section statuses must not be typed as problem-code/safe_message DTOs');
+assert.match(sectionStatusBlock, /status:[\s\S]*safe_code:\s*BookSectionStatusCode[\s\S]*message:\s*string \| null[\s\S]*retryable:\s*boolean/s, 'section statuses must model exact backend status/safe_code/message/retryable fields');
+assert.doesNotMatch(sectionStatusBlock, /\bsection\b|\bcode\??:|safe_message/, 'section statuses must not require a frontend section field, legacy code field, or safe_message DTO');
 assert.match(apiTypes, /export type BookPreflightRequest[\s\S]*base_currency:\s*string[\s\S]*make_default:\s*boolean/s, 'preflight request must require normalized uppercase base_currency');
 assert.match(apiTypes, /export type BookCapabilityFlags[\s\S]*can_register_metadata[\s\S]*can_open_accounts[\s\S]*can_open_transactions[\s\S]*can_open_reports[\s\S]*can_upload:\s*false[\s\S]*can_edit:\s*false[\s\S]*can_delete:\s*false/s, 'capability flags must use exact B1 can_* fields and false mutation flags');
 const preflightResponseBlock = apiTypes.slice(apiTypes.indexOf('export type BookPreflightResponse = {'), apiTypes.indexOf('export type Book = {'));
@@ -65,7 +65,9 @@ for (const requiredPreflightField of [
 	'transactions: BookSectionStatus',
 	'reports: BookSectionStatus',
 	'capabilities: BookCapabilityFlags',
-	'safe_code: BookPreflightSafeCode'
+	'safe_code: BookPreflightSafeCode',
+	'message?: string | null',
+	'read_counters?: Record<string, number>'
 ]) {
 	assert.ok(preflightResponseBlock.includes(requiredPreflightField), `preflight response must include ${requiredPreflightField}`);
 }
@@ -77,15 +79,15 @@ for (const requiredHealthField of [
 	'safe_code: string',
 	'checked_at: string | null',
 	'last_successful_at: string | null',
-	'source: string',
-	'open: string',
-	'accounts: string',
-	'transactions: string',
-	'reports: string'
+	'source_status: string',
+	'open_status: string',
+	'accounts_status: string',
+	'transactions_status: string',
+	'reports_status: string'
 ]) {
 	assert.ok(bookHealthBlock.includes(requiredHealthField), `BookHealth must include cached public health field ${requiredHealthField}`);
 }
-assert.doesNotMatch(bookHealthBlock, /uri_or_path|registration_status|source_status|open_status|BookSectionStatus/, 'BookHealth must match the cached public shape without raw paths or nested preflight DTOs');
+assert.doesNotMatch(bookHealthBlock, /uri_or_path|registration_status|	source:\s*string|	open:\s*string|	accounts:\s*string|	transactions:\s*string|	reports:\s*string|BookSectionStatus/, 'BookHealth must match the cached public shape without raw paths, old short field names, or nested preflight DTOs');
 assert.match(apiTypes, /export type Book[\s\S]*is_enabled\?: boolean[\s\S]*created_at\?: string[\s\S]*updated_at\?: string[\s\S]*health\?: BookHealth[\s\S]*capabilities\?: BookCapabilityFlags[\s\S]*management_actions/s, 'Book DTO must include enabled/timestamps/health/capabilities/management_actions fields');
 const publicBookBlock = apiTypes.slice(apiTypes.indexOf('export type Book = {'), apiTypes.indexOf('export type Account = {'));
 assert.doesNotMatch(publicBookBlock, /uri_or_path:\s*string/, 'public Book DTO must not expose raw uri_or_path');
@@ -139,7 +141,8 @@ assert.doesNotMatch(newPage, /safeCode = \$derived\([^\n]*preflight\?\.safe_code
 assert.match(newPage, /problemCodeFromSafeCode[\s\S]*preflight\.status !== 'ready'[\s\S]*fixedSafeMessage/s, 'rejected preflight results must still render fixed local problem copy');
 assert.match(newPage, /registrationStatusMessage\(preflight\)[\s\S]*sectionStatusMessage\(itemDefinition\.section, item\.status\)/s, 'preflight checklist must render local EN/RU status copy mapped by section/status');
 assert.match(newPage, /duplicateRegistrationCodes[\s\S]*already_registered[\s\S]*duplicate_canonical_path[\s\S]*hasDuplicateRegistrationTarget/s, 'duplicate canonical targets must be detected before rendering Confirm registration');
-assert.doesNotMatch(newPage, /item\.message|registration_status\.message|source_status\.message|safe_message|item\.safe_code/, 'preflight UI must not render arbitrary backend message/safe_message or treat section codes as problem codes');
+assert.match(newPage, /statusLabel\(item\.status, item\.safe_code\)/s, 'preflight UI may render section safe_code only as a fixed local status label');
+assert.doesNotMatch(newPage, /item\.message|registration_status\.message|source_status\.message|safe_message|problemCodeFromSafeCode\(item\.safe_code\)/, 'preflight UI must not render arbitrary backend message/safe_message or treat section safe_code as a problem code');
 assert.match(newPage, /checked_at[\s\S]*books\.preflightTokenOpaque[\s\S]*preflight_token/s, 'preflight UI must show checked time and describe token as opaque without placing it in URL');
 assert.doesNotMatch(newPage, /type="file"|webkitdirectory|showOpenFilePicker|FileSystem|DataTransfer|localStorage|sessionStorage|fetch\(/i, '/books/new must not expose upload/client-filesystem/browser-persistence UI');
 assert.doesNotMatch(newPage, /overflow-x-auto|min-w-full/, '/books/new must not introduce fixed mobile horizontal overflow hazards');

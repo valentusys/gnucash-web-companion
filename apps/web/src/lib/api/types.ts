@@ -74,10 +74,10 @@ export type BookSectionStatusCode =
 	| string;
 
 export type BookSectionStatus = {
-	section: 'source' | 'open' | 'accounts' | 'transactions' | 'reports' | 'registration' | string;
 	status: 'ready' | 'available' | 'ok' | 'warning' | 'rejected' | 'unavailable' | 'unknown' | string;
-	code?: BookSectionStatusCode | null;
-	message?: string | null;
+	safe_code: BookSectionStatusCode;
+	message: string | null;
+	retryable: boolean;
 };
 
 export type BookCapabilityFlags = {
@@ -95,11 +95,11 @@ export type BookHealth = {
 	safe_code: string;
 	checked_at: string | null;
 	last_successful_at: string | null;
-	source: string;
-	open: string;
-	accounts: string;
-	transactions: string;
-	reports: string;
+	source_status: string;
+	open_status: string;
+	accounts_status: string;
+	transactions_status: string;
+	reports_status: string;
 };
 
 export type BookPreflightRequest = {
@@ -123,6 +123,8 @@ export type BookPreflightResponse = {
 	capabilities: BookCapabilityFlags;
 	checked_at: string;
 	safe_code: BookPreflightSafeCode;
+	message?: string | null;
+	read_counters?: Record<string, number>;
 };
 
 export type Book = {

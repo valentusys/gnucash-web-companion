@@ -136,7 +136,7 @@
 	}
 
 	function hasDuplicateRegistrationTarget(preflight: BookPreflightResponse): boolean {
-		return [preflight.safe_code, preflight.registration_status.status, preflight.registration_status.code].some(
+		return [preflight.safe_code, preflight.registration_status.status, preflight.registration_status.safe_code].some(
 			(value) => typeof value === 'string' && duplicateRegistrationCodes.has(value)
 		);
 	}
@@ -263,7 +263,7 @@
 						<li class="min-w-0 rounded-xl border p-3 text-sm" style="border-color: var(--app-border); background-color: var(--app-bg);">
 							<div class="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
 								<span class="font-semibold" style="color: var(--app-text);">{sectionLabel(itemDefinition.section)}</span>
-								<span class="w-fit rounded-full px-2 py-1 text-xs font-semibold" style="background-color: var(--app-hover-bg); color: var(--app-muted);">{statusLabel(item.status, item.code)}</span>
+								<span class="w-fit rounded-full px-2 py-1 text-xs font-semibold" style="background-color: var(--app-hover-bg); color: var(--app-muted);">{statusLabel(item.status, item.safe_code)}</span>
 							</div>
 							<p class="mt-2 break-words" style="color: var(--app-muted);">{sectionStatusMessage(itemDefinition.section, item.status)}</p>
 						</li>
