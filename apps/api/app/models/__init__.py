@@ -8,10 +8,12 @@ from sqlalchemy import (
     Column,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.orm import relationship
 
@@ -36,23 +38,63 @@ class User(Base):
 
 class Book(Base):
     __tablename__ = "books"
+    __table_args__ = (
+        Index(
+            "uq_books_canonical_path_hash_active",
+            "canonical_path_hash",
+            unique=True,
+            sqlite_where=text("canonical_path_hash is not null and is_archived = 0"),
+        ),
+    )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(256), nullable=False)
     storage_type = Column(String(64), nullable=False)
     uri_or_path = Column(String(1024), nullable=False)
+    canonical_path = Column(String(1024), nullable=True)
+    canonical_path_hash = Column(String(64), nullable=True)
     base_currency = Column(String(16), nullable=True)
     is_default = Column(Boolean, default=False, nullable=False)
     is_archived = Column(Boolean, default=False, nullable=False)
+    is_enabled = Column(Boolean, default=True, nullable=False)
     created_at = Column(
         DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+    updated_at = Column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
     )
 
     access_entries = relationship("UserBookAccess", back_populates="book")
     audit_logs = relationship("AuditLog", back_populates="book")
+    health_snapshot = relationship(
+        "BookHealthSnapshot",
+        back_populates="book",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
     write_alpha_transaction_ownership = relationship(
         "WriteAlphaTransactionOwnership", back_populates="book"
     )
+
+
+class BookHealthSnapshot(Base):
+    """Privacy-safe typed health snapshot for one registered book."""
+
+    __tablename__ = "book_health_snapshots"
+
+    book_id = Column(Integer, ForeignKey("books.id", ondelete="CASCADE"), primary_key=True)
+    source_status = Column(String(64), default="not_checked", nullable=False)
+    open_status = Column(String(64), default="not_checked", nullable=False)
+    accounts_status = Column(String(64), default="not_checked", nullable=False)
+    transactions_status = Column(String(64), default="not_checked", nullable=False)
+    reports_status = Column(String(64), default="not_checked", nullable=False)
+    safe_code = Column(String(64), default="not_checked", nullable=False)
+    checked_at = Column(DateTime, nullable=True)
+
+    book = relationship("Book", back_populates="health_snapshot")
 
 
 class UserBookAccess(Base):

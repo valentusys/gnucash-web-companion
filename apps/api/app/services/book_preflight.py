@@ -1,0 +1,498 @@
+"""Path-safe GnuCash SQLite source preflight service."""
+
+from __future__ import annotations
+
+import base64
+import errno
+import hashlib
+import hmac
+import json
+import os
+import re
+import secrets
+import sqlite3
+import stat
+import time
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from pathlib import Path, PurePosixPath
+from typing import Any
+from urllib.parse import quote
+
+import piecash
+from sqlalchemy.orm import Session
+
+from app.config import Settings
+from app.models import Book
+from app.schemas.books import (
+    BookCapabilitiesDTO,
+    BookPreflightReadCountersDTO,
+    BookPreflightRequest,
+    BookPreflightResponse,
+    BookProblemDTO,
+    BookSectionStatusDTO,
+)
+
+SQLITE_MAGIC = b"SQLite format 3\x00"
+REQUIRED_GNUCASH_TABLES = frozenset(
+    {"versions", "books", "accounts", "transactions", "splits", "commodities"}
+)
+REQUEST_PATH_MAX_LENGTH = 1024
+TOKEN_VERSION = 1
+
+_PROBLEM_MESSAGES: dict[str, tuple[str, bool]] = {
+    "invalid_path": ("The supplied book path is not an accepted absolute POSIX path.", False),
+    "unsupported_source": ("Only an existing server-side local SQLite GnuCash file is supported.", False),
+    "outside_allowed_roots": ("The supplied book path is outside configured allowed roots.", False),
+    "symlink_forbidden": ("Symlinked book path components are not supported.", False),
+    "missing_file": ("The configured book file was not found from this runtime.", True),
+    "not_regular_file": ("The supplied book source is not a regular file.", False),
+    "permission_denied": ("The book file could not be opened read-only by this runtime.", True),
+    "unsupported_format": ("Only GnuCash SQL SQLite files are supported.", False),
+    "invalid_gnucash_schema": ("The SQLite file does not contain required GnuCash SQL markers.", False),
+    "source_changed": ("The book source changed while it was being checked; retry the preflight.", True),
+    "open_failed": ("The book could not be opened read-only as a GnuCash SQL book.", False),
+}
+
+
+class BookPreflightError(Exception):
+    """Path-safe preflight failure."""
+
+    def __init__(self, code: str):
+        message, retryable = _PROBLEM_MESSAGES[code]
+        self.problem = BookProblemDTO(code=code, message=message, retryable=retryable)
+        super().__init__(code)
+
+
+@dataclass(frozen=True)
+class SourceIdentity:
+    canonical_path: str
+    canonical_path_hash: str
+    st_dev: int
+    st_ino: int
+    st_size: int
+    st_mtime_ns: int
+
+    def hmac_payload(self) -> dict[str, Any]:
+        return {
+            "canonical_path_hash": self.canonical_path_hash,
+            "st_dev": self.st_dev,
+            "st_ino": self.st_ino,
+            "st_size": self.st_size,
+            "st_mtime_ns": self.st_mtime_ns,
+        }
+
+
+@dataclass(frozen=True)
+class SourceInspection:
+    identity: SourceIdentity
+    magic: bytes
+
+
+@dataclass
+class _SQLiteProbeResult:
+    accounts: BookSectionStatusDTO
+    transactions: BookSectionStatusDTO
+    reports: BookSectionStatusDTO
+    sqlite_query_count: int
+
+
+def canonical_path_hash(canonical_path: str) -> str:
+    """Return the private deterministic canonical-path hash stored in app metadata."""
+
+    return hashlib.sha256(canonical_path.encode("utf-8")).hexdigest()
+
+
+def _problem(code: str) -> BookPreflightError:
+    return BookPreflightError(code)
+
+
+def _stable_identity(canonical_path: str, file_stat: os.stat_result) -> SourceIdentity:
+    return SourceIdentity(
+        canonical_path=canonical_path,
+        canonical_path_hash=canonical_path_hash(canonical_path),
+        st_dev=int(file_stat.st_dev),
+        st_ino=int(file_stat.st_ino),
+        st_size=int(file_stat.st_size),
+        st_mtime_ns=int(file_stat.st_mtime_ns),
+    )
+
+
+def _same_file_stat(left: os.stat_result, right: os.stat_result) -> bool:
+    return (
+        int(left.st_dev) == int(right.st_dev)
+        and int(left.st_ino) == int(right.st_ino)
+        and int(left.st_size) == int(right.st_size)
+        and int(left.st_mtime_ns) == int(right.st_mtime_ns)
+    )
+
+
+def _validate_absolute_request_path(raw_path: str) -> Path:
+    value = str(raw_path or "")
+    if (
+        not value
+        or len(value) > REQUEST_PATH_MAX_LENGTH
+        or "\x00" in value
+        or value.startswith("~")
+        or "$" in value
+        or "${" in value
+        or "\\" in value
+    ):
+        raise _problem("invalid_path")
+    if "://" in value or re.match(r"^[A-Za-z][A-Za-z0-9+.-]*:", value):
+        raise _problem("unsupported_source")
+    if any(part in {".", ".."} for part in value.split("/")):
+        raise _problem("invalid_path")
+    parsed = PurePosixPath(value)
+    if not parsed.is_absolute():
+        raise _problem("invalid_path")
+    if any(part in {".", ".."} for part in parsed.parts):
+        raise _problem("invalid_path")
+    return Path(value)
+
+
+def _allowed_roots(settings: Settings) -> list[Path]:
+    roots: list[Path] = []
+    for root in settings.gnucash_book_allowed_roots:
+        roots.append(Path(root).resolve(strict=False))
+    return roots
+
+
+def _is_under_allowed_root(candidate: Path, roots: list[Path]) -> bool:
+    candidate_text = os.fspath(candidate)
+    for root in roots:
+        try:
+            if os.path.commonpath([candidate_text, os.fspath(root)]) == os.fspath(root):
+                return True
+        except ValueError:
+            continue
+    return False
+
+
+def _reject_symlink_components(path: Path) -> None:
+    current = Path(path.anchor or "/")
+    for part in path.parts[1:]:
+        current = current / part
+        try:
+            if current.is_symlink():
+                raise _problem("symlink_forbidden")
+        except OSError as exc:
+            if exc.errno in {errno.EACCES, errno.EPERM}:
+                raise _problem("permission_denied") from exc
+            raise
+
+
+def _read_regular_file_magic_no_follow(canonical_path: Path) -> tuple[bytes, os.stat_result]:
+    try:
+        before = os.stat(canonical_path, follow_symlinks=False)
+    except FileNotFoundError as exc:
+        raise _problem("missing_file") from exc
+    except NotADirectoryError as exc:
+        raise _problem("missing_file") from exc
+    except PermissionError as exc:
+        raise _problem("permission_denied") from exc
+
+    if stat.S_ISLNK(before.st_mode):
+        raise _problem("symlink_forbidden")
+    if not stat.S_ISREG(before.st_mode):
+        raise _problem("not_regular_file")
+
+    flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
+    fd: int | None = None
+    try:
+        fd = os.open(canonical_path, flags)
+        opened = os.fstat(fd)
+        if not stat.S_ISREG(opened.st_mode):
+            raise _problem("not_regular_file")
+        if not _same_file_stat(before, opened):
+            raise _problem("source_changed")
+        magic = os.read(fd, len(SQLITE_MAGIC))
+        after = os.stat(canonical_path, follow_symlinks=False)
+        if not _same_file_stat(opened, after):
+            raise _problem("source_changed")
+        return magic, opened
+    except OSError as exc:
+        if exc.errno == errno.ELOOP:
+            raise _problem("symlink_forbidden") from exc
+        if exc.errno in {errno.EACCES, errno.EPERM}:
+            raise _problem("permission_denied") from exc
+        if exc.errno in {errno.ENOENT, errno.ENOTDIR}:
+            raise _problem("missing_file") from exc
+        raise _problem("permission_denied") from exc
+    finally:
+        if fd is not None:
+            os.close(fd)
+
+
+def inspect_source_file(raw_path: str, settings: Settings) -> SourceInspection:
+    """Inspect only path safety and file identity, without opening SQLite/piecash."""
+
+    request_path = _validate_absolute_request_path(raw_path)
+    _reject_symlink_components(request_path)
+    canonical_path = request_path.resolve(strict=False)
+    if not _is_under_allowed_root(canonical_path, _allowed_roots(settings)):
+        raise _problem("outside_allowed_roots")
+    magic, file_stat = _read_regular_file_magic_no_follow(canonical_path)
+    identity = _stable_identity(str(canonical_path), file_stat)
+    return SourceInspection(identity=identity, magic=magic)
+
+
+def canonicalize_existing_book_path(raw_path: str, settings: Settings) -> SourceIdentity | None:
+    """Best-effort migration helper: return safe canonical identity or None."""
+
+    try:
+        inspection = inspect_source_file(raw_path, settings)
+    except BookPreflightError:
+        return None
+    if inspection.magic != SQLITE_MAGIC:
+        return None
+    return inspection.identity
+
+
+def _sqlite_uri(path: str) -> str:
+    return f"file:{quote(path, safe='/')}?mode=ro"
+
+
+def _section_status(section: str, row: Any | None) -> BookSectionStatusDTO:
+    if row is None:
+        return BookSectionStatusDTO(
+            status="empty",
+            safe_code=f"{section}_empty",
+            message=f"The {section} section is readable and currently empty.",
+        )
+    return BookSectionStatusDTO(
+        status="ready",
+        safe_code=f"{section}_ready",
+        message=f"The {section} section is readable with a bounded probe.",
+    )
+
+
+def _verify_sqlite_gnucash_schema(canonical_path: str) -> _SQLiteProbeResult:
+    query_count = 0
+    try:
+        with sqlite3.connect(_sqlite_uri(canonical_path), uri=True) as conn:
+            conn.execute("pragma query_only = on")
+            required = tuple(sorted(REQUIRED_GNUCASH_TABLES))
+            placeholders = ", ".join("?" for _ in required)
+            rows = conn.execute(
+                f"select name from sqlite_master where type = 'table' and name in ({placeholders})",
+                required,
+            ).fetchall()
+            query_count += 1
+            table_names = {str(row[0]) for row in rows}
+            if not REQUIRED_GNUCASH_TABLES.issubset(table_names):
+                raise _problem("invalid_gnucash_schema")
+            version_marker = conn.execute(
+                "select 1 from versions where table_name in ('Gnucash', 'Gnucash-Resave') limit 1"
+            ).fetchone()
+            query_count += 1
+            if version_marker is None:
+                raise _problem("invalid_gnucash_schema")
+            account_row = conn.execute("select 1 from accounts limit 1").fetchone()
+            query_count += 1
+            transaction_row = conn.execute("select 1 from transactions limit 1").fetchone()
+            query_count += 1
+            report_row = conn.execute("select 1 from books limit 1").fetchone()
+            query_count += 1
+    except BookPreflightError:
+        raise
+    except sqlite3.DatabaseError as exc:
+        raise _problem("invalid_gnucash_schema") from exc
+
+    return _SQLiteProbeResult(
+        accounts=_section_status("accounts", account_row),
+        transactions=_section_status("transactions", transaction_row),
+        reports=BookSectionStatusDTO(
+            status="ready" if report_row is not None else "empty",
+            safe_code="reports_ready" if report_row is not None else "reports_empty",
+            message="Report readiness metadata is readable with a bounded probe.",
+        ),
+        sqlite_query_count=query_count,
+    )
+
+
+def _open_piecash_readonly_once(canonical_path: str) -> None:
+    book = None
+    try:
+        book = piecash.open_book(canonical_path, readonly=True)
+    except Exception as exc:  # pragma: no cover - piecash exception classes vary
+        raise _problem("open_failed") from exc
+    finally:
+        if book is not None:
+            close = getattr(book, "close", None)
+            if callable(close):
+                close()
+
+
+def _ready_status(code: str, message: str) -> BookSectionStatusDTO:
+    return BookSectionStatusDTO(status="ready", safe_code=code, message=message)
+
+
+def _registration_status(session: Session | None, identity: SourceIdentity) -> BookSectionStatusDTO:
+    if session is None:
+        return BookSectionStatusDTO(
+            status="available",
+            safe_code="registration_not_checked",
+            message="Registration availability was not checked in app metadata.",
+        )
+    existing = (
+        session.query(Book.id)
+        .filter(
+            Book.canonical_path_hash == identity.canonical_path_hash,
+            Book.is_archived.is_(False),
+        )
+        .first()
+    )
+    if existing is not None:
+        return BookSectionStatusDTO(
+            status="already_registered",
+            safe_code="duplicate_canonical_path",
+            message="A book with the same canonical source is already registered.",
+        )
+    return BookSectionStatusDTO(
+        status="available",
+        safe_code="registration_available",
+        message="No active app metadata book uses this canonical source.",
+    )
+
+
+def _base64url(data: bytes) -> str:
+    return base64.urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
+
+
+def _base64url_decode(value: str) -> bytes:
+    padding = "=" * (-len(value) % 4)
+    return base64.urlsafe_b64decode((value + padding).encode("ascii"))
+
+
+def _preflight_token(
+    *,
+    settings: Settings,
+    request: BookPreflightRequest,
+    identity: SourceIdentity,
+    checked_at_epoch: int,
+) -> str:
+    ttl = max(60, min(int(settings.gnucash_preflight_token_ttl_seconds), 3600))
+    expires_at = checked_at_epoch + ttl
+    nonce = secrets.token_urlsafe(18)
+    signed_payload = {
+        "v": TOKEN_VERSION,
+        "exp": expires_at,
+        "nonce": nonce,
+        "request": {
+            "name": request.name,
+            "storage_type": request.storage_type,
+            "base_currency": request.base_currency,
+            "make_default": request.make_default,
+        },
+        "source": identity.hmac_payload(),
+    }
+    message = json.dumps(signed_payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    secret = settings.jwt_secret.encode("utf-8")
+    signature = hmac.new(secret, message, hashlib.sha256).digest()
+    return f"{_base64url(message)}.{_base64url(signature)}"
+
+
+def decode_preflight_token(
+    token: str,
+    settings: Settings,
+    *,
+    now_epoch: int | None = None,
+) -> dict[str, Any] | None:
+    """Verify and decode an opaque preflight token for future registration.
+
+    The signed payload excludes raw source paths and source filenames. It binds
+    normalized request fields to canonical source hash/identity and expiry.
+    """
+
+    try:
+        payload_part, signature_part = str(token).split(".", 1)
+        payload_bytes = _base64url_decode(payload_part)
+        supplied_signature = _base64url_decode(signature_part)
+    except Exception:
+        return None
+
+    expected_signature = hmac.new(
+        settings.jwt_secret.encode("utf-8"), payload_bytes, hashlib.sha256
+    ).digest()
+    if not hmac.compare_digest(supplied_signature, expected_signature):
+        return None
+
+    try:
+        payload = json.loads(payload_bytes.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    if payload.get("v") != TOKEN_VERSION:
+        return None
+    expires_at = payload.get("exp")
+    if not isinstance(expires_at, int):
+        return None
+    if (int(time.time()) if now_epoch is None else int(now_epoch)) > expires_at:
+        return None
+    if not isinstance(payload.get("request"), dict) or not isinstance(payload.get("source"), dict):
+        return None
+    return payload
+
+
+class BookPreflightService:
+    """Run idempotent preflight checks without writing app metadata or source files."""
+
+    def __init__(self, settings: Settings, session: Session | None = None):
+        self.settings = settings
+        self.session = session
+
+    def run(self, request: BookPreflightRequest) -> BookPreflightResponse:
+        inspection = inspect_source_file(request.uri_or_path, self.settings)
+        if inspection.magic != SQLITE_MAGIC:
+            raise _problem("unsupported_format")
+        sqlite_probe = _verify_sqlite_gnucash_schema(inspection.identity.canonical_path)
+        _open_piecash_readonly_once(inspection.identity.canonical_path)
+        checked_at_dt = datetime.now(timezone.utc)
+        checked_at_epoch = int(time.time())
+        registration_status = _registration_status(self.session, inspection.identity)
+        can_register = registration_status.status == "available"
+        token = _preflight_token(
+            settings=self.settings,
+            request=request,
+            identity=inspection.identity,
+            checked_at_epoch=checked_at_epoch,
+        )
+        return BookPreflightResponse(
+            status="ready",
+            format="gnucash_sqlite",
+            preflight_token=token,
+            registration_status=registration_status,
+            source_status=_ready_status(
+                "source_ready",
+                "The source is an allowed local regular file and was opened read-only without following symlinks.",
+            ),
+            open_status=_ready_status(
+                "piecash_readonly_open_ready",
+                "The book opened once with piecash in read-only mode.",
+            ),
+            accounts=sqlite_probe.accounts,
+            transactions=sqlite_probe.transactions,
+            reports=sqlite_probe.reports,
+            capabilities=BookCapabilitiesDTO(
+                read_only=True,
+                can_register_metadata=can_register,
+                can_open_accounts=sqlite_probe.accounts.status in {"ready", "empty"},
+                can_open_transactions=sqlite_probe.transactions.status in {"ready", "empty"},
+                can_open_reports=sqlite_probe.reports.status in {"ready", "empty"},
+                can_upload=False,
+                can_edit=False,
+                can_delete=False,
+                can_edit_gnucash=False,
+                can_delete_source=False,
+            ),
+            checked_at=checked_at_dt.isoformat(),
+            message="GnuCash SQLite source preflight completed without source or metadata writes.",
+            read_counters=BookPreflightReadCountersDTO(
+                sqlite_query_count=sqlite_probe.sqlite_query_count,
+                piecash_open_count=1,
+                account_materialization_count=0,
+                transaction_materialization_count=0,
+            ),
+        )

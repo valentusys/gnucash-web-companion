@@ -29,6 +29,7 @@ TEST_SETTINGS = Settings(
     jwt_token_expire_minutes=30,
     app_admin_username="admin",
     app_admin_password="testpassword123",
+    gnucash_book_allowed_roots=["/tmp", "/data/books"],
 )
 
 
@@ -509,7 +510,7 @@ class TestMultiBookAccessFiltering:
     def test_register_book_rejects_sqlite_without_gnucash_tables_without_private_path(
         self, client, session_factory, admin_headers, tmp_path
     ):
-        private_path = tmp_path / "plain-private-copy.gnucash.sqlite"
+        private_path = tmp_path / "plain-private-copy.privatecopy"
         with sqlite3.connect(private_path) as conn:
             conn.execute("create table unrelated (id integer primary key)")
 

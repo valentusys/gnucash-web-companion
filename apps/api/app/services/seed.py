@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 
 from sqlalchemy.orm import Session
 
-from app.models import Book, User, UserBookAccess
+from app.models import Book, BookHealthSnapshot, User, UserBookAccess
 
 logger = logging.getLogger(__name__)
 
@@ -54,8 +54,11 @@ def seed_default_book(session: Session, path: Optional[str]) -> Optional[Book]:
         storage_type="sqlite",
         uri_or_path=path,
         is_default=True,
+        is_enabled=True,
     )
     session.add(book)
+    session.flush()
+    session.add(BookHealthSnapshot(book_id=book.id))
     session.commit()
     session.refresh(book)
     logger.info("Seeded default book: %s (%s)", book.name, _safe_book_log_label(path))

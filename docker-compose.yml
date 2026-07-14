@@ -6,7 +6,9 @@ services:
     environment:
       - APP_ENV=${APP_ENV:-development}
       - APP_DATABASE_URL=${APP_DATABASE_URL:-sqlite:////data/app/app.db}
-      - GNUCASH_DEFAULT_BOOK_PATH=${GNUCASH_DEFAULT_BOOK_PATH:-/data/books/main.gnucash.sqlite}
+      - GNUCASH_DEFAULT_BOOK_PATH=${GNUCASH_DEFAULT_BOOK_PATH:-}
+      - GNUCASH_BOOK_ALLOWED_ROOTS=${GNUCASH_BOOK_ALLOWED_ROOTS:-["/data/books"]}
+      - GNUCASH_PREFLIGHT_TOKEN_TTL_SECONDS=${GNUCASH_PREFLIGHT_TOKEN_TTL_SECONDS:-600}
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required; set a long random value in .env}
       - JWT_TOKEN_EXPIRE_MINUTES=${JWT_TOKEN_EXPIRE_MINUTES:-30}
       - APP_ADMIN_USERNAME=${APP_ADMIN_USERNAME:-admin}

@@ -1,0 +1,397 @@
+"""Issue #56 backend preflight and source-safety foundation tests."""
+
+from __future__ import annotations
+
+import gzip
+import hashlib
+import json
+import shutil
+from pathlib import Path
+from typing import Any
+
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
+
+from app.config import Settings, get_settings
+from app.database import Base
+from app.main import app
+from app.models import Book, BookHealthSnapshot, User, UserBookAccess
+from app.routers.auth import get_db
+from app.services.auth import hash_password
+from app.services.book_preflight import canonical_path_hash, decode_preflight_token
+
+FIXTURE_BOOK = Path(__file__).parent / "fixtures" / "test-book.gnucash.sqlite"
+JWT_SECRET = "test-secret-key-for-issue56-preflight-32-bytes"
+
+
+def _copy_fixture(target: Path) -> Path:
+    target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(FIXTURE_BOOK, target)
+    return target
+
+
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+@pytest.fixture
+def api_context(tmp_path):
+    allowed_root = tmp_path / "allowed-root"
+    allowed_root.mkdir()
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    SessionLocal = sessionmaker(bind=engine)
+    settings = Settings(
+        app_env="test",
+        app_database_url="sqlite:///:memory:",
+        gnucash_default_book_path="",
+        gnucash_book_allowed_roots=[str(allowed_root)],
+        jwt_secret=JWT_SECRET,
+        jwt_token_expire_minutes=30,
+        app_admin_username="admin",
+        app_admin_password="testpassword123",
+    )
+
+    def override_get_db():
+        with SessionLocal() as session:
+            yield session
+
+    app.dependency_overrides[get_settings] = lambda: settings
+    app.dependency_overrides[get_db] = override_get_db
+
+    with SessionLocal() as session:
+        session.add_all(
+            [
+                User(
+                    username="admin",
+                    display_name="Admin",
+                    password_hash=hash_password("testpassword123"),
+                    is_admin=True,
+                ),
+                User(
+                    username="viewer",
+                    display_name="Viewer",
+                    password_hash=hash_password("viewerpass"),
+                    is_admin=False,
+                ),
+            ]
+        )
+        session.commit()
+
+    client = TestClient(app)
+    admin_login = client.post(
+        "/auth/login",
+        json={"username": "admin", "password": "testpassword123"},
+    )
+    viewer_login = client.post(
+        "/auth/login",
+        json={"username": "viewer", "password": "viewerpass"},
+    )
+    assert admin_login.status_code == 200
+    assert viewer_login.status_code == 200
+
+    context = {
+        "client": client,
+        "session_factory": SessionLocal,
+        "settings": settings,
+        "allowed_root": allowed_root,
+        "admin_headers": {"Authorization": f"Bearer {admin_login.json()['access_token']}"},
+        "viewer_headers": {"Authorization": f"Bearer {viewer_login.json()['access_token']}"},
+    }
+    yield context
+
+    app.dependency_overrides.clear()
+    get_settings.cache_clear()
+    engine.dispose()
+
+
+def _preflight_payload(book_path: Path, **overrides: Any) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "name": "Synthetic preflight book",
+        "storage_type": "sqlite",
+        "uri_or_path": str(book_path),
+        "base_currency": "USD",
+        "make_default": False,
+    }
+    payload.update(overrides)
+    return payload
+
+
+def _post_preflight(api_context, book_path: Path | str, **overrides: Any):
+    path = Path(book_path) if not isinstance(book_path, str) else book_path
+    return api_context["client"].post(
+        "/books/preflight",
+        headers=api_context["admin_headers"],
+        json=_preflight_payload(path, **overrides),
+    )
+
+
+def test_preflight_requires_admin_and_never_registers_for_viewer(api_context):
+    book_path = _copy_fixture(api_context["allowed_root"] / "viewer-attempt.gnucash.sqlite")
+
+    no_auth = api_context["client"].post("/books/preflight", json=_preflight_payload(book_path))
+    viewer = api_context["client"].post(
+        "/books/preflight",
+        headers=api_context["viewer_headers"],
+        json=_preflight_payload(book_path),
+    )
+
+    assert no_auth.status_code == 401
+    assert viewer.status_code == 403
+    assert viewer.json()["detail"] == "Admin privileges are required for book registry management."
+    with api_context["session_factory"]() as session:
+        assert session.query(Book).count() == 0
+        assert session.query(UserBookAccess).count() == 0
+        assert session.query(BookHealthSnapshot).count() == 0
+
+
+def test_preflight_success_is_typed_path_safe_and_has_no_metadata_or_source_side_effects(api_context):
+    book_path = _copy_fixture(api_context["allowed_root"] / "content-first.no-extension")
+    before_hash = _sha256(book_path)
+    before_mtime = book_path.stat().st_mtime_ns
+    before_entries = sorted(item.name for item in book_path.parent.iterdir())
+
+    first = _post_preflight(api_context, book_path)
+    second = _post_preflight(api_context, book_path)
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    data = first.json()
+    assert data["status"] == "ready"
+    assert data["format"] == "gnucash_sqlite"
+    assert data["safe_code"] == "ready"
+    assert data["registration_status"]["status"] == "available"
+    assert data["source_status"]["status"] == "ready"
+    assert data["open_status"]["status"] == "ready"
+    assert data["accounts"]["status"] in {"ready", "empty"}
+    assert data["transactions"]["status"] in {"ready", "empty"}
+    assert data["reports"]["status"] == "ready"
+    assert data["capabilities"] == {
+        "read_only": True,
+        "can_register_metadata": True,
+        "can_open_accounts": True,
+        "can_open_transactions": True,
+        "can_open_reports": True,
+        "can_upload": False,
+        "can_edit": False,
+        "can_delete": False,
+        "can_edit_gnucash": False,
+        "can_delete_source": False,
+    }
+    assert isinstance(data["preflight_token"], str) and len(data["preflight_token"]) > 40
+    assert second.json()["preflight_token"] != data["preflight_token"]
+    token_payload = decode_preflight_token(data["preflight_token"], api_context["settings"])
+    assert token_payload is not None
+    assert token_payload["request"] == {
+        "name": "Synthetic preflight book",
+        "storage_type": "sqlite",
+        "base_currency": "USD",
+        "make_default": False,
+    }
+    assert token_payload["source"]["canonical_path_hash"] == canonical_path_hash(
+        str(book_path.resolve(strict=True))
+    )
+    assert "canonical_path" not in token_payload["source"]
+    assert decode_preflight_token(
+        data["preflight_token"],
+        api_context["settings"],
+        now_epoch=int(token_payload["exp"]) + 1,
+    ) is None
+    tampered_token = data["preflight_token"][:-1] + (
+        "A" if data["preflight_token"][-1] != "A" else "B"
+    )
+    assert decode_preflight_token(tampered_token, api_context["settings"]) is None
+    token_json = json.dumps(token_payload, sort_keys=True)
+    assert str(book_path) not in token_json
+    assert book_path.name not in token_json
+    assert data["read_counters"] == {
+        "sqlite_query_count": 5,
+        "piecash_open_count": 1,
+        "account_materialization_count": 0,
+        "transaction_materialization_count": 0,
+    }
+    assert str(book_path) not in first.text
+    assert book_path.name not in first.text
+
+    assert _sha256(book_path) == before_hash
+    assert book_path.stat().st_mtime_ns == before_mtime
+    assert sorted(item.name for item in book_path.parent.iterdir()) == before_entries
+    assert not (book_path.parent / f"{book_path.name}-journal").exists()
+    assert not (book_path.parent / f"{book_path.name}-wal").exists()
+    assert not (book_path.parent / f"{book_path.name}.backup").exists()
+
+    with api_context["session_factory"]() as session:
+        assert session.query(Book).count() == 0
+        assert session.query(UserBookAccess).count() == 0
+        assert session.query(BookHealthSnapshot).count() == 0
+
+
+def test_preflight_registration_status_reports_existing_canonical_duplicate_without_writing(api_context):
+    book_path = _copy_fixture(api_context["allowed_root"] / "already-registered.gnucash.sqlite")
+    canonical = str(book_path.resolve(strict=True))
+    with api_context["session_factory"]() as session:
+        session.add(
+            Book(
+                name="Existing",
+                storage_type="sqlite",
+                uri_or_path=str(book_path),
+                canonical_path=canonical,
+                canonical_path_hash=canonical_path_hash(canonical),
+                base_currency="USD",
+            )
+        )
+        session.commit()
+        before_count = session.query(Book).count()
+
+    response = _post_preflight(api_context, book_path)
+
+    assert response.status_code == 200
+    assert response.json()["registration_status"] == {
+        "status": "already_registered",
+        "safe_code": "duplicate_canonical_path",
+        "message": "A book with the same canonical source is already registered.",
+        "retryable": False,
+    }
+    with api_context["session_factory"]() as session:
+        assert session.query(Book).count() == before_count
+
+
+@pytest.mark.parametrize(
+    ("request_path", "expected_code"),
+    [
+        ("relative.gnucash.sqlite", "invalid_path"),
+        ("~/book.gnucash.sqlite", "invalid_path"),
+        ("$HOME/book.gnucash.sqlite", "invalid_path"),
+        ("/tmp/${BOOK}.gnucash.sqlite", "invalid_path"),
+        ("sqlite:////tmp/book.gnucash.sqlite", "unsupported_source"),
+        ("postgresql://db.example/ledger", "unsupported_source"),
+        ("/tmp/./book.gnucash.sqlite", "invalid_path"),
+        ("/tmp/../tmp/book.gnucash.sqlite", "invalid_path"),
+        ("/tmp/book\u0000.gnucash.sqlite", "invalid_path"),
+    ],
+)
+def test_preflight_rejects_unsafe_request_paths_with_fixed_problem_codes(
+    api_context, request_path, expected_code
+):
+    response = _post_preflight(api_context, request_path)
+
+    assert response.status_code == 422
+    detail = response.json()["detail"]
+    assert detail["code"] == expected_code
+    assert detail["retryable"] is False
+    assert "/tmp" not in detail["message"]
+    assert "book.gnucash" not in detail["message"]
+
+
+def test_preflight_normalizes_base_currency_into_opaque_token_and_requires_it(api_context):
+    book_path = _copy_fixture(api_context["allowed_root"] / "currency.gnucash.sqlite")
+
+    lower_case = _post_preflight(api_context, book_path, base_currency="usd")
+    missing_payload = _preflight_payload(book_path)
+    missing_payload.pop("base_currency")
+    missing = api_context["client"].post(
+        "/books/preflight",
+        headers=api_context["admin_headers"],
+        json=missing_payload,
+    )
+
+    assert lower_case.status_code == 200
+    token_payload = decode_preflight_token(
+        lower_case.json()["preflight_token"], api_context["settings"]
+    )
+    assert token_payload is not None
+    assert token_payload["request"]["base_currency"] == "USD"
+    assert missing.status_code == 422
+
+
+def test_preflight_rejects_symlinks_escape_and_similar_prefix_roots(api_context, tmp_path):
+    allowed = api_context["allowed_root"]
+    outside = tmp_path / "allowed-root-neighbor"
+    outside.mkdir()
+    outside_book = _copy_fixture(outside / "outside.gnucash.sqlite")
+
+    final_symlink = allowed / "final-link.gnucash.sqlite"
+    final_symlink.symlink_to(outside_book)
+    symlink_dir = allowed / "linked-dir"
+    symlink_dir.symlink_to(outside, target_is_directory=True)
+
+    similar_prefix = _post_preflight(api_context, outside_book)
+    final_link = _post_preflight(api_context, final_symlink)
+    component_link = _post_preflight(api_context, symlink_dir / "outside.gnucash.sqlite")
+
+    assert similar_prefix.status_code == 422
+    assert similar_prefix.json()["detail"]["code"] == "outside_allowed_roots"
+    assert final_link.status_code == 422
+    assert final_link.json()["detail"]["code"] == "symlink_forbidden"
+    assert component_link.status_code == 422
+    assert component_link.json()["detail"]["code"] == "symlink_forbidden"
+    combined = similar_prefix.text + final_link.text + component_link.text
+    assert str(outside) not in combined
+    assert outside_book.name not in combined
+
+
+@pytest.mark.parametrize(
+    ("factory", "expected_code", "retryable"),
+    [
+        (lambda path: None, "missing_file", True),
+        (lambda path: path.mkdir(), "not_regular_file", False),
+        (lambda path: path.write_text("<gnc-v2></gnc-v2>", encoding="utf-8"), "unsupported_format", False),
+        (lambda path: path.write_bytes(gzip.compress(b"<gnc-v2></gnc-v2>")), "unsupported_format", False),
+        (lambda path: path.write_bytes(b"plain private bytes"), "unsupported_format", False),
+    ],
+)
+def test_preflight_rejects_missing_directory_and_unsupported_content(
+    api_context, factory, expected_code, retryable
+):
+    path = api_context["allowed_root"] / f"candidate-{expected_code}.gnucash.sqlite"
+    factory(path)
+
+    response = _post_preflight(api_context, path)
+
+    assert response.status_code == 422
+    detail = response.json()["detail"]
+    assert detail["code"] == expected_code
+    assert detail["retryable"] is retryable
+    assert isinstance(detail["message"], str) and detail["message"]
+    assert str(path) not in response.text
+    assert path.name not in response.text
+
+
+def test_preflight_accepts_gnucash_content_with_unusual_extension_and_rejects_bad_sqlite(api_context):
+    unusual = _copy_fixture(api_context["allowed_root"] / "ledger.privatecopy")
+    bad_sqlite = api_context["allowed_root"] / "fake.gnucash.sqlite"
+    import sqlite3
+
+    with sqlite3.connect(bad_sqlite) as conn:
+        conn.execute("create table unrelated (id integer primary key)")
+
+    success = _post_preflight(api_context, unusual)
+    failure = _post_preflight(api_context, bad_sqlite)
+
+    assert success.status_code == 200
+    assert success.json()["format"] == "gnucash_sqlite"
+    assert failure.status_code == 422
+    assert failure.json()["detail"]["code"] == "invalid_gnucash_schema"
+    assert str(bad_sqlite) not in failure.text
+    assert bad_sqlite.name not in failure.text
+
+
+def test_preflight_one_failed_candidate_does_not_affect_next_valid_candidate(api_context):
+    invalid = api_context["allowed_root"] / "invalid.gnucash.sqlite"
+    invalid.write_bytes(b"not sqlite")
+    valid = _copy_fixture(api_context["allowed_root"] / "valid.gnucash.sqlite")
+
+    failed = _post_preflight(api_context, invalid)
+    succeeded = _post_preflight(api_context, valid)
+
+    assert failed.status_code == 422
+    assert failed.json()["detail"]["code"] == "unsupported_format"
+    assert succeeded.status_code == 200
+    assert succeeded.json()["status"] == "ready"

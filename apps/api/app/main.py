@@ -18,6 +18,7 @@ from app.routers.scheduled_transactions import router as scheduled_transactions_
 from app.routers.reports import router as reports_router
 from app.services.seed import seed_admin_default_book_access, seed_default_book
 from app.services.auth import seed_admin_user
+from app.services.metadata_migrations import run_app_metadata_migrations
 
 settings = get_settings()
 
@@ -27,6 +28,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     current_settings = get_settings()
     engine = get_engine()
     Base.metadata.create_all(engine)
+    run_app_metadata_migrations(engine, current_settings)
     log_startup_diagnostics(current_settings, engine)
     Session = get_session_factory(engine)
     with Session() as session:

@@ -3,16 +3,25 @@
 from __future__ import annotations
 
 import sqlite3
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field, field_validator
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.models import Book, User, UserBookAccess, WriteAlphaTransactionOwnership
+from app.config import Settings, get_settings
+from app.models import Book, BookHealthSnapshot, User, UserBookAccess, WriteAlphaTransactionOwnership
 from app.routers.auth import get_current_user, get_db
+from app.schemas.books import BookHealthDTO, BookPreflightRequest, BookPreflightResponse, BookPublicDTO
 from app.services.book_access import AccessDenied, BookAccessService
+from app.services.book_preflight import (
+    BookPreflightError,
+    BookPreflightService,
+    inspect_source_file,
+)
 from app.services.book_registry import BookRegistryService
 from app.services.gnucash_book import GnuCashBookService
 from app.services.account_explorer import (
@@ -62,6 +71,10 @@ SAFE_OPERATOR_NEXT_ACTIONS = {
         "Validate the configured storage from the host before relying on this read-only view.",
         "Use GnuCash Desktop as the authoritative editor.",
     ],
+    "disabled": [
+        "Run source preflight again from an admin session before opening this book.",
+        "Check allowed roots and mounted source files without exposing private paths in the UI.",
+    ],
 }
 
 STATUS_SEVERITY = {
@@ -70,6 +83,7 @@ STATUS_SEVERITY = {
     "missing_file": "action_required",
     "not_configured": "action_required",
     "invalid_gnucash_schema": "action_required",
+    "disabled": "action_required",
 }
 
 ACCESS_ROLE_COPY = {
@@ -157,6 +171,31 @@ def validate_safe_registration_target(body: BookRegistrationRequest) -> None:
         )
 
 
+def _canonical_registration_identity(body: BookRegistrationRequest, settings: Settings):
+    """Return safe canonical identity for a registration target, or fail path-safely."""
+    try:
+        inspection = inspect_source_file(body.uri_or_path, settings)
+    except BookPreflightError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=exc.problem.message,
+        ) from exc
+    return inspection.identity
+
+
+def _reject_duplicate_canonical_registration(session: Session, canonical_hash: str) -> None:
+    existing = (
+        session.query(Book.id)
+        .filter(Book.canonical_path_hash == canonical_hash, Book.is_archived.is_(False))
+        .first()
+    )
+    if existing is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="A book with the same canonical source is already registered.",
+        )
+
+
 def _sqlite_gnucash_shape_error(path: Path) -> str | None:
     """Return a path-redacted schema problem, or None when the target looks usable."""
     required_tables = {"versions", "books", "accounts", "transactions", "splits", "commodities"}
@@ -187,6 +226,15 @@ def _storage_diagnostics_for(book: Book) -> dict[str, Any]:
     """Return safe operator diagnostics without exposing the configured path."""
     configured = bool((book.uri_or_path or "").strip())
     storage_type = (book.storage_type or "").lower()
+
+    if getattr(book, "is_enabled", True) is False:
+        return {
+            "status": "disabled",
+            "configured": configured,
+            "checked": False,
+            "safe_summary": "This book metadata entry is disabled until its source is preflighted again.",
+            "safe_next_actions": SAFE_OPERATOR_NEXT_ACTIONS["disabled"],
+        }
 
     if not configured:
         return {
@@ -252,12 +300,67 @@ def _access_copy_for(role: str | None) -> dict[str, str]:
     }
 
 
+def _iso_datetime(value: Any) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=timezone.utc)
+        return value.isoformat()
+    return str(value)
+
+
+def _book_health_dto(book: Book, storage_status: str) -> BookHealthDTO:
+    snapshot = getattr(book, "health_snapshot", None)
+    if snapshot is not None:
+        status_value = "ready" if snapshot.safe_code == "ready" else snapshot.safe_code
+        return BookHealthDTO(
+            status=status_value,
+            source_status=snapshot.source_status,
+            open_status=snapshot.open_status,
+            accounts_status=snapshot.accounts_status,
+            transactions_status=snapshot.transactions_status,
+            reports_status=snapshot.reports_status,
+            safe_code=snapshot.safe_code,
+            checked_at=_iso_datetime(snapshot.checked_at),
+        )
+    if storage_status == "available":
+        return BookHealthDTO(
+            status="not_checked",
+            source_status="not_checked",
+            open_status="not_checked",
+            accounts_status="not_checked",
+            transactions_status="not_checked",
+            reports_status="not_checked",
+            safe_code="not_checked",
+            checked_at=None,
+        )
+    return BookHealthDTO(
+        status=storage_status,
+        source_status=storage_status,
+        open_status="not_checked",
+        accounts_status="not_checked",
+        transactions_status="not_checked",
+        reports_status="not_checked",
+        safe_code=storage_status,
+        checked_at=None,
+    )
+
+
 def serialize_book(book: Book, user: User | None = None) -> dict[str, Any]:
     """Serialize app metadata for a book without opening its GnuCash data."""
     storage_diagnostics = _storage_diagnostics_for(book)
     status_value = storage_diagnostics["status"]
     access_role = _access_role_for(book, user)
     access_copy = _access_copy_for(access_role)
+    health = _book_health_dto(book, status_value)
+    enabled = bool(getattr(book, "is_enabled", True))
+    can_open_read_only_views = status_value not in {
+        "missing_file",
+        "not_configured",
+        "invalid_gnucash_schema",
+        "disabled",
+    }
     return {
         "id": book.id,
         "name": book.name,
@@ -265,6 +368,23 @@ def serialize_book(book: Book, user: User | None = None) -> dict[str, Any]:
         "base_currency": book.base_currency,
         "is_default": book.is_default,
         "is_archived": book.is_archived,
+        "is_enabled": enabled,
+        "enabled": enabled,
+        "created_at": _iso_datetime(book.created_at),
+        "updated_at": _iso_datetime(getattr(book, "updated_at", None)),
+        "health": health.model_dump(mode="json"),
+        "capabilities": {
+            "read_only": True,
+            "can_register_metadata": bool(user and user.is_admin),
+            "can_open_accounts": can_open_read_only_views,
+            "can_open_transactions": can_open_read_only_views,
+            "can_open_reports": can_open_read_only_views,
+            "can_upload": False,
+            "can_edit": False,
+            "can_delete": False,
+            "can_edit_gnucash": False,
+            "can_delete_source": False,
+        },
         "access_role": access_role,
         "access_role_label": access_copy["label"],
         "access_role_description": access_copy["description"],
@@ -272,11 +392,7 @@ def serialize_book(book: Book, user: User | None = None) -> dict[str, Any]:
         "status": status_value,
         "status_severity": STATUS_SEVERITY.get(status_value, "warning"),
         "access_status": "accessible",
-        "can_open_read_only_views": status_value not in {
-            "missing_file",
-            "not_configured",
-            "invalid_gnucash_schema",
-        },
+        "can_open_read_only_views": can_open_read_only_views,
         "storage_diagnostics": storage_diagnostics,
         "management_actions": ADMIN_SAFE_MANAGEMENT_ACTIONS if user and user.is_admin else [],
         "operator_guidance": {
@@ -310,6 +426,11 @@ def resolve_viewable_book(book_id: int, user: User, session: Session) -> Book:
 def require_book_storage_available_for_readonly(book: Book) -> None:
     """Reject read-only data routes for unavailable local book storage before opening GnuCash."""
     status_value = _storage_diagnostics_for(book)["status"]
+    if status_value == "disabled":
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Configured GnuCash book metadata is disabled until source preflight is repeated.",
+        )
     if status_value == "missing_file":
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -421,7 +542,7 @@ def _serialize_account_activity(result: Any, *, session: Session, book_id: int) 
     return payload
 
 
-@router.get("")
+@router.get("", response_model=list[BookPublicDTO])
 async def list_books(
     user: User = Depends(get_current_user),
     session: Session = Depends(get_db),
@@ -431,15 +552,36 @@ async def list_books(
     return [serialize_book(book, user) for book in books]
 
 
-@router.post("", status_code=status.HTTP_201_CREATED)
+@router.post("/preflight", response_model=BookPreflightResponse)
+async def preflight_book(
+    body: BookPreflightRequest,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> BookPreflightResponse:
+    """Preflight an already-mounted local SQLite book without metadata/source writes."""
+    require_admin_user(user)
+    try:
+        return BookPreflightService(settings, session).run(body)
+    except BookPreflightError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=exc.problem.model_dump(),
+        ) from exc
+
+
+@router.post("", status_code=status.HTTP_201_CREATED, response_model=BookPublicDTO)
 async def register_book(
     body: BookRegistrationRequest,
     user: User = Depends(get_current_user),
     session: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
 ) -> dict[str, Any]:
     """Register an already-mounted local SQLite book in app metadata only."""
     require_admin_user(user)
     validate_safe_registration_target(body)
+    identity = _canonical_registration_identity(body, settings)
+    _reject_duplicate_canonical_registration(session, identity.canonical_path_hash)
 
     if body.make_default:
         session.query(Book).update({Book.is_default: False})
@@ -448,19 +590,40 @@ async def register_book(
         name=body.name,
         storage_type=body.storage_type.lower(),
         uri_or_path=body.uri_or_path,
+        canonical_path=identity.canonical_path,
+        canonical_path_hash=identity.canonical_path_hash,
         base_currency=body.base_currency,
         is_default=body.make_default,
         is_archived=False,
+        is_enabled=True,
     )
     session.add(book)
-    session.flush()
-    session.add(UserBookAccess(user_id=user.id, book_id=book.id, role="owner"))
-    session.commit()
+    try:
+        session.flush()
+        session.add(
+            BookHealthSnapshot(
+                book_id=book.id,
+                source_status="not_checked",
+                open_status="not_checked",
+                accounts_status="not_checked",
+                transactions_status="not_checked",
+                reports_status="not_checked",
+                safe_code="not_checked",
+            )
+        )
+        session.add(UserBookAccess(user_id=user.id, book_id=book.id, role="owner"))
+        session.commit()
+    except IntegrityError as exc:
+        session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="A book with the same canonical source is already registered.",
+        ) from exc
     session.refresh(book)
     return serialize_book(book, user)
 
 
-@router.post("/{book_id}/default")
+@router.post("/{book_id}/default", response_model=BookPublicDTO)
 async def set_default_book(
     book_id: int,
     user: User = Depends(get_current_user),
@@ -477,6 +640,7 @@ async def set_default_book(
 
     session.query(Book).update({Book.is_default: False})
     book.is_default = True
+    book.updated_at = datetime.now(timezone.utc)
     session.commit()
     session.refresh(book)
     return serialize_book(book, user)
@@ -500,6 +664,7 @@ async def remove_book_from_registry(
     book.is_archived = True
     if book.is_default:
         book.is_default = False
+    book.updated_at = datetime.now(timezone.utc)
     session.commit()
     return {
         "id": book_id,
@@ -508,7 +673,7 @@ async def remove_book_from_registry(
     }
 
 
-@router.get("/{book_id}")
+@router.get("/{book_id}", response_model=BookPublicDTO)
 async def get_book(
     book_id: int,
     user: User = Depends(get_current_user),
