@@ -67,8 +67,8 @@ the current write-alpha publication baseline remains Phase 261.
 - **Recently completed owner real-book trial:** #44 completed one owner-approved real-book CREATE trial
   with redacted backup/read-back/audit/reset/probe evidence and manual Desktop verification. #44 is
   closed and is not ongoing mutation approval.
-- **Read-only reports and transactions:** #52 is closed after the accepted period reports explorer.
-  #53 adds URL-backed previous-period, prior-year, and custom comparisons with exact paired
+- **Read-only account/report/transaction exploration:** #52 is closed after the accepted period reports
+  explorer. #53 adds URL-backed previous-period, prior-year, and custom comparisons with exact paired
   transaction drilldowns. #54 is closed as completed at exact head
   `0d9381544118a64795827b24d787d1a8e7d998c0` after adding the bounded, URL-backed read-only
   transaction explorer with paired dates, account/type/direction/exact-amount/text filters, cursor
@@ -77,7 +77,16 @@ the current write-alpha publication baseline remains Phase 261.
   [29197662815](https://github.com/valentusys/gnucash-web-companion/actions/runs/29197662815)
   succeeded for Backend, Frontend, Docker Compose, and Foundation; final closeout comment
   [#issuecomment-4951703096](https://github.com/valentusys/gnucash-web-companion/issues/54#issuecomment-4951703096)
-  is recorded. Reporting remains base-currency-only with no FX conversion.
+  is recorded. #55 is closed as completed at exact head
+  `3dfd60604d78e329284979442b959aea4b6763a2` after adding the hierarchical account explorer,
+  bounded account overview/activity, native commodity exact amounts, deterministic repair/partial
+  semantics, SSR account navigation, transaction/report drilldowns, and EN/RU desktop/mobile browser
+  coverage. Exact-head GitHub Actions run
+  [29297230998](https://github.com/valentusys/gnucash-web-companion/actions/runs/29297230998)
+  succeeded for Backend tests, Frontend checks, Foundation checks, and Docker Compose validation;
+  final acceptance comment
+  [#issuecomment-4964411655](https://github.com/valentusys/gnucash-web-companion/issues/55#issuecomment-4964411655)
+  is recorded. Reporting and account views perform no FX conversion.
 - **Controlled-write trackers:** #45–#50 remain separate experimental post-MVP evidence/workflow
   boundaries. They do not authorize owner/private DELETE or batch, release publication, or public
   write beta. `GNUCASH_WRITES_ENABLED=false` remains the default.
@@ -92,6 +101,12 @@ the current write-alpha publication baseline remains Phase 261.
 
 ## Current status map
 
+- #55: closed as completed for the advanced read-only account explorer at exact head
+  `3dfd60604d78e329284979442b959aea4b6763a2`; exact-head GitHub Actions run
+  [29297230998](https://github.com/valentusys/gnucash-web-companion/actions/runs/29297230998)
+  succeeded, and final acceptance comment
+  [#issuecomment-4964411655](https://github.com/valentusys/gnucash-web-companion/issues/55#issuecomment-4964411655)
+  is recorded.
 - #54: closed as completed for the bounded read-only transaction explorer at exact head
   `0d9381544118a64795827b24d787d1a8e7d998c0`; exact-head GitHub Actions run
   [29197662815](https://github.com/valentusys/gnucash-web-companion/actions/runs/29197662815)

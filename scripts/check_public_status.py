@@ -30,6 +30,14 @@ ISSUE_54_COMMENT_URL = (
     "https://github.com/valentusys/gnucash-web-companion/issues/54#issuecomment-4951703096"
 )
 ISSUE_54_CLOSED_AT = "2026-07-12T15:21:40Z"
+ISSUE_55_ACCEPTED_HEAD = "3dfd60604d78e329284979442b959aea4b6763a2"
+ISSUE_55_ACCEPTED_TREE = "db72bc9ab91db4d27e2a8b2719c58ba9fdda5751"
+ISSUE_55_CI_RUN = "29297230998"
+ISSUE_55_CI_URL = f"https://github.com/valentusys/gnucash-web-companion/actions/runs/{ISSUE_55_CI_RUN}"
+ISSUE_55_COMMENT_URL = (
+    "https://github.com/valentusys/gnucash-web-companion/issues/55#issuecomment-4964411655"
+)
+ISSUE_55_CLOSED_AT = "2026-07-14T01:08:15Z"
 
 
 def _completed_phase_number() -> int:
@@ -126,6 +134,17 @@ ISSUE_54_CURRENT_STATUS_FILES = {
     Path("README.ru.md"),
     Path("PROJECT_STATUS.md"),
 }
+ISSUE_55_CLOSEOUT_STATUS_FILES = [
+    Path("README.md"),
+    Path("README.ru.md"),
+    Path("PROJECT_STATUS.md"),
+    Path("docs/handoff/hermes-kanban-product-run-4.md"),
+]
+ISSUE_55_CURRENT_STATUS_FILES = {
+    Path("README.md"),
+    Path("README.ru.md"),
+    Path("PROJECT_STATUS.md"),
+}
 ISSUE_54_REQUIRED_FRAGMENTS = {
     Path("README.md"): [
         "#54 is closed as completed",
@@ -157,6 +176,44 @@ ISSUE_54_REQUIRED_FRAGMENTS = {
         ISSUE_54_CLOSED_AT,
         "completed success for Backend, Frontend, Docker Compose, and Foundation",
         "historical pre-closeout sections are preserved as author-time narrative",
+    ],
+}
+ISSUE_55_REQUIRED_FRAGMENTS = {
+    Path("README.md"): [
+        "#55 is closed as completed",
+        ISSUE_55_ACCEPTED_HEAD,
+        ISSUE_55_CI_URL,
+        ISSUE_55_COMMENT_URL,
+        "Backend tests, Frontend checks, Foundation checks, and Docker Compose validation",
+    ],
+    Path("README.ru.md"): [
+        "#55 закрыта как completed",
+        ISSUE_55_ACCEPTED_HEAD,
+        ISSUE_55_CI_URL,
+        ISSUE_55_COMMENT_URL,
+        "Backend tests, Frontend checks, Foundation checks, and Docker Compose validation",
+    ],
+    Path("PROJECT_STATUS.md"): [
+        "#55 has accepted head",
+        ISSUE_55_ACCEPTED_HEAD,
+        ISSUE_55_CI_URL,
+        ISSUE_55_COMMENT_URL,
+        ISSUE_55_CLOSED_AT,
+        "closed as completed",
+    ],
+    Path("docs/handoff/hermes-kanban-product-run-4.md"): [
+        "Hermes Kanban product-development run 4",
+        ISSUE_55_ACCEPTED_HEAD,
+        ISSUE_55_ACCEPTED_TREE,
+        ISSUE_55_CI_URL,
+        ISSUE_55_COMMENT_URL,
+        ISSUE_55_CLOSED_AT,
+        "gnucash-web-companion-product-dev",
+        "8d9e0aec155bbe6248b09512077b0b3197c4386d4c8c7a890dc3a56e6055e766",
+        "GET /books/{book_id}/accounts/explorer",
+        "GET /books/{book_id}/accounts/{account_id}/overview",
+        "GET /books/{book_id}/accounts/{account_id}/activity",
+        "Backend tests, Frontend checks, Foundation checks, and Docker Compose validation",
     ],
 }
 
@@ -431,6 +488,42 @@ def check_issue54_closeout_status_claims(path: Path, text: str) -> None:
             )
 
 
+ISSUE_55_PENDING_WORDS = ISSUE_54_PENDING_WORDS
+ISSUE_55_CLOSEOUT_NOUNS = ISSUE_54_CLOSEOUT_NOUNS
+ISSUE_55_PENDING_CLOSEOUT_PATTERNS = [
+    re.compile(
+        rf"#55\b(?:(?!#\d+\b).){{0,260}}\b(?:{ISSUE_55_PENDING_WORDS})\b"
+        rf"(?:(?!#\d+\b).){{0,260}}\b(?:{ISSUE_55_CLOSEOUT_NOUNS})\b",
+        re.I,
+    ),
+    re.compile(
+        rf"#55\b(?:(?!#\d+\b).){{0,260}}\b(?:{ISSUE_55_CLOSEOUT_NOUNS})\b"
+        rf"(?:(?!#\d+\b).){{0,260}}\b(?:{ISSUE_55_PENDING_WORDS})\b",
+        re.I,
+    ),
+]
+
+
+def check_issue55_closeout_status_claims(path: Path, text: str) -> None:
+    """Guard current #55 closeout docs against reverting to pending-closeout wording."""
+
+    normalized_text = normalized_public_text(text)
+    required = ISSUE_55_REQUIRED_FRAGMENTS.get(path, [])
+    missing = [needle for needle in required if needle not in normalized_text]
+    if missing:
+        raise AssertionError(f"{path}: missing #55 closeout status text: {missing}")
+
+    if path not in ISSUE_55_CURRENT_STATUS_FILES:
+        return
+
+    for pattern in ISSUE_55_PENDING_CLOSEOUT_PATTERNS:
+        if pattern.search(normalized_text):
+            raise AssertionError(
+                f"{path}: forbidden #55 pending-closeout claim after factual closeout matched "
+                f"{pattern.pattern!r}"
+            )
+
+
 def check_default_write_safety() -> list[str]:
     """Run the dedicated committed-default write-safety guard for public status."""
 
@@ -444,7 +537,11 @@ def main() -> int:
 
     try:
         for path in dict.fromkeys(
-            PUBLIC_STATUS_FILES + CONFIG_FILES + COMPATIBILITY_STATUS_FILES + ISSUE_54_CLOSEOUT_STATUS_FILES
+            PUBLIC_STATUS_FILES
+            + CONFIG_FILES
+            + COMPATIBILITY_STATUS_FILES
+            + ISSUE_54_CLOSEOUT_STATUS_FILES
+            + ISSUE_55_CLOSEOUT_STATUS_FILES
         ):
             texts[path] = read_public_text(path)
     except AssertionError as exc:
@@ -663,6 +760,13 @@ def main() -> int:
         if path in texts:
             try:
                 check_issue54_closeout_status_claims(path, texts[path])
+            except AssertionError as exc:
+                errors.append(str(exc))
+
+    for path in ISSUE_55_CLOSEOUT_STATUS_FILES:
+        if path in texts:
+            try:
+                check_issue55_closeout_status_claims(path, texts[path])
             except AssertionError as exc:
                 errors.append(str(exc))
 

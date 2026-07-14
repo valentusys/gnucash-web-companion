@@ -48,16 +48,25 @@ release docs и handoff-файлах, чтобы этот файл не стан
   maintenance evidence only, не approval для real-book mutation.
 - #44 Owner real-book trial safety model закрыта после одного успешного owner-approved real-book
   CREATE trial и manual Desktop verification; это не ongoing mutation approval.
-- Read-only reports/transactions: #52 закрыта после принятого period reports explorer. #53 добавляет
-  URL-backed comparisons и точные paired transaction drilldowns. #54 закрыта как completed на exact
-  head `0d9381544118a64795827b24d787d1a8e7d998c0` после bounded, URL-backed read-only
+- Read-only accounts/reports/transactions: #52 закрыта после принятого period reports explorer. #53
+  добавляет URL-backed comparisons и точные paired transaction drilldowns. #54 закрыта как completed
+  на exact head `0d9381544118a64795827b24d787d1a8e7d998c0` после bounded, URL-backed read-only
   transaction explorer с paired dates, account/type/direction/exact-amount/text filters, cursor
   pagination, safe detail back links, report/dashboard drilldowns и EN/RU mobile/browser coverage.
   Exact-head GitHub Actions CI run
   [29197662815](https://github.com/valentusys/gnucash-web-companion/actions/runs/29197662815)
   succeeded for Backend, Frontend, Docker Compose, and Foundation; final closeout comment
   [#issuecomment-4951703096](https://github.com/valentusys/gnucash-web-companion/issues/54#issuecomment-4951703096)
-  recorded. Reporting остаётся base-currency-only, без FX conversion.
+  recorded. #55 закрыта как completed на exact head
+  `3dfd60604d78e329284979442b959aea4b6763a2` после hierarchical account explorer, bounded overview
+  and activity, native commodity exact amounts, deterministic repair/partial semantics, SSR account
+  navigation, transaction/report drilldowns и EN/RU desktop/mobile browser coverage. Exact-head
+  GitHub Actions run
+  [29297230998](https://github.com/valentusys/gnucash-web-companion/actions/runs/29297230998)
+  succeeded for Backend tests, Frontend checks, Foundation checks, and Docker Compose validation;
+  final acceptance comment
+  [#issuecomment-4964411655](https://github.com/valentusys/gnucash-web-companion/issues/55#issuecomment-4964411655)
+  recorded. Reporting/account views остаются без FX conversion.
 - Controlled-write trackers #45–#50 остаются отдельными experimental post-MVP boundaries. Они не
   разрешают owner/private DELETE или batch, release publication или public write beta.
   `GNUCASH_WRITES_ENABLED=false` остаётся дефолтом.
@@ -66,6 +75,12 @@ release docs и handoff-файлах, чтобы этот файл не стан
 
 ## Карта текущих статусов
 
+- #55: закрыта как completed для advanced read-only account explorer на exact head
+  `3dfd60604d78e329284979442b959aea4b6763a2`; exact-head GitHub Actions run
+  [29297230998](https://github.com/valentusys/gnucash-web-companion/actions/runs/29297230998)
+  succeeded, final acceptance comment
+  [#issuecomment-4964411655](https://github.com/valentusys/gnucash-web-companion/issues/55#issuecomment-4964411655)
+  recorded.
 - #54: закрыта как completed для bounded read-only transaction explorer на exact head
   `0d9381544118a64795827b24d787d1a8e7d998c0`; exact-head GitHub Actions run
   [29197662815](https://github.com/valentusys/gnucash-web-companion/actions/runs/29197662815)
