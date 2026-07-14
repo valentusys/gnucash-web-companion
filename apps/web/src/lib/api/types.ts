@@ -20,7 +20,7 @@ export type CurrentUser = {
 	id: number;
 	username: string;
 	display_name: string;
-	is_admin?: boolean;
+	is_admin: boolean;
 };
 
 export type BookProblemCode =
@@ -49,11 +49,35 @@ export type BookProblemDTO = {
 	safe_message?: string;
 };
 
+export type BookReadinessCode =
+	| 'ready'
+	| 'source_ready'
+	| 'open_ready'
+	| 'accounts_ready'
+	| 'transactions_ready'
+	| 'reports_ready'
+	| 'registration_available'
+	| 'already_registered'
+	| string;
+
+export type BookPreflightSafeCode = BookProblemCode | BookReadinessCode;
+
+export type BookSectionStatusCode =
+	| 'source_ready'
+	| 'open_ready'
+	| 'accounts_ready'
+	| 'transactions_ready'
+	| 'reports_ready'
+	| 'registration_available'
+	| 'already_registered'
+	| 'duplicate_canonical_path'
+	| string;
+
 export type BookSectionStatus = {
 	section: 'source' | 'open' | 'accounts' | 'transactions' | 'reports' | 'registration' | string;
-	status: 'ready' | 'ok' | 'warning' | 'rejected' | 'unavailable' | 'unknown' | string;
-	safe_code?: BookProblemCode | null;
-	safe_message?: string | null;
+	status: 'ready' | 'available' | 'ok' | 'warning' | 'rejected' | 'unavailable' | 'unknown' | string;
+	code?: BookSectionStatusCode | null;
+	message?: string | null;
 };
 
 export type BookCapabilityFlags = {
@@ -67,15 +91,15 @@ export type BookCapabilityFlags = {
 };
 
 export type BookHealth = {
-	status: 'ready' | 'available' | 'warning' | 'rejected' | 'unavailable' | 'unknown' | string;
+	status: string;
+	safe_code: string;
 	checked_at: string | null;
-	safe_code?: BookProblemCode | null;
-	registration_status?: BookSectionStatus;
-	source_status?: BookSectionStatus;
-	open_status?: BookSectionStatus;
-	accounts?: BookSectionStatus;
-	transactions?: BookSectionStatus;
-	reports?: BookSectionStatus;
+	last_successful_at: string | null;
+	source: string;
+	open: string;
+	accounts: string;
+	transactions: string;
+	reports: string;
 };
 
 export type BookPreflightRequest = {
@@ -98,8 +122,7 @@ export type BookPreflightResponse = {
 	reports: BookSectionStatus;
 	capabilities: BookCapabilityFlags;
 	checked_at: string;
-	safe_code: BookProblemCode;
-	safe_message?: string;
+	safe_code: BookPreflightSafeCode;
 };
 
 export type Book = {

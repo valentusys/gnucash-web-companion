@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { DEFAULT_LOCALE, t, type Locale, type MessageKey } from '$lib/i18n';
-	import type { BookPreflightResponse, BookProblemCode, BookSectionStatus } from '$lib/api/types';
+	import type { BookPreflightResponse, BookPreflightSafeCode, BookProblemCode, BookSectionStatus } from '$lib/api/types';
 
 	type SafeFormState = {
 		name: string;
@@ -25,10 +25,79 @@
 		form?.preflightRequest ?? { name: '', mountedPath: '', baseCurrency: '', makeDefault: false }
 	);
 	let preflight = $derived(form?.preflight ?? null);
-	let safeCode = $derived(preflight?.safe_code ?? form?.preflightErrorCode ?? form?.registrationErrorCode ?? null);
+	let safeCode = $derived(form?.preflightErrorCode ?? form?.registrationErrorCode ?? null);
+
+	const problemCodes = new Set<string>([
+		'admin_required',
+		'preflight_required',
+		'preflight_rejected',
+		'preflight_token_invalid',
+		'invalid_path',
+		'unsupported_source',
+		'outside_allowed_roots',
+		'symlink_forbidden',
+		'missing_file',
+		'not_regular_file',
+		'permission_denied',
+		'unsupported_format',
+		'invalid_gnucash_schema',
+		'source_changed',
+		'open_failed',
+		'duplicate_canonical_path',
+		'api_unavailable',
+		'book_registry_failed',
+		'unknown_book_problem'
+	]);
+	const duplicateRegistrationCodes = new Set(['already_registered', 'duplicate_canonical_path']);
+	const statusLabelKeys: Record<string, MessageKey> = {
+		ready: 'books.status.ready',
+		available: 'books.status.available',
+		ok: 'books.status.ok',
+		warning: 'books.status.warning',
+		rejected: 'books.status.rejected',
+		unavailable: 'books.status.unavailable',
+		unknown: 'books.status.unknown',
+		source_ready: 'books.statusCode.source_ready',
+		open_ready: 'books.statusCode.open_ready',
+		accounts_ready: 'books.statusCode.accounts_ready',
+		transactions_ready: 'books.statusCode.transactions_ready',
+		reports_ready: 'books.statusCode.reports_ready',
+		registration_available: 'books.statusCode.registration_available',
+		already_registered: 'books.statusCode.already_registered',
+		duplicate_canonical_path: 'books.statusCode.already_registered'
+	};
+	type ChecklistSection = 'source' | 'open' | 'accounts' | 'transactions' | 'reports';
+	type SectionMessageStatus = 'ready' | 'rejected' | 'unavailable';
+	const sectionStatusMessageKeys: Record<ChecklistSection, Record<SectionMessageStatus, MessageKey>> = {
+		source: {
+			ready: 'books.sectionStatus.source.ready',
+			rejected: 'books.sectionStatus.source.rejected',
+			unavailable: 'books.sectionStatus.source.unavailable'
+		},
+		open: {
+			ready: 'books.sectionStatus.open.ready',
+			rejected: 'books.sectionStatus.open.rejected',
+			unavailable: 'books.sectionStatus.open.unavailable'
+		},
+		accounts: {
+			ready: 'books.sectionStatus.accounts.ready',
+			rejected: 'books.sectionStatus.accounts.rejected',
+			unavailable: 'books.sectionStatus.accounts.unavailable'
+		},
+		transactions: {
+			ready: 'books.sectionStatus.transactions.ready',
+			rejected: 'books.sectionStatus.transactions.rejected',
+			unavailable: 'books.sectionStatus.transactions.unavailable'
+		},
+		reports: {
+			ready: 'books.sectionStatus.reports.ready',
+			rejected: 'books.sectionStatus.reports.rejected',
+			unavailable: 'books.sectionStatus.reports.unavailable'
+		}
+	};
 
 	const checklistSections: Array<{
-		section: 'source' | 'open' | 'accounts' | 'transactions' | 'reports';
+		section: ChecklistSection;
 		field: 'source_status' | 'open_status' | 'accounts' | 'transactions' | 'reports';
 	}> = [
 		{ section: 'source', field: 'source_status' },
@@ -46,10 +115,46 @@
 		return bookProblemMessage(locale, safe_code);
 	}
 
-	function statusLabel(status: string | null | undefined): string {
-		if (!status) return t(locale, 'books.statusUnknown');
-		const key = `books.status.${status}` as MessageKey;
-		return t(locale, key) || status.replaceAll('_', ' ');
+	function statusLabel(status: string | null | undefined, code?: string | null): string {
+		return t(locale, statusLabelKeys[code ?? ''] ?? statusLabelKeys[status ?? ''] ?? 'books.status.unknown');
+	}
+
+	function normalizedSectionStatus(status: string | null | undefined): SectionMessageStatus {
+		if (status === 'ready' || status === 'available' || status === 'ok') return 'ready';
+		if (status === 'rejected') return 'rejected';
+		return 'unavailable';
+	}
+
+	function sectionStatusMessage(section: ChecklistSection, status: string | null | undefined): string {
+		return t(locale, sectionStatusMessageKeys[section][normalizedSectionStatus(status)]);
+	}
+
+	function problemCodeFromSafeCode(safe_code: BookPreflightSafeCode | null | undefined): BookProblemCode {
+		return typeof safe_code === 'string' && problemCodes.has(safe_code)
+			? (safe_code as BookProblemCode)
+			: 'preflight_rejected';
+	}
+
+	function hasDuplicateRegistrationTarget(preflight: BookPreflightResponse): boolean {
+		return [preflight.safe_code, preflight.registration_status.status, preflight.registration_status.code].some(
+			(value) => typeof value === 'string' && duplicateRegistrationCodes.has(value)
+		);
+	}
+
+	function registrationStatusMessage(preflight: BookPreflightResponse): string {
+		if (hasDuplicateRegistrationTarget(preflight)) return t(locale, 'books.registrationStatus.alreadyRegistered');
+		if (preflight.registration_status.status === 'available') return t(locale, 'books.registrationStatus.available');
+		return t(locale, 'books.registrationStatus.unavailable');
+	}
+
+	function canConfirmRegistration(preflight: BookPreflightResponse): boolean {
+		return (
+			preflight.status === 'ready' &&
+			preflight.capabilities.can_register_metadata === true &&
+			preflight.registration_status.status === 'available' &&
+			Boolean(preflight.preflight_token) &&
+			!hasDuplicateRegistrationTarget(preflight)
+		);
 	}
 
 	function sectionLabel(section: string): string {
@@ -137,8 +242,10 @@
 				<p class="mt-2 text-sm" style="color: var(--app-muted);">
 					{preflight.status === 'ready' ? t(locale, 'books.preflightReady') : t(locale, 'books.preflightRejected')}
 				</p>
-				<p class="mt-2 text-sm" style="color: var(--app-muted);">{fixedSafeMessage(locale, preflight.registration_status.safe_code ?? preflight.safe_code)}</p>
-				<p class="mt-2 text-sm" style="color: var(--app-muted);">{fixedSafeMessage(locale, preflight.safe_code)}</p>
+				{#if preflight.status !== 'ready'}
+					<p class="mt-2 text-sm" style="color: var(--app-muted);">{fixedSafeMessage(locale, problemCodeFromSafeCode(preflight.safe_code))}</p>
+				{/if}
+				<p class="mt-2 text-sm" style="color: var(--app-muted);">{registrationStatusMessage(preflight)}</p>
 				<dl class="mt-3 grid gap-3 text-sm md:grid-cols-2">
 					<div class="min-w-0 rounded-xl p-3" style="background: var(--app-bg);">
 						<dt class="font-medium" style="color: var(--app-muted);">{t(locale, 'books.preflightFormat')}</dt>
@@ -156,9 +263,9 @@
 						<li class="min-w-0 rounded-xl border p-3 text-sm" style="border-color: var(--app-border); background-color: var(--app-bg);">
 							<div class="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
 								<span class="font-semibold" style="color: var(--app-text);">{sectionLabel(itemDefinition.section)}</span>
-								<span class="w-fit rounded-full px-2 py-1 text-xs font-semibold" style="background-color: var(--app-hover-bg); color: var(--app-muted);">{statusLabel(item.status)}</span>
+								<span class="w-fit rounded-full px-2 py-1 text-xs font-semibold" style="background-color: var(--app-hover-bg); color: var(--app-muted);">{statusLabel(item.status, item.code)}</span>
 							</div>
-							<p class="mt-2 break-words" style="color: var(--app-muted);">{fixedSafeMessage(locale, item.safe_code ?? preflight.safe_code)}</p>
+							<p class="mt-2 break-words" style="color: var(--app-muted);">{sectionStatusMessage(itemDefinition.section, item.status)}</p>
 						</li>
 					{/each}
 				</ul>
@@ -167,7 +274,7 @@
 			</section>
 		{/if}
 
-		{#if preflight?.status === 'ready'}
+		{#if preflight && canConfirmRegistration(preflight)}
 			<section class="mt-4 rounded-2xl border p-4" style="border-color: var(--app-border); background-color: var(--app-card-bg);">
 				<h2 class="text-lg font-semibold" style="color: var(--app-text);">{t(locale, 'books.newStep4Title')}</h2>
 				<p class="mt-2 text-sm" style="color: var(--app-muted);">{t(locale, 'books.confirmRegisterHelp')}</p>

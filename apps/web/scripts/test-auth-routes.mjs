@@ -164,9 +164,20 @@ const booksManagementServer = read('src/routes/books/+page.server.ts');
 const booksManagementPage = read('src/routes/books/+page.svelte');
 const booksNewServer = read('src/routes/books/new/+page.server.ts');
 const booksNewPage = read('src/routes/books/new/+page.svelte');
+const apiTypesForBooks = read('src/lib/api/types.ts');
+const apiServerForBooks = read('src/lib/api/server.ts');
+assert.match(apiTypesForBooks, /export type CurrentUser[\s\S]*is_admin:\s*boolean/s, '/auth/me CurrentUser fixture must include is_admin boolean');
+assert.match(apiServerForBooks, /isCurrentUserAdmin\(user: CurrentUser \| null\)[\s\S]*user\?\.is_admin === true/s, 'admin fixture must fail closed unless /auth/me explicitly returns is_admin=true');
+assert.doesNotMatch(apiServerForBooks.slice(apiServerForBooks.indexOf('export function isCurrentUserAdmin'), apiServerForBooks.indexOf('function getSelectedBookCookieState')), /username|display_name|books|management_actions/, 'admin fixture must not infer admin from usernames or book contents');
 assert.doesNotMatch(booksManagementServer, /registerBook\s*:/, 'books list page must not keep the old one-step registration action');
 assert.match(booksNewServer, /preflight:\s*async[\s\S]*\/books\/preflight[\s\S]*confirm:\s*async[\s\S]*preflight_token[\s\S]*\/books/s, '/books/new must split metadata registration into explicit preflight and confirm actions');
-assert.match(booksNewPage, /books\.newStep1Title[\s\S]*method="POST" action="\?\/preflight"[\s\S]*name="mounted_path"[\s\S]*preflight\?\.status === 'ready'[\s\S]*name="preflight_token"/s, '/books/new must render safe admin preflight/confirm forms without upload widgets');
+assert.match(booksNewPage, /books\.newStep1Title[\s\S]*method="POST" action="\?\/preflight"[\s\S]*name="mounted_path"[\s\S]*canConfirmRegistration\(preflight\)[\s\S]*name="preflight_token"/s, '/books/new must render safe admin preflight/confirm forms without upload widgets');
+assert.match(booksNewPage, /canConfirmRegistration\(preflight: BookPreflightResponse\)[\s\S]*preflight\.status === 'ready'[\s\S]*preflight\.capabilities\.can_register_metadata === true[\s\S]*preflight\.registration_status\.status === 'available'[\s\S]*Boolean\(preflight\.preflight_token\)[\s\S]*!hasDuplicateRegistrationTarget\(preflight\)/s, '/books/new confirm fixture must withhold duplicate/unavailable/non-token preflights');
+const adminNoBooksBlockForAuth = booksManagementPage.slice(booksManagementPage.indexOf('{:else if data.isAdmin}'), booksManagementPage.indexOf('{:else if !data.isAdmin}'));
+const normalNoBooksBlockForAuth = booksManagementPage.slice(booksManagementPage.indexOf('{:else if !data.isAdmin}'), booksManagementPage.indexOf('{/if}', booksManagementPage.indexOf('{:else if !data.isAdmin}')));
+assert.match(adminNoBooksBlockForAuth, /books\.firstRunAdminTitle[\s\S]*href="\/books\/new"[\s\S]*books\.addBookAction/s, 'auth route fixture must cover is_admin=true no-books Add book CTA');
+assert.match(normalNoBooksBlockForAuth, /books\.firstRunUserTitle[\s\S]*books\.firstRunUserMessage/s, 'auth route fixture must cover false/missing admin no-books normal-user copy');
+assert.doesNotMatch(normalNoBooksBlockForAuth, /href="\/books\/new"|books\.addBookAction/, 'false/missing admin no-books fixture must not expose Add book');
 assert.doesNotMatch(`${booksManagementPage}\n${booksNewPage}`, /type="file"|<input[^>]+name="(?:amount|account_name|memo|description)"/, 'books registration UI must not upload books or collect private accounting data');
 
 for (const phrase of [

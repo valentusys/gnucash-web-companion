@@ -44,8 +44,14 @@ const newPage = read('src', 'routes', 'books', 'new', '+page.svelte');
 const selectRoute = read('src', 'routes', 'books', '[bookId]', 'select', '+server.ts');
 const i18nMessages = read('src', 'lib', 'i18n', 'messages.ts');
 
-assert.match(apiTypes, /export type CurrentUser[\s\S]*is_admin\?: boolean/s, 'API types must model optional authenticated admin authority and fail closed when absent');
+assert.match(apiTypes, /export type CurrentUser[\s\S]*is_admin:\s*boolean/s, 'API types must model authenticated admin authority from /auth/me.is_admin');
 assert.match(apiTypes, /export type BookProblemCode[\s\S]*invalid_path[\s\S]*outside_allowed_roots[\s\S]*duplicate_canonical_path[\s\S]*unknown_book_problem/s, 'BookProblemCode must use the fixed backend safe-code union with a generic fallback');
+const problemCodeBlock = apiTypes.slice(apiTypes.indexOf('export type BookProblemCode ='), apiTypes.indexOf('export type BookProblemDTO ='));
+assert.doesNotMatch(problemCodeBlock, /'ready'|'source_ready'|'accounts_ready'/, 'BookProblemCode must not include readiness/status codes');
+assert.match(apiTypes, /export type BookReadinessCode[\s\S]*'ready'[\s\S]*'source_ready'[\s\S]*'accounts_ready'[\s\S]*'reports_ready'/s, 'readiness codes must be modeled separately from BookProblemCode');
+const sectionStatusBlock = apiTypes.slice(apiTypes.indexOf('export type BookSectionStatus = {'), apiTypes.indexOf('export type BookCapabilityFlags = {'));
+assert.match(sectionStatusBlock, /code\?: BookSectionStatusCode \| null[\s\S]*message\?: string \| null/s, 'section statuses must model backend code/message fields');
+assert.doesNotMatch(sectionStatusBlock, /safe_code|safe_message/, 'section statuses must not be typed as problem-code/safe_message DTOs');
 assert.match(apiTypes, /export type BookPreflightRequest[\s\S]*base_currency:\s*string[\s\S]*make_default:\s*boolean/s, 'preflight request must require normalized uppercase base_currency');
 assert.match(apiTypes, /export type BookCapabilityFlags[\s\S]*can_register_metadata[\s\S]*can_open_accounts[\s\S]*can_open_transactions[\s\S]*can_open_reports[\s\S]*can_upload:\s*false[\s\S]*can_edit:\s*false[\s\S]*can_delete:\s*false/s, 'capability flags must use exact B1 can_* fields and false mutation flags');
 const preflightResponseBlock = apiTypes.slice(apiTypes.indexOf('export type BookPreflightResponse = {'), apiTypes.indexOf('export type Book = {'));
@@ -58,17 +64,36 @@ for (const requiredPreflightField of [
 	'accounts: BookSectionStatus',
 	'transactions: BookSectionStatus',
 	'reports: BookSectionStatus',
-	'capabilities: BookCapabilityFlags'
+	'capabilities: BookCapabilityFlags',
+	'safe_code: BookPreflightSafeCode'
 ]) {
 	assert.ok(preflightResponseBlock.includes(requiredPreflightField), `preflight response must include ${requiredPreflightField}`);
 }
 assert.doesNotMatch(preflightResponseBlock, /\bstate\b|section_statuses/, 'preflight response must use exact B1 status fields, not legacy state/section_statuses');
+assert.doesNotMatch(preflightResponseBlock, /safe_code: BookProblemCode|safe_message/, 'preflight safe_code may be readiness or problem code and must not pass backend safe_message through');
+const bookHealthBlock = apiTypes.slice(apiTypes.indexOf('export type BookHealth = {'), apiTypes.indexOf('export type BookPreflightRequest = {'));
+for (const requiredHealthField of [
+	'status: string',
+	'safe_code: string',
+	'checked_at: string | null',
+	'last_successful_at: string | null',
+	'source: string',
+	'open: string',
+	'accounts: string',
+	'transactions: string',
+	'reports: string'
+]) {
+	assert.ok(bookHealthBlock.includes(requiredHealthField), `BookHealth must include cached public health field ${requiredHealthField}`);
+}
+assert.doesNotMatch(bookHealthBlock, /uri_or_path|registration_status|source_status|open_status|BookSectionStatus/, 'BookHealth must match the cached public shape without raw paths or nested preflight DTOs');
 assert.match(apiTypes, /export type Book[\s\S]*is_enabled\?: boolean[\s\S]*created_at\?: string[\s\S]*updated_at\?: string[\s\S]*health\?: BookHealth[\s\S]*capabilities\?: BookCapabilityFlags[\s\S]*management_actions/s, 'Book DTO must include enabled/timestamps/health/capabilities/management_actions fields');
 const publicBookBlock = apiTypes.slice(apiTypes.indexOf('export type Book = {'), apiTypes.indexOf('export type Account = {'));
 assert.doesNotMatch(publicBookBlock, /uri_or_path:\s*string/, 'public Book DTO must not expose raw uri_or_path');
 
 assert.match(apiServer, /getCurrentUser\(fetchFn: typeof fetch, token: string\)[\s\S]*apiFetch<CurrentUser>\(fetchFn, '\/auth\/me', token\)/s, 'frontend must derive admin authority from authenticated API user data');
 assert.match(apiServer, /isCurrentUserAdmin\(user: CurrentUser \| null\)[\s\S]*user\?\.is_admin === true/s, 'admin derivation must fail closed unless API explicitly says is_admin=true');
+const adminHelperBlock = apiServer.slice(apiServer.indexOf('export function isCurrentUserAdmin'), apiServer.indexOf('function getSelectedBookCookieState'));
+assert.doesNotMatch(adminHelperBlock, /username|display_name|books|management_actions/, 'admin derivation must not infer authority from username, display name, book contents, or management actions');
 
 assert.match(booksServer, /getCurrentUser\(fetch, token\)[\s\S]*isCurrentUserAdmin\(currentUser\)/s, '/books load must derive admin state from authenticated server data');
 assert.doesNotMatch(booksServer, /registerBook\s*:/, '/books must not keep the old one-step registration action');
@@ -76,6 +101,11 @@ assert.doesNotMatch(booksServer, /\/books\/preflight|method:\s*'POST'[\s\S]*body
 
 assert.match(booksPage, /data\.isAdmin[\s\S]*books\.firstRunAdminTitle[\s\S]*href="\/books\/new"/s, 'admin/no-books state must explain first run and link to Add book');
 assert.match(booksPage, /!data\.isAdmin[\s\S]*books\.firstRunUserTitle[\s\S]*books\.firstRunUserMessage/s, 'normal-user/no-books state must be distinct and ask an administrator to register/assign a book');
+const adminNoBooksBlock = booksPage.slice(booksPage.indexOf('{:else if data.isAdmin}'), booksPage.indexOf('{:else if !data.isAdmin}'));
+const normalNoBooksBlock = booksPage.slice(booksPage.indexOf('{:else if !data.isAdmin}'), booksPage.indexOf('{/if}', booksPage.indexOf('{:else if !data.isAdmin}')));
+assert.match(adminNoBooksBlock, /books\.firstRunAdminTitle[\s\S]*href="\/books\/new"[\s\S]*books\.addBookAction/s, 'is_admin=true empty-state fixture must expose the Add book admin CTA');
+assert.match(normalNoBooksBlock, /books\.firstRunUserTitle[\s\S]*books\.firstRunUserMessage/s, 'is_admin=false or missing empty-state fixture must show normal-user no-books copy');
+assert.doesNotMatch(normalNoBooksBlock, /href="\/books\/new"|books\.addBookAction/, 'normal-user no-books fixture must not expose Add book');
 assert.doesNotMatch(booksPage, /href="\/login"|Sign in again|name="mounted_path"|GITHUB|GNUCASH_DEFAULT_BOOK_PATH/, '/books empty state must not dead-end into login or expose path/environment guidance to normal users');
 assert.match(booksPage, /capabilityLinks\(book\)[\s\S]*\/books\/\$\{book\.id\}\/select\?next=\$\{link\.next\}/s, 'book cards must build open links through the capability allowlist helper');
 assert.match(booksPage, /can_open_accounts[\s\S]*next: '\/accounts'[\s\S]*can_open_transactions[\s\S]*next: '\/transactions'[\s\S]*can_open_reports[\s\S]*next: '\/reports'/s, 'book cards must include Accounts, Transactions, and Reports safe links gated by exact capability names');
@@ -100,10 +130,16 @@ assert.doesNotMatch(newServer, /return .*detail|message:\s*redactedApiError|safe
 assert.doesNotMatch(newServer, /\/accounts|\/transactions|\/splits|\/commodities|piecash|fs\.|glob|readdir|FileSystem/s, '/books/new server actions must stay registry-metadata-only and not inspect accounting data or client files');
 
 assert.match(newPage, /method="POST" action="\?\/preflight"[\s\S]*name="name"[\s\S]*name="mounted_path"[\s\S]*name="base_currency"[\s\S]*name="make_default"/s, '/books/new must render the Step 2 server form fields');
-assert.match(newPage, /preflight\?\.status === 'ready'[\s\S]*method="POST" action="\?\/confirm"[\s\S]*name="mounted_path" value=\{previous\.mountedPath\}[\s\S]*name="preflight_token"/s, '/books/new must render a separate explicit confirm form only after preflight');
+assert.match(newPage, /canConfirmRegistration\(preflight: BookPreflightResponse\)[\s\S]*preflight\.status === 'ready'[\s\S]*preflight\.capabilities\.can_register_metadata === true[\s\S]*preflight\.registration_status\.status === 'available'[\s\S]*Boolean\(preflight\.preflight_token\)[\s\S]*!hasDuplicateRegistrationTarget\(preflight\)/s, '/books/new must gate Confirm registration on ready + capability + available registration + token + non-duplicate target');
+assert.match(newPage, /preflight && canConfirmRegistration\(preflight\)[\s\S]*method="POST" action="\?\/confirm"[\s\S]*name="mounted_path" value=\{previous\.mountedPath\}[\s\S]*name="preflight_token"/s, '/books/new must render a separate explicit confirm form only after a confirmable preflight');
 assert.match(newPage, /books\.newStep1Title[\s\S]*books\.newStep2Title[\s\S]*books\.newStep3Title[\s\S]*books\.newStep4Title/s, '/books/new must present the four explicit onboarding steps');
 assert.match(newPage, /source_status[\s\S]*open_status[\s\S]*accounts[\s\S]*transactions[\s\S]*reports/s, 'preflight checklist must render source/open/Accounts/Transactions/Reports typed status objects');
-assert.match(newPage, /bookProblemMessage\(locale[\s\S]*safe_code[\s\S]*fixedSafeMessage/s, 'preflight result must render fixed safe code/message copy, not arbitrary backend details');
+assert.match(newPage, /safeCode = \$derived\(form\?\.preflightErrorCode \?\? form\?\.registrationErrorCode \?\? null\)/s, 'successful ready preflight safe_code must not be promoted into the problem alert state');
+assert.doesNotMatch(newPage, /safeCode = \$derived\([^\n]*preflight\?\.safe_code/s, 'successful ready safe_code must not render a problem alert');
+assert.match(newPage, /problemCodeFromSafeCode[\s\S]*preflight\.status !== 'ready'[\s\S]*fixedSafeMessage/s, 'rejected preflight results must still render fixed local problem copy');
+assert.match(newPage, /registrationStatusMessage\(preflight\)[\s\S]*sectionStatusMessage\(itemDefinition\.section, item\.status\)/s, 'preflight checklist must render local EN/RU status copy mapped by section/status');
+assert.match(newPage, /duplicateRegistrationCodes[\s\S]*already_registered[\s\S]*duplicate_canonical_path[\s\S]*hasDuplicateRegistrationTarget/s, 'duplicate canonical targets must be detected before rendering Confirm registration');
+assert.doesNotMatch(newPage, /item\.message|registration_status\.message|source_status\.message|safe_message|item\.safe_code/, 'preflight UI must not render arbitrary backend message/safe_message or treat section codes as problem codes');
 assert.match(newPage, /checked_at[\s\S]*books\.preflightTokenOpaque[\s\S]*preflight_token/s, 'preflight UI must show checked time and describe token as opaque without placing it in URL');
 assert.doesNotMatch(newPage, /type="file"|webkitdirectory|showOpenFilePicker|FileSystem|DataTransfer|localStorage|sessionStorage|fetch\(/i, '/books/new must not expose upload/client-filesystem/browser-persistence UI');
 assert.doesNotMatch(newPage, /overflow-x-auto|min-w-full/, '/books/new must not introduce fixed mobile horizontal overflow hazards');
@@ -140,7 +176,18 @@ for (const key of [
 	'books.problem.unknown_book_problem',
 	'books.removeMetadataConfirm',
 	'books.reportsLink',
-	'books.statusDetailsTitle'
+	'books.statusDetailsTitle',
+	'books.statusCode.source_ready',
+	'books.statusCode.accounts_ready',
+	'books.statusCode.registration_available',
+	'books.statusCode.already_registered',
+	'books.registrationStatus.available',
+	'books.registrationStatus.alreadyRegistered',
+	'books.registrationStatus.unavailable',
+	'books.sectionStatus.source.ready',
+	'books.sectionStatus.accounts.ready',
+	'books.sectionStatus.transactions.ready',
+	'books.sectionStatus.reports.ready'
 ]) {
 	assert.ok(i18nMessages.includes(`'${key}'`), `books onboarding i18n catalog must include ${key}`);
 }

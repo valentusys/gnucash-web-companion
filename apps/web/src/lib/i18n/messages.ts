@@ -447,6 +447,31 @@ export type MessageKey =
 	| 'books.section.accounts'
 	| 'books.section.transactions'
 	| 'books.section.reports'
+	| 'books.statusCode.source_ready'
+	| 'books.statusCode.open_ready'
+	| 'books.statusCode.accounts_ready'
+	| 'books.statusCode.transactions_ready'
+	| 'books.statusCode.reports_ready'
+	| 'books.statusCode.registration_available'
+	| 'books.statusCode.already_registered'
+	| 'books.registrationStatus.available'
+	| 'books.registrationStatus.alreadyRegistered'
+	| 'books.registrationStatus.unavailable'
+	| 'books.sectionStatus.source.ready'
+	| 'books.sectionStatus.source.rejected'
+	| 'books.sectionStatus.source.unavailable'
+	| 'books.sectionStatus.open.ready'
+	| 'books.sectionStatus.open.rejected'
+	| 'books.sectionStatus.open.unavailable'
+	| 'books.sectionStatus.accounts.ready'
+	| 'books.sectionStatus.accounts.rejected'
+	| 'books.sectionStatus.accounts.unavailable'
+	| 'books.sectionStatus.transactions.ready'
+	| 'books.sectionStatus.transactions.rejected'
+	| 'books.sectionStatus.transactions.unavailable'
+	| 'books.sectionStatus.reports.ready'
+	| 'books.sectionStatus.reports.rejected'
+	| 'books.sectionStatus.reports.unavailable'
 	| 'audit.title'
 	| 'audit.bannerTitle'
 	| 'audit.bannerMessage'
@@ -1171,6 +1196,31 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'books.section.accounts': 'Accounts',
 		'books.section.transactions': 'Transactions',
 		'books.section.reports': 'Reports',
+		'books.statusCode.source_ready': 'Source ready',
+		'books.statusCode.open_ready': 'Read-only open ready',
+		'books.statusCode.accounts_ready': 'Accounts ready',
+		'books.statusCode.transactions_ready': 'Transactions ready',
+		'books.statusCode.reports_ready': 'Reports ready',
+		'books.statusCode.registration_available': 'Registration available',
+		'books.statusCode.already_registered': 'Already registered',
+		'books.registrationStatus.available': 'Metadata registration is available for this preflight token.',
+		'books.registrationStatus.alreadyRegistered': 'This canonical source is already registered, so confirmation is disabled.',
+		'books.registrationStatus.unavailable': 'Metadata registration is not available for this preflight result.',
+		'books.sectionStatus.source.ready': 'The server-side source passed preflight without rendering the private path back to the browser.',
+		'books.sectionStatus.source.rejected': 'The server-side source was rejected. Fix host-side storage and rerun preflight.',
+		'books.sectionStatus.source.unavailable': 'The server-side source is not ready. Verify host-side storage and rerun preflight.',
+		'books.sectionStatus.open.ready': 'The API can open this source in read-only mode for validation.',
+		'books.sectionStatus.open.rejected': 'The API rejected the read-only open check. No registration was performed.',
+		'books.sectionStatus.open.unavailable': 'The read-only open check is not available for this preflight result.',
+		'books.sectionStatus.accounts.ready': 'The accounts adapter is ready for read-only views.',
+		'books.sectionStatus.accounts.rejected': 'The accounts readiness check was rejected. No account data is rendered here.',
+		'books.sectionStatus.accounts.unavailable': 'The accounts readiness check is not available for this preflight result.',
+		'books.sectionStatus.transactions.ready': 'The transactions adapter is ready for read-only views.',
+		'books.sectionStatus.transactions.rejected': 'The transactions readiness check was rejected. No transaction data is rendered here.',
+		'books.sectionStatus.transactions.unavailable': 'The transactions readiness check is not available for this preflight result.',
+		'books.sectionStatus.reports.ready': 'The reports adapter is ready for read-only views.',
+		'books.sectionStatus.reports.rejected': 'The reports readiness check was rejected. No report data is rendered here.',
+		'books.sectionStatus.reports.unavailable': 'The reports readiness check is not available for this preflight result.',
 		'audit.title': 'Write-alpha audit evidence',
 		'audit.bannerTitle': 'Write-alpha audit evidence for disposable runs',
 		'audit.bannerMessage':
@@ -1926,6 +1976,31 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'books.section.accounts': 'Счета',
 		'books.section.transactions': 'Транзакции',
 		'books.section.reports': 'Отчёты',
+		'books.statusCode.source_ready': 'Источник готов',
+		'books.statusCode.open_ready': 'Read-only open готов',
+		'books.statusCode.accounts_ready': 'Счета готовы',
+		'books.statusCode.transactions_ready': 'Транзакции готовы',
+		'books.statusCode.reports_ready': 'Отчёты готовы',
+		'books.statusCode.registration_available': 'Регистрация доступна',
+		'books.statusCode.already_registered': 'Уже зарегистрировано',
+		'books.registrationStatus.available': 'Регистрация metadata доступна для этого preflight token.',
+		'books.registrationStatus.alreadyRegistered': 'Этот canonical source уже зарегистрирован, поэтому подтверждение отключено.',
+		'books.registrationStatus.unavailable': 'Регистрация metadata недоступна для этого результата preflight.',
+		'books.sectionStatus.source.ready': 'Server-side источник прошёл preflight без возврата private path в browser.',
+		'books.sectionStatus.source.rejected': 'Server-side источник отклонён. Исправьте host-side storage и запустите preflight снова.',
+		'books.sectionStatus.source.unavailable': 'Server-side источник не готов. Проверьте host-side storage и запустите preflight снова.',
+		'books.sectionStatus.open.ready': 'API может открыть этот источник в read-only режиме для проверки.',
+		'books.sectionStatus.open.rejected': 'API отклонил read-only open check. Регистрация не выполнялась.',
+		'books.sectionStatus.open.unavailable': 'Read-only open check недоступен для этого результата preflight.',
+		'books.sectionStatus.accounts.ready': 'Accounts adapter готов для read-only views.',
+		'books.sectionStatus.accounts.rejected': 'Accounts readiness check отклонён. Данные счетов здесь не показываются.',
+		'books.sectionStatus.accounts.unavailable': 'Accounts readiness check недоступен для этого результата preflight.',
+		'books.sectionStatus.transactions.ready': 'Transactions adapter готов для read-only views.',
+		'books.sectionStatus.transactions.rejected': 'Transactions readiness check отклонён. Данные транзакций здесь не показываются.',
+		'books.sectionStatus.transactions.unavailable': 'Transactions readiness check недоступен для этого результата preflight.',
+		'books.sectionStatus.reports.ready': 'Reports adapter готов для read-only views.',
+		'books.sectionStatus.reports.rejected': 'Reports readiness check отклонён. Данные отчётов здесь не показываются.',
+		'books.sectionStatus.reports.unavailable': 'Reports readiness check недоступен для этого результата preflight.',
 		'audit.title': 'Write-alpha audit evidence',
 		'audit.bannerTitle': 'Write-alpha audit evidence для disposable запусков',
 		'audit.bannerMessage':
