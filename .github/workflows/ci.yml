@@ -105,10 +105,12 @@ jobs:
           npm run test:transactions-explorer
           npm run test:reports
           npm run test:money-strings
+          npm run test:books-onboarding
           npm run test:accounts-explorer
           npm run test:transaction-entry-create-disposable-browser
           npm run test:accounts-explorer-browser
           npm run test:transactions-explorer-browser
+          npm run test:books-onboarding-browser
           node scripts/test-reports-browser.mjs
           node scripts/test-dashboard-browser.mjs
 

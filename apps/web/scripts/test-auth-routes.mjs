@@ -354,7 +354,7 @@ assert.doesNotMatch(
 );
 
 const booksPageServer = read('src/routes/books/+page.server.ts');
-assert.match(booksPageServer, /getActiveBookContext\(fetch, cookies, token\)/, '/books page must resolve accessible book metadata and the current/default book through the authenticated API context');
+assert.match(booksPageServer, /parent\(\)[\s\S]*layoutData\.bookContextRecovery\?\.reason[\s\S]*books: layoutData\.books[\s\S]*activeBook: layoutData\.activeBook/s, '/books page must reuse the authenticated layout book context and preserve selected-book recovery notices');
 assert.doesNotMatch(booksPageServer, /upload/i, '/books page server must not add GnuCash file upload handling');
 assert.doesNotMatch(booksPageServer, /transactions|accounts|splits|commodities/i, '/books page server actions must stay app-metadata-only and avoid accounting data routes');
 assert.match(booksPageServer, /removeBook[\s\S]*confirm_metadata_only[\s\S]*`\/books\/\$\{bookId\}`[\s\S]*'DELETE'/s, '/books registry remove action must require metadata-only confirmation and call only the registry DELETE endpoint');

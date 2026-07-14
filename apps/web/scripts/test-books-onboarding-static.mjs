@@ -29,6 +29,10 @@ function walk(dir, files = []) {
 
 const packageJson = JSON.parse(read('package.json'));
 assert.equal(packageJson.scripts?.['test:books-onboarding'], 'node scripts/test-books-onboarding-static.mjs', 'package.json must expose npm run test:books-onboarding');
+assert.equal(packageJson.scripts?.['test:books-onboarding-browser'], 'npm run build && node scripts/test-books-onboarding-browser.mjs', 'package.json must expose a build-backed books onboarding browser smoke');
+const ciWorkflow = readFileSync(join(repoRoot, '.github', 'workflows', 'ci.yml'), 'utf8');
+assert.match(ciWorkflow, /npm run test:books-onboarding\s+npm run test:accounts-explorer/s, 'Frontend CI must run books onboarding static before existing account explorer static without weakening it');
+assert.match(ciWorkflow, /npm run test:transactions-explorer-browser\s+npm run test:books-onboarding-browser\s+node scripts\/test-reports-browser\.mjs\s+node scripts\/test-dashboard-browser\.mjs/s, 'Frontend CI must run the books onboarding browser gate alongside existing browser gates');
 
 assert.ok(existsSync(pathOf('src', 'routes', 'books', '+page.server.ts')), '/books server route must exist');
 assert.ok(existsSync(pathOf('src', 'routes', 'books', '+page.svelte')), '/books page route must exist');
@@ -36,6 +40,7 @@ assert.ok(existsSync(pathOf('src', 'routes', 'books', 'new', '+page.server.ts'))
 assert.ok(existsSync(pathOf('src', 'routes', 'books', 'new', '+page.svelte')), '/books/new page route must exist');
 assert.ok(existsSync(pathOf('src', 'routes', 'books', '[bookId]', 'settings', '+page.server.ts')), '/books/[bookId]/settings server route must exist');
 assert.ok(existsSync(pathOf('src', 'routes', 'books', '[bookId]', 'settings', '+page.svelte')), '/books/[bookId]/settings page route must exist');
+assert.ok(existsSync(pathOf('scripts', 'test-books-onboarding-browser.mjs')), 'books onboarding browser smoke must exist');
 
 const apiTypes = read('src', 'lib', 'api', 'types.ts');
 const apiServer = read('src', 'lib', 'api', 'server.ts');
@@ -47,6 +52,7 @@ const settingsServer = read('src', 'routes', 'books', '[bookId]', 'settings', '+
 const settingsPage = read('src', 'routes', 'books', '[bookId]', 'settings', '+page.svelte');
 const selectRoute = read('src', 'routes', 'books', '[bookId]', 'select', '+server.ts');
 const i18nMessages = read('src', 'lib', 'i18n', 'messages.ts');
+const browserSmoke = read('scripts', 'test-books-onboarding-browser.mjs');
 
 assert.match(apiTypes, /export type CurrentUser[\s\S]*is_admin:\s*boolean/s, 'API types must model authenticated admin authority from /auth/me.is_admin');
 assert.match(apiTypes, /export type BookProblemCode[\s\S]*invalid_path[\s\S]*outside_allowed_roots[\s\S]*duplicate_canonical_path[\s\S]*unknown_book_problem/s, 'BookProblemCode must use the fixed backend safe-code union with a generic fallback');
@@ -106,6 +112,7 @@ const adminHelperBlock = apiServer.slice(apiServer.indexOf('export function isCu
 assert.doesNotMatch(adminHelperBlock, /username|display_name|books|management_actions/, 'admin derivation must not infer authority from username, display name, book contents, or management actions');
 
 assert.match(booksServer, /getCurrentUser\(fetch, token\)[\s\S]*isCurrentUserAdmin\(currentUser\)/s, '/books load must derive admin state from authenticated server data');
+assert.match(booksServer, /load: PageServerLoad = async \(\{ cookies, fetch, parent, url \}\)[\s\S]*parent\(\)[\s\S]*layoutData\.bookContextRecovery\?\.reason[\s\S]*books: layoutData\.books[\s\S]*activeBook: layoutData\.activeBook/s, '/books load must preserve layout-selected book recovery notices after the layout heals the cookie');
 assert.doesNotMatch(booksServer, /registerBook\s*:/, '/books must not keep the old one-step registration action');
 assert.doesNotMatch(booksServer, /\/books\/preflight|method:\s*'POST'[\s\S]*body:\s*JSON\.stringify\(\{[\s\S]*uri_or_path/s, '/books list route must not run preflight or registration');
 
@@ -183,6 +190,15 @@ assert.doesNotMatch(settingsPage, /overflow-x-auto|min-w-full/, 'settings page m
 
 assert.match(selectRoute, /SAFE_NEXT_PATHS[\s\S]*'\/accounts'[\s\S]*'\/transactions'[\s\S]*'\/reports'/s, 'book safe-link route must allow Accounts/Transactions/Reports');
 assert.match(selectRoute, /selectedBook\.can_open_read_only_views[\s\S]*\/books\?book_context=unavailable_selected_book/s, 'book safe-link route must withhold unavailable books before redirecting');
+
+assert.match(browserSmoke, /startSyntheticApi[\s\S]*\/books\/preflight[\s\S]*\/books\/(?:\$\{bookId\}|\d+)\/health\/recheck[\s\S]*readonly_source_opens/s, 'books onboarding browser smoke must exercise preflight/register/recheck/enable through a synthetic API with readonly source-open evidence');
+assert.match(browserSmoke, /assertNormalUserApiForbidden[\s\S]*'POST', '\/books\/preflight'[\s\S]*'PATCH', '\/books\/1'[\s\S]*'POST', '\/books\/1\/default'[\s\S]*'POST', '\/books\/1\/disable'[\s\S]*'POST', '\/books\/1\/enable'[\s\S]*'DELETE', '\/books\/1'[\s\S]*'POST', '\/books\/1\/health\/recheck'/s, 'books onboarding browser smoke must assert normal-user direct lifecycle API attempts are 403');
+assert.match(browserSmoke, /No books are registered yet[\s\S]*No book is assigned to this account[\s\S]*Confirm metadata registration[\s\S]*Book metadata registered[\s\S]*already registered/s, 'books onboarding browser smoke must cover first-run, preflight/confirm, duplicate, and registration success UI');
+assert.match(browserSmoke, /Renamed Synthetic Book[\s\S]*disableBook[\s\S]*enablePreflight[\s\S]*enableBook[\s\S]*Second Synthetic Book[\s\S]*Failed Synthetic Book/s, 'books onboarding browser smoke must cover rename/recheck/disable/enable, multibook switching, and one failed-book list state');
+assert.match(browserSmoke, /fileEvidence[\s\S]*assertNoSqliteSidecars[\s\S]*source_hash_unchanged/s, 'books onboarding browser smoke must prove unregister/source lifecycle leaves synthetic source hash and sidecars untouched');
+assert.match(browserSmoke, /scrollWidth <= state\.viewportWidth \+ 8[\s\S]*unlabeled[\s\S]*focusedTag[\s\S]*Emulation\.setDeviceMetricsOverride[\s\S]*width:\s*320, height:\s*840/s, 'books onboarding browser smoke must capture 320px mobile, no overflow/clipping, labels, and focus evidence');
+assert.match(browserSmoke, /forbiddenGnuCashMutationRequests[\s\S]*browser_forbidden_gnucash[\s\S]*upload_client_filesystem=\$\{browserUploadOrFilesystemRequests/s, 'books onboarding browser smoke must report zero product mutation and upload/client-filesystem counters');
+assert.doesNotMatch(browserSmoke, /showOpenFilePicker|webkitdirectory|FileReader|DataTransfer|localStorage|sessionStorage|type="file"/i, 'books onboarding browser smoke must not depend on client filesystem APIs or browser storage');
 
 for (const key of [
 	'books.firstRunAdminTitle',

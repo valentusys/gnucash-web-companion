@@ -2,7 +2,6 @@ import { fail } from '@sveltejs/kit';
 import {
 	apiMutationFetch,
 	clearSelectedBookCookieIfMatches,
-	getActiveBookContext,
 	getAuthToken,
 	getCurrentUser,
 	isCurrentUserAdmin
@@ -18,24 +17,24 @@ const BOOK_CONTEXT_NOTICE_KEYS = new Set([
 
 const MANAGE_SUCCESS_NOTICE_KEYS = new Set(['set_default', 'remove_registry']);
 
-export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
+export const load: PageServerLoad = async ({ cookies, fetch, parent, url }) => {
 	const token = getAuthToken(cookies);
-	const [{ books, activeBook, recovery }, currentUser] = await Promise.all([
-		getActiveBookContext(fetch, cookies, token),
+	const [layoutData, currentUser] = await Promise.all([
+		parent(),
 		getCurrentUser(fetch, token)
 	]);
 	const queryNotice = url.searchParams.get('book_context');
 	const bookContextNotice = BOOK_CONTEXT_NOTICE_KEYS.has(queryNotice ?? '')
 		? queryNotice
-		: recovery?.reason ?? null;
+		: layoutData.bookContextRecovery?.reason ?? null;
 	const queryManageSuccess = url.searchParams.get('manage_success');
 	const manageSuccessNotice = MANAGE_SUCCESS_NOTICE_KEYS.has(queryManageSuccess ?? '')
 		? queryManageSuccess
 		: null;
 
 	return {
-		books,
-		activeBook,
+		books: layoutData.books,
+		activeBook: layoutData.activeBook,
 		isAdmin: isCurrentUserAdmin(currentUser),
 		bookContextNotice,
 		manageSuccessNotice
