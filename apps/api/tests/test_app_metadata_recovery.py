@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import builtins
 import hashlib
+import importlib.util
 import json
 import os
 import sqlite3
@@ -24,6 +25,15 @@ from app.services.app_metadata_schema import (
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SCRIPT_PATH = REPO_ROOT / "scripts" / "app_metadata_recovery.py"
+
+
+def _load_recovery_cli_module():
+    spec = importlib.util.spec_from_file_location("app_metadata_recovery_cli", SCRIPT_PATH)
+    assert spec is not None
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
 
 PRIVATE_FRAGMENTS = (
     "leaky-user",
@@ -433,6 +443,7 @@ def test_cli_help_and_json_errors_are_typed_and_redacted(tmp_path):
     assert "backup" in help_result.stdout
     assert "verify" in help_result.stdout
     assert "restore-rehearsal" in help_result.stdout
+    assert "upgrade-rehearsal" in help_result.stdout
 
     missing_source = tmp_path / "missing-private-app.db"
     proc = subprocess.run(
@@ -462,6 +473,76 @@ def test_cli_help_and_json_errors_are_typed_and_redacted(tmp_path):
     }
     assert str(missing_source) not in proc.stderr
     assert proc.stdout == ""
+
+
+def test_cli_upgrade_rehearsal_delegates_to_synthetic_smoke(tmp_path, monkeypatch):
+    cli = _load_recovery_cli_module()
+    calls = []
+
+    def fake_run(command, *, cwd, check):
+        calls.append({"command": command, "cwd": cwd, "check": check})
+        return subprocess.CompletedProcess(command, 23)
+
+    monkeypatch.setattr(cli.subprocess, "run", fake_run)
+
+    result = cli.main(
+        [
+            "upgrade-rehearsal",
+            "--repo",
+            str(REPO_ROOT),
+            "--previous-ref",
+            "v0.5.0-public-readonly-beta",
+            "--current-ref",
+            "HEAD",
+            "--workdir",
+            str(tmp_path),
+            "--port",
+            "18086",
+            "--keep-workdir",
+        ]
+    )
+
+    assert result == 23
+    assert calls == [
+        {
+            "command": [
+                "bash",
+                str(REPO_ROOT / "scripts" / "smoke" / "synthetic-upgrade-smoke.sh"),
+                "--repo",
+                str(REPO_ROOT),
+                "--previous-ref",
+                "v0.5.0-public-readonly-beta",
+                "--current-ref",
+                "HEAD",
+                "--workdir",
+                str(tmp_path),
+                "--port",
+                "18086",
+                "--keep-workdir",
+            ],
+            "cwd": REPO_ROOT,
+            "check": False,
+        }
+    ]
+
+
+def test_cli_upgrade_rehearsal_validates_port():
+    cli = _load_recovery_cli_module()
+
+    with pytest.raises(SystemExit) as exc_info:
+        cli.build_parser().parse_args(
+            [
+                "upgrade-rehearsal",
+                "--repo",
+                str(REPO_ROOT),
+                "--workdir",
+                "/tmp/upgrade-smoke",
+                "--port",
+                "70000",
+            ]
+        )
+
+    assert exc_info.value.code == 2
 
 
 def test_recovery_paths_do_not_import_gnucash_helpers(tmp_path, monkeypatch):
