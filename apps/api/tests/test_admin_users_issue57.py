@@ -215,6 +215,59 @@ def test_admin_lists_users_bounded_ordered_redacted_and_without_n_plus_one(
     assert disabled_only.json()["items"] == []
 
 
+def test_admin_user_list_orders_legacy_compatibility_usernames_by_normalized_key(
+    client, session_factory
+):
+    legacy_password_hash = hash_password("LegacyPass123!")
+    with session_factory() as session:
+        session.execute(
+            text(
+                "insert into users "
+                "(username, username_normalized, display_name, password_hash, "
+                "is_admin, is_enabled, auth_version, created_at, updated_at) "
+                "values "
+                "(:alice_username, 'alice', 'Legacy Alice', :password_hash, 0, 1, 1, "
+                "'2026-01-01 00:00:00.000000', '2026-01-01 00:00:00.000000'), "
+                "(:bob_username, 'bob', 'Legacy Bob', :password_hash, 0, 1, 1, "
+                "'2026-01-01 00:00:00.000000', '2026-01-01 00:00:00.000000')"
+            ),
+            {
+                "alice_username": "Ａlice",
+                "bob_username": "Ｂob",
+                "password_hash": legacy_password_hash,
+            },
+        )
+        session.commit()
+
+    headers = _headers(_login(client))
+    full_response = client.get(
+        "/admin/users?limit=100&offset=0&state=all",
+        headers=headers,
+    )
+    assert full_response.status_code == 200, full_response.text
+    assert [item["username"] for item in full_response.json()["items"]] == [
+        "admin",
+        "Ａlice",
+        "Ｂob",
+        "otheradmin",
+        "viewer",
+    ]
+    assert "password_hash" not in full_response.text
+    assert "auth_version" not in full_response.text
+    assert legacy_password_hash not in full_response.text
+
+    page_response = client.get(
+        "/admin/users?limit=2&offset=1&state=all",
+        headers=headers,
+    )
+    assert page_response.status_code == 200, page_response.text
+    assert page_response.json()["has_next"] is True
+    assert [item["username"] for item in page_response.json()["items"]] == [
+        "Ａlice",
+        "Ｂob",
+    ]
+
+
 def test_list_users_service_uses_summary_rows_without_assignment_orm_loads(
     client, session_factory, engine
 ):

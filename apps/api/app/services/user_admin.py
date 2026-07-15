@@ -74,7 +74,7 @@ class UserAdminService:
         query = self._user_with_assignment_count_query()
         query = self._apply_state_filter(query, safe_state)
         rows = (
-            query.order_by(func.lower(User.username), User.id)
+            query.order_by(User.username_normalized, User.id)
             .limit(limit)
             .offset(offset)
             .all()
