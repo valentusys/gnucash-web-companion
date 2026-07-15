@@ -214,7 +214,7 @@ def _lifecycle_problem(code: str) -> dict[str, Any]:
     return {"code": code, "message": message, "retryable": retryable}
 
 
-def _raise_lifecycle_problem(code: str, status_code: int = status.HTTP_422_UNPROCESSABLE_ENTITY) -> None:
+def _raise_lifecycle_problem(code: str, status_code: int = status.HTTP_422_UNPROCESSABLE_CONTENT) -> None:
     raise HTTPException(status_code=status_code, detail=_lifecycle_problem(code))
 
 
@@ -261,7 +261,7 @@ def _verify_preflight_bound_probe(
         probe = run_book_health_probe(raw_path, settings)
     except BookPreflightError as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=exc.problem.model_dump(),
         ) from exc
     if payload.get("source") != probe.identity.hmac_payload():
@@ -842,7 +842,7 @@ async def preflight_book(
         return BookPreflightService(settings, session).run(body)
     except BookPreflightError as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=exc.problem.model_dump(),
         ) from exc
 

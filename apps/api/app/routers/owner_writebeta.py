@@ -275,7 +275,7 @@ async def owner_writebeta_preview(
     try:
         prepare_preview(session_state, request.operation, request.payload_shape, count=request.count)
     except OwnerWritebetaTransitionError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
     return OwnerWritebetaPreviewResponseDTO(
         book_id=book_id,
         preview_hash=session_state.preview_hash or "",

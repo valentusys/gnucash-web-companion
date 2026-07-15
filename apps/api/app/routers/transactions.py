@@ -877,12 +877,12 @@ def _build_transaction_create_preview(
     memo = request.memo.strip()
     if not description:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="description is required",
         )
     if request.debit_account_id == request.credit_account_id:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="debit and credit accounts must be different",
         )
 
@@ -891,7 +891,7 @@ def _build_transaction_create_preview(
         for account in accounts
     ):
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="no selectable accounts are available for preview",
         )
 
@@ -938,7 +938,7 @@ def _coerce_transaction_create_preview_request(
 ) -> TransactionCreatePreviewRequestDTO:
     if not isinstance(payload, dict):
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="create preview payload must be an object",
         )
 
@@ -961,13 +961,13 @@ def _preview_request_text(payload: dict[str, Any], field_name: str, *, default: 
         if default is not None:
             return default
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"{field_name} is required",
         )
     value = payload[field_name]
     if not isinstance(value, str):
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"{field_name} must be a string",
         )
     return value
@@ -976,14 +976,14 @@ def _preview_request_text(payload: dict[str, Any], field_name: str, *, default: 
 def _parse_preview_date(value: str) -> date:
     if not value or not value.strip():
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="date is required",
         )
     try:
         return date.fromisoformat(value)
     except ValueError as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="date must use YYYY-MM-DD format",
         ) from exc
 
@@ -991,24 +991,24 @@ def _parse_preview_date(value: str) -> date:
 def _parse_preview_amount(value: str) -> Decimal:
     if not value or not value.strip():
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="amount is required",
         )
     try:
         amount = Decimal(value)
     except Exception as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="amount must be a decimal string",
         ) from exc
     if not amount.is_finite():
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=CREATE_PREVIEW_NON_FINITE_AMOUNT_DETAIL,
         )
     if amount <= Decimal("0"):
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="amount must be greater than zero",
         )
     return amount
@@ -1017,18 +1017,18 @@ def _parse_preview_amount(value: str) -> Decimal:
 def _preview_account_by_id(accounts_by_id: dict[str, Any], account_id: str, field_name: str) -> Any:
     if not account_id or not account_id.strip():
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"{field_name} is required",
         )
     account = accounts_by_id.get(account_id)
     if account is None:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"{field_name} was not found",
         )
     if getattr(account, "placeholder", False) or getattr(account, "hidden", False):
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"{field_name} must reference a selectable account",
         )
     return account
@@ -1038,7 +1038,7 @@ def _validate_preview_account_currency(account: Any, currency: str, label: str) 
     account_currency = str(getattr(account, "currency", "") or "").upper()
     if account_currency and account_currency != "XXX" and account_currency != currency:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"{label} currency does not match requested currency",
         )
 
@@ -1343,14 +1343,14 @@ def _parse_audit_window(value: str | None, label: str) -> datetime | None:
     text = value.strip()
     if len(text) > 40 or "/" in text or "\\" in text:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"Invalid {label} filter. Use an ISO timestamp.",
         )
     try:
         parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
     except ValueError as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"Invalid {label} filter. Use an ISO timestamp.",
         ) from exc
     if parsed.tzinfo is None:
@@ -1814,19 +1814,19 @@ async def get_write_alpha_audit_summary(
     require_book_storage_configured_for_metadata_summary(book)
     if action is not None and action not in WRITE_ALPHA_AUDIT_ACTIONS:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Unsupported audit action filter.",
         )
     if result is not None and result not in WRITE_ALPHA_AUDIT_RESULTS:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Unsupported audit result filter.",
         )
     since_dt = _parse_audit_window(since, "since")
     until_dt = _parse_audit_window(until, "until")
     if since_dt and until_dt and since_dt > until_dt:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Invalid audit time window: since must be before until.",
         )
 
@@ -2119,7 +2119,7 @@ async def create_book_transaction(
         )
         _update_audit_log(session, log, audit_payload)
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=safe_detail,
         ) from exc
 
@@ -2255,7 +2255,7 @@ async def patch_book_transaction(
         )
         _update_audit_log(session, log, audit_payload)
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=safe_detail,
         ) from exc
     except EntityNotFoundError as exc:
@@ -2367,7 +2367,7 @@ async def delete_book_transaction(
         )
         _update_audit_log(session, log, audit_payload)
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=safe_detail,
         ) from exc
     except EntityNotFoundError as exc:
