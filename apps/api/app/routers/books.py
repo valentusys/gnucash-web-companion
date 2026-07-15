@@ -910,7 +910,7 @@ async def set_default_book(
 ) -> dict[str, Any]:
     """Set an existing app metadata book as default without opening GnuCash data."""
     require_admin_user(user)
-    book = BookRegistryService(session).get_book(book_id)
+    book = BookRegistryService(session).get_book_for_user(book_id, user)
     if book is None or book.is_archived:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -1004,7 +1004,7 @@ async def patch_book_metadata(
 ) -> dict[str, Any]:
     """Admin-only metadata edit for display name and base currency only."""
     require_admin_user(user)
-    book = BookRegistryService(session).get_book(book_id)
+    book = BookRegistryService(session).get_book_for_user(book_id, user)
     if book is None or book.is_archived:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
     if body.name is not None:
@@ -1025,7 +1025,7 @@ async def disable_book(
 ) -> dict[str, Any]:
     """Disable book metadata without opening the GnuCash source."""
     require_admin_user(user)
-    book = BookRegistryService(session).get_book(book_id)
+    book = BookRegistryService(session).get_book_for_user(book_id, user)
     if book is None or book.is_archived:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
     book.is_enabled = False
@@ -1046,7 +1046,7 @@ async def enable_book(
 ) -> dict[str, Any]:
     """Enable disabled metadata only after a fresh matching successful preflight token."""
     require_admin_user(user)
-    book = BookRegistryService(session).get_book(book_id)
+    book = BookRegistryService(session).get_book_for_user(book_id, user)
     if book is None or book.is_archived:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
     probe = _verify_preflight_bound_probe(

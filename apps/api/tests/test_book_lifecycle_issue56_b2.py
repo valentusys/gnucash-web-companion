@@ -522,6 +522,148 @@ def _request_with_app_db_statement_count(api_context, method: str, path: str):
     return response, len(statements)
 
 
+def _call_with_lifecycle_role_bounds(api_context, action):
+    statements: list[str] = []
+    access_materializations = 0
+
+    def before_cursor_execute(conn, cursor, statement, parameters, context, executemany):
+        statements.append(str(statement))
+
+    def access_load(target, context):
+        nonlocal access_materializations
+        access_materializations += 1
+
+    event.listen(api_context["engine"], "before_cursor_execute", before_cursor_execute)
+    event.listen(UserBookAccess, "load", access_load)
+    try:
+        response = action()
+    finally:
+        event.remove(api_context["engine"], "before_cursor_execute", before_cursor_execute)
+        event.remove(UserBookAccess, "load", access_load)
+    return response, len(statements), access_materializations
+
+
+def _set_admin_book_role(api_context, book_id: int, role: str | None) -> None:
+    with api_context["session_factory"]() as session:
+        admin = session.query(User).filter(User.username == "admin").one()
+        existing = (
+            session.query(UserBookAccess)
+            .filter(UserBookAccess.user_id == admin.id, UserBookAccess.book_id == book_id)
+            .one_or_none()
+        )
+        if role is None:
+            if existing is not None:
+                session.delete(existing)
+        elif existing is None:
+            access = UserBookAccess()
+            access.user_id = admin.id
+            access.book_id = book_id
+            access.role = role
+            session.add(access)
+        else:
+            existing.role = role
+        session.commit()
+
+
+def _seed_unrelated_book_access_rows(api_context, book_id: int, count: int = 20) -> None:
+    with api_context["session_factory"]() as session:
+        for index in range(count):
+            user = User()
+            user.username = f"role-noise-{index}"
+            user.display_name = f"Role Noise {index}"
+            user.password_hash = hash_password(f"role-noise-password-{index}")
+            user.is_admin = False
+            session.add(user)
+            session.flush()
+            access = UserBookAccess()
+            access.user_id = user.id
+            access.book_id = book_id
+            access.role = "viewer"
+            session.add(access)
+        session.commit()
+
+
+def _assert_access_copy(data: dict[str, Any], role: str | None) -> None:
+    expected = {
+        "owner": "Owner",
+        "editor": "Editor",
+        "viewer": "Viewer",
+        None: "Unknown access",
+    }
+    assert data["access_role"] == role
+    assert data["access_role_label"] == expected[role]
+
+
+def test_admin_lifecycle_responses_return_truthful_current_role_bounded(api_context):
+    book_path = _copy_fixture(api_context["allowed_root"] / "lifecycle-role.gnucash.sqlite")
+    registered = _register_book(api_context, book_path, make_default=False)
+    book_id = registered.json()["id"]
+    _assert_access_copy(registered.json(), "owner")
+    _seed_unrelated_book_access_rows(api_context, book_id)
+
+    _set_admin_book_role(api_context, book_id, "editor")
+    patched, patch_statements, patch_access_rows = _call_with_lifecycle_role_bounds(
+        api_context,
+        lambda: api_context["client"].patch(
+            f"/books/{book_id}",
+            headers=api_context["admin_headers"],
+            json={"name": "Role Lifecycle Updated", "base_currency": "eur"},
+        ),
+    )
+    assert patched.status_code == 200, patched.text
+    _assert_access_copy(patched.json(), "editor")
+    assert patch_statements <= 5
+    assert patch_access_rows == 0
+
+    _set_admin_book_role(api_context, book_id, "viewer")
+    defaulted, default_statements, default_access_rows = _call_with_lifecycle_role_bounds(
+        api_context,
+        lambda: api_context["client"].post(
+            f"/books/{book_id}/default", headers=api_context["admin_headers"]
+        ),
+    )
+    assert defaulted.status_code == 200, defaulted.text
+    _assert_access_copy(defaulted.json(), "viewer")
+    assert default_statements <= 6
+    assert default_access_rows == 0
+
+    _set_admin_book_role(api_context, book_id, None)
+    disabled, disable_statements, disable_access_rows = _call_with_lifecycle_role_bounds(
+        api_context,
+        lambda: api_context["client"].post(
+            f"/books/{book_id}/disable", headers=api_context["admin_headers"]
+        ),
+    )
+    assert disabled.status_code == 200, disabled.text
+    _assert_access_copy(disabled.json(), None)
+    assert disable_statements <= 5
+    assert disable_access_rows == 0
+
+    _set_admin_book_role(api_context, book_id, "owner")
+    enable_payload = _book_payload(
+        book_path,
+        name="Role Lifecycle Updated",
+        base_currency="EUR",
+        make_default=True,
+    )
+    enable_preflight = api_context["client"].post(
+        "/books/preflight", headers=api_context["admin_headers"], json=enable_payload
+    )
+    assert enable_preflight.status_code == 200
+    enabled, enable_statements, enable_access_rows = _call_with_lifecycle_role_bounds(
+        api_context,
+        lambda: api_context["client"].post(
+            f"/books/{book_id}/enable",
+            headers=api_context["admin_headers"],
+            json={"preflight_token": enable_preflight.json()["preflight_token"], "make_default": True},
+        ),
+    )
+    assert enabled.status_code == 200, enabled.text
+    _assert_access_copy(enabled.json(), "owner")
+    assert enable_statements <= 7
+    assert enable_access_rows == 0
+
+
 def test_cached_metadata_routes_have_bounded_app_db_query_count_independent_of_book_count(
     api_context, monkeypatch
 ):
