@@ -8,7 +8,7 @@ from typing import Literal
 
 from sqlalchemy import func, text
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, load_only
+from sqlalchemy.orm import Session
 
 from app.models import AuditLog, Book, User, UserBookAccess
 from app.schemas.users import (
@@ -20,6 +20,7 @@ from app.schemas.users import (
     AdminUserListResponse,
     AdminUserPasswordResetResponse,
     AdminUserSafeCode,
+    AdminUserSummary,
     DisplayNameValidationError,
     PasswordPolicyError,
     UsernameValidationError,
@@ -30,6 +31,23 @@ from app.schemas.users import (
 from app.services.auth import hash_password
 
 UserState = Literal["all", "enabled", "disabled"]
+
+_USER_AUDIT_RESULTS_BY_ACTION = {
+    "user_created": frozenset({"created"}),
+    "display_name_changed": frozenset({"changed"}),
+    "user_enabled": frozenset({"enabled"}),
+    "user_disabled": frozenset({"disabled"}),
+    "password_reset": frozenset({"reset"}),
+}
+_USER_AUDIT_CHANGED_FIELDS = frozenset(
+    {"identity", "display_name", "role", "status", "credentials", "session_version"}
+)
+_BOOK_ACCESS_AUDIT_RESULTS_BY_ACTION = {
+    "book_access_granted": frozenset({"granted", "changed"}),
+    "book_access_revoked": frozenset({"revoked"}),
+}
+_BOOK_ACCESS_AUDIT_CHANGED_FIELDS = frozenset({"book_access", "role"})
+_BOOK_ACCESS_AUDIT_ROLES = frozenset({"owner", "editor", "viewer"})
 
 
 class UserAdminError(RuntimeError):
@@ -56,21 +74,12 @@ class UserAdminService:
         query = self._user_with_assignment_count_query()
         query = self._apply_state_filter(query, safe_state)
         rows = (
-            query.order_by(User.username_normalized, User.id)
+            query.order_by(func.lower(User.username), User.id)
             .limit(limit)
             .offset(offset)
             .all()
         )
-        assignments_by_user_id = self._assignments_by_user_ids(
-            int(row[0].id) for row in rows
-        )
-        items = [
-            self._detail_from_row(
-                row,
-                assignments_by_user_id.get(int(row[0].id), []),
-            )
-            for row in rows
-        ]
+        items = [self._summary_from_row(row) for row in rows]
         return AdminUserListResponse(
             items=items,
             total_count=total_count,
@@ -437,7 +446,7 @@ class UserAdminService:
                     actor_user_id=actor_user_id,
                     subject_user_id=subject_user_id,
                     book_id=book_id,
-                    action="book_access_role_changed",
+                    action="book_access_granted",
                     changed_fields=["role"],
                     result="changed",
                     role=role,
@@ -527,18 +536,14 @@ class UserAdminService:
             .subquery()
         )
         return self.session.query(
-            User,
+            User.id.label("id"),
+            User.username.label("username"),
+            User.display_name.label("display_name"),
+            User.is_admin.label("is_admin"),
+            User.is_enabled.label("is_enabled"),
+            User.created_at.label("created_at"),
+            User.updated_at.label("updated_at"),
             func.coalesce(assignment_counts.c.assignment_count, 0).label("assignment_count"),
-        ).options(
-            load_only(
-                User.id,
-                User.username,
-                User.display_name,
-                User.is_admin,
-                User.is_enabled,
-                User.created_at,
-                User.updated_at,
-            )
         ).outerjoin(assignment_counts, User.id == assignment_counts.c.user_id)
 
     def _assignments_by_user_ids(
@@ -594,18 +599,20 @@ class UserAdminService:
         row,
         assignments: list[AdminUserAssignment],
     ) -> AdminUserDetail:
-        user = row[0]
-        assignment_count = row[1]
-        return AdminUserDetail(
-            id=int(user.id),
-            username=str(user.username),
-            display_name=str(user.display_name),
-            is_admin=bool(user.is_admin),
-            is_enabled=bool(user.is_enabled),
-            assignment_count=int(assignment_count or 0),
-            assignments=list(assignments),
-            created_at=user.created_at,
-            updated_at=user.updated_at,
+        summary = UserAdminService._summary_from_row(row)
+        return AdminUserDetail(**summary.model_dump(), assignments=list(assignments))
+
+    @staticmethod
+    def _summary_from_row(row) -> AdminUserSummary:
+        return AdminUserSummary(
+            id=int(row.id),
+            username=str(row.username),
+            display_name=str(row.display_name),
+            is_admin=bool(row.is_admin),
+            is_enabled=bool(row.is_enabled),
+            assignment_count=int(row.assignment_count or 0),
+            created_at=row.created_at,
+            updated_at=row.updated_at,
         )
 
     def _audit(
@@ -617,6 +624,13 @@ class UserAdminService:
         changed_fields: list[str],
         result: str,
     ) -> None:
+        self._require_allowed_audit_payload(
+            action=action,
+            changed_fields=changed_fields,
+            result=result,
+            allowed_results_by_action=_USER_AUDIT_RESULTS_BY_ACTION,
+            allowed_changed_fields=_USER_AUDIT_CHANGED_FIELDS,
+        )
         payload = {
             "subject_user_id": int(subject_user_id),
             "changed_fields": list(changed_fields),
@@ -642,9 +656,17 @@ class UserAdminService:
         result: str,
         role: str | None = None,
     ) -> None:
+        self._require_allowed_audit_payload(
+            action=action,
+            changed_fields=changed_fields,
+            result=result,
+            allowed_results_by_action=_BOOK_ACCESS_AUDIT_RESULTS_BY_ACTION,
+            allowed_changed_fields=_BOOK_ACCESS_AUDIT_CHANGED_FIELDS,
+        )
+        if role is not None and role not in _BOOK_ACCESS_AUDIT_ROLES:
+            raise ValueError("audit_payload_not_allowed")
         payload: dict[str, object] = {
             "subject_user_id": int(subject_user_id),
-            "book_id": int(book_id),
             "changed_fields": list(changed_fields),
             "result": result,
         }
@@ -658,3 +680,18 @@ class UserAdminService:
                 payload_json=json.dumps(payload, sort_keys=True, separators=(",", ":")),
             )
         )
+
+    @staticmethod
+    def _require_allowed_audit_payload(
+        *,
+        action: str,
+        changed_fields: list[str],
+        result: str,
+        allowed_results_by_action: dict[str, frozenset[str]],
+        allowed_changed_fields: frozenset[str],
+    ) -> None:
+        allowed_results = allowed_results_by_action.get(action)
+        if allowed_results is None or result not in allowed_results:
+            raise ValueError("audit_action_not_allowed")
+        if any(field not in allowed_changed_fields for field in changed_fields):
+            raise ValueError("audit_payload_not_allowed")

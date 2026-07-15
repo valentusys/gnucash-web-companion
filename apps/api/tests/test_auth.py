@@ -323,6 +323,8 @@ class TestUserCredentialHelpers:
 
     def test_password_policy_accepts_valid_secret(self):
         validate_password_policy("ValidPass123!", normalize_username("valid-user"))
+        validate_password_policy("ValidPassword—", normalize_username("valid-user"))
+        validate_password_policy("ValidPassword€", normalize_username("valid-user"))
 
     @pytest.mark.parametrize(
         "password,username",
@@ -333,6 +335,9 @@ class TestUserCredentialHelpers:
             ("abcdefghijkl", "valid-user"),
             ("Password1234", "valid-user"),
             (" ABCDEFGHIJKL ", "abcdefghijkl"),
+            ("ValidPassword汉", "valid-user"),
+            ("ValidPassword ", "valid-user"),
+            ("ValidPassword\u0301", "valid-user"),
         ],
     )
     def test_password_policy_rejects_boundaries_classes_weak_and_username(

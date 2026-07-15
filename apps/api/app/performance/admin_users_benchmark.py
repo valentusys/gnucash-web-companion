@@ -31,9 +31,9 @@ class AdminUsersCaseEvidence:
     response_bytes: int
     observed_sqlite_statement_count: int
     observed_sqlite_query_count: int
-    materialized_user_rows: int
-    materialized_book_rows: int
-    materialized_access_rows: int
+    orm_user_row_load_count: int
+    orm_book_row_load_count: int
+    orm_access_row_load_count: int
     preflight_open_count: int = 0
     piecash_open_count: int = 0
     gnucash_service_open_count: int = 0
@@ -52,9 +52,9 @@ def build_admin_users_case_evidence(
     response_bytes: int,
     observed_sqlite_statement_count: int,
     observed_sqlite_query_count: int,
-    materialized_user_rows: int,
-    materialized_book_rows: int,
-    materialized_access_rows: int,
+    orm_user_row_load_count: int,
+    orm_book_row_load_count: int,
+    orm_access_row_load_count: int,
     preflight_open_count: int = 0,
     piecash_open_count: int = 0,
     gnucash_service_open_count: int = 0,
@@ -78,9 +78,9 @@ def build_admin_users_case_evidence(
         response_bytes=response_bytes,
         observed_sqlite_statement_count=observed_sqlite_statement_count,
         observed_sqlite_query_count=observed_sqlite_query_count,
-        materialized_user_rows=materialized_user_rows,
-        materialized_book_rows=materialized_book_rows,
-        materialized_access_rows=materialized_access_rows,
+        orm_user_row_load_count=orm_user_row_load_count,
+        orm_book_row_load_count=orm_book_row_load_count,
+        orm_access_row_load_count=orm_access_row_load_count,
         preflight_open_count=preflight_open_count,
         piecash_open_count=piecash_open_count,
         gnucash_service_open_count=gnucash_service_open_count,

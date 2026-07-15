@@ -165,7 +165,7 @@ def _seed_dataset(
                         UserBookAccess(user_id=user.id, book_id=book.id, role=role)
                     )
         # Hidden assignments prove disabled/archived rows do not leak into admin DTOs.
-        if mixed_book_status:
+        if users and mixed_book_status:
             session.add_all(
                 [
                     UserBookAccess(user_id=users[0].id, book_id=books[-2].id, role="owner"),
@@ -221,9 +221,9 @@ def _instrument_app_db(engine):
     counts = {
         "observed_sqlite_statement_count": 0,
         "observed_sqlite_query_count": 0,
-        "materialized_user_rows": 0,
-        "materialized_book_rows": 0,
-        "materialized_access_rows": 0,
+        "orm_user_row_load_count": 0,
+        "orm_book_row_load_count": 0,
+        "orm_access_row_load_count": 0,
         "preflight_open_count": 0,
         "piecash_open_count": 0,
         "gnucash_service_open_count": 0,
@@ -236,13 +236,13 @@ def _instrument_app_db(engine):
             counts["observed_sqlite_query_count"] += 1
 
     def user_load(target, context):
-        counts["materialized_user_rows"] += 1
+        counts["orm_user_row_load_count"] += 1
 
     def book_load(target, context):
-        counts["materialized_book_rows"] += 1
+        counts["orm_book_row_load_count"] += 1
 
     def access_load(target, context):
-        counts["materialized_access_rows"] += 1
+        counts["orm_access_row_load_count"] += 1
 
     event.listen(engine, "before_cursor_execute", before_cursor_execute)
     event.listen(User, "load", user_load)
@@ -311,9 +311,9 @@ def _measure_case(
         response_bytes=max_response_bytes,
         observed_sqlite_statement_count=max_counts["observed_sqlite_statement_count"],
         observed_sqlite_query_count=max_counts["observed_sqlite_query_count"],
-        materialized_user_rows=max_counts["materialized_user_rows"],
-        materialized_book_rows=max_counts["materialized_book_rows"],
-        materialized_access_rows=max_counts["materialized_access_rows"],
+        orm_user_row_load_count=max_counts["orm_user_row_load_count"],
+        orm_book_row_load_count=max_counts["orm_book_row_load_count"],
+        orm_access_row_load_count=max_counts["orm_access_row_load_count"],
         preflight_open_count=max_counts["preflight_open_count"],
         piecash_open_count=max_counts["piecash_open_count"],
         gnucash_service_open_count=max_counts["gnucash_service_open_count"],
@@ -338,9 +338,9 @@ def _assert_evidence_shape(evidence: AdminUsersCaseEvidence) -> None:
         "response_bytes",
         "observed_sqlite_statement_count",
         "observed_sqlite_query_count",
-        "materialized_user_rows",
-        "materialized_book_rows",
-        "materialized_access_rows",
+        "orm_user_row_load_count",
+        "orm_book_row_load_count",
+        "orm_access_row_load_count",
         "preflight_open_count",
         "piecash_open_count",
         "gnucash_service_open_count",
@@ -400,10 +400,22 @@ def test_issue57_r1_small_dataset_covers_admin_user_reliability_cases(
     assert [item["username"] for item in list_payload["items"]] == sorted(
         item["username"] for item in list_payload["items"]
     )
+    assert set(list_payload["items"][0]) == {
+        "id",
+        "username",
+        "display_name",
+        "is_admin",
+        "is_enabled",
+        "assignment_count",
+        "created_at",
+        "updated_at",
+    }
+    assert all("assignments" not in item for item in list_payload["items"])
     assert "password_hash" not in responses[-1].text
     assert "auth_version" not in responses[-1].text
     assert USER_PASSWORD not in responses[-1].text
     assert case.observed_sqlite_query_count <= 4
+    assert case.orm_access_row_load_count == 0
 
     responses, case = _measure_case(
         synthetic_env,
@@ -530,13 +542,13 @@ def test_issue57_r1_small_dataset_covers_admin_user_reliability_cases(
     evidence.append(case)
     assert [response.status_code for response in responses[-1]] == [200, 200, 204]
     assert case.app_metadata_mutation_counts_by_operation == {
-        "book_access_granted": 1,
+        "book_access_granted": 2,
         "book_access_revoked": 1,
-        "book_access_role_changed": 1,
     }
     with synthetic_env.session_factory() as session:
         audit_payloads = [json.loads(row.payload_json or "{}") for row in session.query(AuditLog).all()]
     for payload in audit_payloads:
+        assert "book_id" not in payload
         assert "password_hash" not in json.dumps(payload)
         assert "ResetCreated123!" not in json.dumps(payload)
         assert "Book 00" not in json.dumps(payload)
@@ -619,9 +631,10 @@ def test_issue57_r1_large_dataset_has_bounded_queries_payload_and_access_materia
     assert user_responses[-1].status_code == 200
     assert user_responses[-1].json()["total_count"] == 100
     assert len(user_responses[-1].json()["items"]) == 100
+    assert all("assignments" not in item for item in user_responses[-1].json()["items"])
     assert len(user_responses[-1].content) < 80_000
     assert list_users.observed_sqlite_query_count <= 4
-    assert list_users.materialized_access_rows <= 1
+    assert list_users.orm_access_row_load_count == 0
 
     book_responses, list_books = _measure_case(
         synthetic_env,
@@ -638,7 +651,7 @@ def test_issue57_r1_large_dataset_has_bounded_queries_payload_and_access_materia
     ]
     assert len(book_responses[-1].content) < 30_000
     assert list_books.observed_sqlite_query_count <= 2
-    assert list_books.materialized_access_rows <= len(visible_book_ids)
+    assert list_books.orm_access_row_load_count <= len(visible_book_ids)
 
     inaccessible_book_id = ids.active_book_ids[1]
     denied_responses, denied = _measure_case(
@@ -654,11 +667,57 @@ def test_issue57_r1_large_dataset_has_bounded_queries_payload_and_access_materia
     assert denied_responses[-1].status_code == 403
     assert denied_responses[-1].json()["detail"] == "Book access denied"
     assert denied.gnucash_service_open_count == 0
-    assert denied.materialized_access_rows <= 1
+    assert denied.orm_access_row_load_count <= 1
 
     for case in (list_users, list_books, denied):
         _assert_evidence_shape(case)
         assert case.dataset == DATASET_LARGE
+
+
+@pytest.mark.parametrize("total_user_count", [1, 100, 1000])
+def test_issue57_r1_list_users_scales_without_assignment_materialization(
+    synthetic_env: SyntheticEnv, monkeypatch, total_user_count: int
+) -> None:
+    _seed_dataset(
+        synthetic_env,
+        regular_user_count=total_user_count - 1,
+        book_count=20,
+        mixed_book_status=False,
+    )
+    admin_headers = _headers(_login(synthetic_env.client))
+
+    responses, case = _measure_case(
+        synthetic_env,
+        monkeypatch,
+        name=f"{total_user_count}_users_list_summary_no_assignment_materialization",
+        dataset=f"issue57_r1_{total_user_count}_users_20_books_scale",
+        action=lambda: synthetic_env.client.get(
+            "/admin/users?limit=100&offset=0&state=all",
+            headers=admin_headers,
+        ),
+    )
+
+    payload = responses[-1].json()
+    assert responses[-1].status_code == 200
+    assert payload["total_count"] == total_user_count
+    assert len(payload["items"]) == min(total_user_count, 100)
+    assert set(payload["items"][0]) == {
+        "id",
+        "username",
+        "display_name",
+        "is_admin",
+        "is_enabled",
+        "assignment_count",
+        "created_at",
+        "updated_at",
+    }
+    assert all("assignments" not in item for item in payload["items"])
+    assert "password_hash" not in responses[-1].text
+    assert "auth_version" not in responses[-1].text
+    assert case.observed_sqlite_query_count <= 4
+    assert case.orm_access_row_load_count == 0
+    assert case.orm_book_row_load_count == 0
+    _assert_evidence_shape(case)
 
 
 def test_issue57_r1_concurrent_duplicate_user_grant_and_last_admin_races_are_deterministic(

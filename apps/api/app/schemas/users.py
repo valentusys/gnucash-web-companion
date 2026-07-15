@@ -66,6 +66,12 @@ def normalize_display_name(display_name: str) -> str:
     return normalized
 
 
+def _is_password_symbol(char: str) -> bool:
+    """Return true only for Unicode punctuation/symbol password classes."""
+
+    return unicodedata.category(char).startswith(("P", "S"))
+
+
 def validate_password_policy(password: str, username_normalized: str | None = None) -> None:
     """Validate the #57 local-user password policy without returning secrets."""
 
@@ -91,10 +97,7 @@ def validate_password_policy(password: str, username_normalized: str | None = No
     classes += any(char.islower() for char in password)
     classes += any(char.isupper() for char in password)
     classes += any(char.isdigit() for char in password)
-    classes += any(
-        not char.islower() and not char.isupper() and not char.isdigit()
-        for char in password
-    )
+    classes += any(_is_password_symbol(char) for char in password)
     if classes < 3:
         raise PasswordPolicyError("password_policy")
 
@@ -180,14 +183,13 @@ class AdminBookAccessBookListResponse(BaseModel):
     has_next: bool
 
 
-class AdminUserDetail(BaseModel):
+class AdminUserSummary(BaseModel):
     id: int
     username: str
     display_name: str
     is_admin: bool
     is_enabled: bool
     assignment_count: int
-    assignments: list[AdminUserAssignment]
     created_at: datetime
     updated_at: datetime
 
@@ -199,8 +201,12 @@ class AdminUserDetail(BaseModel):
         return value
 
 
+class AdminUserDetail(AdminUserSummary):
+    assignments: list[AdminUserAssignment]
+
+
 class AdminUserListResponse(BaseModel):
-    items: list[AdminUserDetail]
+    items: list[AdminUserSummary]
     total_count: int
     limit: int = Field(ge=1, le=100)
     offset: int = Field(ge=0)

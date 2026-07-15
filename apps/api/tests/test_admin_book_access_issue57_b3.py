@@ -154,10 +154,10 @@ def _ids(session_factory) -> dict[str, int]:
     return {**users, **books}
 
 
-def _audit_rows(session_factory) -> list[tuple[str, dict[str, object]]]:
+def _audit_rows(session_factory) -> list[tuple[str, int | None, dict[str, object]]]:
     with session_factory() as session:
         rows = session.query(AuditLog).order_by(AuditLog.id).all()
-        return [(row.action, json.loads(row.payload_json or "{}")) for row in rows]
+        return [(row.action, row.book_id, json.loads(row.payload_json or "{}")) for row in rows]
 
 
 def test_book_options_are_bounded_active_ordered_pathless_and_app_db_only(
@@ -310,21 +310,58 @@ def test_admin_grants_updates_revokes_access_and_user_detail_counts_active_assig
     ]
 
     audit_rows = _audit_rows(session_factory)
-    actions = [action for action, _payload in audit_rows]
+    actions = [action for action, _book_id, _payload in audit_rows]
     assert actions == [
         "book_access_granted",
         "book_access_granted",
-        "book_access_role_changed",
+        "book_access_granted",
         "book_access_revoked",
     ]
-    for action, payload in audit_rows:
+    assert [book_id for _action, book_id, _payload in audit_rows] == [
+        beta_id,
+        alpha_id,
+        alpha_id,
+        alpha_id,
+    ]
+    for action, _book_id, payload in audit_rows:
         assert set(payload).issubset(
-            {"subject_user_id", "book_id", "role", "changed_fields", "result"}
+            {"subject_user_id", "role", "changed_fields", "result"}
         )
         assert payload["subject_user_id"] == viewer_id
+        assert "book_id" not in payload
         assert "Alpha Book" not in json.dumps(payload)
         assert "beta Book" not in json.dumps(payload)
         assert action.startswith("book_access_")
+
+
+def test_admin_book_access_audit_rejects_unallowlisted_actions_and_payload_book_id(
+    client, session_factory,
+):
+    from app.services.user_admin import UserAdminService
+
+    ids = _ids(session_factory)
+    with session_factory() as session:
+        service = UserAdminService(session)
+        with pytest.raises(ValueError, match="audit_action_not_allowed"):
+            service._audit_book_access(
+                actor_user_id=ids["admin"],
+                subject_user_id=ids["viewer"],
+                book_id=ids["Alpha Book"],
+                action="book_access_role_changed",
+                changed_fields=["role"],
+                result="changed",
+                role="viewer",
+            )
+        with pytest.raises(ValueError, match="audit_payload_not_allowed"):
+            service._audit_book_access(
+                actor_user_id=ids["admin"],
+                subject_user_id=ids["viewer"],
+                book_id=ids["Alpha Book"],
+                action="book_access_granted",
+                changed_fields=["book_id"],
+                result="granted",
+                role="viewer",
+            )
 
 
 def test_admin_book_access_routes_require_admin(client, session_factory):

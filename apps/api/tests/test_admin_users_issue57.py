@@ -18,6 +18,7 @@ from app.main import app
 from app.models import AuditLog, Book, User, UserBookAccess
 from app.routers.auth import get_db
 from app.services.auth import hash_password
+from app.services.user_admin import UserAdminService
 
 ADMIN_PASSWORD = "AdminPass123!"
 VIEWER_PASSWORD = "ViewerPass123!"
@@ -150,11 +151,13 @@ def test_admin_lists_users_bounded_ordered_redacted_and_without_n_plus_one(
 ):
     token = _login(client)
     select_count = 0
+    statements: list[str] = []
 
     def before_cursor_execute(conn, cursor, statement, parameters, context, executemany):
         nonlocal select_count
         if statement.lstrip().lower().startswith("select"):
             select_count += 1
+            statements.append(statement.lower())
 
     event.listen(engine, "before_cursor_execute", before_cursor_execute)
     try:
@@ -178,9 +181,6 @@ def test_admin_lists_users_bounded_ordered_redacted_and_without_n_plus_one(
     ]
     viewer_item = data["items"][2]
     assert viewer_item["assignment_count"] == 1
-    assert viewer_item["assignments"] == [
-        {"book_id": 1, "book_name": "Synthetic Book", "is_default": True, "role": "viewer"}
-    ]
     assert set(data["items"][0]) == {
         "id",
         "username",
@@ -188,10 +188,10 @@ def test_admin_lists_users_bounded_ordered_redacted_and_without_n_plus_one(
         "is_admin",
         "is_enabled",
         "assignment_count",
-        "assignments",
         "created_at",
         "updated_at",
     }
+    assert "assignments" not in viewer_item
     assert "password_hash" not in response.text
     assert "auth_version" not in response.text
     assert ADMIN_PASSWORD not in response.text
@@ -199,6 +199,8 @@ def test_admin_lists_users_bounded_ordered_redacted_and_without_n_plus_one(
         for password_hash in session.query(User.password_hash).all():
             assert password_hash[0] not in response.text
     assert select_count <= 4
+    assert not any("user_book_access.role" in statement for statement in statements)
+    assert not any("books.name" in statement for statement in statements)
 
     page = client.get("/admin/users?limit=1&offset=1", headers=_headers(token))
     assert page.status_code == 200
@@ -211,6 +213,64 @@ def test_admin_lists_users_bounded_ordered_redacted_and_without_n_plus_one(
     )
     assert disabled_only.status_code == 200
     assert disabled_only.json()["items"] == []
+
+
+def test_list_users_service_uses_summary_rows_without_assignment_orm_loads(
+    client, session_factory, engine
+):
+    statements: list[str] = []
+    orm_loads = {"users": 0, "books": 0, "access": 0}
+
+    def before_cursor_execute(conn, cursor, statement, parameters, context, executemany):
+        if statement.lstrip().lower().startswith("select"):
+            statements.append(statement.lower())
+
+    def user_load(target, context):
+        orm_loads["users"] += 1
+
+    def book_load(target, context):
+        orm_loads["books"] += 1
+
+    def access_load(target, context):
+        orm_loads["access"] += 1
+
+    event.listen(engine, "before_cursor_execute", before_cursor_execute)
+    event.listen(User, "load", user_load)
+    event.listen(Book, "load", book_load)
+    event.listen(UserBookAccess, "load", access_load)
+    try:
+        with session_factory() as session:
+            response = UserAdminService(session).list_users(limit=100, offset=0, state="all")
+            viewer_id = session.query(User.id).filter(User.username == "viewer").scalar()
+            detail = UserAdminService(session).get_user_detail(subject_user_id=int(viewer_id))
+    finally:
+        event.remove(engine, "before_cursor_execute", before_cursor_execute)
+        event.remove(User, "load", user_load)
+        event.remove(Book, "load", book_load)
+        event.remove(UserBookAccess, "load", access_load)
+
+    assert response.total_count == 3
+    assert response.items[2].username == "viewer"
+    assert response.items[2].assignment_count == 1
+    assert set(response.items[2].model_dump()) == {
+        "id",
+        "username",
+        "display_name",
+        "is_admin",
+        "is_enabled",
+        "assignment_count",
+        "created_at",
+        "updated_at",
+    }
+    assert detail.model_dump()["assignments"] == [
+        {"book_id": 1, "book_name": "Synthetic Book", "is_default": True, "role": "viewer"}
+    ]
+    assert orm_loads == {"users": 0, "books": 0, "access": 0}
+    list_sql = "\n".join(statements[:2])
+    assert "users.password_hash" not in list_sql
+    assert "users.auth_version" not in list_sql
+    assert "user_book_access.role" not in list_sql
+    assert "books.name" not in list_sql
 
 
 def test_admin_creates_local_user_and_admin_without_assignments_and_duplicate_conflicts(
@@ -442,6 +502,34 @@ def test_admin_self_password_reset_returns_exact_dto_and_invalidates_current_tok
         "/auth/login",
         json={"username": "admin", "password": "AdminReset123!"},
     ).status_code == 200
+
+
+def test_password_reset_preserves_valid_leading_and_trailing_spaces(client, session_factory):
+    admin_headers = _headers(_login(client))
+    viewer_id = _user_id(session_factory, "viewer")
+    spaced_password = " LeadingPass123! "
+
+    reset = client.post(
+        f"/admin/users/{viewer_id}/password-reset",
+        headers=admin_headers,
+        json={"new_password": spaced_password},
+    )
+
+    assert reset.status_code == 200, reset.text
+    assert (
+        client.post(
+            "/auth/login",
+            json={"username": "viewer", "password": "LeadingPass123!"},
+        ).status_code
+        == 401
+    )
+    assert (
+        client.post(
+            "/auth/login",
+            json={"username": "viewer", "password": spaced_password},
+        ).status_code
+        == 200
+    )
 
 
 def test_password_reset_hashes_before_sqlite_write_lock(client, session_factory, monkeypatch):
