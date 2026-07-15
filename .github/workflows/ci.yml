@@ -101,6 +101,9 @@ jobs:
           fi
           npm run check
           npm run test:auth-routes
+          npm run test:admin-users
+          npm run test:admin-users-auth-hardening
+          npm run test:admin-users-browser
           npm run test:transaction-entry-preview
           npm run test:transactions-explorer
           npm run test:reports
