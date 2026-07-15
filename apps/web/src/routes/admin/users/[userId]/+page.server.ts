@@ -11,7 +11,6 @@ import type {
 	AdminBookAccess,
 	AdminBookOptionList,
 	AdminBookAccessRole,
-	AdminBookOption,
 	AdminPasswordResetResult,
 	AdminProblemCode,
 	AdminUserDetail
@@ -30,7 +29,29 @@ const SUCCESS_CODES = new Set([
 	'book_access_revoked'
 ]);
 
+const DEFAULT_BOOK_OPTION_LIMIT = 50;
+const MAX_BOOK_OPTION_LIMIT = 100;
+const MAX_BOOK_OPTION_OFFSET = 100_000;
+
 type AdminActor = { id: number; isAdmin: boolean };
+
+function emptyBookOptions(limit: number, offset: number): AdminBookOptionList {
+	return {
+		items: [],
+		total_count: 0,
+		limit,
+		offset,
+		has_next: false
+	};
+}
+
+function safeIntegerParam(params: URLSearchParams, name: string, fallback: number, min: number, max: number): number {
+	const raw = params.get(name);
+	if (!raw) return fallback;
+	const value = Number(raw);
+	if (!Number.isInteger(value) || value < min || value > max) return fallback;
+	return value;
+}
 
 function userIdFromParams(params: { userId?: string }): number {
 	const userId = Number(params.userId);
@@ -82,13 +103,16 @@ export const load: PageServerLoad = async ({ cookies, fetch, parent, params, url
 	const layoutData = await parent();
 	const actor = adminActorFromLayout(layoutData.currentUser);
 	const successCode = safeAdminSuccess(url.searchParams);
+	const bookLimit = safeIntegerParam(url.searchParams, 'book_limit', DEFAULT_BOOK_OPTION_LIMIT, 1, MAX_BOOK_OPTION_LIMIT);
+	const bookOffset = safeIntegerParam(url.searchParams, 'book_offset', 0, 0, MAX_BOOK_OPTION_OFFSET);
+	const emptyBookOptionPage = emptyBookOptions(bookLimit, bookOffset);
 
 	if (!actor.isAdmin) {
 		return {
 			isAdmin: false,
 			currentUserId: actor.id,
 			user: null,
-			bookOptions: [] as AdminBookOption[],
+			bookOptions: emptyBookOptionPage,
 			bookOptionsErrorCode: null,
 			loadErrorCode: null,
 			successCode
@@ -97,14 +121,14 @@ export const load: PageServerLoad = async ({ cookies, fetch, parent, params, url
 
 	try {
 		const user = await apiFetch<AdminUserDetail>(fetch, `/admin/users/${userId}`, token, cookies);
-		let bookOptions: AdminBookOption[] = [];
+		let bookOptions = emptyBookOptionPage;
 		let bookOptionsErrorCode: AdminProblemCode | null = null;
 		try {
-			const bookOptionPage = await apiFetch<AdminBookOptionList>(fetch, '/admin/book-access/books?limit=50&offset=0', token, cookies);
-			bookOptions = bookOptionPage.items;
+			const bookParams = new URLSearchParams({ limit: String(bookLimit), offset: String(bookOffset) });
+			bookOptions = await apiFetch<AdminBookOptionList>(fetch, `/admin/book-access/books?${bookParams.toString()}`, token, cookies);
 		} catch (reason) {
 			if (isRedirect(reason)) throw reason;
-			bookOptions = [];
+			bookOptions = emptyBookOptionPage;
 			bookOptionsErrorCode = 'api_unavailable';
 		}
 		return {
@@ -122,7 +146,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, parent, params, url
 			isAdmin: true,
 			currentUserId: actor.id,
 			user: null,
-			bookOptions: [] as AdminBookOption[],
+			bookOptions: emptyBookOptionPage,
 			bookOptionsErrorCode: null,
 			loadErrorCode: loadProblemCode(reason),
 			successCode

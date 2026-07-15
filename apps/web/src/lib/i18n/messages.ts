@@ -110,6 +110,14 @@ export type MessageKey =
 	| 'adminUsers.noBooksMessage'
 	| 'adminUsers.bookOptionsUnavailableTitle'
 	| 'adminUsers.bookOptionsUnavailableMessage'
+	| 'adminUsers.bookOptionsPagerLabel'
+	| 'adminUsers.bookOptionsRange'
+	| 'adminUsers.bookOptionsPageStatus'
+	| 'adminUsers.previousBookOptions'
+	| 'adminUsers.nextBookOptions'
+	| 'adminUsers.firstBookOptions'
+	| 'adminUsers.emptyBookOptionsPageTitle'
+	| 'adminUsers.emptyBookOptionsPageMessage'
 	| 'adminUsers.noAssignments'
 	| 'adminUsers.limitedActionsNote'
 	| 'adminUsers.passwordNotRepopulated'
@@ -987,6 +995,14 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'adminUsers.noBooksMessage': 'No active non-archived book options were returned. Users can remain with zero access safely.',
 		'adminUsers.bookOptionsUnavailableTitle': 'Book options are temporarily unavailable',
 		'adminUsers.bookOptionsUnavailableMessage': 'Existing assignments remain visible, but new grants are disabled until the fixed options list loads successfully.',
+		'adminUsers.bookOptionsPagerLabel': 'Book option pages',
+		'adminUsers.bookOptionsRange': 'Showing books {start}–{end} of {total} assignable options.',
+		'adminUsers.bookOptionsPageStatus': 'Book option page limit {limit}, offset {offset}.',
+		'adminUsers.previousBookOptions': 'Previous book options',
+		'adminUsers.nextBookOptions': 'Next book options',
+		'adminUsers.firstBookOptions': 'First book options',
+		'adminUsers.emptyBookOptionsPageTitle': 'No book options on this page',
+		'adminUsers.emptyBookOptionsPageMessage': 'The option list changed after this page was requested. Use the previous or first page link to recover safely.',
 		'adminUsers.noAssignments': 'No book assignments for this user.',
 		'adminUsers.limitedActionsNote': 'This milestone exposes only display-name update, enable/disable, password reset, and explicit book grants.',
 		'adminUsers.passwordNotRepopulated': 'Password fields use autocomplete=new-password and never reuse submitted values.',
@@ -1932,6 +1948,14 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'adminUsers.noBooksMessage': 'API не вернул active non-archived book options. Users могут безопасно оставаться с zero access.',
 		'adminUsers.bookOptionsUnavailableTitle': 'Book options временно недоступны',
 		'adminUsers.bookOptionsUnavailableMessage': 'Existing assignments остаются видимыми, но новые grants отключены, пока fixed options list не загрузится успешно.',
+		'adminUsers.bookOptionsPagerLabel': 'Страницы book options',
+		'adminUsers.bookOptionsRange': 'Показаны books {start}–{end} из {total} assignable options.',
+		'adminUsers.bookOptionsPageStatus': 'Book option page limit {limit}, offset {offset}.',
+		'adminUsers.previousBookOptions': 'Предыдущие book options',
+		'adminUsers.nextBookOptions': 'Следующие book options',
+		'adminUsers.firstBookOptions': 'Первые book options',
+		'adminUsers.emptyBookOptionsPageTitle': 'На этой странице нет book options',
+		'adminUsers.emptyBookOptionsPageMessage': 'Option list изменился после запроса этой страницы. Используйте предыдущую или первую страницу для безопасного восстановления.',
 		'adminUsers.noAssignments': 'У этого user нет book assignments.',
 		'adminUsers.limitedActionsNote': 'В этом milestone доступны только display-name update, enable/disable, password reset и явные book grants.',
 		'adminUsers.passwordNotRepopulated': 'Password fields используют autocomplete=new-password и никогда не reuse submitted values.',

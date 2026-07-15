@@ -84,7 +84,7 @@ assert.doesNotMatch(loginPage, /URLSearchParams|location\.search|safe_message|ra
 assert.match(listServer, /parent\(\)[\s\S]*currentUser = layoutData\.currentUser[\s\S]*apiFetch<AdminUserList>\(fetch, `\/admin\/users\?\$\{params\.toString\(\)\}`, token, cookies\)/s, 'admin list load must reuse session-hardened parent /auth/me and harden admin payload fetch');
 assert.match(newServer, /load: PageServerLoad = async \(\{ cookies, parent \}\)[\s\S]*parent\(\)[\s\S]*isCurrentUserAdmin\(layoutData\.currentUser\)/s, 'admin create load must reuse parent /auth/me');
 assert.match(newServer, /getCurrentUser\(fetchFn, token, cookies\)[\s\S]*adminApiMutationFetch<AdminUserDetail>[\s\S]*'POST'[\s\S]*\}, cookies\)/s, 'admin create action must session-harden live /auth/me and mutation calls');
-assert.match(detailServer, /adminActorFromLayout[\s\S]*parent\(\)[\s\S]*apiFetch<AdminUserDetail>\(fetch, `\/admin\/users\/\$\{userId\}`, token, cookies\)[\s\S]*apiFetch<AdminBookOptionList>\(fetch, '\/admin\/book-access\/books\?limit=50&offset=0', token, cookies\)/s, 'admin detail load must reuse parent /auth/me and parse paginated book options');
+assert.match(detailServer, /adminActorFromLayout[\s\S]*parent\(\)[\s\S]*safeIntegerParam\(url\.searchParams, 'book_limit'[\s\S]*apiFetch<AdminUserDetail>\(fetch, `\/admin\/users\/\$\{userId\}`, token, cookies\)[\s\S]*apiFetch<AdminBookOptionList>\(fetch, `\/admin\/book-access\/books\?\$\{bookParams\.toString\(\)\}`, token, cookies\)/s, 'admin detail load must reuse parent /auth/me and parse bounded paginated book options');
 assert.match(detailServer, /getCurrentUser\(fetchFn, token, cookies\)[\s\S]*redirectToSessionChanged\(cookies\)[\s\S]*adminApiMutationFetch<null>[\s\S]*'DELETE', undefined, cookies\)/s, 'admin detail actions must session-harden live /auth/me, self reset, and mutations');
 
 for (const snippet of [
@@ -94,6 +94,8 @@ for (const snippet of [
 	'revoked selected_book_id must recover to the default openable book cookie',
 	'zero accessible books must delete selected_book_id cookie',
 	'book options API failure safe state',
+	'page-2 book option pagination and grant',
+	'page-1 book options restored after previous navigation',
 	'book_not_found grant maps to book_not_assignable',
 	'other assigned openable selected_book_id must persist without fallback',
 	'direct revoked book URL must render a fixed safe 404 state',

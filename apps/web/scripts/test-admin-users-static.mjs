@@ -116,7 +116,6 @@ assert.ok(newPage.includes('adminUsers.isAdminChoice') && newPage.includes('name
 
 for (const [label, source, endpoint] of [
 	['detail load', detailServer, '`/admin/users/${userId}`'],
-	['book options', detailServer, "'/admin/book-access/books?limit=50&offset=0'"],
 	['display name', detailServer, "`/admin/users/${userId}`"],
 	['enable', detailServer, "`/admin/users/${userId}/enable`"],
 	['disable', detailServer, "`/admin/users/${userId}/disable`"],
@@ -127,7 +126,10 @@ for (const [label, source, endpoint] of [
 	assert.ok(source.includes(endpoint), `${label} must use frozen endpoint ${endpoint}`);
 }
 assert.match(detailServer, /adminActorFromLayout\([\s\S]*currentUser\?\.id \?\? 0[\s\S]*isCurrentUserAdmin\(currentUser\)[\s\S]*parent\(\)[\s\S]*adminActorFromLayout\(layoutData\.currentUser\)/s, 'detail load must derive authority from parent layout /auth/me data without duplicate page-load /auth/me');
-assert.match(detailServer, /apiFetch<AdminBookOptionList>\(fetch, '\/admin\/book-access\/books\?limit=50&offset=0', token, cookies\)[\s\S]*bookOptions = bookOptionPage\.items/s, 'detail load must parse the exact paginated /admin/book-access/books response before exposing book options');
+assert.match(detailServer, /DEFAULT_BOOK_OPTION_LIMIT = 50[\s\S]*MAX_BOOK_OPTION_LIMIT = 100[\s\S]*safeIntegerParam\(url\.searchParams, 'book_limit'[\s\S]*safeIntegerParam\(url\.searchParams, 'book_offset'/s, 'detail load must parse dedicated bounded book option pagination params independently of user-list params');
+assert.match(detailServer, /new URLSearchParams\(\{ limit: String\(bookLimit\), offset: String\(bookOffset\) \}\)[\s\S]*apiFetch<AdminBookOptionList>\(fetch, `\/admin\/book-access\/books\?\$\{bookParams\.toString\(\)\}`, token, cookies\)/s, 'detail load must request the exact bounded /admin/book-access/books limit/offset page');
+assert.match(detailServer, /function emptyBookOptions[\s\S]*total_count: 0[\s\S]*has_next: false[\s\S]*bookOptions = await apiFetch<AdminBookOptionList>/s, 'detail load must retain book option pagination metadata in page data');
+assert.doesNotMatch(detailServer, /while\s*\(|for\s*\([^)]*has_next|admin\/book-access\/books\?limit=(?:500|1000|9999)|offset \+ bookLimit/s, 'detail load must not silently fetch unbounded/all book option pages');
 assert.match(detailServer, /bookOptionsErrorCode: AdminProblemCode \| null = null[\s\S]*bookOptionsErrorCode = 'api_unavailable'[\s\S]*bookOptionsErrorCode/s, 'detail load must distinguish book-options API failure from a true empty options list');
 assert.match(detailServer, /PATCH[\s\S]*display_name: displayName/s, 'detail update must PATCH display_name only');
 assert.match(detailServer, /confirm_disable[\s\S]*\/disable/s, 'disable action must require explicit confirmation');
@@ -137,14 +139,16 @@ assert.match(detailServer, /redirectToSessionChanged\(cookies\)/, 'self reset mu
 assert.match(detailServer, /const ACCESS_ROLES[\s\S]*owner[\s\S]*editor[\s\S]*viewer[\s\S]*return ACCESS_ROLES\.has[\s\S]*: 'viewer'/s, 'grant role parser must allow only owner/editor/viewer and default to viewer');
 assert.match(detailServer, /function secretField[\s\S]*String\(form\.get\(name\) \?\? ''\)[\s\S]*const newPassword = secretField\(form, 'new_password'\)/s, 'reset action must preserve exact submitted password text and not trim it');
 
-assert.match(detailPage, /action="\?\/updateDisplayName"[\s\S]*name="display_name"/s, 'detail page must expose display-name update');
+assert.match(detailPage, /function actionHref\(actionName: string\)[\s\S]*book_limit[\s\S]*book_offset[\s\S]*`\?\/\$\{actionName\}&\$\{params\.toString\(\)\}`/s, 'detail page actions must preserve the current book-option page in SvelteKit named-action URLs');
+assert.match(detailPage, /action=\{actionHref\('updateDisplayName'\)\}[\s\S]*name="display_name"/s, 'detail page must expose display-name update');
 assert.doesNotMatch(detailPage, /name="username"|name="is_admin"|promote|demote|hard delete|username edit|delete user/i, 'detail page must not expose username/admin mutation or delete wording');
 assert.match(detailPage, /name="new_password" required type="password" autocomplete="new-password"/, 'detail reset field must use autocomplete=new-password');
 assert.doesNotMatch(detailPage, /new_password[^>]+value=|password[^>]+bind:value/s, 'detail page must never repopulate password fields');
 assert.match(detailPage, /confirmDisableCopy[\s\S]*disableSubmit[\s\S]*confirmResetCopy[\s\S]*resetPasswordSubmit[\s\S]*confirmRevokeCopy[\s\S]*revokeSubmit/s, 'detail page must render safe confirmations for disable/reset/revoke');
 assert.match(detailPage, /const roles: AdminBookAccessRole\[\] = \['viewer', 'editor', 'owner'\][\s\S]*function roleCopy[\s\S]*adminUsers\.roleCopy\.\$\{role\}[\s\S]*roleBoundary/s, 'detail page must explain viewer/editor/owner honestly');
 assert.match(detailPage, /<option value="viewer" selected>[\s\S]*adminUsers\.role\.viewer/s, 'new grants must default to viewer');
-assert.match(detailPage, /data\.bookOptionsErrorCode[\s\S]*adminUsers\.bookOptionsUnavailableTitle[\s\S]*adminUsers\.bookOptionsUnavailableMessage[\s\S]*data\.bookOptions\.length[\s\S]*adminUsers\.noBooksTitle[\s\S]*data\.user\.assignments\.length[\s\S]*adminUsers\.noAssignments/s, 'detail page must cover options fetch failure, zero books, and zero assignments as distinct states');
+assert.match(detailPage, /bookRangeStart[\s\S]*bookRangeEnd[\s\S]*bookPageHref[\s\S]*book_limit[\s\S]*book_offset[\s\S]*adminUsers\.bookOptionsRange[\s\S]*data\.bookOptions\.has_next[\s\S]*adminUsers\.nextBookOptions/s, 'detail page must consume book option pagination metadata for accessible SSR navigation');
+assert.match(detailPage, /data\.bookOptionsErrorCode[\s\S]*adminUsers\.bookOptionsUnavailableTitle[\s\S]*adminUsers\.bookOptionsUnavailableMessage[\s\S]*bookOptions\.length[\s\S]*isEmptyLaterBookPage[\s\S]*emptyBookOptionsPageTitle[\s\S]*adminUsers\.noBooksTitle[\s\S]*data\.user\.assignments\.length[\s\S]*adminUsers\.noAssignments/s, 'detail page must cover options fetch failure, paged drift, true zero books, and zero assignments as distinct states');
 
 assert.match(desktopNav, /isAdmin = false[\s\S]*showAdminUsers = \$derived\(isAdmin === true\)[\s\S]*href: '\/admin\/users'[\s\S]*nav\.adminUsers/s, 'desktop nav must show admin users only from the root server-provided isAdmin prop');
 assert.match(mobileNav, /isAdmin = false[\s\S]*showAdminUsers = \$derived\(isAdmin === true\)[\s\S]*href: '\/admin\/users'[\s\S]*nav\.adminUsers/s, 'mobile nav must show admin users only from the root server-provided isAdmin prop');
@@ -179,6 +183,10 @@ for (const key of [
 	'adminUsers.problem.unknown_admin_problem',
 	'adminUsers.bookOptionsUnavailableTitle',
 	'adminUsers.bookOptionsUnavailableMessage',
+	'adminUsers.bookOptionsRange',
+	'adminUsers.previousBookOptions',
+	'adminUsers.nextBookOptions',
+	'adminUsers.emptyBookOptionsPageTitle',
 	'adminUsers.success.user_created',
 	'adminUsers.success.book_access_revoked'
 ]) {
@@ -237,7 +245,7 @@ for (const [name, source, endpoint, method, expectedBody] of [
 	assert.ok(source.includes(method), `mocked ${name} action contract must use ${method}`);
 	for (const bodyField of expectedBody) assert.ok(source.includes(bodyField), `mocked ${name} action body must include ${bodyField}`);
 }
-assert.match(detailPage, /data\.bookOptions\.length[\s\S]*option value=\{book\.id\}[\s\S]*data\.user\.assignments\.length/s, 'mocked access matrix coverage must include multiple book options and assignments');
+assert.match(detailPage, /bookOptions\.length[\s\S]*option value=\{book\.id\}[\s\S]*data\.user\.assignments\.length/s, 'mocked access matrix coverage must include multiple book options and assignments');
 
 const adminRouteFiles = walk(pathOf('src', 'routes', 'admin', 'users')).filter((file) => /\.(svelte|ts)$/.test(file));
 for (const file of adminRouteFiles) {

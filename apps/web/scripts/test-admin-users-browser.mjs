@@ -124,9 +124,19 @@ function syntheticBooks(kind = 'admin') {
 	];
 }
 
+const pageTwoBookOption = { id: 51, name: 'Synthetic Page Two Grant Book 51', is_default: false };
 const bookOptions = [
 	{ id: 1, name: 'Synthetic Admin Users Book', is_default: true },
-	{ id: 2, name: 'Synthetic Reports Access Book', is_default: false }
+	{ id: 2, name: 'Synthetic Reports Access Book', is_default: false },
+	...Array.from({ length: 48 }, (_, index) => {
+		const id = index + 3;
+		return { id, name: `Synthetic Book Option ${String(id).padStart(2, '0')}`, is_default: false };
+	}),
+	pageTwoBookOption,
+	...Array.from({ length: 14 }, (_, index) => {
+		const id = index + 52;
+		return { id, name: `Synthetic Book Option ${String(id).padStart(2, '0')}`, is_default: false };
+	})
 ];
 
 function now(offset = 0) {
@@ -305,6 +315,20 @@ async function startSyntheticApi() {
 		};
 	}
 
+	function bookOptionsPayload(url, kind) {
+		const limit = Math.max(1, Math.min(100, Number(url.searchParams.get('limit') ?? '50') || 50));
+		const offset = Math.max(0, Number(url.searchParams.get('offset') ?? '0') || 0);
+		const items = kind === 'zero-books' ? [] : bookOptions;
+		const pageItems = items.slice(offset, offset + limit);
+		return {
+			items: pageItems,
+			total_count: items.length,
+			limit,
+			offset,
+			has_next: offset + limit < items.length
+		};
+	}
+
 	async function handler(req, res) {
 		const url = new URL(req.url ?? '/', 'http://127.0.0.1');
 		const method = req.method ?? 'GET';
@@ -342,8 +366,7 @@ async function startSyntheticApi() {
 		if (method === 'GET' && url.pathname === '/admin/book-access/books') {
 			if (!requireAdmin(req, res)) return;
 			if (bookOptionsMode === 'fail') return jsonResponse(res, 500, unknownProblem());
-			const items = kind === 'zero-books' ? [] : bookOptions;
-			return jsonResponse(res, 200, { items, total_count: items.length, limit: 50, offset: 0, has_next: false });
+			return jsonResponse(res, 200, bookOptionsPayload(url, kind));
 		}
 		if (method === 'POST' && url.pathname === '/admin/users') {
 			if (!requireAdmin(req, res)) return;
@@ -641,6 +664,11 @@ function jsString(value) {
 	return JSON.stringify(value);
 }
 
+function detailAction(actionName, limit = 50, offset = 0) {
+	const params = new URLSearchParams({ book_limit: String(limit), book_offset: String(offset) });
+	return `?/${actionName}&${params.toString()}`;
+}
+
 async function navigate(cdp, webBase, path, label, readyPath = path.split('?')[0]) {
 	const load = waitForCdpEvent(cdp, 'Page.loadEventFired', label, 30000).catch(() => null);
 	await cdp.send('Page.navigate', { url: `${webBase}${path}` });
@@ -678,6 +706,7 @@ async function pageSnapshot(cdp) {
 		adminNavLinks: document.querySelectorAll('header nav a[href="/admin/users"], nav[aria-label="Mobile navigation"] a[href="/admin/users"]').length,
 		activeAdminNavLinks: document.querySelectorAll('a[href="/admin/users"][aria-current="page"][data-active-route="true"]').length,
 		bookOptions: Array.from(document.querySelectorAll('select[aria-label="Select book"] option')).map((option) => ({ value: option.value, text: option.textContent ?? '' })),
+		grantBookOptions: Array.from(document.querySelectorAll('form[action*="/grantAccess"] select[name="book_id"] option')).map((option) => ({ value: option.value, text: option.textContent ?? '' })),
 		passwordValues: Array.from(document.querySelectorAll('input[type="password"]')).map((input) => input.value)
 	}))()`);
 }
@@ -967,6 +996,37 @@ async function runSmoke() {
 		assert.match(snapshot.bodyText, /Page or book not found|requested page, book, account, or transaction was not found|Requested item was not found/i, `direct revoked book URL must render a fixed safe 404 state; body=${snapshot.bodyText.slice(0, 800)}`);
 		assert.doesNotMatch(snapshot.bodyText, new RegExp(revokedBookName), 'direct revoked book URL must not render stale revoked book metadata');
 
+		await navigate(cdp, webBase, '/admin/users/2?book_limit=50&book_offset=0', 'page-1 book option pagination');
+		snapshot = await pageSnapshot(cdp);
+		snapshots.push(snapshot);
+		assert.match(snapshot.bodyText, /Showing books 1–50 of 65 assignable options\.[\s\S]*Next book options/s, 'page 1 must render book option range and next navigation');
+		assert.equal(snapshot.grantBookOptions.some((option) => option.value === String(pageTwoBookOption.id) || option.text.includes(pageTwoBookOption.name)), false, 'page 1 must not expose page-2 option in the assignment selector');
+		const nextBookHref = snapshot.links.find((href) => href === '?book_limit=50&book_offset=50' || href.endsWith('?book_limit=50&book_offset=50'));
+		assert.ok(nextBookHref, 'page 1 must expose a bounded next book-options SSR link');
+
+		await navigate(cdp, webBase, `/admin/users/2${nextBookHref.startsWith('?') ? nextBookHref : new URL(nextBookHref).search}`, 'page-2 book option pagination and grant');
+		snapshot = await pageSnapshot(cdp);
+		snapshots.push(snapshot);
+		assert.match(snapshot.bodyText, /Showing books 51–65 of 65 assignable options\.[\s\S]*Previous book options/s, 'page 2 must render bounded book option range and previous navigation');
+		assert.ok(snapshot.grantBookOptions.some((option) => option.value === String(pageTwoBookOption.id) && option.text.includes(pageTwoBookOption.name)), 'page 2 assignment selector must expose the deterministic page-2 book option');
+		assert.equal(snapshot.grantBookOptions.some((option) => option.value === '1'), false, 'page 2 assignment selector must not client-side carry page-1 options');
+		await assertMobileAccessibility(cdp, 'page-2 book option pagination and grant');
+
+		await submitForm(cdp, detailAction('grantAccess', 50, 50), { book_id: String(pageTwoBookOption.id), role: 'editor' }, {}, 'grant page-2 book access');
+		await waitForExpression(cdp, `document.body.innerText.includes('Book access granted or updated.') && document.body.innerText.includes(${jsString(pageTwoBookOption.name)})`, 'page-2 grant success', 30000);
+		snapshot = await pageSnapshot(cdp);
+		snapshots.push(snapshot);
+		assert.deepEqual(api.mutationBodies.filter((entry) => entry.kind === 'grant').at(-1), { kind: 'grant', userId: 2, bookId: pageTwoBookOption.id, body: { role: 'editor' } }, 'page-2 grant action must submit the exact book id in the URL and bounded role DTO body');
+		const previousBookHref = snapshot.links.find((href) => href === '?book_limit=50&book_offset=0' || href.endsWith('?book_limit=50&book_offset=0'));
+		assert.ok(previousBookHref, 'page 2 must preserve a safe previous book-options SSR link after grant');
+
+		await navigate(cdp, webBase, `/admin/users/2${previousBookHref.startsWith('?') ? previousBookHref : new URL(previousBookHref).search}`, 'page-1 book options restored after previous navigation');
+		snapshot = await pageSnapshot(cdp);
+		snapshots.push(snapshot);
+		assert.match(snapshot.bodyText, /Showing books 1–50 of 65 assignable options\./, 'previous book-options navigation must restore page 1 range');
+		assert.equal(snapshot.grantBookOptions.some((option) => option.value === String(pageTwoBookOption.id)), false, 'previous navigation must restore the page-1 assignment selector without page-2 options');
+		assert.ok(snapshot.grantBookOptions.some((option) => option.value === '1'), 'previous navigation must restore page-1 book options');
+
 		await setSession(cdp, webBase, adminToken, 'en');
 
 		await navigate(cdp, webBase, '/admin/users?limit=50&offset=100&state=all', 'admin users empty list');
@@ -1048,44 +1108,44 @@ async function runSmoke() {
 		api.setBookOptionsMode('normal');
 		await navigate(cdp, webBase, '/admin/users/3', 'admin user detail after book options recovery');
 
-		await submitForm(cdp, '?/updateDisplayName', { display_name: 'Browser Renamed' }, {}, 'update display name success');
+		await submitForm(cdp, detailAction('updateDisplayName'), { display_name: 'Browser Renamed' }, {}, 'update display name success');
 		await waitForExpression(cdp, `document.body.innerText.includes('Display name updated.') && document.body.innerText.includes('Browser Renamed')`, 'display name update success', 30000);
 		snapshot = await pageSnapshot(cdp);
 		snapshots.push(snapshot);
 		assert.match(snapshot.bodyText, /Display name updated\./, 'display name success state must render');
 
-		await submitForm(cdp, '?/updateDisplayName', { display_name: 'bad-display' }, {}, 'update display name 422');
+		await submitForm(cdp, detailAction('updateDisplayName'), { display_name: 'bad-display' }, {}, 'update display name 422');
 		await waitForExpression(cdp, `document.body.innerText.includes('Display name is missing or outside the allowed length/character policy.')`, 'display name 422 safe copy', 30000);
 		snapshot = await pageSnapshot(cdp);
 		snapshots.push(snapshot);
 		assert.doesNotMatch(snapshot.bodyText, /RAW_SQL|PASSWORD_HASH|Syncthing|only-copy/i, '422 update error must redact arbitrary backend body');
 
-		await submitForm(cdp, '?/updateDisplayName', { display_name: 'unknown-display' }, {}, 'update display name unknown');
+		await submitForm(cdp, detailAction('updateDisplayName'), { display_name: 'unknown-display' }, {}, 'update display name unknown');
 		await waitForExpression(cdp, `document.body.innerText.includes('The admin action failed safely. Unknown backend details were redacted.')`, 'unknown backend safe copy', 30000);
 		snapshot = await pageSnapshot(cdp);
 		snapshots.push(snapshot);
 		assert.doesNotMatch(snapshot.bodyText, /RAW_SQL|PASSWORD_HASH|Syncthing|only-copy|canonical_path/i, 'unknown update error must not render raw backend body');
 
-		await submitForm(cdp, '?/disableUser', {}, { confirm_disable: true }, 'disable user success');
+		await submitForm(cdp, detailAction('disableUser'), {}, { confirm_disable: true }, 'disable user success');
 		await waitForExpression(cdp, `document.body.innerText.includes('User disabled.') && document.body.innerText.includes('Enable user')`, 'disable success', 30000);
 		snapshot = await pageSnapshot(cdp);
 		snapshots.push(snapshot);
 		assert.match(snapshot.bodyText, /User disabled\.[\s\S]*Enable user/s, 'disable confirmation and success state must render');
 
-		await submitForm(cdp, '?/enableUser', {}, {}, 'enable user success');
+		await submitForm(cdp, detailAction('enableUser'), {}, {}, 'enable user success');
 		await waitForExpression(cdp, `document.body.innerText.includes('User enabled.') && document.body.innerText.includes('Disable user')`, 'enable success', 30000);
 		snapshot = await pageSnapshot(cdp);
 		snapshots.push(snapshot);
 		assert.match(snapshot.bodyText, /User enabled\.[\s\S]*Disable user/s, 'enable success state must render');
 
-		await submitForm(cdp, '?/resetPassword', { new_password: exactResetPassword }, { confirm_reset: true }, 'reset password success');
+		await submitForm(cdp, detailAction('resetPassword'), { new_password: exactResetPassword }, { confirm_reset: true }, 'reset password success');
 		await waitForExpression(cdp, `document.body.innerText.includes('Password reset; existing sessions are invalidated on the next request.')`, 'reset success', 30000);
 		snapshot = await pageSnapshot(cdp);
 		snapshots.push(snapshot);
 		assert.equal(api.resetBodies.at(-1)?.new_password, exactResetPassword, 'reset action must submit exact password text');
 		assert.deepEqual(snapshot.passwordValues, [''], 'reset password field must not retain submitted password');
 
-		await submitForm(cdp, '?/resetPassword', { new_password: 'session-change-password' }, { confirm_reset: true }, 'reset password 401');
+		await submitForm(cdp, detailAction('resetPassword'), { new_password: 'session-change-password' }, { confirm_reset: true }, 'reset password 401');
 		await waitForExpression(cdp, `location.pathname === '/login' && location.search === '?reason=session_changed' && document.body.innerText.includes('Session changed. Sign in again to continue.')`, 'reset 401 fixed login redirect', 30000);
 		snapshot = await pageSnapshot(cdp);
 		snapshots.push(snapshot);
@@ -1098,21 +1158,21 @@ async function runSmoke() {
 		await setSession(cdp, webBase, adminToken, 'en');
 		await navigate(cdp, webBase, '/admin/users/3', 'admin user detail after 401 reset recovery');
 
-		await submitForm(cdp, '?/grantAccess', { book_id: '2', role: 'editor' }, {}, 'grant editor access');
+		await submitForm(cdp, detailAction('grantAccess'), { book_id: '2', role: 'editor' }, {}, 'grant editor access');
 		await waitForExpression(cdp, `document.body.innerText.includes('Book access granted or updated.') && document.body.innerText.includes('Synthetic Reports Access Book')`, 'grant success', 30000);
 		snapshot = await pageSnapshot(cdp);
 		snapshots.push(snapshot);
 		assert.match(snapshot.bodyText, /Book access granted or updated\.[\s\S]*Editor[\s\S]*no GnuCash writes are enabled/s, 'grant success must show editor app-metadata-only copy');
 		assert.deepEqual(api.mutationBodies.filter((entry) => entry.kind === 'grant').at(-1)?.body, { role: 'editor' }, 'grant action must submit bounded role only');
 
-		await submitForm(cdp, '?/grantAccess', { book_id: '2', role: 'owner' }, {}, 'book_not_found grant maps to book_not_assignable');
+		await submitForm(cdp, detailAction('grantAccess'), { book_id: '2', role: 'owner' }, {}, 'book_not_found grant maps to book_not_assignable');
 		await waitForExpression(cdp, `document.body.innerText.includes('That book is not active and assignable.')`, 'book_not_found grant safe copy', 30000);
 		snapshot = await pageSnapshot(cdp);
 		snapshots.push(snapshot);
 		assert.match(snapshot.bodyText, /That book is not active and assignable\./, 'book_not_found grant must map to fixed book_not_assignable copy');
 		assert.doesNotMatch(snapshot.bodyText, /The requested user was not found|book_not_found|RAW_SQL|PASSWORD_HASH|Syncthing|only-copy/i, 'book_not_found grant must not fall back to user_not_found or leak raw backend body');
 
-		await submitForm(cdp, '?/revokeAccess', {}, { confirm_revoke: true }, 'revoke access');
+		await submitForm(cdp, detailAction('revokeAccess'), {}, { confirm_revoke: true }, 'revoke access');
 		await waitForExpression(cdp, `document.body.innerText.includes('Book access revoked.') && document.body.innerText.includes('No book assignments for this user.')`, 'revoke success', 30000);
 		snapshot = await pageSnapshot(cdp);
 		snapshots.push(snapshot);
@@ -1163,7 +1223,7 @@ async function runSmoke() {
 		assert.deepEqual(forbiddenBrowserProductWriteRequests(browserRequests), [], 'browser must observe zero product/GnuCash write-capable requests');
 		assertNoSentinelLeaks(snapshots, browserRequests, consoleMessages, api.requests, 'admin users browser smoke');
 
-		console.log(`admin users browser smoke passed: scenarios=list-empty-pagination-status-create-detail-update-enable-disable-reset-grant-revoke selected_book_revoked_fallback zero_books_cookie_delete zero_books_admin_routes book_options_failure book_not_found_grant other_book_persists direct_revoked_safe_404 errors=401/403/404/409/422/unknown expired_session_path=${snapshot.pathname}${snapshot.search} expired_session_copy=session_changed expired_cookies_cleared=access_token,selected_book_id admin_mutation_401_cookies_cleared=access_token,selected_book_id expired_admin_payload_calls=0 normal_user_admin_api_calls=0 product_write_calls=${api.forbiddenProductWriteRequests.length} browser_product_write_calls=${forbiddenBrowserProductWriteRequests(browserRequests).length} secret_sentinel_leaks=0 viewport_width=320 gnucash_writes_enabled=false`);
+		console.log(`admin users browser smoke passed: scenarios=list-empty-pagination-status-create-detail-update-enable-disable-reset-grant-revoke selected_book_revoked_fallback zero_books_cookie_delete zero_books_admin_routes book_options_paged_page1_page2_previous page2_grant_exact_dto book_options_failure book_not_found_grant other_book_persists direct_revoked_safe_404 errors=401/403/404/409/422/unknown expired_session_path=${snapshot.pathname}${snapshot.search} expired_session_copy=session_changed expired_cookies_cleared=access_token,selected_book_id admin_mutation_401_cookies_cleared=access_token,selected_book_id expired_admin_payload_calls=0 normal_user_admin_api_calls=0 product_write_calls=${api.forbiddenProductWriteRequests.length} browser_product_write_calls=${forbiddenBrowserProductWriteRequests(browserRequests).length} secret_sentinel_leaks=0 viewport_width=320 gnucash_writes_enabled=false`);
 	} catch (error) {
 		const webTail = webProcess?.outputTail?.() ?? '';
 		const chromiumTail = chromiumProcess?.outputTail?.() ?? '';
