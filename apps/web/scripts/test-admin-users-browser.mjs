@@ -1013,18 +1013,19 @@ async function runSmoke() {
 		const expiredLoad = waitForCdpEvent(cdp, 'Page.loadEventFired', 'expired session safe state', 30000).catch(() => null);
 		await cdp.send('Page.navigate', { url: `${webBase}/admin/users` });
 		await expiredLoad;
-		await waitForExpression(cdp, `document.readyState !== 'loading'`, 'expired session safe state', 30000);
+		await waitForExpression(cdp, `document.readyState !== 'loading' && location.pathname === '/login'`, 'expired session redirects to login', 30000);
 		snapshot = await pageSnapshot(cdp);
 		snapshots.push(snapshot);
-		assert.ok(snapshot.pathname === '/login' || /Session changed|Sign in|Admin API is unavailable|Something went wrong/.test(snapshot.bodyText), `expired 401 session must land on a safe login/session state; path=${snapshot.pathname} body=${snapshot.bodyText.slice(0, 800)}`);
+		assert.equal(snapshot.pathname, '/login', `expired 401 session must redirect to the fixed login page; body=${snapshot.bodyText.slice(0, 800)}`);
+		assert.match(snapshot.bodyText, /Sign in[\s\S]*Use the configured admin account to continue\./, `expired 401 login page must render fixed sign-in copy; body=${snapshot.bodyText.slice(0, 800)}`);
+		assert.doesNotMatch(snapshot.bodyText, /Something went wrong|Admin API is unavailable|RAW_SQL|PASSWORD_HASH|Syncthing|only-copy|JWT_SENTINEL|canonical_path/i, 'expired 401 login state must reject generic errors, raw backend details, and sentinels');
 		assertNoAdminPayloadRequests(requestsSince(api, beforeExpired), 'expired 401 session');
-		assert.doesNotMatch(snapshot.bodyText, /RAW_SQL|PASSWORD_HASH|Syncthing|only-copy/i, 'expired login state must not render raw backend body');
 
 		assert.deepEqual(api.forbiddenProductWriteRequests, [], 'synthetic API must observe zero product/GnuCash write-capable requests');
 		assert.deepEqual(forbiddenBrowserProductWriteRequests(browserRequests), [], 'browser must observe zero product/GnuCash write-capable requests');
 		assertNoSentinelLeaks(snapshots, browserRequests, consoleMessages, api.requests, 'admin users browser smoke');
 
-		console.log(`admin users browser smoke passed: scenarios=list-empty-pagination-status-create-detail-update-enable-disable-reset-grant-revoke errors=401/403/404/409/422/unknown normal_user_admin_api_calls=0 product_write_calls=${api.forbiddenProductWriteRequests.length} browser_product_write_calls=${forbiddenBrowserProductWriteRequests(browserRequests).length} secret_sentinel_leaks=0 viewport_width=320 gnucash_writes_enabled=false`);
+		console.log(`admin users browser smoke passed: scenarios=list-empty-pagination-status-create-detail-update-enable-disable-reset-grant-revoke errors=401/403/404/409/422/unknown expired_session_path=${snapshot.pathname} expired_session_copy=sign_in expired_admin_payload_calls=0 normal_user_admin_api_calls=0 product_write_calls=${api.forbiddenProductWriteRequests.length} browser_product_write_calls=${forbiddenBrowserProductWriteRequests(browserRequests).length} secret_sentinel_leaks=0 viewport_width=320 gnucash_writes_enabled=false`);
 	} catch (error) {
 		const webTail = webProcess?.outputTail?.() ?? '';
 		const chromiumTail = chromiumProcess?.outputTail?.() ?? '';
