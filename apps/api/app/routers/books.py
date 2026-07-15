@@ -458,7 +458,11 @@ def _storage_diagnostics_for(book: Book) -> dict[str, Any]:
 def _access_role_for(book: Book, user: User | None) -> str | None:
     if user is None:
         return None
-    for entry in book.access_entries:
+    user_id = int(user.id)
+    if getattr(book, "_current_user_access_user_id", None) == user_id:
+        role = getattr(book, "_current_user_access_role", None)
+        return role if isinstance(role, str) else None
+    for entry in book.__dict__.get("access_entries", []):
         if entry.user_id == user.id:
             return entry.role
     return None
@@ -645,7 +649,7 @@ def serialize_book(book: Book, user: User | None = None) -> dict[str, Any]:
 
 def resolve_viewable_book(book_id: int, user: User, session: Session) -> Book:
     """Resolve a book and require current user view access."""
-    book = BookRegistryService(session).get_book(book_id)
+    book = BookRegistryService(session).get_book_for_user(book_id, user)
     if book is None or book.is_archived:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -888,6 +892,8 @@ async def register_book(
         session.flush()
         _persist_successful_health(session, book, probe)
         session.add(UserBookAccess(user_id=user.id, book_id=book.id, role="owner"))
+        setattr(book, "_current_user_access_user_id", int(user.id))
+        setattr(book, "_current_user_access_role", "owner")
         session.commit()
     except IntegrityError as exc:
         session.rollback()

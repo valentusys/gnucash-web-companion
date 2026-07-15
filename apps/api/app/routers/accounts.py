@@ -32,7 +32,7 @@ router = APIRouter(tags=["accounts"])
 
 def resolve_default_viewable_book(user: User, session: Session) -> Book:
     """Resolve default book and require current user view access."""
-    book = BookRegistryService(session).get_default_book()
+    book = BookRegistryService(session).get_default_book_for_user(user)
     if book is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
