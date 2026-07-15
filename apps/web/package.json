@@ -17,6 +17,7 @@
 		"test:dashboard-browser": "npm run build && node scripts/test-dashboard-browser.mjs",
 		"test:accounts-explorer": "node scripts/test-accounts-explorer-static.mjs",
 		"test:admin-users": "node scripts/test-admin-users-static.mjs",
+		"test:admin-users-browser": "npm run build && node scripts/test-admin-users-browser.mjs",
 		"test:books-onboarding": "node scripts/test-books-onboarding-static.mjs",
 		"test:books-onboarding-browser": "npm run build && node scripts/test-books-onboarding-browser.mjs",
 		"test:accounts-explorer-browser": "npm run build && node scripts/test-accounts-explorer-browser.mjs",
