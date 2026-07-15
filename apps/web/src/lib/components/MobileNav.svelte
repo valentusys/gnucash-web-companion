@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import BookSwitcher from '$lib/components/BookSwitcher.svelte';
 	import LocaleSwitcher from '$lib/components/LocaleSwitcher.svelte';
 	import ThemeSwitcher from '$lib/components/ThemeSwitcher.svelte';
@@ -10,10 +11,13 @@
 		activeBook,
 		locale = DEFAULT_LOCALE,
 		currentPath = '/dashboard',
-		returnTo = '/dashboard'
-	}: { books: Book[]; activeBook: Book | null; locale?: Locale; currentPath?: string; returnTo?: string } = $props();
+		returnTo = '/dashboard',
+		isAdmin = undefined
+	}: { books: Book[]; activeBook: Book | null; locale?: Locale; currentPath?: string; returnTo?: string; isAdmin?: boolean } = $props();
 
 	let menuOpen = $state(false);
+	const pageData = $derived(page.data as { isAdmin?: boolean });
+	const showAdminUsers = $derived(isAdmin === true || (isAdmin === undefined && pageData.isAdmin === true));
 
 	const navLinks = $derived([
 		{ href: '/dashboard', label: t(locale, 'nav.dashboard'), icon: 'home' },
@@ -21,7 +25,8 @@
 		{ href: '/transactions', label: t(locale, 'nav.transactions'), icon: 'transactions' },
 		{ href: '/scheduled', label: t(locale, 'nav.scheduled'), icon: 'scheduled' },
 		{ href: '/reports', label: t(locale, 'nav.reports'), icon: 'reports' },
-		{ href: '/books', label: t(locale, 'nav.books'), icon: 'books' }
+		{ href: '/books', label: t(locale, 'nav.books'), icon: 'books' },
+		...(showAdminUsers ? [{ href: '/admin/users', label: t(locale, 'nav.adminUsers'), icon: 'admin-users' }] : [])
 	] as const);
 
 	function isActivePath(href: string): boolean {
@@ -51,6 +56,8 @@
 				return `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6" rx="1"/><rect x="12" y="7" width="3" height="10" rx="1"/><rect x="17" y="5" width="3" height="12" rx="1"/></svg>`;
 			case 'books':
 				return `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>`;
+			case 'admin-users':
+				return `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`;
 			default:
 				return '';
 		}

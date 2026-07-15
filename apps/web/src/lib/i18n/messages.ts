@@ -35,7 +35,108 @@ export type MessageKey =
 	| 'nav.scheduled'
 	| 'nav.reports'
 	| 'nav.books'
+	| 'nav.adminUsers'
 	| 'nav.logout'
+	| 'adminUsers.kicker'
+	| 'adminUsers.title'
+	| 'adminUsers.subtitle'
+	| 'adminUsers.backToUsers'
+	| 'adminUsers.createUser'
+	| 'adminUsers.listTitle'
+	| 'adminUsers.listHelp'
+	| 'adminUsers.loading'
+	| 'adminUsers.emptyTitle'
+	| 'adminUsers.emptyMessage'
+	| 'adminUsers.adminRequiredTitle'
+	| 'adminUsers.adminRequiredMessage'
+	| 'adminUsers.safeBoundaryBadge'
+	| 'adminUsers.username'
+	| 'adminUsers.displayName'
+	| 'adminUsers.status'
+	| 'adminUsers.enabled'
+	| 'adminUsers.disabled'
+	| 'adminUsers.adminBadge'
+	| 'adminUsers.userBadge'
+	| 'adminUsers.assignmentCount'
+	| 'adminUsers.createdAt'
+	| 'adminUsers.updatedAt'
+	| 'adminUsers.actions'
+	| 'adminUsers.viewDetails'
+	| 'adminUsers.previousPage'
+	| 'adminUsers.nextPage'
+	| 'adminUsers.stateFilter'
+	| 'adminUsers.stateAll'
+	| 'adminUsers.stateEnabled'
+	| 'adminUsers.stateDisabled'
+	| 'adminUsers.applyFilter'
+	| 'adminUsers.newTitle'
+	| 'adminUsers.newSubtitle'
+	| 'adminUsers.createTitle'
+	| 'adminUsers.usernameHelp'
+	| 'adminUsers.displayNameHelp'
+	| 'adminUsers.initialPassword'
+	| 'adminUsers.passwordHelp'
+	| 'adminUsers.isAdminChoice'
+	| 'adminUsers.isAdminHelp'
+	| 'adminUsers.zeroAccessDefault'
+	| 'adminUsers.createSubmit'
+	| 'adminUsers.detailTitle'
+	| 'adminUsers.detailSubtitle'
+	| 'adminUsers.summaryTitle'
+	| 'adminUsers.updateDisplayNameTitle'
+	| 'adminUsers.updateDisplayNameHelp'
+	| 'adminUsers.updateDisplayNameSubmit'
+	| 'adminUsers.enableTitle'
+	| 'adminUsers.enableHelp'
+	| 'adminUsers.enableSubmit'
+	| 'adminUsers.disableTitle'
+	| 'adminUsers.disableHelp'
+	| 'adminUsers.confirmDisableCopy'
+	| 'adminUsers.disableSubmit'
+	| 'adminUsers.resetPasswordTitle'
+	| 'adminUsers.resetPasswordHelp'
+	| 'adminUsers.newPassword'
+	| 'adminUsers.confirmResetCopy'
+	| 'adminUsers.resetPasswordSubmit'
+	| 'adminUsers.accessTitle'
+	| 'adminUsers.accessHelp'
+	| 'adminUsers.book'
+	| 'adminUsers.role'
+	| 'adminUsers.grantSubmit'
+	| 'adminUsers.revokeSubmit'
+	| 'adminUsers.confirmRevokeCopy'
+	| 'adminUsers.noBooksTitle'
+	| 'adminUsers.noBooksMessage'
+	| 'adminUsers.noAssignments'
+	| 'adminUsers.limitedActionsNote'
+	| 'adminUsers.passwordNotRepopulated'
+	| 'adminUsers.role.viewer'
+	| 'adminUsers.role.editor'
+	| 'adminUsers.role.owner'
+	| 'adminUsers.roleCopy.viewer'
+	| 'adminUsers.roleCopy.editor'
+	| 'adminUsers.roleCopy.owner'
+	| 'adminUsers.roleBoundary'
+	| 'adminUsers.problem.username_invalid'
+	| 'adminUsers.problem.username_taken'
+	| 'adminUsers.problem.display_name_invalid'
+	| 'adminUsers.problem.password_policy'
+	| 'adminUsers.problem.user_not_found'
+	| 'adminUsers.problem.user_disabled'
+	| 'adminUsers.problem.session_changed'
+	| 'adminUsers.problem.self_disable_forbidden'
+	| 'adminUsers.problem.last_enabled_admin'
+	| 'adminUsers.problem.book_not_assignable'
+	| 'adminUsers.problem.admin_required'
+	| 'adminUsers.problem.api_unavailable'
+	| 'adminUsers.problem.unknown_admin_problem'
+	| 'adminUsers.success.user_created'
+	| 'adminUsers.success.display_name_changed'
+	| 'adminUsers.success.user_enabled'
+	| 'adminUsers.success.user_disabled'
+	| 'adminUsers.success.password_reset'
+	| 'adminUsers.success.book_access_granted'
+	| 'adminUsers.success.book_access_revoked'
 	| 'safety.statusLabel'
 	| 'safety.badge'
 	| 'safety.message'
@@ -808,7 +909,108 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'nav.scheduled': 'Scheduled',
 		'nav.reports': 'Reports',
 		'nav.books': 'Books',
+		'nav.adminUsers': 'Admin users',
 		'nav.logout': 'Logout',
+		'adminUsers.kicker': 'Admin foundation',
+		'adminUsers.title': 'User and book access administration',
+		'adminUsers.subtitle': 'Server-rendered local-user management for self-hosted installs. The backend remains authoritative and GnuCash data stays read-only.',
+		'adminUsers.backToUsers': 'Back to admin users',
+		'adminUsers.createUser': 'Create user',
+		'adminUsers.listTitle': 'Local users',
+		'adminUsers.listHelp': 'Bounded list from /admin/users. Normal users do not receive user or access payloads from SSR.',
+		'adminUsers.loading': 'Loading admin user data…',
+		'adminUsers.emptyTitle': 'No local users returned',
+		'adminUsers.emptyMessage': 'The bounded admin API returned an empty page. Create a user or adjust the enabled/disabled filter.',
+		'adminUsers.adminRequiredTitle': 'Administrator account required',
+		'adminUsers.adminRequiredMessage': 'This page intentionally withholds admin user and access payloads unless /auth/me reports is_admin=true. Backend authorization is still authoritative.',
+		'adminUsers.safeBoundaryBadge': 'App metadata only — no GnuCash writes',
+		'adminUsers.username': 'Username',
+		'adminUsers.displayName': 'Display name',
+		'adminUsers.status': 'Status',
+		'adminUsers.enabled': 'Enabled',
+		'adminUsers.disabled': 'Disabled',
+		'adminUsers.adminBadge': 'Admin',
+		'adminUsers.userBadge': 'User',
+		'adminUsers.assignmentCount': 'Book assignments',
+		'adminUsers.createdAt': 'Created',
+		'adminUsers.updatedAt': 'Updated',
+		'adminUsers.actions': 'Actions',
+		'adminUsers.viewDetails': 'Manage user',
+		'adminUsers.previousPage': 'Previous page',
+		'adminUsers.nextPage': 'Next page',
+		'adminUsers.stateFilter': 'Enabled state',
+		'adminUsers.stateAll': 'All users',
+		'adminUsers.stateEnabled': 'Enabled only',
+		'adminUsers.stateDisabled': 'Disabled only',
+		'adminUsers.applyFilter': 'Apply filter',
+		'adminUsers.newTitle': 'Create local user',
+		'adminUsers.newSubtitle': 'Create one local account. Username and admin choice are immutable in this milestone; book access starts empty unless an admin grants it later.',
+		'adminUsers.createTitle': 'User credentials',
+		'adminUsers.usernameHelp': 'Lowercase ASCII username, 3–64 characters, starting with a letter. It cannot be edited later.',
+		'adminUsers.displayNameHelp': '1–100 visible characters. This is the only editable profile label in #57.',
+		'adminUsers.initialPassword': 'Initial password',
+		'adminUsers.passwordHelp': 'Password is sent only to the server action and never repopulated after errors.',
+		'adminUsers.isAdminChoice': 'Create as global admin',
+		'adminUsers.isAdminHelp': 'Admins can manage local users and book assignments. Book owner/editor/viewer roles do not grant global admin.',
+		'adminUsers.zeroAccessDefault': 'New users start with zero book access by default; the default book never grants access by itself.',
+		'adminUsers.createSubmit': 'Create user',
+		'adminUsers.detailTitle': 'User detail',
+		'adminUsers.detailSubtitle': 'Manage display name, enabled state, password reset, and explicit active-book assignments.',
+		'adminUsers.summaryTitle': 'Safe user summary',
+		'adminUsers.updateDisplayNameTitle': 'Display name update',
+		'adminUsers.updateDisplayNameHelp': 'Only display name can be edited here. Username and admin role are intentionally not editable.',
+		'adminUsers.updateDisplayNameSubmit': 'Update display name',
+		'adminUsers.enableTitle': 'Enable account',
+		'adminUsers.enableHelp': 'Enabling lets the user sign in again with current credentials or after a reset.',
+		'adminUsers.enableSubmit': 'Enable user',
+		'adminUsers.disableTitle': 'Disable account',
+		'adminUsers.disableHelp': 'Disable blocks the next authenticated request after backend auth-version enforcement; self-disable and last-admin checks remain backend enforced.',
+		'adminUsers.confirmDisableCopy': 'I understand this disables the local account only; it does not delete users, books, audit rows, or GnuCash data.',
+		'adminUsers.disableSubmit': 'Disable user',
+		'adminUsers.resetPasswordTitle': 'Password reset',
+		'adminUsers.resetPasswordHelp': 'Reset replaces only the server-side secret and invalidates existing sessions on the next request. The new value is never shown again.',
+		'adminUsers.newPassword': 'New password',
+		'adminUsers.confirmResetCopy': 'I understand this reset invalidates existing sessions and the password field will not be repopulated.',
+		'adminUsers.resetPasswordSubmit': 'Reset password',
+		'adminUsers.accessTitle': 'Book access matrix',
+		'adminUsers.accessHelp': 'Grant only active, non-archived books. New grants default to viewer; owner/editor labels do not enable GnuCash writes or global admin.',
+		'adminUsers.book': 'Book',
+		'adminUsers.role': 'Role',
+		'adminUsers.grantSubmit': 'Grant or update access',
+		'adminUsers.revokeSubmit': 'Revoke access',
+		'adminUsers.confirmRevokeCopy': 'I understand revoke removes this app access on the next request and does not modify the GnuCash book.',
+		'adminUsers.noBooksTitle': 'No assignable active books',
+		'adminUsers.noBooksMessage': 'No active non-archived book options were returned. Users can remain with zero access safely.',
+		'adminUsers.noAssignments': 'No book assignments for this user.',
+		'adminUsers.limitedActionsNote': 'This milestone exposes only display-name update, enable/disable, password reset, and explicit book grants.',
+		'adminUsers.passwordNotRepopulated': 'Password fields use autocomplete=new-password and never reuse submitted values.',
+		'adminUsers.role.viewer': 'Viewer',
+		'adminUsers.role.editor': 'Editor',
+		'adminUsers.role.owner': 'Owner',
+		'adminUsers.roleCopy.viewer': 'Viewer: read-only views only.',
+		'adminUsers.roleCopy.editor': 'Editor: preserves existing edit-authorization label, but no GnuCash writes are enabled by this UI.',
+		'adminUsers.roleCopy.owner': 'Owner: same book-level effective access label as editor here; it is not global admin.',
+		'adminUsers.roleBoundary': 'Roles affect app metadata access only. GNUCASH_WRITES_ENABLED=false and backend write gates remain independent.',
+		'adminUsers.problem.username_invalid': 'Username does not match the allowed local-account policy.',
+		'adminUsers.problem.username_taken': 'A user with that normalized username already exists.',
+		'adminUsers.problem.display_name_invalid': 'Display name is missing or outside the allowed length/character policy.',
+		'adminUsers.problem.password_policy': 'Password does not meet the local policy.',
+		'adminUsers.problem.user_not_found': 'The requested user was not found.',
+		'adminUsers.problem.user_disabled': 'This user is disabled or the session changed. Sign in again if needed.',
+		'adminUsers.problem.session_changed': 'Session changed. Sign in again to continue.',
+		'adminUsers.problem.self_disable_forbidden': 'Self-disable is not allowed from the web UI.',
+		'adminUsers.problem.last_enabled_admin': 'At least one enabled admin must remain.',
+		'adminUsers.problem.book_not_assignable': 'That book is not active and assignable.',
+		'adminUsers.problem.admin_required': 'Administrator privileges are required.',
+		'adminUsers.problem.api_unavailable': 'Admin API is unavailable. No raw backend details were shown.',
+		'adminUsers.problem.unknown_admin_problem': 'The admin action failed safely. Unknown backend details were redacted.',
+		'adminUsers.success.user_created': 'User created with zero book access by default.',
+		'adminUsers.success.display_name_changed': 'Display name updated.',
+		'adminUsers.success.user_enabled': 'User enabled.',
+		'adminUsers.success.user_disabled': 'User disabled.',
+		'adminUsers.success.password_reset': 'Password reset; existing sessions are invalidated on the next request.',
+		'adminUsers.success.book_access_granted': 'Book access granted or updated.',
+		'adminUsers.success.book_access_revoked': 'Book access revoked.',
 		'safety.statusLabel': 'Read-only safety status',
 		'safety.badge': 'Read-only by default',
 		'safety.message':
@@ -1649,7 +1851,108 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'nav.scheduled': 'Плановые',
 		'nav.reports': 'Отчёты',
 		'nav.books': 'Книги',
+		'nav.adminUsers': 'Админ users',
 		'nav.logout': 'Выйти',
+		'adminUsers.kicker': 'Админ foundation',
+		'adminUsers.title': 'Управление users и доступом к книгам',
+		'adminUsers.subtitle': 'Server-rendered управление локальными пользователями для self-hosted установки. Backend остаётся authoritative, данные GnuCash остаются read-only.',
+		'adminUsers.backToUsers': 'Назад к admin users',
+		'adminUsers.createUser': 'Создать user',
+		'adminUsers.listTitle': 'Локальные users',
+		'adminUsers.listHelp': 'Bounded список из /admin/users. Обычные users не получают user/access payloads через SSR.',
+		'adminUsers.loading': 'Загрузка admin user data…',
+		'adminUsers.emptyTitle': 'Локальные users не вернулись',
+		'adminUsers.emptyMessage': 'Bounded admin API вернул пустую страницу. Создайте user или измените фильтр enabled/disabled.',
+		'adminUsers.adminRequiredTitle': 'Нужна учётная запись администратора',
+		'adminUsers.adminRequiredMessage': 'Эта страница намеренно не отдаёт admin user/access payloads, пока /auth/me не вернёт is_admin=true. Backend authorization всё равно authoritative.',
+		'adminUsers.safeBoundaryBadge': 'Только app metadata — без GnuCash writes',
+		'adminUsers.username': 'Username',
+		'adminUsers.displayName': 'Display name',
+		'adminUsers.status': 'Статус',
+		'adminUsers.enabled': 'Enabled',
+		'adminUsers.disabled': 'Disabled',
+		'adminUsers.adminBadge': 'Admin',
+		'adminUsers.userBadge': 'User',
+		'adminUsers.assignmentCount': 'Назначения книг',
+		'adminUsers.createdAt': 'Создан',
+		'adminUsers.updatedAt': 'Обновлён',
+		'adminUsers.actions': 'Действия',
+		'adminUsers.viewDetails': 'Управлять user',
+		'adminUsers.previousPage': 'Предыдущая страница',
+		'adminUsers.nextPage': 'Следующая страница',
+		'adminUsers.stateFilter': 'Состояние enabled',
+		'adminUsers.stateAll': 'Все users',
+		'adminUsers.stateEnabled': 'Только enabled',
+		'adminUsers.stateDisabled': 'Только disabled',
+		'adminUsers.applyFilter': 'Применить фильтр',
+		'adminUsers.newTitle': 'Создать локального user',
+		'adminUsers.newSubtitle': 'Создаёт одну локальную учётку. Username и admin choice immutable в этом milestone; доступ к книгам пустой, пока admin не выдаст его позже.',
+		'adminUsers.createTitle': 'Учётные данные user',
+		'adminUsers.usernameHelp': 'Lowercase ASCII username, 3–64 символа, начинается с буквы. Позже не редактируется.',
+		'adminUsers.displayNameHelp': '1–100 видимых символов. Это единственная editable profile label в #57.',
+		'adminUsers.initialPassword': 'Initial password',
+		'adminUsers.passwordHelp': 'Password отправляется только в server action и никогда не repopulate после ошибок.',
+		'adminUsers.isAdminChoice': 'Создать как global admin',
+		'adminUsers.isAdminHelp': 'Admins управляют локальными users и book assignments. Роли owner/editor/viewer по книге не дают global admin.',
+		'adminUsers.zeroAccessDefault': 'Новые users начинают с нулевым доступом к книгам; default book сама по себе доступ не даёт.',
+		'adminUsers.createSubmit': 'Создать user',
+		'adminUsers.detailTitle': 'Детали user',
+		'adminUsers.detailSubtitle': 'Управление display name, enabled state, password reset и явными active-book assignments.',
+		'adminUsers.summaryTitle': 'Safe user summary',
+		'adminUsers.updateDisplayNameTitle': 'Обновление display name',
+		'adminUsers.updateDisplayNameHelp': 'Здесь редактируется только display name. Username и admin role намеренно не редактируются.',
+		'adminUsers.updateDisplayNameSubmit': 'Обновить display name',
+		'adminUsers.enableTitle': 'Enable account',
+		'adminUsers.enableHelp': 'Enable снова позволяет user войти с текущими credentials или после reset.',
+		'adminUsers.enableSubmit': 'Enable user',
+		'adminUsers.disableTitle': 'Disable account',
+		'adminUsers.disableHelp': 'Disable блокирует следующий authenticated request после backend auth-version enforcement; self-disable и last-admin checks остаются на backend.',
+		'adminUsers.confirmDisableCopy': 'Я понимаю, что это disable только локальную учётку; users, books, audit rows и GnuCash data не удаляются.',
+		'adminUsers.disableSubmit': 'Disable user',
+		'adminUsers.resetPasswordTitle': 'Password reset',
+		'adminUsers.resetPasswordHelp': 'Reset заменяет только server-side secret и invalidates existing sessions на следующем request. Новое значение больше не показывается.',
+		'adminUsers.newPassword': 'New password',
+		'adminUsers.confirmResetCopy': 'Я понимаю, что reset invalidates existing sessions, а password field не будет repopulated.',
+		'adminUsers.resetPasswordSubmit': 'Reset password',
+		'adminUsers.accessTitle': 'Матрица доступа к книгам',
+		'adminUsers.accessHelp': 'Grant только active, non-archived books. Новые grants default to viewer; owner/editor labels не включают GnuCash writes или global admin.',
+		'adminUsers.book': 'Книга',
+		'adminUsers.role': 'Роль',
+		'adminUsers.grantSubmit': 'Grant/update access',
+		'adminUsers.revokeSubmit': 'Revoke access',
+		'adminUsers.confirmRevokeCopy': 'Я понимаю, что revoke убирает app access на следующем request и не меняет GnuCash book.',
+		'adminUsers.noBooksTitle': 'Нет assignable active books',
+		'adminUsers.noBooksMessage': 'API не вернул active non-archived book options. Users могут безопасно оставаться с zero access.',
+		'adminUsers.noAssignments': 'У этого user нет book assignments.',
+		'adminUsers.limitedActionsNote': 'В этом milestone доступны только display-name update, enable/disable, password reset и явные book grants.',
+		'adminUsers.passwordNotRepopulated': 'Password fields используют autocomplete=new-password и никогда не reuse submitted values.',
+		'adminUsers.role.viewer': 'Viewer',
+		'adminUsers.role.editor': 'Editor',
+		'adminUsers.role.owner': 'Owner',
+		'adminUsers.roleCopy.viewer': 'Viewer: только read-only views.',
+		'adminUsers.roleCopy.editor': 'Editor: сохраняет existing edit-authorization label, но этот UI не включает GnuCash writes.',
+		'adminUsers.roleCopy.owner': 'Owner: здесь тот же book-level effective access label, что editor; это не global admin.',
+		'adminUsers.roleBoundary': 'Roles влияют только на app metadata access. GNUCASH_WRITES_ENABLED=false и backend write gates остаются независимыми.',
+		'adminUsers.problem.username_invalid': 'Username не соответствует local-account policy.',
+		'adminUsers.problem.username_taken': 'User с таким normalized username уже существует.',
+		'adminUsers.problem.display_name_invalid': 'Display name отсутствует или вне разрешённой длины/символов.',
+		'adminUsers.problem.password_policy': 'Password не соответствует local policy.',
+		'adminUsers.problem.user_not_found': 'User не найден.',
+		'adminUsers.problem.user_disabled': 'Этот user disabled или session changed. При необходимости войдите заново.',
+		'adminUsers.problem.session_changed': 'Session changed. Войдите заново, чтобы продолжить.',
+		'adminUsers.problem.self_disable_forbidden': 'Self-disable не разрешён через web UI.',
+		'adminUsers.problem.last_enabled_admin': 'Должен остаться хотя бы один enabled admin.',
+		'adminUsers.problem.book_not_assignable': 'Эта book не active/assignable.',
+		'adminUsers.problem.admin_required': 'Нужны права администратора.',
+		'adminUsers.problem.api_unavailable': 'Admin API недоступен. Raw backend details не показаны.',
+		'adminUsers.problem.unknown_admin_problem': 'Admin action safely failed. Unknown backend details скрыты.',
+		'adminUsers.success.user_created': 'User создан с zero book access по умолчанию.',
+		'adminUsers.success.display_name_changed': 'Display name обновлён.',
+		'adminUsers.success.user_enabled': 'User enabled.',
+		'adminUsers.success.user_disabled': 'User disabled.',
+		'adminUsers.success.password_reset': 'Password reset; existing sessions invalidated на следующем request.',
+		'adminUsers.success.book_access_granted': 'Book access granted или updated.',
+		'adminUsers.success.book_access_revoked': 'Book access revoked.',
 		'safety.statusLabel': 'Статус безопасности read-only режима',
 		'safety.badge': 'Read-only по умолчанию',
 		'safety.message':

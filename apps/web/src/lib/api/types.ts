@@ -23,6 +23,67 @@ export type CurrentUser = {
 	is_admin: boolean;
 };
 
+export type AdminProblemCode =
+	| 'username_invalid'
+	| 'username_taken'
+	| 'display_name_invalid'
+	| 'password_policy'
+	| 'user_not_found'
+	| 'user_disabled'
+	| 'session_changed'
+	| 'self_disable_forbidden'
+	| 'last_enabled_admin'
+	| 'book_not_assignable'
+	| 'admin_required'
+	| 'api_unavailable'
+	| 'unknown_admin_problem';
+
+export type AdminUserStateFilter = 'all' | 'enabled' | 'disabled';
+
+export type AdminBookAccessRole = 'owner' | 'editor' | 'viewer';
+
+export type AdminUserSummary = {
+	id: number;
+	username: string;
+	display_name: string;
+	is_admin: boolean;
+	is_enabled: boolean;
+	assignment_count: number;
+	created_at: string;
+	updated_at: string;
+};
+
+export type AdminUserList = {
+	items: AdminUserSummary[];
+	total_count: number;
+	limit: number;
+	offset: number;
+	has_next: boolean;
+};
+
+export type AdminBookOption = {
+	id: number;
+	name: string;
+	is_default: boolean;
+};
+
+export type AdminBookAccess = {
+	book_id: number;
+	book_name: string;
+	is_default: boolean;
+	role: AdminBookAccessRole;
+};
+
+export type AdminUserDetail = AdminUserSummary & {
+	assignments: AdminBookAccess[];
+};
+
+export type AdminPasswordResetResult = {
+	status: 'password_reset';
+	subject_user_id: number;
+	session_invalidated: boolean;
+};
+
 export type BookProblemCode =
 	| 'admin_required'
 	| 'preflight_required'

@@ -1,5 +1,5 @@
 import { error, redirect, type Cookies } from '@sveltejs/kit';
-import type { Book, BookProblemCode, CurrentUser } from '$lib/api/types';
+import type { AdminProblemCode, Book, BookProblemCode, CurrentUser } from '$lib/api/types';
 
 const SELECTED_BOOK_COOKIE = 'selected_book_id';
 const SELECTED_BOOK_MAX_AGE = 60 * 60 * 24 * 30;
@@ -28,11 +28,15 @@ type SelectedBookCookieState = {
 	invalid: boolean;
 };
 
-type ApiMutationMethod = 'POST' | 'PATCH' | 'DELETE';
+type ApiMutationMethod = 'POST' | 'PATCH' | 'PUT' | 'DELETE';
 
 export type ApiMutationResult<T> =
 	| { ok: true; payload: T }
 	| { ok: false; status: number; message: BookProblemCode };
+
+export type AdminApiMutationResult<T> =
+	| { ok: true; payload: T }
+	| { ok: false; status: number; message: AdminProblemCode };
 
 const allowedBookProblemCodes = new Set<BookProblemCode>([
 	'admin_required',
@@ -63,6 +67,22 @@ const allowedBookProblemCodes = new Set<BookProblemCode>([
 	'unknown_book_problem'
 ]);
 
+const allowedAdminProblemCodes = new Set<AdminProblemCode>([
+	'username_invalid',
+	'username_taken',
+	'display_name_invalid',
+	'password_policy',
+	'user_not_found',
+	'user_disabled',
+	'session_changed',
+	'self_disable_forbidden',
+	'last_enabled_admin',
+	'book_not_assignable',
+	'admin_required',
+	'api_unavailable',
+	'unknown_admin_problem'
+]);
+
 export function fixedBookProblemCode(payload: unknown, fallback: BookProblemCode): BookProblemCode {
 	let candidate: unknown = null;
 	if (payload && typeof payload === 'object') {
@@ -76,6 +96,30 @@ export function fixedBookProblemCode(payload: unknown, fallback: BookProblemCode
 	return typeof candidate === 'string' && allowedBookProblemCodes.has(candidate as BookProblemCode)
 		? (candidate as BookProblemCode)
 		: fallback;
+}
+
+export function fixedAdminProblemCode(payload: unknown, fallback: AdminProblemCode): AdminProblemCode {
+	let candidate: unknown = null;
+	if (payload && typeof payload === 'object') {
+		const record = payload as Record<string, unknown>;
+		candidate = record.safe_code ?? record.code;
+		if (!candidate && record.detail && typeof record.detail === 'object') {
+			const detail = record.detail as Record<string, unknown>;
+			candidate = detail.safe_code ?? detail.code;
+		}
+	}
+	return typeof candidate === 'string' && allowedAdminProblemCodes.has(candidate as AdminProblemCode)
+		? (candidate as AdminProblemCode)
+		: fallback;
+}
+
+function fallbackAdminProblemCode(status: number): AdminProblemCode {
+	if (status === 401) return 'session_changed';
+	if (status === 403) return 'admin_required';
+	if (status === 404) return 'user_not_found';
+	if (status === 409) return 'username_taken';
+	if (status === 422) return 'display_name_invalid';
+	return 'unknown_admin_problem';
 }
 
 async function safeJson(response: Response): Promise<unknown> {
@@ -254,6 +298,44 @@ export async function apiMutationFetch<T>(
 					payload,
 					response.status === 403 ? 'admin_required' : 'book_registry_failed'
 				)
+			};
+		}
+		return { ok: true, payload: payload as T };
+	} catch {
+		return {
+			ok: false,
+			status: 502,
+			message: 'api_unavailable'
+		};
+	}
+}
+
+export async function adminApiMutationFetch<T>(
+	fetchFn: typeof fetch,
+	token: string,
+	path: string,
+	method: ApiMutationMethod,
+	body?: Record<string, unknown>
+): Promise<AdminApiMutationResult<T>> {
+	const apiBase = process.env.API_INTERNAL_URL ?? 'http://localhost:8000';
+	const headers: Record<string, string> = {
+		authorization: `Bearer ${token}`
+	};
+	if (body !== undefined) {
+		headers['content-type'] = 'application/json';
+	}
+	try {
+		const response = await fetchFn(`${apiBase}${path}`, {
+			method,
+			headers,
+			body: body !== undefined ? JSON.stringify(body) : undefined
+		});
+		const payload = await safeJson(response);
+		if (!response.ok) {
+			return {
+				ok: false,
+				status: response.status,
+				message: fixedAdminProblemCode(payload, fallbackAdminProblemCode(response.status))
 			};
 		}
 		return { ok: true, payload: payload as T };
