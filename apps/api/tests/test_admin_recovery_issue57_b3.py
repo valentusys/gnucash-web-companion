@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Query, Session as SQLAlchemySession, sessionmaker
 
 from app.config import get_settings
 from app.database import Base
@@ -18,6 +18,19 @@ from app.services.auth import create_access_token, hash_password, verify_passwor
 ADMIN_PASSWORD = "AdminPass123!"
 RECOVERY_PASSWORD = "RecoveredPass123!"
 JWT_SECRET = "test-secret-key-for-admin-recovery-issue57-32-bytes"
+RAW_SENTINEL = "RAW_RECOVERY_SENTINEL"
+FIXED_FAILURE_FORBIDDEN_OUTPUT = (
+    RAW_SENTINEL,
+    "Traceback",
+    "RuntimeError",
+    "argparse",
+    "sqlite://",
+    "APP_DATABASE_URL",
+    JWT_SECRET,
+    ADMIN_PASSWORD,
+    RECOVERY_PASSWORD,
+    "password_hash",
+)
 
 
 @pytest.fixture
@@ -70,6 +83,33 @@ def _run_cli(argv: list[str], stdin_text: str = "") -> tuple[int, str, str]:
         stderr=stderr,
     )
     return code, stdout.getvalue(), stderr.getvalue()
+
+
+def _fail_with_raw_sentinel(*_args, **_kwargs):
+    raise RuntimeError(RAW_SENTINEL)
+
+
+def _assert_fixed_failure(
+    result: tuple[int, str, str],
+    expected_stderr: str,
+) -> None:
+    code, stdout, stderr = result
+    assert code == 1
+    assert stdout == ""
+    assert stderr == f"{expected_stderr}\n"
+    combined_output = stdout + stderr
+    for forbidden in FIXED_FAILURE_FORBIDDEN_OUTPUT:
+        assert forbidden not in combined_output
+
+
+def _assert_admin_unchanged_and_unaudited(recovery_db) -> None:
+    with recovery_db() as session:
+        admin = session.query(User).filter(User.username == "admin").one()
+        assert admin.is_enabled is False
+        assert admin.auth_version == 1
+        assert verify_password(ADMIN_PASSWORD, admin.password_hash)
+        assert not verify_password(RECOVERY_PASSWORD, admin.password_hash)
+        assert session.query(AuditLog).count() == 0
 
 
 def test_recovery_cli_enables_existing_admin_resets_password_and_invalidates_old_token(
@@ -198,3 +238,175 @@ def test_recovery_cli_requires_an_operation_and_never_accepts_password_argv(reco
     assert unsafe_arg[0] == 1
     assert unsafe_arg[2].strip() == "ERROR: unsupported recovery arguments."
     assert RECOVERY_PASSWORD not in unsafe_arg[1] + unsafe_arg[2]
+
+
+def test_recovery_cli_malformed_parser_input_is_fixed_and_silent(recovery_db):
+    _assert_fixed_failure(
+        _run_cli(["--username"]),
+        "ERROR: username is required.",
+    )
+    _assert_fixed_failure(
+        _run_cli(["--username", "--enable"]),
+        "ERROR: username is required.",
+    )
+    _assert_fixed_failure(
+        _run_cli(["--username", "admin", "--enable", RAW_SENTINEL]),
+        "ERROR: unsupported recovery arguments.",
+    )
+
+
+@pytest.mark.parametrize(
+    "target",
+    [
+        "get_settings",
+        "get_engine",
+        "run_app_metadata_migrations",
+        "get_session_factory",
+    ],
+)
+def test_recovery_cli_setup_failures_are_fixed_and_redacted(
+    recovery_db,
+    monkeypatch,
+    target: str,
+):
+    from app import admin_recovery
+
+    monkeypatch.setattr(admin_recovery, target, _fail_with_raw_sentinel)
+
+    _assert_fixed_failure(
+        _run_cli(["--username", "admin", "--enable"]),
+        "ERROR: recovery operation failed.",
+    )
+    _assert_admin_unchanged_and_unaudited(recovery_db)
+
+
+def test_recovery_cli_session_open_failure_is_fixed_and_redacted(
+    recovery_db,
+    monkeypatch,
+):
+    from app import admin_recovery
+
+    class BrokenSessionFactory:
+        def __call__(self):
+            raise RuntimeError(RAW_SENTINEL)
+
+    monkeypatch.setattr(
+        admin_recovery,
+        "get_session_factory",
+        lambda _engine: BrokenSessionFactory(),
+    )
+
+    _assert_fixed_failure(
+        _run_cli(["--username", "admin", "--enable"]),
+        "ERROR: recovery operation failed.",
+    )
+    _assert_admin_unchanged_and_unaudited(recovery_db)
+
+
+def test_recovery_cli_admin_lookup_failure_is_fixed_and_redacted(
+    recovery_db,
+    monkeypatch,
+):
+    from app import admin_recovery
+
+    monkeypatch.setattr(admin_recovery, "_load_existing_admin", _fail_with_raw_sentinel)
+
+    _assert_fixed_failure(
+        _run_cli(["--username", "admin", "--enable"]),
+        "ERROR: recovery operation failed.",
+    )
+    _assert_admin_unchanged_and_unaudited(recovery_db)
+
+
+def test_recovery_cli_password_input_failures_are_fixed_and_redacted(
+    recovery_db,
+    monkeypatch,
+):
+    from app import admin_recovery
+
+    _assert_fixed_failure(
+        _run_cli(["--username", "admin", "--reset-password-stdin"], "OnlyOneLine\n"),
+        "ERROR: password input invalid.",
+    )
+    _assert_fixed_failure(
+        _run_cli(
+            ["--username", "admin", "--reset-password-stdin"],
+            "Password1234\nPassword1234\n",
+        ),
+        "ERROR: password input invalid.",
+    )
+
+    def fail_getpass(*_args, **_kwargs):
+        raise EOFError(RAW_SENTINEL)
+
+    monkeypatch.setattr(admin_recovery.getpass, "getpass", fail_getpass)
+    _assert_fixed_failure(
+        _run_cli(["--username", "admin", "--reset-password-tty"]),
+        "ERROR: password input invalid.",
+    )
+
+    monkeypatch.setattr(admin_recovery.getpass, "getpass", _fail_with_raw_sentinel)
+    _assert_fixed_failure(
+        _run_cli(["--username", "admin", "--reset-password-tty"]),
+        "ERROR: password input invalid.",
+    )
+    _assert_admin_unchanged_and_unaudited(recovery_db)
+
+
+def test_recovery_cli_hash_failure_is_fixed_redacted_and_does_not_mutate(
+    recovery_db,
+    monkeypatch,
+):
+    from app import admin_recovery
+
+    monkeypatch.setattr(admin_recovery, "hash_password", _fail_with_raw_sentinel)
+
+    _assert_fixed_failure(
+        _run_cli(
+            ["--username", "admin", "--reset-password-stdin"],
+            f"{RECOVERY_PASSWORD}\n{RECOVERY_PASSWORD}\n",
+        ),
+        "ERROR: recovery operation failed.",
+    )
+    _assert_admin_unchanged_and_unaudited(recovery_db)
+
+
+@pytest.mark.parametrize("failure_point", ["begin", "query", "flush", "commit"])
+def test_recovery_cli_transaction_failures_rollback_and_redact(
+    recovery_db,
+    monkeypatch,
+    failure_point: str,
+):
+    from app import admin_recovery
+
+    if failure_point == "begin":
+        monkeypatch.setattr(admin_recovery, "_begin_immediate", _fail_with_raw_sentinel)
+    elif failure_point == "query":
+        original_first = Query.first
+        calls = 0
+
+        def fail_second_query_first(self):
+            nonlocal calls
+            calls += 1
+            if calls == 2:
+                raise RuntimeError(RAW_SENTINEL)
+            return original_first(self)
+
+        monkeypatch.setattr(Query, "first", fail_second_query_first)
+    elif failure_point == "flush":
+        original_flush = SQLAlchemySession.flush
+
+        def fail_mutating_flush(self, *args, **kwargs):
+            if self.new or self.dirty or self.deleted:
+                raise RuntimeError(RAW_SENTINEL)
+            return original_flush(self, *args, **kwargs)
+
+        monkeypatch.setattr(SQLAlchemySession, "flush", fail_mutating_flush)
+    else:
+        monkeypatch.setattr(SQLAlchemySession, "commit", _fail_with_raw_sentinel)
+
+    _assert_fixed_failure(
+        _run_cli(["--username", "admin", "--enable"]),
+        "ERROR: recovery operation failed.",
+    )
+    _assert_admin_unchanged_and_unaudited(recovery_db)
