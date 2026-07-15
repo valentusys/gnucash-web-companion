@@ -83,10 +83,11 @@ async def get_current_user(
         )
 
     subject = payload.get("sub")
-    if subject is None:
+    token_auth_version = payload.get("av")
+    if subject is None or type(token_auth_version) is not int:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token payload",
+            detail="Invalid or expired token",
         )
 
     try:
@@ -94,14 +95,18 @@ async def get_current_user(
     except (TypeError, ValueError) as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token payload",
+            detail="Invalid or expired token",
         ) from exc
 
     user = session.query(User).filter(User.id == user_id).first()
-    if user is None:
+    if (
+        user is None
+        or not bool(user.is_enabled)
+        or int(user.auth_version) != token_auth_version
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found",
+            detail="Invalid or expired token",
         )
     return user
 
@@ -128,7 +133,7 @@ def login(
         ) from exc
 
     token = create_access_token(
-        data={"sub": str(user.id)},
+        data={"sub": str(user.id), "av": int(user.auth_version)},
         secret=jwt_secret,
         expire_minutes=settings.jwt_token_expire_minutes,
     )

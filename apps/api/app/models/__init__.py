@@ -15,25 +15,48 @@ from sqlalchemy import (
     UniqueConstraint,
     text,
 )
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, validates
 
 from app.database import Base
+from app.schemas.users import normalize_display_name, normalize_username
 
 
 class User(Base):
     __tablename__ = "users"
+    __table_args__ = (
+        Index("uq_users_username_normalized", "username_normalized", unique=True),
+    )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     username = Column(String(128), unique=True, nullable=False)
+    username_normalized = Column(String(64), nullable=False)
     display_name = Column(String(256), nullable=False)
     password_hash = Column(String(512), nullable=False)
     is_admin = Column(Boolean, default=False, nullable=False)
+    is_enabled = Column(Boolean, default=True, nullable=False)
+    auth_version = Column(Integer, default=1, nullable=False)
     created_at = Column(
         DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+    updated_at = Column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
     )
 
     book_access = relationship("UserBookAccess", back_populates="user")
     audit_logs = relationship("AuditLog", back_populates="user")
+
+    @validates("username")
+    def _validate_username(self, _key: str, username: str) -> str:
+        normalized = normalize_username(username)
+        self.username_normalized = normalized
+        return normalized
+
+    @validates("display_name")
+    def _validate_display_name(self, _key: str, display_name: str) -> str:
+        return normalize_display_name(display_name)
 
 
 class Book(Base):

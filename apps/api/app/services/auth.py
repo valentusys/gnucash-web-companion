@@ -11,6 +11,12 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.models import User
+from app.schemas.users import (
+    BCRYPT_MAX_BYTES,
+    PasswordPolicyError,
+    UsernameValidationError,
+    normalize_username,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -37,8 +43,15 @@ def require_configured_jwt_secret(secret: str) -> str:
 
 
 def hash_password(password: str) -> str:
-    """Hash a plaintext password using bcrypt."""
-    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    """Hash a plaintext password using bcrypt cost 12.
+
+    Policy validation lives in validate_password_policy; this helper still rejects
+    inputs bcrypt would silently truncate past 72 UTF-8 bytes.
+    """
+    encoded = password.encode("utf-8")
+    if len(encoded) > BCRYPT_MAX_BYTES:
+        raise PasswordPolicyError("password_policy")
+    return bcrypt.hashpw(encoded, bcrypt.gensalt(rounds=12)).decode("utf-8")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -76,8 +89,18 @@ def decode_access_token(token: str, secret: str) -> dict[str, Any] | None:
 
 def authenticate_user(session: Session, username: str, password: str) -> User | None:
     """Return a user when credentials are valid."""
-    user = session.query(User).filter(User.username == username).first()
+    try:
+        username_normalized = normalize_username(username)
+    except UsernameValidationError:
+        return None
+    user = (
+        session.query(User)
+        .filter(User.username_normalized == username_normalized)
+        .first()
+    )
     if user is None:
+        return None
+    if not bool(user.is_enabled):
         return None
     if not verify_password(password, user.password_hash):
         return None
@@ -95,7 +118,11 @@ def seed_admin_user(session: Session) -> User | None:
     if session.query(User).first() is not None:
         return None
 
-    username = settings.app_admin_username.strip() or "admin"
+    try:
+        username = normalize_username(settings.app_admin_username or "admin")
+    except UsernameValidationError:
+        logger.error("Configured APP_ADMIN_USERNAME is invalid; skipping admin seed")
+        return None
 
     if settings.app_admin_password_hash:
         password_hash = settings.app_admin_password_hash
@@ -116,9 +143,12 @@ def seed_admin_user(session: Session) -> User | None:
 
     user = User(
         username=username,
+        username_normalized=username,
         display_name="Admin",
         password_hash=password_hash,
         is_admin=True,
+        is_enabled=True,
+        auth_version=1,
     )
     session.add(user)
     session.commit()

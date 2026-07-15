@@ -7,6 +7,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app.database import Base
 from app.models import User, Book, UserBookAccess, AuditLog, WriteAlphaTransactionOwnership
+from app.schemas.users import UsernameValidationError
 
 
 @pytest.fixture
@@ -36,7 +37,11 @@ class TestUserModel:
         session.commit()
         assert user.id is not None
         assert user.username == "alice"
+        assert user.username_normalized == "alice"
         assert user.is_admin is True
+        assert user.is_enabled is True
+        assert user.auth_version == 1
+        assert user.updated_at is not None
 
     def test_user_default_is_admin_false(self, session):
         user = User(
@@ -57,6 +62,28 @@ class TestUserModel:
         session.add(user)
         session.commit()
         assert user.created_at is not None
+
+    def test_username_is_canonicalized_and_unique_by_normalized_key(self, session):
+        session.add(
+            User(
+                username=" Ａlice ",
+                display_name="Alice",
+                password_hash="hashed_pw",
+            )
+        )
+        session.commit()
+        assert session.query(User).one().username == "alice"
+        assert session.query(User).one().username_normalized == "alice"
+
+        session.add(
+            User(username="ALICE", display_name="Other Alice", password_hash="hash2")
+        )
+        with pytest.raises(IntegrityError):
+            session.commit()
+
+    def test_username_rejects_invalid_new_values(self, session):
+        with pytest.raises(UsernameValidationError):
+            User(username="ab", display_name="Too Short", password_hash="hashed_pw")
 
 
 class TestBookModel:

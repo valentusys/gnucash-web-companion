@@ -8,11 +8,16 @@ from sqlalchemy import text
 from sqlalchemy.engine import Engine, make_url
 
 from app.config import Settings
+from app.schemas.users import UsernameValidationError, normalize_username
 from app.services.book_preflight import canonicalize_existing_book_path
 
 
+class MetadataMigrationError(RuntimeError):
+    """Raised for controlled, redacted app metadata migration blockers."""
+
+
 def _utc_now_text() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(timezone.utc).replace(tzinfo=None).strftime("%Y-%m-%d %H:%M:%S.%f")
 
 
 def _table_names(conn) -> set[str]:
@@ -56,6 +61,87 @@ def _create_canonical_unique_index(conn) -> None:
             "where canonical_path_hash is not null and is_archived = 0"
         )
     )
+
+
+def _create_user_normalized_unique_index(conn) -> None:
+    conn.execute(
+        text(
+            "create unique index if not exists uq_users_username_normalized "
+            "on users(username_normalized)"
+        )
+    )
+
+
+def _legacy_user_normalized_keys(conn) -> dict[int, str]:
+    rows = conn.execute(text("select id, username from users order by id")).mappings().all()
+    keys_by_id: dict[int, str] = {}
+    ids_by_key: dict[str, list[int]] = {}
+    for row in rows:
+        try:
+            normalized = normalize_username(str(row["username"] or ""))
+        except UsernameValidationError as exc:
+            raise MetadataMigrationError(
+                "Cannot migrate legacy users: invalid normalized usernames; "
+                "resolve app metadata before startup."
+            ) from exc
+        user_id = int(row["id"])
+        keys_by_id[user_id] = normalized
+        ids_by_key.setdefault(normalized, []).append(user_id)
+    if any(len(user_ids) > 1 for user_ids in ids_by_key.values()):
+        raise MetadataMigrationError(
+            "Cannot migrate legacy users: duplicate normalized usernames; "
+            "resolve app metadata before startup."
+        )
+    return keys_by_id
+
+
+def _migrate_users_issue57(conn) -> None:
+    """Add #57 auth foundation columns while preserving legacy user rows."""
+
+    normalized_by_id = _legacy_user_normalized_keys(conn)
+    _add_column_if_missing(
+        conn,
+        "users",
+        "username_normalized",
+        "username_normalized varchar(64) not null default ''",
+    )
+    _add_column_if_missing(
+        conn,
+        "users",
+        "is_enabled",
+        "is_enabled boolean not null default 1",
+    )
+    _add_column_if_missing(
+        conn,
+        "users",
+        "auth_version",
+        "auth_version integer not null default 1",
+    )
+    _add_column_if_missing(
+        conn,
+        "users",
+        "updated_at",
+        "updated_at datetime not null default '1970-01-01 00:00:00.000000'",
+    )
+    now = _utc_now_text()
+    for user_id, normalized in normalized_by_id.items():
+        conn.execute(
+            text(
+                "update users set username_normalized = :username_normalized "
+                "where id = :user_id"
+            ),
+            {"user_id": user_id, "username_normalized": normalized},
+        )
+    conn.execute(text("update users set is_enabled = 1 where is_enabled is null"))
+    conn.execute(text("update users set auth_version = 1 where auth_version is null"))
+    conn.execute(
+        text(
+            "update users set updated_at = :updated_at "
+            "where updated_at is null or updated_at = '1970-01-01 00:00:00.000000'"
+        ),
+        {"updated_at": now},
+    )
+    _create_user_normalized_unique_index(conn)
 
 
 def _ensure_book_health_rows(conn) -> None:
@@ -117,7 +203,7 @@ def run_app_metadata_migrations(engine: Engine, settings: Settings) -> None:
 
     SQLAlchemy create_all creates missing tables but does not alter existing
     tables. This function is safe to run on every startup before seed/access use.
-    It preserves rows and adds only #56 metadata columns/tables/indexes.
+    It preserves rows and adds only explicit metadata columns/tables/indexes.
     """
 
     url = make_url(str(engine.url))
@@ -125,7 +211,10 @@ def run_app_metadata_migrations(engine: Engine, settings: Settings) -> None:
         return
 
     with engine.begin() as conn:
-        if "books" not in _table_names(conn):
+        table_names = _table_names(conn)
+        if "users" in table_names:
+            _migrate_users_issue57(conn)
+        if "books" not in table_names:
             return
         _add_column_if_missing(conn, "books", "canonical_path", "canonical_path varchar(1024)")
         _add_column_if_missing(conn, "books", "canonical_path_hash", "canonical_path_hash varchar(64)")

@@ -14,9 +14,18 @@ from app.routers.auth import get_db
 from app.services.auth import (
     AuthConfigurationError,
     create_access_token,
+    decode_access_token,
     hash_password,
     require_configured_jwt_secret,
     seed_admin_user,
+    verify_password,
+)
+from app.schemas.users import (
+    DisplayNameValidationError,
+    PasswordPolicyError,
+    normalize_display_name,
+    normalize_username,
+    validate_password_policy,
 )
 
 TEST_SETTINGS = Settings(
@@ -94,7 +103,7 @@ class TestAuthConfiguration:
 
 
 class TestLoginEndpoint:
-    def test_successful_login(self, client):
+    def test_successful_login(self, client, session_factory):
         response = client.post(
             "/auth/login",
             json={"username": "admin", "password": "testpassword123"},
@@ -108,6 +117,25 @@ class TestLoginEndpoint:
         assert data["user"]["display_name"] == "Admin"
         assert data["user"]["is_admin"] is True
         assert isinstance(data["user"]["id"], int)
+        assert set(data["user"]) == {"id", "username", "display_name", "is_admin"}
+        assert "auth_version" not in response.text
+        assert "password_hash" not in response.text
+        assert "testpassword123" not in response.text
+        with session_factory() as session:
+            password_hash = session.query(User).filter(User.username == "admin").one().password_hash
+        assert password_hash not in response.text
+        payload = decode_access_token(data["access_token"], TEST_SETTINGS.jwt_secret)
+        assert payload is not None
+        assert payload["av"] == 1
+
+    def test_login_normalizes_username(self, client):
+        response = client.post(
+            "/auth/login",
+            json={"username": " ADMIN ", "password": "testpassword123"},
+        )
+
+        assert response.status_code == 200
+        assert response.json()["user"]["username"] == "admin"
 
     def test_successful_login_exposes_normal_user_role_flag_only(self, client):
         response = client.post(
@@ -138,6 +166,20 @@ class TestLoginEndpoint:
 
         assert response.status_code == 401
 
+    def test_failed_login_disabled_user_is_generic(self, client, session_factory):
+        with session_factory() as session:
+            user = session.query(User).filter(User.username == "viewer").one()
+            user.is_enabled = False
+            session.commit()
+
+        response = client.post(
+            "/auth/login",
+            json={"username": "viewer", "password": "viewerpass"},
+        )
+
+        assert response.status_code == 401
+        assert response.json()["detail"] == "Invalid username or password"
+
 
 class TestMeEndpoint:
     def test_me_returns_current_user(self, client):
@@ -155,6 +197,7 @@ class TestMeEndpoint:
         assert data["display_name"] == "Admin"
         assert data["is_admin"] is True
         assert isinstance(data["id"], int)
+        assert set(data) == {"id", "username", "display_name", "is_admin"}
 
     def test_me_returns_normal_user_admin_flag_false(self, client):
         login_resp = client.post(
@@ -199,6 +242,114 @@ class TestMeEndpoint:
         assert response.status_code == 401
         assert response.json()["detail"] == "Invalid or expired token"
 
+    def test_me_rejects_missing_auth_version_token(self, client):
+        token = create_access_token(
+            data={"sub": "1"},
+            secret=TEST_SETTINGS.jwt_secret,
+            expire_minutes=30,
+        )
+
+        response = client.get("/auth/me", headers={"Authorization": f"Bearer {token}"})
+
+        assert response.status_code == 401
+        assert response.json()["detail"] == "Invalid or expired token"
+
+    def test_me_rejects_non_integer_auth_version_token(self, client):
+        token = create_access_token(
+            data={"sub": "1", "av": "1"},
+            secret=TEST_SETTINGS.jwt_secret,
+            expire_minutes=30,
+        )
+
+        response = client.get("/auth/me", headers={"Authorization": f"Bearer {token}"})
+
+        assert response.status_code == 401
+        assert response.json()["detail"] == "Invalid or expired token"
+
+    def test_me_rejects_mismatched_auth_version_token(self, client):
+        token = create_access_token(
+            data={"sub": "1", "av": 2},
+            secret=TEST_SETTINGS.jwt_secret,
+            expire_minutes=30,
+        )
+
+        response = client.get("/auth/me", headers={"Authorization": f"Bearer {token}"})
+
+        assert response.status_code == 401
+        assert response.json()["detail"] == "Invalid or expired token"
+
+    def test_me_rejects_disabled_user_on_next_request(self, client, session_factory):
+        login_resp = client.post(
+            "/auth/login",
+            json={"username": "viewer", "password": "viewerpass"},
+        )
+        token = login_resp.json()["access_token"]
+        with session_factory() as session:
+            user = session.query(User).filter(User.username == "viewer").one()
+            user.is_enabled = False
+            session.commit()
+
+        me_resp = client.get("/auth/me", headers={"Authorization": f"Bearer {token}"})
+
+        assert me_resp.status_code == 401
+        assert me_resp.json()["detail"] == "Invalid or expired token"
+
+    def test_me_rejects_auth_version_change_on_next_request(self, client, session_factory):
+        login_resp = client.post(
+            "/auth/login",
+            json={"username": "viewer", "password": "viewerpass"},
+        )
+        token = login_resp.json()["access_token"]
+        with session_factory() as session:
+            user = session.query(User).filter(User.username == "viewer").one()
+            user.auth_version += 1
+            session.commit()
+
+        me_resp = client.get("/auth/me", headers={"Authorization": f"Bearer {token}"})
+
+        assert me_resp.status_code == 401
+        assert me_resp.json()["detail"] == "Invalid or expired token"
+
+
+class TestUserCredentialHelpers:
+    def test_display_name_normalization_and_bounds(self):
+        assert normalize_display_name("  Ａlice  ") == "Alice"
+        with pytest.raises(DisplayNameValidationError):
+            normalize_display_name("")
+        with pytest.raises(DisplayNameValidationError):
+            normalize_display_name("A" * 101)
+        with pytest.raises(DisplayNameValidationError):
+            normalize_display_name("Alice\x00Admin")
+
+    def test_password_policy_accepts_valid_secret(self):
+        validate_password_policy("ValidPass123!", normalize_username("valid-user"))
+
+    @pytest.mark.parametrize(
+        "password,username",
+        [
+            ("Short1!", "valid-user"),
+            ("A" * 129, "valid-user"),
+            ("Aa1!" + "é" * 35, "valid-user"),
+            ("abcdefghijkl", "valid-user"),
+            ("Password1234", "valid-user"),
+            (" ABCDEFGHIJKL ", "abcdefghijkl"),
+        ],
+    )
+    def test_password_policy_rejects_boundaries_classes_weak_and_username(
+        self, password, username
+    ):
+        with pytest.raises(PasswordPolicyError):
+            validate_password_policy(password, normalize_username(username))
+
+    def test_hash_password_uses_bcrypt_cost_12_and_verifies_without_leaking_plaintext(self):
+        password = "ValidPass123!"
+        hashed = hash_password(password)
+
+        assert hashed != password
+        assert password not in hashed
+        assert hashed.split("$")[2] == "12"
+        assert verify_password(password, hashed)
+
 
 class TestLogoutEndpoint:
     def test_logout_returns_success(self, client):
@@ -226,7 +377,10 @@ class TestAdminSeed:
                     user = seed_admin_user(session)
                     assert user is not None
                     assert user.username == "admin"
+                    assert user.username_normalized == "admin"
                     assert user.is_admin is True
+                    assert user.is_enabled is True
+                    assert user.auth_version == 1
                     assert user.password_hash == password_hash
         finally:
             app.dependency_overrides.clear()
