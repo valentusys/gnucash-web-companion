@@ -105,7 +105,7 @@ assert.match(apiTypes, /export type Book[\s\S]*is_enabled\?: boolean[\s\S]*creat
 const publicBookBlock = apiTypes.slice(apiTypes.indexOf('export type Book = {'), apiTypes.indexOf('export type Account = {'));
 assert.doesNotMatch(publicBookBlock, /uri_or_path:\s*string/, 'public Book DTO must not expose raw uri_or_path');
 
-assert.match(apiServer, /getCurrentUser\(fetchFn: typeof fetch, token: string\)[\s\S]*apiFetch<CurrentUser>\(fetchFn, '\/auth\/me', token\)/s, 'frontend must derive admin authority from authenticated API user data');
+assert.match(apiServer, /getCurrentUser\([\s\S]*fetchFn: typeof fetch,[\s\S]*token: string,[\s\S]*cookies\?: Cookies[\s\S]*apiFetch<CurrentUser>\(fetchFn, '\/auth\/me', token, cookies\)/s, 'frontend must derive admin authority from authenticated API user data and pass cookies when session clearing is required');
 assert.match(apiServer, /isCurrentUserAdmin\(user: CurrentUser \| null\)[\s\S]*user\?\.is_admin === true/s, 'admin derivation must fail closed unless API explicitly says is_admin=true');
 assert.match(apiServer, /allowedBookProblemCodes[\s\S]*unknown_book_problem[\s\S]*fixedBookProblemCode[\s\S]*apiMutationFetch/s, 'shared server API mutation helper must reduce lifecycle/management errors to fixed safe codes with a generic fallback');
 const adminHelperBlock = apiServer.slice(apiServer.indexOf('export function isCurrentUserAdmin'), apiServer.indexOf('function getSelectedBookCookieState'));

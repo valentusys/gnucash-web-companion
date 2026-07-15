@@ -7,6 +7,7 @@
 		activeBook,
 		compact = false
 	}: { books: Book[]; activeBook: Book | null; compact?: boolean } = $props();
+	const openableBooks = $derived(books.filter((book) => book.can_open_read_only_views));
 
 	function currentRouteNext(): string {
 		return `${window.location.pathname}${window.location.search}`;
@@ -25,7 +26,7 @@
 	}
 </script>
 
-{#if books.length > 1}
+{#if openableBooks.length > 1}
 	<label
 		class="flex max-w-full min-w-0 flex-wrap items-center gap-2 text-sm"
 		style="color: var(--app-muted);"
@@ -38,7 +39,7 @@
 			class="min-h-11 min-w-0 max-w-full truncate rounded-lg border px-3 py-2 text-sm"
 			style="border-color: var(--app-border); background-color: var(--app-input-bg); color: var(--app-text);"
 		>
-			{#each books as book (book.id)}
+			{#each openableBooks as book (book.id)}
 				<option value={book.id}>{book.name}{book.is_default ? ' (default)' : ''}</option>
 			{/each}
 		</select>

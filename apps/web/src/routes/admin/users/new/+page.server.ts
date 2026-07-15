@@ -6,6 +6,7 @@ import {
 	isCurrentUserAdmin
 } from '$lib/api/server';
 import type { AdminProblemCode, AdminUserDetail } from '$lib/api/types';
+import type { Cookies } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 
 type SafeCreateForm = {
@@ -30,22 +31,23 @@ function safeCreateForm(form: FormData): SafeCreateForm {
 	};
 }
 
-async function requireAdmin(fetchFn: typeof fetch, token: string): Promise<boolean> {
-	const currentUser = await getCurrentUser(fetchFn, token);
+async function requireAdmin(fetchFn: typeof fetch, token: string, cookies: Cookies): Promise<boolean> {
+	const currentUser = await getCurrentUser(fetchFn, token, cookies);
 	return isCurrentUserAdmin(currentUser);
 }
 
-export const load: PageServerLoad = async ({ cookies, fetch }) => {
-	const token = getAuthToken(cookies);
+export const load: PageServerLoad = async ({ cookies, parent }) => {
+	getAuthToken(cookies);
+	const layoutData = await parent();
 	return {
-		isAdmin: await requireAdmin(fetch, token)
+		isAdmin: isCurrentUserAdmin(layoutData.currentUser)
 	};
 };
 
 export const actions: Actions = {
 	create: async ({ cookies, fetch, request }) => {
 		const token = getAuthToken(cookies);
-		if (!(await requireAdmin(fetch, token))) {
+		if (!(await requireAdmin(fetch, token, cookies))) {
 			return fail(403, { adminErrorCode: 'admin_required' satisfies AdminProblemCode });
 		}
 		const form = await request.formData();
@@ -63,7 +65,7 @@ export const actions: Actions = {
 			display_name: formState.displayName,
 			password: initialPassword,
 			is_admin: formState.isAdmin
-		});
+		}, cookies);
 		if (!result.ok) {
 			return fail(result.status, {
 				adminErrorCode: result.message,

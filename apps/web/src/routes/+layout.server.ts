@@ -1,5 +1,5 @@
 import { redirect } from '@sveltejs/kit';
-import { getActiveBookContext, getAuthToken } from '$lib/api/server';
+import { getActiveBookContext, getAuthToken, getCurrentUser, isCurrentUserAdmin } from '$lib/api/server';
 import { localeFromCookie } from '$lib/i18n';
 import type { LayoutServerLoad } from './$types';
 
@@ -15,6 +15,8 @@ export const load: LayoutServerLoad = async ({ cookies, fetch, locals, url }) =>
 			authenticated: false,
 			pathname: url.pathname,
 			locale,
+			currentUser: null,
+			isAdmin: false,
 			books: [],
 			activeBook: null,
 			showBookSelector: false,
@@ -23,7 +25,9 @@ export const load: LayoutServerLoad = async ({ cookies, fetch, locals, url }) =>
 	}
 
 	const token = getAuthToken(cookies);
-	const { books, activeBook, recovery } = await getActiveBookContext(fetch, cookies, token);
+	const currentUser = await getCurrentUser(fetch, token, cookies);
+	const isAdmin = isCurrentUserAdmin(currentUser);
+	const { books, activeBook, recovery } = await getActiveBookContext(fetch, cookies, token, { includeUnavailableBooks: true });
 	if (recovery && shouldReviewBookContext(url.pathname)) {
 		throw redirect(303, `/books?book_context=${recovery.reason}`);
 	}
@@ -32,6 +36,8 @@ export const load: LayoutServerLoad = async ({ cookies, fetch, locals, url }) =>
 		authenticated: locals.authenticated,
 		pathname: url.pathname,
 		locale,
+		currentUser,
+		isAdmin,
 		books,
 		activeBook,
 		showBookSelector: books.length > 1,

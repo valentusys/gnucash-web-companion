@@ -119,6 +119,7 @@ assert.match(hooks, /headers\.get\('origin'\)[\s\S]*new URL\(origin\)\.origin ==
 
 const loginServer = read('src/routes/login/+page.server.ts');
 assert.match(loginServer, /cookies\.set\(AUTH_COOKIE, data\.access_token/, 'login must store token in cookie');
+assert.match(loginServer, /const SELECTED_BOOK_COOKIE = 'selected_book_id'[\s\S]*cookies\.delete\(SELECTED_BOOK_COOKIE, \{ path: '\/' \}\)[\s\S]*cookies\.set\(AUTH_COOKIE, data\.access_token/s, 'login must clear stale selected-book state before setting a new auth token');
 assert.match(loginServer, /httpOnly:\s*true/, 'auth cookie must be httpOnly');
 assert.match(loginServer, /env\.JWT_TOKEN_EXPIRE_MINUTES[\s\S]*authCookieMaxAgeSeconds\(\)/s, 'auth cookie lifetime must follow the configured JWT session lifetime with a safe fallback');
 assert.match(loginServer, /export const load[\s\S]*\/health[\s\S]*health\.first_run/s, 'login page load must fetch redacted /health first-run diagnostics without requiring auth');
@@ -148,7 +149,7 @@ assert.match(
 );
 assert.match(
 	layoutServer,
-	/getAuthToken\(cookies\)[\s\S]*getActiveBookContext\(fetch, cookies, token\)/s,
+	/getAuthToken\(cookies\)[\s\S]*getActiveBookContext\(fetch, cookies, token(?:, \{ includeUnavailableBooks: true \})?\)/s,
 	'authenticated layout loads must still resolve the token and book context after login'
 );
 assert.ok(

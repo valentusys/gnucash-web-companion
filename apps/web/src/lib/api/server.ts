@@ -1,6 +1,7 @@
-import { error, redirect, type Cookies } from '@sveltejs/kit';
+import { error, isRedirect, redirect, type Cookies } from '@sveltejs/kit';
 import type { AdminProblemCode, Book, BookProblemCode, CurrentUser } from '$lib/api/types';
 
+const AUTH_COOKIE = 'access_token';
 const SELECTED_BOOK_COOKIE = 'selected_book_id';
 const SELECTED_BOOK_MAX_AGE = 60 * 60 * 24 * 30;
 
@@ -21,6 +22,10 @@ export type ActiveBookContext = {
 	activeBook: Book | null;
 	bookPrefix: string;
 	recovery: BookContextRecovery | null;
+};
+
+type ActiveBookContextOptions = {
+	includeUnavailableBooks?: boolean;
 };
 
 type SelectedBookCookieState = {
@@ -83,6 +88,16 @@ const allowedAdminProblemCodes = new Set<AdminProblemCode>([
 	'unknown_admin_problem'
 ]);
 
+export function clearAuthSessionCookies(cookies: Cookies): void {
+	cookies.delete(AUTH_COOKIE, { path: '/' });
+	cookies.delete(SELECTED_BOOK_COOKIE, { path: '/' });
+}
+
+export function redirectToSessionChanged(cookies: Cookies): never {
+	clearAuthSessionCookies(cookies);
+	throw redirect(303, '/login?reason=session_changed');
+}
+
 export function fixedBookProblemCode(payload: unknown, fallback: BookProblemCode): BookProblemCode {
 	let candidate: unknown = null;
 	if (payload && typeof payload === 'object') {
@@ -131,15 +146,19 @@ async function safeJson(response: Response): Promise<unknown> {
 }
 
 export function getAuthToken(cookies: Cookies): string {
-	const token = cookies.get('access_token');
+	const token = cookies.get(AUTH_COOKIE);
 	if (!token) {
 		throw redirect(303, '/login');
 	}
 	return token;
 }
 
-export async function getCurrentUser(fetchFn: typeof fetch, token: string): Promise<CurrentUser> {
-	return apiFetch<CurrentUser>(fetchFn, '/auth/me', token);
+export async function getCurrentUser(
+	fetchFn: typeof fetch,
+	token: string,
+	cookies?: Cookies
+): Promise<CurrentUser> {
+	return apiFetch<CurrentUser>(fetchFn, '/auth/me', token, cookies);
 }
 
 export function isCurrentUserAdmin(user: CurrentUser | null): boolean {
@@ -180,11 +199,13 @@ export function resolveActiveBook(books: Book[], selectedBookId: number | null):
 export async function getActiveBookContext(
 	fetchFn: typeof fetch,
 	cookies: Cookies,
-	token: string
+	token: string,
+	options: ActiveBookContextOptions = {}
 ): Promise<ActiveBookContext> {
-	const books = await apiFetch<Book[]>(fetchFn, '/books', token);
+	const apiBooks = await apiFetch<Book[]>(fetchFn, '/books', token, cookies);
+	const openableBooks = apiBooks.filter((book) => book.can_open_read_only_views);
 	const selectedCookie = getSelectedBookCookieState(cookies);
-	const activeBook = resolveActiveBook(books, selectedCookie.selectedBookId);
+	const activeBook = resolveActiveBook(apiBooks, selectedCookie.selectedBookId);
 	let recovery: BookContextRecovery | null = null;
 
 	if (selectedCookie.invalid) {
@@ -195,7 +216,7 @@ export async function getActiveBookContext(
 		};
 	} else if (
 		selectedCookie.selectedBookId !== null &&
-		books.some((book) => book.id === selectedCookie.selectedBookId && !book.can_open_read_only_views)
+		apiBooks.some((book) => book.id === selectedCookie.selectedBookId && !book.can_open_read_only_views)
 	) {
 		recovery = {
 			reason: 'unavailable_selected_book',
@@ -208,7 +229,7 @@ export async function getActiveBookContext(
 			selectedBookId: selectedCookie.selectedBookId,
 			activeBookId: activeBook?.id ?? null
 		};
-	} else if (books.length === 0 || !activeBook) {
+	} else if (openableBooks.length === 0 || !activeBook) {
 		recovery = {
 			reason: 'no_accessible_books',
 			selectedBookId: selectedCookie.selectedBookId,
@@ -227,6 +248,11 @@ export async function getActiveBookContext(
 			cookies.delete(SELECTED_BOOK_COOKIE, { path: '/' });
 		}
 	}
+	const books = options.includeUnavailableBooks
+		? recovery?.selectedBookId
+			? apiBooks.filter((book) => book.id !== recovery.selectedBookId || book.can_open_read_only_views)
+			: apiBooks
+		: openableBooks;
 
 	return {
 		books,
@@ -239,7 +265,8 @@ export async function getActiveBookContext(
 export async function apiFetch<T>(
 	fetchFn: typeof fetch,
 	path: string,
-	token: string
+	token: string,
+	sessionCookies?: Cookies
 ): Promise<T> {
 	const apiBase = process.env.API_INTERNAL_URL ?? 'http://localhost:8000';
 	let response: Response;
@@ -252,6 +279,9 @@ export async function apiFetch<T>(
 	}
 
 	if (response.status === 401) {
+		if (sessionCookies) {
+			redirectToSessionChanged(sessionCookies);
+		}
 		throw redirect(303, '/login');
 	}
 	if (response.status === 403) {
@@ -315,7 +345,8 @@ export async function adminApiMutationFetch<T>(
 	token: string,
 	path: string,
 	method: ApiMutationMethod,
-	body?: Record<string, unknown>
+	body?: Record<string, unknown>,
+	sessionCookies?: Cookies
 ): Promise<AdminApiMutationResult<T>> {
 	const apiBase = process.env.API_INTERNAL_URL ?? 'http://localhost:8000';
 	const headers: Record<string, string> = {
@@ -332,14 +363,19 @@ export async function adminApiMutationFetch<T>(
 		});
 		const payload = await safeJson(response);
 		if (!response.ok) {
+			const message = fixedAdminProblemCode(payload, fallbackAdminProblemCode(response.status));
+			if (sessionCookies && (response.status === 401 || message === 'session_changed')) {
+				redirectToSessionChanged(sessionCookies);
+			}
 			return {
 				ok: false,
 				status: response.status,
-				message: fixedAdminProblemCode(payload, fallbackAdminProblemCode(response.status))
+				message
 			};
 		}
 		return { ok: true, payload: payload as T };
-	} catch {
+	} catch (reason) {
+		if (isRedirect(reason)) throw reason;
 		return {
 			ok: false,
 			status: 502,

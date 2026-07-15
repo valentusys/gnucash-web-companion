@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { page } from '$app/state';
 	import ThemeSwitcher from '$lib/components/ThemeSwitcher.svelte';
 	import BookSwitcher from '$lib/components/BookSwitcher.svelte';
 	import LocaleSwitcher from '$lib/components/LocaleSwitcher.svelte';
@@ -12,11 +11,10 @@
 		locale = DEFAULT_LOCALE,
 		currentPath = '/dashboard',
 		returnTo = '/dashboard',
-		isAdmin = undefined
+		isAdmin = false
 	}: { books: Book[]; activeBook: Book | null; locale?: Locale; currentPath?: string; returnTo?: string; isAdmin?: boolean } = $props();
 
-	const pageData = $derived(page.data as { isAdmin?: boolean });
-	const showAdminUsers = $derived(isAdmin === true || (isAdmin === undefined && pageData.isAdmin === true));
+	const showAdminUsers = $derived(isAdmin === true);
 
 	const navLinks = $derived([
 		{ href: '/dashboard', label: t(locale, 'nav.dashboard') },

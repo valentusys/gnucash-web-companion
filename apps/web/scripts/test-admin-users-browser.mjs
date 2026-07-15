@@ -18,9 +18,11 @@ const cdpCommandTimeoutMs = Number(process.env.ADMIN_USERS_CDP_TIMEOUT_MS ?? '12
 const adminToken = 'JWT_SENTINEL_ADMIN_USERS_BROWSER_ADMIN';
 const userToken = 'JWT_SENTINEL_ADMIN_USERS_BROWSER_USER';
 const expiredToken = 'JWT_SENTINEL_ADMIN_USERS_BROWSER_EXPIRED';
+const zeroBooksToken = 'JWT_SENTINEL_ADMIN_USERS_BROWSER_ZERO_BOOKS';
 const exactCreatePassword = ' exact create password 57 ! keep spaces ';
 const exactResetPassword = ' exact reset password 57 ! keep spaces ';
 const privatePathSentinel = '/home/private/Syncthing/only-copy/admin-users-private.gnucash.sqlite';
+const revokedBookName = 'Synthetic Revoked Stale Book';
 const backendSentinel = 'RAW_SQL_ADMIN_USERS_SENTINEL_password_hash_jwt_cookie_path_57';
 const passwordHashSentinel = 'PASSWORD_HASH_SENTINEL_ADMIN_USERS_57';
 const cookieSentinel = 'COOKIE_SENTINEL_ADMIN_USERS_57';
@@ -28,6 +30,7 @@ const leakSentinels = [
 	adminToken,
 	userToken,
 	expiredToken,
+	zeroBooksToken,
 	exactCreatePassword,
 	exactResetPassword,
 	privatePathSentinel,
@@ -53,8 +56,8 @@ function resolveChromiumBin() {
 
 const chromiumBin = resolveChromiumBin();
 
-function syntheticBook() {
-	return {
+function syntheticBook(overrides = {}) {
+	const book = {
 		id: 1,
 		name: 'Synthetic Admin Users Book',
 		storage_type: 'sqlite',
@@ -87,6 +90,38 @@ function syntheticBook() {
 			message: 'Synthetic local admin-users smoke fixture; no private book is used.'
 		}
 	};
+	return { ...book, ...overrides };
+}
+
+function syntheticBooks(kind = 'admin') {
+	if (kind === 'zero-books') return [];
+	return [
+		syntheticBook(),
+		syntheticBook({
+			id: 2,
+			name: 'Synthetic Reports Access Book',
+			base_currency: 'USD',
+			is_default: false,
+			access_role: 'viewer',
+			access_role_label: 'Viewer',
+			access_role_description: 'Synthetic viewer access for selected-book recovery smoke.',
+			access_status: 'viewer'
+		}),
+		syntheticBook({
+			id: 99,
+			name: revokedBookName,
+			base_currency: 'EUR',
+			is_default: false,
+			is_archived: true,
+			access_role: null,
+			access_role_label: 'No access',
+			access_role_description: 'Synthetic revoked book must not leak into recovered nav.',
+			status: 'archived',
+			status_severity: 'action_required',
+			access_status: 'revoked',
+			can_open_read_only_views: false
+		})
+	];
 }
 
 const bookOptions = [
@@ -193,6 +228,7 @@ function tokenKind(token) {
 	if (token === adminToken) return 'admin';
 	if (token === userToken) return 'user';
 	if (token === expiredToken) return 'expired';
+	if (token === zeroBooksToken) return 'zero-books';
 	return 'unknown';
 }
 
@@ -286,15 +322,16 @@ async function startSyntheticApi() {
 			return jsonResponse(res, 401, adminProblem('session_changed'));
 		}
 		if (method === 'GET' && url.pathname === '/auth/me') {
+			const isAdmin = kind === 'admin' || kind === 'zero-books';
 			return jsonResponse(res, 200, {
-				id: kind === 'admin' ? 1 : 2,
-				username: kind === 'admin' ? 'synthetic_admin' : 'synthetic_viewer',
-				display_name: kind === 'admin' ? 'Synthetic Admin' : 'Synthetic Viewer',
-				is_admin: kind === 'admin'
+				id: isAdmin ? 1 : 2,
+				username: isAdmin ? 'synthetic_admin' : 'synthetic_viewer',
+				display_name: isAdmin ? 'Synthetic Admin' : 'Synthetic Viewer',
+				is_admin: isAdmin
 			});
 		}
 		if (method === 'GET' && url.pathname === '/books') {
-			return jsonResponse(res, 200, [syntheticBook()]);
+			return jsonResponse(res, 200, syntheticBooks(kind));
 		}
 
 		if (method === 'GET' && url.pathname === '/admin/users') {
@@ -303,7 +340,7 @@ async function startSyntheticApi() {
 		}
 		if (method === 'GET' && url.pathname === '/admin/book-access/books') {
 			if (!requireAdmin(req, res)) return;
-			return jsonResponse(res, 200, bookOptions);
+			return jsonResponse(res, 200, { items: bookOptions, total_count: bookOptions.length, limit: 50, offset: 0, has_next: false });
 		}
 		if (method === 'POST' && url.pathname === '/admin/users') {
 			if (!requireAdmin(req, res)) return;
@@ -607,10 +644,18 @@ async function navigate(cdp, webBase, path, label, readyPath = path.split('?')[0
 	await waitForExpression(cdp, `document.readyState !== 'loading' && location.pathname === ${jsString(readyPath)}`, label, 30000);
 }
 
-async function setSession(cdp, webBase, token, locale = 'en') {
+async function setSession(cdp, webBase, token, locale = 'en', selectedBookId = null) {
 	await cdp.send('Network.clearBrowserCookies');
 	await cdp.send('Network.setCookie', { name: 'access_token', value: token, url: webBase, path: '/', sameSite: 'Lax' });
 	await cdp.send('Network.setCookie', { name: 'ui_locale', value: locale, url: webBase, path: '/', sameSite: 'Lax' });
+	if (selectedBookId !== null) {
+		await cdp.send('Network.setCookie', { name: 'selected_book_id', value: String(selectedBookId), url: webBase, path: '/', sameSite: 'Lax' });
+	}
+}
+
+async function cookieMap(cdp) {
+	const result = await cdp.send('Network.getCookies');
+	return Object.fromEntries((result.cookies ?? []).map((cookie) => [cookie.name, cookie.value]));
 }
 
 async function pageSnapshot(cdp) {
@@ -625,6 +670,7 @@ async function pageSnapshot(cdp) {
 		statuses: document.querySelectorAll('[role="status"], [aria-live]').length,
 		adminNavLinks: document.querySelectorAll('header nav a[href="/admin/users"], nav[aria-label="Mobile navigation"] a[href="/admin/users"]').length,
 		activeAdminNavLinks: document.querySelectorAll('a[href="/admin/users"][aria-current="page"][data-active-route="true"]').length,
+		bookOptions: Array.from(document.querySelectorAll('select[aria-label="Select book"] option')).map((option) => ({ value: option.value, text: option.textContent ?? '' })),
 		passwordValues: Array.from(document.querySelectorAll('input[type="password"]')).map((input) => input.value)
 	}))()`);
 }
@@ -858,6 +904,43 @@ async function runSmoke() {
 		assert.ok(snapshot.adminNavLinks >= 1 && snapshot.activeAdminNavLinks >= 1, 'admin server isAdmin fixture must expose active admin-users nav');
 		await assertMobileAccessibility(cdp, 'admin users list');
 
+		await setSession(cdp, webBase, adminToken, 'en', 99);
+		await navigate(cdp, webBase, '/books', 'revoked selected book recovery');
+		snapshot = await pageSnapshot(cdp);
+		snapshots.push(snapshot);
+		let cookies = await cookieMap(cdp);
+		assert.equal(cookies.selected_book_id, '1', 'revoked selected_book_id must recover to the default openable book cookie');
+		assert.match(snapshot.bodyText, /Synthetic Admin Users Book/, 'revoked selected-book recovery must render fallback openable book metadata');
+		assert.match(snapshot.bodyText, /Synthetic Reports Access Book/, 'revoked selected-book recovery must keep other assigned openable books usable');
+		assert.doesNotMatch(snapshot.bodyText, new RegExp(revokedBookName), 'revoked selected-book recovery must not render stale revoked book metadata');
+		assert.deepEqual(snapshot.bookOptions.map((option) => option.value).sort(), ['1', '2'], 'book switcher must include only openable recovered books');
+
+		await setSession(cdp, webBase, adminToken, 'en', 2);
+		await navigate(cdp, webBase, '/admin/users?limit=1&offset=0&state=all', 'other selected book persists');
+		snapshot = await pageSnapshot(cdp);
+		snapshots.push(snapshot);
+		cookies = await cookieMap(cdp);
+		assert.equal(cookies.selected_book_id, '2', 'other assigned openable selected_book_id must persist without fallback');
+		assert.deepEqual(snapshot.bookOptions.map((option) => option.value).sort(), ['1', '2'], 'other assigned selected book must keep the switcher bounded to usable books');
+		assert.doesNotMatch(snapshot.bodyText, new RegExp(revokedBookName), 'other selected book state must not render stale revoked book metadata');
+
+		await setSession(cdp, webBase, zeroBooksToken, 'en', 2);
+		await navigate(cdp, webBase, '/books', 'zero accessible books cookie delete');
+		snapshot = await pageSnapshot(cdp);
+		snapshots.push(snapshot);
+		cookies = await cookieMap(cdp);
+		assert.equal(cookies.selected_book_id, undefined, 'zero accessible books must delete selected_book_id cookie');
+		assert.doesNotMatch(snapshot.bodyText, new RegExp(revokedBookName), 'zero accessible books must not render stale selected-book metadata');
+
+		await setSession(cdp, webBase, adminToken, 'en');
+		await navigate(cdp, webBase, '/books/99/select?next=/dashboard', 'direct revoked book select safe 404', '/books/99/select');
+		snapshot = await pageSnapshot(cdp);
+		snapshots.push(snapshot);
+		assert.match(snapshot.bodyText, /Page or book not found|requested page, book, account, or transaction was not found|Requested item was not found/i, `direct revoked book URL must render a fixed safe 404 state; body=${snapshot.bodyText.slice(0, 800)}`);
+		assert.doesNotMatch(snapshot.bodyText, new RegExp(revokedBookName), 'direct revoked book URL must not render stale revoked book metadata');
+
+		await setSession(cdp, webBase, adminToken, 'en');
+
 		await navigate(cdp, webBase, '/admin/users?limit=50&offset=100&state=all', 'admin users empty list');
 		snapshot = await pageSnapshot(cdp);
 		snapshots.push(snapshot);
@@ -965,11 +1048,17 @@ async function runSmoke() {
 		assert.deepEqual(snapshot.passwordValues, [''], 'reset password field must not retain submitted password');
 
 		await submitForm(cdp, '?/resetPassword', { new_password: 'session-change-password' }, { confirm_reset: true }, 'reset password 401');
-		await waitForExpression(cdp, `document.body.innerText.includes('Session changed. Sign in again to continue.')`, 'reset 401 safe copy', 30000);
+		await waitForExpression(cdp, `location.pathname === '/login' && location.search === '?reason=session_changed' && document.body.innerText.includes('Session changed. Sign in again to continue.')`, 'reset 401 fixed login redirect', 30000);
 		snapshot = await pageSnapshot(cdp);
 		snapshots.push(snapshot);
-		assert.doesNotMatch(snapshot.bodyText, /RAW_SQL|PASSWORD_HASH|Syncthing|only-copy|JWT_SENTINEL/i, '401 reset error must render fixed session_changed copy only');
-		assert.deepEqual(snapshot.passwordValues, [''], '401 reset must not retain submitted password');
+		cookies = await cookieMap(cdp);
+		assert.equal(cookies.access_token, undefined, '401 admin mutation must clear access_token cookie');
+		assert.equal(cookies.selected_book_id, undefined, '401 admin mutation must clear selected_book_id cookie');
+		assert.doesNotMatch(snapshot.bodyText, /RAW_SQL|PASSWORD_HASH|Syncthing|only-copy|JWT_SENTINEL|canonical_path/i, '401 reset redirect must render fixed session_changed copy only');
+		assert.deepEqual(snapshot.passwordValues, [''], '401 reset login state must not retain submitted password');
+
+		await setSession(cdp, webBase, adminToken, 'en');
+		await navigate(cdp, webBase, '/admin/users/3', 'admin user detail after 401 reset recovery');
 
 		await submitForm(cdp, '?/grantAccess', { book_id: '2', role: 'editor' }, {}, 'grant editor access');
 		await waitForExpression(cdp, `document.body.innerText.includes('Book access granted or updated.') && document.body.innerText.includes('Synthetic Reports Access Book')`, 'grant success', 30000);
@@ -1009,15 +1098,19 @@ async function runSmoke() {
 		await assertNormalUserApiForbidden(api.url);
 
 		const beforeExpired = api.requests.length;
-		await setSession(cdp, webBase, expiredToken, 'en');
+		await setSession(cdp, webBase, expiredToken, 'en', 2);
 		const expiredLoad = waitForCdpEvent(cdp, 'Page.loadEventFired', 'expired session safe state', 30000).catch(() => null);
 		await cdp.send('Page.navigate', { url: `${webBase}/admin/users` });
 		await expiredLoad;
-		await waitForExpression(cdp, `document.readyState !== 'loading' && location.pathname === '/login'`, 'expired session redirects to login', 30000);
+		await waitForExpression(cdp, `document.readyState !== 'loading' && location.pathname === '/login' && location.search === '?reason=session_changed'`, 'expired session redirects to strict login reason', 30000);
 		snapshot = await pageSnapshot(cdp);
 		snapshots.push(snapshot);
 		assert.equal(snapshot.pathname, '/login', `expired 401 session must redirect to the fixed login page; body=${snapshot.bodyText.slice(0, 800)}`);
-		assert.match(snapshot.bodyText, /Sign in[\s\S]*Use the configured admin account to continue\./, `expired 401 login page must render fixed sign-in copy; body=${snapshot.bodyText.slice(0, 800)}`);
+		assert.equal(snapshot.search, '?reason=session_changed', 'expired 401 session must use only the allowlisted session_changed login reason');
+		assert.match(snapshot.bodyText, /Sign in[\s\S]*Session changed\. Sign in again to continue\./, `expired 401 login page must render fixed session-changed copy; body=${snapshot.bodyText.slice(0, 800)}`);
+		cookies = await cookieMap(cdp);
+		assert.equal(cookies.access_token, undefined, 'expired 401 layout load must clear access_token cookie');
+		assert.equal(cookies.selected_book_id, undefined, 'expired 401 layout load must clear selected_book_id cookie');
 		assert.doesNotMatch(snapshot.bodyText, /Something went wrong|Admin API is unavailable|RAW_SQL|PASSWORD_HASH|Syncthing|only-copy|JWT_SENTINEL|canonical_path/i, 'expired 401 login state must reject generic errors, raw backend details, and sentinels');
 		assertNoAdminPayloadRequests(requestsSince(api, beforeExpired), 'expired 401 session');
 
@@ -1025,7 +1118,7 @@ async function runSmoke() {
 		assert.deepEqual(forbiddenBrowserProductWriteRequests(browserRequests), [], 'browser must observe zero product/GnuCash write-capable requests');
 		assertNoSentinelLeaks(snapshots, browserRequests, consoleMessages, api.requests, 'admin users browser smoke');
 
-		console.log(`admin users browser smoke passed: scenarios=list-empty-pagination-status-create-detail-update-enable-disable-reset-grant-revoke errors=401/403/404/409/422/unknown expired_session_path=${snapshot.pathname} expired_session_copy=sign_in expired_admin_payload_calls=0 normal_user_admin_api_calls=0 product_write_calls=${api.forbiddenProductWriteRequests.length} browser_product_write_calls=${forbiddenBrowserProductWriteRequests(browserRequests).length} secret_sentinel_leaks=0 viewport_width=320 gnucash_writes_enabled=false`);
+		console.log(`admin users browser smoke passed: scenarios=list-empty-pagination-status-create-detail-update-enable-disable-reset-grant-revoke selected_book_revoked_fallback zero_books_cookie_delete other_book_persists direct_revoked_safe_404 errors=401/403/404/409/422/unknown expired_session_path=${snapshot.pathname}${snapshot.search} expired_session_copy=session_changed expired_cookies_cleared=access_token,selected_book_id admin_mutation_401_cookies_cleared=access_token,selected_book_id expired_admin_payload_calls=0 normal_user_admin_api_calls=0 product_write_calls=${api.forbiddenProductWriteRequests.length} browser_product_write_calls=${forbiddenBrowserProductWriteRequests(browserRequests).length} secret_sentinel_leaks=0 viewport_width=320 gnucash_writes_enabled=false`);
 	} catch (error) {
 		const webTail = webProcess?.outputTail?.() ?? '';
 		const chromiumTail = chromiumProcess?.outputTail?.() ?? '';

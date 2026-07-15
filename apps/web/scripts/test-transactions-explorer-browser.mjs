@@ -143,6 +143,9 @@ async function startSyntheticApi() {
 			return jsonResponse(res, 409, { detail: 'Synthetic explorer smoke blocked a mutation-capable endpoint.' });
 		}
 		if (url.pathname === '/health') return jsonResponse(res, 200, { status: 'ok', first_run: null });
+		if (req.method === 'GET' && url.pathname === '/auth/me') {
+			return jsonResponse(res, 200, { id: 1, username: 'synthetic_transactions', display_name: 'Synthetic Transactions', is_admin: false });
+		}
 		if (url.pathname === '/books') return jsonResponse(res, 200, [syntheticBook]);
 		if (url.pathname === '/books/1/accounts') return jsonResponse(res, 200, accounts);
 		if (url.pathname === '/books/1/transactions/explorer') return jsonResponse(res, 200, explorerPayload(url));

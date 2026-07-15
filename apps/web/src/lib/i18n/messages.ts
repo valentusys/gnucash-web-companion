@@ -18,6 +18,7 @@ export type MessageKey =
 	| 'login.error.serviceUnavailable'
 	| 'login.error.invalidCredentials'
 	| 'login.error.operatorConfiguration'
+	| 'login.notice.sessionChanged'
 	| 'login.firstRun.title'
 	| 'login.firstRun.summary'
 	| 'login.firstRun.safeDiagnostics'
@@ -892,6 +893,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'login.error.invalidCredentials': 'Invalid username or password.',
 		'login.error.operatorConfiguration':
 			'Login is not fully configured. Check JWT_SECRET and APP_ADMIN_PASSWORD_HASH or APP_ADMIN_PASSWORD in your local .env/deployment environment, restart the service, and keep GnuCash data read-only.',
+		'login.notice.sessionChanged': 'Session changed. Sign in again to continue.',
 		'login.firstRun.title': 'First-run read-only deployment checks',
 		'login.firstRun.summary': 'Safe redacted /health diagnostics help distinguish placeholder JWT secret, admin bootstrap, mounted book, CORS, and write-disabled status before login.',
 		'login.firstRun.safeDiagnostics': 'No secrets, full paths, tokens, app DB contents, or book data are shown here.',
@@ -1834,6 +1836,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'login.error.invalidCredentials': 'Неверное имя пользователя или пароль.',
 		'login.error.operatorConfiguration':
 			'Вход настроен не полностью. Проверьте JWT_SECRET и APP_ADMIN_PASSWORD_HASH или APP_ADMIN_PASSWORD в локальном .env/deployment окружении, перезапустите сервис и оставьте данные GnuCash в read-only режиме.',
+		'login.notice.sessionChanged': 'Сессия изменилась. Войдите заново, чтобы продолжить.',
 		'login.firstRun.title': 'Проверки first-run read-only deployment',
 		'login.firstRun.summary': 'Безопасная redacted диагностика /health помогает отличить placeholder JWT secret, admin bootstrap, смонтированную книгу, CORS и write-disabled статус до входа.',
 		'login.firstRun.safeDiagnostics': 'Здесь не показываются secrets, полные пути, tokens, содержимое app DB или данные книги.',
@@ -1939,7 +1942,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'adminUsers.problem.password_policy': 'Password не соответствует local policy.',
 		'adminUsers.problem.user_not_found': 'User не найден.',
 		'adminUsers.problem.user_disabled': 'Этот user disabled или session changed. При необходимости войдите заново.',
-		'adminUsers.problem.session_changed': 'Session changed. Войдите заново, чтобы продолжить.',
+		'adminUsers.problem.session_changed': 'Сессия изменилась. Войдите заново, чтобы продолжить.',
 		'adminUsers.problem.self_disable_forbidden': 'Self-disable не разрешён через web UI.',
 		'adminUsers.problem.last_enabled_admin': 'Должен остаться хотя бы один enabled admin.',
 		'adminUsers.problem.book_not_assignable': 'Эта book не active/assignable.',

@@ -293,6 +293,9 @@ async function startSyntheticApi() {
 		if (req.method === 'GET' && url.pathname === '/health') {
 			return jsonResponse(res, 200, { status: 'ok', first_run: null });
 		}
+		if (req.method === 'GET' && url.pathname === '/auth/me') {
+			return jsonResponse(res, 200, { id: 1, username: 'synthetic_reports', display_name: 'Synthetic Reports', is_admin: false });
+		}
 		if (req.method === 'GET' && url.pathname === '/books') {
 			return jsonResponse(res, 200, [syntheticBook]);
 		}

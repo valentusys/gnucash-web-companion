@@ -51,6 +51,14 @@
 			>
 				{form.error}
 			</div>
+		{:else if data.loginReason === 'session_changed'}
+			<div
+				class="mb-4 rounded-xl border px-4 py-3 text-sm"
+				style="border-color: var(--app-border); background-color: var(--app-card-bg); color: var(--app-text);"
+				role="status"
+			>
+				{t(locale, 'login.notice.sessionChanged')}
+			</div>
 		{/if}
 
 		<form method="POST" class="space-y-5">

@@ -495,6 +495,9 @@ async function startSyntheticApi() {
 			return jsonResponse(res, 409, { detail: 'Synthetic accounts smoke blocked a mutation-capable endpoint.' });
 		}
 		if (req.method === 'GET' && url.pathname === '/health') return jsonResponse(res, 200, { status: 'ok', first_run: null });
+		if (req.method === 'GET' && url.pathname === '/auth/me') {
+			return jsonResponse(res, 200, { id: 1, username: 'synthetic_accounts', display_name: 'Synthetic Accounts', is_admin: false });
+		}
 		if (req.method === 'GET' && url.pathname === '/books') return jsonResponse(res, 200, [syntheticBook]);
 		if (req.method === 'GET' && url.pathname === '/books/1/accounts') return jsonResponse(res, 200, legacyAccounts());
 		if (req.method === 'GET' && url.pathname === '/books/1/accounts/explorer') return jsonResponse(res, 200, explorerPayload(url));

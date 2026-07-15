@@ -67,6 +67,14 @@ export type AdminBookOption = {
 	is_default: boolean;
 };
 
+export type AdminBookOptionList = {
+	items: AdminBookOption[];
+	total_count: number;
+	limit: number;
+	offset: number;
+	has_next: boolean;
+};
+
 export type AdminBookAccess = {
 	book_id: number;
 	book_name: string;

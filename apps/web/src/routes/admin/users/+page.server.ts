@@ -59,9 +59,10 @@ function loadProblemCode(reason: unknown): AdminProblemCode {
 	return 'api_unavailable';
 }
 
-export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
+export const load: PageServerLoad = async ({ cookies, fetch, parent, url }) => {
 	const token = getAuthToken(cookies);
-	const currentUser = await getCurrentUser(fetch, token);
+	const layoutData = await parent();
+	const currentUser = layoutData.currentUser;
 	const limit = safeIntegerParam(url.searchParams, 'limit', DEFAULT_LIMIT, 1, MAX_LIMIT);
 	const offset = safeIntegerParam(url.searchParams, 'offset', 0, 0, MAX_OFFSET);
 	const state = safeStateParam(url.searchParams);
@@ -82,7 +83,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 	try {
 		return {
 			isAdmin: true,
-			users: await apiFetch<AdminUserList>(fetch, `/admin/users?${params.toString()}`, token),
+			users: await apiFetch<AdminUserList>(fetch, `/admin/users?${params.toString()}`, token, cookies),
 			filters: { limit, offset, state },
 			loadErrorCode: null,
 			successCode
@@ -102,7 +103,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 export const actions: Actions = {
 	enableUser: async ({ cookies, fetch, request }) => {
 		const token = getAuthToken(cookies);
-		const currentUser = await getCurrentUser(fetch, token);
+		const currentUser = await getCurrentUser(fetch, token, cookies);
 		if (!isCurrentUserAdmin(currentUser)) {
 			return fail(403, { adminErrorCode: 'admin_required' satisfies AdminProblemCode });
 		}
@@ -111,7 +112,7 @@ export const actions: Actions = {
 		if (!Number.isInteger(userId) || userId <= 0) {
 			return fail(404, { adminErrorCode: 'user_not_found' satisfies AdminProblemCode });
 		}
-		const result = await adminApiMutationFetch(fetch, token, `/admin/users/${userId}/enable`, 'POST');
+		const result = await adminApiMutationFetch(fetch, token, `/admin/users/${userId}/enable`, 'POST', undefined, cookies);
 		if (!result.ok) return fail(result.status, { adminErrorCode: result.message });
 		return { adminSuccessCode: 'user_enabled' };
 	}
