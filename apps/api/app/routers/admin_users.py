@@ -4,13 +4,16 @@ from __future__ import annotations
 
 from typing import NoReturn
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.models import User
 from app.routers.auth import get_current_user, get_db
 from app.schemas.users import (
+    AdminBookAccessBookListResponse,
     AdminUserCreateRequest,
+    AdminUserAssignment,
+    AdminUserBookAccessRequest,
     AdminUserDetail,
     AdminUserListResponse,
     AdminUserPasswordResetRequest,
@@ -20,6 +23,7 @@ from app.schemas.users import (
 from app.services.user_admin import UserAdminError, UserAdminService
 
 router = APIRouter(prefix="/admin/users", tags=["admin-users"])
+book_access_router = APIRouter(prefix="/admin/book-access", tags=["admin-book-access"])
 
 
 def _require_admin(user: User) -> int:
@@ -53,6 +57,20 @@ def list_admin_users(
         _raise_user_admin_error(exc)
 
 
+@book_access_router.get("/books", response_model=AdminBookAccessBookListResponse)
+def list_admin_book_access_books(
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+) -> AdminBookAccessBookListResponse:
+    _require_admin(user)
+    try:
+        return UserAdminService(session).list_book_options(limit=limit, offset=offset)
+    except UserAdminError as exc:
+        _raise_user_admin_error(exc)
+
+
 @router.post("", response_model=AdminUserDetail, status_code=status.HTTP_201_CREATED)
 def create_admin_user(
     body: AdminUserCreateRequest,
@@ -81,6 +99,48 @@ def get_admin_user(
     _require_admin(user)
     try:
         return UserAdminService(session).get_user_detail(subject_user_id=subject_user_id)
+    except UserAdminError as exc:
+        _raise_user_admin_error(exc)
+
+
+@router.put("/{subject_user_id}/book-access/{book_id}", response_model=AdminUserAssignment)
+def put_admin_user_book_access(
+    subject_user_id: int,
+    book_id: int,
+    body: AdminUserBookAccessRequest,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+) -> AdminUserAssignment:
+    actor_user_id = _require_admin(user)
+    try:
+        return UserAdminService(session).set_book_access(
+            actor_user_id=actor_user_id,
+            subject_user_id=subject_user_id,
+            book_id=book_id,
+            role=body.role,
+        )
+    except UserAdminError as exc:
+        _raise_user_admin_error(exc)
+
+
+@router.delete(
+    "/{subject_user_id}/book-access/{book_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_admin_user_book_access(
+    subject_user_id: int,
+    book_id: int,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+) -> Response:
+    actor_user_id = _require_admin(user)
+    try:
+        UserAdminService(session).delete_book_access(
+            actor_user_id=actor_user_id,
+            subject_user_id=subject_user_id,
+            book_id=book_id,
+        )
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
     except UserAdminError as exc:
         _raise_user_admin_error(exc)
 

@@ -12,7 +12,10 @@ from sqlalchemy.orm import Session, load_only
 
 from app.models import AuditLog, Book, User, UserBookAccess
 from app.schemas.users import (
+    AdminBookAccessBookListResponse,
+    AdminBookAccessBookOption,
     AdminUserAssignment,
+    AdminUserAccessRole,
     AdminUserDetail,
     AdminUserListResponse,
     AdminUserPasswordResetResponse,
@@ -85,6 +88,90 @@ class UserAdminService:
             [],
         )
         return self._detail_from_row(row, assignments)
+
+    def list_book_options(
+        self,
+        *,
+        limit: int,
+        offset: int,
+    ) -> AdminBookAccessBookListResponse:
+        """Return bounded active book options without touching GnuCash sources."""
+
+        active_filter = (Book.is_archived.is_(False), Book.is_enabled.is_(True))
+        total_count = int(self.session.query(Book.id).filter(*active_filter).count())
+        rows = (
+            self.session.query(Book.id, Book.name, Book.is_default)
+            .filter(*active_filter)
+            .order_by(func.lower(Book.name), Book.id)
+            .limit(limit)
+            .offset(offset)
+            .all()
+        )
+        items = [
+            AdminBookAccessBookOption(
+                id=int(book_id),
+                name=str(book_name),
+                is_default=bool(is_default),
+            )
+            for book_id, book_name, is_default in rows
+        ]
+        return AdminBookAccessBookListResponse(
+            items=items,
+            total_count=total_count,
+            limit=limit,
+            offset=offset,
+            has_next=offset + len(items) < total_count,
+        )
+
+    def set_book_access(
+        self,
+        *,
+        actor_user_id: int,
+        subject_user_id: int,
+        book_id: int,
+        role: AdminUserAccessRole | str = "viewer",
+    ) -> AdminUserAssignment:
+        """Grant or update one active book assignment idempotently."""
+
+        safe_role = self._validate_access_role(role)
+        return self._set_book_access_transaction(
+            actor_user_id=actor_user_id,
+            subject_user_id=subject_user_id,
+            book_id=book_id,
+            role=safe_role,
+            retry_on_integrity=True,
+        )
+
+    def delete_book_access(
+        self,
+        *,
+        actor_user_id: int,
+        subject_user_id: int,
+        book_id: int,
+    ) -> None:
+        """Revoke one book assignment; missing/repeated revokes are 204/no-audit."""
+
+        self._begin_immediate()
+        try:
+            self._require_actor_admin_locked(actor_user_id)
+            if self._get_user_locked(subject_user_id) is None:
+                raise UserAdminError(404, "user_not_found")
+            access = self._get_access(subject_user_id=subject_user_id, book_id=book_id)
+            if access is not None:
+                self.session.delete(access)
+                self._audit_book_access(
+                    actor_user_id=actor_user_id,
+                    subject_user_id=subject_user_id,
+                    book_id=book_id,
+                    action="book_access_revoked",
+                    changed_fields=["book_access"],
+                    result="revoked",
+                )
+                self.session.flush()
+            self.session.commit()
+        except Exception:
+            self.session.rollback()
+            raise
 
     def create_user(
         self,
@@ -293,6 +380,106 @@ class UserAdminService:
         except PasswordPolicyError as exc:
             raise UserAdminError(422, "password_policy") from exc
 
+    @staticmethod
+    def _validate_access_role(role: AdminUserAccessRole | str) -> AdminUserAccessRole:
+        if role not in {"owner", "editor", "viewer"}:
+            raise UserAdminError(422, "invalid_state")
+        return role  # type: ignore[return-value]
+
+    def _set_book_access_transaction(
+        self,
+        *,
+        actor_user_id: int,
+        subject_user_id: int,
+        book_id: int,
+        role: AdminUserAccessRole,
+        retry_on_integrity: bool,
+    ) -> AdminUserAssignment:
+        self._begin_immediate()
+        try:
+            self._require_actor_admin_locked(actor_user_id)
+            if self._get_user_locked(subject_user_id) is None:
+                raise UserAdminError(404, "user_not_found")
+            book = self._get_active_book(book_id)
+            if book is None:
+                raise UserAdminError(404, "book_not_found")
+
+            access = self._get_access(subject_user_id=subject_user_id, book_id=book_id)
+            if access is None:
+                access = UserBookAccess(user_id=subject_user_id, book_id=book_id, role=role)
+                self.session.add(access)
+                try:
+                    self.session.flush()
+                except IntegrityError:
+                    self.session.rollback()
+                    if retry_on_integrity:
+                        return self._set_book_access_transaction(
+                            actor_user_id=actor_user_id,
+                            subject_user_id=subject_user_id,
+                            book_id=book_id,
+                            role=role,
+                            retry_on_integrity=False,
+                        )
+                    raise
+                self._audit_book_access(
+                    actor_user_id=actor_user_id,
+                    subject_user_id=subject_user_id,
+                    book_id=book_id,
+                    action="book_access_granted",
+                    changed_fields=["book_access", "role"],
+                    result="granted",
+                    role=role,
+                )
+            elif access.role != role:
+                access.role = role
+                self.session.flush()
+                self._audit_book_access(
+                    actor_user_id=actor_user_id,
+                    subject_user_id=subject_user_id,
+                    book_id=book_id,
+                    action="book_access_role_changed",
+                    changed_fields=["role"],
+                    result="changed",
+                    role=role,
+                )
+
+            assignment = self._assignment_from_book(book, role=access.role)
+            self.session.commit()
+            return assignment
+        except Exception:
+            self.session.rollback()
+            raise
+
+    def _get_active_book(self, book_id: int) -> Book | None:
+        return (
+            self.session.query(Book)
+            .filter(
+                Book.id == book_id,
+                Book.is_archived.is_(False),
+                Book.is_enabled.is_(True),
+            )
+            .first()
+        )
+
+    def _get_access(self, *, subject_user_id: int, book_id: int) -> UserBookAccess | None:
+        return (
+            self.session.query(UserBookAccess)
+            .filter(
+                UserBookAccess.user_id == subject_user_id,
+                UserBookAccess.book_id == book_id,
+            )
+            .first()
+        )
+
+    @staticmethod
+    def _assignment_from_book(book: Book, *, role: str) -> AdminUserAssignment:
+        return AdminUserAssignment(
+            book_id=int(book.id),
+            book_name=str(book.name),
+            is_default=bool(book.is_default),
+            role=role,  # type: ignore[arg-type]
+        )
+
     def _begin_immediate(self) -> None:
         bind = self.session.get_bind()
         if self.session.in_transaction():
@@ -367,6 +554,7 @@ class UserAdminService:
                 UserBookAccess.user_id,
                 UserBookAccess.book_id,
                 Book.name,
+                Book.is_default,
                 UserBookAccess.role,
             )
             .join(Book, UserBookAccess.book_id == Book.id)
@@ -375,18 +563,19 @@ class UserAdminService:
                 Book.is_archived.is_(False),
                 Book.is_enabled.is_(True),
             )
-            .order_by(UserBookAccess.user_id, Book.name, Book.id)
+            .order_by(UserBookAccess.user_id, func.lower(Book.name), Book.id)
             .all()
         )
 
         assignments_by_user_id: dict[int, list[AdminUserAssignment]] = {
             user_id: [] for user_id in ids
         }
-        for user_id, book_id, book_name, role in rows:
+        for user_id, book_id, book_name, is_default, role in rows:
             assignments_by_user_id[int(user_id)].append(
                 AdminUserAssignment(
                     book_id=int(book_id),
                     book_name=str(book_name),
+                    is_default=bool(is_default),
                     role=role,
                 )
             )
@@ -437,6 +626,34 @@ class UserAdminService:
             AuditLog(
                 user_id=int(actor_user_id),
                 book_id=None,
+                action=action,
+                payload_json=json.dumps(payload, sort_keys=True, separators=(",", ":")),
+            )
+        )
+
+    def _audit_book_access(
+        self,
+        *,
+        actor_user_id: int,
+        subject_user_id: int,
+        book_id: int,
+        action: str,
+        changed_fields: list[str],
+        result: str,
+        role: str | None = None,
+    ) -> None:
+        payload: dict[str, object] = {
+            "subject_user_id": int(subject_user_id),
+            "book_id": int(book_id),
+            "changed_fields": list(changed_fields),
+            "result": result,
+        }
+        if role is not None:
+            payload["role"] = role
+        self.session.add(
+            AuditLog(
+                user_id=int(actor_user_id),
+                book_id=int(book_id),
                 action=action,
                 payload_json=json.dumps(payload, sort_keys=True, separators=(",", ":")),
             )

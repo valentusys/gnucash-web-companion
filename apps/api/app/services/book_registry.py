@@ -2,6 +2,7 @@
 
 from typing import Optional
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 
 from app.models import Book, User, UserBookAccess
@@ -15,7 +16,11 @@ class BookRegistryService:
         return (
             self.session.query(Book)
             .options(joinedload(Book.health_snapshot), joinedload(Book.access_entries))
-            .filter(Book.is_default.is_(True), Book.is_archived.is_(False))
+            .filter(
+                Book.is_default.is_(True),
+                Book.is_archived.is_(False),
+                Book.is_enabled.is_(True),
+            )
             .first()
         )
 
@@ -27,7 +32,9 @@ class BookRegistryService:
             .filter(
                 UserBookAccess.user_id == user.id,
                 Book.is_archived.is_(False),
+                Book.is_enabled.is_(True),
             )
+            .order_by(func.lower(Book.name), Book.id)
             .all()
         )
 

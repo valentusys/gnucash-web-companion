@@ -179,7 +179,7 @@ def test_admin_lists_users_bounded_ordered_redacted_and_without_n_plus_one(
     viewer_item = data["items"][2]
     assert viewer_item["assignment_count"] == 1
     assert viewer_item["assignments"] == [
-        {"book_id": 1, "book_name": "Synthetic Book", "role": "viewer"}
+        {"book_id": 1, "book_name": "Synthetic Book", "is_default": True, "role": "viewer"}
     ]
     assert set(data["items"][0]) == {
         "id",
@@ -319,7 +319,7 @@ def test_detail_patch_enable_disable_reset_invalidate_sessions_and_audit_redacti
     assert detail.json()["username"] == "viewer"
     assert detail.json()["assignment_count"] == 1
     assert detail.json()["assignments"] == [
-        {"book_id": 1, "book_name": "Synthetic Book", "role": "viewer"}
+        {"book_id": 1, "book_name": "Synthetic Book", "is_default": True, "role": "viewer"}
     ]
 
     patch_response = client.patch(

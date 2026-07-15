@@ -30,6 +30,13 @@ class BookAccessService:
         self.session = session
 
     def get_role(self, user: User, book: Book) -> Optional[str]:
+        """Return the current request's persisted role for this book.
+
+        Registry lookups eager-load access_entries in the same DB query that
+        resolves the book, so using that loaded relationship keeps metadata
+        routes bounded while still reflecting revokes on the next request/session.
+        """
+
         book_state: Any = inspect(book)
         access_entries_state = book_state.attrs.access_entries
         access_entries = access_entries_state.loaded_value

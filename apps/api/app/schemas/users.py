@@ -130,6 +130,17 @@ class AdminUserPasswordResetRequest(BaseModel):
     new_password: str
 
 
+AdminUserAccessRole = Literal["owner", "editor", "viewer"]
+
+
+class AdminUserBookAccessRequest(BaseModel):
+    """Admin-only scoped book-access grant/update request."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    role: AdminUserAccessRole = "viewer"
+
+
 AdminUserSafeCode = Literal[
     "username_invalid",
     "username_taken",
@@ -140,11 +151,9 @@ AdminUserSafeCode = Literal[
     "last_enabled_admin",
     "admin_required",
     "invalid_state",
+    "book_not_found",
     "unknown",
 ]
-
-AdminUserAccessRole = Literal["owner", "editor", "viewer"]
-
 
 class AdminUserProblem(BaseModel):
     safe_code: AdminUserSafeCode
@@ -153,7 +162,22 @@ class AdminUserProblem(BaseModel):
 class AdminUserAssignment(BaseModel):
     book_id: int
     book_name: str
+    is_default: bool
     role: AdminUserAccessRole
+
+
+class AdminBookAccessBookOption(BaseModel):
+    id: int
+    name: str
+    is_default: bool
+
+
+class AdminBookAccessBookListResponse(BaseModel):
+    items: list[AdminBookAccessBookOption]
+    total_count: int
+    limit: int = Field(ge=1, le=100)
+    offset: int = Field(ge=0)
+    has_next: bool
 
 
 class AdminUserDetail(BaseModel):
