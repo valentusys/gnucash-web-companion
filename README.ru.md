@@ -67,6 +67,20 @@ release docs и handoff-файлах, чтобы этот файл не стан
   final acceptance comment
   [#issuecomment-4964411655](https://github.com/valentusys/gnucash-web-companion/issues/55#issuecomment-4964411655)
   recorded. Reporting/account views остаются без FX conversion.
+- Book onboarding/health/lifecycle: #56 закрыта как completed на exact head
+  `6928a2ae5f66f2ad16fdffdc26d1e8022ac5d706` и tree
+  `9ab4a5239505c112dc1956459b60d643324af0ac`. Администратор может выполнить явный read-only
+  preflight и token-bound подтверждение для существующей server-side GnuCash SQL SQLite book, после
+  чего доступны cached health и app-metadata-only rename/base-currency/default/recheck/disable/enable/
+  unregister controls. Upload/client file chooser отсутствует; XML/compressed XML не поддерживаются;
+  unregister никогда не удаляет source; обычный пользователь видит только назначенные книги и
+  path-safe diagnostics; GnuCash Desktop остаётся authoritative. Exact-head GitHub Actions run
+  [29382943117](https://github.com/valentusys/gnucash-web-companion/actions/runs/29382943117),
+  attempt 2, succeeded for Frontend checks, Backend tests, Foundation checks и Docker Compose
+  validation. Final acceptance comment
+  [#issuecomment-4976179921](https://github.com/valentusys/gnucash-web-companion/issues/56#issuecomment-4976179921)
+  recorded. Это не release, production-readiness, security-audit или broad compatibility claim;
+  `GNUCASH_WRITES_ENABLED=false` остаётся дефолтом.
 - Controlled-write trackers #45–#50 остаются отдельными experimental post-MVP boundaries. Они не
   разрешают owner/private DELETE или batch, release publication или public write beta.
   `GNUCASH_WRITES_ENABLED=false` остаётся дефолтом.
@@ -75,6 +89,14 @@ release docs и handoff-файлах, чтобы этот файл не стан
 
 ## Карта текущих статусов
 
+- #56: закрыта как completed для onboarding существующей server-side SQLite book, cached health и
+  admin-only app-metadata lifecycle controls на exact head
+  `6928a2ae5f66f2ad16fdffdc26d1e8022ac5d706`; exact-head GitHub Actions run
+  [29382943117](https://github.com/valentusys/gnucash-web-companion/actions/runs/29382943117),
+  attempt 2, succeeded, final acceptance comment
+  [#issuecomment-4976179921](https://github.com/valentusys/gnucash-web-companion/issues/56#issuecomment-4976179921)
+  recorded. Нет upload, source delete, default GnuCash writes, production claim или broad
+  format/version/backend claim.
 - #55: закрыта как completed для advanced read-only account explorer на exact head
   `3dfd60604d78e329284979442b959aea4b6763a2`; exact-head GitHub Actions run
   [29297230998](https://github.com/valentusys/gnucash-web-companion/actions/runs/29297230998)
@@ -121,8 +143,9 @@ release docs и handoff-файлах, чтобы этот файл не стан
 - Phase 146 — улучшена читаемость transaction detail/split rows на mobile/desktop.
 - Phase 147 — уточнены dashboard/reporting ограничения: base-currency-only, no conversion,
   mixed-currency/`XXX` edge cases.
-- Phase 148 — улучшена `/books` self-hosting readiness без
-  upload/delete/default-changing/registry-edit действий.
+- Phase 148 — улучшена `/books` self-hosting readiness. Current #56 теперь добавляет admin-only app
+  metadata registry lifecycle controls, сохраняя отсутствие upload, source delete, default accounting
+  writes и private path rendering.
 - Phase 149 — расширено Russian localization coverage для нового read-only UX через существующий
   catalog; перевод остаётся частичным, English остаётся canonical.
 - Phase 150 — повторно пройден synthetic/disposable Docker/Caddy read-only API и headless browser

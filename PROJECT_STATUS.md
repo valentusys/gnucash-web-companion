@@ -1,6 +1,6 @@
 # PROJECT_STATUS
 
-Last updated: 2026-07-14
+Last updated: 2026-07-15
 
 ## Quick navigation
 
@@ -20,8 +20,9 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   [#51](https://github.com/valentusys/gnucash-web-companion/issues/51),
   [#52](https://github.com/valentusys/gnucash-web-companion/issues/52),
   [#53](https://github.com/valentusys/gnucash-web-companion/issues/53),
-  [#54](https://github.com/valentusys/gnucash-web-companion/issues/54), and
-  [#55](https://github.com/valentusys/gnucash-web-companion/issues/55) are closed as completed.
+  [#54](https://github.com/valentusys/gnucash-web-companion/issues/54),
+  [#55](https://github.com/valentusys/gnucash-web-companion/issues/55), and
+  [#56](https://github.com/valentusys/gnucash-web-companion/issues/56) are closed as completed.
   #53 has accepted read-only period comparison implementation at exact product head `3b094cd`, final
   documentation closeout at `3eeaf5f`, successful operational closeout CI
   [29180390237](https://github.com/valentusys/gnucash-web-companion/actions/runs/29180390237), and
@@ -38,6 +39,13 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   validation; final acceptance comment
   [#issuecomment-4964411655](https://github.com/valentusys/gnucash-web-companion/issues/55#issuecomment-4964411655)
   is recorded, and the issue closed as completed at `2026-07-14T01:08:15Z`.
+  #56 has accepted head `6928a2ae5f66f2ad16fdffdc26d1e8022ac5d706` and tree
+  `9ab4a5239505c112dc1956459b60d643324af0ac`; exact-head CI
+  [29382943117](https://github.com/valentusys/gnucash-web-companion/actions/runs/29382943117),
+  attempt 2, completed success for Frontend checks, Backend tests, Foundation checks, and Docker
+  Compose validation. Final acceptance comment
+  [#issuecomment-4976179921](https://github.com/valentusys/gnucash-web-companion/issues/56#issuecomment-4976179921)
+  is recorded, and the issue closed as completed at `2026-07-15T02:13:04Z`.
 - Controlled-write boundary: [#36](https://github.com/valentusys/gnucash-web-companion/issues/36)
   is closed as `CLOSE_36_AS_MAINTENANCE_BOUNDARY`. Trackers #45–#50 remain separate experimental
   evidence/workflow history; they do not authorize owner/private DELETE or batch, release publication,
@@ -47,7 +55,9 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
 - Closed documentation/compatibility queues:
   [#22](https://github.com/valentusys/gnucash-web-companion/issues/22) and
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28).
-- Latest handoffs/docs: `docs/handoff/hermes-kanban-product-run-4.md`,
+- Latest handoffs/docs:
+  [docs/handoff/hermes-kanban-product-run-5.md](docs/handoff/hermes-kanban-product-run-5.md),
+  `docs/handoff/hermes-kanban-product-run-4.md`,
   `docs/handoff/hermes-kanban-product-run-3.md`,
   `docs/handoff/hermes-kanban-product-run-2.md`,
   `docs/handoff/issue51-disposable-ui-execution-rehearsal.md`,
@@ -105,6 +115,25 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
 
 ## Current status snapshot
 
+- The fifth Hermes Kanban product run completed
+  [#56](https://github.com/valentusys/gnucash-web-companion/issues/56) at accepted head
+  `6928a2ae5f66f2ad16fdffdc26d1e8022ac5d706` and tree
+  `9ab4a5239505c112dc1956459b60d643324af0ac`. The product now supports admin-only onboarding of an
+  existing server-side GnuCash SQL SQLite book through explicit read-only preflight and a
+  request/source-bound confirmation token; cached typed health; capability-gated read-only links; and
+  metadata-only rename, base-currency, default, recheck, disable, enable, and unregister controls.
+  There is no upload/client file chooser, XML/compressed XML support, source deletion, accounting-data
+  mutation, raw-path/exception exposure to normal users, or production/security/broad-compatibility
+  claim. QA1 passed full API `1288` and focused `364`; QA2 passed full API `1288`, focused `443`, and
+  local generated-only 1k/10k lifecycle evidence; QA3 passed full API `1289`, focused `142`, and the
+  actual CI Frontend sequence after the bounded Starlette 422 warning correction. Exact-head GitHub
+  Actions run
+  [29382943117](https://github.com/valentusys/gnucash-web-companion/actions/runs/29382943117),
+  attempt 2, succeeded for Frontend checks, Backend tests, Foundation checks, and Docker Compose
+  validation. Final acceptance comment
+  [#issuecomment-4976179921](https://github.com/valentusys/gnucash-web-companion/issues/56#issuecomment-4976179921)
+  is recorded, and #56 closed as completed at `2026-07-15T02:13:04Z`. Evidence:
+  `docs/handoff/hermes-kanban-product-run-5.md`.
 - The fourth Hermes Kanban product run completed
   [#55](https://github.com/valentusys/gnucash-web-companion/issues/55) at accepted head
   `3dfd60604d78e329284979442b959aea4b6763a2`. The integrated work adds a hierarchical account

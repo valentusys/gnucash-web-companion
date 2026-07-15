@@ -87,6 +87,20 @@ the current write-alpha publication baseline remains Phase 261.
   final acceptance comment
   [#issuecomment-4964411655](https://github.com/valentusys/gnucash-web-companion/issues/55#issuecomment-4964411655)
   is recorded. Reporting and account views perform no FX conversion.
+- **Book onboarding, health, and lifecycle:** #56 is closed as completed at exact head
+  `6928a2ae5f66f2ad16fdffdc26d1e8022ac5d706` and tree
+  `9ab4a5239505c112dc1956459b60d643324af0ac`. Admins can explicitly preflight and token-confirm an
+  existing server-side GnuCash SQL SQLite book, then use cached health and app-metadata-only rename,
+  base-currency, default, recheck, disable, enable, and unregister controls. There is no upload/client
+  file chooser; XML/compressed XML is unsupported; unregister never deletes the source; normal users
+  see only assigned books and path-safe diagnostics; and GnuCash Desktop remains authoritative.
+  Exact-head GitHub Actions run
+  [29382943117](https://github.com/valentusys/gnucash-web-companion/actions/runs/29382943117),
+  attempt 2, succeeded for Frontend checks, Backend tests, Foundation checks, and Docker Compose
+  validation. Final acceptance comment
+  [#issuecomment-4976179921](https://github.com/valentusys/gnucash-web-companion/issues/56#issuecomment-4976179921)
+  is recorded. This is not a release, production-readiness, security-audit, or broad compatibility
+  claim; `GNUCASH_WRITES_ENABLED=false` remains default.
 - **Controlled-write trackers:** #45–#50 remain separate experimental post-MVP evidence/workflow
   boundaries. They do not authorize owner/private DELETE or batch, release publication, or public
   write beta. `GNUCASH_WRITES_ENABLED=false` remains the default.
@@ -101,6 +115,14 @@ the current write-alpha publication baseline remains Phase 261.
 
 ## Current status map
 
+- #56: closed as completed for existing server-side SQLite book onboarding, cached health, and
+  admin-only app-metadata lifecycle controls at exact head
+  `6928a2ae5f66f2ad16fdffdc26d1e8022ac5d706`; exact-head GitHub Actions run
+  [29382943117](https://github.com/valentusys/gnucash-web-companion/actions/runs/29382943117),
+  attempt 2, succeeded, and final acceptance comment
+  [#issuecomment-4976179921](https://github.com/valentusys/gnucash-web-companion/issues/56#issuecomment-4976179921)
+  is recorded. The flow has no upload, source delete, default GnuCash writes, production claim, or
+  broad format/version/backend claim.
 - #55: closed as completed for the advanced read-only account explorer at exact head
   `3dfd60604d78e329284979442b959aea4b6763a2`; exact-head GitHub Actions run
   [29297230998](https://github.com/valentusys/gnucash-web-companion/actions/runs/29297230998)
@@ -251,9 +273,10 @@ the current write-alpha publication baseline remains Phase 261.
   - Phase 147 made dashboard/reporting totals more explicit about
     `reporting_basis=base_currency_only`, no currency conversion, excluded mixed currencies, and
     unknown `XXX`/zero-total limitations.
-  - Phase 148 improved `/books` self-hosting readiness with app-metadata-only operator guidance,
-    current/default/read-only/access/storage/status clarity, explicit unsupported MVP management
-    actions, and no private path rendering in the UI.
+  - Phase 148 improved `/books` self-hosting readiness with app-metadata-only operator guidance and
+    current/default/read-only/access/storage/status clarity. Current #56 now adds admin-only app
+    metadata registry lifecycle controls while preserving no upload, no source deletion, no default
+    accounting writes, and no private path rendering in the UI.
   - Phase 149 expanded Russian localization coverage for the new read-only UX from Phases 143–148
     through the existing catalog and static route checks.
   - Phase 150 reran synthetic/disposable Docker/Caddy read-only API and headless browser dogfood
@@ -270,8 +293,10 @@ the current write-alpha publication baseline remains Phase 261.
     `GNUCASH_WRITES_ENABLED=false`.
   - Phase 154 refreshed GnuCash Desktop compatibility blocker evidence for GitHub #22 without broad
     Desktop/version/backend claims.
-  - Phase 155 improved multi-book read-only operator diagnostics with safe storage/access metadata,
-    private-path redaction, and no upload/delete/default-changing/registry-edit actions.
+  - Phase 155 improved multi-book read-only operator diagnostics with safe storage/access metadata
+    and private-path redaction. At that phase there were no upload/source-delete/default-changing/
+    registry-edit actions; current #56 adds only the admin app-metadata lifecycle while preserving
+    the no-upload, no-source-delete, and no-default-accounting-write boundaries.
   - Autonomous long run for #13 added admin-only metadata registration/registry management for
     already-mounted local copied/test SQLite GnuCash books: list, set default, remove from registry
     without deleting files, and path-safe schema validation. No upload or accounting writes were added.
@@ -542,11 +567,11 @@ the current write-alpha publication baseline remains Phase 261.
   readable active filter summary for search, account, date range, and amount range, with copy
   clarifying that the same active filters apply to the list and CSV export. CSV export filter query
   parity remains unchanged, and no backend write changes were made.
-- Phase 91 added a read-only `/books` metadata page for the safe subset of #13: users can see
-  accessible configured books, the current/default marker, base currency, storage type, read-only
-  status, and access status, while archived/unauthorized books remain hidden/blocked by the API and
-  no upload, deletion, registry editing, GnuCash data editing, collaborative, or family-wallet
-  workflow is exposed.
+- Phase 91 added the original read-only `/books` metadata page for the safe subset of #13: users could
+  see accessible configured books, the current/default marker, base currency, storage type, read-only
+  status, and access status while archived/unauthorized books remained hidden/blocked by the API. The
+  current #56 flow adds admin-only app-metadata lifecycle controls, but still exposes no upload,
+  source deletion, default GnuCash data editing, collaborative, or family-wallet workflow.
 - Phase 92 moved compatibility fixture/version-matrix evidence forward with a safe metadata
   collector for copied/disposable GnuCash SQLite books and narrow docs updates, without broad
   compatibility claims or private data.
