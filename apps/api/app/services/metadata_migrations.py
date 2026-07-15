@@ -10,6 +10,11 @@ from sqlalchemy.engine import Engine, make_url
 from app.config import Settings
 from app.schemas.users import UsernameValidationError, normalize_username
 from app.services.book_preflight import canonicalize_existing_book_path
+from app.services.app_metadata_schema import (
+    APP_METADATA_REQUIRED_COLUMNS,
+    APP_METADATA_TABLE_ALLOWLIST,
+    CURRENT_APP_METADATA_SCHEMA_VERSION,
+)
 
 
 class MetadataMigrationError(RuntimeError):
@@ -70,6 +75,39 @@ def _create_user_normalized_unique_index(conn) -> None:
             "on users(username_normalized)"
         )
     )
+
+
+def _create_write_alpha_transaction_ownership_table(conn) -> None:
+    conn.execute(
+        text(
+            "create table if not exists write_alpha_transaction_ownership ("
+            "id integer primary key autoincrement, "
+            "book_id integer not null, "
+            "transaction_id varchar(64) not null, "
+            "created_by_user_id integer, "
+            "created_by_write_alpha boolean not null, "
+            "created_at datetime not null, "
+            "last_mutated_at datetime not null, "
+            "foreign key(book_id) references books(id) on delete cascade, "
+            "foreign key(created_by_user_id) references users(id) on delete set null, "
+            "unique(book_id, transaction_id))"
+        )
+    )
+
+
+def _has_current_metadata_columns(conn) -> bool:
+    table_names = _table_names(conn)
+    if not set(APP_METADATA_TABLE_ALLOWLIST).issubset(table_names):
+        return False
+    for table_name, columns in APP_METADATA_REQUIRED_COLUMNS.items():
+        if _column_names(conn, table_name) != set(columns):
+            return False
+    return True
+
+
+def _set_current_user_version_if_schema_ready(conn) -> None:
+    if _has_current_metadata_columns(conn):
+        conn.execute(text(f"pragma user_version = {CURRENT_APP_METADATA_SCHEMA_VERSION}"))
 
 
 def _legacy_user_normalized_keys(conn) -> dict[int, str]:
@@ -225,6 +263,7 @@ def run_app_metadata_migrations(engine: Engine, settings: Settings) -> None:
             {"updated_at": _utc_now_text()},
         )
         _create_health_snapshot_table(conn)
+        _create_write_alpha_transaction_ownership_table(conn)
         _add_column_if_missing(
             conn,
             "book_health_snapshots",
@@ -235,3 +274,4 @@ def run_app_metadata_migrations(engine: Engine, settings: Settings) -> None:
         _canonicalize_legacy_rows(conn, settings)
         _create_canonical_unique_index(conn)
         _ensure_book_health_rows(conn)
+        _set_current_user_version_if_schema_ready(conn)
