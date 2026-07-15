@@ -21,6 +21,7 @@
 			currentUserId: number;
 			user: AdminUserDetail | null;
 			bookOptions: AdminBookOption[];
+			bookOptionsErrorCode: AdminProblemCode | null;
 			loadErrorCode: AdminProblemCode | null;
 			successCode: string | null;
 		};
@@ -169,7 +170,13 @@
 				{/each}
 			</div>
 
-			{#if data.bookOptions.length}
+			{#if data.bookOptionsErrorCode}
+				<div class="mt-4 rounded-xl border p-3" style="border-color: var(--app-danger); background-color: var(--app-bg);" role="alert">
+					<h3 class="font-semibold" style="color: var(--app-text);">{t(locale, 'adminUsers.bookOptionsUnavailableTitle')}</h3>
+					<p class="mt-1 text-sm" style="color: var(--app-muted);">{t(locale, 'adminUsers.bookOptionsUnavailableMessage')}</p>
+					<p class="mt-1 text-sm" style="color: var(--app-muted);">{problemMessage(data.bookOptionsErrorCode)}</p>
+				</div>
+			{:else if data.bookOptions.length}
 				<form method="POST" action="?/grantAccess" class="mt-4 grid min-w-0 gap-3 md:grid-cols-[minmax(0,1fr)_12rem_auto]">
 					<label class="text-sm font-medium" style="color: var(--app-text);">
 						{t(locale, 'adminUsers.book')}

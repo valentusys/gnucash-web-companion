@@ -108,6 +108,8 @@ export type MessageKey =
 	| 'adminUsers.confirmRevokeCopy'
 	| 'adminUsers.noBooksTitle'
 	| 'adminUsers.noBooksMessage'
+	| 'adminUsers.bookOptionsUnavailableTitle'
+	| 'adminUsers.bookOptionsUnavailableMessage'
 	| 'adminUsers.noAssignments'
 	| 'adminUsers.limitedActionsNote'
 	| 'adminUsers.passwordNotRepopulated'
@@ -983,6 +985,8 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'adminUsers.confirmRevokeCopy': 'I understand revoke removes this app access on the next request and does not modify the GnuCash book.',
 		'adminUsers.noBooksTitle': 'No assignable active books',
 		'adminUsers.noBooksMessage': 'No active non-archived book options were returned. Users can remain with zero access safely.',
+		'adminUsers.bookOptionsUnavailableTitle': 'Book options are temporarily unavailable',
+		'adminUsers.bookOptionsUnavailableMessage': 'Existing assignments remain visible, but new grants are disabled until the fixed options list loads successfully.',
 		'adminUsers.noAssignments': 'No book assignments for this user.',
 		'adminUsers.limitedActionsNote': 'This milestone exposes only display-name update, enable/disable, password reset, and explicit book grants.',
 		'adminUsers.passwordNotRepopulated': 'Password fields use autocomplete=new-password and never reuse submitted values.',
@@ -1926,6 +1930,8 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'adminUsers.confirmRevokeCopy': 'Я понимаю, что revoke убирает app access на следующем request и не меняет GnuCash book.',
 		'adminUsers.noBooksTitle': 'Нет assignable active books',
 		'adminUsers.noBooksMessage': 'API не вернул active non-archived book options. Users могут безопасно оставаться с zero access.',
+		'adminUsers.bookOptionsUnavailableTitle': 'Book options временно недоступны',
+		'adminUsers.bookOptionsUnavailableMessage': 'Existing assignments остаются видимыми, но новые grants отключены, пока fixed options list не загрузится успешно.',
 		'adminUsers.noAssignments': 'У этого user нет book assignments.',
 		'adminUsers.limitedActionsNote': 'В этом milestone доступны только display-name update, enable/disable, password reset и явные book grants.',
 		'adminUsers.passwordNotRepopulated': 'Password fields используют autocomplete=new-password и никогда не reuse submitted values.',

@@ -270,6 +270,7 @@ async function startSyntheticApi() {
 	const createBodies = [];
 	const resetBodies = [];
 	const mutationBodies = [];
+	let bookOptionsMode = 'normal';
 
 	function requireAdmin(req, res) {
 		const kind = tokenKind(bearerToken(req));
@@ -277,7 +278,7 @@ async function startSyntheticApi() {
 			jsonResponse(res, 401, adminProblem('session_changed'));
 			return false;
 		}
-		if (kind === 'admin') return true;
+		if (kind === 'admin' || kind === 'zero-books') return true;
 		normalUserForbiddenAttempts.push({ method: req.method, path: new URL(req.url ?? '/', 'http://127.0.0.1').pathname });
 		jsonResponse(res, 403, adminProblem('admin_required'));
 		return false;
@@ -340,7 +341,9 @@ async function startSyntheticApi() {
 		}
 		if (method === 'GET' && url.pathname === '/admin/book-access/books') {
 			if (!requireAdmin(req, res)) return;
-			return jsonResponse(res, 200, { items: bookOptions, total_count: bookOptions.length, limit: 50, offset: 0, has_next: false });
+			if (bookOptionsMode === 'fail') return jsonResponse(res, 500, unknownProblem());
+			const items = kind === 'zero-books' ? [] : bookOptions;
+			return jsonResponse(res, 200, { items, total_count: items.length, limit: 50, offset: 0, has_next: false });
 		}
 		if (method === 'POST' && url.pathname === '/admin/users') {
 			if (!requireAdmin(req, res)) return;
@@ -410,6 +413,7 @@ async function startSyntheticApi() {
 				mutationBodies.push({ kind: 'grant', userId, bookId, body });
 				const option = bookOptions.find((book) => book.id === bookId);
 				if (!option) return jsonResponse(res, 400, adminProblem('book_not_assignable'));
+				if (bookId === 2 && String(body.role) === 'owner') return jsonResponse(res, 404, adminProblem('book_not_found'));
 				const role = ['owner', 'editor', 'viewer'].includes(String(body.role)) ? String(body.role) : 'viewer';
 				const assignment = { book_id: option.id, book_name: option.name, is_default: option.is_default, role };
 				user.assignments = user.assignments.filter((entry) => entry.book_id !== bookId).concat(assignment);
@@ -447,6 +451,9 @@ async function startSyntheticApi() {
 		createBodies,
 		resetBodies,
 		mutationBodies,
+		setBookOptionsMode: (mode) => {
+			bookOptionsMode = mode;
+		},
 		close: () => new Promise((resolve) => server.close(resolve))
 	};
 }
@@ -932,6 +939,27 @@ async function runSmoke() {
 		assert.equal(cookies.selected_book_id, undefined, 'zero accessible books must delete selected_book_id cookie');
 		assert.doesNotMatch(snapshot.bodyText, new RegExp(revokedBookName), 'zero accessible books must not render stale selected-book metadata');
 
+		await setSession(cdp, webBase, zeroBooksToken, 'en', 99);
+		await navigate(cdp, webBase, '/admin/users?limit=1&offset=0&state=all', 'zero-books admin list');
+		snapshot = await pageSnapshot(cdp);
+		snapshots.push(snapshot);
+		cookies = await cookieMap(cdp);
+		assert.equal(cookies.selected_book_id, undefined, 'zero-books admin list must delete selected_book_id cookie without redirecting away from admin users');
+		assert.match(snapshot.bodyText, /User and book access administration[\s\S]*Synthetic Admin/, 'zero-books admin list must render admin payload');
+		assert.ok(snapshot.adminNavLinks >= 1 && snapshot.activeAdminNavLinks >= 1, 'zero-books admin list must keep server isAdmin navigation');
+		assert.doesNotMatch(snapshot.bodyText, new RegExp(revokedBookName), 'zero-books admin list must not render stale revoked book metadata');
+		await assertMobileAccessibility(cdp, 'zero-books admin list');
+
+		await navigate(cdp, webBase, '/admin/users/2', 'zero-books admin detail');
+		snapshot = await pageSnapshot(cdp);
+		snapshots.push(snapshot);
+		cookies = await cookieMap(cdp);
+		assert.equal(cookies.selected_book_id, undefined, 'zero-books admin detail must keep selected_book_id deleted');
+		assert.match(snapshot.bodyText, /Synthetic Viewer[\s\S]*No assignable active books[\s\S]*No book assignments for this user\./, 'zero-books admin detail must render the true zero-book access UI');
+		assert.doesNotMatch(snapshot.bodyText, new RegExp(revokedBookName), 'zero-books admin detail must not render stale revoked book metadata');
+		assert.deepEqual(snapshot.bookOptions, [], 'zero-books admin detail must not expose stale book options');
+		await assertMobileAccessibility(cdp, 'zero-books admin detail');
+
 		await setSession(cdp, webBase, adminToken, 'en');
 		await navigate(cdp, webBase, '/books/99/select?next=/dashboard', 'direct revoked book select safe 404', '/books/99/select');
 		snapshot = await pageSnapshot(cdp);
@@ -1010,6 +1038,16 @@ async function runSmoke() {
 		assert.equal(await evaluate(cdp, `document.querySelector('select[name="role"]')?.value ?? ''`), 'viewer', 'new book grants must default to viewer');
 		await assertMobileAccessibility(cdp, 'admin user detail');
 
+		api.setBookOptionsMode('fail');
+		await navigate(cdp, webBase, '/admin/users/1', 'book options API failure safe state');
+		snapshot = await pageSnapshot(cdp);
+		snapshots.push(snapshot);
+		assert.match(snapshot.bodyText, /Synthetic Admin[\s\S]*Book options are temporarily unavailable[\s\S]*Existing assignments remain visible[\s\S]*Admin API is unavailable/, 'book-options failure must render explicit fixed options-unavailable copy');
+		assert.match(snapshot.bodyText, /Synthetic Admin Users Book/, 'book-options failure must preserve existing assignments');
+		assert.doesNotMatch(snapshot.bodyText, /No active non-archived book options were returned|RAW_SQL|PASSWORD_HASH|Syncthing|only-copy|canonical_path/i, 'book-options failure must be distinct from true zero options and redact raw backend body');
+		api.setBookOptionsMode('normal');
+		await navigate(cdp, webBase, '/admin/users/3', 'admin user detail after book options recovery');
+
 		await submitForm(cdp, '?/updateDisplayName', { display_name: 'Browser Renamed' }, {}, 'update display name success');
 		await waitForExpression(cdp, `document.body.innerText.includes('Display name updated.') && document.body.innerText.includes('Browser Renamed')`, 'display name update success', 30000);
 		snapshot = await pageSnapshot(cdp);
@@ -1067,6 +1105,13 @@ async function runSmoke() {
 		assert.match(snapshot.bodyText, /Book access granted or updated\.[\s\S]*Editor[\s\S]*no GnuCash writes are enabled/s, 'grant success must show editor app-metadata-only copy');
 		assert.deepEqual(api.mutationBodies.filter((entry) => entry.kind === 'grant').at(-1)?.body, { role: 'editor' }, 'grant action must submit bounded role only');
 
+		await submitForm(cdp, '?/grantAccess', { book_id: '2', role: 'owner' }, {}, 'book_not_found grant maps to book_not_assignable');
+		await waitForExpression(cdp, `document.body.innerText.includes('That book is not active and assignable.')`, 'book_not_found grant safe copy', 30000);
+		snapshot = await pageSnapshot(cdp);
+		snapshots.push(snapshot);
+		assert.match(snapshot.bodyText, /That book is not active and assignable\./, 'book_not_found grant must map to fixed book_not_assignable copy');
+		assert.doesNotMatch(snapshot.bodyText, /The requested user was not found|book_not_found|RAW_SQL|PASSWORD_HASH|Syncthing|only-copy/i, 'book_not_found grant must not fall back to user_not_found or leak raw backend body');
+
 		await submitForm(cdp, '?/revokeAccess', {}, { confirm_revoke: true }, 'revoke access');
 		await waitForExpression(cdp, `document.body.innerText.includes('Book access revoked.') && document.body.innerText.includes('No book assignments for this user.')`, 'revoke success', 30000);
 		snapshot = await pageSnapshot(cdp);
@@ -1118,7 +1163,7 @@ async function runSmoke() {
 		assert.deepEqual(forbiddenBrowserProductWriteRequests(browserRequests), [], 'browser must observe zero product/GnuCash write-capable requests');
 		assertNoSentinelLeaks(snapshots, browserRequests, consoleMessages, api.requests, 'admin users browser smoke');
 
-		console.log(`admin users browser smoke passed: scenarios=list-empty-pagination-status-create-detail-update-enable-disable-reset-grant-revoke selected_book_revoked_fallback zero_books_cookie_delete other_book_persists direct_revoked_safe_404 errors=401/403/404/409/422/unknown expired_session_path=${snapshot.pathname}${snapshot.search} expired_session_copy=session_changed expired_cookies_cleared=access_token,selected_book_id admin_mutation_401_cookies_cleared=access_token,selected_book_id expired_admin_payload_calls=0 normal_user_admin_api_calls=0 product_write_calls=${api.forbiddenProductWriteRequests.length} browser_product_write_calls=${forbiddenBrowserProductWriteRequests(browserRequests).length} secret_sentinel_leaks=0 viewport_width=320 gnucash_writes_enabled=false`);
+		console.log(`admin users browser smoke passed: scenarios=list-empty-pagination-status-create-detail-update-enable-disable-reset-grant-revoke selected_book_revoked_fallback zero_books_cookie_delete zero_books_admin_routes book_options_failure book_not_found_grant other_book_persists direct_revoked_safe_404 errors=401/403/404/409/422/unknown expired_session_path=${snapshot.pathname}${snapshot.search} expired_session_copy=session_changed expired_cookies_cleared=access_token,selected_book_id admin_mutation_401_cookies_cleared=access_token,selected_book_id expired_admin_payload_calls=0 normal_user_admin_api_calls=0 product_write_calls=${api.forbiddenProductWriteRequests.length} browser_product_write_calls=${forbiddenBrowserProductWriteRequests(browserRequests).length} secret_sentinel_leaks=0 viewport_width=320 gnucash_writes_enabled=false`);
 	} catch (error) {
 		const webTail = webProcess?.outputTail?.() ?? '';
 		const chromiumTail = chromiumProcess?.outputTail?.() ?? '';

@@ -65,6 +65,7 @@ function fixedAdminProblemCodeForTest(payload, fallback, allowedCodes) {
 			candidate = payload.detail.safe_code ?? payload.detail.code;
 		}
 	}
+	if (candidate === 'book_not_found') return 'book_not_assignable';
 	return typeof candidate === 'string' && allowedCodes.has(candidate) ? candidate : fallback;
 }
 
@@ -89,6 +90,7 @@ assert.doesNotMatch(adminDtoBlock, /password_hash|auth_version|JWT|cookie|uri_or
 
 assert.match(apiServer, /allowedAdminProblemCodes[\s\S]*username_invalid[\s\S]*last_enabled_admin[\s\S]*unknown_admin_problem/s, 'server API helper must allow only fixed admin problem codes');
 assert.match(apiServer, /fixedAdminProblemCode[\s\S]*record\.safe_code \?\? record\.code[\s\S]*allowedAdminProblemCodes/s, 'server API helper must reduce unknown backend payloads to fixed codes');
+assert.match(apiServer, /candidate === 'book_not_found'[\s\S]*return 'book_not_assignable'/s, 'server API helper must map exact backend book_not_found to fixed frontend book_not_assignable');
 assert.match(apiServer, /fallbackAdminProblemCode[\s\S]*status === 401[\s\S]*session_changed[\s\S]*status === 403[\s\S]*admin_required[\s\S]*status === 404[\s\S]*user_not_found/s, 'server API helper must map standard auth/not-found statuses safely');
 assert.match(apiServer, /adminApiMutationFetch[\s\S]*method: ApiMutationMethod[\s\S]*body !== undefined \? JSON\.stringify\(body\) : undefined[\s\S]*fixedAdminProblemCode/s, 'admin mutations must use a shared server-side safe-code helper');
 
@@ -126,6 +128,7 @@ for (const [label, source, endpoint] of [
 }
 assert.match(detailServer, /adminActorFromLayout\([\s\S]*currentUser\?\.id \?\? 0[\s\S]*isCurrentUserAdmin\(currentUser\)[\s\S]*parent\(\)[\s\S]*adminActorFromLayout\(layoutData\.currentUser\)/s, 'detail load must derive authority from parent layout /auth/me data without duplicate page-load /auth/me');
 assert.match(detailServer, /apiFetch<AdminBookOptionList>\(fetch, '\/admin\/book-access\/books\?limit=50&offset=0', token, cookies\)[\s\S]*bookOptions = bookOptionPage\.items/s, 'detail load must parse the exact paginated /admin/book-access/books response before exposing book options');
+assert.match(detailServer, /bookOptionsErrorCode: AdminProblemCode \| null = null[\s\S]*bookOptionsErrorCode = 'api_unavailable'[\s\S]*bookOptionsErrorCode/s, 'detail load must distinguish book-options API failure from a true empty options list');
 assert.match(detailServer, /PATCH[\s\S]*display_name: displayName/s, 'detail update must PATCH display_name only');
 assert.match(detailServer, /confirm_disable[\s\S]*\/disable/s, 'disable action must require explicit confirmation');
 assert.ok(detailServer.includes("form.get('confirm_reset')") && detailServer.includes("secretField(form, 'new_password')") && detailServer.includes('password-reset'), 'reset action must require explicit confirmation and a new password');
@@ -141,7 +144,7 @@ assert.doesNotMatch(detailPage, /new_password[^>]+value=|password[^>]+bind:value
 assert.match(detailPage, /confirmDisableCopy[\s\S]*disableSubmit[\s\S]*confirmResetCopy[\s\S]*resetPasswordSubmit[\s\S]*confirmRevokeCopy[\s\S]*revokeSubmit/s, 'detail page must render safe confirmations for disable/reset/revoke');
 assert.match(detailPage, /const roles: AdminBookAccessRole\[\] = \['viewer', 'editor', 'owner'\][\s\S]*function roleCopy[\s\S]*adminUsers\.roleCopy\.\$\{role\}[\s\S]*roleBoundary/s, 'detail page must explain viewer/editor/owner honestly');
 assert.match(detailPage, /<option value="viewer" selected>[\s\S]*adminUsers\.role\.viewer/s, 'new grants must default to viewer');
-assert.match(detailPage, /data\.bookOptions\.length[\s\S]*adminUsers\.noBooksTitle[\s\S]*data\.user\.assignments\.length[\s\S]*adminUsers\.noAssignments/s, 'detail page must cover zero books and zero assignments');
+assert.match(detailPage, /data\.bookOptionsErrorCode[\s\S]*adminUsers\.bookOptionsUnavailableTitle[\s\S]*adminUsers\.bookOptionsUnavailableMessage[\s\S]*data\.bookOptions\.length[\s\S]*adminUsers\.noBooksTitle[\s\S]*data\.user\.assignments\.length[\s\S]*adminUsers\.noAssignments/s, 'detail page must cover options fetch failure, zero books, and zero assignments as distinct states');
 
 assert.match(desktopNav, /isAdmin = false[\s\S]*showAdminUsers = \$derived\(isAdmin === true\)[\s\S]*href: '\/admin\/users'[\s\S]*nav\.adminUsers/s, 'desktop nav must show admin users only from the root server-provided isAdmin prop');
 assert.match(mobileNav, /isAdmin = false[\s\S]*showAdminUsers = \$derived\(isAdmin === true\)[\s\S]*href: '\/admin\/users'[\s\S]*nav\.adminUsers/s, 'mobile nav must show admin users only from the root server-provided isAdmin prop');
@@ -174,6 +177,8 @@ for (const key of [
 	'adminUsers.problem.admin_required',
 	'adminUsers.problem.api_unavailable',
 	'adminUsers.problem.unknown_admin_problem',
+	'adminUsers.bookOptionsUnavailableTitle',
+	'adminUsers.bookOptionsUnavailableMessage',
 	'adminUsers.success.user_created',
 	'adminUsers.success.book_access_revoked'
 ]) {
@@ -202,10 +207,12 @@ for (const code of [
 ]) {
 	assert.ok(allowedAdminCodes.has(code), `admin problem allowlist must include ${code}`);
 }
+assert.ok(!allowedAdminCodes.has('book_not_found'), 'backend-only book_not_found must not be accepted as a frontend AdminProblemCode');
 for (const [status, payload, expected] of [
 	[401, {}, 'session_changed'],
 	[403, {}, 'admin_required'],
 	[404, {}, 'user_not_found'],
+	[404, { detail: { safe_code: 'book_not_found', raw_backend_detail: 'do not echo' } }, 'book_not_assignable'],
 	[409, {}, 'username_taken'],
 	[422, {}, 'display_name_invalid'],
 	[409, { safe_code: 'username_taken', detail: 'duplicate username value' }, 'username_taken'],

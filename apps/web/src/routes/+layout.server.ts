@@ -4,6 +4,7 @@ import { localeFromCookie } from '$lib/i18n';
 import type { LayoutServerLoad } from './$types';
 
 function shouldReviewBookContext(pathname: string): boolean {
+	if (pathname === '/admin/users' || pathname.startsWith('/admin/users/')) return false;
 	return pathname !== '/books' && !pathname.startsWith('/books/');
 }
 

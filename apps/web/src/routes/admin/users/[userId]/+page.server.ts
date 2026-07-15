@@ -89,6 +89,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, parent, params, url
 			currentUserId: actor.id,
 			user: null,
 			bookOptions: [] as AdminBookOption[],
+			bookOptionsErrorCode: null,
 			loadErrorCode: null,
 			successCode
 		};
@@ -97,18 +98,21 @@ export const load: PageServerLoad = async ({ cookies, fetch, parent, params, url
 	try {
 		const user = await apiFetch<AdminUserDetail>(fetch, `/admin/users/${userId}`, token, cookies);
 		let bookOptions: AdminBookOption[] = [];
+		let bookOptionsErrorCode: AdminProblemCode | null = null;
 		try {
 			const bookOptionPage = await apiFetch<AdminBookOptionList>(fetch, '/admin/book-access/books?limit=50&offset=0', token, cookies);
 			bookOptions = bookOptionPage.items;
 		} catch (reason) {
 			if (isRedirect(reason)) throw reason;
 			bookOptions = [];
+			bookOptionsErrorCode = 'api_unavailable';
 		}
 		return {
 			isAdmin: true,
 			currentUserId: actor.id,
 			user,
 			bookOptions,
+			bookOptionsErrorCode,
 			loadErrorCode: null,
 			successCode
 		};
@@ -119,6 +123,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, parent, params, url
 			currentUserId: actor.id,
 			user: null,
 			bookOptions: [] as AdminBookOption[],
+			bookOptionsErrorCode: null,
 			loadErrorCode: loadProblemCode(reason),
 			successCode
 		};

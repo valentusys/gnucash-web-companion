@@ -68,6 +68,7 @@ assert.match(
 	'active-book context must recover from unavailable selected books using API truth, keep full book data only when requested, and remove stale selected metadata from returned layout/page data'
 );
 assert.match(layoutServer, /getActiveBookContext\(fetch, cookies, token, \{ includeUnavailableBooks: true \}\)/, 'root layout must request full registered book data while select routes keep the default openable-only context');
+assert.match(layoutServer, /shouldReviewBookContext[\s\S]*pathname === '\/admin\/users'[\s\S]*pathname\.startsWith\('\/admin\/users\/'\)[\s\S]*pathname !== '\/books'/s, 'root layout must allow admin user administration routes through zero-book recovery without stale book metadata');
 assert.match(
 	bookSwitcher,
 	/openableBooks = \$derived\(books\.filter\(\(book\) => book\.can_open_read_only_views\)\)[\s\S]*openableBooks\.length > 1[\s\S]*#each openableBooks as book/s,
@@ -88,8 +89,12 @@ assert.match(detailServer, /getCurrentUser\(fetchFn, token, cookies\)[\s\S]*redi
 
 for (const snippet of [
 	'zeroBooksToken',
+	'zero-books admin list',
+	'zero-books admin detail',
 	'revoked selected_book_id must recover to the default openable book cookie',
 	'zero accessible books must delete selected_book_id cookie',
+	'book options API failure safe state',
+	'book_not_found grant maps to book_not_assignable',
 	'other assigned openable selected_book_id must persist without fallback',
 	'direct revoked book URL must render a fixed safe 404 state',
 	'401 admin mutation must clear access_token cookie',

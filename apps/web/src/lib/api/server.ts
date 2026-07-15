@@ -123,6 +123,7 @@ export function fixedAdminProblemCode(payload: unknown, fallback: AdminProblemCo
 			candidate = detail.safe_code ?? detail.code;
 		}
 	}
+	if (candidate === 'book_not_found') return 'book_not_assignable';
 	return typeof candidate === 'string' && allowedAdminProblemCodes.has(candidate as AdminProblemCode)
 		? (candidate as AdminProblemCode)
 		: fallback;
