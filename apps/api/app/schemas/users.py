@@ -4,6 +4,10 @@ from __future__ import annotations
 
 import re
 import unicodedata
+from datetime import datetime
+from typing import Any
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 USERNAME_PATTERN = re.compile(r"^[a-z][a-z0-9._-]{2,63}$")
 BCRYPT_MAX_BYTES = 72
@@ -93,3 +97,60 @@ def validate_password_policy(password: str, username_normalized: str | None = No
     )
     if classes < 3:
         raise PasswordPolicyError("password_policy")
+
+
+class AdminUserCreateRequest(BaseModel):
+    """Admin-only local user creation request.
+
+    Business validation is performed by the service so API errors remain fixed
+    and do not echo raw credentials or user-supplied identity values.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    username: str
+    display_name: str
+    password: str
+    is_admin: bool = False
+
+
+class AdminUserPatchRequest(BaseModel):
+    """Admin-only mutable user fields."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    display_name: str
+
+
+class AdminUserPasswordResetRequest(BaseModel):
+    """Admin-only password reset request."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    new_password: str
+
+
+class AdminUserDetail(BaseModel):
+    id: int
+    username: str
+    display_name: str
+    is_admin: bool
+    is_enabled: bool
+    assignment_count: int
+    created_at: datetime
+    updated_at: datetime
+
+    @field_validator("created_at", "updated_at", mode="before")
+    @classmethod
+    def _coerce_sqlite_datetime(cls, value: Any) -> Any:
+        if isinstance(value, str) and value:
+            return datetime.fromisoformat(value)
+        return value
+
+
+class AdminUserListResponse(BaseModel):
+    items: list[AdminUserDetail]
+    total_count: int
+    limit: int = Field(ge=1, le=100)
+    offset: int = Field(ge=0)
+    has_next: bool

@@ -12,6 +12,7 @@ from app.config import get_settings
 from app.database import Base, get_engine, get_session_factory
 from app.diagnostics import build_health_payload, log_startup_diagnostics
 from app.routers.auth import router as auth_router
+from app.routers.admin_users import router as admin_users_router
 from app.routers.books import router as books_router
 from app.routers.accounts import router as accounts_router
 from app.routers.transactions import router as transactions_router
@@ -51,6 +52,7 @@ app.add_middleware(
 )
 
 app.include_router(auth_router)
+app.include_router(admin_users_router)
 app.include_router(books_router)
 app.include_router(accounts_router)
 app.include_router(transactions_router)
