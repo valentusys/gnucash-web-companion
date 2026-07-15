@@ -88,9 +88,27 @@ def client(tmp_path, session_factory):
             uri_or_path=str(tmp_path / "synthetic.gnucash.sqlite"),
             is_default=True,
         )
-        session.add_all([admin, viewer, other_admin, book])
+        archived_book = Book(
+            name="Archived Book",
+            storage_type="sqlite",
+            uri_or_path=str(tmp_path / "archived.gnucash.sqlite"),
+            is_archived=True,
+        )
+        disabled_book = Book(
+            name="Disabled Book",
+            storage_type="sqlite",
+            uri_or_path=str(tmp_path / "disabled.gnucash.sqlite"),
+            is_enabled=False,
+        )
+        session.add_all([admin, viewer, other_admin, book, archived_book, disabled_book])
         session.flush()
-        session.add(UserBookAccess(user_id=viewer.id, book_id=book.id, role="viewer"))
+        session.add_all(
+            [
+                UserBookAccess(user_id=viewer.id, book_id=book.id, role="viewer"),
+                UserBookAccess(user_id=viewer.id, book_id=archived_book.id, role="editor"),
+                UserBookAccess(user_id=viewer.id, book_id=disabled_book.id, role="owner"),
+            ]
+        )
         session.commit()
 
     test_client = TestClient(app)
@@ -108,6 +126,12 @@ def _login(client: TestClient, username: str = "admin", password: str = ADMIN_PA
 
 def _headers(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
+
+
+def _safe_code(response) -> str:
+    detail = response.json()["detail"]
+    assert set(detail) == {"safe_code"}
+    return detail["safe_code"]
 
 
 def _user_id(session_factory, username: str) -> int:
@@ -152,7 +176,11 @@ def test_admin_lists_users_bounded_ordered_redacted_and_without_n_plus_one(
         "otheradmin",
         "viewer",
     ]
-    assert data["items"][2]["assignment_count"] == 1
+    viewer_item = data["items"][2]
+    assert viewer_item["assignment_count"] == 1
+    assert viewer_item["assignments"] == [
+        {"book_id": 1, "book_name": "Synthetic Book", "role": "viewer"}
+    ]
     assert set(data["items"][0]) == {
         "id",
         "username",
@@ -160,6 +188,7 @@ def test_admin_lists_users_bounded_ordered_redacted_and_without_n_plus_one(
         "is_admin",
         "is_enabled",
         "assignment_count",
+        "assignments",
         "created_at",
         "updated_at",
     }
@@ -205,6 +234,7 @@ def test_admin_creates_local_user_and_admin_without_assignments_and_duplicate_co
     assert user_data["is_admin"] is False
     assert user_data["is_enabled"] is True
     assert user_data["assignment_count"] == 0
+    assert user_data["assignments"] == []
     assert "password" not in user_response.text
     assert "hash" not in user_response.text
     assert "auth_version" not in user_response.text
@@ -222,6 +252,7 @@ def test_admin_creates_local_user_and_admin_without_assignments_and_duplicate_co
     assert admin_response.status_code == 201, admin_response.text
     assert admin_response.json()["is_admin"] is True
     assert admin_response.json()["assignment_count"] == 0
+    assert admin_response.json()["assignments"] == []
 
     duplicate = client.post(
         "/admin/users",
@@ -233,7 +264,7 @@ def test_admin_creates_local_user_and_admin_without_assignments_and_duplicate_co
         },
     )
     assert duplicate.status_code == 409
-    assert duplicate.json()["detail"] == "Username already exists"
+    assert _safe_code(duplicate) == "username_taken"
     assert "NEW.USER" not in duplicate.text
 
     actions = [action for action, _payload in _audit_payloads(session_factory)]
@@ -272,7 +303,7 @@ def test_normal_user_receives_generic_403_for_admin_route_family(client, session
 
     for response in requests:
         assert response.status_code == 403
-        assert response.json()["detail"] == "Admin privileges required"
+        assert _safe_code(response) == "admin_required"
         assert "viewer" not in response.text
 
 
@@ -287,6 +318,9 @@ def test_detail_patch_enable_disable_reset_invalidate_sessions_and_audit_redacti
     assert detail.status_code == 200
     assert detail.json()["username"] == "viewer"
     assert detail.json()["assignment_count"] == 1
+    assert detail.json()["assignments"] == [
+        {"book_id": 1, "book_name": "Synthetic Book", "role": "viewer"}
+    ]
 
     patch_response = client.patch(
         f"/admin/users/{viewer_id}",
@@ -327,7 +361,11 @@ def test_detail_patch_enable_disable_reset_invalidate_sessions_and_audit_redacti
         json={"new_password": "ResetPass123!"},
     )
     assert reset.status_code == 200, reset.text
-    assert reset.json()["id"] == viewer_id
+    assert reset.json() == {
+        "status": "password_reset",
+        "subject_user_id": viewer_id,
+        "session_invalidated": True,
+    }
     assert client.get("/auth/me", headers=_headers(viewer_token)).status_code == 401
     assert (
         client.post(
@@ -377,6 +415,73 @@ def test_detail_patch_enable_disable_reset_invalidate_sessions_and_audit_redacti
         }
 
 
+def test_admin_self_password_reset_returns_exact_dto_and_invalidates_current_token(
+    client, session_factory
+):
+    admin_token = _login(client)
+    admin_headers = _headers(admin_token)
+    admin_id = _user_id(session_factory, "admin")
+
+    reset = client.post(
+        f"/admin/users/{admin_id}/password-reset",
+        headers=admin_headers,
+        json={"new_password": "AdminReset123!"},
+    )
+    assert reset.status_code == 200, reset.text
+    assert reset.json() == {
+        "status": "password_reset",
+        "subject_user_id": admin_id,
+        "session_invalidated": True,
+    }
+    assert client.get("/auth/me", headers=admin_headers).status_code == 401
+    assert client.post(
+        "/auth/login",
+        json={"username": "admin", "password": ADMIN_PASSWORD},
+    ).status_code == 401
+    assert client.post(
+        "/auth/login",
+        json={"username": "admin", "password": "AdminReset123!"},
+    ).status_code == 200
+
+
+def test_password_reset_hashes_before_sqlite_write_lock(client, session_factory, monkeypatch):
+    from app.services import user_admin as user_admin_module
+
+    admin_id = _user_id(session_factory, "admin")
+    viewer_id = _user_id(session_factory, "viewer")
+    calls: list[str] = []
+
+    def fake_hash_password(password: str) -> str:
+        calls.append("hash")
+        assert "PreLockReset123!" == password
+        return "$2b$12$abcdefghijklmnopqrstuuasOWC7UoDVRfLBBHG8DBSA4vi67BCEm"
+
+    original_begin_immediate = user_admin_module.UserAdminService._begin_immediate
+
+    def recording_begin_immediate(self):
+        calls.append("begin")
+        return original_begin_immediate(self)
+
+    monkeypatch.setattr(user_admin_module, "hash_password", fake_hash_password)
+    monkeypatch.setattr(
+        user_admin_module.UserAdminService,
+        "_begin_immediate",
+        recording_begin_immediate,
+    )
+
+    with session_factory() as session:
+        response = user_admin_module.UserAdminService(session).reset_password(
+            actor_user_id=admin_id,
+            subject_user_id=viewer_id,
+            new_password="PreLockReset123!",
+        )
+
+    assert response.status == "password_reset"
+    assert response.subject_user_id == viewer_id
+    assert response.session_invalidated is True
+    assert calls == ["hash", "begin"]
+
+
 def test_self_disable_and_concurrent_admin_disable_preserve_enabled_admin(
     client, session_factory
 ):
@@ -388,7 +493,25 @@ def test_self_disable_and_concurrent_admin_disable_preserve_enabled_admin(
 
     self_disable = client.post(f"/admin/users/{admin_id}/disable", headers=admin_headers)
     assert self_disable.status_code == 409
-    assert self_disable.json()["detail"] == "Cannot disable the current admin user"
+    assert _safe_code(self_disable) == "self_disable_forbidden"
+
+    disable_other = client.post(
+        f"/admin/users/{other_admin_id}/disable",
+        headers=admin_headers,
+    )
+    assert disable_other.status_code == 200, disable_other.text
+    last_admin_self_disable = client.post(
+        f"/admin/users/{admin_id}/disable",
+        headers=admin_headers,
+    )
+    assert last_admin_self_disable.status_code == 409
+    assert _safe_code(last_admin_self_disable) == "last_enabled_admin"
+
+    enable_other = client.post(
+        f"/admin/users/{other_admin_id}/enable",
+        headers=admin_headers,
+    )
+    assert enable_other.status_code == 200, enable_other.text
 
     barrier = Barrier(2)
 
@@ -438,7 +561,7 @@ def test_invalid_inputs_are_fixed_safe_errors_and_patch_cannot_mutate_identity_o
         },
     )
     assert bad_username.status_code == 422
-    assert bad_username.json()["detail"] == "Invalid username"
+    assert _safe_code(bad_username) == "username_invalid"
     assert "../Admin" not in bad_username.text
 
     weak_password = client.post(
@@ -451,7 +574,7 @@ def test_invalid_inputs_are_fixed_safe_errors_and_patch_cannot_mutate_identity_o
         },
     )
     assert weak_password.status_code == 422
-    assert weak_password.json()["detail"] == "Password does not satisfy policy"
+    assert _safe_code(weak_password) == "password_policy"
     assert "Password1234" not in weak_password.text
 
     oversized_password = client.post(
@@ -464,18 +587,45 @@ def test_invalid_inputs_are_fixed_safe_errors_and_patch_cannot_mutate_identity_o
         },
     )
     assert oversized_password.status_code == 422
-    assert oversized_password.json()["detail"] == "Password does not satisfy policy"
+    assert _safe_code(oversized_password) == "password_policy"
 
     admin_id = _login(client)
     current = client.get("/auth/me", headers=_headers(admin_id)).json()["id"]
+    sentinel = "PlaintextSentinelSecret123!"
+    malformed_password = client.post(
+        f"/admin/users/{current}/password-reset",
+        headers=headers,
+        json={"new_password": {"secret": sentinel}},
+    )
+    assert malformed_password.status_code == 422
+    assert _safe_code(malformed_password) == "password_policy"
+    assert sentinel not in malformed_password.text
+    assert "new_password" not in malformed_password.text
+
+    extra_sentinel = client.post(
+        "/admin/users",
+        headers=headers,
+        json={
+            "username": "sentinel-user",
+            "display_name": "Sentinel User",
+            "password": "SentinelPass123!",
+            "private_note": sentinel,
+        },
+    )
+    assert extra_sentinel.status_code == 422
+    assert _safe_code(extra_sentinel) == "invalid_state"
+    assert sentinel not in extra_sentinel.text
+    assert "private_note" not in extra_sentinel.text
+
     blocked_patch = client.patch(
         f"/admin/users/{current}",
         headers=headers,
         json={"username": "mutated", "is_admin": False, "display_name": "Still Admin"},
     )
     assert blocked_patch.status_code == 422
+    assert _safe_code(blocked_patch) == "invalid_state"
     assert "mutated" not in blocked_patch.text
-    assert "is_admin" not in blocked_patch.text or "extra_forbidden" in blocked_patch.text
+    assert "is_admin" not in blocked_patch.text
 
     bad_display = client.patch(
         f"/admin/users/{current}",
@@ -483,7 +633,7 @@ def test_invalid_inputs_are_fixed_safe_errors_and_patch_cannot_mutate_identity_o
         json={"display_name": "Bad\x00Name"},
     )
     assert bad_display.status_code == 422
-    assert bad_display.json()["detail"] == "Invalid display name"
+    assert _safe_code(bad_display) == "display_name_invalid"
     assert "Bad" not in bad_display.text
 
 
@@ -519,15 +669,17 @@ def test_admin_users_limit_state_and_not_found_errors_are_bounded(client):
 
     bad_limit = client.get("/admin/users?limit=101", headers=headers)
     assert bad_limit.status_code == 422
+    assert _safe_code(bad_limit) == "invalid_state"
     assert "input" not in bad_limit.text
 
     bad_state = client.get("/admin/users?state=archived", headers=headers)
     assert bad_state.status_code == 422
+    assert _safe_code(bad_state) == "invalid_state"
     assert "archived" not in bad_state.text
 
     missing = client.get("/admin/users/999999", headers=headers)
     assert missing.status_code == 404
-    assert missing.json()["detail"] == "User not found"
+    assert _safe_code(missing) == "user_not_found"
 
     reset_missing = client.post(
         "/admin/users/999999/password-reset",
@@ -535,7 +687,7 @@ def test_admin_users_limit_state_and_not_found_errors_are_bounded(client):
         json={"new_password": "ResetPass123!"},
     )
     assert reset_missing.status_code == 404
-    assert reset_missing.json()["detail"] == "User not found"
+    assert _safe_code(reset_missing) == "user_not_found"
 
 
 def test_admin_user_api_works_after_issue57_legacy_migration(tmp_path):

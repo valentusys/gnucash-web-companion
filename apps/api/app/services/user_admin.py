@@ -3,16 +3,20 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Iterable
 from typing import Literal
 
 from sqlalchemy import func, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, load_only
 
-from app.models import AuditLog, User, UserBookAccess
+from app.models import AuditLog, Book, User, UserBookAccess
 from app.schemas.users import (
+    AdminUserAssignment,
     AdminUserDetail,
     AdminUserListResponse,
+    AdminUserPasswordResetResponse,
+    AdminUserSafeCode,
     DisplayNameValidationError,
     PasswordPolicyError,
     UsernameValidationError,
@@ -28,10 +32,10 @@ UserState = Literal["all", "enabled", "disabled"]
 class UserAdminError(RuntimeError):
     """Controlled, fixed-detail admin-user API error."""
 
-    def __init__(self, status_code: int, detail: str) -> None:
-        super().__init__(detail)
+    def __init__(self, status_code: int, safe_code: AdminUserSafeCode) -> None:
+        super().__init__(safe_code)
         self.status_code = status_code
-        self.detail = detail
+        self.safe_code = safe_code
 
 
 class UserAdminService:
@@ -54,7 +58,16 @@ class UserAdminService:
             .offset(offset)
             .all()
         )
-        items = [self._detail_from_row(row) for row in rows]
+        assignments_by_user_id = self._assignments_by_user_ids(
+            int(row[0].id) for row in rows
+        )
+        items = [
+            self._detail_from_row(
+                row,
+                assignments_by_user_id.get(int(row[0].id), []),
+            )
+            for row in rows
+        ]
         return AdminUserListResponse(
             items=items,
             total_count=total_count,
@@ -66,8 +79,12 @@ class UserAdminService:
     def get_user_detail(self, *, subject_user_id: int) -> AdminUserDetail:
         row = self._get_user_row(subject_user_id)
         if row is None:
-            raise UserAdminError(404, "User not found")
-        return self._detail_from_row(row)
+            raise UserAdminError(404, "user_not_found")
+        assignments = self._assignments_by_user_ids([subject_user_id]).get(
+            subject_user_id,
+            [],
+        )
+        return self._detail_from_row(row, assignments)
 
     def create_user(
         self,
@@ -81,7 +98,10 @@ class UserAdminService:
         username_normalized = self._normalize_username(username)
         display_name_normalized = self._normalize_display_name(display_name)
         self._validate_password(password, username_normalized)
-        password_hash = hash_password(password)
+        try:
+            password_hash = hash_password(password)
+        except PasswordPolicyError as exc:
+            raise UserAdminError(422, "password_policy") from exc
 
         self._begin_immediate()
         try:
@@ -109,7 +129,7 @@ class UserAdminService:
             return detail
         except IntegrityError as exc:
             self.session.rollback()
-            raise UserAdminError(409, "Username already exists") from exc
+            raise UserAdminError(409, "username_taken") from exc
         except Exception:
             self.session.rollback()
             raise
@@ -127,7 +147,7 @@ class UserAdminService:
             self._require_actor_admin_locked(actor_user_id)
             user = self._get_user_locked(subject_user_id)
             if user is None:
-                raise UserAdminError(404, "User not found")
+                raise UserAdminError(404, "user_not_found")
             if user.display_name != display_name_normalized:
                 user.display_name = display_name_normalized
                 self._audit(
@@ -151,7 +171,7 @@ class UserAdminService:
             self._require_actor_admin_locked(actor_user_id)
             user = self._get_user_locked(subject_user_id)
             if user is None:
-                raise UserAdminError(404, "User not found")
+                raise UserAdminError(404, "user_not_found")
             if not bool(user.is_enabled):
                 user.is_enabled = True
                 self._audit(
@@ -175,13 +195,11 @@ class UserAdminService:
             self._require_actor_admin_locked(actor_user_id)
             user = self._get_user_locked(subject_user_id)
             if user is None:
-                raise UserAdminError(404, "User not found")
+                raise UserAdminError(404, "user_not_found")
             if not bool(user.is_enabled):
                 detail = self.get_user_detail(subject_user_id=subject_user_id)
                 self.session.commit()
                 return detail
-            if subject_user_id == actor_user_id:
-                raise UserAdminError(409, "Cannot disable the current admin user")
             if bool(user.is_admin):
                 enabled_admin_count = int(
                     self.session.query(func.count(User.id))
@@ -190,7 +208,9 @@ class UserAdminService:
                     or 0
                 )
                 if enabled_admin_count <= 1:
-                    raise UserAdminError(409, "At least one enabled admin user is required")
+                    raise UserAdminError(409, "last_enabled_admin")
+            if subject_user_id == actor_user_id:
+                raise UserAdminError(409, "self_disable_forbidden")
             user.is_enabled = False
             user.auth_version = int(user.auth_version) + 1
             self._audit(
@@ -214,15 +234,23 @@ class UserAdminService:
         actor_user_id: int,
         subject_user_id: int,
         new_password: str,
-    ) -> AdminUserDetail:
+    ) -> AdminUserPasswordResetResponse:
+        username_normalized = self._get_username_normalized(subject_user_id)
+        if username_normalized is None:
+            raise UserAdminError(404, "user_not_found")
+        self._validate_password(new_password, username_normalized)
+        try:
+            password_hash = hash_password(new_password)
+        except PasswordPolicyError as exc:
+            raise UserAdminError(422, "password_policy") from exc
+
         self._begin_immediate()
         try:
             self._require_actor_admin_locked(actor_user_id)
             user = self._get_user_locked(subject_user_id)
             if user is None:
-                raise UserAdminError(404, "User not found")
-            self._validate_password(new_password, str(user.username_normalized))
-            user.password_hash = hash_password(new_password)
+                raise UserAdminError(404, "user_not_found")
+            user.password_hash = password_hash
             user.auth_version = int(user.auth_version) + 1
             self._audit(
                 actor_user_id=actor_user_id,
@@ -232,9 +260,8 @@ class UserAdminService:
                 result="reset",
             )
             self.session.flush()
-            detail = self.get_user_detail(subject_user_id=subject_user_id)
             self.session.commit()
-            return detail
+            return AdminUserPasswordResetResponse(subject_user_id=subject_user_id)
         except Exception:
             self.session.rollback()
             raise
@@ -242,7 +269,7 @@ class UserAdminService:
     @staticmethod
     def _validate_state(state: str) -> UserState:
         if state not in {"all", "enabled", "disabled"}:
-            raise UserAdminError(422, "Invalid state")
+            raise UserAdminError(422, "invalid_state")
         return state  # type: ignore[return-value]
 
     @staticmethod
@@ -250,21 +277,21 @@ class UserAdminService:
         try:
             return normalize_username(username)
         except UsernameValidationError as exc:
-            raise UserAdminError(422, "Invalid username") from exc
+            raise UserAdminError(422, "username_invalid") from exc
 
     @staticmethod
     def _normalize_display_name(display_name: str) -> str:
         try:
             return normalize_display_name(display_name)
         except DisplayNameValidationError as exc:
-            raise UserAdminError(422, "Invalid display name") from exc
+            raise UserAdminError(422, "display_name_invalid") from exc
 
     @staticmethod
     def _validate_password(password: str, username_normalized: str) -> None:
         try:
             validate_password_policy(password, username_normalized)
         except PasswordPolicyError as exc:
-            raise UserAdminError(422, "Password does not satisfy policy") from exc
+            raise UserAdminError(422, "password_policy") from exc
 
     def _begin_immediate(self) -> None:
         bind = self.session.get_bind()
@@ -278,7 +305,7 @@ class UserAdminService:
     def _require_actor_admin_locked(self, actor_user_id: int) -> User:
         actor = self._get_user_locked(actor_user_id)
         if actor is None or not bool(actor.is_enabled) or not bool(actor.is_admin):
-            raise UserAdminError(403, "Admin privileges required")
+            raise UserAdminError(403, "admin_required")
         return actor
 
     def _get_user_locked(self, subject_user_id: int) -> User | None:
@@ -291,12 +318,24 @@ class UserAdminService:
             .first()
         )
 
+    def _get_username_normalized(self, subject_user_id: int) -> str | None:
+        row = (
+            self.session.query(User.username_normalized)
+            .filter(User.id == subject_user_id)
+            .first()
+        )
+        if row is None:
+            return None
+        return str(row[0])
+
     def _user_with_assignment_count_query(self):
         assignment_counts = (
             self.session.query(
                 UserBookAccess.user_id.label("user_id"),
                 func.count(UserBookAccess.book_id).label("assignment_count"),
             )
+            .join(Book, UserBookAccess.book_id == Book.id)
+            .filter(Book.is_archived.is_(False), Book.is_enabled.is_(True))
             .group_by(UserBookAccess.user_id)
             .subquery()
         )
@@ -315,6 +354,44 @@ class UserAdminService:
             )
         ).outerjoin(assignment_counts, User.id == assignment_counts.c.user_id)
 
+    def _assignments_by_user_ids(
+        self,
+        user_ids: Iterable[int],
+    ) -> dict[int, list[AdminUserAssignment]]:
+        ids = sorted({int(user_id) for user_id in user_ids})
+        if not ids:
+            return {}
+
+        rows = (
+            self.session.query(
+                UserBookAccess.user_id,
+                UserBookAccess.book_id,
+                Book.name,
+                UserBookAccess.role,
+            )
+            .join(Book, UserBookAccess.book_id == Book.id)
+            .filter(
+                UserBookAccess.user_id.in_(ids),
+                Book.is_archived.is_(False),
+                Book.is_enabled.is_(True),
+            )
+            .order_by(UserBookAccess.user_id, Book.name, Book.id)
+            .all()
+        )
+
+        assignments_by_user_id: dict[int, list[AdminUserAssignment]] = {
+            user_id: [] for user_id in ids
+        }
+        for user_id, book_id, book_name, role in rows:
+            assignments_by_user_id[int(user_id)].append(
+                AdminUserAssignment(
+                    book_id=int(book_id),
+                    book_name=str(book_name),
+                    role=role,
+                )
+            )
+        return assignments_by_user_id
+
     @staticmethod
     def _apply_state_filter(query, state: UserState):
         if state == "enabled":
@@ -324,7 +401,10 @@ class UserAdminService:
         return query
 
     @staticmethod
-    def _detail_from_row(row) -> AdminUserDetail:
+    def _detail_from_row(
+        row,
+        assignments: list[AdminUserAssignment],
+    ) -> AdminUserDetail:
         user = row[0]
         assignment_count = row[1]
         return AdminUserDetail(
@@ -334,6 +414,7 @@ class UserAdminService:
             is_admin=bool(user.is_admin),
             is_enabled=bool(user.is_enabled),
             assignment_count=int(assignment_count or 0),
+            assignments=list(assignments),
             created_at=user.created_at,
             updated_at=user.updated_at,
         )

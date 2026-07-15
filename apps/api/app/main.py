@@ -82,11 +82,35 @@ def _redacted_validation_errors(exc: RequestValidationError) -> list[dict[str, o
     return redacted
 
 
+def _admin_user_validation_safe_code(exc: RequestValidationError) -> str:
+    """Collapse admin-user request validation into a fixed allowlisted code."""
+
+    candidate = "invalid_state"
+    for error in exc.errors():
+        loc = {str(part) for part in error.get("loc", ())}
+        if error.get("type") == "extra_forbidden":
+            return "invalid_state"
+        if "is_admin" in loc:
+            return "invalid_state"
+        if "password" in loc or "new_password" in loc:
+            return "password_policy"
+        if "display_name" in loc:
+            candidate = "display_name_invalid"
+        if "username" in loc:
+            candidate = "username_invalid"
+    return candidate
+
+
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(
-    _request: Request,
+    request: Request,
     exc: RequestValidationError,
 ) -> JSONResponse:
+    if request.url.path.startswith("/admin/users"):
+        return JSONResponse(
+            status_code=422,
+            content={"detail": {"safe_code": _admin_user_validation_safe_code(exc)}},
+        )
     return JSONResponse(status_code=422, content={"detail": _redacted_validation_errors(exc)})
 
 

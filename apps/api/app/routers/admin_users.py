@@ -14,6 +14,7 @@ from app.schemas.users import (
     AdminUserDetail,
     AdminUserListResponse,
     AdminUserPasswordResetRequest,
+    AdminUserPasswordResetResponse,
     AdminUserPatchRequest,
 )
 from app.services.user_admin import UserAdminError, UserAdminService
@@ -25,13 +26,16 @@ def _require_admin(user: User) -> int:
     if not bool(user.is_admin):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin privileges required",
+            detail={"safe_code": "admin_required"},
         )
     return int(user.id)
 
 
 def _raise_user_admin_error(exc: UserAdminError) -> NoReturn:
-    raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+    raise HTTPException(
+        status_code=exc.status_code,
+        detail={"safe_code": exc.safe_code},
+    ) from exc
 
 
 @router.get("", response_model=AdminUserListResponse)
@@ -131,13 +135,13 @@ def disable_admin_user(
         _raise_user_admin_error(exc)
 
 
-@router.post("/{subject_user_id}/password-reset", response_model=AdminUserDetail)
+@router.post("/{subject_user_id}/password-reset", response_model=AdminUserPasswordResetResponse)
 def reset_admin_user_password(
     subject_user_id: int,
     body: AdminUserPasswordResetRequest,
     user: User = Depends(get_current_user),
     session: Session = Depends(get_db),
-) -> AdminUserDetail:
+) -> AdminUserPasswordResetResponse:
     actor_user_id = _require_admin(user)
     try:
         return UserAdminService(session).reset_password(

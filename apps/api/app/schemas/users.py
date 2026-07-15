@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -130,6 +130,32 @@ class AdminUserPasswordResetRequest(BaseModel):
     new_password: str
 
 
+AdminUserSafeCode = Literal[
+    "username_invalid",
+    "username_taken",
+    "display_name_invalid",
+    "password_policy",
+    "user_not_found",
+    "self_disable_forbidden",
+    "last_enabled_admin",
+    "admin_required",
+    "invalid_state",
+    "unknown",
+]
+
+AdminUserAccessRole = Literal["owner", "editor", "viewer"]
+
+
+class AdminUserProblem(BaseModel):
+    safe_code: AdminUserSafeCode
+
+
+class AdminUserAssignment(BaseModel):
+    book_id: int
+    book_name: str
+    role: AdminUserAccessRole
+
+
 class AdminUserDetail(BaseModel):
     id: int
     username: str
@@ -137,6 +163,7 @@ class AdminUserDetail(BaseModel):
     is_admin: bool
     is_enabled: bool
     assignment_count: int
+    assignments: list[AdminUserAssignment]
     created_at: datetime
     updated_at: datetime
 
@@ -154,3 +181,9 @@ class AdminUserListResponse(BaseModel):
     limit: int = Field(ge=1, le=100)
     offset: int = Field(ge=0)
     has_next: bool
+
+
+class AdminUserPasswordResetResponse(BaseModel):
+    status: Literal["password_reset"] = "password_reset"
+    subject_user_id: int
+    session_invalidated: bool = True
