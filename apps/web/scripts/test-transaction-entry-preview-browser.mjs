@@ -192,6 +192,15 @@ const expectedFailureResetSummaries = [
 const previewPayloadFieldNames = ['amount', 'credit_account_id', 'currency', 'date', 'debit_account_id', 'description', 'memo'].sort();
 const cdpCommandTimeoutMs = Number(process.env.ISSUE51_CDP_TIMEOUT_MS ?? '120000');
 
+const syntheticCurrentUser = Object.freeze({
+	id: 1,
+	username: 'synthetic_transaction_entry',
+	display_name: 'Synthetic Transaction Entry',
+	is_admin: false,
+	is_enabled: true,
+	auth_version: 1
+});
+
 const syntheticBook = {
 	id: 1,
 	name: 'Synthetic Smoke Book',
@@ -1034,6 +1043,9 @@ async function startSyntheticApi() {
 			}
 			if (req.method === 'GET' && url.pathname === '/health') {
 				return jsonResponse(res, 200, { status: 'ok', first_run: null });
+			}
+			if (req.method === 'GET' && url.pathname === '/auth/me') {
+				return jsonResponse(res, 200, syntheticCurrentUser);
 			}
 			if (req.method === 'GET' && url.pathname === '/books') {
 				return jsonResponse(res, 200, [syntheticBook]);
@@ -3577,6 +3589,18 @@ async function runSmoke() {
 		assertBrowserToAppToApiBoundary(browserRequests, webBase, api.url, 'final browser smoke');
 		const createReadinessStatusCalls = api.requests.filter((request) => request.method === 'GET' && request.path === '/books/1/transactions/create-readiness-status');
 		assert.ok(createReadinessStatusCalls.length >= 1, 'browser smoke must load create-readiness-status as read-only status');
+		const authMeCalls = api.requests.filter((request) => request.method === 'GET' && request.path === '/auth/me' && request.search === '');
+		assert.ok(authMeCalls.length >= 1, 'browser smoke must load /auth/me for the authenticated root layout session');
+		assert.ok(authMeCalls.length <= 20, 'browser smoke must keep /auth/me calls bounded across navigations and preview submissions');
+		assert.deepEqual(
+			Object.keys(syntheticCurrentUser).sort(),
+			['auth_version', 'display_name', 'id', 'is_admin', 'is_enabled', 'username'].sort(),
+			'/auth/me synthetic current-user fixture must expose only the safe typed current-user fields'
+		);
+		assert.equal(syntheticCurrentUser.is_admin, false, '/auth/me synthetic current-user fixture must not return an admin payload');
+		for (const forbiddenAuthMeField of ['password', 'password_hash', 'token', 'access_token', 'path', 'uri_or_path', 'canonical_path', 'raw']) {
+			assert.ok(!(forbiddenAuthMeField in syntheticCurrentUser), `/auth/me synthetic current-user fixture must not expose ${forbiddenAuthMeField}`);
+		}
 		const createPreviewCalls = api.requests.filter((request) => request.method === 'POST' && request.path === '/books/1/transactions/create-preview');
 		assert.equal(createPreviewCalls.length, 4, 'browser smoke must call create-preview exactly four times: validation failure UI, reviewed preview, unknown detail redaction, and normal explicit-mode query attempt');
 		assert.equal(api.previewPayloads.length, 4, 'synthetic API stub must capture exactly four create-preview payloads');
