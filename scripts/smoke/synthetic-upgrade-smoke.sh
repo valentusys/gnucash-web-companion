@@ -364,6 +364,11 @@ def ensure_user(conn, *, username, password, display_name, is_admin, is_enabled,
 def ensure_book(conn, *, name, path, is_default, is_enabled):
     existing = conn.execute('select id from books where name=?', (name,)).fetchone()
     if existing is None:
+        existing = conn.execute(
+            'select id from books where uri_or_path=? and is_archived=0 order by id limit 1',
+            (path,),
+        ).fetchone()
+    if existing is None:
         conn.execute(
             "insert into books "
             "(name, storage_type, uri_or_path, canonical_path, canonical_path_hash, base_currency, is_default, is_archived, is_enabled, created_at, updated_at) "
@@ -373,8 +378,8 @@ def ensure_book(conn, *, name, path, is_default, is_enabled):
         return int(conn.execute('select last_insert_rowid()').fetchone()[0])
     book_id = int(existing['id'])
     conn.execute(
-        "update books set storage_type='sqlite', uri_or_path=?, base_currency='USD', is_default=?, is_archived=0, is_enabled=?, updated_at=? where id=?",
-        (path, 1 if is_default else 0, 1 if is_enabled else 0, NOW, book_id),
+        "update books set name=?, storage_type='sqlite', uri_or_path=?, base_currency='USD', is_default=?, is_archived=0, is_enabled=?, updated_at=? where id=?",
+        (name, path, 1 if is_default else 0, 1 if is_enabled else 0, NOW, book_id),
     )
     return book_id
 

@@ -77,7 +77,35 @@ CREATE_READBACK_FAILURE_DETAIL = (
 
 router = APIRouter(tags=["transactions"])
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
+SOURCE_ROOT_LAYOUT_SUFFIXES = (
+    ("apps", "api", "app", "routers", "transactions.py"),
+    ("app", "routers", "transactions.py"),
+)
+
+
+def _source_root_for_module(source_file: str | Path) -> Path:
+    """Return the source boundary for local checkouts and API Docker images.
+
+    Local development imports this module from
+    ``<repo>/apps/api/app/routers/transactions.py`` while the API Docker image
+    imports it from ``/app/app/routers/transactions.py``. Unknown layouts fall
+    back to the filesystem anchor so disposable write-alpha preflights fail
+    closed instead of accepting a repository-contained target.
+    """
+    source = Path(source_file).expanduser().resolve()
+    parts = source.parts
+    for suffix in SOURCE_ROOT_LAYOUT_SUFFIXES:
+        if len(parts) > len(suffix) and tuple(parts[-len(suffix) :]) == suffix:
+            return Path(*parts[: -len(suffix)]).resolve()
+
+    for ancestor in source.parents:
+        if (ancestor / ".git").exists() or (ancestor / "docker-compose.yml").exists():
+            return ancestor.resolve()
+
+    return Path(source.anchor or os.sep).resolve()
+
+
+REPO_ROOT = _source_root_for_module(__file__)
 DISPOSABLE_CREATE_TARGET_HINTS = frozenset(
     {
         "copy",

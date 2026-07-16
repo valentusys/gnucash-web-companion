@@ -489,6 +489,46 @@ def _readback_detail_from_payload(transaction_id: str, payload: dict) -> Transac
     )
 
 
+class TestDisposableCreateTargetSourceRoot:
+    """Focused coverage for source-root detection used by disposable target gates."""
+
+    def test_source_root_resolves_normal_checkout_layout(self):
+        import app.routers.transactions as transactions_router
+
+        source_file = Path("/repo/apps/api/app/routers/transactions.py")
+
+        assert transactions_router._source_root_for_module(source_file) == Path("/repo")
+
+    def test_source_root_resolves_api_container_layout(self):
+        import app.routers.transactions as transactions_router
+
+        source_file = Path("/app/app/routers/transactions.py")
+
+        assert transactions_router._source_root_for_module(source_file) == Path("/app")
+
+    def test_unrecognized_source_root_fails_closed_without_target_path_leak(
+        self,
+        tmp_path: Path,
+        monkeypatch,
+    ):
+        import app.routers.transactions as transactions_router
+
+        target = tmp_path / "repo" / "synthetic-disposable-book.gnucash.sqlite"
+        target.parent.mkdir()
+        target.write_bytes(b"SQLite format 3\x00 disposable fallback target")
+        fallback_root = transactions_router._source_root_for_module(
+            tmp_path / "unexpected" / "transactions.py"
+        )
+        monkeypatch.setattr(transactions_router, "REPO_ROOT", fallback_root)
+
+        blocker = transactions_router._disposable_create_target_blocker(
+            Book(name="Fallback target", storage_type="sqlite", uri_or_path=str(target))
+        )
+
+        assert blocker == "book target must be outside the git working tree"
+        assert str(target) not in blocker
+
+
 class TestWritesDisabledByDefault:
     """MVP v0.1 must remain read-only unless post-MVP writes are explicitly enabled."""
 
