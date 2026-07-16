@@ -135,7 +135,8 @@ class TestBackupFileValidity:
         assert first.name == "test_gnucash_20260521_043001_123456.sqlite"
         assert second.name == "test_gnucash_20260521_043001_123456_1.sqlite"
         assert third.name == "test_gnucash_20260521_043001_123456_2.sqlite"
-        assert len(list(first.parent.glob("*.sqlite"))) == 3
+        fixed_tick_backups = sorted(first.parent.glob("test_gnucash_20260521_043001_123456*.sqlite"))
+        assert fixed_tick_backups == [first, second, third]
 
         with first.open("rb") as first_handle, second.open("rb") as second_handle, third.open("rb") as third_handle:
             assert first_handle.read() == second_handle.read() == third_handle.read()
