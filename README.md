@@ -101,6 +101,12 @@ the current write-alpha publication baseline remains Phase 261.
   [#issuecomment-4976179921](https://github.com/valentusys/gnucash-web-companion/issues/56#issuecomment-4976179921)
   is recorded. This is not a release, production-readiness, security-audit, or broad compatibility
   claim; `GNUCASH_WRITES_ENABLED=false` remains default.
+- **Admin users and app-metadata recovery:** #57 and #58 are closed as completed after independent
+  PM/QA review and exact-head CI. Admins can manage local users and explicit book access without
+  implicit default/new-book grants; disable/reset/revoke paths invalidate access before source open.
+  #58 adds app-metadata-only backup, verification, disposable restore rehearsal, and synthetic
+  upgrade rehearsal tooling. It does not back up or restore GnuCash source books, add browser DB
+  backup/restore/download, publish a release, or make production/security-audited claims.
 - **Controlled-write trackers:** #45–#50 remain separate experimental post-MVP evidence/workflow
   boundaries. They do not authorize owner/private DELETE or batch, release publication, or public
   write beta. `GNUCASH_WRITES_ENABLED=false` remains the default.

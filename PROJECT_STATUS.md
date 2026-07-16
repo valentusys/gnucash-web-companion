@@ -53,13 +53,17 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   `7b94e7f350710ce66d51de93da0b49bc0f5ab845` passed exact-head CI
   [29456512536](https://github.com/valentusys/gnucash-web-companion/actions/runs/29456512536)
   and was reclosed as completed at `2026-07-15T22:56:21Z`.
-  #58 has accepted head `04240b64c906e8e2feca06a0a0fd0ad97e07e67d` and tree
-  `8c67b95c726d723c2b4f5f4d9434e6726e93a130`; exact-head CI
-  [29464859269](https://github.com/valentusys/gnucash-web-companion/actions/runs/29464859269)
+  #58 has final accepted head `9f84f634a76cc8a7c6c4ea11974e473e148d1618` and tree
+  `42782fc15d2ad2f30a7fd7ce82ad11a612ac148b`. The original product head
+  `04240b64c906e8e2feca06a0a0fd0ad97e07e67d` passed exact-head CI
+  [29464859269](https://github.com/valentusys/gnucash-web-companion/actions/runs/29464859269);
+  retroactive clean QA2 then found a backend test-order isolation defect, fixed by the final
+  test-only head. Final exact-head CI
+  [29494669222](https://github.com/valentusys/gnucash-web-companion/actions/runs/29494669222)
   completed success for Backend tests, Frontend checks, Foundation checks, and Docker Compose
   validation. Final acceptance comment
-  [#issuecomment-4987314572](https://github.com/valentusys/gnucash-web-companion/issues/58#issuecomment-4987314572)
-  is recorded, and the issue closed as completed at `2026-07-16T01:54:28Z`.
+  [#issuecomment-4991409478](https://github.com/valentusys/gnucash-web-companion/issues/58#issuecomment-4991409478)
+  is recorded, and the issue is closed as completed.
 - Controlled-write boundary: [#36](https://github.com/valentusys/gnucash-web-companion/issues/36)
   is closed as `CLOSE_36_AS_MAINTENANCE_BOUNDARY`. Trackers #45–#50 remain separate experimental
   evidence/workflow history; they do not authorize owner/private DELETE or batch, release publication,
@@ -133,24 +137,26 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
 
 - The seventh Hermes Kanban product run corrected and reclosed
   [#57](https://github.com/valentusys/gnucash-web-companion/issues/57), then completed
-  [#58](https://github.com/valentusys/gnucash-web-companion/issues/58) at accepted head
-  `04240b64c906e8e2feca06a0a0fd0ad97e07e67d` and tree
-  `8c67b95c726d723c2b4f5f4d9434e6726e93a130`. The #58 product adds app-metadata-only
+  [#58](https://github.com/valentusys/gnucash-web-companion/issues/58) at final accepted head
+  `9f84f634a76cc8a7c6c4ea11974e473e148d1618` and tree
+  `42782fc15d2ad2f30a7fd7ce82ad11a612ac148b`. The #58 product adds app-metadata-only
   backup/verify/restore-rehearsal and synthetic upgrade-rehearsal CLI flows. Backup requires explicit
   stopped/offline runtime acknowledgement; restore verifies first and writes only to a new explicit
   destination outside the repo; manifests are fixed/redacted; existing operator parent directory modes
   are preserved; and the supported upgrade rehearsal baseline is `v0.5.0-public-readonly-beta` only.
   There is no browser/API app-DB backup/restore/download surface, in-place restore default, raw live DB
   copy claim, GnuCash source mutation, release/tag/container publication, production-readiness claim, or
-  security-audit claim. QA accepted the exact head after a rejected parent-permission predecessor;
-  local post-integration evidence passed full backend `1379`, focused backend `190`, the frontend
-  CI-equivalent matrix, root guards, Compose validation, and integrated Docker upgrade smoke. Exact-head
-  GitHub Actions run
-  [29464859269](https://github.com/valentusys/gnucash-web-companion/actions/runs/29464859269)
+  security-audit claim. QA accepted the original exact head after a rejected parent-permission
+  predecessor; retroactive clean QA2 later rejected a test-order isolation defect in the focused
+  backend command, and the final head applies a bounded test-only correction in
+  `apps/api/tests/test_backup_restore.py`. Final local evidence passed full backend `1379`, focused
+  backend `230`, root guards, Compose validation, recovery CLI help, and the inherited frontend
+  matrix evidence. Exact-head GitHub Actions run
+  [29494669222](https://github.com/valentusys/gnucash-web-companion/actions/runs/29494669222)
   succeeded for Backend tests, Frontend checks, Foundation checks, and Docker Compose validation. Final
   acceptance comment
-  [#issuecomment-4987314572](https://github.com/valentusys/gnucash-web-companion/issues/58#issuecomment-4987314572)
-  is recorded, and #58 closed as completed at `2026-07-16T01:54:28Z`. Evidence:
+  [#issuecomment-4991409478](https://github.com/valentusys/gnucash-web-companion/issues/58#issuecomment-4991409478)
+  is recorded, and #58 is closed as completed. Evidence:
   `docs/handoff/hermes-kanban-product-run-7.md`.
 - The sixth Hermes Kanban product run initially completed
   [#57](https://github.com/valentusys/gnucash-web-companion/issues/57) at accepted head

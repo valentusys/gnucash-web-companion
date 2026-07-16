@@ -1,6 +1,6 @@
 # Hermes Kanban product-development run 7
 
-Status: **#57 CORRECTION COMPLETE; #58 PRODUCT AND ISSUE CLOSEOUT COMPLETE; FACTUAL DOCS SNAPSHOT**
+Status: **#57 CORRECTION COMPLETE; #58 FINAL QA2/CI/ISSUE CLOSEOUT COMPLETE**
 
 This handoff records the seventh product-development run on the dedicated Hermes Kanban board. It
 covers the independent re-check/correction of [issue #57](https://github.com/valentusys/gnucash-web-companion/issues/57)
@@ -27,7 +27,12 @@ safe app-metadata backup, verify, restore rehearsal, and synthetic public-readon
 - #57 correction exact-head CI: [29456512536](https://github.com/valentusys/gnucash-web-companion/actions/runs/29456512536), success.
 - Accepted and integrated #58 product head: `04240b64c906e8e2feca06a0a0fd0ad97e07e67d`.
 - Accepted #58 product tree: `8c67b95c726d723c2b4f5f4d9434e6726e93a130`.
-- #58 exact-head CI: [29464859269](https://github.com/valentusys/gnucash-web-companion/actions/runs/29464859269), success.
+- #58 original product exact-head CI: [29464859269](https://github.com/valentusys/gnucash-web-companion/actions/runs/29464859269), success.
+- Retroactive final QA2 found a backend test-order isolation defect after the first closeout. The
+  bounded test-only correction was accepted at `9f84f634a76cc8a7c6c4ea11974e473e148d1618`.
+- Final #58 closeout head: `9f84f634a76cc8a7c6c4ea11974e473e148d1618`.
+- Final #58 closeout tree: `42782fc15d2ad2f30a7fd7ce82ad11a612ac148b`.
+- Final #58 exact-head CI: [29494669222](https://github.com/valentusys/gnucash-web-companion/actions/runs/29494669222), success.
 - Integration method: fast-forward-only integration of exact QA-accepted source.
 - Project identifier: `gnucash-web-companion`.
 - Hermes board: `gnucash-web-companion-product-dev`.
@@ -49,6 +54,9 @@ safe app-metadata backup, verify, restore rehearsal, and synthetic public-readon
 | `t_e96fac05` | QA1 rejected because backup/restore chmodded existing operator parent directories. |
 | `t_12c2711b` | Parent-permission defect fixed at `04240b64c906e8e2feca06a0a0fd0ad97e07e67d`. |
 | `t_ba9b5520` | QA1 recheck accepted exact #58 head/tree. |
+| `t_c7962514` | Retroactive clean QA2 rejected because the required focused backend order exposed a test isolation defect in `test_backup_restore.py`. |
+| `t_0535a100` | Bounded backend test-only isolation fix accepted at `9f84f634a76cc8a7c6c4ea11974e473e148d1618`. |
+| `t_f4270a88` | Clean QA2 recheck accepted exact final head/tree and verified FF-only merge suitability. |
 
 Rejected predecessors were not standalone acceptance evidence. Their corrections entered the final chain
 only after bounded fixes and exact-head re-review.
@@ -61,6 +69,7 @@ Exact stable #58 patch IDs integrated, in order:
 2. `931c73b84c0d86617467345bc90a6e89475b6223` — synthetic public-readonly upgrade rehearsal.
 3. `937732b1ce0820917e462448ab1330c98d9d5b38` — Docker/container source-root import fix.
 4. `1f0aed2522b5710dc852e760201cc66598e7a08f` — non-destructive parent-permission fix.
+5. `1a835b89a3c94a15c35ff8286be52ce2a186e040` — test-only rapid-backup path assertion isolation.
 
 ## User-visible behavior and security boundary
 
@@ -89,7 +98,14 @@ QA1 recheck tested the exact product head
 
 Local post-integration evidence on `main`:
 
-- Focused backend #58/#57/write checks: `190 passed, 21 warnings`.
+- Focused backend #58/#57/write checks before retroactive QA2: `190 passed, 21 warnings`.
+- Retroactive clean QA2 first rejected the required focused backend order because
+  `tests/test_backup_restore.py::TestBackupFileValidity::test_rapid_backups_have_unique_paths_and_do_not_overwrite`
+  counted unrelated synthetic backup artifacts left by earlier transaction-write tests.
+- The bounded correction changed only `apps/api/tests/test_backup_restore.py` and kept the rapid
+  same-timestamp uniqueness/content assertions while filtering to this test's fixed timestamp.
+- Final clean QA2 after that correction passed the required focused backend order:
+  `230 passed, 21 warnings`.
 - Full backend suite: `1379 passed, 97 warnings`.
 - Root guards passed: public status, write-safety defaults, tracked hygiene, `git diff --check`, Docker
   Compose config, CLI help, and smoke syntax.
@@ -102,17 +118,23 @@ Local post-integration evidence on `main`:
 
 ## Exact-head CI result
 
-Exact #58 product-head GitHub Actions run
+Original #58 product-head GitHub Actions run
 [29464859269](https://github.com/valentusys/gnucash-web-companion/actions/runs/29464859269)
 completed successfully for Backend tests, Frontend checks, Foundation checks, and Docker Compose
-validation.
+validation. After the retroactive QA2 test-isolation correction, final exact-head GitHub Actions run
+[29494669222](https://github.com/valentusys/gnucash-web-companion/actions/runs/29494669222)
+also completed successfully for Backend tests, Frontend checks, Foundation checks, and Docker Compose
+validation at `9f84f634a76cc8a7c6c4ea11974e473e148d1618`.
 
 ## Issue closeout facts
 
 - #57 was reclosed after correction at `2026-07-15T22:56:21Z` with exact-head CI success.
-- #58 final acceptance comment:
+- #58 original acceptance comment:
   [#issuecomment-4987314572](https://github.com/valentusys/gnucash-web-companion/issues/58#issuecomment-4987314572).
-- #58 closed as completed at `2026-07-16T01:54:28Z`.
+- #58 was reopened after retroactive clean QA2 rejected the initial closeout evidence.
+- #58 final acceptance comment:
+  [#issuecomment-4991409478](https://github.com/valentusys/gnucash-web-companion/issues/58#issuecomment-4991409478).
+- #58 was closed as completed after final QA2 ACCEPT and exact-head CI success.
 
 ## Residual warnings and evidence limits
 

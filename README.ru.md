@@ -81,6 +81,12 @@ release docs и handoff-файлах, чтобы этот файл не стан
   [#issuecomment-4976179921](https://github.com/valentusys/gnucash-web-companion/issues/56#issuecomment-4976179921)
   recorded. Это не release, production-readiness, security-audit или broad compatibility claim;
   `GNUCASH_WRITES_ENABLED=false` остаётся дефолтом.
+- Admin users и app-metadata recovery: #57 и #58 закрыты как completed после independent PM/QA review
+  и exact-head CI. Admin может управлять локальными пользователями и явным доступом к книгам без
+  implicit default/new-book grants; disable/reset/revoke инвалидируют доступ до открытия source. #58
+  добавляет app-metadata-only backup, verify, disposable restore rehearsal и synthetic upgrade
+  rehearsal tooling. Это не backup/restore GnuCash source books, не browser DB backup/restore/download,
+  не release и не production/security-audited claim.
 - Controlled-write trackers #45–#50 остаются отдельными experimental post-MVP boundaries. Они не
   разрешают owner/private DELETE или batch, release publication или public write beta.
   `GNUCASH_WRITES_ENABLED=false` остаётся дефолтом.
