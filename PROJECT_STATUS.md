@@ -22,8 +22,9 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   [#53](https://github.com/valentusys/gnucash-web-companion/issues/53),
   [#54](https://github.com/valentusys/gnucash-web-companion/issues/54),
   [#55](https://github.com/valentusys/gnucash-web-companion/issues/55),
-  [#56](https://github.com/valentusys/gnucash-web-companion/issues/56), and
-  [#57](https://github.com/valentusys/gnucash-web-companion/issues/57) are closed as completed.
+  [#56](https://github.com/valentusys/gnucash-web-companion/issues/56),
+  [#57](https://github.com/valentusys/gnucash-web-companion/issues/57), and
+  [#58](https://github.com/valentusys/gnucash-web-companion/issues/58) are closed as completed.
   #53 has accepted read-only period comparison implementation at exact product head `3b094cd`, final
   documentation closeout at `3eeaf5f`, successful operational closeout CI
   [29180390237](https://github.com/valentusys/gnucash-web-companion/actions/runs/29180390237), and
@@ -47,13 +48,18 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   Compose validation. Final acceptance comment
   [#issuecomment-4976179921](https://github.com/valentusys/gnucash-web-companion/issues/56#issuecomment-4976179921)
   is recorded, and the issue closed as completed at `2026-07-15T02:13:04Z`.
-  #57 has accepted head `145654bae771eac622f3d1fb1d1c87bd90d42e3b` and tree
-  `ee39862c609d9b628f6f5836bdd89c598f5dec04`; exact-head CI
-  [29448413433](https://github.com/valentusys/gnucash-web-companion/actions/runs/29448413433)
+  #57 was reopened after independent PM review found an admin-user normalized-ordering defect; corrected
+  head `32e94fd4e1383c2a19cd6d59612b37b7fbac5cfd` and tree
+  `7b94e7f350710ce66d51de93da0b49bc0f5ab845` passed exact-head CI
+  [29456512536](https://github.com/valentusys/gnucash-web-companion/actions/runs/29456512536)
+  and was reclosed as completed at `2026-07-15T22:56:21Z`.
+  #58 has accepted head `04240b64c906e8e2feca06a0a0fd0ad97e07e67d` and tree
+  `8c67b95c726d723c2b4f5f4d9434e6726e93a130`; exact-head CI
+  [29464859269](https://github.com/valentusys/gnucash-web-companion/actions/runs/29464859269)
   completed success for Backend tests, Frontend checks, Foundation checks, and Docker Compose
   validation. Final acceptance comment
-  [#issuecomment-4985069377](https://github.com/valentusys/gnucash-web-companion/issues/57#issuecomment-4985069377)
-  is recorded, and the issue closed as completed at `2026-07-15T20:39:00Z`.
+  [#issuecomment-4987314572](https://github.com/valentusys/gnucash-web-companion/issues/58#issuecomment-4987314572)
+  is recorded, and the issue closed as completed at `2026-07-16T01:54:28Z`.
 - Controlled-write boundary: [#36](https://github.com/valentusys/gnucash-web-companion/issues/36)
   is closed as `CLOSE_36_AS_MAINTENANCE_BOUNDARY`. Trackers #45–#50 remain separate experimental
   evidence/workflow history; they do not authorize owner/private DELETE or batch, release publication,
@@ -64,6 +70,7 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   [#22](https://github.com/valentusys/gnucash-web-companion/issues/22) and
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28).
 - Latest handoffs/docs:
+  [docs/handoff/hermes-kanban-product-run-7.md](docs/handoff/hermes-kanban-product-run-7.md),
   [docs/handoff/hermes-kanban-product-run-6.md](docs/handoff/hermes-kanban-product-run-6.md),
   [docs/handoff/hermes-kanban-product-run-5.md](docs/handoff/hermes-kanban-product-run-5.md),
   `docs/handoff/hermes-kanban-product-run-4.md`,
@@ -124,7 +131,28 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
 
 ## Current status snapshot
 
-- The sixth Hermes Kanban product run completed
+- The seventh Hermes Kanban product run corrected and reclosed
+  [#57](https://github.com/valentusys/gnucash-web-companion/issues/57), then completed
+  [#58](https://github.com/valentusys/gnucash-web-companion/issues/58) at accepted head
+  `04240b64c906e8e2feca06a0a0fd0ad97e07e67d` and tree
+  `8c67b95c726d723c2b4f5f4d9434e6726e93a130`. The #58 product adds app-metadata-only
+  backup/verify/restore-rehearsal and synthetic upgrade-rehearsal CLI flows. Backup requires explicit
+  stopped/offline runtime acknowledgement; restore verifies first and writes only to a new explicit
+  destination outside the repo; manifests are fixed/redacted; existing operator parent directory modes
+  are preserved; and the supported upgrade rehearsal baseline is `v0.5.0-public-readonly-beta` only.
+  There is no browser/API app-DB backup/restore/download surface, in-place restore default, raw live DB
+  copy claim, GnuCash source mutation, release/tag/container publication, production-readiness claim, or
+  security-audit claim. QA accepted the exact head after a rejected parent-permission predecessor;
+  local post-integration evidence passed full backend `1379`, focused backend `190`, the frontend
+  CI-equivalent matrix, root guards, Compose validation, and integrated Docker upgrade smoke. Exact-head
+  GitHub Actions run
+  [29464859269](https://github.com/valentusys/gnucash-web-companion/actions/runs/29464859269)
+  succeeded for Backend tests, Frontend checks, Foundation checks, and Docker Compose validation. Final
+  acceptance comment
+  [#issuecomment-4987314572](https://github.com/valentusys/gnucash-web-companion/issues/58#issuecomment-4987314572)
+  is recorded, and #58 closed as completed at `2026-07-16T01:54:28Z`. Evidence:
+  `docs/handoff/hermes-kanban-product-run-7.md`.
+- The sixth Hermes Kanban product run initially completed
   [#57](https://github.com/valentusys/gnucash-web-companion/issues/57) at accepted head
   `145654bae771eac622f3d1fb1d1c87bd90d42e3b` and tree
   `ee39862c609d9b628f6f5836bdd89c598f5dec04`. Global admins can manage local users and explicit
@@ -140,7 +168,9 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   succeeded for Backend tests, Frontend checks, Foundation checks, and Docker Compose validation.
   Final acceptance comment
   [#issuecomment-4985069377](https://github.com/valentusys/gnucash-web-companion/issues/57#issuecomment-4985069377)
-  is recorded, and #57 closed as completed at `2026-07-15T20:39:00Z`. Existing piecash/SQLAlchemy
+  is recorded, and #57 was initially closed at `2026-07-15T20:39:00Z`; run 7 later reopened,
+  corrected, and reclosed #57 at corrected head `32e94fd4e1383c2a19cd6d59612b37b7fbac5cfd`.
+  Existing piecash/SQLAlchemy
   warnings and three low-severity npm audit findings remain; this is not production-readiness or a
   security-audit claim. No release was published and `GNUCASH_WRITES_ENABLED=false` remains default.
   Evidence: `docs/handoff/hermes-kanban-product-run-6.md`.
