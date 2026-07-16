@@ -181,6 +181,86 @@ def stat_mode(path: Path) -> int:
     return path.stat().st_mode & 0o777
 
 
+def test_backup_restore_preserve_existing_parent_modes_and_private_outputs(tmp_path):
+    if os.name != "posix":
+        pytest.skip("POSIX permission regression")
+
+    source = tmp_path / "source-app.db"
+    backup_parent = tmp_path / "operator-backups"
+    restore_parent = tmp_path / "operator-restores"
+    bundle = backup_parent / "backup-bundle"
+    restored = restore_parent / "restored-app.db"
+    _create_synthetic_app_db(source)
+    backup_parent.mkdir()
+    restore_parent.mkdir()
+    os.chmod(backup_parent, 0o755)
+    os.chmod(restore_parent, 0o755)
+    backup_parent_mode_before = stat_mode(backup_parent)
+    restore_parent_mode_before = stat_mode(restore_parent)
+
+    backup_result = recovery.backup_app_metadata(
+        source_db=source,
+        bundle_dir=bundle,
+        runtime_stopped=True,
+        repo_root=REPO_ROOT,
+        timestamp="2026-07-16T00:00:00Z",
+    )
+    restore_result = recovery.restore_rehearsal(
+        bundle_dir=bundle,
+        destination_db=restored,
+        repo_root=REPO_ROOT,
+    )
+
+    assert backup_parent_mode_before == 0o755
+    assert restore_parent_mode_before == 0o755
+    assert stat_mode(backup_parent) == backup_parent_mode_before
+    assert stat_mode(restore_parent) == restore_parent_mode_before
+    assert stat_mode(bundle) == 0o700
+    assert stat_mode(bundle / recovery.BACKUP_DB_FILENAME) == 0o600
+    assert stat_mode(bundle / recovery.MANIFEST_FILENAME) == 0o600
+    assert stat_mode(restored) == 0o600
+    manifest_text = json.dumps(backup_result.manifest, ensure_ascii=False, sort_keys=True)
+    for fragment in PRIVATE_FRAGMENTS + (str(source), str(restored), str(bundle)):
+        assert fragment not in manifest_text
+    assert restore_result.manifest == backup_result.manifest
+
+
+def test_backup_restore_create_missing_parent_directories_private(tmp_path):
+    if os.name != "posix":
+        pytest.skip("POSIX permission regression")
+
+    source = tmp_path / "source-app.db"
+    backup_root = tmp_path / "missing-backups"
+    backup_parent = backup_root / "nested"
+    restore_root = tmp_path / "missing-restores"
+    restore_parent = restore_root / "nested"
+    bundle = backup_parent / "backup-bundle"
+    restored = restore_parent / "restored-app.db"
+    _create_synthetic_app_db(source)
+
+    recovery.backup_app_metadata(
+        source_db=source,
+        bundle_dir=bundle,
+        runtime_stopped=True,
+        repo_root=REPO_ROOT,
+        timestamp="2026-07-16T00:00:00Z",
+    )
+    recovery.restore_rehearsal(
+        bundle_dir=bundle,
+        destination_db=restored,
+        repo_root=REPO_ROOT,
+    )
+
+    assert stat_mode(backup_root) == 0o700
+    assert stat_mode(backup_parent) == 0o700
+    assert stat_mode(restore_root) == 0o700
+    assert stat_mode(restore_parent) == 0o700
+    assert stat_mode(bundle) == 0o700
+    assert stat_mode(bundle / recovery.BACKUP_DB_FILENAME) == 0o600
+    assert stat_mode(bundle / recovery.MANIFEST_FILENAME) == 0o600
+    assert stat_mode(restored) == 0o600
+
+
 def test_backup_accepts_legacy_zero_user_version_only_for_exact_current_signature(tmp_path):
     source = tmp_path / "legacy-zero-current.db"
     _create_synthetic_app_db(source, user_version=0)

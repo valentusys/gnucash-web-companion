@@ -516,8 +516,25 @@ def _validate_restore_destination(destination: Path, repo_root: Path) -> Path:
 
 def _ensure_private_parent(parent: Path) -> None:
     try:
-        parent.mkdir(mode=0o700, parents=True, exist_ok=True)
-        _chmod(parent, 0o700)
+        if parent.exists():
+            if not parent.is_dir():
+                raise AppMetadataRecoveryError(PERMISSION_DENIED)
+            return
+
+        missing_parents: list[Path] = []
+        current = parent
+        while not current.exists():
+            missing_parents.append(current)
+            current = current.parent
+        if not current.is_dir():
+            raise AppMetadataRecoveryError(PERMISSION_DENIED)
+
+        for missing_parent in reversed(missing_parents):
+            try:
+                missing_parent.mkdir(mode=0o700)
+            except FileExistsError:
+                continue
+            _chmod(missing_parent, 0o700)
     except PermissionError as exc:
         raise AppMetadataRecoveryError(PERMISSION_DENIED) from exc
     except OSError as exc:
