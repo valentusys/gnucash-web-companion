@@ -396,7 +396,15 @@ class GnuCashWriteService(GnuCashBookService):
             planned_transaction_guid = getattr(self, "_planned_transaction_guid", None)
         if planned_transaction_guid and re.fullmatch(r"[0-9a-f]{32}", planned_transaction_guid):
             setattr(transaction, "guid", planned_transaction_guid)
+        self._attach_created_transaction(book, transaction)
         return transaction
+
+    def _attach_created_transaction(self, book: Any, transaction: Any) -> None:
+        """Attach a newly built Transaction graph to a real piecash session if present."""
+        session = getattr(book, "session", None)
+        add = getattr(session, "add", None) if session is not None else None
+        if callable(add):
+            add(transaction)
 
     def _create_split(
         self,

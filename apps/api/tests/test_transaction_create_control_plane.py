@@ -274,6 +274,111 @@ def _copy_real_disposable_book(tmp_path: Path, name: str = "synthetic-disposable
     return target
 
 
+def _file_sha256(path: Path) -> str:
+    import hashlib
+
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _create_valid_generated_book(output: Path) -> Path:
+    import piecash
+
+    output.parent.mkdir(parents=True, exist_ok=True)
+    if output.exists():
+        output.unlink()
+
+    book = piecash.create_book(currency="SEK", sqlite_file=str(output))
+    try:
+        currency = book.commodities[0]
+        root = book.root_account
+        assets = piecash.Account(name="Assets", type="ASSET", parent=root, commodity=currency)
+        piecash.Account(name="Checking", type="BANK", parent=assets, commodity=currency)
+        expenses = piecash.Account(name="Expenses", type="EXPENSE", parent=root, commodity=currency)
+        piecash.Account(name="Food", type="EXPENSE", parent=expenses, commodity=currency)
+        book.save()
+    finally:
+        book.close()
+
+    reopened = piecash.open_book(str(output), readonly=True)
+    try:
+        assert str(getattr(reopened.default_currency, "mnemonic", "")) == "SEK"
+        assert len(reopened.transactions) == 0
+    finally:
+        reopened.close()
+    output.chmod(0o600)
+    return output
+
+
+def _copy_valid_generated_disposable_book(tmp_path: Path) -> tuple[Path, Path, str]:
+    template = _create_valid_generated_book(
+        tmp_path / "template" / "valid-generated-template.gnucash.sqlite"
+    )
+    template_hash = _file_sha256(template)
+    target = tmp_path / "books" / "valid-generated-product.gnucash.sqlite"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(template, target)
+    target.chmod(0o600)
+    return template, target, template_hash
+
+
+def _transaction_storage_counts(book_path: Path, transaction_id: str) -> dict[str, object]:
+    import sqlite3
+
+    with sqlite3.connect(book_path) as connection:
+        row = connection.execute(
+            "select count(*), min(currency_guid), max(currency_guid) from transactions where guid=?",
+            (transaction_id,),
+        ).fetchone()
+        split_count = connection.execute(
+            "select count(*) from splits where tx_guid=?",
+            (transaction_id,),
+        ).fetchone()[0]
+    return {
+        "transaction_count": row[0],
+        "currency_guid_min": row[1],
+        "currency_guid_max": row[2],
+        "split_count": split_count,
+    }
+
+
+def _transaction_snapshot(book_path: Path, transaction_id: str) -> dict[str, object]:
+    import piecash
+
+    book = piecash.open_book(str(book_path), readonly=True)
+    try:
+        matches = [transaction for transaction in book.transactions if transaction.guid == transaction_id]
+        assert len(matches) == 1
+        transaction = matches[0]
+        return {
+            "guid": transaction.guid,
+            "date": transaction.post_date.isoformat(),
+            "description": transaction.description,
+            "currency": str(getattr(transaction.currency, "mnemonic", "")),
+            "currency_guid": str(getattr(transaction.currency, "guid", "")),
+            "default_currency_guid": str(getattr(book.default_currency, "guid", "")),
+            "splits": sorted(
+                [
+                    {
+                        "account_id": split.account.guid,
+                        "account_name": split.account.name,
+                        "amount": str(split.value),
+                        "quantity": str(split.quantity),
+                        "memo": split.memo,
+                        "currency": str(getattr(split.account.commodity, "mnemonic", "")),
+                    }
+                    for split in transaction.splits
+                ],
+                key=lambda item: item["account_name"],
+            ),
+        }
+    finally:
+        book.close()
+
+
 def _real_book_account_ids(book_path: Path) -> dict[str, str]:
     import piecash
 
@@ -3101,6 +3206,106 @@ def test_product_actual_executor_success_duplicate_backup_readback_and_metadata(
         ]
         assert {payload["result"] for payload in payloads} == {"started", "success", "already_created"}
         assert all("/" not in json.dumps(payload) for payload in payloads)
+    assert transactions_router.write_lock_service.inspect(f"book:{api_context['ids']['book']}").is_active is False
+
+
+def test_product_actual_executor_valid_generated_book_attaches_once_and_preserves_exact_graph(
+    api_context,
+    tmp_path: Path,
+    monkeypatch,
+):
+    import app.routers.transactions as transactions_router
+    import piecash
+    from app.services.gnucash_write import GnuCashWriteService
+
+    template_path, book_path, template_hash = _copy_valid_generated_disposable_book(tmp_path)
+    account_ids = _real_book_account_ids(book_path)
+    _use_real_product_source(api_context, monkeypatch, book_path)
+    description = "Valid generated CREATE attachment proof"
+    payload = _general_preview_payload(
+        date="2026-05-21",
+        description=description,
+        splits=[
+            {"account_id": account_ids["Checking"], "amount": "-45.67", "memo": "valid debit"},
+            {"account_id": account_ids["Food"], "amount": "45.67", "memo": "valid credit"},
+        ],
+    )
+    before_count = _real_transaction_count(book_path)
+    assert before_count == 0
+    assert _real_transaction_count(template_path) == 0
+
+    attach_guids: list[str] = []
+    original_do_create_transaction = GnuCashWriteService._do_create_transaction
+
+    def spy_do_create_transaction(self, book, request, **kwargs):
+        session = getattr(book, "session", None)
+        original_add = getattr(session, "add", None)
+        assert callable(original_add)
+
+        def spy_add(instance, *args, **add_kwargs):
+            if isinstance(instance, piecash.Transaction):
+                attach_guids.append(str(getattr(instance, "guid", "")))
+            return original_add(instance, *args, **add_kwargs)
+
+        monkeypatch.setattr(session, "add", spy_add)
+        return original_do_create_transaction(self, book, request, **kwargs)
+
+    monkeypatch.setattr(
+        GnuCashWriteService,
+        "_do_create_transaction",
+        spy_do_create_transaction,
+    )
+
+    preview_json = _post_product_preview(api_context, payload)
+    first = _post_product_confirm(api_context, preview_json, payload)
+    duplicate = _post_product_confirm(api_context, preview_json, payload)
+
+    assert first.status_code == 201, first.text
+    assert first.json()["status"] == "created"
+    transaction_id = first.json()["transaction_id"]
+    assert attach_guids == [transaction_id]
+    assert first.json()["readback"]["verified"] is True
+    assert first.json()["readback"]["split_count"] == 2
+    assert first.json()["readback"]["currency_consistent"] is True
+    assert first.json()["readback"]["account_balance_deltas_verified"] is True
+    assert duplicate.status_code == 200, duplicate.text
+    assert duplicate.json()["status"] == "already_created"
+    assert duplicate.json()["transaction_id"] == transaction_id
+    assert _real_transaction_count(book_path) == before_count + 1
+
+    storage = _transaction_storage_counts(book_path, transaction_id)
+    assert storage["transaction_count"] == 1
+    assert storage["split_count"] == 2
+    assert storage["currency_guid_min"]
+    assert storage["currency_guid_min"] == storage["currency_guid_max"]
+
+    snapshot = _transaction_snapshot(book_path, transaction_id)
+    assert snapshot["guid"] == transaction_id
+    assert snapshot["date"] == "2026-05-21"
+    assert snapshot["description"] == description
+    assert snapshot["currency"] == "SEK"
+    assert snapshot["currency_guid"] == snapshot["default_currency_guid"]
+    assert snapshot["splits"] == [
+        {
+            "account_id": account_ids["Checking"],
+            "account_name": "Checking",
+            "amount": "-45.67",
+            "quantity": "-45.67",
+            "memo": "valid debit",
+            "currency": "SEK",
+        },
+        {
+            "account_id": account_ids["Food"],
+            "account_name": "Food",
+            "amount": "45.67",
+            "quantity": "45.67",
+            "memo": "valid credit",
+            "currency": "SEK",
+        },
+    ]
+    assert _transaction_snapshot(book_path, transaction_id) == snapshot
+    assert _file_sha256(template_path) == template_hash
+    assert _real_transaction_count(template_path) == 0
     assert transactions_router.write_lock_service.inspect(f"book:{api_context['ids']['book']}").is_active is False
 
 
