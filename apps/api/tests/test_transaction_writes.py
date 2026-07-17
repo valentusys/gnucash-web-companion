@@ -1896,12 +1896,18 @@ class TestCreateReadbackVerification:
             ],
         )
 
-    def _account(self, account_id: str, balance: str, currency: str = "SEK") -> AccountDTO:
+    def _account(
+        self,
+        account_id: str,
+        balance: str,
+        currency: str = "SEK",
+        account_type: str = "BANK",
+    ) -> AccountDTO:
         return AccountDTO(
             id=account_id,
             name=account_id,
             full_name=account_id,
-            type="BANK",
+            type=account_type.upper(),
             currency=currency,
             balance=balance,
             placeholder=False,
@@ -1938,8 +1944,8 @@ class TestCreateReadbackVerification:
         detail = self._detail_from_request("created-readback-tx", request)
         after_accounts = [
             self._account("source-checking-guid", "874.50"),
-            self._account("destination-food-guid", "100.00"),
-            self._account("destination-transport-guid", "25.50"),
+            self._account("destination-food-guid", "100.00", account_type="EXPENSE"),
+            self._account("destination-transport-guid", "25.50", account_type="EXPENSE"),
         ]
         self._patch_read_service(monkeypatch, detail, accounts=after_accounts)
 
@@ -1951,9 +1957,9 @@ class TestCreateReadbackVerification:
                 backup_path="synthetic-backup-ref",
             ),
             before_account_balances={
-                "source-checking-guid": (Decimal("1000.00"), "SEK"),
-                "destination-food-guid": (Decimal("0.00"), "SEK"),
-                "destination-transport-guid": (Decimal("0.00"), "SEK"),
+                "source-checking-guid": (Decimal("1000.00"), "SEK", "BANK"),
+                "destination-food-guid": (Decimal("0.00"), "SEK", "EXPENSE"),
+                "destination-transport-guid": (Decimal("0.00"), "SEK", "EXPENSE"),
             },
         )
 
@@ -2046,8 +2052,8 @@ class TestCreateReadbackVerification:
         detail = self._detail_from_request("created-readback-tx", request)
         after_accounts = [
             self._account("source-checking-guid", "875.00"),
-            self._account("destination-food-guid", "100.00"),
-            self._account("destination-transport-guid", "25.50"),
+            self._account("destination-food-guid", "100.00", account_type="EXPENSE"),
+            self._account("destination-transport-guid", "25.50", account_type="EXPENSE"),
         ]
         self._patch_read_service(monkeypatch, detail, accounts=after_accounts)
 
@@ -2060,9 +2066,174 @@ class TestCreateReadbackVerification:
                     backup_path="synthetic-backup-ref",
                 ),
                 before_account_balances={
-                    "source-checking-guid": (Decimal("1000.00"), "SEK"),
-                    "destination-food-guid": (Decimal("0.00"), "SEK"),
-                    "destination-transport-guid": (Decimal("0.00"), "SEK"),
+                    "source-checking-guid": (Decimal("1000.00"), "SEK", "BANK"),
+                    "destination-food-guid": (Decimal("0.00"), "SEK", "EXPENSE"),
+                    "destination-transport-guid": (Decimal("0.00"), "SEK", "EXPENSE"),
+                },
+            )
+
+        assert excinfo.value.detail == transactions_router.CREATE_READBACK_FAILURE_DETAIL
+        assert excinfo.value.backup_path == "synthetic-backup-ref"
+
+    @pytest.mark.parametrize(
+        ("account_type", "raw_delta", "display_delta"),
+        [
+            ("ASSET", Decimal("7.00"), Decimal("7.00")),
+            ("BANK", Decimal("7.00"), Decimal("7.00")),
+            ("CASH", Decimal("7.00"), Decimal("7.00")),
+            ("EXPENSE", Decimal("7.00"), Decimal("7.00")),
+            ("INCOME", Decimal("7.00"), Decimal("-7.00")),
+            ("LIABILITY", Decimal("7.00"), Decimal("-7.00")),
+            ("CREDIT", Decimal("7.00"), Decimal("-7.00")),
+            ("EQUITY", Decimal("7.00"), Decimal("-7.00")),
+            ("PAYABLE", Decimal("7.00"), Decimal("-7.00")),
+        ],
+    )
+    def test_create_readback_account_balance_deltas_use_natural_sign_once_for_supported_types(
+        self,
+        monkeypatch,
+        account_type,
+        raw_delta,
+        display_delta,
+    ):
+        import app.routers.transactions as transactions_router
+        from app.schemas.gnucash_writes import TransactionWriteResultDTO
+
+        request = TransactionCreateRequestDTO(
+            date="2026-06-04",
+            description=f"Synthetic {account_type} natural-sign delta coverage",
+            splits=[
+                TransactionSplitWriteDTO(
+                    account_id="natural-sign-guid",
+                    amount=format(raw_delta, "f"),
+                    currency="SEK",
+                    memo="natural sign account",
+                ),
+                TransactionSplitWriteDTO(
+                    account_id="offset-bank-guid",
+                    amount=format(-raw_delta, "f"),
+                    currency="SEK",
+                    memo="offset account",
+                ),
+            ],
+        )
+        detail = self._detail_from_request("created-readback-tx", request)
+        after_accounts = [
+            self._account(
+                "natural-sign-guid",
+                format(Decimal("100.00") + display_delta, "f"),
+                account_type=account_type,
+            ),
+            self._account("offset-bank-guid", "93.00"),
+        ]
+        self._patch_read_service(monkeypatch, detail, accounts=after_accounts)
+
+        readback = transactions_router._verify_transaction_create_readback(
+            Book(name="Synthetic natural-sign read-back book", storage_type="sqlite", uri_or_path="synthetic://readback"),
+            request,
+            TransactionWriteResultDTO(
+                transaction_id="created-readback-tx",
+                backup_path="synthetic-backup-ref",
+            ),
+            before_account_balances={
+                "natural-sign-guid": (Decimal("100.00"), "SEK", account_type),
+                "offset-bank-guid": (Decimal("100.00"), "SEK", "BANK"),
+            },
+        )
+
+        assert readback["readback_account_balance_deltas_verified"] is True
+        assert readback["readback_account_balance_delta_count"] == 2
+        assert readback["readback_account_balance_delta_total_by_currency"] == {"SEK": "0.00"}
+
+    @pytest.mark.parametrize(
+        ("before_currency", "after_currency", "before_type", "after_type"),
+        [
+            ("USD", "SEK", "BANK", "BANK"),
+            ("SEK", "USD", "BANK", "BANK"),
+            ("SEK", "SEK", "BANK", "CASH"),
+        ],
+    )
+    def test_create_readback_account_balance_deltas_fail_closed_on_currency_or_type_drift(
+        self,
+        monkeypatch,
+        before_currency,
+        after_currency,
+        before_type,
+        after_type,
+    ):
+        import app.routers.transactions as transactions_router
+        from app.schemas.gnucash_writes import TransactionWriteResultDTO
+
+        request = TransactionCreateRequestDTO(
+            date="2026-06-04",
+            description="Synthetic account snapshot drift coverage",
+            splits=[
+                TransactionSplitWriteDTO(
+                    account_id="drift-guid",
+                    amount="-7.00",
+                    currency="SEK",
+                    memo="source",
+                ),
+                TransactionSplitWriteDTO(
+                    account_id="offset-guid",
+                    amount="7.00",
+                    currency="SEK",
+                    memo="offset",
+                ),
+            ],
+        )
+        detail = self._detail_from_request("created-readback-tx", request)
+        after_accounts = [
+            self._account("drift-guid", "93.00", currency=after_currency, account_type=after_type),
+            self._account("offset-guid", "107.00", account_type="EXPENSE"),
+        ]
+        self._patch_read_service(monkeypatch, detail, accounts=after_accounts)
+
+        with pytest.raises(transactions_router.GnuCashCreateReadbackVerificationError) as excinfo:
+            transactions_router._verify_transaction_create_readback(
+                Book(name="Synthetic drift read-back book", storage_type="sqlite", uri_or_path="synthetic://readback"),
+                request,
+                TransactionWriteResultDTO(
+                    transaction_id="created-readback-tx",
+                    backup_path="synthetic-backup-ref",
+                ),
+                before_account_balances={
+                    "drift-guid": (Decimal("100.00"), before_currency, before_type),
+                    "offset-guid": (Decimal("100.00"), "SEK", "EXPENSE"),
+                },
+            )
+
+        assert excinfo.value.detail == transactions_router.CREATE_READBACK_FAILURE_DETAIL
+        assert excinfo.value.backup_path == "synthetic-backup-ref"
+
+    def test_create_readback_account_balance_deltas_fail_closed_on_unsupported_account_type(
+        self,
+        monkeypatch,
+    ):
+        import app.routers.transactions as transactions_router
+        from app.schemas.gnucash_writes import TransactionWriteResultDTO
+
+        request = self._request()
+        detail = self._detail_from_request("created-readback-tx", request)
+        after_accounts = [
+            self._account("source-checking-guid", "874.50", account_type="STOCK"),
+            self._account("destination-food-guid", "100.00", account_type="EXPENSE"),
+            self._account("destination-transport-guid", "25.50", account_type="EXPENSE"),
+        ]
+        self._patch_read_service(monkeypatch, detail, accounts=after_accounts)
+
+        with pytest.raises(transactions_router.GnuCashCreateReadbackVerificationError) as excinfo:
+            transactions_router._verify_transaction_create_readback(
+                Book(name="Synthetic unsupported type read-back book", storage_type="sqlite", uri_or_path="synthetic://readback"),
+                request,
+                TransactionWriteResultDTO(
+                    transaction_id="created-readback-tx",
+                    backup_path="synthetic-backup-ref",
+                ),
+                before_account_balances={
+                    "source-checking-guid": (Decimal("1000.00"), "SEK", "STOCK"),
+                    "destination-food-guid": (Decimal("0.00"), "SEK", "EXPENSE"),
+                    "destination-transport-guid": (Decimal("0.00"), "SEK", "EXPENSE"),
                 },
             )
 

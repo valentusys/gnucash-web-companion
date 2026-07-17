@@ -60,7 +60,11 @@ from app.services.gnucash_exceptions import (
 from app.services.gnucash_write import GnuCashWriteService, GnuCashWriteError
 from app.services.book_access import AccessDenied, BookAccessService
 from app.services.write_lock import WriteLockError, write_lock_service
-from app.services.gnucash_book import GnuCashBookService, SUPPORTED_TRANSACTION_STATES
+from app.services.gnucash_book import (
+    ACCOUNT_TYPES_WITH_NATURAL_SIGN_REVERSED,
+    GnuCashBookService,
+    SUPPORTED_TRANSACTION_STATES,
+)
 from app.services.transaction_explorer import (
     TransactionExplorerError,
     build_transaction_explorer_query,
@@ -163,7 +167,10 @@ GENERAL_CREATE_PREVIEW_CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
 GENERAL_CREATE_ALLOWED_ACCOUNT_TYPES = frozenset(
     {"ASSET", "BANK", "CASH", "CREDIT", "LIABILITY", "INCOME", "EXPENSE", "EQUITY"}
 )
-ReadbackAccountBalanceSnapshot = dict[str, tuple[Decimal, str]]
+READBACK_ACCOUNT_BALANCE_SNAPSHOT_TYPES = frozenset(
+    {"ASSET", "BANK", "CASH", "EXPENSE"}
+) | ACCOUNT_TYPES_WITH_NATURAL_SIGN_REVERSED
+ReadbackAccountBalanceSnapshot = dict[str, tuple[Decimal, str, str]]
 
 
 def _serialize_transaction_list_item(
@@ -1856,8 +1863,11 @@ def _read_request_account_balance_snapshot(
         if account_id not in account_ids:
             continue
         currency = str(getattr(account, "currency", "")).upper()
+        account_type = str(getattr(account, "type", "")).upper()
+        if account_type not in READBACK_ACCOUNT_BALANCE_SNAPSHOT_TYPES:
+            _fail_create_readback_verification(backup_path)
         balance = _readback_decimal(getattr(account, "balance", "0"), backup_path)
-        snapshot[account_id] = (balance, currency)
+        snapshot[account_id] = (balance, currency, account_type)
 
     if set(snapshot) != account_ids:
         _fail_create_readback_verification(backup_path)
@@ -1904,16 +1914,24 @@ def _verify_account_balance_deltas(
     )
     delta_totals_by_currency: dict[str, Decimal] = {}
     for account_id, expected_delta in expected_deltas.items():
-        before_balance, before_currency = before_account_balances[account_id]
-        after_balance, after_currency = after_account_balances[account_id]
+        accounting_delta = expected_delta
+        before_balance, before_currency, before_type = before_account_balances[account_id]
+        after_balance, after_currency, after_type = after_account_balances[account_id]
         expected_currency = account_currencies[account_id]
-        if before_currency != expected_currency or after_currency != expected_currency:
+        if (
+            before_type not in READBACK_ACCOUNT_BALANCE_SNAPSHOT_TYPES
+            or after_type not in READBACK_ACCOUNT_BALANCE_SNAPSHOT_TYPES
+        ):
             _fail_create_readback_verification(result.backup_path)
+        if before_currency != expected_currency or after_currency != expected_currency or before_type != after_type:
+            _fail_create_readback_verification(result.backup_path)
+        if before_type in ACCOUNT_TYPES_WITH_NATURAL_SIGN_REVERSED:
+            expected_delta = -expected_delta
         observed_delta = after_balance - before_balance
         if observed_delta != expected_delta:
             _fail_create_readback_verification(result.backup_path)
         delta_totals_by_currency[expected_currency] = (
-            delta_totals_by_currency.get(expected_currency, Decimal("0")) + observed_delta
+            delta_totals_by_currency.get(expected_currency, Decimal("0")) + accounting_delta
         )
 
     for total in delta_totals_by_currency.values():
