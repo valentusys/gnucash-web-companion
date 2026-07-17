@@ -83,6 +83,12 @@ EXPLORER_CANDIDATE_QUERY_LIMIT = 10
 EXPLORER_BULK_SPLIT_QUERY_LIMIT = 10
 EXPLORER_ACCOUNT_QUERY_LIMIT = 3
 EXPLORER_METADATA_QUERY_LIMIT = 3
+REQUEST_ACCOUNT_LOOKUP_MAX = 50
+REQUEST_ACCOUNT_HIERARCHY_MAX_DEPTH = 64
+REQUEST_ACCOUNT_HIERARCHY_ROW_MAX = REQUEST_ACCOUNT_LOOKUP_MAX * REQUEST_ACCOUNT_HIERARCHY_MAX_DEPTH
+REQUEST_ACCOUNT_BALANCE_SPLIT_ROW_MAX = 20_000
+REQUEST_ACCOUNT_QUERY_LIMIT = 64
+ACCOUNT_TYPES_WITH_NATURAL_SIGN_REVERSED = {"LIABILITY", "PAYABLE", "CREDIT", "INCOME", "EQUITY"}
 
 
 @dataclass
@@ -92,6 +98,20 @@ class _ReportReadContext:
     book: Any
     accounts: list[Any] | None = None
     transactions: list[Any] | None = None
+
+
+@dataclass(frozen=True)
+class _BoundedAccountRow:
+    guid: str
+    name: str
+    account_type: str
+    parent_guid: str | None
+    hidden: bool
+    placeholder: bool
+    commodity_guid: str | None
+    commodity_namespace: str | None
+    commodity_mnemonic: str | None
+    commodity_fraction: int | None
 
 
 def format_money(value: Any) -> str:
@@ -264,6 +284,34 @@ class GnuCashBookService:
     def list_accounts(self) -> list[AccountDTO]:
         with self._open_book() as book:
             return [self._account_to_dto(account) for account in self._accounts(book)]
+
+    def list_accounts_by_ids(
+        self,
+        account_ids: Iterable[str],
+        *,
+        max_accounts: int = REQUEST_ACCOUNT_LOOKUP_MAX,
+        counters: dict[str, int] | None = None,
+    ) -> list[AccountDTO]:
+        """Return only the requested distinct account GUIDs without full account scans.
+
+        Product CREATE preview/read-back references at most 50 split account GUIDs.
+        For real piecash sessions this uses a single bounded ``Account.guid IN (...)``
+        query instead of materializing ``book.accounts``.
+        """
+        query_counters = counters if counters is not None else {}
+        requested_ids = self._distinct_account_ids(account_ids, max_accounts=max_accounts)
+        self._set_counter(query_counters, "requested_account_distinct_count", len(requested_ids))
+        self._set_counter(query_counters, "requested_account_unique_row_count", len(requested_ids))
+        self._set_counter(query_counters, "account_query_limit", REQUEST_ACCOUNT_QUERY_LIMIT)
+        if not requested_ids:
+            return []
+        with self._open_book() as book:
+            accounts = self._account_dtos_by_ids(book, requested_ids, counters=query_counters)
+            by_id = {account.id: account for account in accounts}
+        missing = [account_id for account_id in requested_ids if account_id not in by_id]
+        if missing:
+            raise EntityNotFoundError("account", missing[0])
+        return [by_id[account_id] for account_id in requested_ids]
 
     def get_account(self, account_id: str) -> AccountDTO:
         with self._open_book() as book:
@@ -1324,6 +1372,460 @@ class GnuCashBookService:
     def _accounts(self, book: Any) -> Iterable[Any]:
         return getattr(book, "accounts", []) or []
 
+    def _distinct_account_ids(self, account_ids: Iterable[str], *, max_accounts: int) -> list[str]:
+        requested_ids: list[str] = []
+        seen: set[str] = set()
+        for raw_account_id in account_ids:
+            account_id = str(raw_account_id or "").strip()
+            if not account_id or account_id in seen:
+                continue
+            seen.add(account_id)
+            requested_ids.append(account_id)
+            if len(requested_ids) > max_accounts:
+                raise GnuCashReadError("Too many account GUIDs requested for bounded account lookup")
+        return requested_ids
+
+    def _account_dtos_by_ids(
+        self,
+        book: Any,
+        account_ids: list[str],
+        *,
+        counters: dict[str, int] | None = None,
+    ) -> list[AccountDTO]:
+        session = getattr(book, "session", None)
+        query = getattr(session, "query", None) if session is not None else None
+        if callable(query):
+            return self._sql_account_dtos_by_ids(session, account_ids, counters=counters)
+
+        accounts = self._accounts_by_ids(book, account_ids, counters=counters)
+        return [self._account_to_dto(account) for account in accounts]
+
+    def _sql_account_dtos_by_ids(
+        self,
+        session: Any,
+        account_ids: list[str],
+        *,
+        counters: dict[str, int] | None = None,
+    ) -> list[AccountDTO]:
+        self._set_counter(counters, "account_hierarchy_depth_limit", REQUEST_ACCOUNT_HIERARCHY_MAX_DEPTH)
+        self._set_counter(counters, "account_hierarchy_row_limit", REQUEST_ACCOUNT_HIERARCHY_ROW_MAX)
+        self._set_counter(counters, "account_balance_split_row_limit", REQUEST_ACCOUNT_BALANCE_SPLIT_ROW_MAX)
+        self._set_counter(counters, "account_query_limit", REQUEST_ACCOUNT_QUERY_LIMIT)
+
+        requested_rows = self._sql_account_rows_by_guids(
+            session,
+            account_ids,
+            counters=counters,
+            row_counter="requested_account_row_count",
+            limit=len(account_ids),
+        )
+        row_map = {row.guid: row for row in requested_rows}
+        self._set_counter(counters, "requested_account_tuple_row_count", len(requested_rows))
+        self._set_counter(counters, "requested_account_unique_row_count", len(row_map))
+        self._collect_sql_account_ancestor_rows(session, requested_rows, row_map, counters=counters)
+        descendant_ids_by_requested = self._collect_sql_account_descendant_rows(
+            session,
+            requested_rows,
+            row_map,
+            counters=counters,
+        )
+        balances = self._sql_account_balances(
+            session,
+            requested_rows,
+            descendant_ids_by_requested,
+            row_map,
+            counters=counters,
+        )
+        if counters is not None:
+            counters["account_materialized_unique_count"] = len(row_map)
+            counters["account_materialized_unique_row_count"] = len(row_map)
+            counters["account_requested_tuple_row_count"] = counters.get("requested_account_tuple_row_count", 0)
+            counters["account_path_tuple_row_count"] = counters.get("account_path_row_count", 0)
+            counters["account_materialized_count"] = (
+                counters.get("requested_account_row_count", 0)
+                + counters.get("account_path_row_count", 0)
+                + counters.get("account_descendant_tuple_row_count", counters.get("account_descendant_row_count", 0))
+            )
+            counters["account_materialized_tuple_row_count"] = counters["account_materialized_count"]
+
+        return [self._bounded_account_row_to_dto(row, row_map, balances.get(row.guid, Decimal("0"))) for row in requested_rows]
+
+    def _sql_account_rows_by_guids(
+        self,
+        session: Any,
+        account_ids: Iterable[str],
+        *,
+        counters: dict[str, int] | None,
+        row_counter: str,
+        limit: int,
+        query_counter: str | None = None,
+    ) -> list[_BoundedAccountRow]:
+        ids = [str(account_id) for account_id in account_ids]
+        if not ids:
+            return []
+        rows = self._execute_account_row_query(
+            session,
+            piecash.Account.__table__.c.guid.in_(ids),
+            counters=counters,
+            query_counter=query_counter,
+            limit=limit,
+        )
+        if len(rows) > limit:
+            raise GnuCashReadError("Bounded account lookup row limit exceeded")
+        self._add_counter(counters, row_counter, len(rows))
+        return rows
+
+    def _sql_account_rows_by_parent_guids(
+        self,
+        session: Any,
+        parent_ids: Iterable[str],
+        *,
+        counters: dict[str, int] | None,
+        query_counter: str,
+        row_counter: str,
+        remaining_limit: int,
+    ) -> list[_BoundedAccountRow]:
+        ids = [str(parent_id) for parent_id in parent_ids]
+        if not ids:
+            return []
+        rows = self._execute_account_row_query(
+            session,
+            piecash.Account.__table__.c.parent_guid.in_(ids),
+            counters=counters,
+            query_counter=query_counter,
+            limit=remaining_limit,
+        )
+        if len(rows) > remaining_limit:
+            raise GnuCashReadError("Bounded account hierarchy row limit exceeded")
+        self._add_counter(counters, row_counter, len(rows))
+        return rows
+
+    def _execute_account_row_query(
+        self,
+        session: Any,
+        where_clause: Any,
+        *,
+        counters: dict[str, int] | None,
+        query_counter: str | None = None,
+        limit: int | None = None,
+    ) -> list[_BoundedAccountRow]:
+        account_table = piecash.Account.__table__
+        commodity_table = piecash.Commodity.__table__
+        self._record_account_query(counters, query_counter)
+        query = (
+            session.query(
+                account_table.c.guid,
+                account_table.c.name,
+                account_table.c.account_type,
+                account_table.c.parent_guid,
+                account_table.c.hidden,
+                account_table.c.placeholder,
+                account_table.c.commodity_guid,
+                commodity_table.c.namespace,
+                commodity_table.c.mnemonic,
+                commodity_table.c.fraction,
+            )
+            .select_from(account_table.outerjoin(commodity_table, account_table.c.commodity_guid == commodity_table.c.guid))
+            .filter(where_clause)
+        )
+        if limit is not None:
+            query = query.limit(limit + 1)
+        rows = query.all()
+        return [self._bounded_account_row_from_sql(row) for row in rows]
+
+    def _collect_sql_account_ancestor_rows(
+        self,
+        session: Any,
+        requested_rows: list[_BoundedAccountRow],
+        row_map: dict[str, _BoundedAccountRow],
+        *,
+        counters: dict[str, int] | None,
+    ) -> None:
+        missing_parent_ids: set[str] = set()
+        frontier = {
+            row.parent_guid
+            for row in requested_rows
+            if row.parent_guid and row.parent_guid not in row_map and row.parent_guid not in missing_parent_ids
+        }
+        total_path_rows = 0
+        for _depth in range(REQUEST_ACCOUNT_HIERARCHY_MAX_DEPTH):
+            if not frontier:
+                return
+            remaining_limit = REQUEST_ACCOUNT_HIERARCHY_ROW_MAX - total_path_rows
+            rows = self._sql_account_rows_by_guids(
+                session,
+                sorted(frontier),
+                counters=counters,
+                row_counter="account_path_row_count",
+                limit=remaining_limit,
+                query_counter="account_path_query_count",
+            )
+            found_ids = {row.guid for row in rows}
+            missing_parent_ids.update(frontier - found_ids)
+            total_path_rows += len(rows)
+            for row in rows:
+                row_map.setdefault(row.guid, row)
+            frontier = {
+                row.parent_guid
+                for row in rows
+                if row.parent_guid and row.parent_guid not in row_map and row.parent_guid not in missing_parent_ids
+            }
+        if frontier:
+            raise GnuCashReadError("Bounded account lookup hierarchy depth exceeded")
+
+    def _collect_sql_account_descendant_rows(
+        self,
+        session: Any,
+        requested_rows: list[_BoundedAccountRow],
+        row_map: dict[str, _BoundedAccountRow],
+        *,
+        counters: dict[str, int] | None,
+    ) -> dict[str, set[str]]:
+        child_ids_by_parent: dict[str, set[str]] = {row.guid: set() for row in requested_rows}
+        parent_ids_by_child: dict[str, str | None] = {row.guid: row.parent_guid for row in row_map.values()}
+        frontier = {row.guid for row in requested_rows}
+        expanded_parent_ids: set[str] = set()
+        total_descendant_rows = 0
+        unique_descendant_ids: set[str] = set()
+        for _depth in range(REQUEST_ACCOUNT_HIERARCHY_MAX_DEPTH):
+            frontier_to_query = frontier - expanded_parent_ids
+            if not frontier_to_query:
+                self._set_counter(counters, "account_unique_descendant_row_count", len(unique_descendant_ids))
+                return self._descendant_ids_by_requested(requested_rows, child_ids_by_parent)
+            remaining_limit = REQUEST_ACCOUNT_HIERARCHY_ROW_MAX - total_descendant_rows
+            if remaining_limit <= 0:
+                raise GnuCashReadError("Bounded account hierarchy row limit exceeded")
+            rows = self._sql_account_rows_by_parent_guids(
+                session,
+                sorted(frontier_to_query),
+                counters=counters,
+                query_counter="account_descendant_query_count",
+                row_counter="account_descendant_tuple_row_count",
+                remaining_limit=remaining_limit,
+            )
+            self._add_counter(counters, "account_descendant_row_count", len(rows))
+            expanded_parent_ids.update(frontier_to_query)
+            if not rows:
+                self._set_counter(counters, "account_unique_descendant_row_count", len(unique_descendant_ids))
+                return self._descendant_ids_by_requested(requested_rows, child_ids_by_parent)
+
+            next_frontier: set[str] = set()
+            for row in rows:
+                parent_guid = str(row.parent_guid) if row.parent_guid else ""
+                if self._bounded_account_row_creates_cycle(row.guid, parent_guid, parent_ids_by_child):
+                    raise GnuCashReadError("Bounded account lookup hierarchy cycle detected")
+                child_ids_by_parent.setdefault(parent_guid, set()).add(row.guid)
+                row_map.setdefault(row.guid, row)
+                parent_ids_by_child.setdefault(row.guid, row.parent_guid)
+                unique_descendant_ids.add(row.guid)
+                if row.guid not in expanded_parent_ids:
+                    next_frontier.add(row.guid)
+                total_descendant_rows += 1
+            if total_descendant_rows > REQUEST_ACCOUNT_HIERARCHY_ROW_MAX:
+                raise GnuCashReadError("Bounded account hierarchy row limit exceeded")
+            frontier = next_frontier
+        if frontier - expanded_parent_ids:
+            raise GnuCashReadError("Bounded account lookup hierarchy depth exceeded")
+        self._set_counter(counters, "account_unique_descendant_row_count", len(unique_descendant_ids))
+        return self._descendant_ids_by_requested(requested_rows, child_ids_by_parent)
+
+    def _descendant_ids_by_requested(
+        self,
+        requested_rows: list[_BoundedAccountRow],
+        child_ids_by_parent: dict[str, set[str]],
+    ) -> dict[str, set[str]]:
+        descendant_ids_by_requested: dict[str, set[str]] = {}
+        for requested_row in requested_rows:
+            descendant_ids = {requested_row.guid}
+            frontier = list(child_ids_by_parent.get(requested_row.guid, set()))
+            for _depth in range(REQUEST_ACCOUNT_HIERARCHY_MAX_DEPTH):
+                if not frontier:
+                    break
+                next_frontier: list[str] = []
+                for child_id in frontier:
+                    if child_id in descendant_ids:
+                        continue
+                    descendant_ids.add(child_id)
+                    next_frontier.extend(child_ids_by_parent.get(child_id, set()))
+                frontier = next_frontier
+            else:
+                if frontier:
+                    raise GnuCashReadError("Bounded account lookup hierarchy depth exceeded")
+            descendant_ids_by_requested[requested_row.guid] = descendant_ids
+        return descendant_ids_by_requested
+
+    @staticmethod
+    def _bounded_account_row_creates_cycle(
+        child_guid: str,
+        parent_guid: str,
+        parent_ids_by_child: dict[str, str | None],
+    ) -> bool:
+        current_guid: str | None = parent_guid
+        seen: set[str] = set()
+        for _depth in range(REQUEST_ACCOUNT_HIERARCHY_MAX_DEPTH + 1):
+            if not current_guid:
+                return False
+            if current_guid == child_guid or current_guid in seen:
+                return True
+            seen.add(current_guid)
+            current_guid = parent_ids_by_child.get(current_guid)
+        return True
+
+    def _sql_account_balances(
+        self,
+        session: Any,
+        requested_rows: list[_BoundedAccountRow],
+        descendant_ids_by_requested: dict[str, set[str]],
+        row_map: dict[str, _BoundedAccountRow],
+        *,
+        counters: dict[str, int] | None,
+    ) -> dict[str, Decimal]:
+        balance_account_ids = sorted({account_id for ids in descendant_ids_by_requested.values() for account_id in ids})
+        self._set_counter(counters, "account_balance_account_count", len(balance_account_ids))
+        if not balance_account_ids:
+            return {}
+
+        split_table = piecash.Split.__table__
+        self._record_account_query(counters, "account_balance_query_count")
+        split_rows = (
+            session.query(split_table.c.account_guid, split_table.c.quantity_num, split_table.c.quantity_denom)
+            .filter(split_table.c.account_guid.in_(balance_account_ids))
+            .limit(REQUEST_ACCOUNT_BALANCE_SPLIT_ROW_MAX + 1)
+            .all()
+        )
+        if len(split_rows) > REQUEST_ACCOUNT_BALANCE_SPLIT_ROW_MAX:
+            raise GnuCashReadError("Bounded account balance split row limit exceeded")
+        self._set_counter(counters, "account_balance_split_row_count", len(split_rows))
+        raw_balances: dict[str, Decimal] = {account_id: Decimal("0") for account_id in balance_account_ids}
+        for account_id, quantity_num, quantity_denom in split_rows:
+            denominator = Decimal(str(quantity_denom))
+            if denominator == 0:
+                raise GnuCashReadError("Bounded account balance contains invalid split denominator")
+            raw_balances[str(account_id)] = raw_balances.get(str(account_id), Decimal("0")) + Decimal(str(quantity_num)) / denominator
+
+        balances: dict[str, Decimal] = {}
+        for requested_row in requested_rows:
+            descendant_ids = descendant_ids_by_requested.get(requested_row.guid, {requested_row.guid})
+            for descendant_id in descendant_ids:
+                descendant = row_map.get(descendant_id)
+                if descendant is not None and descendant.commodity_guid != requested_row.commodity_guid:
+                    raise GnuCashReadError("Bounded account lookup cannot compute cross-commodity recursive balances")
+            balance = sum((raw_balances.get(account_id, Decimal("0")) for account_id in descendant_ids), Decimal("0"))
+            if requested_row.account_type.upper() in ACCOUNT_TYPES_WITH_NATURAL_SIGN_REVERSED:
+                balance = -balance
+            balances[requested_row.guid] = balance
+        return balances
+
+    def _bounded_account_row_to_dto(
+        self,
+        row: _BoundedAccountRow,
+        row_map: dict[str, _BoundedAccountRow],
+        balance: Decimal,
+    ) -> AccountDTO:
+        currency = row.commodity_mnemonic or self.base_currency
+        return AccountDTO(
+            id=row.guid,
+            name=row.name,
+            full_name=self._bounded_account_full_name(row, row_map),
+            type=row.account_type,
+            currency=currency,
+            balance=self._money(balance, currency).amount,
+            placeholder=row.placeholder,
+            hidden=row.hidden,
+            parent_id=row.parent_guid,
+            commodity_namespace=row.commodity_namespace,
+            commodity_fraction=row.commodity_fraction,
+        )
+
+    def _bounded_account_full_name(self, row: _BoundedAccountRow, row_map: dict[str, _BoundedAccountRow]) -> str:
+        names: list[str] = []
+        current: _BoundedAccountRow | None = row
+        seen: set[str] = set()
+        for _depth in range(REQUEST_ACCOUNT_HIERARCHY_MAX_DEPTH + 1):
+            if current is None:
+                return ":".join(reversed(names))
+            if current.guid in seen:
+                raise GnuCashReadError("Bounded account lookup hierarchy cycle detected")
+            seen.add(current.guid)
+            is_root_account = current.account_type.upper() == "ROOT" and current.name == "Root Account"
+            if current.name and not is_root_account:
+                names.append(current.name)
+            current = row_map.get(current.parent_guid or "")
+        raise GnuCashReadError("Bounded account lookup hierarchy depth exceeded")
+
+    @staticmethod
+    def _bounded_account_row_from_sql(row: Any) -> _BoundedAccountRow:
+        fraction = row[9]
+        try:
+            commodity_fraction = int(fraction) if fraction is not None else None
+        except (TypeError, ValueError):
+            commodity_fraction = None
+        return _BoundedAccountRow(
+            guid=str(row[0]),
+            name=str(row[1] or ""),
+            account_type=str(row[2] or ""),
+            parent_guid=str(row[3]) if row[3] else None,
+            hidden=bool(row[4]),
+            placeholder=bool(row[5]),
+            commodity_guid=str(row[6]) if row[6] else None,
+            commodity_namespace=str(row[7]) if row[7] else None,
+            commodity_mnemonic=str(row[8]) if row[8] else None,
+            commodity_fraction=commodity_fraction,
+        )
+
+    @staticmethod
+    def _add_counter(counters: dict[str, int] | None, key: str, amount: int = 1) -> None:
+        if counters is not None:
+            counters[key] = counters.get(key, 0) + amount
+
+    def _record_account_query(self, counters: dict[str, int] | None, query_counter: str | None = None) -> None:
+        if counters is None:
+            return
+        self._set_counter(counters, "account_query_limit", REQUEST_ACCOUNT_QUERY_LIMIT)
+        next_count = counters.get("account_query_count", 0) + 1
+        if next_count > REQUEST_ACCOUNT_QUERY_LIMIT:
+            counters["account_query_overflow_count"] = next_count
+            raise GnuCashReadError("Bounded account lookup query limit exceeded")
+        counters["account_query_count"] = next_count
+        if query_counter is not None:
+            self._add_counter(counters, query_counter)
+
+    @staticmethod
+    def _set_counter(counters: dict[str, int] | None, key: str, value: int) -> None:
+        if counters is not None:
+            counters[key] = value
+
+    def _accounts_by_ids(
+        self,
+        book: Any,
+        account_ids: list[str],
+        *,
+        counters: dict[str, int] | None = None,
+    ) -> list[Any]:
+        session = getattr(book, "session", None)
+        query = getattr(session, "query", None) if session is not None else None
+        if callable(query):
+            self._record_account_query(counters)
+            accounts = list(
+                query(piecash.Account)
+                .options(joinedload(piecash.Account.commodity), joinedload(piecash.Account.parent))
+                .filter(piecash.Account.guid.in_(account_ids))
+                .all()
+            )
+            if counters is not None:
+                counters["account_materialized_count"] = counters.get("account_materialized_count", 0) + len(accounts)
+            return accounts
+
+        if isinstance(self.book_config, dict) and bool(self.book_config.get("backup_source_is_pinned_fd", False)):
+            raise GnuCashReadError("Bounded account lookup unavailable for descriptor-pinned source")
+
+        wanted = set(account_ids)
+        accounts = [account for account in self._accounts(book) if self._account_id(account) in wanted]
+        if counters is not None:
+            counters["fallback_account_scan_count"] = counters.get("fallback_account_scan_count", 0) + 1
+            counters["account_materialized_count"] = counters.get("account_materialized_count", 0) + len(accounts)
+        return accounts
+
     def _transactions(self, book: Any) -> Iterable[Any]:
         return getattr(book, "transactions", []) or []
 
@@ -1647,6 +2149,21 @@ class GnuCashBookService:
     def _account_currency(self, account: Any) -> str:
         return _commodity_code(getattr(account, "commodity", None), self.base_currency)
 
+    def _account_commodity_namespace(self, account: Any) -> str | None:
+        commodity = getattr(account, "commodity", None)
+        namespace = getattr(commodity, "namespace", None)
+        return str(namespace) if namespace else None
+
+    def _account_commodity_fraction(self, account: Any) -> int | None:
+        commodity = getattr(account, "commodity", None)
+        fraction = getattr(commodity, "fraction", None)
+        if fraction is None:
+            return None
+        try:
+            return int(fraction)
+        except (TypeError, ValueError):
+            return None
+
     def _money(self, value: Any, currency: str) -> MoneyDTO:
         return MoneyDTO(amount=format_money(value), currency=currency)
 
@@ -1677,6 +2194,8 @@ class GnuCashBookService:
             placeholder=bool(getattr(account, "placeholder", False)),
             hidden=bool(getattr(account, "hidden", False)),
             parent_id=self._account_id(parent) if parent is not None else None,
+            commodity_namespace=self._account_commodity_namespace(account),
+            commodity_fraction=self._account_commodity_fraction(account),
         )
 
     def _account_to_tree_node(self, account: Any) -> AccountTreeNodeDTO:

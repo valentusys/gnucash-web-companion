@@ -13,13 +13,15 @@ import json
 import logging
 import os
 import re
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any, NoReturn
+from uuid import uuid4
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response, status
 from fastapi.responses import StreamingResponse
+from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
@@ -57,11 +59,28 @@ from app.services.gnucash_exceptions import (
 )
 from app.services.gnucash_write import GnuCashWriteService, GnuCashWriteError
 from app.services.book_access import AccessDenied, BookAccessService
-from app.services.write_lock import WriteLockError
-from app.services.gnucash_book import SUPPORTED_TRANSACTION_STATES
+from app.services.write_lock import WriteLockError, write_lock_service
+from app.services.gnucash_book import GnuCashBookService, SUPPORTED_TRANSACTION_STATES
 from app.services.transaction_explorer import (
     TransactionExplorerError,
     build_transaction_explorer_query,
+)
+from app.services.transaction_create_audit import serialize_transaction_create_audit_payload
+from app.services.transaction_create_errors import TransactionCreateHTTPError, raise_transaction_create_error
+from app.services.transaction_create_idempotency import TransactionCreateIdempotencyService
+from app.services.transaction_create_policy import (
+    TransactionCreatePinnedSource,
+    evaluate_transaction_create_policy,
+    inspect_transaction_create_source,
+    open_transaction_create_source,
+)
+from app.services.transaction_create_tokens import (
+    canonical_transaction_create_request_hash,
+    hash_idempotency_key,
+    hash_token_jti,
+    issue_preview_token,
+    source_fingerprint_for_book,
+    verify_preview_token,
 )
 
 logger = logging.getLogger(__name__)
@@ -139,6 +158,11 @@ NON_CREATE_ISSUE51_HARNESS_SMUGGLING_DETAIL = (
     "synthetic/disposable proof, APP_ENV=test, and GNUCASH_WRITES_ENABLED=true."
 )
 CREATE_PREVIEW_NON_FINITE_AMOUNT_DETAIL = "amount must be a finite decimal string"
+GENERAL_CREATE_PREVIEW_DECIMAL_PATTERN = re.compile(r"^-?(?:0|[1-9]\d*)(?:\.\d+)?$")
+GENERAL_CREATE_PREVIEW_CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
+GENERAL_CREATE_ALLOWED_ACCOUNT_TYPES = frozenset(
+    {"ASSET", "BANK", "CASH", "CREDIT", "LIABILITY", "INCOME", "EXPENSE", "EQUITY"}
+)
 ReadbackAccountBalanceSnapshot = dict[str, tuple[Decimal, str]]
 
 
@@ -961,6 +985,369 @@ def _build_transaction_create_preview(
     )
 
 
+def _is_general_create_preview_payload(payload: dict[str, Any]) -> bool:
+    return isinstance(payload, dict) and "splits" in payload
+
+
+def _general_text(payload: dict[str, Any], field_name: str, *, default: str | None = None) -> str:
+    if field_name not in payload:
+        if default is not None:
+            return default
+        _raise_general_preview_error(_field_error_code(field_name), field_name)
+    value = payload[field_name]
+    if not isinstance(value, str):
+        _raise_general_preview_error(_field_error_code(field_name), field_name)
+    stripped = value.strip()
+    if GENERAL_CREATE_PREVIEW_CONTROL_CHARS.search(stripped):
+        _raise_general_preview_error(_field_error_code(field_name), field_name)
+    return stripped
+
+
+def _field_error_code(field_name: str) -> str:
+    return {
+        "date": "INVALID_DATE",
+        "description": "DESCRIPTION_REQUIRED",
+        "currency": "UNSUPPORTED_COMMODITY",
+        "account_id": "ACCOUNT_NOT_FOUND",
+        "amount": "INVALID_DECIMAL",
+        "memo": "INVALID_DECIMAL",
+    }.get(field_name, "INVALID_DECIMAL")
+
+
+def _raise_general_preview_error(code: str, field_path: str | None = None) -> None:
+    raise_transaction_create_error(
+        status.HTTP_422_UNPROCESSABLE_CONTENT,
+        code,
+        field_path=field_path,
+    )
+
+
+def _validate_general_decimal_string(value: Any, field_path: str) -> tuple[str, Decimal]:
+    if not isinstance(value, str):
+        _raise_general_preview_error("INVALID_DECIMAL", field_path)
+    amount_text = value.strip()
+    digits = [character for character in amount_text if character.isdigit()]
+    if (
+        len(amount_text) > 64
+        or len(digits) > 18
+        or not GENERAL_CREATE_PREVIEW_DECIMAL_PATTERN.fullmatch(amount_text)
+    ):
+        _raise_general_preview_error("INVALID_DECIMAL", field_path)
+    try:
+        amount = Decimal(amount_text)
+    except Exception:
+        _raise_general_preview_error("INVALID_DECIMAL", field_path)
+    if not amount.is_finite():
+        _raise_general_preview_error("INVALID_DECIMAL", field_path)
+    if amount == Decimal("0"):
+        _raise_general_preview_error("ZERO_SPLIT", field_path)
+    return amount_text, amount
+
+
+def _coerce_general_transaction_create_preview_request(payload: dict[str, Any]) -> dict[str, Any]:
+    if not isinstance(payload, dict):
+        raise_transaction_create_error(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "PREVIEW_PAYLOAD_MISMATCH",
+        )
+    date_text = _general_text(payload, "date")
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date_text):
+        _raise_general_preview_error("INVALID_DATE", "date")
+    try:
+        date.fromisoformat(date_text)
+    except ValueError:
+        _raise_general_preview_error("INVALID_DATE", "date")
+    description = _general_text(payload, "description")
+    if not description or len(description) > 256:
+        _raise_general_preview_error("DESCRIPTION_REQUIRED", "description")
+    currency = _general_text(payload, "currency").upper()
+    if not re.fullmatch(r"[A-Z]{3}", currency):
+        _raise_general_preview_error("UNSUPPORTED_COMMODITY", "currency")
+    raw_splits = payload.get("splits")
+    if not isinstance(raw_splits, list) or not 2 <= len(raw_splits) <= 50:
+        _raise_general_preview_error("SPLIT_COUNT_OUT_OF_RANGE", "splits")
+
+    normalized_splits: list[dict[str, str]] = []
+    total = Decimal("0")
+    account_ids: set[str] = set()
+    for index, raw_split in enumerate(raw_splits):
+        if not isinstance(raw_split, dict):
+            _raise_general_preview_error("PREVIEW_PAYLOAD_MISMATCH", f"splits[{index}]")
+        account_id = _general_text(raw_split, "account_id")
+        if not account_id:
+            _raise_general_preview_error("ACCOUNT_NOT_FOUND", f"splits[{index}].account_id")
+        amount_text, amount = _validate_general_decimal_string(raw_split.get("amount"), f"splits[{index}].amount")
+        memo = _general_text(raw_split, "memo", default="")
+        if len(memo) > 512:
+            _raise_general_preview_error("INVALID_DECIMAL", f"splits[{index}].memo")
+        normalized_splits.append({"account_id": account_id, "amount": amount_text, "memo": memo})
+        total += amount
+        account_ids.add(account_id)
+
+    if total != Decimal("0"):
+        _raise_general_preview_error("UNBALANCED_SPLITS", "splits")
+    if len(account_ids) < 2:
+        _raise_general_preview_error("INSUFFICIENT_DISTINCT_ACCOUNTS", "splits")
+    return {"date": date_text, "description": description, "currency": currency, "splits": normalized_splits}
+
+
+def _general_preview_account_ids(normalized: dict[str, Any]) -> list[str]:
+    account_ids: list[str] = []
+    seen: set[str] = set()
+    for split in normalized["splits"]:
+        account_id = str(split["account_id"])
+        if account_id not in seen:
+            seen.add(account_id)
+            account_ids.append(account_id)
+    return account_ids
+
+
+def _service_list_accounts_by_ids(service: Any, account_ids: set[str] | list[str]) -> list[Any]:
+    fetch_by_ids = getattr(service, "list_accounts_by_ids", None)
+    ordered_ids = list(account_ids)
+    if callable(fetch_by_ids):
+        result = fetch_by_ids(ordered_ids)
+        if isinstance(result, list):
+            return result
+        if isinstance(result, tuple):
+            return list(result)
+
+    if isinstance(service, GnuCashBookService):
+        raise GnuCashReadError("Bounded account lookup is not available for transaction CREATE")
+
+    # Compatibility path for legacy synthetic read-service doubles only. Real
+    # product GnuCash services are rejected above when bounded lookup is absent,
+    # so product CREATE cannot fall back to list_accounts()/book.accounts.
+    accounts = list(service.list_accounts())
+    requested = set(ordered_ids)
+    return [account for account in accounts if str(getattr(account, "id", "")) in requested]
+
+
+def _general_account_dto(account: Any) -> dict[str, str]:
+    return {
+        "id": str(getattr(account, "id", "")),
+        "name": str(getattr(account, "name", "")),
+        "full_name": str(getattr(account, "full_name", "")),
+        "type": str(getattr(account, "type", "") or "UNKNOWN").upper(),
+        "currency": str(getattr(account, "currency", "") or "").upper(),
+    }
+
+
+def _general_account_commodity_namespace(account: Any) -> str:
+    namespace = getattr(account, "commodity_namespace", None)
+    if namespace is None:
+        namespace = getattr(getattr(account, "commodity", None), "namespace", None)
+    if namespace is None and str(getattr(account, "currency", "") or ""):
+        namespace = "CURRENCY"
+    return str(namespace or "").upper()
+
+
+def _general_account_commodity_fraction(account: Any) -> int | None:
+    fraction = getattr(account, "commodity_fraction", None)
+    if fraction is None:
+        fraction = getattr(getattr(account, "commodity", None), "fraction", None)
+    if fraction is None:
+        return None
+    try:
+        return int(fraction)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _validate_general_amount_fraction(amount_text: str, fraction: int | None, field_path: str) -> None:
+    if fraction is None:
+        return
+    if fraction <= 0:
+        _raise_general_preview_error("UNSUPPORTED_COMMODITY", field_path)
+    amount = Decimal(amount_text)
+    scaled = amount * Decimal(fraction)
+    if scaled != scaled.to_integral_value():
+        _raise_general_preview_error("INVALID_DECIMAL", field_path)
+
+
+def _resolve_general_preview_accounts(
+    normalized: dict[str, Any],
+    accounts: list[Any],
+) -> dict[str, dict[str, str]]:
+    accounts_by_id = {str(getattr(account, "id", "")): account for account in accounts}
+    resolved: dict[str, dict[str, str]] = {}
+    currency = str(normalized["currency"])
+    for index, split in enumerate(normalized["splits"]):
+        account_id = split["account_id"]
+        account = accounts_by_id.get(account_id)
+        if account is None:
+            _raise_general_preview_error("ACCOUNT_NOT_FOUND", f"splits[{index}].account_id")
+        if getattr(account, "placeholder", False) or getattr(account, "hidden", False):
+            _raise_general_preview_error("ACCOUNT_NOT_POSTABLE", f"splits[{index}].account_id")
+        account_type = str(getattr(account, "type", "") or "").upper()
+        if account_type not in GENERAL_CREATE_ALLOWED_ACCOUNT_TYPES:
+            _raise_general_preview_error("UNSUPPORTED_ACCOUNT_TYPE", f"splits[{index}].account_id")
+        if _general_account_commodity_namespace(account) != "CURRENCY":
+            _raise_general_preview_error("UNSUPPORTED_COMMODITY", f"splits[{index}].account_id")
+        account_currency = str(getattr(account, "currency", "") or "").upper()
+        if not account_currency or account_currency == "XXX":
+            _raise_general_preview_error("UNSUPPORTED_COMMODITY", f"splits[{index}].account_id")
+        if account_currency != currency:
+            _raise_general_preview_error("COMMODITY_MISMATCH", f"splits[{index}].account_id")
+        _validate_general_amount_fraction(
+            str(split["amount"]),
+            _general_account_commodity_fraction(account),
+            f"splits[{index}].amount",
+        )
+        resolved[account_id] = _general_account_dto(account)
+    return resolved
+
+
+def _live_source_fingerprint_for_book(
+    book: Book,
+    settings: Settings,
+    *,
+    require_fresh: bool = False,
+) -> str:
+    try:
+        evidence = inspect_transaction_create_source(book, settings)
+    except Exception:
+        evidence = None
+    if evidence is None:
+        if require_fresh:
+            _raise_product_create_error("PREVIEW_STALE", retryable=True)
+        return source_fingerprint_for_book(book, settings)
+    return source_fingerprint_for_book(
+        book,
+        settings,
+        source_identity=evidence.identity,
+        versions=evidence.versions,
+        source_base_currency=evidence.base_currency,
+    )
+
+
+def _source_fingerprint_from_pinned_source(
+    book: Book,
+    settings: Settings,
+    pinned_source: TransactionCreatePinnedSource,
+) -> str:
+    _require_pinned_source_current_for_authorization(pinned_source)
+    return source_fingerprint_for_book(
+        book,
+        settings,
+        source_identity=pinned_source.identity,
+        versions=pinned_source.versions,
+        source_base_currency=pinned_source.base_currency,
+    )
+
+
+def _require_pinned_source_current_for_authorization(pinned_source: TransactionCreatePinnedSource) -> None:
+    try:
+        pinned_source.verify_current()
+    except Exception:
+        _raise_product_create_error("PREVIEW_STALE", retryable=True)
+
+
+def _require_pinned_source_current_after_write(
+    pinned_source: TransactionCreatePinnedSource,
+    backup_path: str | None,
+) -> None:
+    try:
+        pinned_source.verify_same_file_after_write()
+    except Exception as exc:
+        _fail_create_readback_verification(backup_path, exc)
+
+
+def _book_config_for_pinned_source(book: Book, pinned_source: TransactionCreatePinnedSource) -> dict[str, Any]:
+    """Return a redirection-safe book config using only the pinned source fd path."""
+
+    return {
+        "id": int(book.id),
+        "name": str(getattr(book, "name", "") or ""),
+        "storage_type": str(getattr(book, "storage_type", "sqlite") or "sqlite"),
+        "uri_or_path": pinned_source.fd_path,
+        "base_currency": str(getattr(book, "base_currency", "") or "XXX"),
+        "backup_source_path": pinned_source.fd_path,
+        "backup_path_basis": pinned_source.identity.canonical_path,
+        "backup_source_is_pinned_fd": True,
+        "disable_piecash_internal_backup": True,
+    }
+
+
+def _enter_product_create_source_or_raise_stale(
+    book: Book,
+    settings: Settings,
+) -> tuple[Any, TransactionCreatePinnedSource]:
+    try:
+        source_cm = open_transaction_create_source(book, settings, writable=True)
+        pinned_source = source_cm.__enter__()
+    except Exception:
+        _raise_product_create_error("PREVIEW_STALE", retryable=True)
+    return source_cm, pinned_source
+
+
+def _build_general_transaction_create_preview(
+    *,
+    normalized: dict[str, Any],
+    accounts: list[Any],
+    book: Book,
+    user: User,
+    session: Session,
+    settings: Settings,
+) -> TransactionCreatePreviewDTO:
+    policy = evaluate_transaction_create_policy(book, user, session, settings)
+    if "CREATE_PERMISSION_DENIED" in policy.blocked_codes:
+        raise_transaction_create_error(
+            status.HTTP_403_FORBIDDEN,
+            "CREATE_PERMISSION_DENIED",
+        )
+    if str(getattr(book, "base_currency", "") or "").upper() != str(normalized["currency"]).upper():
+        raise_transaction_create_error(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "COMMODITY_MISMATCH",
+            field_path="currency",
+        )
+    account_refs = _resolve_general_preview_accounts(normalized, accounts)
+    idempotency_key = str(uuid4())
+    idempotency_key_hash = hash_idempotency_key(idempotency_key, settings)
+    request_hash = canonical_transaction_create_request_hash(normalized)
+    source_fingerprint = _live_source_fingerprint_for_book(book, settings)
+    issued_at = datetime.now(timezone.utc)
+    token_jti = uuid4().hex
+    preview_token = issue_preview_token(
+        settings=settings,
+        user=user,
+        book=book,
+        request_hash=request_hash,
+        idempotency_key_hash=idempotency_key_hash,
+        source_fingerprint=source_fingerprint,
+        now=issued_at,
+        jti=token_jti,
+    )
+    warnings = [] if policy.confirm_allowed else [
+        {"code": code, "message_key": f"transaction_create.{code.lower()}"}
+        for code in policy.blocked_codes
+        if code != "CREATE_PERMISSION_DENIED"
+    ]
+    return TransactionCreatePreviewDTO(
+        preview_only=True,
+        confirm_allowed=policy.confirm_allowed,
+        create_count=1,
+        preview_token=preview_token,
+        expires_at=(issued_at + timedelta(seconds=600)).isoformat(),
+        idempotency_key=idempotency_key,
+        create_generation=policy.create_generation,
+        date=normalized["date"],
+        currency=normalized["currency"],
+        description=normalized["description"],
+        splits=[
+            {
+                "index": index,
+                "account": account_refs[split["account_id"]],
+                "amount": split["amount"],
+                "memo": split["memo"],
+            }
+            for index, split in enumerate(normalized["splits"])
+        ],
+        warnings=warnings,
+    )
+
+
 def _coerce_transaction_create_preview_request(
     payload: dict[str, Any],
 ) -> TransactionCreatePreviewRequestDTO:
@@ -1076,6 +1463,7 @@ def _preview_account_dto(account: Any) -> TransactionCreatePreviewAccountDTO:
         id=account.id,
         name=account.name,
         full_name=account.full_name,
+        type=getattr(account, "type", "UNKNOWN"),
         currency=account.currency,
     )
 
@@ -1452,11 +1840,13 @@ def _read_request_account_balance_snapshot(
     request: TransactionCreateRequestDTO,
     *,
     backup_path: str | None = None,
+    read_book_config: Any | None = None,
 ) -> ReadbackAccountBalanceSnapshot:
     """Read request account balances through the read-only service for delta checks."""
     account_ids = {str(split.account_id) for split in request.splits}
     try:
-        accounts = transaction_service_for(book).list_accounts()
+        read_service = GnuCashBookService(read_book_config) if read_book_config is not None else transaction_service_for(book)
+        accounts = _service_list_accounts_by_ids(read_service, account_ids)
     except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
         _fail_create_readback_verification(backup_path, exc)
 
@@ -1499,11 +1889,14 @@ def _verify_account_balance_deltas(
     request: TransactionCreateRequestDTO,
     result: TransactionWriteResultDTO,
     before_account_balances: ReadbackAccountBalanceSnapshot,
+    *,
+    read_book_config: Any | None = None,
 ) -> tuple[int, dict[str, str]]:
     after_account_balances = _read_request_account_balance_snapshot(
         book,
         request,
         backup_path=result.backup_path,
+        read_book_config=read_book_config,
     )
     expected_deltas, account_currencies = _request_account_delta_totals(
         request,
@@ -1538,10 +1931,13 @@ def _verify_transaction_create_readback(
     request: TransactionCreateRequestDTO,
     result: TransactionWriteResultDTO,
     before_account_balances: ReadbackAccountBalanceSnapshot | None = None,
+    *,
+    read_book_config: Any | None = None,
 ) -> dict[str, Any]:
     """Read the created transaction and request-account deltas before reporting success."""
     try:
-        detail = transaction_service_for(book).get_transaction(result.transaction_id)
+        read_service = GnuCashBookService(read_book_config) if read_book_config is not None else transaction_service_for(book)
+        detail = read_service.get_transaction(result.transaction_id)
     except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
         _fail_create_readback_verification(result.backup_path, exc)
 
@@ -1584,6 +1980,7 @@ def _verify_transaction_create_readback(
             request,
             result,
             before_account_balances,
+            read_book_config=read_book_config,
         )
         account_deltas_verified = True
 
@@ -1816,6 +2213,593 @@ def _require_no_non_create_write_route_query_or_issue51_headers(
         )
 
 
+def _is_product_create_confirm_payload(payload: Any) -> bool:
+    return isinstance(payload, dict) and "preview_token" in payload and "transaction" in payload
+
+
+def _product_create_error_status(code: str) -> int:
+    if code in {
+        "PREVIEW_STALE",
+        "CREATE_RECOVERY_REQUIRED",
+        "CREATE_IN_PROGRESS",
+        "IDEMPOTENCY_PAYLOAD_MISMATCH",
+        "BOOK_WRITE_BUSY",
+        "PREVIEW_TOKEN_EXPIRED",
+        "PREVIEW_TOKEN_INVALID",
+        "PREVIEW_PAYLOAD_MISMATCH",
+    }:
+        return status.HTTP_409_CONFLICT
+    if code in {"UNSUPPORTED_COMMODITY", "COMMODITY_MISMATCH", "INVALID_DECIMAL"}:
+        return status.HTTP_422_UNPROCESSABLE_CONTENT
+    if code == "CREATE_PERMISSION_DENIED":
+        return status.HTTP_403_FORBIDDEN
+    if code == "CREATE_DEPLOYMENT_DISABLED" or code == "CREATE_BOOK_DISABLED":
+        return status.HTTP_403_FORBIDDEN
+    if code in {"BACKUP_FAILED", "WRITE_FAILED", "CREATE_RESULT_UNKNOWN"}:
+        return status.HTTP_503_SERVICE_UNAVAILABLE
+    return status.HTTP_422_UNPROCESSABLE_CONTENT
+
+
+def _raise_product_create_error(code: str, *, retryable: bool = False, recovery_ref: str | None = None) -> NoReturn:
+    headers: dict[str, str] = {}
+    if code == "CREATE_IN_PROGRESS":
+        headers["Retry-After"] = "1"
+    elif code == "BOOK_WRITE_BUSY":
+        headers["Retry-After"] = "2"
+    raise_transaction_create_error(
+        _product_create_error_status(code),
+        code,
+        retryable=retryable,
+        recovery_ref=recovery_ref,
+        headers=headers or None,
+    )
+
+
+def _audit_product_transaction_create_confirm(
+    session: Session,
+    *,
+    user_id: int,
+    book_id: int,
+    result: str,
+    normalized: dict[str, Any] | None = None,
+    request_hash: str | None = None,
+    token_jti_hash: str | None = None,
+    idempotency_key_hash: str | None = None,
+    generation: int | None = None,
+    error_code: str | None = None,
+    retryable: bool = False,
+    duplicate: bool = False,
+    backup_ref: str | None = None,
+    transaction_id: str | None = None,
+    readback_verified: bool | None = None,
+    event_ref: str | None = None,
+) -> AuditLog:
+    payload = serialize_transaction_create_audit_payload(
+        {
+            "result": result,
+            "event_ref": event_ref,
+            "error_code": error_code,
+            "retryable": retryable,
+            "request_hash_prefix": request_hash[:12] if request_hash else None,
+            "token_jti_hash_prefix": token_jti_hash[:12] if token_jti_hash else None,
+            "idempotency_key_hash_prefix": idempotency_key_hash[:12] if idempotency_key_hash else None,
+            "split_count": len(normalized["splits"]) if normalized else None,
+            "currency": normalized.get("currency") if normalized else None,
+            "create_generation": generation,
+            "duplicate": duplicate,
+            "backup_present": bool(backup_ref),
+            "backup_artifact_ref": backup_ref,
+            "transaction_ref": f"tx_{transaction_id[:12]}" if transaction_id else None,
+            "readback_verified": readback_verified,
+        }
+    )
+    log = AuditLog(
+        user_id=user_id,
+        book_id=book_id,
+        action="transaction.create.confirm",
+        payload_json=json.dumps(payload, sort_keys=True, separators=(",", ":")),
+    )
+    session.add(log)
+    session.commit()
+    session.refresh(log)
+    return log
+
+
+def _coerce_product_confirm_transaction(payload: dict[str, Any]) -> tuple[dict[str, Any], TransactionCreateRequestDTO]:
+    transaction_payload = payload.get("transaction")
+    normalized = _coerce_general_transaction_create_preview_request(transaction_payload)
+    request = TransactionCreateRequestDTO(
+        date=normalized["date"],
+        description=normalized["description"],
+        splits=[
+            TransactionSplitWriteDTO(
+                account_id=split["account_id"],
+                amount=split["amount"],
+                currency=normalized["currency"],
+                memo=split["memo"],
+            )
+            for split in normalized["splits"]
+        ],
+    )
+    return normalized, request
+
+
+def _safe_created_result_for_replay(safe_result: dict[str, Any] | None) -> dict[str, Any]:
+    result = dict(safe_result or {})
+    result["status"] = "already_created"
+    return result
+
+
+def _handle_product_create_idempotency_reservation(
+    reservation: Any,
+    *,
+    session: Session,
+    http_response: Response,
+    audit_common: dict[str, Any],
+) -> dict[str, Any] | None:
+    """Return/reject a non-new idempotency state without authorizing a new write."""
+
+    if reservation.status == "already_succeeded":
+        replay_result = _safe_created_result_for_replay(reservation.safe_result)
+        _audit_product_transaction_create_confirm(
+            session,
+            result="already_created",
+            duplicate=True,
+            transaction_id=str(replay_result.get("transaction_id") or ""),
+            readback_verified=True,
+            **audit_common,
+        )
+        http_response.status_code = status.HTTP_200_OK
+        return replay_result
+    if reservation.status in {"payload_mismatch", "in_progress", "recovery_required", "rejected"}:
+        code = {
+            "payload_mismatch": "IDEMPOTENCY_PAYLOAD_MISMATCH",
+            "in_progress": "CREATE_IN_PROGRESS",
+            "recovery_required": "CREATE_RECOVERY_REQUIRED",
+            "rejected": reservation.record.safe_error_code or "CREATE_REJECTED",
+        }[reservation.status]
+        _audit_product_transaction_create_confirm(
+            session,
+            result="indeterminate" if code == "CREATE_RECOVERY_REQUIRED" else "rejected",
+            error_code=code,
+            retryable=code == "CREATE_IN_PROGRESS",
+            **audit_common,
+        )
+        _raise_product_create_error(
+            code,
+            retryable=code == "CREATE_IN_PROGRESS",
+            recovery_ref=f"rec_{reservation.record.id}" if code == "CREATE_RECOVERY_REQUIRED" else None,
+        )
+    return None
+
+
+def _mark_product_create_result_unknown(
+    *,
+    idempotency: TransactionCreateIdempotencyService,
+    reservation: Any,
+    session: Session,
+    audit_common: dict[str, Any],
+    backup_ref: str | None = None,
+) -> None:
+    """Best-effort terminal marking for post-write phase failures."""
+
+    try:
+        idempotency.mark_indeterminate(reservation.record, "CREATE_RESULT_UNKNOWN")
+    except Exception:
+        logger.warning("Product CREATE idempotency indeterminate marking failed safely", exc_info=True)
+    try:
+        _audit_product_transaction_create_confirm(
+            session,
+            result="indeterminate",
+            error_code="CREATE_RESULT_UNKNOWN",
+            retryable=False,
+            backup_ref=backup_ref,
+            **audit_common,
+        )
+    except Exception:
+        logger.warning("Product CREATE indeterminate audit failed safely", exc_info=True)
+
+
+def _product_backup_ref(value: Any) -> str | None:
+    backup_ref = _safe_backup_artifact_ref(value)
+    if backup_ref and backup_ref.startswith("bkp-"):
+        return "bkp_" + backup_ref.removeprefix("bkp-")
+    return backup_ref
+
+
+def _planned_guid_presence(book: Book, planned_transaction_guid: str, *, read_book_config: Any | None = None) -> bool | None:
+    try:
+        read_service = GnuCashBookService(read_book_config) if read_book_config is not None else transaction_service_for(book)
+        read_service.get_transaction(planned_transaction_guid)
+    except EntityNotFoundError:
+        return False
+    except (BookNotFoundError, BookNotConfiguredError, GnuCashReadError):
+        return None
+    except Exception:
+        return None
+    return True
+
+
+def _execute_product_transaction_create(
+    *,
+    book: Book,
+    user: User,
+    session: Session,
+    request: TransactionCreateRequestDTO,
+    planned_transaction_guid: str,
+    settings: Settings,
+    expected_source_fingerprint: str,
+    pinned_source: TransactionCreatePinnedSource,
+) -> dict[str, Any]:
+    _require_pinned_source_current_for_authorization(pinned_source)
+    pinned_book_config = _book_config_for_pinned_source(book, pinned_source)
+    service = GnuCashWriteService(pinned_book_config)
+    pre_write_evidence: dict[str, Any] = {}
+
+    def revalidate_inside_lock_before_backup() -> None:
+        session.refresh(book)
+        session.refresh(user)
+        policy = evaluate_transaction_create_policy(book, user, session, settings)
+        if not policy.confirm_allowed:
+            first = policy.blocked_codes[0] if policy.blocked_codes else "CREATE_BOOK_DISABLED"
+            _raise_product_create_error(first, retryable=first == "PREVIEW_STALE")
+        live_fingerprint = _source_fingerprint_from_pinned_source(
+            book,
+            settings,
+            pinned_source,
+        )
+        if live_fingerprint != expected_source_fingerprint:
+            _raise_product_create_error("PREVIEW_STALE", retryable=True)
+        validation = service.validate_transaction_create(request)
+        if not validation.valid:
+            raise GnuCashWriteError(f"Validation failed: {'; '.join(validation.errors)}")
+        pre_write_evidence["before_account_balances"] = _read_request_account_balance_snapshot(
+            book,
+            request,
+            read_book_config=pinned_book_config,
+        )
+        _require_pinned_source_current_for_authorization(pinned_source)
+
+    if isinstance(service, GnuCashWriteService):
+        backup_path, transaction_id = service._execute_write_transaction(
+            request,
+            f"book:{book.id}",
+            planned_transaction_guid=planned_transaction_guid,
+            pre_backup_hook=revalidate_inside_lock_before_backup,
+        )
+        _require_pinned_source_current_after_write(pinned_source, backup_path)
+        result = TransactionWriteResultDTO(
+            transaction_id=transaction_id,
+            backup_path=backup_path or "",
+            audit_log_id=None,
+        )
+    else:
+        revalidate_inside_lock_before_backup()
+        result = service.create_transaction(request=request, user_id=user.id, book_id=book.id)
+    _require_pinned_source_current_after_write(pinned_source, result.backup_path)
+
+    readback_fields = _verify_transaction_create_readback(
+        book,
+        request,
+        result,
+        before_account_balances=pre_write_evidence.get("before_account_balances"),
+        read_book_config=pinned_book_config,
+    )
+    _require_pinned_source_current_after_write(pinned_source, result.backup_path)
+    _record_write_alpha_transaction_ownership(
+        session,
+        book_id=book.id,
+        transaction_id=result.transaction_id,
+        user_id=user.id,
+    )
+    backup_ref = _product_backup_ref(result.backup_path)
+    return {
+        "status": "created",
+        "transaction_id": result.transaction_id,
+        "backup_ref": backup_ref,
+        "readback": {
+            "verified": True,
+            "transaction_present": readback_fields["readback_transaction_present"],
+            "split_count": readback_fields["readback_split_count"],
+            "balanced": readback_fields["readback_split_balance_verified"],
+            "currency_consistent": readback_fields["readback_currency_consistent"],
+            "account_balance_deltas_verified": readback_fields["readback_account_balance_deltas_verified"],
+        },
+        "links": {
+            "transaction": f"/books/{book.id}/transactions/{result.transaction_id}",
+            "explorer": f"/books/{book.id}/transactions",
+        },
+    }
+
+
+def _confirm_product_transaction_create(
+    *,
+    book_id: int,
+    payload: dict[str, Any],
+    http_request: Request,
+    http_response: Response,
+    user: User,
+    session: Session,
+    settings: Settings,
+    idempotency_key: str | None,
+    x_issue51_explicit_test_create: str | None,
+    x_issue51_synthetic_disposable_proof: str | None,
+    x_app_env: str | None,
+    x_gnucash_writes_enabled: str | None,
+) -> dict[str, Any]:
+    _require_no_non_create_write_route_query_or_issue51_headers(
+        raw_query=http_request.url.query,
+        x_issue51_explicit_test_create=x_issue51_explicit_test_create,
+        x_issue51_synthetic_disposable_proof=x_issue51_synthetic_disposable_proof,
+        x_app_env=x_app_env,
+        x_gnucash_writes_enabled=x_gnucash_writes_enabled,
+    )
+    if not isinstance(idempotency_key, str) or not idempotency_key.strip() or len(idempotency_key) > 256:
+        _raise_product_create_error("IDEMPOTENCY_KEY_REQUIRED")
+    preview_token = payload.get("preview_token")
+    if not isinstance(preview_token, str) or not preview_token:
+        _raise_product_create_error("PREVIEW_TOKEN_INVALID")
+
+    normalized, request = _coerce_product_confirm_transaction(payload)
+    book = _resolve_viewable_book(book_id, user, session)
+    policy = evaluate_transaction_create_policy(book, user, session, settings)
+    if not policy.confirm_allowed:
+        first = policy.blocked_codes[0] if policy.blocked_codes else "CREATE_BOOK_DISABLED"
+        _raise_product_create_error(first, retryable=first == "PREVIEW_STALE")
+
+    request_hash = canonical_transaction_create_request_hash(normalized)
+    idempotency_key_hash = hash_idempotency_key(idempotency_key, settings)
+    verification = verify_preview_token(
+        preview_token,
+        settings,
+        expected_user_id=int(user.id),
+        expected_auth_version=int(getattr(user, "auth_version", 1) or 1),
+        expected_book_id=int(book.id),
+        expected_generation=policy.create_generation,
+        expected_request_hash=request_hash,
+        expected_idempotency_key_hash=idempotency_key_hash,
+    )
+    token_expired = False
+    if not verification.valid and verification.code == "PREVIEW_TOKEN_EXPIRED":
+        expired_verification = verify_preview_token(
+            preview_token,
+            settings,
+            expected_user_id=int(user.id),
+            expected_auth_version=int(getattr(user, "auth_version", 1) or 1),
+            expected_book_id=int(book.id),
+            expected_generation=policy.create_generation,
+            expected_request_hash=request_hash,
+            expected_idempotency_key_hash=idempotency_key_hash,
+            allow_expired=True,
+        )
+        if expired_verification.valid:
+            verification = expired_verification
+            token_expired = True
+    if not verification.valid:
+        _raise_product_create_error(
+            verification.code or "PREVIEW_TOKEN_INVALID",
+            retryable=verification.code in {"PREVIEW_STALE", "PREVIEW_TOKEN_EXPIRED"},
+        )
+    token_jti = str(verification.payload.get("jti", ""))
+    token_jti_hash = hash_token_jti(token_jti, settings)
+
+    idempotency = TransactionCreateIdempotencyService(session, settings)
+    audit_common = {
+        "user_id": int(user.id),
+        "book_id": int(book.id),
+        "normalized": normalized,
+        "request_hash": request_hash,
+        "token_jti_hash": token_jti_hash,
+        "idempotency_key_hash": idempotency_key_hash,
+        "generation": policy.create_generation,
+    }
+
+    existing_idempotency = idempotency.find_existing(
+        book_id=int(book.id),
+        user_id=int(user.id),
+        raw_key=idempotency_key,
+    )
+    if existing_idempotency is not None:
+        reservation = idempotency.reserve(
+            book_id=int(book.id),
+            user_id=int(user.id),
+            raw_key=idempotency_key,
+            request_hash=request_hash,
+            token_jti_hash=token_jti_hash,
+        )
+        handled_reservation = _handle_product_create_idempotency_reservation(
+            reservation,
+            session=session,
+            http_response=http_response,
+            audit_common=audit_common,
+        )
+        if handled_reservation is not None:
+            return handled_reservation
+
+    source_fingerprint = _live_source_fingerprint_for_book(
+        book,
+        settings,
+        require_fresh=True,
+    )
+    source_verification = verify_preview_token(
+        preview_token,
+        settings,
+        expected_user_id=int(user.id),
+        expected_auth_version=int(getattr(user, "auth_version", 1) or 1),
+        expected_book_id=int(book.id),
+        expected_generation=policy.create_generation,
+        expected_request_hash=request_hash,
+        expected_idempotency_key_hash=idempotency_key_hash,
+        expected_source_fingerprint=source_fingerprint,
+        allow_expired=token_expired,
+    )
+    if not source_verification.valid:
+        _raise_product_create_error(
+            source_verification.code or "PREVIEW_TOKEN_INVALID",
+            retryable=source_verification.code in {"PREVIEW_STALE", "PREVIEW_TOKEN_EXPIRED"},
+        )
+
+    reservation = idempotency.reserve(
+        book_id=int(book.id),
+        user_id=int(user.id),
+        raw_key=idempotency_key,
+        request_hash=request_hash,
+        token_jti_hash=token_jti_hash,
+    )
+    if token_expired and reservation.status == "reserved":
+        idempotency.mark_rejected(reservation.record, "PREVIEW_TOKEN_EXPIRED")
+        _audit_product_transaction_create_confirm(
+            session,
+            result="rejected",
+            error_code="PREVIEW_TOKEN_EXPIRED",
+            retryable=True,
+            **audit_common,
+        )
+        _raise_product_create_error("PREVIEW_TOKEN_EXPIRED", retryable=True)
+    handled_reservation = _handle_product_create_idempotency_reservation(
+        reservation,
+        session=session,
+        http_response=http_response,
+        audit_common=audit_common,
+    )
+    if handled_reservation is not None:
+        return handled_reservation
+
+    lock_key = f"book:{book.id}"
+    try:
+        with write_lock_service.lock(lock_key):
+            source_cm = None
+            pinned_source: TransactionCreatePinnedSource | None = None
+            try:
+                _audit_product_transaction_create_confirm(session, result="started", **audit_common)
+                try:
+                    source_cm, pinned_source = _enter_product_create_source_or_raise_stale(book, settings)
+                    result = _execute_product_transaction_create(
+                        book=book,
+                        user=user,
+                        session=session,
+                        request=request,
+                        planned_transaction_guid=reservation.record.planned_transaction_guid,
+                        settings=settings,
+                        expected_source_fingerprint=source_fingerprint,
+                        pinned_source=pinned_source,
+                    )
+                except GnuCashCreateReadbackVerificationError as exc:
+                    idempotency.mark_indeterminate(reservation.record, "CREATE_RESULT_UNKNOWN")
+                    _audit_product_transaction_create_confirm(
+                        session,
+                        result="indeterminate",
+                        error_code="CREATE_RESULT_UNKNOWN",
+                        retryable=False,
+                        backup_ref=_product_backup_ref(getattr(exc, "backup_path", None)),
+                        **audit_common,
+                    )
+                    _raise_product_create_error(
+                        "CREATE_RESULT_UNKNOWN",
+                        recovery_ref=f"rec_{reservation.record.id}",
+                    )
+                except GnuCashWriteError as exc:
+                    raw_detail = str(getattr(exc, "detail", "") or exc)
+                    backup_path = getattr(exc, "backup_path", None)
+                    if not backup_path and "backup failed" in raw_detail.lower():
+                        error_code = "BACKUP_FAILED"
+                    elif backup_path and pinned_source is not None:
+                        planned_present = _planned_guid_presence(
+                            book,
+                            reservation.record.planned_transaction_guid,
+                            read_book_config=_book_config_for_pinned_source(book, pinned_source),
+                        )
+                        error_code = "WRITE_FAILED" if planned_present is False else "CREATE_RESULT_UNKNOWN"
+                    elif backup_path:
+                        error_code = "CREATE_RESULT_UNKNOWN"
+                    else:
+                        error_code = "WRITE_FAILED"
+                    if error_code == "CREATE_RESULT_UNKNOWN":
+                        idempotency.mark_indeterminate(reservation.record, error_code)
+                    else:
+                        idempotency.mark_rejected(reservation.record, error_code)
+                    _audit_product_transaction_create_confirm(
+                        session,
+                        result="indeterminate" if error_code == "CREATE_RESULT_UNKNOWN" else "failed",
+                        error_code=error_code,
+                        retryable=False,
+                        backup_ref=_product_backup_ref(getattr(exc, "backup_path", None)),
+                        **audit_common,
+                    )
+                    if error_code == "CREATE_RESULT_UNKNOWN":
+                        _raise_product_create_error(
+                            error_code,
+                            recovery_ref=f"rec_{reservation.record.id}",
+                        )
+                    _raise_product_create_error(error_code, retryable=False)
+                except TransactionCreateHTTPError as exc:
+                    idempotency.mark_rejected(reservation.record, exc.code)
+                    _audit_product_transaction_create_confirm(
+                        session,
+                        result="rejected",
+                        error_code=exc.code,
+                        retryable=exc.retryable,
+                        **audit_common,
+                    )
+                    raise
+                except WriteLockError:
+                    raise
+                except Exception as exc:
+                    idempotency.mark_indeterminate(reservation.record, "CREATE_RESULT_UNKNOWN")
+                    _audit_product_transaction_create_confirm(
+                        session,
+                        result="indeterminate",
+                        error_code="CREATE_RESULT_UNKNOWN",
+                        **audit_common,
+                    )
+                    _raise_product_create_error(
+                        "CREATE_RESULT_UNKNOWN",
+                        recovery_ref=f"rec_{reservation.record.id}",
+                    )
+
+                result["audit_ref"] = str(result.get("audit_ref") or f"aud_{uuid4().hex[:12]}")
+                idempotency.mark_succeeded(reservation.record, result)
+                _audit_product_transaction_create_confirm(
+                    session,
+                    result="success",
+                    event_ref=result["audit_ref"].replace("aud_", "evt_", 1),
+                    backup_ref=str(result.get("backup_ref") or "") or None,
+                    transaction_id=str(result.get("transaction_id") or ""),
+                    readback_verified=bool(result.get("readback", {}).get("verified")),
+                    **audit_common,
+                )
+                http_response.status_code = status.HTTP_201_CREATED
+                return result
+            except WriteLockError:
+                raise
+            except TransactionCreateHTTPError:
+                raise
+            except Exception:
+                _mark_product_create_result_unknown(
+                    idempotency=idempotency,
+                    reservation=reservation,
+                    session=session,
+                    audit_common=audit_common,
+                )
+                _raise_product_create_error(
+                    "CREATE_RESULT_UNKNOWN",
+                    recovery_ref=f"rec_{reservation.record.id}",
+                )
+            finally:
+                if source_cm is not None:
+                    source_cm.__exit__(None, None, None)
+    except WriteLockError as exc:
+        idempotency.mark_rejected(reservation.record, "BOOK_WRITE_BUSY")
+        _audit_product_transaction_create_confirm(
+            session,
+            result="busy",
+            error_code="BOOK_WRITE_BUSY",
+            retryable=True,
+            **audit_common,
+        )
+        _raise_product_create_error("BOOK_WRITE_BUSY", retryable=True)
+
+
 # ---------------------------------------------------------------------------
 # Phase 12: Controlled write endpoints
 # ---------------------------------------------------------------------------
@@ -1945,12 +2929,14 @@ async def get_write_alpha_audit_summary(
 @router.post(
     "/books/{book_id}/transactions/create-preview",
     response_model=TransactionCreatePreviewDTO,
+    response_model_exclude_none=True,
 )
 async def preview_book_transaction_create(
     book_id: int,
     request: dict[str, Any],
     user: User = Depends(get_current_user),
     session: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
 ) -> TransactionCreatePreviewDTO:
     """Validate and preview one owner web-UI transaction CREATE without writing.
 
@@ -1959,6 +2945,29 @@ async def preview_book_transaction_create(
     preview and never constructs the write service, lock, backup, audit, or
     mutation path.
     """
+    if _is_general_create_preview_payload(request):
+        preview_request = _coerce_general_transaction_create_preview_request(request)
+        book = _resolve_readonly_data_book(book_id, user, session)
+        policy = evaluate_transaction_create_policy(book, user, session, settings)
+        if "CREATE_PERMISSION_DENIED" in policy.blocked_codes:
+            raise_transaction_create_error(
+                status.HTTP_403_FORBIDDEN,
+                "CREATE_PERMISSION_DENIED",
+            )
+        try:
+            service = transaction_service_for(book)
+            accounts = _service_list_accounts_by_ids(service, _general_preview_account_ids(preview_request))
+        except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
+            handle_gnucash_error(exc)
+        return _build_general_transaction_create_preview(
+            normalized=preview_request,
+            accounts=accounts,
+            book=book,
+            user=user,
+            session=session,
+            settings=settings,
+        )
+
     preview_request = _coerce_transaction_create_preview_request(request)
     book = _resolve_readonly_data_book(book_id, user, session)
     _require_book_owner_access(book, user, session)
@@ -2008,28 +3017,46 @@ async def validate_book_transaction(
 
 @router.post(
     "/books/{book_id}/transactions",
-    response_model=TransactionWriteResultDTO,
+    response_model=None,
     status_code=status.HTTP_201_CREATED,
 )
 async def create_book_transaction(
     book_id: int,
-    request: TransactionCreateRequestDTO,
+    request: dict[str, Any],
     http_request: Request,
+    http_response: Response,
     user: User = Depends(get_current_user),
     session: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
     explicit_test_mode: str | None = Query(None),
+    idempotency_key: str | None = Header(None),
     x_issue51_explicit_test_create: str | None = Header(None),
     x_issue51_synthetic_disposable_proof: str | None = Header(None),
     x_app_env: str | None = Header(None),
     x_gnucash_writes_enabled: str | None = Header(None),
     x_owner_writebeta_preview_hash: str | None = Header(None),
     x_owner_writebeta_confirmation_token: str | None = Header(None),
-) -> TransactionWriteResultDTO:
+) -> Any:
     """Create a new transaction with the given splits.
 
     Follows the strict write flow: validate, lock, backup, write, audit.
     """
+    if _is_product_create_confirm_payload(request):
+        return _confirm_product_transaction_create(
+            book_id=book_id,
+            payload=request,
+            http_request=http_request,
+            http_response=http_response,
+            user=user,
+            session=session,
+            settings=settings,
+            idempotency_key=idempotency_key,
+            x_issue51_explicit_test_create=x_issue51_explicit_test_create,
+            x_issue51_synthetic_disposable_proof=x_issue51_synthetic_disposable_proof,
+            x_app_env=x_app_env,
+            x_gnucash_writes_enabled=x_gnucash_writes_enabled,
+        )
+
     _ensure_writes_enabled(settings)
     _ensure_write_alpha_test_scope(settings)
     _require_explicit_issue51_create_harness_scope(
@@ -2042,6 +3069,12 @@ async def create_book_transaction(
         x_app_env=x_app_env,
         x_gnucash_writes_enabled=x_gnucash_writes_enabled,
     )
+    try:
+        legacy_request = TransactionCreateRequestDTO.model_validate(request)
+    except ValidationError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=exc.errors()) from exc
+    request_dto = legacy_request
+
     book = _resolve_viewable_book(book_id, user, session)
     _require_book_edit_access(book, user, session)
     _require_disposable_create_target(book)
@@ -2060,7 +3093,7 @@ async def create_book_transaction(
         "action": "transaction.create",
         "transaction_id": None,
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "request_summary": _request_summary(request),
+        "request_summary": _request_summary(request_dto),
         "backup_path": None,
         "backup_artifact_ref": None,
         "readback_verified": False,
@@ -2083,20 +3116,20 @@ async def create_book_transaction(
     try:
         before_account_balances = None
         if isinstance(service, GnuCashWriteService):
-            validation = service.validate_transaction_create(request)
+            validation = service.validate_transaction_create(request_dto)
             if not validation.valid:
                 raise GnuCashWriteError(
                     f"Validation failed: {'; '.join(validation.errors)}"
                 )
-            before_account_balances = _read_request_account_balance_snapshot(book, request)
+            before_account_balances = _read_request_account_balance_snapshot(book, request_dto)
         result = service.create_transaction(
-            request=request,
+            request=request_dto,
             user_id=user.id,
             book_id=book.id,
         )
         readback_fields = _verify_transaction_create_readback(
             book,
-            request,
+            request_dto,
             result,
             before_account_balances=before_account_balances,
         )

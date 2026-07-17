@@ -3,17 +3,18 @@
 from __future__ import annotations
 
 import sqlite3
+import json
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, field_validator
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
-from app.models import Book, BookHealthSnapshot, User, UserBookAccess, WriteAlphaTransactionOwnership
+from app.models import AuditLog, Book, BookHealthSnapshot, User, UserBookAccess, WriteAlphaTransactionOwnership
 from app.routers.auth import get_current_user, get_db
 from app.schemas.books import BookHealthDTO, BookPreflightRequest, BookPreflightResponse, BookPublicDTO
 from app.services.book_access import AccessDenied, BookAccessService
@@ -38,6 +39,9 @@ from app.services.gnucash_exceptions import (
     EntityNotFoundError,
     GnuCashReadError,
 )
+from app.services.transaction_create_audit import serialize_transaction_create_audit_payload
+from app.services.transaction_create_errors import raise_transaction_create_error
+from app.services.transaction_create_policy import validate_transaction_create_enablement_for_admin
 
 router = APIRouter(prefix="/books", tags=["books"])
 
@@ -187,6 +191,14 @@ class BookPatchRequest(BaseModel):
 class BookEnableRequest(BaseModel):
     preflight_token: str = Field(min_length=1, max_length=4096)
     make_default: bool = False
+
+
+class TransactionCreateSettingsPatchRequest(BaseModel):
+    """Admin-only per-book transaction CREATE setting patch."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    enabled: StrictBool
 
 
 def require_admin_user(user: User) -> None:
@@ -647,6 +659,55 @@ def serialize_book(book: Book, user: User | None = None) -> dict[str, Any]:
     }
 
 
+def serialize_transaction_create_settings(book: Book, settings: Settings) -> dict[str, Any]:
+    blockers = validate_transaction_create_enablement_for_admin(book, settings)
+    enabled = bool(getattr(book, "transaction_create_enabled", False))
+    return {
+        "book_id": int(book.id),
+        "enabled": enabled,
+        "generation": int(getattr(book, "transaction_create_generation", 1) or 1),
+        "recovery_required": bool(getattr(book, "transaction_create_recovery_required", False)),
+        "deployment_writes_enabled": bool(settings.gnucash_writes_enabled),
+        "can_enable": not blockers,
+        "blocked_codes": list(blockers),
+    }
+
+
+def _transaction_create_setting_blocker_status(code: str) -> int:
+    if code in {"PREVIEW_STALE", "CREATE_RECOVERY_REQUIRED"}:
+        return status.HTTP_409_CONFLICT
+    if code in {"UNSUPPORTED_COMMODITY", "COMMODITY_MISMATCH"}:
+        return status.HTTP_422_UNPROCESSABLE_CONTENT
+    return status.HTTP_403_FORBIDDEN
+
+
+def _audit_transaction_create_setting_change(
+    session: Session,
+    *,
+    user_id: int,
+    book_id: int,
+    old_enabled: bool,
+    new_enabled: bool,
+    generation: int,
+) -> None:
+    payload = serialize_transaction_create_audit_payload(
+        {
+            "result": "success",
+            "old_enabled": old_enabled,
+            "new_enabled": new_enabled,
+            "create_generation": generation,
+        }
+    )
+    session.add(
+        AuditLog(
+            user_id=user_id,
+            book_id=book_id,
+            action="book.transaction_create.setting_changed",
+            payload_json=json.dumps(payload, sort_keys=True, separators=(",", ":")),
+        )
+    )
+
+
 def resolve_viewable_book(book_id: int, user: User, session: Session) -> Book:
     """Resolve a book and require current user view access."""
     book = BookRegistryService(session).get_book_for_user(book_id, user)
@@ -831,6 +892,65 @@ async def list_books(
     """List books visible to the current user."""
     books = BookRegistryService(session).list_books_for_user(user)
     return [serialize_book(book, user) for book in books]
+
+
+@router.get("/{book_id}/transaction-create-settings")
+async def get_transaction_create_settings(
+    book_id: int,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> dict[str, Any]:
+    """Admin-only per-book product CREATE setting state from app metadata."""
+
+    require_admin_user(user)
+    book = BookRegistryService(session).get_book(book_id)
+    if book is None or book.is_archived:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
+    return serialize_transaction_create_settings(book, settings)
+
+
+@router.patch("/{book_id}/transaction-create-settings")
+async def patch_transaction_create_settings(
+    book_id: int,
+    body: TransactionCreateSettingsPatchRequest,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> dict[str, Any]:
+    """Admin-only exact `{enabled:boolean}` toggle for product transaction CREATE."""
+
+    require_admin_user(user)
+    book = BookRegistryService(session).get_book(book_id)
+    if book is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
+
+    if body.enabled:
+        blockers = validate_transaction_create_enablement_for_admin(book, settings)
+        if blockers:
+            first = blockers[0]
+            raise_transaction_create_error(
+                _transaction_create_setting_blocker_status(first),
+                first,
+                retryable=first == "PREVIEW_STALE",
+            )
+
+    old_enabled = bool(getattr(book, "transaction_create_enabled", False))
+    if old_enabled != body.enabled:
+        book.transaction_create_enabled = body.enabled
+        book.transaction_create_generation = int(getattr(book, "transaction_create_generation", 1) or 1) + 1
+        book.updated_at = datetime.now(timezone.utc)
+        _audit_transaction_create_setting_change(
+            session,
+            user_id=int(user.id),
+            book_id=int(book.id),
+            old_enabled=old_enabled,
+            new_enabled=body.enabled,
+            generation=int(book.transaction_create_generation),
+        )
+        session.commit()
+        session.refresh(book)
+    return serialize_transaction_create_settings(book, settings)
 
 
 @router.post("/preflight", response_model=BookPreflightResponse)

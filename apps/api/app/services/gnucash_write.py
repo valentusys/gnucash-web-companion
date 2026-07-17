@@ -18,6 +18,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+from collections.abc import Callable
 from datetime import date, datetime, timezone
 from decimal import Decimal, InvalidOperation
 from typing import Any
@@ -45,6 +46,14 @@ from app.services.write_lock import WriteLockError, write_lock_service
 logger = logging.getLogger(__name__)
 
 VALIDATION_ACCOUNT_READ_FAILURE_DETAIL = "Could not validate accounts from configured disposable test book"
+
+
+def _book_config_value(book_config: Any, key: str, default: Any = None) -> Any:
+    """Read a value from either a Book-like object or a pinned-source config dict."""
+
+    if isinstance(book_config, dict):
+        return book_config.get(key, default)
+    return getattr(book_config, key, default)
 
 
 class GnuCashWriteError(Exception):
@@ -139,10 +148,23 @@ class GnuCashWriteService(GnuCashBookService):
                             f"{book_currency}"
                         )
 
+                requested_account_ids = self._distinct_account_ids(
+                    (str(split.account_id) for split in request.splits),
+                    max_accounts=50,
+                )
+                accounts_by_id = {
+                    self._account_id(account): account
+                    for account in self._accounts_by_ids(book, requested_account_ids)
+                }
+                amounts_by_account = {str(split.account_id): Decimal(str(split.amount)) for split in request.splits if re.fullmatch(DECIMAL_STRING_PATTERN, str(split.amount))}
                 for split in request.splits:
-                    account = self._find_account(book, split.account_id)
+                    account = accounts_by_id.get(str(split.account_id))
                     if account is None:
                         errors.append(f"Account not found: {split.account_id}")
+                    elif str(getattr(account, "type", "") or "").upper() == "ROOT":
+                        errors.append(
+                            f"Account {split.account_id} is a root account and cannot receive postings"
+                        )
                     elif bool(getattr(account, "placeholder", False)):
                         errors.append(
                             f"Account {split.account_id} is a placeholder account and cannot receive postings"
@@ -152,13 +174,32 @@ class GnuCashWriteService(GnuCashBookService):
                             f"Account {split.account_id} is hidden and cannot receive postings"
                         )
                     else:
-                        account_currency = str(
-                            getattr(getattr(account, "commodity", None), "mnemonic", split.currency)
-                        ).upper()
+                        commodity = getattr(account, "commodity", None)
+                        account_currency = str(getattr(commodity, "mnemonic", split.currency)).upper()
+                        account_namespace = str(getattr(commodity, "namespace", "CURRENCY") or "").upper()
+                        if account_namespace != "CURRENCY":
+                            errors.append(
+                                f"Account {split.account_id} commodity namespace {account_namespace} is not supported"
+                            )
                         if account_currency and account_currency != split.currency.upper():
                             errors.append(
                                 f"Currency {split.currency} does not match account {split.account_id} currency {account_currency}"
                             )
+                        fraction = getattr(commodity, "fraction", None)
+                        if fraction is not None:
+                            try:
+                                fraction_int = int(fraction)
+                            except (TypeError, ValueError):
+                                fraction_int = 0
+                            amount = amounts_by_account.get(str(split.account_id))
+                            if fraction_int <= 0:
+                                errors.append(
+                                    f"Account {split.account_id} commodity fraction is not supported"
+                                )
+                            elif amount is not None and (amount * Decimal(fraction_int)) != (amount * Decimal(fraction_int)).to_integral_value():
+                                errors.append(
+                                    f"Amount precision for account {split.account_id} exceeds commodity fraction {fraction_int}"
+                                )
             finally:
                 close = getattr(book, "close", None)
                 if callable(close):
@@ -193,6 +234,9 @@ class GnuCashWriteService(GnuCashBookService):
         request: TransactionCreateRequestDTO,
         user_id: int,
         book_id: int,
+        planned_transaction_guid: str | None = None,
+        lock_key: str | None = None,
+        pre_backup_hook: Callable[[], None] | None = None,
     ) -> TransactionWriteResultDTO:
         """Create a new transaction following the full write flow.
 
@@ -212,7 +256,7 @@ class GnuCashWriteService(GnuCashBookService):
                 f"Validation failed: {'; '.join(validation.errors)}"
             )
 
-        book_key = str(self.uri_or_path or book_id)
+        book_key = lock_key or str(self.uri_or_path or book_id)
         backup_path = None
 
         # Step 2: Acquire lock (uses context manager for safe release)
@@ -220,7 +264,10 @@ class GnuCashWriteService(GnuCashBookService):
             with write_lock_service.lock(book_key):
                 # Step 3-7: Backup, open, write, save
                 backup_path, transaction_id = self._execute_write_transaction(
-                    request, book_key
+                    request,
+                    book_key,
+                    planned_transaction_guid=planned_transaction_guid,
+                    pre_backup_hook=pre_backup_hook,
                 )
         except WriteLockError as exc:
             # If the error carries inspection info (stale vs active), include it
@@ -241,10 +288,16 @@ class GnuCashWriteService(GnuCashBookService):
         self,
         request: TransactionCreateRequestDTO,
         book_key: str,
+        *,
+        planned_transaction_guid: str | None = None,
+        pre_backup_hook: Callable[[], None] | None = None,
     ) -> tuple[str | None, str]:
         """Execute backup + write inside the lock (extracted for reuse)."""
         backup_path: str | None = None
         transaction_id: str = ""
+
+        if pre_backup_hook is not None:
+            pre_backup_hook()
 
         # Backup
         try:
@@ -257,7 +310,20 @@ class GnuCashWriteService(GnuCashBookService):
         book = None
         try:
             book = self._open_piecash_book_for_write(uri_or_path)
-            tx = self._do_create_transaction(book, request)
+            sentinel = object()
+            previous_planned_guid = getattr(self, "_planned_transaction_guid", sentinel)
+            if planned_transaction_guid is not None:
+                setattr(self, "_planned_transaction_guid", planned_transaction_guid)
+            try:
+                tx = self._do_create_transaction(book, request)
+            finally:
+                if previous_planned_guid is sentinel:
+                    try:
+                        delattr(self, "_planned_transaction_guid")
+                    except AttributeError:
+                        pass
+                else:
+                    setattr(self, "_planned_transaction_guid", previous_planned_guid)
             book.save()
             transaction_id = _guid(tx)
         except GnuCashWriteError as exc:
@@ -278,11 +344,24 @@ class GnuCashWriteService(GnuCashBookService):
 
     def _open_piecash_book_for_write(self, uri_or_path: str):
         """Open a piecash book in write mode for paths and SQL connection URIs."""
+        disable_internal_backup = bool(
+            _book_config_value(self.book_config, "disable_piecash_internal_backup", False)
+        )
         if "://" in uri_or_path:
+            if disable_internal_backup:
+                return piecash.open_book(uri_conn=uri_or_path, readonly=False, do_backup=False)
             return piecash.open_book(uri_conn=uri_or_path, readonly=False)
+        if disable_internal_backup:
+            return piecash.open_book(uri_or_path, readonly=False, do_backup=False)
         return piecash.open_book(uri_or_path, readonly=False)
 
-    def _do_create_transaction(self, book: Any, request: TransactionCreateRequestDTO) -> Any:
+    def _do_create_transaction(
+        self,
+        book: Any,
+        request: TransactionCreateRequestDTO,
+        *,
+        planned_transaction_guid: str | None = None,
+    ) -> Any:
         """Create a transaction in an already-open writeable book.
 
         Uses piecash API to create a transaction with splits.
@@ -294,6 +373,14 @@ class GnuCashWriteService(GnuCashBookService):
         # Parse date
         tx_date = date.fromisoformat(request.date)
 
+        accounts_by_id = {
+            self._account_id(account): account
+            for account in self._accounts_by_ids(
+                book,
+                self._distinct_account_ids((str(split.account_id) for split in request.splits), max_accounts=50),
+            )
+        }
+
         # Create the transaction
         # piecash API: book.Transaction(commodity=commodity, currency=commodity, ...)
         transaction = piecash.Transaction(
@@ -301,15 +388,27 @@ class GnuCashWriteService(GnuCashBookService):
             description=request.description,
             post_date=tx_date,
             splits=[
-                self._create_split(book, split)
+                self._create_split(book, split, accounts_by_id=accounts_by_id)
                 for split in request.splits
             ],
         )
+        if planned_transaction_guid is None:
+            planned_transaction_guid = getattr(self, "_planned_transaction_guid", None)
+        if planned_transaction_guid and re.fullmatch(r"[0-9a-f]{32}", planned_transaction_guid):
+            setattr(transaction, "guid", planned_transaction_guid)
         return transaction
 
-    def _create_split(self, book: Any, split_dto: TransactionSplitWriteDTO) -> Any:
+    def _create_split(
+        self,
+        book: Any,
+        split_dto: TransactionSplitWriteDTO,
+        *,
+        accounts_by_id: dict[str, Any] | None = None,
+    ) -> Any:
         """Create a piecash Split for a transaction."""
-        account = self._find_account(book, split_dto.account_id)
+        account = (accounts_by_id or {}).get(str(split_dto.account_id))
+        if account is None and accounts_by_id is None:
+            account = self._find_account(book, split_dto.account_id)
         if account is None:
             raise GnuCashWriteError(f"Account not found: {split_dto.account_id}")
 

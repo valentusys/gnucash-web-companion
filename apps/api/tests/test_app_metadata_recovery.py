@@ -159,6 +159,7 @@ def test_backup_verify_restore_rehearsal_preserves_counts_redacts_and_source_has
         "book_health_snapshots": 1,
         "audit_logs": 1,
         "write_alpha_transaction_ownership": 1,
+        "transaction_create_idempotency": 0,
     }
     assert backup_result.manifest == verify_result.manifest == second_verify.manifest
     manifest = backup_result.manifest

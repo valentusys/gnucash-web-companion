@@ -56,6 +56,59 @@ async def create_book_transaction():
     assert write_safety_guard._decorated_transaction_write_route_functions(tree) == {"create_book_transaction"}
 
 
+def test_write_safety_defaults_guard_allows_product_create_dispatch_before_legacy_gates(
+    tmp_path: Path,
+) -> None:
+    routes = tmp_path / "transactions.py"
+    routes.write_text(
+        """
+from fastapi import APIRouter
+router = APIRouter()
+
+def _ensure_writes_enabled(settings):
+    if not settings.gnucash_writes_enabled:
+        raise RuntimeError("writes disabled")
+
+def _ensure_write_alpha_test_scope(settings):
+    if settings.app_env.lower() != "test":
+        raise RuntimeError("controlled write-alpha routes are limited to explicit test-environment")
+
+@router.post('/books/{book_id}/transactions/validate')
+async def validate_book_transaction(settings, book):
+    _ensure_writes_enabled(settings)
+    _ensure_write_alpha_test_scope(settings)
+    _require_disposable_create_target(book)
+    return {}
+
+@router.post('/books/{book_id}/transactions')
+async def create_book_transaction(request, settings, book):
+    if _is_product_create_confirm_payload(request):
+        return _confirm_product_transaction_create(request)
+    _ensure_writes_enabled(settings)
+    _ensure_write_alpha_test_scope(settings)
+    _require_disposable_create_target(book)
+    return {}
+
+@router.patch('/books/{book_id}/transactions/{transaction_id}')
+async def patch_book_transaction(settings, book):
+    _ensure_writes_enabled(settings)
+    _ensure_write_alpha_test_scope(settings)
+    _require_disposable_create_target(book)
+    return {}
+
+@router.delete('/books/{book_id}/transactions/{transaction_id}')
+async def delete_book_transaction(settings, book):
+    _ensure_writes_enabled(settings)
+    _ensure_write_alpha_test_scope(settings)
+    _require_disposable_create_target(book)
+    return {}
+""",
+        encoding="utf-8",
+    )
+
+    assert write_safety_guard._check_write_route_test_gates(routes) == []
+
+
 def test_create_readiness_status_static_guard_passes_on_committed_router() -> None:
     failures = write_safety_guard._check_create_readiness_status_shell()
 

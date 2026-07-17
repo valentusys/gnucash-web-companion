@@ -26,6 +26,16 @@ class AccountDTO(BaseModel):
     placeholder: bool = Field(False, description="Whether this is a placeholder account")
     hidden: bool = Field(False, description="Whether this account is hidden")
     parent_id: str | None = Field(None, description="Parent account GUID, null for top-level")
+    commodity_namespace: str | None = Field(
+        None,
+        exclude=True,
+        description="Internal commodity namespace for write-preview safety checks; excluded from public serialization",
+    )
+    commodity_fraction: int | None = Field(
+        None,
+        exclude=True,
+        description="Internal commodity fraction for write-preview decimal precision checks; excluded from public serialization",
+    )
 
 
 class AccountTreeNodeDTO(AccountDTO):

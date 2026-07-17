@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-CURRENT_APP_METADATA_SCHEMA_VERSION = 58
+CURRENT_APP_METADATA_SCHEMA_VERSION = 59
 
 APP_METADATA_TABLE_ALLOWLIST: tuple[str, ...] = (
     "users",
@@ -11,6 +11,7 @@ APP_METADATA_TABLE_ALLOWLIST: tuple[str, ...] = (
     "book_health_snapshots",
     "audit_logs",
     "write_alpha_transaction_ownership",
+    "transaction_create_idempotency",
 )
 
 APP_METADATA_REQUIRED_COLUMNS: dict[str, tuple[str, ...]] = {
@@ -37,6 +38,9 @@ APP_METADATA_REQUIRED_COLUMNS: dict[str, tuple[str, ...]] = {
         "is_default",
         "is_archived",
         "is_enabled",
+        "transaction_create_enabled",
+        "transaction_create_generation",
+        "transaction_create_recovery_required",
         "created_at",
         "updated_at",
     ),
@@ -73,10 +77,26 @@ APP_METADATA_REQUIRED_COLUMNS: dict[str, tuple[str, ...]] = {
         "created_at",
         "last_mutated_at",
     ),
+    "transaction_create_idempotency": (
+        "id",
+        "user_id",
+        "book_id",
+        "key_hash",
+        "request_hash",
+        "token_jti_hash",
+        "planned_transaction_guid",
+        "state",
+        "safe_error_code",
+        "safe_result_json",
+        "created_at",
+        "updated_at",
+        "expires_at",
+    ),
 }
 
 APP_METADATA_REQUIRED_UNIQUE_INDEX_COLUMNS: dict[str, set[tuple[str, ...]]] = {
     "users": {("username",), ("username_normalized",)},
     "books": {("canonical_path_hash",)},
     "write_alpha_transaction_ownership": {("book_id", "transaction_id")},
+    "transaction_create_idempotency": {("book_id", "user_id", "key_hash")},
 }

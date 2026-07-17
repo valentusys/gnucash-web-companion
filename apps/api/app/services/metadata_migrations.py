@@ -95,6 +95,37 @@ def _create_write_alpha_transaction_ownership_table(conn) -> None:
     )
 
 
+def _create_transaction_create_idempotency_table(conn) -> None:
+    conn.execute(
+        text(
+            "create table if not exists transaction_create_idempotency ("
+            "id integer primary key autoincrement, "
+            "user_id integer not null, "
+            "book_id integer not null, "
+            "key_hash varchar(128) not null, "
+            "request_hash varchar(64) not null, "
+            "token_jti_hash varchar(64) not null, "
+            "planned_transaction_guid varchar(32) not null, "
+            "state varchar(32) not null, "
+            "safe_error_code varchar(64), "
+            "safe_result_json text, "
+            "created_at datetime not null, "
+            "updated_at datetime not null, "
+            "expires_at datetime not null, "
+            "foreign key(user_id) references users(id) on delete cascade, "
+            "foreign key(book_id) references books(id) on delete cascade, "
+            "check(state in ('in_progress', 'succeeded', 'rejected', 'indeterminate')))"
+        )
+    )
+    conn.execute(
+        text(
+            "create unique index if not exists "
+            "uq_transaction_create_idempotency_book_user_key "
+            "on transaction_create_idempotency(book_id, user_id, key_hash)"
+        )
+    )
+
+
 def _has_current_metadata_columns(conn) -> bool:
     table_names = _table_names(conn)
     if not set(APP_METADATA_TABLE_ALLOWLIST).issubset(table_names):
@@ -257,6 +288,24 @@ def run_app_metadata_migrations(engine: Engine, settings: Settings) -> None:
         _add_column_if_missing(conn, "books", "canonical_path", "canonical_path varchar(1024)")
         _add_column_if_missing(conn, "books", "canonical_path_hash", "canonical_path_hash varchar(64)")
         _add_column_if_missing(conn, "books", "is_enabled", "is_enabled boolean not null default 1")
+        _add_column_if_missing(
+            conn,
+            "books",
+            "transaction_create_enabled",
+            "transaction_create_enabled boolean not null default 0",
+        )
+        _add_column_if_missing(
+            conn,
+            "books",
+            "transaction_create_generation",
+            "transaction_create_generation integer not null default 1",
+        )
+        _add_column_if_missing(
+            conn,
+            "books",
+            "transaction_create_recovery_required",
+            "transaction_create_recovery_required boolean not null default 0",
+        )
         _add_column_if_missing(conn, "books", "updated_at", "updated_at datetime")
         conn.execute(
             text("update books set updated_at = :updated_at where updated_at is null"),
@@ -264,6 +313,7 @@ def run_app_metadata_migrations(engine: Engine, settings: Settings) -> None:
         )
         _create_health_snapshot_table(conn)
         _create_write_alpha_transaction_ownership_table(conn)
+        _create_transaction_create_idempotency_table(conn)
         _add_column_if_missing(
             conn,
             "book_health_snapshots",

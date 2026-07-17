@@ -47,6 +47,9 @@ class User(Base):
 
     book_access = relationship("UserBookAccess", back_populates="user")
     audit_logs = relationship("AuditLog", back_populates="user")
+    transaction_create_idempotency = relationship(
+        "TransactionCreateIdempotency", back_populates="user"
+    )
 
     @validates("username")
     def _validate_username(self, _key: str, username: str) -> str:
@@ -80,6 +83,9 @@ class Book(Base):
     is_default = Column(Boolean, default=False, nullable=False)
     is_archived = Column(Boolean, default=False, nullable=False)
     is_enabled = Column(Boolean, default=True, nullable=False)
+    transaction_create_enabled = Column(Boolean, default=False, server_default=text("0"), nullable=False)
+    transaction_create_generation = Column(Integer, default=1, server_default=text("1"), nullable=False)
+    transaction_create_recovery_required = Column(Boolean, default=False, server_default=text("0"), nullable=False)
     created_at = Column(
         DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
     )
@@ -100,6 +106,9 @@ class Book(Base):
     )
     write_alpha_transaction_ownership = relationship(
         "WriteAlphaTransactionOwnership", back_populates="book"
+    )
+    transaction_create_idempotency = relationship(
+        "TransactionCreateIdempotency", back_populates="book"
     )
 
 
@@ -192,3 +201,51 @@ class WriteAlphaTransactionOwnership(Base):
 
     book = relationship("Book", back_populates="write_alpha_transaction_ownership")
     created_by_user = relationship("User")
+
+
+class TransactionCreateIdempotency(Base):
+    """Durable #59 CREATE idempotency reservation stored in app metadata only.
+
+    The table intentionally stores hashes, opaque refs, and safe terminal JSON
+    only. It never stores the raw Idempotency-Key, request payload, descriptions,
+    memos, amounts, account identifiers, file paths, or private backend errors.
+    """
+
+    __tablename__ = "transaction_create_idempotency"
+    __table_args__ = (
+        Index(
+            "uq_transaction_create_idempotency_book_user_key",
+            "book_id",
+            "user_id",
+            "key_hash",
+            unique=True,
+        ),
+        CheckConstraint(
+            "state in ('in_progress', 'succeeded', 'rejected', 'indeterminate')",
+            name="ck_transaction_create_idempotency_state",
+        ),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    book_id = Column(Integer, ForeignKey("books.id", ondelete="CASCADE"), nullable=False)
+    key_hash = Column(String(128), nullable=False)
+    request_hash = Column(String(64), nullable=False)
+    token_jti_hash = Column(String(64), nullable=False)
+    planned_transaction_guid = Column(String(32), nullable=False)
+    state = Column(String(32), default="in_progress", nullable=False)
+    safe_error_code = Column(String(64), nullable=True)
+    safe_result_json = Column(Text, nullable=True)
+    created_at = Column(
+        DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+    updated_at = Column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+    expires_at = Column(DateTime, nullable=False)
+
+    user = relationship("User", back_populates="transaction_create_idempotency")
+    book = relationship("Book", back_populates="transaction_create_idempotency")

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 DECIMAL_STRING_PATTERN = r"^-?(?:0|[1-9]\d*)(?:\.\d+)?$"
@@ -69,12 +71,39 @@ class TransactionCreatePreviewRequestDTO(BaseModel):
         return value.upper()
 
 
+class TransactionCreateGeneralPreviewSplitRequestDTO(BaseModel):
+    """One split in the #59 general non-mutating product CREATE preview."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    account_id: str = Field(..., min_length=1)
+    amount: str = Field(..., pattern=DECIMAL_STRING_PATTERN)
+    memo: str = ""
+
+
+class TransactionCreateGeneralPreviewRequestDTO(BaseModel):
+    """General 2..50 split non-mutating product CREATE preview request."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    date: str
+    description: str
+    currency: str = Field(..., pattern=CURRENCY_CODE_PATTERN)
+    splits: list[TransactionCreateGeneralPreviewSplitRequestDTO]
+
+    @field_validator("currency")
+    @classmethod
+    def normalize_currency(cls, value: str) -> str:
+        return value.upper()
+
+
 class TransactionCreatePreviewAccountDTO(BaseModel):
     """Resolved account display data for a non-mutating create preview."""
 
     id: str
     name: str
     full_name: str
+    type: str = "UNKNOWN"
     currency: str
 
 
@@ -82,19 +111,22 @@ class TransactionCreatePreviewDTO(BaseModel):
     """Private, normalized preview for one future transaction CREATE."""
 
     preview_only: bool = Field(True, description="Always true; no write was executed")
-    writes_enabled_required_for_create: bool = Field(
-        True, description="Future CREATE still requires enabled write gates"
-    )
+    writes_enabled_required_for_create: bool | None = None
     create_count: int = Field(1, description="Exact future CREATE count represented by this preview")
+    confirm_allowed: bool = False
+    preview_token: str | None = None
+    expires_at: str | None = None
+    idempotency_key: str | None = None
+    create_generation: int | None = None
     date: str
-    amount: str
+    amount: str | None = None
     currency: str
     description: str
-    memo: str
-    debit_account: TransactionCreatePreviewAccountDTO
-    credit_account: TransactionCreatePreviewAccountDTO
-    splits: list[TransactionSplitWriteDTO]
-    warnings: list[str] = Field(default_factory=list)
+    memo: str | None = None
+    debit_account: TransactionCreatePreviewAccountDTO | None = None
+    credit_account: TransactionCreatePreviewAccountDTO | None = None
+    splits: list[dict[str, Any] | TransactionSplitWriteDTO]
+    warnings: list[Any] = Field(default_factory=list)
 
 
 class TransactionPatchRequestDTO(BaseModel):

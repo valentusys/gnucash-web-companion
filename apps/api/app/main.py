@@ -19,6 +19,7 @@ from app.routers.transactions import router as transactions_router
 from app.routers.owner_writebeta import router as owner_writebeta_router
 from app.routers.scheduled_transactions import router as scheduled_transactions_router
 from app.routers.reports import router as reports_router
+from app.services.transaction_create_errors import TransactionCreateHTTPError
 from app.services.seed import seed_admin_default_book_access, seed_default_book
 from app.services.auth import seed_admin_user
 from app.services.metadata_migrations import run_app_metadata_migrations
@@ -113,6 +114,14 @@ async def validation_exception_handler(
             content={"detail": {"safe_code": _admin_user_validation_safe_code(exc)}},
         )
     return JSONResponse(status_code=422, content={"detail": _redacted_validation_errors(exc)})
+
+
+@app.exception_handler(TransactionCreateHTTPError)
+async def transaction_create_exception_handler(
+    request: Request,
+    exc: TransactionCreateHTTPError,
+) -> JSONResponse:
+    return JSONResponse(status_code=exc.status_code, content=exc.envelope(), headers=exc.headers)
 
 
 @app.get("/health")

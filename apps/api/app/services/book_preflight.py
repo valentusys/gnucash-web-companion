@@ -368,13 +368,15 @@ def _regular_file_stat_at(parent_fd: int, leaf_name: str) -> os.stat_result:
 def _open_regular_file_no_follow(
     canonical_path: Path,
     roots: list[Path],
+    *,
+    writable: bool = False,
 ) -> tuple[int, bytes, os.stat_result]:
     root = _matching_allowed_root(canonical_path, roots)
     if root is None:
         raise _problem("outside_allowed_roots")
 
     parent_fd, leaf_name = _open_parent_directory_no_follow(canonical_path, root)
-    flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
+    flags = (os.O_RDWR if writable else os.O_RDONLY) | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
     fd: int | None = None
     try:
         before = _regular_file_stat_at(parent_fd, leaf_name)
@@ -449,7 +451,7 @@ def _pinned_fd_path(fd: int, identity: SourceIdentity) -> str:
 
 @contextmanager
 def _open_source_file_for_full_probe(
-    raw_path: str, settings: Settings
+    raw_path: str, settings: Settings, *, writable: bool = False
 ) -> Iterator[_PinnedSourceInspection]:
     request_path = _validate_absolute_request_path(raw_path)
     roots = _allowed_roots(settings)
@@ -462,7 +464,7 @@ def _open_source_file_for_full_probe(
 
     fd: int | None = None
     try:
-        fd, magic, file_stat = _open_regular_file_no_follow(canonical_path, roots)
+        fd, magic, file_stat = _open_regular_file_no_follow(canonical_path, roots, writable=writable)
         identity = _stable_identity(str(canonical_path), file_stat)
         fd_path = _pinned_fd_path(fd, identity)
         yield _PinnedSourceInspection(

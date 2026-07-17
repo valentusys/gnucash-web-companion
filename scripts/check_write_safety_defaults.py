@@ -81,6 +81,9 @@ WRITE_ROUTE_FUNCTIONS = (
     "patch_book_transaction",
     "delete_book_transaction",
 )
+PRODUCT_CREATE_ROUTE_FUNCTION = "create_book_transaction"
+PRODUCT_CREATE_CONFIRM_PREDICATE = "_is_product_create_confirm_payload"
+PRODUCT_CREATE_CONFIRM_HELPER = "_confirm_product_transaction_create"
 WRITE_ROUTE_GATED_CALLS = (
     "_resolve_viewable_book",
     "_require_book_edit_access",
@@ -227,9 +230,52 @@ def _top_level_call_name(statement: ast.stmt) -> str | None:
     return None
 
 
+def _call_name(node: ast.AST | None) -> str | None:
+    if not isinstance(node, ast.Call):
+        return None
+    func = node.func
+    if isinstance(func, ast.Name):
+        return func.id
+    if isinstance(func, ast.Attribute):
+        return func.attr
+    return None
+
+
 def _direct_executable_statement_call_names(node: ast.FunctionDef | ast.AsyncFunctionDef) -> list[str | None]:
     """Return direct call statement names after skipping an optional function docstring."""
     return [_top_level_call_name(statement) for statement in _executable_body(node)]
+
+
+def _is_product_create_confirm_prefix(statement: ast.stmt) -> bool:
+    """Return whether a CREATE route statement is the product confirm dispatch prelude."""
+    return (
+        isinstance(statement, ast.If)
+        and _call_name(statement.test) == PRODUCT_CREATE_CONFIRM_PREDICATE
+        and len(statement.body) == 1
+        and isinstance(statement.body[0], ast.Return)
+        and _call_name(statement.body[0].value) == PRODUCT_CREATE_CONFIRM_HELPER
+        and statement.orelse == []
+    )
+
+
+def _write_route_legacy_direct_call_names(
+    node: ast.FunctionDef | ast.AsyncFunctionDef,
+    function_name: str,
+) -> list[str | None]:
+    """Return direct call names for the legacy write-alpha branch.
+
+    Product CREATE has an allowed prelude that dispatches normal confirm payloads
+    to the product-safe control plane. The legacy disposable harness branch must
+    still start with the default-disabled and APP_ENV=test guards.
+    """
+    body = _executable_body(node)
+    if (
+        function_name == PRODUCT_CREATE_ROUTE_FUNCTION
+        and body
+        and _is_product_create_confirm_prefix(body[0])
+    ):
+        return [_top_level_call_name(statement) for statement in body[1:]]
+    return [_top_level_call_name(statement) for statement in body]
 
 
 def _direct_executable_statement_root_call_names(node: ast.FunctionDef | ast.AsyncFunctionDef) -> list[str | None]:
@@ -786,7 +832,17 @@ def _check_write_route_test_gates(routes_path: Path = REPO_ROOT / WRITE_ROUTES_F
                 failures.append(
                     f"write route {function_name} must check _ensure_writes_enabled before APP_ENV=test scope"
                 )
-            direct_call_names = _direct_executable_statement_call_names(node)
+            body = _executable_body(node)
+            if (
+                function_name == PRODUCT_CREATE_ROUTE_FUNCTION
+                and body
+                and isinstance(body[0], ast.If)
+                and not _is_product_create_confirm_prefix(body[0])
+            ):
+                failures.append(
+                    f"write route {function_name} may only branch before write-alpha gates for exact product CREATE confirm dispatch"
+                )
+            direct_call_names = _write_route_legacy_direct_call_names(node, function_name)
             if direct_call_names[:2] != ["_ensure_writes_enabled", "_ensure_write_alpha_test_scope"]:
                 failures.append(
                     f"write route {function_name} first executable statements must be "
