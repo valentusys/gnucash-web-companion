@@ -5,21 +5,24 @@
 		BookHealth,
 		BookPreflightResponse,
 		BookProblemCode,
-		BookSectionStatus
+		BookSectionStatus,
+		TransactionCreateSettings
 	} from '$lib/api/types';
 	import { DEFAULT_LOCALE, t, type Locale, type MessageKey } from '$lib/i18n';
 
-	type LifecycleSuccessCode = 'recheck' | 'rename' | 'set_default' | 'disable' | 'enable';
+	type LifecycleSuccessCode = 'recheck' | 'rename' | 'set_default' | 'disable' | 'enable' | 'transaction_create_settings';
 	type PageForm = {
 		lifecycleSuccessCode?: LifecycleSuccessCode;
 		lifecycleErrorCode?: BookProblemCode;
 		enablePreflight?: BookPreflightResponse;
 		enablePreflightErrorCode?: BookProblemCode;
 		enableMakeDefault?: boolean;
+		transactionCreateSettings?: TransactionCreateSettings;
 	} | null;
 
-	let { data, form }: { data: { locale?: Locale; book: Book; isAdmin: boolean }; form?: PageForm } = $props();
+	let { data, form }: { data: { locale?: Locale; book: Book; isAdmin: boolean; transactionCreateSettings: TransactionCreateSettings }; form?: PageForm } = $props();
 	let locale = $derived<Locale>(data.locale ?? DEFAULT_LOCALE);
+	const transactionCreateSettings = $derived(form?.transactionCreateSettings ?? data.transactionCreateSettings);
 
 	const knownStatusCodes = new Set([
 		'ready',
@@ -142,6 +145,7 @@
 		if (code === 'set_default') return t(locale, 'books.manageSuccessSetDefault');
 		if (code === 'disable') return t(locale, 'books.manageSuccessDisable');
 		if (code === 'enable') return t(locale, 'books.manageSuccessEnable');
+		if (code === 'transaction_create_settings') return t(locale, 'books.transactionCreateSettingsSuccess');
 		return '';
 	}
 
@@ -271,6 +275,24 @@
 		<h2 class="text-lg font-semibold" style="color: var(--app-text);">{t(locale, 'books.storageDiagnostics')}</h2>
 		<p class="mt-2 break-words text-sm" style="color: var(--app-muted);">{data.book.storage_diagnostics.safe_summary}</p>
 		<p class="mt-2 text-xs" style="color: var(--app-muted);">{t(locale, 'books.privatePathRedacted')}</p>
+	</section>
+
+	<section id="transaction-create-settings" class="mt-4 rounded-2xl border p-4" style="border-color: var(--app-border); background-color: var(--app-card-bg);" aria-labelledby="transaction-create-settings-title">
+		<h2 id="transaction-create-settings-title" class="text-lg font-semibold" style="color: var(--app-text);">{t(locale, 'books.transactionCreateSettingsTitle')}</h2>
+		<p class="mt-2 text-sm" style="color: var(--app-muted);">{t(locale, 'books.transactionCreateSettingsHelp')}</p>
+		<dl class="mt-4 grid min-w-0 gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+			<div class="min-w-0 rounded-xl p-3" style="background: var(--app-bg);"><dt class="font-medium" style="color: var(--app-muted);">{t(locale, 'books.transactionCreateSettingsStatus')}</dt><dd class="mt-1 break-words" style="color: var(--app-text);">enabled {boolLabel(transactionCreateSettings.enabled)}; effective {boolLabel(transactionCreateSettings.effective_enabled)}</dd></div>
+			<div class="min-w-0 rounded-xl p-3" style="background: var(--app-bg);"><dt class="font-medium" style="color: var(--app-muted);">Deployment gate</dt><dd class="mt-1 break-words" style="color: var(--app-text);">{boolLabel(transactionCreateSettings.deployment_writes_enabled)}</dd></div>
+			<div class="min-w-0 rounded-xl p-3" style="background: var(--app-bg);"><dt class="font-medium" style="color: var(--app-muted);">Generation</dt><dd class="mt-1 break-words" style="color: var(--app-text);">{transactionCreateSettings.create_generation}</dd></div>
+		</dl>
+		{#if data.isAdmin}
+			<form method="POST" action="?/patchTransactionCreateSettings" class="mt-4 flex min-w-0 flex-col gap-3 rounded-xl border p-3 sm:flex-row sm:items-center" style="border-color: var(--app-border);">
+				<button name="enabled" value="true" type="submit" class="min-h-11 rounded-lg border px-3 py-2 text-sm font-medium" style="border-color: var(--app-border); color: var(--app-text); background-color: var(--app-bg);">{t(locale, 'books.transactionCreateEnableAction')}</button>
+				<button name="enabled" value="false" type="submit" class="min-h-11 rounded-lg border px-3 py-2 text-sm font-medium" style="border-color: var(--app-danger); color: var(--app-danger); background-color: var(--app-bg);">{t(locale, 'books.transactionCreateDisableAction')}</button>
+			</form>
+		{:else}
+			<p class="mt-4 rounded-xl border p-3 text-sm" data-normal-user-forbidden-toggle style="border-color: var(--app-border); background: var(--app-bg); color: var(--app-muted);">{t(locale, 'books.transactionCreateNormalUserForbidden')}</p>
+		{/if}
 	</section>
 
 	{#if data.isAdmin}

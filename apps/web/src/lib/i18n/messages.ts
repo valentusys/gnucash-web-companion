@@ -713,6 +713,50 @@ export type MessageKey =
 	| 'writeMode.kicker'
 	| 'writeMode.newTransactionTitle'
 	| 'writeMode.newTransactionHelp'
+	| 'transactionCreate.title'
+	| 'transactionCreate.subtitle'
+	| 'transactionCreate.previewSubmit'
+	| 'transactionCreate.confirmSubmit'
+	| 'transactionCreate.balanceZero'
+	| 'transactionCreate.balanceNonZero'
+	| 'transactionCreate.previewStale'
+	| 'transactionCreate.success.created'
+	| 'transactionCreate.success.already_created'
+	| 'transactionCreate.error.generic'
+	| 'transactionCreate.error.CREATE_DEPLOYMENT_DISABLED'
+	| 'transactionCreate.error.CREATE_BOOK_DISABLED'
+	| 'transactionCreate.error.CREATE_PERMISSION_DENIED'
+	| 'transactionCreate.error.PREVIEW_TOKEN_EXPIRED'
+	| 'transactionCreate.error.PREVIEW_TOKEN_INVALID'
+	| 'transactionCreate.error.PREVIEW_PAYLOAD_MISMATCH'
+	| 'transactionCreate.error.PREVIEW_STALE'
+	| 'transactionCreate.error.IDEMPOTENCY_PAYLOAD_MISMATCH'
+	| 'transactionCreate.error.CREATE_IN_PROGRESS'
+	| 'transactionCreate.error.BOOK_WRITE_BUSY'
+	| 'transactionCreate.error.CREATE_RECOVERY_REQUIRED'
+	| 'transactionCreate.error.INVALID_DATE'
+	| 'transactionCreate.error.DESCRIPTION_REQUIRED'
+	| 'transactionCreate.error.SPLIT_COUNT_OUT_OF_RANGE'
+	| 'transactionCreate.error.INVALID_DECIMAL'
+	| 'transactionCreate.error.ZERO_SPLIT'
+	| 'transactionCreate.error.UNBALANCED_SPLITS'
+	| 'transactionCreate.error.INSUFFICIENT_DISTINCT_ACCOUNTS'
+	| 'transactionCreate.error.ACCOUNT_NOT_FOUND'
+	| 'transactionCreate.error.ACCOUNT_NOT_POSTABLE'
+	| 'transactionCreate.error.UNSUPPORTED_ACCOUNT_TYPE'
+	| 'transactionCreate.error.UNSUPPORTED_COMMODITY'
+	| 'transactionCreate.error.COMMODITY_MISMATCH'
+	| 'transactionCreate.error.BACKUP_FAILED'
+	| 'transactionCreate.error.WRITE_FAILED'
+	| 'transactionCreate.error.CREATE_RESULT_UNKNOWN'
+	| 'books.transactionCreateSettingsTitle'
+	| 'books.transactionCreateSettingsHelp'
+	| 'books.transactionCreateSettingsStatus'
+	| 'books.transactionCreateEnableAction'
+	| 'books.transactionCreateDisableAction'
+	| 'books.transactionCreateNormalUserForbidden'
+	| 'books.transactionCreateSettingsSuccess'
+	| 'books.transactionCreateSettingsError'
 	| 'transactions.filters.title'
 	| 'transactions.filters.subtitle'
 	| 'transactions.filters.filteredView'
@@ -1645,6 +1689,50 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'writeMode.kicker': 'Controlled write',
 		'writeMode.newTransactionTitle': 'New transaction',
 		'writeMode.newTransactionHelp': 'Creates one simple two-split test transaction only for copied-book dogfood. It is not for production entries; verify backup/restore evidence before and after the final write.',
+		'transactionCreate.title': 'New transaction',
+		'transactionCreate.subtitle': 'SSR-first preview and confirm flow for one registered book. Backend policy remains authoritative; no draft is stored in browser storage.',
+		'transactionCreate.previewSubmit': 'Preview transaction',
+		'transactionCreate.confirmSubmit': 'Confirm create',
+		'transactionCreate.balanceZero': 'Exact zero-sum balance reached.',
+		'transactionCreate.balanceNonZero': 'Splits must sum to exact zero before preview or confirm.',
+		'transactionCreate.previewStale': 'Draft changed after preview. Run a new preview before confirming.',
+		'transactionCreate.success.created': 'Transaction created. Review the safe links below.',
+		'transactionCreate.success.already_created': 'This idempotency key already created the transaction. Safe replay returned the existing result.',
+		'transactionCreate.error.generic': 'Transaction create request failed safely. Backend details were redacted.',
+		'transactionCreate.error.CREATE_DEPLOYMENT_DISABLED': 'CREATE is disabled by deployment settings.',
+		'transactionCreate.error.CREATE_BOOK_DISABLED': 'CREATE is disabled for this book.',
+		'transactionCreate.error.CREATE_PERMISSION_DENIED': 'This account needs explicit owner/editor access for this book.',
+		'transactionCreate.error.PREVIEW_TOKEN_EXPIRED': 'Preview expired. Run a new preview.',
+		'transactionCreate.error.PREVIEW_TOKEN_INVALID': 'Preview token was rejected. Run a new preview.',
+		'transactionCreate.error.PREVIEW_PAYLOAD_MISMATCH': 'Draft no longer matches the preview. Run a new preview.',
+		'transactionCreate.error.PREVIEW_STALE': 'Book or policy changed after preview. Run a new preview.',
+		'transactionCreate.error.IDEMPOTENCY_PAYLOAD_MISMATCH': 'This idempotency key was already used with a different payload.',
+		'transactionCreate.error.CREATE_IN_PROGRESS': 'Create is already in progress for this key. Retry after the server finishes.',
+		'transactionCreate.error.BOOK_WRITE_BUSY': 'Book write lock is busy. Try again after the active write finishes.',
+		'transactionCreate.error.CREATE_RECOVERY_REQUIRED': 'Create recovery is required before another attempt.',
+		'transactionCreate.error.INVALID_DATE': 'Use a strict YYYY-MM-DD date.',
+		'transactionCreate.error.DESCRIPTION_REQUIRED': 'Description is required.',
+		'transactionCreate.error.SPLIT_COUNT_OUT_OF_RANGE': 'Use 2..50 split rows.',
+		'transactionCreate.error.INVALID_DECIMAL': 'Amounts must be exact decimal strings.',
+		'transactionCreate.error.ZERO_SPLIT': 'Every split amount must be non-zero.',
+		'transactionCreate.error.UNBALANCED_SPLITS': 'Split amounts must sum to exactly zero.',
+		'transactionCreate.error.INSUFFICIENT_DISTINCT_ACCOUNTS': 'Use at least two distinct accounts.',
+		'transactionCreate.error.ACCOUNT_NOT_FOUND': 'Choose accounts from the visible book account selector.',
+		'transactionCreate.error.ACCOUNT_NOT_POSTABLE': 'Selected account is not postable.',
+		'transactionCreate.error.UNSUPPORTED_ACCOUNT_TYPE': 'Selected account type is not supported for CREATE.',
+		'transactionCreate.error.UNSUPPORTED_COMMODITY': 'Selected commodity is not supported for CREATE.',
+		'transactionCreate.error.COMMODITY_MISMATCH': 'All splits must use the one selected currency. No FX conversion is performed.',
+		'transactionCreate.error.BACKUP_FAILED': 'Backup failed before write. No success is claimed.',
+		'transactionCreate.error.WRITE_FAILED': 'Write failed safely. Check redacted operator evidence before retry.',
+		'transactionCreate.error.CREATE_RESULT_UNKNOWN': 'Create result is unknown; recovery is required before retry.',
+		'books.transactionCreateSettingsTitle': 'Transaction CREATE settings',
+		'books.transactionCreateSettingsHelp': 'Admin-only metadata toggle for issue #59 CREATE. It never calls GnuCash write routes by itself.',
+		'books.transactionCreateSettingsStatus': 'Current CREATE setting',
+		'books.transactionCreateEnableAction': 'Enable transaction CREATE',
+		'books.transactionCreateDisableAction': 'Disable transaction CREATE',
+		'books.transactionCreateNormalUserForbidden': 'Normal users cannot toggle transaction CREATE; explicit book access still controls data access.',
+		'books.transactionCreateSettingsSuccess': 'Transaction CREATE setting updated. GnuCash data was not modified.',
+		'books.transactionCreateSettingsError': 'Transaction CREATE setting update failed safely. Backend details were redacted.',
 		'transactions.filters.title': 'Transaction filters',
 		'transactions.filters.subtitle':
 			'Narrow the read-only transaction list and CSV export; filters never modify your GnuCash book.',
@@ -2598,6 +2686,50 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'writeMode.kicker': 'Controlled write',
 		'writeMode.newTransactionTitle': 'Новая транзакция',
 		'writeMode.newTransactionHelp': 'Создаёт только одну простую two-split test transaction для copied-book dogfood. Это не для production entries; проверьте backup/restore evidence до и после финальной записи.',
+		'transactionCreate.title': 'Новая транзакция',
+		'transactionCreate.subtitle': 'SSR-first preview/confirm flow для одной зарегистрированной книги. Backend policy остаётся главным; draft не хранится в browser storage.',
+		'transactionCreate.previewSubmit': 'Предпросмотр транзакции',
+		'transactionCreate.confirmSubmit': 'Подтвердить CREATE',
+		'transactionCreate.balanceZero': 'Достигнут точный zero-sum balance.',
+		'transactionCreate.balanceNonZero': 'Сумма split rows должна быть ровно ноль до preview или confirm.',
+		'transactionCreate.previewStale': 'Draft изменился после preview. Запустите новый preview перед confirm.',
+		'transactionCreate.success.created': 'Транзакция создана. Проверьте безопасные ссылки ниже.',
+		'transactionCreate.success.already_created': 'Этот idempotency key уже создал транзакцию. Safe replay вернул прежний результат.',
+		'transactionCreate.error.generic': 'Transaction CREATE request завершился безопасной ошибкой. Backend details скрыты.',
+		'transactionCreate.error.CREATE_DEPLOYMENT_DISABLED': 'CREATE выключен настройками deployment.',
+		'transactionCreate.error.CREATE_BOOK_DISABLED': 'CREATE выключен для этой книги.',
+		'transactionCreate.error.CREATE_PERMISSION_DENIED': 'Для этой книги нужен explicit owner/editor access.',
+		'transactionCreate.error.PREVIEW_TOKEN_EXPIRED': 'Preview истёк. Запустите новый preview.',
+		'transactionCreate.error.PREVIEW_TOKEN_INVALID': 'Preview token отклонён. Запустите новый preview.',
+		'transactionCreate.error.PREVIEW_PAYLOAD_MISMATCH': 'Draft больше не совпадает с preview. Запустите новый preview.',
+		'transactionCreate.error.PREVIEW_STALE': 'Книга или policy изменились после preview. Запустите новый preview.',
+		'transactionCreate.error.IDEMPOTENCY_PAYLOAD_MISMATCH': 'Этот idempotency key уже использован с другим payload.',
+		'transactionCreate.error.CREATE_IN_PROGRESS': 'CREATE уже выполняется для этого key. Повторите после завершения server-side операции.',
+		'transactionCreate.error.BOOK_WRITE_BUSY': 'Book write lock занят. Повторите после завершения активной записи.',
+		'transactionCreate.error.CREATE_RECOVERY_REQUIRED': 'Перед новой попыткой требуется CREATE recovery.',
+		'transactionCreate.error.INVALID_DATE': 'Используйте строгую дату YYYY-MM-DD.',
+		'transactionCreate.error.DESCRIPTION_REQUIRED': 'Description обязателен.',
+		'transactionCreate.error.SPLIT_COUNT_OUT_OF_RANGE': 'Нужно 2..50 split rows.',
+		'transactionCreate.error.INVALID_DECIMAL': 'Amounts должны быть точными decimal strings.',
+		'transactionCreate.error.ZERO_SPLIT': 'Каждый split amount должен быть ненулевым.',
+		'transactionCreate.error.UNBALANCED_SPLITS': 'Split amounts должны давать ровно ноль.',
+		'transactionCreate.error.INSUFFICIENT_DISTINCT_ACCOUNTS': 'Нужны минимум два разных accounts.',
+		'transactionCreate.error.ACCOUNT_NOT_FOUND': 'Выберите accounts из видимого selector для этой книги.',
+		'transactionCreate.error.ACCOUNT_NOT_POSTABLE': 'Выбранный account не postable.',
+		'transactionCreate.error.UNSUPPORTED_ACCOUNT_TYPE': 'Тип выбранного account не поддерживается для CREATE.',
+		'transactionCreate.error.UNSUPPORTED_COMMODITY': 'Выбранная commodity не поддерживается для CREATE.',
+		'transactionCreate.error.COMMODITY_MISMATCH': 'Все splits должны использовать одну выбранную currency. FX conversion не выполняется.',
+		'transactionCreate.error.BACKUP_FAILED': 'Backup failed до записи. Success не заявлен.',
+		'transactionCreate.error.WRITE_FAILED': 'Write failed safely. Проверьте redacted operator evidence перед retry.',
+		'transactionCreate.error.CREATE_RESULT_UNKNOWN': 'CREATE result неизвестен; перед retry требуется recovery.',
+		'books.transactionCreateSettingsTitle': 'Настройки transaction CREATE',
+		'books.transactionCreateSettingsHelp': 'Admin-only metadata toggle для issue #59 CREATE. Сам по себе он никогда не вызывает GnuCash write routes.',
+		'books.transactionCreateSettingsStatus': 'Текущая настройка CREATE',
+		'books.transactionCreateEnableAction': 'Включить transaction CREATE',
+		'books.transactionCreateDisableAction': 'Выключить transaction CREATE',
+		'books.transactionCreateNormalUserForbidden': 'Обычные users не могут переключать transaction CREATE; explicit book access всё равно контролирует data access.',
+		'books.transactionCreateSettingsSuccess': 'Настройка transaction CREATE обновлена. GnuCash data не изменялась.',
+		'books.transactionCreateSettingsError': 'Обновление настройки transaction CREATE завершилось безопасной ошибкой. Backend details скрыты.',
 		'transactions.filters.title': 'Фильтры транзакций',
 		'transactions.filters.subtitle':
 			'Сужают read-only список транзакций и CSV export; фильтры никогда не изменяют вашу книгу GnuCash.',

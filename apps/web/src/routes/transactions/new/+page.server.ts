@@ -1,760 +1,289 @@
 import { env } from '$env/dynamic/private';
-import { redirect, type Actions } from '@sveltejs/kit';
+import { fail, redirect, type Actions } from '@sveltejs/kit';
 import { apiFetch, getActiveBookContext, getAuthToken } from '$lib/api/server';
-import type { Account, Book, TransactionCreatePreview } from '$lib/api/types';
+import { localeFromCookie } from '$lib/i18n';
+import type {
+	Account,
+	Book,
+	TransactionCreateConfirmResult,
+	TransactionCreateErrorEnvelope,
+	TransactionCreatePreviewResponse,
+	TransactionCreateRequest,
+	TransactionCreateSettings,
+	TransactionCreateSplitRequest
+} from '$lib/api/types';
 import type { PageServerLoad } from './$types';
 
-type CreatePreviewPayload = {
-	date: string;
-	debit_account_id: string;
-	credit_account_id: string;
-	amount: string;
-	currency: string;
-	description: string;
-	memo: string;
-};
+type TransactionCreateFieldErrors = Partial<Record<'book_id' | 'date' | 'description' | 'currency' | 'splits', string>>;
 
-type PreviewFormPayload = CreatePreviewPayload & { book_id: string };
-type PreviewFieldName = keyof PreviewFormPayload;
-type PreviewFieldErrors = Partial<Record<PreviewFieldName, string>>;
-
-type ApiErrorBody = {
-	detail?: unknown;
-};
-
-type ApiPostResult<T> = {
-	ok: boolean;
+type ApiJsonSuccess<T> = { ok: true; status: number; body: T };
+type ApiJsonFailure = {
+	ok: false;
 	status: number;
-	body: T | ApiErrorBody;
+	code: string;
+	messageKey: string;
+	fieldPath: string | null;
+	retryable: boolean;
+	recoveryRef: string | null;
+	requestRef: string;
+};
+type ApiJsonResult<T> = ApiJsonSuccess<T> | ApiJsonFailure;
+
+type PostJsonOptions = {
+	body: unknown;
+	headers?: Record<string, string>;
 };
 
-type RedactedReadinessStatus<T extends string> = {
-	status: T;
-	redacted: true;
+const FALLBACK_CREATE_SETTINGS: TransactionCreateSettings = {
+	enabled: false,
+	effective_enabled: false,
+	deployment_writes_enabled: false,
+	user_can_create: false,
+	create_generation: 1,
+	recovery_required: false,
+	reason_key: 'CREATE_DEPLOYMENT_DISABLED'
 };
 
-type CreateReadinessStatus = {
-	preview_only: true;
-	status: 'disabled';
-	writes_enabled: boolean;
-	session_armed: false;
-	create_execution_allowed: false;
-	create_execution_reason: string;
-	allowed_create_count: 0;
-	target_class: null;
-	readiness_required: true;
-	readiness_status: 'not_checked';
-	readiness_state: {
-		writes_enabled: RedactedReadinessStatus<'disabled' | 'enabled_but_blocked'> & { enabled: boolean };
-		session_armed: RedactedReadinessStatus<'not_armed'> & { armed: false };
-		allowed_create_count: RedactedReadinessStatus<'blocked'> & { count: 0 };
-		target: RedactedReadinessStatus<'not_selected'> & { target_class: null; private_target_probed: false };
-		preflight: RedactedReadinessStatus<'not_checked'> & { required: true; private_target_probed: false };
-		backup: RedactedReadinessStatus<'not_checked'> & { required: true; backup_helper_called: false };
-		allowed_execution: RedactedReadinessStatus<'blocked'> & { allowed: false; reason: string };
-	};
-};
+const SUPPORTED_CREATE_CODES = new Set([
+	'CREATE_DEPLOYMENT_DISABLED',
+	'CREATE_BOOK_DISABLED',
+	'CREATE_PERMISSION_DENIED',
+	'PREVIEW_TOKEN_EXPIRED',
+	'PREVIEW_TOKEN_INVALID',
+	'PREVIEW_PAYLOAD_MISMATCH',
+	'PREVIEW_STALE',
+	'IDEMPOTENCY_PAYLOAD_MISMATCH',
+	'CREATE_IN_PROGRESS',
+	'BOOK_WRITE_BUSY',
+	'CREATE_RECOVERY_REQUIRED',
+	'INVALID_DATE',
+	'DESCRIPTION_REQUIRED',
+	'SPLIT_COUNT_OUT_OF_RANGE',
+	'INVALID_DECIMAL',
+	'ZERO_SPLIT',
+	'UNBALANCED_SPLITS',
+	'INSUFFICIENT_DISTINCT_ACCOUNTS',
+	'ACCOUNT_NOT_FOUND',
+	'ACCOUNT_NOT_POSTABLE',
+	'UNSUPPORTED_ACCOUNT_TYPE',
+	'UNSUPPORTED_COMMODITY',
+	'COMMODITY_MISMATCH',
+	'BACKUP_FAILED',
+	'WRITE_FAILED',
+	'CREATE_RESULT_UNKNOWN'
+]);
 
-type TargetClass = 'test_copy' | 'owner_selected_target';
+const SUPPORTED_CREATE_MESSAGE_KEYS = new Set([
+	'transactionCreate.error.generic',
+	...Array.from(SUPPORTED_CREATE_CODES, (code) => `transactionCreate.error.${code}`)
+]);
 
-type WriteSessionGate = {
-	writes_enabled: boolean;
-	session_armed: boolean;
-	create_execution_allowed: boolean;
-	create_execution_reason: string;
-	allowed_create_count: number;
-	target_class: TargetClass | null;
-};
-
-type TargetPreflightCheck = {
-	id: string;
-	label: string;
-	status: 'pending';
-	note: string;
-};
-
-type TargetPreflight = {
-	required: true;
-	status: 'not_checked';
-	target_class: TargetClass | null;
-	checks: TargetPreflightCheck[];
-};
-
-type ExecutionReadinessCheck = {
-	id: string;
-	label: string;
-	status: 'pending';
-	note: string;
-};
-
-type DisabledProbePlanCheck = {
-	id: string;
-	label: string;
-	http_verb: 'POST' | 'PATCH' | 'DELETE';
-	route_family: 'validate' | 'preflight' | 'create' | 'patch' | 'delete' | 'batch';
-	status: 'pending';
-	expected_disabled_result: 'blocked_or_unavailable';
-	note: string;
-};
-
-type ExecutionEvidencePacketStep = {
-	id: string;
-	order: number;
-	label: string;
-	phase: 'before_create' | 'after_create' | 'after_reset' | 'owner_verification';
-	status: 'pending';
-	required: true;
-	evidence_scope: 'redacted_only';
-	note: string;
-};
-
-type ExecutionReadiness = {
-	required: true;
-	status: 'not_checked';
-	backup_state: 'pending';
-	read_back_state: 'pending';
-	audit_state: 'pending';
-	reset_state: 'pending';
-	probe_state: 'pending';
-	checks: ExecutionReadinessCheck[];
-	evidence_packet_plan: ExecutionEvidencePacketStep[];
-	disabled_probe_plan: DisabledProbePlanCheck[];
-};
-
-type ExecutionResultStep = {
-	id: string;
-	label: string;
-	phase: 'success' | 'failure' | 'rollback' | 'post_result';
-	status: 'pending';
-	required: true;
-	evidence_scope: 'redacted_only';
-	note: string;
-};
-
-type ExecutionResult = {
-	required: true;
-	status: 'not_executed';
-	create_result_state: 'blocked';
-	success_state: 'pending';
-	failure_state: 'pending';
-	rollback_state: 'not_run';
-	user_message: string;
-	steps: ExecutionResultStep[];
-};
-
-const PREVIEW_ERROR_FALLBACK = 'Preview validation failed safely. No write was executed.';
-
-const FIELD_LABELS: Record<PreviewFieldName, string> = {
-	book_id: 'book',
-	date: 'date',
-	debit_account_id: 'source account',
-	credit_account_id: 'destination account',
-	amount: 'amount',
-	currency: 'currency',
-	description: 'description',
-	memo: 'memo'
-};
-
-function createDefaultReadinessStatus(writesEnabled = truthyEnv(env.GNUCASH_WRITES_ENABLED)): CreateReadinessStatus {
-	const createExecutionReason = writesEnabled
-		? 'Write gates may be enabled, but no owner-approved web UI CREATE session is armed.'
-		: 'GNUCASH_WRITES_ENABLED=false; write session not armed.';
-	return {
-		preview_only: true,
-		status: 'disabled',
-		writes_enabled: writesEnabled,
-		session_armed: false,
-		create_execution_allowed: false,
-		create_execution_reason: createExecutionReason,
-		allowed_create_count: 0,
-		target_class: null,
-		readiness_required: true,
-		readiness_status: 'not_checked',
-		readiness_state: {
-			writes_enabled: { enabled: writesEnabled, status: writesEnabled ? 'enabled_but_blocked' : 'disabled', redacted: true },
-			session_armed: { armed: false, status: 'not_armed', redacted: true },
-			allowed_create_count: { count: 0, status: 'blocked', redacted: true },
-			target: { target_class: null, status: 'not_selected', private_target_probed: false, redacted: true },
-			preflight: { required: true, status: 'not_checked', private_target_probed: false, redacted: true },
-			backup: { required: true, status: 'not_checked', backup_helper_called: false, redacted: true },
-			allowed_execution: { allowed: false, status: 'blocked', reason: createExecutionReason, redacted: true }
-		}
-	};
+function apiBase(): string {
+	return env.API_INTERNAL_URL ?? 'http://localhost:8000';
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === 'object' && value !== null;
 }
 
-function writesEnabledFromReadinessStatus(value: unknown): boolean | null {
-	if (!isRecord(value)) return null;
-	if (typeof value.writes_enabled === 'boolean') return value.writes_enabled;
-	const readinessState = value.readiness_state;
-	if (!isRecord(readinessState)) return null;
-	const writesEnabledState = readinessState.writes_enabled;
-	if (!isRecord(writesEnabledState)) return null;
-	return typeof writesEnabledState.enabled === 'boolean' ? writesEnabledState.enabled : null;
+function safeCode(value: unknown, fallback = 'CREATE_RESULT_UNKNOWN'): string {
+	return typeof value === 'string' && SUPPORTED_CREATE_CODES.has(value) ? value : fallback;
 }
 
-function sanitizeCreateReadinessStatus(value: unknown, fallback = createDefaultReadinessStatus()): CreateReadinessStatus {
-	const writesEnabled = writesEnabledFromReadinessStatus(value) ?? fallback.writes_enabled;
-	return createDefaultReadinessStatus(writesEnabled);
+function safeMessageKey(value: unknown, code: string): string {
+	const candidate = typeof value === 'string' ? value : null;
+	if (candidate && SUPPORTED_CREATE_MESSAGE_KEYS.has(candidate)) return candidate;
+	const fallback = `transactionCreate.error.${safeCode(code)}`;
+	return SUPPORTED_CREATE_MESSAGE_KEYS.has(fallback) ? fallback : 'transactionCreate.error.generic';
 }
 
-async function apiGetOptional<T>(fetchFn: typeof fetch, path: string, token: string, fallback: T): Promise<T> {
-	const apiBase = env.API_INTERNAL_URL ?? 'http://localhost:8000';
+function safeCreateRedirectPath(result: TransactionCreateConfirmResult): string {
+	const fallback = '/transactions';
+	const link = result.links.transaction;
 	try {
-		const response = await fetchFn(`${apiBase}${path}`, {
+		const target = new URL(typeof link === 'string' ? link : fallback, 'http://frontend.local');
+		if (target.origin !== 'http://frontend.local') return `${fallback}?create_status=${result.status}`;
+		if (!(target.pathname === '/transactions' || target.pathname.startsWith('/transactions/'))) {
+			return `${fallback}?create_status=${result.status}`;
+		}
+		if (target.pathname.includes('\\')) return `${fallback}?create_status=${result.status}`;
+		target.searchParams.set('create_status', result.status);
+		return `${target.pathname}${target.search}${target.hash}`;
+	} catch {
+		return `${fallback}?create_status=${result.status}`;
+	}
+}
+
+function transactionCreateFailure(status: number, payload: unknown): ApiJsonFailure {
+	const envelope = payload as Partial<TransactionCreateErrorEnvelope>;
+	const errorPayload: Record<string, unknown> = isRecord(envelope.error) ? envelope.error : {};
+	const code = safeCode(errorPayload.code, status === 403 ? 'CREATE_PERMISSION_DENIED' : 'CREATE_RESULT_UNKNOWN');
+	return {
+		ok: false,
+		status,
+		code,
+		messageKey: safeMessageKey(errorPayload.message_key, code),
+		fieldPath: typeof errorPayload.field_path === 'string' ? errorPayload.field_path : null,
+		retryable: typeof errorPayload.retryable === 'boolean' ? errorPayload.retryable : false,
+		recoveryRef: typeof errorPayload.recovery_ref === 'string' ? errorPayload.recovery_ref : null,
+		requestRef: typeof errorPayload.request_ref === 'string' ? errorPayload.request_ref : 'unavailable'
+	};
+}
+
+async function apiGetOptionalJson<T>(fetchFn: typeof fetch, path: string, token: string, fallback: T): Promise<T> {
+	try {
+		const response = await fetchFn(`${apiBase()}${path}`, {
 			headers: { authorization: `Bearer ${token}` }
 		});
+		if (response.status === 401) throw redirect(303, '/login');
 		if (!response.ok) return fallback;
 		return (await response.json()) as T;
-	} catch {
+	} catch (reason) {
+		if (typeof reason === 'object' && reason !== null && 'status' in reason) throw reason;
 		return fallback;
 	}
 }
 
-async function apiPost<T>(fetchFn: typeof fetch, path: string, token: string, payload: unknown): Promise<ApiPostResult<T>> {
-	const apiBase = env.API_INTERNAL_URL ?? 'http://localhost:8000';
-	const response = await fetchFn(`${apiBase}${path}`, {
-		method: 'POST',
-		headers: {
-			'content-type': 'application/json',
-			authorization: `Bearer ${token}`
-		},
-		body: JSON.stringify(payload)
+async function apiPostJson<T>(
+	fetchFn: typeof fetch,
+	path: string,
+	token: string,
+	options: PostJsonOptions
+): Promise<ApiJsonResult<T>> {
+	try {
+		const response = await fetchFn(`${apiBase()}${path}`, {
+			method: 'POST',
+			headers: {
+				'content-type': 'application/json',
+				authorization: `Bearer ${token}`,
+				...(options.headers ?? {})
+			},
+			body: JSON.stringify(options.body)
+		});
+		if (response.status === 401) throw redirect(303, '/login');
+		const payload = await response.json().catch(() => null);
+		if (!response.ok) return transactionCreateFailure(response.status, payload);
+		return { ok: true, status: response.status, body: payload as T };
+	} catch (reason) {
+		if (typeof reason === 'object' && reason !== null && 'status' in reason) throw reason;
+		return transactionCreateFailure(503, {
+			error: {
+				code: 'WRITE_FAILED',
+				message_key: 'transactionCreate.error.WRITE_FAILED',
+				field_path: null,
+				retryable: false,
+				recovery_ref: null,
+				request_ref: 'frontend-api-unavailable'
+			}
+		});
+	}
+}
+
+function stringList(formData: FormData, name: string): string[] {
+	return formData.getAll(name).map((value) => String(value ?? '').trim());
+}
+
+function textField(formData: FormData, name: string): string {
+	return String(formData.get(name) ?? '').trim();
+}
+
+function formToTransactionCreateRequest(formData: FormData): TransactionCreateRequest {
+	const accountIds = stringList(formData, 'split_account_id');
+	const amounts = stringList(formData, 'split_amount');
+	const memos = formData.getAll('split_memo').map((value) => String(value ?? '').trim());
+	const splits: TransactionCreateSplitRequest[] = accountIds.map((account_id, index) => ({
+		account_id,
+		amount: amounts[index] ?? '',
+		memo: memos[index] ?? ''
+	}));
+	return {
+		date: textField(formData, 'date'),
+		description: textField(formData, 'description'),
+		currency: textField(formData, 'currency').toUpperCase(),
+		splits
+	};
+}
+
+function fieldErrorsFromFailure(result: ApiJsonFailure): TransactionCreateFieldErrors {
+	if (result.fieldPath?.startsWith('splits')) return { splits: result.messageKey };
+	if (result.code === 'INVALID_DATE') return { date: result.messageKey };
+	if (result.code === 'DESCRIPTION_REQUIRED') return { description: result.messageKey };
+	if (result.code === 'COMMODITY_MISMATCH' || result.code === 'UNSUPPORTED_COMMODITY') return { currency: result.messageKey };
+	if (
+		result.code === 'SPLIT_COUNT_OUT_OF_RANGE' ||
+		result.code === 'INVALID_DECIMAL' ||
+		result.code === 'ZERO_SPLIT' ||
+		result.code === 'UNBALANCED_SPLITS' ||
+		result.code === 'INSUFFICIENT_DISTINCT_ACCOUNTS' ||
+		result.code === 'ACCOUNT_NOT_FOUND' ||
+		result.code === 'ACCOUNT_NOT_POSTABLE' ||
+		result.code === 'UNSUPPORTED_ACCOUNT_TYPE'
+	) {
+		return { splits: result.messageKey };
+	}
+	return {};
+}
+
+function bookMismatchFailure(payload: TransactionCreateRequest, activeBook: Book | null) {
+	return fail(403, {
+		errorCode: 'CREATE_PERMISSION_DENIED',
+		errorKey: 'transactionCreate.error.CREATE_PERMISSION_DENIED',
+		requestRef: activeBook ? `book-${activeBook.id}` : 'no-active-book',
+		fieldErrors: { book_id: 'transactionCreate.error.CREATE_PERMISSION_DENIED' } satisfies TransactionCreateFieldErrors,
+		payload
 	});
-
-	if (response.status === 401) throw redirect(303, '/login');
-	const body = await response.json().catch(() => ({}));
-	return { ok: response.ok, status: response.status, body };
 }
 
-function fallbackFieldMessage(field: PreviewFieldName): string {
-	return `Invalid ${FIELD_LABELS[field]}. No write was executed.`;
+function isTransactionCreateSplit(value: unknown): value is TransactionCreateSplitRequest {
+	return (
+		isRecord(value) &&
+		typeof value.account_id === 'string' &&
+		typeof value.amount === 'string' &&
+		typeof value.memo === 'string'
+	);
 }
 
-function friendlyFieldMessage(field: PreviewFieldName, detail: unknown): string {
-	const text = typeof detail === 'string' ? detail.toLowerCase() : '';
-	if (field === 'book_id') {
-		if (text.includes('no selectable accounts')) {
-			return 'No selectable accounts are available for this book. Choose another book or add non-placeholder accounts in GnuCash Desktop. No write was executed.';
-		}
-		return 'Select an available book for this preview. No write was executed.';
+function isTransactionCreateRequest(value: unknown): value is TransactionCreateRequest {
+	return (
+		isRecord(value) &&
+		typeof value.date === 'string' &&
+		typeof value.description === 'string' &&
+		typeof value.currency === 'string' &&
+		Array.isArray(value.splits) &&
+		value.splits.every(isTransactionCreateSplit)
+	);
+}
+
+function transactionFromJson(raw: string): TransactionCreateRequest | null {
+	try {
+		const parsed = JSON.parse(raw) as unknown;
+		return isTransactionCreateRequest(parsed) ? parsed : null;
+	} catch {
+		return null;
 	}
-	if (field === 'date') {
-		return text.includes('required')
-			? 'Enter a transaction date. No write was executed.'
-			: 'Use an explicit YYYY-MM-DD transaction date. No write was executed.';
-	}
-	if (field === 'debit_account_id' || field === 'credit_account_id') {
-		if (text.includes('debit and credit accounts') || text.includes('different')) {
-			return 'Choose two different selectable accounts. No write was executed.';
-		}
-		if (text.includes('not found') || text.includes('selectable')) {
-			return 'Choose an account from the visible selector, not a hidden or placeholder account. No write was executed.';
-		}
-		return `Select a ${FIELD_LABELS[field]}. No write was executed.`;
-	}
-	if (field === 'amount') {
-		return 'Enter a positive decimal amount using a dot, for example 320.00. No write was executed.';
-	}
-	if (field === 'currency') {
-		return 'Use a supported three-letter currency that matches both selected accounts; no conversion is performed. No write was executed.';
-	}
-	if (field === 'description') {
-		return 'Enter a description for the local preview. No write was executed.';
-	}
-	if (field === 'memo') {
-		return 'Review the optional memo text. No write was executed.';
-	}
-	return fallbackFieldMessage(field);
-}
-
-function fieldFromName(value: unknown): PreviewFieldName | null {
-	if (typeof value !== 'string') return null;
-	return value in FIELD_LABELS ? (value as PreviewFieldName) : null;
-}
-
-function fieldFromLoc(loc: unknown): PreviewFieldName | null {
-	if (!Array.isArray(loc)) return null;
-	for (let index = loc.length - 1; index >= 0; index -= 1) {
-		const field = fieldFromName(loc[index]);
-		if (field) return field;
-	}
-	return null;
-}
-
-function addFieldError(errors: PreviewFieldErrors, field: PreviewFieldName, message: string) {
-	errors[field] = message;
-}
-
-function fieldErrorsFromString(detail: string): PreviewFieldErrors {
-	const text = detail.toLowerCase();
-	const errors: PreviewFieldErrors = {};
-	if (text.includes('no selectable accounts')) {
-		addFieldError(errors, 'book_id', friendlyFieldMessage('book_id', detail));
-		return errors;
-	}
-	if (text.includes('debit and credit accounts')) {
-		const message = friendlyFieldMessage('debit_account_id', detail);
-		addFieldError(errors, 'debit_account_id', message);
-		addFieldError(errors, 'credit_account_id', message);
-		return errors;
-	}
-	if (text.includes('debit_account_id') || text.includes('debit account') || text.includes('source account')) {
-		addFieldError(errors, 'debit_account_id', friendlyFieldMessage('debit_account_id', detail));
-	}
-	if (text.includes('credit_account_id') || text.includes('credit account') || text.includes('destination account')) {
-		addFieldError(errors, 'credit_account_id', friendlyFieldMessage('credit_account_id', detail));
-	}
-	if (text.includes('amount')) addFieldError(errors, 'amount', friendlyFieldMessage('amount', detail));
-	if (text.includes('currency')) addFieldError(errors, 'currency', friendlyFieldMessage('currency', detail));
-	if (text.includes('date')) addFieldError(errors, 'date', friendlyFieldMessage('date', detail));
-	if (text.includes('description')) addFieldError(errors, 'description', friendlyFieldMessage('description', detail));
-	if (text.includes('memo')) addFieldError(errors, 'memo', friendlyFieldMessage('memo', detail));
-	return errors;
-}
-
-function previewErrorSummary(fieldErrors: PreviewFieldErrors): string {
-	return Object.keys(fieldErrors).length
-		? 'Preview validation failed safely. Review the highlighted fields. No write was executed.'
-		: PREVIEW_ERROR_FALLBACK;
-}
-
-function previewErrorDetails(body: unknown): { error: string; fieldErrors: PreviewFieldErrors } {
-	const detail = typeof body === 'object' && body !== null && 'detail' in body ? (body as ApiErrorBody).detail : undefined;
-	if (typeof detail === 'string') {
-		const fieldErrors = fieldErrorsFromString(detail);
-		return { error: previewErrorSummary(fieldErrors), fieldErrors };
-	}
-	if (Array.isArray(detail)) {
-		const fieldErrors: PreviewFieldErrors = {};
-		for (const item of detail) {
-			if (typeof item !== 'object' || item === null) continue;
-			const field = fieldFromLoc('loc' in item ? item.loc : undefined);
-			if (!field) continue;
-			const message = friendlyFieldMessage(field, 'msg' in item ? item.msg : undefined);
-			addFieldError(fieldErrors, field, message);
-		}
-		return {
-			error: previewErrorSummary(fieldErrors),
-			fieldErrors
-		};
-	}
-	return { error: PREVIEW_ERROR_FALLBACK, fieldErrors: {} };
-}
-
-function formToPreviewPayload(formData: FormData): CreatePreviewPayload {
-	return {
-		date: String(formData.get('date') ?? '').trim(),
-		debit_account_id: String(formData.get('debit_account_id') ?? '').trim(),
-		credit_account_id: String(formData.get('credit_account_id') ?? '').trim(),
-		amount: String(formData.get('amount') ?? '').trim(),
-		currency: String(formData.get('currency') ?? '').trim().toUpperCase(),
-		description: String(formData.get('description') ?? '').trim(),
-		memo: String(formData.get('memo') ?? '')
-	};
-}
-
-function previewBookMismatchFailure(returnedPayload: PreviewFormPayload, activeBook: Book | null) {
-	const activeBookLabel = activeBook ? 'the active book' : 'an active book';
-	return {
-		error: 'Preview validation failed safely. Review the highlighted fields. No write was executed.',
-		fieldErrors: {
-			book_id: `Selected book is not ${activeBookLabel} for this preview session. Choose the active book and run preview again. No write was executed.`
-		} satisfies PreviewFieldErrors,
-		payload: returnedPayload,
-		previewOnly: true
-	};
-}
-
-function truthyEnv(value: string | undefined): boolean {
-	return ['1', 'true', 'yes', 'on'].includes(String(value ?? '').trim().toLowerCase());
-}
-
-function createWriteSessionGate(status = createDefaultReadinessStatus()): WriteSessionGate {
-	const writesEnabled = status.readiness_state.writes_enabled.enabled;
-	const sessionArmed = status.readiness_state.session_armed.armed;
-	const allowedCreateCount = status.readiness_state.allowed_create_count.count;
-	const targetClass = status.readiness_state.target.target_class;
-	return {
-		writes_enabled: writesEnabled,
-		session_armed: sessionArmed,
-		create_execution_allowed: status.readiness_state.allowed_execution.allowed,
-		create_execution_reason: status.readiness_state.allowed_execution.reason,
-		allowed_create_count: allowedCreateCount,
-		target_class: targetClass
-	};
-}
-
-function createTargetPreflight(): TargetPreflight {
-	const targetClass = null;
-	return {
-		required: true,
-		status: 'not_checked',
-		target_class: targetClass,
-		checks: [
-			{
-				id: 'target_class_selected',
-				label: 'Target class selected',
-				status: 'pending',
-				note: 'Pending: choose test copy or owner-selected target only after fresh owner approval.'
-			},
-			{
-				id: 'target_file_exists_readable',
-				label: 'Target file exists/readable',
-				status: 'pending',
-				note: 'Pending: this shell does not probe private files or book targets.'
-			},
-			{
-				id: 'target_outside_repo',
-				label: 'Target is outside repo',
-				status: 'pending',
-				note: 'Pending: must be proven before any bounded write session.'
-			},
-			{
-				id: 'desktop_closed',
-				label: 'GnuCash Desktop closed',
-				status: 'pending',
-				note: 'Pending: owner must close Desktop before a future CREATE session.'
-			},
-			{
-				id: 'no_concurrent_writer_lock',
-				label: 'No concurrent writer/lock',
-				status: 'pending',
-				note: 'Pending: no writer or lock proof is collected in this shell.'
-			},
-			{
-				id: 'no_lck_lnk',
-				label: 'No .LCK/.LNK lock',
-				status: 'pending',
-				note: 'Pending: lock-file checks must run only on an approved target.'
-			},
-			{
-				id: 'no_syncthing_conflict_before',
-				label: 'No Syncthing conflict copy before session if applicable',
-				status: 'pending',
-				note: 'Pending: applicable only when the approved target is under Syncthing.'
-			},
-			{
-				id: 'independent_backup_exists',
-				label: 'Independent backup exists',
-				status: 'pending',
-				note: 'Pending: backup evidence is required before any CREATE.'
-			},
-			{
-				id: 'restore_proof_available',
-				label: 'Restore proof available',
-				status: 'pending',
-				note: 'Pending: restore proof must be available before mutation.'
-			},
-			{
-				id: 'reviewed_non_stale_preview',
-				label: 'Reviewed non-stale preview',
-				status: 'pending',
-				note: 'Pending: owner must review the current preview in the same context.'
-			},
-			{
-				id: 'exact_create_count_one',
-				label: 'Exact CREATE count = 1',
-				status: 'pending',
-				note: 'Pending: first trial remains exactly one CREATE unless owner explicitly expands later.'
-			},
-			{
-				id: 'reset_disabled_probes_required',
-				label: 'Writes reset/disabled probes required after session',
-				status: 'pending',
-				note: 'Pending: reset plus validate/preflight/CREATE/PATCH/DELETE blocked probes are required after a future session.'
-			},
-			{
-				id: 'manual_desktop_verification_required',
-				label: 'Manual Desktop verification required',
-				status: 'pending',
-				note: 'Pending: first UI CREATE trial requires owner Desktop verification.'
-			}
-		]
-	};
-}
-
-function createExecutionReadiness(): ExecutionReadiness {
-	return {
-		required: true,
-		status: 'not_checked',
-		backup_state: 'pending',
-		read_back_state: 'pending',
-		audit_state: 'pending',
-		reset_state: 'pending',
-		probe_state: 'pending',
-		checks: [
-			{
-				id: 'backup_plan_required',
-				label: 'Independent backup plan required',
-				status: 'pending',
-				note: 'Pending: this shell does not create, locate, or validate a backup.'
-			},
-			{
-				id: 'backup_readable_copy_required',
-				label: 'Backup readable copy proof required',
-				status: 'pending',
-				note: 'Pending: no backup path or copied book is opened in this slice.'
-			},
-			{
-				id: 'post_create_read_back_required',
-				label: 'Post-CREATE read-back required',
-				status: 'pending',
-				note: 'Pending: future read-back must compare the created transaction privately after an approved CREATE.'
-			},
-			{
-				id: 'redacted_audit_required',
-				label: 'Redacted audit evidence required',
-				status: 'pending',
-				note: 'Pending: no audit route or audit write is called by this shell.'
-			},
-			{
-				id: 'writes_reset_required',
-				label: 'Writes reset to disabled required',
-				status: 'pending',
-				note: 'Pending: future session must reset GNUCASH_WRITES_ENABLED=false after the bounded run.'
-			},
-			{
-				id: 'disabled_create_probe_required',
-				label: 'Disabled CREATE probe required',
-				status: 'pending',
-				note: 'Pending: future post-reset probe must prove CREATE is blocked again.'
-			},
-			{
-				id: 'disabled_validate_preflight_probe_required',
-				label: 'Disabled validate/preflight probes required',
-				status: 'pending',
-				note: 'Pending: future post-reset probes must prove validate/preflight route families remain blocked or unavailable.'
-			},
-			{
-				id: 'disabled_patch_delete_batch_probes_required',
-				label: 'Disabled PATCH/DELETE/batch probes required',
-				status: 'pending',
-				note: 'Pending: future post-reset probes must prove PATCH, DELETE, and batch routes remain blocked.'
-			},
-			{
-				id: 'manual_desktop_verification_record_required',
-				label: 'Manual Desktop verification record required',
-				status: 'pending',
-				note: 'Pending: owner must verify in Desktop in a private context after any approved CREATE.'
-			}
-		],
-		evidence_packet_plan: [
-			{
-				id: 'backup_before_create_evidence',
-				order: 1,
-				label: 'Backup evidence captured before CREATE',
-				phase: 'before_create',
-				status: 'pending',
-				required: true,
-				evidence_scope: 'redacted_only',
-				note: 'Pending: future approved session must capture only an opaque backup reference before CREATE; this shell creates no backup.'
-			},
-			{
-				id: 'read_back_after_create_evidence',
-				order: 2,
-				label: 'Read-back evidence captured after CREATE',
-				phase: 'after_create',
-				status: 'pending',
-				required: true,
-				evidence_scope: 'redacted_only',
-				note: 'Pending: future read-back evidence must stay private or redacted; this shell opens no book and reads back nothing.'
-			},
-			{
-				id: 'audit_after_create_evidence',
-				order: 3,
-				label: 'Redacted audit evidence captured after CREATE',
-				phase: 'after_create',
-				status: 'pending',
-				required: true,
-				evidence_scope: 'redacted_only',
-				note: 'Pending: future audit proof must use redacted refs only; this shell performs no audit write or audit lookup.'
-			},
-			{
-				id: 'reset_disabled_evidence',
-				order: 4,
-				label: 'Write-disable reset evidence captured',
-				phase: 'after_reset',
-				status: 'pending',
-				required: true,
-				evidence_scope: 'redacted_only',
-				note: 'Pending: future session must prove GNUCASH_WRITES_ENABLED=false after the bounded run; this shell changes no environment.'
-			},
-			{
-				id: 'disabled_probes_after_reset_evidence',
-				order: 5,
-				label: 'Disabled-probe evidence captured after reset',
-				phase: 'after_reset',
-				status: 'pending',
-				required: true,
-				evidence_scope: 'redacted_only',
-				note: 'Pending: future probes must prove validate/preflight/CREATE/PATCH/DELETE/batch are blocked or unavailable; this shell runs no probes.'
-			},
-			{
-				id: 'desktop_verification_evidence',
-				order: 6,
-				label: 'Manual Desktop verification evidence captured',
-				phase: 'owner_verification',
-				status: 'pending',
-				required: true,
-				evidence_scope: 'redacted_only',
-				note: 'Pending: owner Desktop verification remains private; tracked reports may include only a redacted confirmation.'
-			}
-		],
-		disabled_probe_plan: [
-			{
-				id: 'validate_probe_after_reset',
-				label: 'Validate probe after reset',
-				http_verb: 'POST',
-				route_family: 'validate',
-				status: 'pending',
-				expected_disabled_result: 'blocked_or_unavailable',
-				note: 'Pending: future post-reset check must prove validate cannot arm or mutate.'
-			},
-			{
-				id: 'preflight_probe_after_reset',
-				label: 'Preflight probe after reset',
-				http_verb: 'POST',
-				route_family: 'preflight',
-				status: 'pending',
-				expected_disabled_result: 'blocked_or_unavailable',
-				note: 'Pending: future post-reset check must prove target preflight cannot enable CREATE.'
-			},
-			{
-				id: 'create_probe_after_reset',
-				label: 'CREATE probe after reset',
-				http_verb: 'POST',
-				route_family: 'create',
-				status: 'pending',
-				expected_disabled_result: 'blocked_or_unavailable',
-				note: 'Pending: future post-reset check must prove CREATE is blocked again.'
-			},
-			{
-				id: 'patch_probe_after_reset',
-				label: 'PATCH probe after reset',
-				http_verb: 'PATCH',
-				route_family: 'patch',
-				status: 'pending',
-				expected_disabled_result: 'blocked_or_unavailable',
-				note: 'Pending: future post-reset check must prove PATCH remains blocked.'
-			},
-			{
-				id: 'delete_probe_after_reset',
-				label: 'DELETE probe after reset',
-				http_verb: 'DELETE',
-				route_family: 'delete',
-				status: 'pending',
-				expected_disabled_result: 'blocked_or_unavailable',
-				note: 'Pending: future post-reset check must prove DELETE remains blocked.'
-			},
-			{
-				id: 'batch_probe_after_reset',
-				label: 'Batch probe after reset',
-				http_verb: 'POST',
-				route_family: 'batch',
-				status: 'pending',
-				expected_disabled_result: 'blocked_or_unavailable',
-				note: 'Pending: future post-reset check must prove batch mutation remains blocked.'
-			}
-		]
-	};
-}
-
-function createExecutionResult(): ExecutionResult {
-	return {
-		required: true,
-		status: 'not_executed',
-		create_result_state: 'blocked',
-		success_state: 'pending',
-		failure_state: 'pending',
-		rollback_state: 'not_run',
-		user_message: 'No execution result exists because CREATE execution is disabled in this preview-only slice.',
-		steps: [
-			{
-				id: 'success_create_ref_recorded',
-				label: 'Success result: CREATE reference recorded',
-				phase: 'success',
-				status: 'pending',
-				required: true,
-				evidence_scope: 'redacted_only',
-				note: 'Pending: future approved execution must record only redacted create refs after a successful CREATE.'
-			},
-			{
-				id: 'success_read_back_verified',
-				label: 'Success result: read-back verified',
-				phase: 'success',
-				status: 'pending',
-				required: true,
-				evidence_scope: 'redacted_only',
-				note: 'Pending: future read-back must prove the created transaction privately before any success claim.'
-			},
-			{
-				id: 'failure_error_translated',
-				label: 'Failure result: safe error translated',
-				phase: 'failure',
-				status: 'pending',
-				required: true,
-				evidence_scope: 'redacted_only',
-				note: 'Pending: future failures must show safe redacted messages without raw paths, traces, or secrets.'
-			},
-			{
-				id: 'failure_no_success_claim',
-				label: 'Failure result: no success claim emitted',
-				phase: 'failure',
-				status: 'pending',
-				required: true,
-				evidence_scope: 'redacted_only',
-				note: 'Pending: failed/unknown execution must stay explicit and cannot imply a committed transaction.'
-			},
-			{
-				id: 'rollback_decision_recorded',
-				label: 'Rollback result: restore decision recorded',
-				phase: 'rollback',
-				status: 'pending',
-				required: true,
-				evidence_scope: 'redacted_only',
-				note: 'Pending: rollback/restore is not run in this shell; a future failed session must record a redacted restore decision.'
-			},
-			{
-				id: 'post_result_disabled_probes_verified',
-				label: 'Post-result disabled probes verified',
-				phase: 'post_result',
-				status: 'pending',
-				required: true,
-				evidence_scope: 'redacted_only',
-				note: 'Pending: future post-result checks must prove writes are disabled and validate/preflight/CREATE/PATCH/DELETE/batch are blocked or unavailable.'
-			}
-		]
-	};
 }
 
 export const load: PageServerLoad = async ({ cookies, fetch }) => {
 	const token = getAuthToken(cookies);
 	const { books, activeBook, bookPrefix } = await getActiveBookContext(fetch, cookies, token);
-	const accounts = activeBook ? await apiFetch<Account[]>(fetch, `${bookPrefix}/accounts`, token) : [];
-	const defaultReadinessStatus = createDefaultReadinessStatus();
-	const rawCreateReadinessStatus = activeBook
-		? await apiGetOptional<unknown>(
-			fetch,
-			`${bookPrefix}/transactions/create-readiness-status`,
-			token,
-			defaultReadinessStatus
-		)
-		: defaultReadinessStatus;
-	const createReadinessStatus = sanitizeCreateReadinessStatus(rawCreateReadinessStatus, defaultReadinessStatus);
+	const [accounts, createSettings] = activeBook
+		? await Promise.all([
+				apiFetch<Account[]>(fetch, `${bookPrefix}/accounts`, token),
+				apiGetOptionalJson<TransactionCreateSettings>(
+					fetch,
+					`/books/${activeBook.id}/transaction-create-settings`,
+					token,
+					FALLBACK_CREATE_SETTINGS
+				)
+			])
+		: [[], FALLBACK_CREATE_SETTINGS];
 	return {
+		locale: localeFromCookie(cookies),
 		books,
-		accounts: accounts.filter((account) => !account.placeholder && !account.hidden),
 		activeBook,
-		previewOnly: true,
-		createReadinessStatus,
-		writeSessionGate: createWriteSessionGate(createReadinessStatus),
-		targetPreflight: createTargetPreflight(),
-		executionReadiness: createExecutionReadiness(),
-		executionResult: createExecutionResult()
+		accounts: accounts.filter((account) => !account.placeholder && !account.hidden),
+		createSettings,
+		previewOnly: false
 	};
 };
 
@@ -762,39 +291,71 @@ export const actions: Actions = {
 	preview: async ({ cookies, fetch, request }) => {
 		const token = getAuthToken(cookies);
 		const formData = await request.formData();
-		const bookId = String(formData.get('book_id') ?? '');
-		const payload = formToPreviewPayload(formData);
-		const returnedPayload: PreviewFormPayload = { ...payload, book_id: bookId };
-		try {
-			const { activeBook } = await getActiveBookContext(fetch, cookies, token);
-			const activeBookId = activeBook ? String(activeBook.id) : '';
-			if (!bookId || bookId !== activeBookId || !activeBook) {
-				return previewBookMismatchFailure(returnedPayload, activeBook);
-			}
-			const result = await apiPost<TransactionCreatePreview>(
-				fetch,
-				`/books/${activeBook.id}/transactions/create-preview`,
-				token,
-				payload
-			);
-			if (!result.ok) {
-				const { error, fieldErrors } = previewErrorDetails(result.body);
-				return {
-					error,
-					fieldErrors,
-					payload: returnedPayload,
-					previewOnly: true
-				};
-			}
-			return { preview: result.body as TransactionCreatePreview, payload: returnedPayload, fieldErrors: {}, previewOnly: true };
-		} catch (err) {
-			if (typeof err === 'object' && err !== null && 'status' in err) throw err;
-			return {
-				error: 'API service is unavailable. No write was executed.',
-				fieldErrors: {},
-				payload: returnedPayload,
-				previewOnly: true
-			};
+		const transaction = formToTransactionCreateRequest(formData);
+		const bookId = textField(formData, 'book_id');
+		const { activeBook } = await getActiveBookContext(fetch, cookies, token);
+		if (!activeBook || bookId !== String(activeBook.id)) return bookMismatchFailure(transaction, activeBook);
+
+		const result = await apiPostJson<TransactionCreatePreviewResponse>(
+			fetch,
+			`/books/${activeBook.id}/transactions/create-preview`,
+			token,
+			{ body: transaction }
+		);
+		if (result.ok === false) {
+			return fail(result.status, {
+				errorCode: result.code,
+				errorKey: result.messageKey,
+				requestRef: result.requestRef,
+				fieldErrors: fieldErrorsFromFailure(result),
+				payload: transaction
+			});
 		}
+		return {
+			preview: result.body,
+			payload: transaction,
+			fieldErrors: {}
+		};
+	},
+	confirm: async ({ cookies, fetch, request }) => {
+		const token = getAuthToken(cookies);
+		const formData = await request.formData();
+		const previewToken = textField(formData, 'preview_token');
+		const idempotencyKey = textField(formData, 'idempotency_key');
+		const transaction = transactionFromJson(String(formData.get('transaction_json') ?? ''));
+		const bookId = textField(formData, 'book_id');
+		const { activeBook } = await getActiveBookContext(fetch, cookies, token);
+		if (!transaction) {
+			return fail(400, {
+				errorCode: 'PREVIEW_PAYLOAD_MISMATCH',
+				errorKey: 'transactionCreate.error.PREVIEW_PAYLOAD_MISMATCH',
+				requestRef: 'invalid-transaction-json',
+				fieldErrors: { splits: 'transactionCreate.error.PREVIEW_PAYLOAD_MISMATCH' } satisfies TransactionCreateFieldErrors,
+				payload: null
+			});
+		}
+		if (!activeBook || bookId !== String(activeBook.id)) return bookMismatchFailure(transaction, activeBook);
+
+		const result = await apiPostJson<TransactionCreateConfirmResult>(
+			fetch,
+			`/books/${activeBook.id}/transactions`,
+			token,
+			{
+				body: { preview_token: previewToken, transaction },
+				headers: { 'Idempotency-Key': idempotencyKey }
+			}
+		);
+		if (result.ok === false) {
+			return fail(result.status, {
+				errorCode: result.code,
+				errorKey: result.messageKey,
+				requestRef: result.requestRef,
+				retryable: result.retryable,
+				recoveryRef: result.recoveryRef,
+				fieldErrors: fieldErrorsFromFailure(result),
+				payload: transaction
+			});
+		}
+		throw redirect(303, safeCreateRedirectPath(result.body));
 	}
 };

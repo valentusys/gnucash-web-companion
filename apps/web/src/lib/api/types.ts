@@ -618,34 +618,101 @@ export type PeriodReportComparison = {
 	expense_changes: ExpenseAccountComparison[];
 };
 
-export type TransactionCreatePreview = {
-	preview_only: boolean;
-	writes_enabled_required_for_create: boolean;
-	create_count: number;
-	date: string;
+export type TransactionCreateSplitRequest = {
+	account_id: string;
 	amount: string;
-	currency: string;
-	description: string;
 	memo: string;
-	debit_account: {
-		id: string;
-		name: string;
-		full_name: string;
-		currency: string;
+};
+
+export type TransactionCreateRequest = {
+	date: string;
+	description: string;
+	currency: string;
+	splits: TransactionCreateSplitRequest[];
+};
+
+export type TransactionCreatePreviewAccount = {
+	id: string;
+	name: string;
+	full_name: string;
+	type: string;
+	currency: string;
+};
+
+export type TransactionCreateWarning = {
+	code: string;
+	message_key: string;
+};
+
+export type TransactionCreatePreviewSplit = {
+	index: number;
+	account: TransactionCreatePreviewAccount;
+	amount: string;
+	memo: string;
+};
+
+export type TransactionCreatePreviewResponse = {
+	preview_only: true;
+	confirm_allowed: boolean;
+	create_count: 1;
+	preview_token: string;
+	expires_at: string;
+	idempotency_key: string;
+	create_generation: number;
+	currency: string;
+	date: string;
+	description: string;
+	splits: TransactionCreatePreviewSplit[];
+	warnings: TransactionCreateWarning[];
+};
+
+export type TransactionCreatePreview = TransactionCreatePreviewResponse;
+
+export type TransactionCreateConfirmReadback = {
+	verified: boolean;
+	transaction_present: boolean;
+	split_count: number;
+	balanced: boolean;
+	currency_consistent: boolean;
+};
+
+export type TransactionCreateConfirmResult = {
+	status: 'created' | 'already_created';
+	transaction_id: string;
+	audit_ref: string;
+	backup_ref: string;
+	readback: {
+		verified: boolean;
+		transaction_present: boolean;
+		split_count: number;
+		balanced: boolean;
+		currency_consistent: boolean;
 	};
-	credit_account: {
-		id: string;
-		name: string;
-		full_name: string;
-		currency: string;
+	links: {
+		transaction: string;
+		explorer: string;
 	};
-	splits: Array<{
-		account_id: string;
-		amount: string;
-		currency: string;
-		memo: string;
-	}>;
-	warnings: string[];
+};
+
+export type TransactionCreateErrorEnvelope = {
+	error: {
+		code: string;
+		message_key: string;
+		field_path: string | null;
+		retryable: boolean;
+		recovery_ref: string | null;
+		request_ref: string;
+	};
+};
+
+export type TransactionCreateSettings = {
+	enabled: boolean;
+	effective_enabled: boolean;
+	deployment_writes_enabled: boolean;
+	user_can_create: boolean;
+	create_generation: number;
+	recovery_required: boolean;
+	reason_key: string;
 };
 
 export type TransactionValidationResult = {
@@ -657,7 +724,7 @@ export type TransactionValidationResult = {
 
 export type TransactionWriteResult = {
 	transaction_id: string;
-	backup_path: string;
+	backup_ref?: string;
 	audit_log_id: number | null;
 };
 

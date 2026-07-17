@@ -341,17 +341,22 @@ assert.match(
 assert.match(
 	newTransactionServer,
 	/`\/books\/\$\{activeBook\.id\}\/transactions\/create-preview`/,
-	'new transaction preview page must call only the non-mutating active-book create-preview endpoint'
+	'new transaction page must call the non-mutating active-book create-preview endpoint before confirm'
 );
 assert.match(
 	newTransactionServer,
-	/export const actions: Actions = \{\s*preview:\s*async/s,
-	'new transaction preview page must expose only a preview server action'
+	/export const actions: Actions = \{\s*preview:\s*async[\s\S]*confirm:\s*async/s,
+	'new transaction page must expose only the frozen preview and confirm server actions'
+);
+assert.match(
+	newTransactionServer,
+	/apiPostJson<TransactionCreateConfirmResult>[\s\S]*`\/books\/\$\{activeBook\.id\}\/transactions`[\s\S]*body:\s*\{\s*preview_token: previewToken,\s*transaction\s*\}[\s\S]*'Idempotency-Key': idempotencyKey/s,
+	'new transaction confirm action must call active-book CREATE only with preview_token, transaction, and Idempotency-Key'
 );
 assert.doesNotMatch(
 	newTransactionServer,
-	/env\.GNUCASH_WRITES_ENABLED !== 'true'[\s\S]*redirect\(303, '\/transactions'\)|\/transactions\/validate|`\/books\/\$\{bookId\}\/transactions`|`\/books\/\$\{activeBook\.id\}\/transactions`|\b(?:create|validate)\s*:\s*async|hasWriteAcknowledgement/,
-	'new transaction preview route must stay reachable with writes disabled and must not retain create/validate/write action code'
+	/env\.GNUCASH_WRITES_ENABLED !== 'true'[\s\S]*redirect\(303, '\/transactions'\)|\/transactions\/validate|`\/books\/\$\{bookId\}\/transactions`|\b(?:create|validate)\s*:\s*async|hasWriteAcknowledgement/,
+	'new transaction route must stay reachable with writes disabled and must not retain obsolete validate/write-ack/create action code'
 );
 
 const booksPageServer = read('src/routes/books/+page.server.ts');
@@ -937,35 +942,35 @@ assert.match(
 );
 assert.match(
 	newTransactionPage,
-	/Preview only \/ no write executed[\s\S]*POST \/books\/&lbrace;book_id&rbrace;\/transactions\/create-preview[\s\S]*No CREATE, PATCH, DELETE, or batch operation is executed/s,
-	'new transaction page must state preview-only/no-write behavior and the exact non-mutating endpoint'
+	/transactionCreate\.subtitle[\s\S]*No transaction note field[\s\S]*Preview calls only the server preview endpoint[\s\S]*Backend policy decides confirm_allowed/s,
+	'new transaction page must state the SSR preview-confirm flow, preview boundary, and narrowed create scope'
 );
 
 assert.match(writeModeWarningComponent, /writeMode\.title[\s\S]*writeMode\.message[\s\S]*writeMode\.desktop[\s\S]*writeMode\.disposableOnly[\s\S]*writeMode\.createOnlyDogfood[\s\S]*writeMode\.evidence[\s\S]*writeMode\.staleLock[\s\S]*writeMode\.neverRealBook/s, 'write warning component must render localized warning keys');
 assert.match(
 	newTransactionPage,
-	/formaction="\?\/preview"[\s\S]*Preview transaction/s,
-	'new transaction page must submit only through the preview action'
+	/formaction="\?\/preview"[\s\S]*transactionCreate\.previewSubmit/s,
+	'new transaction page must submit draft intent through the preview action first'
 );
 assert.match(
 	newTransactionPage,
-	/type="button" disabled[\s\S]*Create disabled|Create disabled[\s\S]*type="button" disabled/s,
-	'new transaction page may show only an inert disabled Create control'
+	/id="confirm-create-form"[\s\S]*formaction="\?\/confirm"[\s\S]*confirmSubmitting/s,
+	'new transaction page must expose a separate explicit confirm form only after a server-allowed preview'
 );
 assert.doesNotMatch(
 	newTransactionPage,
-	/write_acknowledgement|experimental-write-mode-acknowledged|writeMode\.acknowledgement|writeMode\.finalConfirm|formaction="\?\/create"|Create transaction<\/button>/,
-	'new transaction preview page must not retain final-write acknowledgement or active create controls'
+	/write_acknowledgement|experimental-write-mode-acknowledged|writeMode\.acknowledgement|writeMode\.finalConfirm|formaction="\?\/create"|Create transaction<\/button>|localStorage|sessionStorage/,
+	'new transaction page must not retain old write acknowledgements, direct create controls, or browser storage'
 );
 assert.match(
 	newTransactionServer,
-	/if \(typeof detail === 'string'\) \{\s*const fieldErrors = fieldErrorsFromString\(detail\);\s*return \{ error: previewErrorSummary\(fieldErrors\), fieldErrors \};\s*\}/s,
-	'new transaction preview server errors must map string API details through fixed summaries instead of rendering raw details'
+	/transactionCreateFailure[\s\S]*safeCode[\s\S]*safeMessageKey[\s\S]*fieldErrorsFromFailure/s,
+	'new transaction server errors must map API envelopes through fixed code/message-key summaries instead of rendering raw details'
 );
 assert.doesNotMatch(
 	newTransactionServer,
-	/function safeMessage|safeMessage\(detail\)|return detail;/,
-	'new transaction preview server errors must avoid rendering raw path-like API details'
+	/function safeMessage\(|safeMessage\(detail\)|return detail;|backup_path/,
+	'new transaction server errors must avoid rendering raw path-like API details or backup paths'
 );
 assert.ok(
 	transactionDetailServer.includes('detail.length <= 180 && !/[\\\\/]/.test(detail)') &&

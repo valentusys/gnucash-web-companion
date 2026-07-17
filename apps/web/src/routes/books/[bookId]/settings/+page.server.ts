@@ -7,10 +7,20 @@ import {
 	getCurrentUser,
 	isCurrentUserAdmin
 } from '$lib/api/server';
-import type { Book, BookPreflightRequest, BookPreflightResponse } from '$lib/api/types';
+import type { Book, BookPreflightRequest, BookPreflightResponse, TransactionCreateSettings } from '$lib/api/types';
 import type { Actions, PageServerLoad } from './$types';
 
-type LifecycleSuccessCode = 'recheck' | 'rename' | 'set_default' | 'disable' | 'enable';
+type LifecycleSuccessCode = 'recheck' | 'rename' | 'set_default' | 'disable' | 'enable' | 'transaction_create_settings';
+
+const FALLBACK_TRANSACTION_CREATE_SETTINGS: TransactionCreateSettings = {
+	enabled: false,
+	effective_enabled: false,
+	deployment_writes_enabled: false,
+	user_can_create: false,
+	create_generation: 1,
+	recovery_required: false,
+	reason_key: 'CREATE_DEPLOYMENT_DISABLED'
+};
 
 function bookIdFromParams(params: { bookId?: string }): number {
 	const bookId = Number(params.bookId);
@@ -38,16 +48,30 @@ async function loadBook(fetchFn: typeof globalThis.fetch, token: string, bookId:
 	return apiFetch<Book>(fetchFn, `/books/${bookId}`, token);
 }
 
+async function loadTransactionCreateSettings(
+	fetchFn: typeof globalThis.fetch,
+	token: string,
+	bookId: number
+): Promise<TransactionCreateSettings> {
+	try {
+		return await apiFetch<TransactionCreateSettings>(fetchFn, `/books/${bookId}/transaction-create-settings`, token);
+	} catch {
+		return FALLBACK_TRANSACTION_CREATE_SETTINGS;
+	}
+}
+
 export const load: PageServerLoad = async ({ cookies, fetch, params }) => {
 	const bookId = bookIdFromParams(params);
 	const token = getAuthToken(cookies);
-	const [book, currentUser] = await Promise.all([
+	const [book, currentUser, transactionCreateSettings] = await Promise.all([
 		loadBook(fetch, token, bookId),
-		getCurrentUser(fetch, token)
+		getCurrentUser(fetch, token),
+		loadTransactionCreateSettings(fetch, token, bookId)
 	]);
 	return {
 		book,
-		isAdmin: isCurrentUserAdmin(currentUser)
+		isAdmin: isCurrentUserAdmin(currentUser),
+		transactionCreateSettings
 	};
 };
 
@@ -81,6 +105,24 @@ export const actions: Actions = {
 		const result = await apiMutationFetch<Book>(fetch, token, `/books/${bookId}/default`, 'POST');
 		if (!result.ok) return fail(result.status, { lifecycleErrorCode: result.message });
 		return { lifecycleSuccessCode: 'set_default' satisfies LifecycleSuccessCode };
+	},
+	patchTransactionCreateSettings: async ({ cookies, fetch, params, request }) => {
+		const bookId = bookIdFromParams(params);
+		const token = getAuthToken(cookies);
+		const form = await request.formData();
+		const enabled = textField(form, 'enabled') === 'true';
+		const result = await apiMutationFetch<TransactionCreateSettings>(
+			fetch,
+			token,
+			`/books/${bookId}/transaction-create-settings`,
+			'PATCH',
+			{ enabled }
+		);
+		if (!result.ok) return fail(result.status, { lifecycleErrorCode: result.message });
+		return {
+			lifecycleSuccessCode: 'transaction_create_settings' satisfies LifecycleSuccessCode,
+			transactionCreateSettings: result.payload
+		};
 	},
 	disableBook: async ({ cookies, fetch, params, request }) => {
 		const bookId = bookIdFromParams(params);
