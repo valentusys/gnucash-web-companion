@@ -706,13 +706,31 @@ export type TransactionCreateErrorEnvelope = {
 };
 
 export type TransactionCreateSettings = {
+	known?: boolean;
 	enabled: boolean;
-	effective_enabled: boolean;
-	deployment_writes_enabled: boolean;
-	user_can_create: boolean;
+	effective_enabled?: boolean;
+	deployment_writes_enabled?: boolean;
+	user_can_create?: boolean;
 	create_generation: number;
+	transaction_create_generation?: number;
 	recovery_required: boolean;
-	reason_key: string;
+	reason_key?: string;
+	deployment?: {
+		enabled?: boolean;
+		writes_enabled?: boolean;
+		code?: string;
+	};
+	generation?: number;
+	recovery?: {
+		required?: boolean;
+		code?: string;
+	};
+	can_enable?: boolean;
+	blocked_codes?: string[];
+	effective?: {
+		enabled?: boolean;
+		confirm_allowed?: boolean;
+	};
 };
 
 export type TransactionValidationResult = {

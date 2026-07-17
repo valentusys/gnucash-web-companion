@@ -715,8 +715,53 @@ export type MessageKey =
 	| 'writeMode.newTransactionHelp'
 	| 'transactionCreate.title'
 	| 'transactionCreate.subtitle'
+	| 'transactionCreate.policyTitle'
+	| 'transactionCreate.policyBook'
+	| 'transactionCreate.policyBookNone'
+	| 'transactionCreate.policyState'
+	| 'transactionCreate.policyUnknown'
+	| 'transactionCreate.policyServerDecided'
+	| 'transactionCreate.visibleAccounts'
+	| 'transactionCreate.scopeTitle'
+	| 'transactionCreate.scopeCopy'
+	| 'transactionCreate.requestFailedTitle'
+	| 'transactionCreate.requestRef'
+	| 'transactionCreate.recoveryRef'
+	| 'transactionCreate.dateLabel'
+	| 'transactionCreate.currencyLabel'
+	| 'transactionCreate.descriptionLabel'
+	| 'transactionCreate.splitEditorTitle'
+	| 'transactionCreate.splitEditorHelp'
+	| 'transactionCreate.addSplit'
+	| 'transactionCreate.addSplitLimit'
+	| 'transactionCreate.runningBalance'
+	| 'transactionCreate.splitLegend'
+	| 'transactionCreate.accountLabel'
+	| 'transactionCreate.accountChoose'
+	| 'transactionCreate.amountLabel'
+	| 'transactionCreate.memoLabel'
+	| 'transactionCreate.selectedAccount'
+	| 'transactionCreate.none'
+	| 'transactionCreate.moveUp'
+	| 'transactionCreate.moveDown'
+	| 'transactionCreate.removeSplit'
+	| 'transactionCreate.previewHelp'
 	| 'transactionCreate.previewSubmit'
+	| 'transactionCreate.previewStaleTitle'
+	| 'transactionCreate.normalizedPreviewTitle'
+	| 'transactionCreate.confirmAllowed'
+	| 'transactionCreate.createCount'
+	| 'transactionCreate.expiresAt'
+	| 'transactionCreate.generation'
+	| 'transactionCreate.previewSplit'
+	| 'transactionCreate.memoDisplay'
+	| 'transactionCreate.confirmTitle'
+	| 'transactionCreate.confirmHelp'
 	| 'transactionCreate.confirmSubmit'
+	| 'transactionCreate.confirmUnavailableTitle'
+	| 'transactionCreate.confirmUnavailableHelp'
+	| 'transactionCreate.safeResultsTitle'
+	| 'transactionCreate.safeResultsHelp'
 	| 'transactionCreate.balanceZero'
 	| 'transactionCreate.balanceNonZero'
 	| 'transactionCreate.previewStale'
@@ -1691,8 +1736,53 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'writeMode.newTransactionHelp': 'Creates one simple two-split test transaction only for copied-book dogfood. It is not for production entries; verify backup/restore evidence before and after the final write.',
 		'transactionCreate.title': 'New transaction',
 		'transactionCreate.subtitle': 'SSR-first preview and confirm flow for one registered book. Backend policy remains authoritative; no draft is stored in browser storage.',
+		'transactionCreate.policyTitle': 'CREATE policy',
+		'transactionCreate.policyBook': 'Book',
+		'transactionCreate.policyBookNone': 'No active book',
+		'transactionCreate.policyState': 'Policy',
+		'transactionCreate.policyUnknown': 'unknown/server-decided',
+		'transactionCreate.policyServerDecided': 'Initial policy is unknown/server-decided until preview returns confirm_allowed.',
+		'transactionCreate.visibleAccounts': 'Visible accounts',
+		'transactionCreate.scopeTitle': 'Scope',
+		'transactionCreate.scopeCopy': '2..50 split rows; no transaction note field; no FX conversion; no PATCH, DELETE, batch, import, or banking action.',
+		'transactionCreate.requestFailedTitle': 'Request failed safely',
+		'transactionCreate.requestRef': 'request_ref',
+		'transactionCreate.recoveryRef': 'recovery_ref',
+		'transactionCreate.dateLabel': 'Date',
+		'transactionCreate.currencyLabel': 'Currency',
+		'transactionCreate.descriptionLabel': 'Description',
+		'transactionCreate.splitEditorTitle': 'Split editor',
+		'transactionCreate.splitEditorHelp': 'Use 2..50 split rows. Amounts are signed decimal strings and must produce exact zero-sum before confirm.',
+		'transactionCreate.addSplit': 'Add split',
+		'transactionCreate.addSplitLimit': 'Maximum 50 split rows reached',
+		'transactionCreate.runningBalance': 'Running balance',
+		'transactionCreate.splitLegend': 'Split',
+		'transactionCreate.accountLabel': 'Account',
+		'transactionCreate.accountChoose': 'Choose account',
+		'transactionCreate.amountLabel': 'Amount',
+		'transactionCreate.memoLabel': 'Split memo',
+		'transactionCreate.selectedAccount': 'Selected account',
+		'transactionCreate.none': 'none',
+		'transactionCreate.moveUp': 'Move up',
+		'transactionCreate.moveDown': 'Move down',
+		'transactionCreate.removeSplit': 'Remove split',
+		'transactionCreate.previewHelp': 'Preview calls only the server preview endpoint. Backend policy decides confirm_allowed.',
 		'transactionCreate.previewSubmit': 'Preview transaction',
+		'transactionCreate.previewStaleTitle': 'Draft changed after preview',
+		'transactionCreate.normalizedPreviewTitle': 'Normalized preview',
+		'transactionCreate.confirmAllowed': 'confirm_allowed',
+		'transactionCreate.createCount': 'create_count',
+		'transactionCreate.expiresAt': 'expires_at',
+		'transactionCreate.generation': 'create_generation',
+		'transactionCreate.previewSplit': 'Split',
+		'transactionCreate.memoDisplay': 'Memo',
+		'transactionCreate.confirmTitle': 'Confirm CREATE',
+		'transactionCreate.confirmHelp': 'Confirm reuses the same idempotency_key and preview_token. Double-submit suppression disables this button while submitting.',
 		'transactionCreate.confirmSubmit': 'Confirm create',
+		'transactionCreate.confirmUnavailableTitle': 'Confirm unavailable',
+		'transactionCreate.confirmUnavailableHelp': 'Confirm is disabled unless confirm_allowed is true and the preview is not stale.',
+		'transactionCreate.safeResultsTitle': 'Safe result states',
+		'transactionCreate.safeResultsHelp': 'created and already_created are the only success states. UI never displays backup filenames or raw backend details.',
 		'transactionCreate.balanceZero': 'Exact zero-sum balance reached.',
 		'transactionCreate.balanceNonZero': 'Splits must sum to exact zero before preview or confirm.',
 		'transactionCreate.previewStale': 'Draft changed after preview. Run a new preview before confirming.',
@@ -2688,8 +2778,53 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'writeMode.newTransactionHelp': 'Создаёт только одну простую two-split test transaction для copied-book dogfood. Это не для production entries; проверьте backup/restore evidence до и после финальной записи.',
 		'transactionCreate.title': 'Новая транзакция',
 		'transactionCreate.subtitle': 'SSR-first preview/confirm flow для одной зарегистрированной книги. Backend policy остаётся главным; draft не хранится в browser storage.',
+		'transactionCreate.policyTitle': 'Политика CREATE',
+		'transactionCreate.policyBook': 'Книга',
+		'transactionCreate.policyBookNone': 'Активная книга не выбрана',
+		'transactionCreate.policyState': 'Политика',
+		'transactionCreate.policyUnknown': 'unknown/server-decided',
+		'transactionCreate.policyServerDecided': 'Начальная policy неизвестна/server-decided до preview с confirm_allowed.',
+		'transactionCreate.visibleAccounts': 'Видимые accounts',
+		'transactionCreate.scopeTitle': 'Scope',
+		'transactionCreate.scopeCopy': '2..50 split rows; без transaction note; без FX conversion; без PATCH, DELETE, batch, import или banking actions.',
+		'transactionCreate.requestFailedTitle': 'Запрос завершился безопасной ошибкой',
+		'transactionCreate.requestRef': 'request_ref',
+		'transactionCreate.recoveryRef': 'recovery_ref',
+		'transactionCreate.dateLabel': 'Дата',
+		'transactionCreate.currencyLabel': 'Валюта',
+		'transactionCreate.descriptionLabel': 'Описание',
+		'transactionCreate.splitEditorTitle': 'Редактор splits',
+		'transactionCreate.splitEditorHelp': 'Используйте 2..50 split rows. Amounts — signed decimal strings; перед confirm нужен exact zero-sum.',
+		'transactionCreate.addSplit': 'Добавить split',
+		'transactionCreate.addSplitLimit': 'Достигнут максимум 50 split rows',
+		'transactionCreate.runningBalance': 'Running balance',
+		'transactionCreate.splitLegend': 'Split',
+		'transactionCreate.accountLabel': 'Account',
+		'transactionCreate.accountChoose': 'Выберите account',
+		'transactionCreate.amountLabel': 'Amount',
+		'transactionCreate.memoLabel': 'Split memo',
+		'transactionCreate.selectedAccount': 'Выбранный account',
+		'transactionCreate.none': 'нет',
+		'transactionCreate.moveUp': 'Вверх',
+		'transactionCreate.moveDown': 'Вниз',
+		'transactionCreate.removeSplit': 'Удалить split',
+		'transactionCreate.previewHelp': 'Preview вызывает только server preview endpoint. Backend policy решает confirm_allowed.',
 		'transactionCreate.previewSubmit': 'Предпросмотр транзакции',
+		'transactionCreate.previewStaleTitle': 'Draft изменился после preview',
+		'transactionCreate.normalizedPreviewTitle': 'Нормализованный preview',
+		'transactionCreate.confirmAllowed': 'confirm_allowed',
+		'transactionCreate.createCount': 'create_count',
+		'transactionCreate.expiresAt': 'expires_at',
+		'transactionCreate.generation': 'create_generation',
+		'transactionCreate.previewSplit': 'Split',
+		'transactionCreate.memoDisplay': 'Memo',
+		'transactionCreate.confirmTitle': 'Подтверждение CREATE',
+		'transactionCreate.confirmHelp': 'Confirm повторно использует тот же idempotency_key и preview_token. Double-submit suppression отключает кнопку во время submit.',
 		'transactionCreate.confirmSubmit': 'Подтвердить CREATE',
+		'transactionCreate.confirmUnavailableTitle': 'Confirm недоступен',
+		'transactionCreate.confirmUnavailableHelp': 'Confirm отключён, пока confirm_allowed не true или preview stale.',
+		'transactionCreate.safeResultsTitle': 'Безопасные result states',
+		'transactionCreate.safeResultsHelp': 'created и already_created — единственные success states. UI никогда не показывает backup filenames или raw backend details.',
 		'transactionCreate.balanceZero': 'Достигнут точный zero-sum balance.',
 		'transactionCreate.balanceNonZero': 'Сумма split rows должна быть ровно ноль до preview или confirm.',
 		'transactionCreate.previewStale': 'Draft изменился после preview. Запустите новый preview перед confirm.',

@@ -442,10 +442,26 @@ async function fillProductForm(cdp, amountA = '-12.34', amountB = '12.34') {
 async function clickByText(cdp, text) {
 	await evaluate(cdp, `(() => {
 		const button = Array.from(document.querySelectorAll('button')).find((item) => (item.textContent || '').includes(${jsString(text)}));
-		if (!button) throw new Error('missing button ' + ${jsString(text)});
+		if (!button) {
+			const buttons = Array.from(document.querySelectorAll('button')).map((item) => ({ text: (item.textContent || '').trim(), type: item.type, form: item.form?.id ?? null }));
+			throw new Error('missing button ' + ${jsString(text)} + '; buttons=' + JSON.stringify(buttons));
+		}
 		const form = button.form;
 		if (button.type === 'submit' && form) form.requestSubmit(button);
 		else button.click();
+	})()`);
+}
+
+async function submitConfirmCreateForm(cdp) {
+	await evaluate(cdp, `(() => {
+		const form = document.querySelector('#confirm-create-form');
+		if (!form) throw new Error('missing confirm-create-form');
+		const submitButton = form.querySelector('button[type="submit"]');
+		if (!submitButton) throw new Error('missing confirm-create submit button; form=' + form.outerHTML);
+		if (!(submitButton.textContent || '').includes('Confirm create')) {
+			throw new Error('unexpected confirm-create submit label: ' + (submitButton.textContent || '').trim());
+		}
+		form.requestSubmit(submitButton);
 	})()`);
 }
 
@@ -531,7 +547,7 @@ async function runSmoke() {
 		await fillProductForm(cdp);
 		await clickByText(cdp, 'Preview transaction');
 		await waitForExpression(cdp, `document.querySelector('#confirm-create-form')`, 'fresh confirm form visible');
-		await clickByText(cdp, 'Confirm create');
+		await submitConfirmCreateForm(cdp);
 		await waitForExpression(cdp, `location.pathname === '/transactions/synthetic-created-1'`, 'confirm redirected to detail');
 
 		const browserState = await evaluate(cdp, `(() => ({

@@ -28,6 +28,21 @@ assert.equal(
 	'npm run build && node scripts/test-transaction-create-product-browser.mjs',
 	'package.json must expose the #59 deterministic synthetic browser guard'
 );
+assert.equal(
+	packageJson.scripts?.['test:transaction-entry-preview'],
+	'node scripts/test-transaction-entry-preview.mjs',
+	'legacy transaction-entry static gate must keep its direct canonical script'
+);
+assert.equal(
+	packageJson.scripts?.['test:transaction-entry-preview-browser'],
+	'npm run build && node scripts/test-transaction-entry-preview-browser.mjs',
+	'legacy transaction-entry browser gate must keep the existing browser script'
+);
+assert.equal(
+	packageJson.scripts?.['test:transaction-entry-create-disposable-browser'],
+	'npm run build && node scripts/test-transaction-entry-preview-browser.mjs',
+	'legacy disposable CREATE gate must keep the existing real synthetic/disposable browser drill'
+);
 
 for (const fragment of [
 	'TransactionCreateRequest',
@@ -38,6 +53,9 @@ for (const fragment of [
 	'preview_token: string',
 	'idempotency_key: string',
 	'create_generation: number',
+	'transaction_create_generation?: number',
+	'can_enable?: boolean',
+	'blocked_codes?: string[]',
 	'message_key: string',
 	'backup_ref: string',
 	'readback: {'
@@ -52,7 +70,12 @@ assert.match(server, /apiPostJson<TransactionCreatePreviewResponse>[\s\S]*\/tran
 assert.match(server, /apiPostJson<TransactionCreateConfirmResult>[\s\S]*`\/books\/\$\{activeBook\.id\}\/transactions`[\s\S]*'Idempotency-Key': idempotencyKey/s, 'confirm action must call POST /transactions with Idempotency-Key from the preview');
 assert.match(server, /body:\s*\{\s*preview_token: previewToken,\s*transaction\s*\}/s, 'confirm action must send {preview_token, transaction} exactly');
 assert.match(server, /SUPPORTED_CREATE_MESSAGE_KEYS[\s\S]*transactionCreate\.error\.generic[\s\S]*safeMessageKey[\s\S]*SUPPORTED_CREATE_MESSAGE_KEYS\.has/s, 'server must accept only fixed transactionCreate message keys from the backend envelope');
-assert.match(server, /function safeCreateRedirectPath[\s\S]*target\.origin !== 'http:\/\/frontend\.local'[\s\S]*pathname === '\/transactions'[\s\S]*pathname\.startsWith\('\/transactions\/'\)[\s\S]*searchParams\.set\('create_status'/s, 'confirm success redirect must clamp backend links to safe transaction routes');
+assert.match(server, /const SAFE_TRANSACTION_ID_RE[\s\S]*function safeOpaqueRef[\s\S]*REQUEST_REF_RE[\s\S]*RECOVERY_REF_RE/s, 'server must clamp request/recovery refs to fixed opaque formats before rendering');
+assert.match(server, /function safeCreateRedirectPath[\s\S]*SAFE_TRANSACTION_ID_RE[\s\S]*target\.hash = ''[\s\S]*target\.search = ''[\s\S]*create_status/s, 'confirm success redirect must discard backend query/hash and add only trusted create_status');
+assert.doesNotMatch(server, /return `\$\{target\.pathname\}\$\{target\.search\}\$\{target\.hash\}`/, 'confirm success redirect must never preserve backend query/hash');
+assert.match(server, /function retryPreviewFromConfirmFailure[\s\S]*preview_token: previewToken[\s\S]*idempotency_key: idempotencyKey/s, 'retryable confirm failures must rebuild server-rendered retry state with the same token/key');
+assert.match(server, /isSafeRetryableConfirmFailure[\s\S]*CREATE_IN_PROGRESS[\s\S]*BOOK_WRITE_BUSY/s, 'only typed safe retryable confirm failures may offer a mutation retry form');
+assert.match(server, /result\.ok === false[\s\S]*retryPreviewFromConfirmFailure[\s\S]*preview: retryPreview/s, 'confirm failure action must preserve retry preview for safe retryable errors');
 assert.doesNotMatch(server, /detail\s*[:=]|return\s+detail|safeMessage\(detail\)/, 'server must not render arbitrary backend detail strings');
 assert.doesNotMatch(server, /localStorage|sessionStorage|create_book_backup|write_lock|GnuCashWriteService|backup_path/, 'frontend server route must not persist drafts or call backend write helpers directly');
 
@@ -65,16 +88,16 @@ for (const fragment of [
 	'name="split_amount"',
 	'name="split_memo"',
 	'id="split-editor"',
-	'Add split',
-	'Remove split',
-	'Move up',
-	'Move down',
+	'transactionCreate.addSplit',
+	'transactionCreate.removeSplit',
+	'transactionCreate.moveUp',
+	'transactionCreate.moveDown',
 	'aria-live="polite"',
 	'id="running-balance"',
-	'Exact zero-sum',
-	'2..50 split rows',
-	'No transaction note field',
-	'full path / type / currency',
+	'transactionCreate.balanceZero',
+	'transactionCreate.splitEditorHelp',
+	'transactionCreate.scopeCopy',
+	'account.full_name',
 	'formaction="?/preview"',
 	'id="confirm-create-form"',
 	'formaction="?/confirm"',
@@ -83,7 +106,7 @@ for (const fragment of [
 	'name="transaction_json"',
 	'confirm_allowed',
 	'previewIsStale',
-	'Draft changed after preview',
+	'transactionCreate.previewStaleTitle',
 	'created',
 	'already_created',
 	'320px no horizontal overflow'
@@ -91,18 +114,49 @@ for (const fragment of [
 	assert.ok(page.includes(fragment), `transaction create page missing #59 UI fragment: ${fragment}`);
 }
 
-assert.match(page, /function decimalStringToUnits[\s\S]*BigInt/s, 'running balance must use string/BigInt decimal logic');
+assert.match(page, /function decimalStringToParts[\s\S]*function scaleDecimalParts[\s\S]*BigInt[\s\S]*function decimalStringToUnits/s, 'running balance must use string/BigInt decimal logic');
+assert.match(page, /function decimalStringToParts[\s\S]*function scaleDecimalParts[\s\S]*maxScale/s, 'running balance must align arbitrary decimal strings at the maximum fractional scale');
+assert.doesNotMatch(page, /fraction\.length > 2|padEnd\(2|slice\(-2\)|\.00\b/, 'running balance must not hard-code a 2-decimal scale');
 assert.match(page, /isKnownMessageKey[\s\S]*messages\[DEFAULT_LOCALE\][\s\S]*transactionCreate\.error\.generic/s, 'page must map backend-provided message keys through the fixed EN/RU catalog');
 assert.doesNotMatch(page, /parseFloat|parseInt\([^,)]*\)|Number\(/, 'transaction money UI must not use JS numeric parsing for amounts');
 assert.doesNotMatch(page, /name="note"|transaction_note/i, 'transaction note field must not be submitted');
 assert.doesNotMatch(page, /localStorage|sessionStorage/, 'transaction drafts and tokens must not be stored in browser storage');
 assert.match(page, /{#if preview && preview\.confirm_allowed && !previewIsStale}[\s\S]*<form id="confirm-create-form"/s, 'confirm form must be separate and shown only for non-stale confirm_allowed preview');
 assert.match(page, /onsubmit=\{handleConfirmSubmit\}[\s\S]*disabled=\{confirmSubmitting\}/s, 'confirm form must disable while submitting for double-submit suppression');
+assert.match(page, /function addSplit\(\)[\s\S]*splits\.length >= 50[\s\S]*disabled=\{splits\.length >= 50\}/s, 'add split control must be disabled at 50 rows in UI code');
+assert.match(page, /disabled=\{splits\.length <= 2\}/s, 'remove split control must remain disabled at the 2-row lower bound');
+assert.match(page, /transactionCreate\.policyTitle[\s\S]*transactionCreate\.dateLabel[\s\S]*transactionCreate\.safeResultsTitle/s, 'visible #59 labels must be catalog-backed instead of fixed English');
+for (const forbiddenLiteral of [
+	'CREATE policy',
+	'Split editor',
+	'Running balance:',
+	'Draft changed after preview',
+	'Normalized preview',
+	'Confirm CREATE',
+	'Confirm unavailable',
+	'Safe result states',
+	'Date',
+	'Currency',
+	'Description',
+	'Account',
+	'Amount',
+	'Split memo'
+]) {
+	assert.ok(!page.includes(`>${forbiddenLiteral}<`) && !page.includes(`>${forbiddenLiteral}\n`), `visible literal must move to catalog: ${forbiddenLiteral}`);
+}
 
 for (const key of [
 	'transactionCreate.title',
 	'transactionCreate.previewSubmit',
 	'transactionCreate.confirmSubmit',
+	'transactionCreate.policyTitle',
+	'transactionCreate.dateLabel',
+	'transactionCreate.currencyLabel',
+	'transactionCreate.descriptionLabel',
+	'transactionCreate.splitEditorTitle',
+	'transactionCreate.addSplit',
+	'transactionCreate.removeSplit',
+	'transactionCreate.safeResultsTitle',
 	'transactionCreate.balanceZero',
 	'transactionCreate.previewStale',
 	'transactionCreate.success.created',
@@ -114,6 +168,9 @@ for (const key of [
 	'books.transactionCreateDisableAction'
 ]) {
 	assert.ok(messages.includes(`'${key}'`), `EN/RU catalog missing message key ${key}`);
+}
+for (const key of ['transactionCreate.policyTitle', 'transactionCreate.dateLabel', 'transactionCreate.safeResultsTitle']) {
+	assert.match(messages, new RegExp(`'${key}': '[^']+'[\\s\\S]*ru: [\\s\\S]*'${key}': '[^']+'`), `message key ${key} must have EN and RU entries`);
 }
 
 assert.match(bookSettingsServer, /transaction-create-settings/s, 'book settings server must load the transaction-create settings endpoint');

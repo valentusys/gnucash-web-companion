@@ -35,13 +35,11 @@ type PostJsonOptions = {
 };
 
 const FALLBACK_CREATE_SETTINGS: TransactionCreateSettings = {
+	known: false,
 	enabled: false,
-	effective_enabled: false,
-	deployment_writes_enabled: false,
-	user_can_create: false,
 	create_generation: 1,
 	recovery_required: false,
-	reason_key: 'CREATE_DEPLOYMENT_DISABLED'
+	blocked_codes: []
 };
 
 const SUPPORTED_CREATE_CODES = new Set([
@@ -78,6 +76,15 @@ const SUPPORTED_CREATE_MESSAGE_KEYS = new Set([
 	...Array.from(SUPPORTED_CREATE_CODES, (code) => `transactionCreate.error.${code}`)
 ]);
 
+const SAFE_TRANSACTION_ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
+function safeOpaqueRef(value: unknown, pattern: RegExp, fallback: string | null): string | null {
+	if (typeof value !== 'string') return fallback;
+	const trimmed = value.trim();
+	return pattern.test(trimmed) ? trimmed : fallback;
+}
+const REQUEST_REF_RE = /^req_[A-Za-z0-9_-]{8,64}$/;
+const RECOVERY_REF_RE = /^rcv_[A-Za-z0-9_-]{8,64}$/;
+
 function apiBase(): string {
 	return env.API_INTERNAL_URL ?? 'http://localhost:8000';
 }
@@ -99,18 +106,23 @@ function safeMessageKey(value: unknown, code: string): string {
 
 function safeCreateRedirectPath(result: TransactionCreateConfirmResult): string {
 	const fallback = '/transactions';
+	const status = result.status === 'already_created' ? 'already_created' : 'created';
 	const link = result.links.transaction;
 	try {
 		const target = new URL(typeof link === 'string' ? link : fallback, 'http://frontend.local');
-		if (target.origin !== 'http://frontend.local') return `${fallback}?create_status=${result.status}`;
-		if (!(target.pathname === '/transactions' || target.pathname.startsWith('/transactions/'))) {
-			return `${fallback}?create_status=${result.status}`;
+		if (target.origin !== 'http://frontend.local') return `${fallback}?create_status=${status}`;
+		if (target.pathname !== '/transactions') {
+			if (!target.pathname.startsWith('/transactions/')) return `${fallback}?create_status=${status}`;
+			const transactionId = target.pathname.slice('/transactions/'.length);
+			if (!SAFE_TRANSACTION_ID_RE.test(transactionId)) return `${fallback}?create_status=${status}`;
 		}
-		if (target.pathname.includes('\\')) return `${fallback}?create_status=${result.status}`;
-		target.searchParams.set('create_status', result.status);
-		return `${target.pathname}${target.search}${target.hash}`;
+		if (target.pathname.includes('\\')) return `${fallback}?create_status=${status}`;
+		target.hash = '';
+		target.search = '';
+		target.searchParams.set('create_status', status);
+		return `${target.pathname}${target.search}`;
 	} catch {
-		return `${fallback}?create_status=${result.status}`;
+		return `${fallback}?create_status=${status}`;
 	}
 }
 
@@ -125,8 +137,8 @@ function transactionCreateFailure(status: number, payload: unknown): ApiJsonFail
 		messageKey: safeMessageKey(errorPayload.message_key, code),
 		fieldPath: typeof errorPayload.field_path === 'string' ? errorPayload.field_path : null,
 		retryable: typeof errorPayload.retryable === 'boolean' ? errorPayload.retryable : false,
-		recoveryRef: typeof errorPayload.recovery_ref === 'string' ? errorPayload.recovery_ref : null,
-		requestRef: typeof errorPayload.request_ref === 'string' ? errorPayload.request_ref : 'unavailable'
+		recoveryRef: safeOpaqueRef(errorPayload.recovery_ref, RECOVERY_REF_RE, null),
+		requestRef: safeOpaqueRef(errorPayload.request_ref, REQUEST_REF_RE, 'req_unavailable') ?? 'req_unavailable'
 	};
 }
 
@@ -263,6 +275,44 @@ function transactionFromJson(raw: string): TransactionCreateRequest | null {
 	}
 }
 
+function isSafeRetryableConfirmFailure(result: ApiJsonFailure): boolean {
+	return result.retryable === true && (result.code === 'CREATE_IN_PROGRESS' || result.code === 'BOOK_WRITE_BUSY');
+}
+
+function retryPreviewFromConfirmFailure(
+	transaction: TransactionCreateRequest,
+	previewToken: string,
+	idempotencyKey: string,
+	result: ApiJsonFailure
+): TransactionCreatePreviewResponse | null {
+	if (!previewToken || !idempotencyKey || !isSafeRetryableConfirmFailure(result)) return null;
+	return {
+		preview_only: true,
+		confirm_allowed: true,
+		create_count: 1,
+		preview_token: previewToken,
+		expires_at: '',
+		idempotency_key: idempotencyKey,
+		create_generation: 0,
+		currency: transaction.currency,
+		date: transaction.date,
+		description: transaction.description,
+		splits: transaction.splits.map((split, index) => ({
+			index,
+			account: {
+				id: split.account_id,
+				name: '',
+				full_name: split.account_id,
+				type: '',
+				currency: transaction.currency
+			},
+			amount: split.amount,
+			memo: split.memo
+		})),
+		warnings: []
+	};
+}
+
 export const load: PageServerLoad = async ({ cookies, fetch }) => {
 	const token = getAuthToken(cookies);
 	const { books, activeBook, bookPrefix } = await getActiveBookContext(fetch, cookies, token);
@@ -346,6 +396,7 @@ export const actions: Actions = {
 			}
 		);
 		if (result.ok === false) {
+			const retryPreview = retryPreviewFromConfirmFailure(transaction, previewToken, idempotencyKey, result);
 			return fail(result.status, {
 				errorCode: result.code,
 				errorKey: result.messageKey,
@@ -353,7 +404,8 @@ export const actions: Actions = {
 				retryable: result.retryable,
 				recoveryRef: result.recoveryRef,
 				fieldErrors: fieldErrorsFromFailure(result),
-				payload: transaction
+				payload: transaction,
+				preview: retryPreview
 			});
 		}
 		throw redirect(303, safeCreateRedirectPath(result.body));

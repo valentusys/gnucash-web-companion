@@ -942,7 +942,7 @@ assert.match(
 );
 assert.match(
 	newTransactionPage,
-	/transactionCreate\.subtitle[\s\S]*No transaction note field[\s\S]*Preview calls only the server preview endpoint[\s\S]*Backend policy decides confirm_allowed/s,
+	/transactionCreate\.subtitle[\s\S]*transactionCreate\.scopeCopy[\s\S]*transactionCreate\.previewHelp/s,
 	'new transaction page must state the SSR preview-confirm flow, preview boundary, and narrowed create scope'
 );
 

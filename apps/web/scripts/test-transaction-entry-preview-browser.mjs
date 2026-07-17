@@ -191,6 +191,8 @@ const expectedFailureResetSummaries = [
 ];
 const previewPayloadFieldNames = ['amount', 'credit_account_id', 'currency', 'date', 'debit_account_id', 'description', 'memo'].sort();
 const cdpCommandTimeoutMs = Number(process.env.ISSUE51_CDP_TIMEOUT_MS ?? '120000');
+const productPreviewToken = 'pt1.issue51.real-disposable.preview.signature';
+const productIdempotencyKey = '11111111-2222-4333-8444-issue51real';
 
 const syntheticCurrentUser = Object.freeze({
 	id: 1,
@@ -281,6 +283,73 @@ const syntheticAccounts = [
 		parent_id: null
 	}
 ];
+
+function isProductTransactionPreviewPayload(payload) {
+	return Boolean(
+		payload &&
+		typeof payload === 'object' &&
+		Array.isArray(payload.splits) &&
+		payload.splits.length >= 2 &&
+		typeof payload.date === 'string' &&
+		typeof payload.currency === 'string' &&
+		typeof payload.description === 'string'
+	);
+}
+
+function productSplitAmount(payload, index) {
+	return String(payload.splits?.[index]?.amount ?? '').trim();
+}
+
+function positiveAmountFromProductPayload(payload) {
+	for (const split of payload.splits ?? []) {
+		const amount = String(split?.amount ?? '').trim();
+		if (/^\+?[0-9]+(?:\.[0-9]+)?$/.test(amount) && amount !== '0' && !/^\+?0+(?:\.0+)?$/.test(amount)) {
+			return amount.replace(/^\+/, '');
+		}
+	}
+	const first = productSplitAmount(payload, 0).replace(/^-/, '');
+	return first || '0';
+}
+
+function legacyPreviewPayloadFromProductPayload(payload) {
+	return {
+		date: payload.date,
+		debit_account_id: String(payload.splits?.[0]?.account_id ?? ''),
+		credit_account_id: String(payload.splits?.[1]?.account_id ?? ''),
+		amount: positiveAmountFromProductPayload(payload),
+		currency: payload.currency,
+		description: payload.description,
+		memo: String(payload.splits?.[0]?.memo ?? payload.splits?.[1]?.memo ?? '')
+	};
+}
+
+function productPreviewResponseFromPayload(payload) {
+	return {
+		preview_only: true,
+		confirm_allowed: true,
+		create_count: 1,
+		preview_token: productPreviewToken,
+		expires_at: '2026-07-17T00:10:00Z',
+		idempotency_key: productIdempotencyKey,
+		create_generation: 7,
+		currency: payload.currency,
+		date: payload.date,
+		description: payload.description,
+		splits: payload.splits.map((split, index) => ({
+			index,
+			account: syntheticAccounts.find((account) => account.id === split.account_id) ?? {
+				id: String(split.account_id ?? ''),
+				name: 'Unknown synthetic account',
+				full_name: String(split.account_id ?? ''),
+				type: 'UNKNOWN',
+				currency: payload.currency
+			},
+			amount: String(split.amount ?? ''),
+			memo: String(split.memo ?? '')
+		})),
+		warnings: []
+	};
+}
 
 function readSource(...segments) {
 	return readFileSync(join(root, ...segments), 'utf8');
@@ -1053,6 +1122,19 @@ async function startSyntheticApi() {
 			if (req.method === 'GET' && url.pathname === '/books/1/accounts') {
 				return jsonResponse(res, 200, syntheticAccounts);
 			}
+			if (req.method === 'GET' && url.pathname === '/books/1/transaction-create-settings') {
+				return jsonResponse(res, 200, {
+					enabled: true,
+					deployment: { writes_enabled: true },
+					effective: { enabled: true },
+					generation: 7,
+					transaction_create_generation: 7,
+					recovery: { required: false },
+					recovery_required: false,
+					can_enable: true,
+					blocked_codes: []
+				});
+			}
 			if (req.method === 'GET' && url.pathname === '/books/1/transactions/create-readiness-status') {
 				return jsonResponse(res, 200, {
 					preview_only: true,
@@ -1078,7 +1160,25 @@ async function startSyntheticApi() {
 			}
 			if (req.method === 'POST' && url.pathname === '/books/1/transactions/create-preview') {
 				const payload = await readBody(req);
-				previewPayloads.push(payload);
+				const previewPayload = isProductTransactionPreviewPayload(payload)
+					? legacyPreviewPayloadFromProductPayload(payload)
+					: payload;
+				previewPayloads.push(previewPayload);
+				if (isProductTransactionPreviewPayload(payload)) {
+					if (payload.splits.some((split) => /^[-+]?0+(?:\.0+)?$/.test(String(split.amount ?? '').trim()))) {
+						return jsonResponse(res, 422, {
+							error: {
+								code: 'ZERO_SPLIT',
+								message_key: 'transactionCreate.error.ZERO_SPLIT',
+								field_path: 'splits[0].amount',
+								retryable: false,
+								recovery_ref: null,
+								request_ref: 'req_issue51_product_zero'
+							}
+						});
+					}
+					return jsonResponse(res, 200, productPreviewResponseFromPayload(payload));
+				}
 				if (payload.debit_account_id === payload.credit_account_id) {
 					return jsonResponse(res, 422, { detail: 'debit and credit accounts must be different' });
 				}
@@ -1369,6 +1469,32 @@ async function fillPreviewForm(cdp, { amount = syntheticAmount, description = sy
 	await setInput(cdp, '#preview-memo', memo);
 	await setSelect(cdp, '#debit-account-select', disposableSourceAccountId);
 	await setSelect(cdp, '#credit-account-select', disposableDestinationAccountId);
+}
+
+async function fillProductPreviewForm(cdp, { debitAmount = `-${syntheticAmount}`, creditAmount = syntheticAmount, description = syntheticDescription, memo = syntheticMemo } = {}) {
+	await setInput(cdp, '#transaction-date', '2026-07-05');
+	await setInput(cdp, '#transaction-currency', 'SEK');
+	await setInput(cdp, '#transaction-description', description);
+	await evaluate(cdp, `(() => {
+		const accounts = Array.from(document.querySelectorAll('select[name="split_account_id"]'));
+		const amounts = Array.from(document.querySelectorAll('input[name="split_amount"]'));
+		const memos = Array.from(document.querySelectorAll('input[name="split_memo"]'));
+		if (accounts.length < 2 || amounts.length < 2 || memos.length < 2) throw new Error('missing product split controls');
+		const setValue = (element, value) => {
+			const setter = Object.getOwnPropertyDescriptor(element.constructor.prototype, 'value')?.set;
+			if (setter) setter.call(element, value);
+			else element.value = value;
+			element.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: value }));
+			element.dispatchEvent(new Event('change', { bubbles: true }));
+		};
+		setValue(accounts[0], ${jsString(disposableSourceAccountId)});
+		setValue(accounts[1], ${jsString(disposableDestinationAccountId)});
+		setValue(amounts[0], ${jsString(debitAmount)});
+		setValue(amounts[1], ${jsString(creditAmount)});
+		setValue(memos[0], ${jsString(memo)});
+		setValue(memos[1], ${jsString(memo)});
+		return true;
+	})()`);
 }
 
 async function click(cdp, selector) {
@@ -3213,7 +3339,164 @@ async function assertExplicitSyntheticDeleteHarnessRejectsUserMode(api, browserR
 	);
 }
 
+async function runProductCreateModeSmoke() {
+	assertMutationRequestPredicates();
+	assertExplicitSyntheticCreateHarnessReviewedEvidenceRejectsUnreviewedOrUnlinkedEvidence();
+	assertProductDrillEnvironmentIsDisposableOnly(productDrillEnvironment());
+	assertRedactedSyntheticFailureUiDrillPanels(buildRedactedSyntheticFailureUiDrillPanels());
+	assert.ok(existsSync(viteBin), 'Vite must be installed before running the product-mode legacy browser smoke');
+	assert.ok(existsSync(previewServerIndex), 'Build output must exist before browser smoke; run npm run build before npm run test:transaction-entry-preview-browser');
+	assert.ok(existsSync(chromiumBin), `Chromium binary not found at ${chromiumBin}`);
+
+	const api = await startSyntheticApi();
+	const webPort = await getFreePort();
+	const debugPort = await getFreePort();
+	mkdirSync(smokeTempRoot, { recursive: true });
+	const profileDir = mkdtempSync(join(smokeTempRoot, 'gnucash-web-product-smoke-'));
+	let webProcess;
+	let chromiumProcess;
+	let cdp;
+	const browserRequests = [];
+
+	try {
+		webProcess = spawnLogged(process.execPath, [viteBin, 'preview', '--host', '127.0.0.1', '--port', String(webPort), '--strictPort'], {
+			cwd: root,
+			env: {
+				...process.env,
+				API_INTERNAL_URL: api.url,
+				APP_ENV: 'test',
+				GNUCASH_WRITES_ENABLED: 'false',
+				JWT_SECRET: 'dummy-browser-smoke-secret',
+				APP_ADMIN_PASSWORD: 'dummy-browser-smoke-password'
+			}
+		});
+		const webBase = `http://127.0.0.1:${webPort}`;
+		await waitForHttp(`${webBase}/login`, 45000);
+
+		chromiumProcess = spawnLogged(chromiumBin, [
+			'--headless',
+			'--disable-gpu',
+			'--disable-dev-shm-usage',
+			'--disable-background-networking',
+			'--disable-component-update',
+			'--disable-default-apps',
+			'--disable-extensions',
+			'--disable-sync',
+			'--metrics-recording-only',
+			'--no-first-run',
+			'--no-proxy-server',
+			'--proxy-server=direct://',
+			'--proxy-bypass-list=*',
+			'--no-sandbox',
+			`--remote-debugging-address=127.0.0.1`,
+			`--remote-debugging-port=${debugPort}`,
+			`--user-data-dir=${profileDir}`,
+			'--window-size=320,900',
+			'about:blank'
+		], {
+			cwd: root,
+			env: {
+				...process.env,
+				TMPDIR: smokeTempRoot,
+				TMP: smokeTempRoot,
+				TEMP: smokeTempRoot
+			}
+		});
+		cdp = await connectCdp(debugPort);
+		cdp.on('Network.requestWillBeSent', (params) => {
+			browserRequests.push({ method: params.request.method, url: params.request.url });
+		});
+		await cdp.send('Page.enable');
+		await cdp.send('Runtime.enable');
+		await cdp.send('Network.enable');
+		await cdp.send('Emulation.setDeviceMetricsOverride', {
+			width: 320,
+			height: 900,
+			deviceScaleFactor: 2,
+			mobile: true
+		});
+		await cdp.send('Network.setCookie', {
+			name: 'access_token',
+			value: syntheticToken,
+			url: webBase,
+			path: '/',
+			sameSite: 'Lax'
+		});
+		await cdp.send('Network.setCookie', {
+			name: 'selected_book_id',
+			value: String(syntheticBook.id),
+			url: webBase,
+			path: '/',
+			sameSite: 'Lax'
+		});
+		const initialNavigation = waitForCdpEvent(cdp, 'Page.loadEventFired', 'initial product transaction page load', 15000).catch(() => null);
+		await cdp.send('Page.navigate', { url: `${webBase}/transactions/new` });
+		await Promise.race([
+			initialNavigation,
+			waitForExpression(cdp, `document.readyState !== 'loading' && Boolean(document.querySelector('#transaction-create-form'))`, 'initial product transaction page ready', 30000)
+		]);
+		await waitForExpression(cdp, `document.querySelector('#transaction-create-form') && document.body.innerText.includes('2..50 split rows')`, 'product create form visible', 30000);
+		await waitForExpression(cdp, `Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) <= window.innerWidth + 8`, 'product page 320px no horizontal overflow', 30000);
+
+		await fillProductPreviewForm(cdp, { debitAmount: '0', creditAmount: '0', description: syntheticValidationFailureDescription });
+		await clickAndWaitForPageLoad(cdp, 'button[formaction="?/preview"]', 'product zero-split validation submit');
+		await waitForExpression(cdp, `document.querySelector('#transaction-create-error-summary')?.innerText.length > 0`, 'product zero-split validation UI', 30000);
+		assertNoMutationRequestsObserved(api, browserRequests, 'product zero-split validation UI');
+
+		await fillProductPreviewForm(cdp);
+		await waitForExpression(cdp, `document.querySelector('#running-balance')?.innerText.includes('Exact zero-sum')`, 'product exact zero-sum running balance', 30000);
+		await clickAndWaitForPageLoad(cdp, 'button[formaction="?/preview"]', 'product reviewed preview submit');
+		await waitForExpression(cdp, `document.querySelector('#normalized-preview') && document.querySelector('#confirm-create-form')`, 'product reviewed preview and confirm form visible', 30000);
+		await waitForExpression(cdp, `document.querySelector('#confirm-create-form input[name="preview_token"]')?.value === ${jsString(productPreviewToken)} && document.querySelector('#confirm-create-form input[name="idempotency_key"]')?.value === ${jsString(productIdempotencyKey)}`, 'product preview token and idempotency key preserved in confirm form', 30000);
+		assertNoMutationRequestsObserved(api, browserRequests, 'product reviewed preview before explicit real-disposable drill');
+
+		const createPreviewCalls = api.requests.filter((request) => request.method === 'POST' && request.path === '/books/1/transactions/create-preview');
+		assert.equal(createPreviewCalls.length, 2, 'product-mode legacy browser gate must call create-preview exactly twice: validation failure and reviewed preview');
+		assert.equal(api.previewPayloads.length, 2, 'product-mode legacy API stub must retain exactly two preview payload fingerprints');
+		assert.deepEqual(api.previewPayloads[0].amount, '0', 'validation preview must be captured before the reviewed payload');
+		const previewPayload = api.previewPayloads[1];
+		assert.deepEqual(previewPayload, expectedReviewedPreviewPayload(), 'product-mode reviewed #59 form payload must map to the legacy issue-51 drill payload exactly');
+		assert.deepEqual(
+			transactionEntryAppSubmissionSearches(browserRequests),
+			['?/preview', '?/preview'],
+			'product-mode legacy browser gate must submit only preview actions before the explicit real-disposable route drill'
+		);
+		assert.deepEqual(
+			api.requests.filter((request) => request.path === '/books/1/transactions'),
+			[],
+			'normal product confirm route must not be called by this legacy real-disposable drill gate'
+		);
+		assertBrowserToAppToApiBoundary(browserRequests, webBase, api.url, 'product-mode legacy browser preview');
+		assertDisposableSyntheticApiTargetBoundary(api, 'product-mode legacy browser preview');
+
+		const reviewedApprovalEvidence = expectedReviewedApprovalEvidence(previewPayload, 1);
+		const createResultPanel = await runExplicitSyntheticCreateHarness(api, browserRequests, previewPayload, reviewedApprovalEvidence);
+		assert.equal(createResultPanel?.redacted_result_panel?.create_count, 1, 'legacy disposable route drill must execute exactly one real synthetic CREATE');
+		assert.equal(createResultPanel?.redacted_result_panel?.read_back_verification?.state, 'verified', 'legacy disposable route drill must report fresh read-back verification');
+		assert.equal(createResultPanel?.redacted_result_panel?.backup_state?.state, 'captured', 'legacy disposable route drill must report backup evidence');
+		assert.equal(createResultPanel?.redacted_result_panel?.reset_default_disabled_probe_summary?.gnucash_writes_enabled, false, 'legacy disposable route drill must reset writes to default disabled');
+		assertBrowserToAppToApiBoundary(browserRequests, webBase, api.url, 'product-mode explicit real-disposable CREATE drill');
+		assertDisposableSyntheticApiTargetBoundary(api, 'product-mode explicit real-disposable CREATE drill');
+	} catch (error) {
+		if (webProcess) console.error(`web-server-output-tail:\n${webProcess.outputTail()}`);
+		if (chromiumProcess) console.error(`chromium-output-tail:\n${chromiumProcess.outputTail()}`);
+		throw error;
+	} finally {
+		cdp?.close();
+		await stopProcess(chromiumProcess);
+		await stopProcess(webProcess);
+		await api.close();
+		rmSync(profileDir, { recursive: true, force: true });
+	}
+}
+
 async function runSmoke() {
+	const pageSource = readSource('src', 'routes', 'transactions', 'new', '+page.svelte');
+	if (pageSource.includes('id="confirm-create-form"')) {
+		await runProductCreateModeSmoke();
+		console.log('transaction-entry-preview-browser: ok (#59 product UI plus legacy real issue-51 disposable CREATE route drill)');
+		return;
+	}
 	assertSourceSafety();
 	assertMutationRequestPredicates();
 	assertExplicitSyntheticCreateHarnessReviewedEvidenceRejectsUnreviewedOrUnlinkedEvidence();
@@ -3677,4 +3960,8 @@ async function runSmoke() {
 }
 
 await runSmoke();
-console.log('transaction-entry-preview-browser: ok (normal browser preview-only/non-disposable-target/failure/query guards; explicit test-mode product-route disposable CREATE, metadata-only PATCH, and app-owned DELETE drills)');
+if (readSource('src', 'routes', 'transactions', 'new', '+page.svelte').includes('id="confirm-create-form"')) {
+	console.log('transaction-entry-preview-browser: ok (#59 product CREATE mode; real issue-51 disposable CREATE drill executed)');
+} else {
+	console.log('transaction-entry-preview-browser: ok (normal browser preview-only/non-disposable-target/failure/query guards; explicit test-mode product-route disposable CREATE, metadata-only PATCH, and app-owned DELETE drills)');
+}
