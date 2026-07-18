@@ -41,11 +41,14 @@ release docs и handoff-файлах, чтобы этот файл не стан
   опубликованный после Phase 261 cycle-3 release gate.
 - MVP/read-only доступ остаётся **read-only by default**.
 - `GNUCASH_WRITES_ENABLED=false` остаётся безопасным дефолтом.
-- #59 сейчас только pre-integration: PM принял exact local candidate
-  `b1cf990bf3a353726b6c97ce26445074898d50f2` для post-MVP controlled general transaction CREATE.
-  Фича остаётся default-off и не интегрирована публично: нужны deployment write enablement,
-  отдельный per-book CREATE enablement и owner/editor assignment; product push, exact-head GitHub
-  Actions и issue closure ещё pending.
+- #59 закрыта как completed: corrected product/docs head
+  `694d6695c7f74b410d1770f1575c65af6eb94bbb` интегрирован и pushed FF-only для post-MVP controlled
+  general transaction CREATE. Фича остаётся default-off: нужны deployment write enablement, отдельный
+  per-book CREATE enablement и owner/editor assignment. Exact-head CI
+  [29630743491](https://github.com/valentusys/gnucash-web-companion/actions/runs/29630743491),
+  attempt 1, succeeded; final acceptance comment
+  [#issuecomment-5009945433](https://github.com/valentusys/gnucash-web-companion/issues/59#issuecomment-5009945433)
+  recorded, issue closed as completed at `2026-07-18T04:45:00Z`.
 - Controlled-write код, если присутствует, является experimental post-MVP/write-alpha,
   отключён по умолчанию и дополнительно ограничен backend `APP_ENV=test` gate при явном включении.
 - real/private/original/only-copy books не являются безопасной write-целью.
@@ -100,13 +103,17 @@ release docs и handoff-файлах, чтобы этот файл не стан
 
 ## Карта текущих статусов
 
-- #59: PM принял exact local candidate `b1cf990bf3a353726b6c97ce26445074898d50f2` / tree
-  `0de2cde2e5a7041ef34d01ffa9e08308fb5cf73b` для default-off post-MVP controlled transaction
-  CREATE. Accepted fixed-seed generated/disposable evidence покрывает expense, income, 3-split,
-  Unicode CREATEs, same-GUID idempotency, typed safety rejections, verified backup, lock,
-  close/reopen/read-back, ownership и audit controls. FX/trading не поддерживаются, PATCH/DELETE не
-  являются normal product functions, owner/private vector равен zero, а product push/exact-head CI и
-  issue closure ещё pending. Evidence:
+- #59: закрыта как completed после corrected product/docs head
+  `694d6695c7f74b410d1770f1575c65af6eb94bbb` / tree
+  `4f8246ddd0a5f90d314c9d80a7e819efec6fde77` был integrated и pushed FF-only. Exact-head CI
+  [29630743491](https://github.com/valentusys/gnucash-web-companion/actions/runs/29630743491),
+  attempt 1, succeeded for Foundation, Frontend, Backend и Docker Compose; final acceptance comment
+  [#issuecomment-5009945433](https://github.com/valentusys/gnucash-web-companion/issues/59#issuecomment-5009945433)
+  recorded, issue closed as completed at `2026-07-18T04:45:00Z`. Accepted fixed-seed
+  generated/disposable evidence покрывает expense, income, 3-split, Unicode CREATEs, same-GUID
+  idempotency, typed safety rejections, verified backup, lock, close/reopen/read-back, ownership и
+  audit controls. FX/trading не поддерживаются, PATCH/DELETE не являются normal product functions,
+  owner/private vector равен zero. Evidence:
   [docs/handoff/hermes-kanban-product-run-9-write-create.md](docs/handoff/hermes-kanban-product-run-9-write-create.md).
 - #56: закрыта как completed для onboarding существующей server-side SQLite book, cached health и
   admin-only app-metadata lifecycle controls на exact head

@@ -13,9 +13,9 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   [v0.5.0-public-readonly-beta](https://github.com/valentusys/gnucash-web-companion/releases/tag/v0.5.0-public-readonly-beta)
   remains the public read-only beta. `v0.5.1-public-readonly-beta` is not published, and
   `v0.4.0-owner-writebeta` remains unpublished.
-- Current safety posture: writes are disabled by default. Issue #59 has a PM-accepted
-  pre-integration candidate for post-MVP controlled transaction CREATE, but product push,
-  exact-head CI, and issue closure are still pending. See
+- Current safety posture: writes are disabled by default. Issue #59 is closed as completed at
+  corrected product/docs head `694d6695c7f74b410d1770f1575c65af6eb94bbb` for post-MVP controlled
+  transaction CREATE after FF-only integration, exact-head CI success, and final issue closeout. See
   [docs/write-alpha/copied-book-write-alpha-posture.md](docs/write-alpha/copied-book-write-alpha-posture.md)
   for historical controlled-write boundaries, and
   [docs/handoff/hermes-kanban-product-run-9-write-create.md](docs/handoff/hermes-kanban-product-run-9-write-create.md)
@@ -27,8 +27,9 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   [#54](https://github.com/valentusys/gnucash-web-companion/issues/54),
   [#55](https://github.com/valentusys/gnucash-web-companion/issues/55),
   [#56](https://github.com/valentusys/gnucash-web-companion/issues/56),
-  [#57](https://github.com/valentusys/gnucash-web-companion/issues/57), and
-  [#58](https://github.com/valentusys/gnucash-web-companion/issues/58) are closed as completed.
+  [#57](https://github.com/valentusys/gnucash-web-companion/issues/57),
+  [#58](https://github.com/valentusys/gnucash-web-companion/issues/58), and
+  [#59](https://github.com/valentusys/gnucash-web-companion/issues/59) are closed as completed.
   #53 has accepted read-only period comparison implementation at exact product head `3b094cd`, final
   documentation closeout at `3eeaf5f`, successful operational closeout CI
   [29180390237](https://github.com/valentusys/gnucash-web-companion/actions/runs/29180390237), and
@@ -68,10 +69,14 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   validation. Final acceptance comment
   [#issuecomment-4991409478](https://github.com/valentusys/gnucash-web-companion/issues/58#issuecomment-4991409478)
   is recorded, and the issue is closed as completed.
-  #59 is in pre-integration handoff only: PM task `t_47be8f49` accepted exact local candidate
-  `b1cf990bf3a353726b6c97ce26445074898d50f2` / tree
-  `0de2cde2e5a7041ef34d01ffa9e08308fb5cf73b` for default-off post-MVP controlled
-  transaction CREATE, with product push, exact-head CI, final comment, and issue closure pending.
+  #59 is closed as completed after corrected product/docs head
+  `694d6695c7f74b410d1770f1575c65af6eb94bbb` / tree
+  `4f8246ddd0a5f90d314c9d80a7e819efec6fde77` was integrated and pushed FF-only. Exact-head CI
+  [29630743491](https://github.com/valentusys/gnucash-web-companion/actions/runs/29630743491),
+  attempt 1, completed success for Foundation, Frontend, Backend, and Docker Compose jobs. Final
+  acceptance comment
+  [#issuecomment-5009945433](https://github.com/valentusys/gnucash-web-companion/issues/59#issuecomment-5009945433)
+  is recorded, and the issue closed as completed at `2026-07-18T04:45:00Z`.
 - Controlled-write boundary: [#36](https://github.com/valentusys/gnucash-web-companion/issues/36)
   is closed as `CLOSE_36_AS_MAINTENANCE_BOUNDARY`. Trackers #45–#50 remain separate experimental
   evidence/workflow history; they do not authorize owner/private DELETE or batch, release publication,
@@ -144,21 +149,25 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
 
 ## Current status snapshot
 
-- The ninth Hermes Kanban product run has a PM-accepted pre-integration handoff for
-  [#59](https://github.com/valentusys/gnucash-web-companion/issues/59). Parent implementation gate
-  `t_47be8f49` accepted exact candidate `b1cf990bf3a353726b6c97ce26445074898d50f2` and tree
-  `0de2cde2e5a7041ef34d01ffa9e08308fb5cf73b` for general transaction CREATE as post-MVP
-  controlled write mode. Writes remain default OFF (`GNUCASH_WRITES_ENABLED=false`); deployment-level
-  write enablement, per-book CREATE enablement, and owner/editor book assignment are all required;
-  admin role alone is not book-data authorization. The accepted evidence is fixed-seed
-  generated/disposable only: full backend `1484` passed with `98` warnings; generated/control `91`
-  passed; frontend check/build/static/browser gates passed; the new ordinary-product real browser
-  matrix passed in `127.45s` with seed `59017`, `11` registered disposable books, `4` successful
-  CREATEs, `4` same-GUID duplicate confirms, `7` typed zero-mutation rejections, `1271` browser
-  requests, `0` forbidden mutations, and `0` console events. FX/trading/conversion are unsupported;
+- The ninth Hermes Kanban product run closed
+  [#59](https://github.com/valentusys/gnucash-web-companion/issues/59) as completed. Parent
+  implementation gate `t_47be8f49` accepted exact candidate
+  `b1cf990bf3a353726b6c97ce26445074898d50f2`; earlier full product/docs FINAL QA `t_fc3b18b6`, run
+  `233`, accepted the pre-correction docs/product head; bounded correction QA `t_0c9c3f10`, run
+  `236`, FINAL ACCEPTed corrected product/docs head
+  `694d6695c7f74b410d1770f1575c65af6eb94bbb` and tree
+  `4f8246ddd0a5f90d314c9d80a7e819efec6fde77`. The corrected head was integrated and pushed
+  FF-only; exact-head GitHub Actions run
+  [29630743491](https://github.com/valentusys/gnucash-web-companion/actions/runs/29630743491),
+  attempt 1, completed success for Foundation `88043653405`, Frontend `88043653391`, Backend
+  `88043653414`, and Docker Compose `88043653393`. Final acceptance comment
+  [#issuecomment-5009945433](https://github.com/valentusys/gnucash-web-companion/issues/59#issuecomment-5009945433)
+  is recorded, and the issue closed as completed at `2026-07-18T04:45:00Z`. Writes remain default
+  OFF (`GNUCASH_WRITES_ENABLED=false`); deployment-level write enablement, per-book CREATE enablement,
+  and owner/editor book assignment are all required; admin role alone is not book-data authorization.
+  Evidence is fixed-seed generated/disposable only; FX/trading/conversion are unsupported;
   `BACKUP_FAILED` is terminal for the old token/key; PATCH and DELETE are not normal product
-  functions; owner/private vector is exactly zero. Product push, exact-head GitHub Actions, final
-  issue comment, and issue closure remain pending. Evidence:
+  functions; owner/private vector is exactly zero. Evidence:
   `docs/handoff/hermes-kanban-product-run-9-write-create.md`.
 - The seventh Hermes Kanban product run corrected and reclosed
   [#57](https://github.com/valentusys/gnucash-web-companion/issues/57), then completed

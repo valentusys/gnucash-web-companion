@@ -1,9 +1,10 @@
 # Hermes Kanban product run 9 — issue #59 controlled CREATE handoff
 
-Status: pre-integration documentation handoff after PM implementation ACCEPT.
-This is not final closeout, not a release note, and not an issue-closure claim.
+Status: final factual closeout after corrected product/docs head
+`694d6695c7f74b410d1770f1575c65af6eb94bbb` was integrated and pushed FF-only.
+This is not a release note, public write-beta announcement, production claim, or security-audit claim.
 
-## Verdict source
+## Verdict and closeout source
 
 Parent PM implementation task `t_47be8f49` returned strict ACCEPT for exactly:
 
@@ -15,12 +16,21 @@ Parent PM implementation task `t_47be8f49` returned strict ACCEPT for exactly:
 - factual baseline tree: `7d5fc3906ed6ccafb2b3d4816254ec4f0990ede2`
 - issue: [#59](https://github.com/valentusys/gnucash-web-companion/issues/59)
 
-The documentation branch was required to start at the factual baseline and fast-forward only to the
-PM-accepted candidate before adding one bounded docs-only handoff commit.
+The first docs-only handoff was then accepted by earlier full product/docs FINAL QA task
+`t_fc3b18b6`, run `233`, before the first exact-head CI defect was corrected. Independent
+correction FINAL QA task `t_0c9c3f10`, run `236`, returned FINAL ACCEPT for corrected head
+`694d6695c7f74b410d1770f1575c65af6eb94bbb`, tree
+`4f8246ddd0a5f90d314c9d80a7e819efec6fde77`, parent
+`275c6192d85c9cf2d5628729775a455192ea7130`, stable patch ID
+`ab62710bf8fa419b276beb64b0cb8331770be979`.
+
+The corrected head was integrated to `main` and pushed by fast-forward only. At the start of this
+docs-only factual closeout worktree, `HEAD`, `main`, and `origin/main` all matched the corrected
+product/docs head above with a clean status.
 
 ## Ordered reviewed source map
 
-Stable patch IDs verified for the PM-accepted source chain:
+Stable patch IDs verified for the PM-accepted source chain, docs handoff, and bounded correction:
 
 1. `8e4cc35c92c1834a7a50b43d562a5db67dac545e`
    -> `f04d5cb10b0a17e81d3810a014cfbb58c87b28ae`
@@ -34,6 +44,38 @@ Stable patch IDs verified for the PM-accepted source chain:
    -> `f1a8f241d823db27531b7f169cc7d95814dfd80e`
 6. `b1cf990bf3a353726b6c97ce26445074898d50f2`
    -> `81ca3b51f2d19385ab9a56795e9ac86f60605972`
+7. `275c6192d85c9cf2d5628729775a455192ea7130`
+   -> `236e1d8081147baed1baf4992e4204061f395ddb`
+8. `694d6695c7f74b410d1770f1575c65af6eb94bbb`
+   -> `ab62710bf8fa419b276beb64b0cb8331770be979`
+
+## First CI defect and correction provenance
+
+The earlier full product/docs FINAL QA accepted the pre-correction docs/product head, but the first
+exact-head CI exposed bounded test-guard defects rather than a changed product behavior claim. The
+correction commit `694d6695c7f74b410d1770f1575c65af6eb94bbb` changed only:
+
+- `apps/api/tests/test_transaction_create_control_plane.py`
+- `apps/web/scripts/test-transaction-entry-preview-browser.mjs`
+
+It made the generated-source `replaced_inode` guard use an atomic replacement with verified device
+and inode change, and made the browser mutation guard compare forbidden mutation-request counts so
+benign late read traffic does not invalidate the safety check. Independent correction QA
+`t_0c9c3f10`, run `236`, accepted this exact bounded correction before integration.
+
+## Corrected product-head CI and issue closeout
+
+- Corrected product/docs head: `694d6695c7f74b410d1770f1575c65af6eb94bbb`.
+- Corrected product/docs tree: `4f8246ddd0a5f90d314c9d80a7e819efec6fde77`.
+- Integration: fast-forward only, pushed to `main` / `origin/main`.
+- Exact corrected product-head GitHub Actions run:
+  [29630743491](https://github.com/valentusys/gnucash-web-companion/actions/runs/29630743491),
+  attempt `1`, exact head, conclusion `success`.
+- Successful jobs: Foundation `88043653405`, Frontend `88043653391`, Backend `88043653414`, Docker
+  Compose `88043653393`.
+- Issue #59 final acceptance comment:
+  [#issuecomment-5009945433](https://github.com/valentusys/gnucash-web-companion/issues/59#issuecomment-5009945433).
+- Issue #59 closed as completed at `2026-07-18T04:45:00Z`.
 
 ## Product behavior represented by the accepted candidate
 
@@ -118,20 +160,17 @@ The accepted source evidence has owner/private vector exactly zero:
 - forbidden product mutations during real browser matrix: `0`
 - private screenshots/exports/raw financial evidence committed: `0`
 
-## Pending state
+## Remaining boundaries and docs-only pending state
 
-This is a pre-integration handoff. The following are still pending and must not be implied here:
+The corrected #59 product/docs head above is integrated, pushed, CI-green on its exact head, and the
+issue is closed as completed. The following are still not implied:
 
-- product push to the integration branch/main
-- exact-head GitHub Actions on the final integrated/docs head
-- issue #59 final comment or closure
 - release/tag/container publication
 - public beta or public write-beta announcement
 - owner/private pilot approval
 - production readiness, hosted-financial-security, security-audit, FX/trading/business/investment
   support claims
 
-## Next step
-
-Run clean final QA on the docs-only head, then operator fast-forward integration/push/exact-head CI
-and issue #59 closeout can happen if that final QA accepts the branch.
+This current factual closeout is a newer docs-only commit/head on top of the corrected product/docs
+head. Its own exact-head GitHub Actions CI and external docs QA are pending at the time of this edit;
+this document does not predict its SHA, CI run, or future success.
