@@ -3103,6 +3103,11 @@ def test_product_confirm_real_generated_source_modes_fail_closed_before_reservat
     payload = _general_preview_payload()
     outside = None
     outside_count_before = None
+    pre_preview_source_identity = None
+
+    if mode == "replaced_inode":
+        pre_preview_stat = source.stat()
+        pre_preview_source_identity = (pre_preview_stat.st_dev, pre_preview_stat.st_ino)
 
     if mode == "missing_source":
         source.unlink()
@@ -3137,8 +3142,20 @@ def test_product_confirm_real_generated_source_modes_fail_closed_before_reservat
         assert session.query(TransactionCreateIdempotency).count() == idempotency_count_before
 
     if mode == "replaced_inode":
-        source.unlink()
-        shutil.copy2(_fixture_book_path(), source)
+        assert pre_preview_source_identity is not None
+        replacement = source.with_name(f"{source.name}.replacement")
+        try:
+            shutil.copy2(_fixture_book_path(), replacement)
+            replacement.chmod(0o600)
+            replacement_stat = replacement.stat()
+            replacement_identity = (replacement_stat.st_dev, replacement_stat.st_ino)
+            assert replacement_identity != pre_preview_source_identity
+            os.replace(replacement, source)
+            replaced_stat = source.stat()
+            assert (replaced_stat.st_dev, replaced_stat.st_ino) == replacement_identity
+        finally:
+            if replacement.exists() or replacement.is_symlink():
+                replacement.unlink()
         source.chmod(0o600)
     elif mode == "symlink_change":
         outside = tmp_path / "outside" / "outside-synthetic-disposable.gnucash.sqlite"

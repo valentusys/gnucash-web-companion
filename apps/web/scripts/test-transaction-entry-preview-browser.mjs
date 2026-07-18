@@ -2209,6 +2209,21 @@ function forbiddenBrowserMutationRequests(requests) {
 	return requests.filter(isForbiddenBrowserBoundaryRequest);
 }
 
+function browserMutationRequestSummary(request) {
+	const url = new URL(request.url);
+	return { method: request.method, path: url.pathname, search: url.search };
+}
+
+function assertNoNewBrowserMutationRequests(browserRequests, forbiddenCountBefore, label) {
+	assert.deepEqual(
+		forbiddenBrowserMutationRequests(browserRequests)
+			.slice(forbiddenCountBefore)
+			.map(browserMutationRequestSummary),
+		[],
+		`${label}: direct Node probes must not add browser-driven CREATE/PATCH/DELETE/batch/validate/preflight/backup/audit/write requests`
+	);
+}
+
 function assertMutationRequestPredicates() {
 	assertExplicitSyntheticCreateHarnessPredicateRequiresDisposableProof();
 	const allowedApiRequests = [
@@ -2269,6 +2284,21 @@ function assertMutationRequestPredicates() {
 	for (const request of forbiddenBrowserRequests) {
 		assert.equal(isForbiddenBrowserBoundaryRequest(request), true, `browser boundary must block ${request.method} ${new URL(request.url).pathname}${new URL(request.url).search}`);
 	}
+
+	const benignLateReadRequests = [
+		{ method: 'GET', url: 'http://127.0.0.1:4173/transactions/new?late_read=accounts' },
+		{ method: 'GET', url: 'http://127.0.0.1:4173/_app/immutable/assets/app.css' }
+	];
+	assert.deepEqual(
+		forbiddenBrowserMutationRequests([...allowedBrowserRequests, ...benignLateReadRequests]).map(browserMutationRequestSummary),
+		[],
+		'browser mutation guard must ignore benign late read traffic'
+	);
+	assert.deepEqual(
+		forbiddenBrowserMutationRequests([...allowedBrowserRequests, ...benignLateReadRequests, forbiddenBrowserRequests[3]]).map(browserMutationRequestSummary),
+		[forbiddenBrowserRequests[3]].map(browserMutationRequestSummary),
+		'browser mutation guard must still catch forbidden browser mutations with benign late reads present'
+	);
 }
 
 function assertPreviewPayloadShape(previewPayload, label) {
@@ -2443,7 +2473,7 @@ function assertExplicitSyntheticCreateHarnessReviewedEvidence(reviewedApprovalEv
 }
 
 async function assertExplicitSyntheticCreateHarnessRejectsUserMode(api, browserRequests, productCreatePayload) {
-	const browserRequestCountBefore = browserRequests.length;
+	const browserForbiddenCountBefore = forbiddenBrowserMutationRequests(browserRequests).length;
 	const explicitPayloadCountBefore = api.explicitCreatePayloads.length;
 	const forbiddenRequestCountBefore = api.forbiddenRequests.length;
 	const rejectedCases = [
@@ -2573,7 +2603,7 @@ async function assertExplicitSyntheticCreateHarnessRejectsUserMode(api, browserR
 		);
 	}
 
-	assert.equal(browserRequests.length, browserRequestCountBefore, 'explicit rejected CREATE probes must not be browser-driven');
+	assertNoNewBrowserMutationRequests(browserRequests, browserForbiddenCountBefore, 'explicit rejected CREATE probes must not be browser-driven');
 	assert.equal(api.explicitCreatePayloads.length, explicitPayloadCountBefore, 'rejected CREATE probes must not be accepted as explicit test-mode CREATE payloads');
 	assert.deepEqual(
 		api.forbiddenRequests
@@ -3237,7 +3267,7 @@ async function runExplicitSyntheticPatchHarness(api, browserRequests, previewPay
 }
 
 async function assertExplicitSyntheticPatchHarnessRejectsUserMode(api, browserRequests) {
-	const browserRequestCountBefore = browserRequests.length;
+	const browserForbiddenCountBefore = forbiddenBrowserMutationRequests(browserRequests).length;
 	const forbiddenRequestCountBefore = api.forbiddenRequests.length;
 	const rejectedCases = [
 		{ label: 'ordinary product PATCH probe', path: '/books/1/transactions/synthetic-id', search: '', method: 'PATCH' },
@@ -3261,7 +3291,7 @@ async function assertExplicitSyntheticPatchHarnessRejectsUserMode(api, browserRe
 			`${testCase.label}: rejected PATCH probe must return the synthetic no-mutation block response`
 		);
 	}
-	assert.equal(browserRequests.length, browserRequestCountBefore, 'explicit rejected PATCH probes must not be browser-driven');
+	assertNoNewBrowserMutationRequests(browserRequests, browserForbiddenCountBefore, 'explicit rejected PATCH probes must not be browser-driven');
 	assert.deepEqual(
 		api.forbiddenRequests
 			.slice(forbiddenRequestCountBefore)
@@ -3301,7 +3331,7 @@ async function runExplicitSyntheticDeleteHarness(api, browserRequests, previewPa
 }
 
 async function assertExplicitSyntheticDeleteHarnessRejectsUserMode(api, browserRequests) {
-	const browserRequestCountBefore = browserRequests.length;
+	const browserForbiddenCountBefore = forbiddenBrowserMutationRequests(browserRequests).length;
 	const forbiddenRequestCountBefore = api.forbiddenRequests.length;
 	const rejectedCases = [
 		{ label: 'ordinary product DELETE probe', path: '/books/1/transactions/synthetic-id', search: '', method: 'DELETE' },
@@ -3324,7 +3354,7 @@ async function assertExplicitSyntheticDeleteHarnessRejectsUserMode(api, browserR
 			`${testCase.label}: rejected DELETE probe must return the synthetic no-mutation block response`
 		);
 	}
-	assert.equal(browserRequests.length, browserRequestCountBefore, 'explicit rejected DELETE probes must not be browser-driven');
+	assertNoNewBrowserMutationRequests(browserRequests, browserForbiddenCountBefore, 'explicit rejected DELETE probes must not be browser-driven');
 	assert.deepEqual(
 		api.forbiddenRequests
 			.slice(forbiddenRequestCountBefore)
