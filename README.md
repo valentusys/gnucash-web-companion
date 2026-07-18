@@ -61,6 +61,11 @@ the current write-alpha publication baseline remains Phase 261.
   controlled-write code is experimental post-MVP work and disabled by default.
 - **Write safety:** `GNUCASH_WRITES_ENABLED=false` remains default; explicit write-alpha/writebeta
   flows remain test-gated, and no real/private/original/only-copy book is a safe write target.
+- **Issue #59 pre-integration:** PM accepted exact local candidate
+  `b1cf990bf3a353726b6c97ce26445074898d50f2` for post-MVP controlled general transaction CREATE.
+  It remains default-off and unintegrated: deployment write enablement, per-book CREATE enablement,
+  and owner/editor book assignment are required, while product push, exact-head GitHub Actions, and
+  issue closure are pending.
 - **Closed maintenance boundary:** #36 controlled-write readiness is closed as
   `CLOSE_36_AS_MAINTENANCE_BOUNDARY`; it is historical maintenance evidence only, not real-book
   approval.
@@ -121,6 +126,14 @@ the current write-alpha publication baseline remains Phase 261.
 
 ## Current status map
 
+- #59: PM accepted exact local candidate `b1cf990bf3a353726b6c97ce26445074898d50f2` / tree
+  `0de2cde2e5a7041ef34d01ffa9e08308fb5cf73b` for default-off post-MVP controlled transaction
+  CREATE. Accepted fixed-seed generated/disposable evidence covers expense, income, 3-split,
+  Unicode CREATEs, same-GUID idempotency, typed safety rejections, verified backup, lock,
+  close/reopen/read-back, ownership, and audit controls. FX/trading are unsupported, PATCH/DELETE are
+  not normal product functions, owner/private vector is zero, and product push/exact-head CI/issue
+  closure are still pending. Evidence:
+  [docs/handoff/hermes-kanban-product-run-9-write-create.md](docs/handoff/hermes-kanban-product-run-9-write-create.md).
 - #56: closed as completed for existing server-side SQLite book onboarding, cached health, and
   admin-only app-metadata lifecycle controls at exact head
   `6928a2ae5f66f2ad16fdffdc26d1e8022ac5d706`; exact-head GitHub Actions run
