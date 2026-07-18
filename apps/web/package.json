@@ -12,6 +12,7 @@
 		"test:transaction-entry-preview": "node scripts/test-transaction-entry-preview.mjs",
 		"test:transaction-create-product-static": "node scripts/test-transaction-create-product-static.mjs",
 		"test:transaction-create-product-browser": "npm run build && node scripts/test-transaction-create-product-browser.mjs",
+		"test:transaction-create-real-browser": "npm run build && node scripts/test-transaction-create-real-product-browser.mjs",
 		"test:transaction-entry-preview-browser": "npm run build && node scripts/test-transaction-entry-preview-browser.mjs",
 		"test:transaction-entry-create-disposable-browser": "npm run build && node scripts/test-transaction-entry-preview-browser.mjs",
 		"test:reports": "node scripts/test-reports-static.mjs",
