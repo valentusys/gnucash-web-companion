@@ -6,6 +6,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
+from app.schemas.gnucash import TransactionDirectionDTO, default_transaction_direction
+
 AccountExplorerMode = Literal["tree", "flat"]
 AccountExplorerMatchState = Literal["match", "ancestor_context"]
 AccountExplorerStructureStatus = Literal["root", "normal", "orphan_promoted", "cycle_broken_root", "cycle_member"]
@@ -18,6 +20,7 @@ class AccountExplorerPathSegmentDTO(BaseModel):
 
     id: str
     name: str
+    display_name: str | None = None
 
 
 class CommodityRefDTO(BaseModel):
@@ -48,6 +51,7 @@ class AccountExplorerNodeDTO(BaseModel):
     full_path: str
     depth: int
     name: str
+    display_name: str | None = None
     type: str
     commodity: CommodityRefDTO
     hidden: bool = False
@@ -99,6 +103,7 @@ class AccountOverviewChildDTO(BaseModel):
     full_path: str
     depth: int
     name: str
+    display_name: str | None = None
     type: str
     commodity: CommodityRefDTO
     hidden: bool = False
@@ -121,6 +126,7 @@ class AccountOverviewResponseDTO(BaseModel):
     full_path: str
     depth: int
     name: str
+    display_name: str | None = None
     type: str
     commodity: CommodityRefDTO
     hidden: bool = False
@@ -148,6 +154,7 @@ class AccountActivityRecentTransactionDTO(BaseModel):
     description: str
     matched_quantity: AccountExplorerBalanceDTO
     counter_account_name: str
+    direction: TransactionDirectionDTO = Field(default_factory=default_transaction_direction)
     is_write_alpha_owned: bool = False
 
 

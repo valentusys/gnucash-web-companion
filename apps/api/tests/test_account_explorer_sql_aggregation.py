@@ -175,16 +175,19 @@ def test_query_count_does_not_scale_per_candidate_account(candidate_count):
         base_currency="SEK",
     )
 
-    assert response.scan.candidate_accounts == candidate_count
+    visible_candidate_count = max(candidate_count - 1, 0)
+    assert response.scan.candidate_accounts == visible_candidate_count
     if candidate_count == 1000:
-        assert response.scan.returned_nodes == 2
+        assert response.scan.returned_nodes == 1
     else:
-        assert response.scan.returned_nodes == candidate_count
-    assert response.scan.query_count == 2
+        assert response.scan.returned_nodes == visible_candidate_count
+    expected_query_count = 1 if visible_candidate_count == 0 else 2
+    assert response.scan.query_count == expected_query_count
     assert response.scan.query_count <= 8
     assert response.scan.split_aggregate_rows == 0
-    assert session.queries == ["accounts", "split_aggregate"]
-    assert session.all_calls == ["accounts", "split_aggregate"]
+    expected_calls = ["accounts"] if visible_candidate_count == 0 else ["accounts", "split_aggregate"]
+    assert session.queries == expected_calls
+    assert session.all_calls == expected_calls
 
 
 def _create_many_split_book(path: Path, *, many_split_count: int) -> int:

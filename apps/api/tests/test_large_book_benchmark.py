@@ -586,9 +586,9 @@ def test_issue55_account_benchmark_records_account_counters_and_drilldown_consis
         assert isinstance(result.local_timing_budget_passed, bool)
 
     tree = _result_by_name(results, "issue55_1k_account_text_filtered_tree")
-    assert tree.item_count == 15
-    assert tree.account_candidate_accounts == 1_000
-    assert tree.account_returned_nodes == 15
+    assert tree.item_count == 14
+    assert tree.account_candidate_accounts == 999
+    assert tree.account_returned_nodes == 14
     assert tree.actual_query_count == 2
     assert tree.account_split_rows is not None and tree.account_split_rows <= 20_000
     assert tree.account_split_aggregate_rows is not None and tree.account_split_aggregate_rows <= 1_000

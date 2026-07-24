@@ -19,6 +19,7 @@ class AccountDTO(BaseModel):
 
     id: str = Field(..., description="Account GUID")
     name: str = Field(..., description="Short account name")
+    display_name: str | None = Field(None, description="Compact duplicate-safe account label")
     full_name: str = Field(..., description="Colon-separated full path, e.g. 'Assets:Bank:Checking'")
     type: str = Field(..., description="Account type, e.g. 'BANK'")
     currency: str = Field(..., description="ISO 4217 currency code")
@@ -36,6 +37,16 @@ class AccountDTO(BaseModel):
         exclude=True,
         description="Internal commodity fraction for write-preview decimal precision checks; excluded from public serialization",
     )
+    ordinary_visibility_excluded: bool = Field(
+        False,
+        exclude=True,
+        description="Internal guard: structural root/template subtree accounts are excluded from ordinary read surfaces",
+    )
+    ordinary_visibility_reason: str | None = Field(
+        None,
+        exclude=True,
+        description="Internal guard reason for non-ordinary accounts; excluded from public serialization",
+    )
 
 
 class AccountTreeNodeDTO(AccountDTO):
@@ -49,10 +60,48 @@ class TransactionSplitDTO(BaseModel):
 
     account_id: str = Field(..., description="Account GUID for this split")
     account_name: str = Field(..., description="Full account name for this split")
+    account_display_name: str | None = Field(None, description="Compact duplicate-safe account label")
     memo: str = Field("", description="Split memo")
     reconcile_state: str = Field("", description="Raw GnuCash split reconciliation state code")
     amount: str = Field(..., description="Split amount as decimal string")
     currency: str = Field(..., description="ISO 4217 currency code")
+
+
+class TransactionDirectionEntryDTO(BaseModel):
+    """One aggregated account entry in a transaction direction side."""
+
+    account_id: str
+    display_name: str
+    full_name: str
+    value: str = Field(..., description="Exact signed Decimal string from split.value aggregation")
+    split_count: int
+
+
+class TransactionDirectionDTO(BaseModel):
+    """Typed From/To direction derived from signed split.value amounts."""
+
+    status: Literal["resolved", "composite", "ambiguous"]
+    reason: Literal[
+        "balanced",
+        "multiple_accounts",
+        "no_nonzero_splits",
+        "single_sided",
+        "unbalanced",
+        "account_on_both_sides",
+    ]
+    currency: str
+    from_accounts: list[TransactionDirectionEntryDTO]
+    to_accounts: list[TransactionDirectionEntryDTO]
+
+
+def default_transaction_direction() -> TransactionDirectionDTO:
+    return TransactionDirectionDTO(
+        status="ambiguous",
+        reason="no_nonzero_splits",
+        currency="XXX",
+        from_accounts=[],
+        to_accounts=[],
+    )
 
 
 class TransactionListItemDTO(BaseModel):
@@ -65,7 +114,9 @@ class TransactionListItemDTO(BaseModel):
     currency: str = Field(..., description="ISO 4217 currency code")
     account_id: str = Field(..., description="The account this amount relates to")
     account_name: str = Field(..., description="Full name of the related account")
+    account_display_name: str | None = Field(None, description="Compact duplicate-safe related account label")
     counter_account_name: str = Field(..., description="Full name of the counter account or 'Split transaction'")
+    direction: TransactionDirectionDTO = Field(default_factory=default_transaction_direction, description="Split-derived typed From/To direction")
     is_write_alpha_owned: bool = Field(
         False,
         description="Safe app-metadata hint that this row was created by write-alpha; never authorizes writes by itself",
@@ -138,15 +189,52 @@ class CashflowDTO(BaseModel):
     net: str
 
 
+class ReportingCurrencyCandidateDTO(BaseModel):
+    currency: str
+    distinct_transaction_count: int
+    nonzero_split_count: int
+    active_leaf_account_count: int
+    eligible_leaf_account_count: int
+
+
+class ReportingCurrencyResolutionDTO(BaseModel):
+    status: Literal["ready", "setup_required"]
+    source: Literal["configured", "detected", "none"]
+    reason: Literal["configured_valid", "dominant_detected", "no_eligible_currency", "dominance_tie"]
+    configured_currency: str | None
+    configured_currency_status: Literal[
+        "valid",
+        "missing",
+        "xxx",
+        "absent",
+        "template_only",
+        "non_monetary",
+        "inactive",
+    ]
+    selected_currency: str | None
+    candidates: list[ReportingCurrencyCandidateDTO]
+    excluded_currencies: list[str]
+    non_currency_commodities_excluded: bool
+
+
+def default_reporting_currency_resolution() -> ReportingCurrencyResolutionDTO:
+    return ReportingCurrencyResolutionDTO(
+        status="setup_required",
+        source="none",
+        reason="no_eligible_currency",
+        configured_currency=None,
+        configured_currency_status="missing",
+        selected_currency=None,
+        candidates=[],
+        excluded_currencies=[],
+        non_currency_commodities_excluded=False,
+    )
+
+
 class ReportSummaryDTO(BaseModel):
-    """Dashboard summary: net worth, assets, liabilities, income/expenses this month.
+    """Ready dashboard summary with money totals in the resolved reporting currency."""
 
-    Multi-currency limitation: reporting_basis is base_currency_only. Only
-    accounts/splits whose commodity matches the configured base currency are
-    included, other currencies are reported as limitations, and no currency
-    conversion is performed.
-    """
-
+    status: Literal["ready"] = "ready"
     currency: str
     net_worth: str
     assets: str
@@ -157,6 +245,18 @@ class ReportSummaryDTO(BaseModel):
     reporting_basis: str = "base_currency_only"
     includes_currency_conversion: bool = False
     limitations: list[str] = Field(default_factory=list)
+    reporting_currency: ReportingCurrencyResolutionDTO = Field(default_factory=default_reporting_currency_resolution)
+
+
+class ReportSummarySetupDTO(BaseModel):
+    """Setup-required dashboard summary without money total fields."""
+
+    status: Literal["setup_required"] = "setup_required"
+    as_of_date: str
+    reporting_basis: Literal["base_currency_only"] = "base_currency_only"
+    includes_currency_conversion: bool = False
+    limitations: list[str] = Field(default_factory=list)
+    reporting_currency: ReportingCurrencyResolutionDTO = Field(default_factory=default_reporting_currency_resolution)
 
 
 class PeriodReportSummaryDTO(BaseModel):

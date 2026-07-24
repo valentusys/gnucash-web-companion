@@ -6,7 +6,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-from app.schemas.gnucash import MoneyDTO
+from app.schemas.gnucash import MoneyDTO, TransactionDirectionDTO, default_transaction_direction
 
 
 class TransactionExplorerAccountRefDTO(BaseModel):
@@ -14,6 +14,8 @@ class TransactionExplorerAccountRefDTO(BaseModel):
 
     id: str
     name: str
+    display_name: str | None = None
+    full_name: str | None = None
 
 
 class TransactionExplorerItemDTO(BaseModel):
@@ -30,6 +32,7 @@ class TransactionExplorerItemDTO(BaseModel):
     representative_amount: MoneyDTO
     representative_account: TransactionExplorerAccountRefDTO | None = None
     counter_account_name: str = Field(..., description="Counter account label for display only")
+    direction: TransactionDirectionDTO = Field(default_factory=default_transaction_direction, description="Split-derived typed From/To direction")
     matched_amount: MoneyDTO | None = Field(None, description="Exact scoped amount when a scoped filter is active")
     amount_basis: Literal["selected_accounts", "income", "expense", "representative_split"] = "representative_split"
     matched_account_ids: list[str] = Field(default_factory=list)

@@ -1134,6 +1134,7 @@ def _general_account_dto(account: Any) -> dict[str, str]:
     return {
         "id": str(getattr(account, "id", "")),
         "name": str(getattr(account, "name", "")),
+        "display_name": str(getattr(account, "display_name", "") or getattr(account, "name", "")),
         "full_name": str(getattr(account, "full_name", "")),
         "type": str(getattr(account, "type", "") or "UNKNOWN").upper(),
         "currency": str(getattr(account, "currency", "") or "").upper(),
@@ -1184,7 +1185,11 @@ def _resolve_general_preview_accounts(
         account = accounts_by_id.get(account_id)
         if account is None:
             _raise_general_preview_error("ACCOUNT_NOT_FOUND", f"splits[{index}].account_id")
-        if getattr(account, "placeholder", False) or getattr(account, "hidden", False):
+        if (
+            getattr(account, "placeholder", False)
+            or getattr(account, "hidden", False)
+            or getattr(account, "ordinary_visibility_excluded", False)
+        ):
             _raise_general_preview_error("ACCOUNT_NOT_POSTABLE", f"splits[{index}].account_id")
         account_type = str(getattr(account, "type", "") or "").upper()
         if account_type not in GENERAL_CREATE_ALLOWED_ACCOUNT_TYPES:
@@ -1448,7 +1453,11 @@ def _preview_account_by_id(accounts_by_id: dict[str, Any], account_id: str, fiel
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"{field_name} was not found",
         )
-    if getattr(account, "placeholder", False) or getattr(account, "hidden", False):
+    if (
+        getattr(account, "placeholder", False)
+        or getattr(account, "hidden", False)
+        or getattr(account, "ordinary_visibility_excluded", False)
+    ):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"{field_name} must reference a selectable account",
@@ -1469,6 +1478,7 @@ def _preview_account_dto(account: Any) -> TransactionCreatePreviewAccountDTO:
     return TransactionCreatePreviewAccountDTO(
         id=account.id,
         name=account.name,
+        display_name=getattr(account, "display_name", None) or account.name,
         full_name=account.full_name,
         type=getattr(account, "type", "UNKNOWN"),
         currency=account.currency,

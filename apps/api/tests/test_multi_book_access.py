@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import sqlite3
 import shutil
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -30,7 +31,7 @@ TEST_SETTINGS = Settings(
     jwt_token_expire_minutes=30,
     app_admin_username="admin",
     app_admin_password="testpassword123",
-    gnucash_book_allowed_roots=["/tmp", "/data/books"],
+    gnucash_book_allowed_roots=[tempfile.gettempdir(), "/tmp", "/var/tmp", "/data/books"],
 )
 
 FIXTURE_BOOK = Path(__file__).parent / "fixtures" / "test-book.gnucash.sqlite"

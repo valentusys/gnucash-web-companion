@@ -220,11 +220,10 @@ class TestFixtureReportSummary:
     def test_fixture_report_summary(self, svc):
         """Report summary returns non-zero assets and liabilities."""
         report = svc.get_report_summary()
-        # Assets include: Assets (2729.50) + Expenses (1020.50) + Income (5000.00) = 8188.50
-        # (piecash get_balance returns positive for income)
-        assert report.assets == "8188.50"
-        # Liabilities: -1250.00 (negative in piecash convention)
-        assert report.liabilities == "-2500.00"
+        # Asset/liability totals use only leaf balance-sheet accounts, avoiding
+        # parent/root hierarchy double-counting.
+        assert report.assets == "2729.50"
+        assert report.liabilities == "-1250.00"
         assert report.currency == "SEK"
 
     def test_fixture_report_as_of_february(self, svc):

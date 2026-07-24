@@ -437,7 +437,12 @@ class TestTransactionExplorerFilterSemantics:
         assert row["matched_amount"] == {"amount": "-320.10", "currency": "SEK"}
         assert row["matched_account_ids"] == [CHECKING]
         assert row["amount_basis"] == "selected_accounts"
-        assert row["representative_account"] == {"id": CHECKING, "name": "Assets:Checking"}
+        assert row["representative_account"] == {
+            "id": CHECKING,
+            "name": "Assets:Checking",
+            "display_name": "Checking",
+            "full_name": "Assets:Checking",
+        }
 
     def test_multiple_accounts_sum_to_one_row_per_transaction(self, client, auth_headers, sample_book):
         response = client.get(

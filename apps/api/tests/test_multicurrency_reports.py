@@ -62,19 +62,19 @@ class TestMultiCurrencyReportSummary:
     def test_summary_excludes_eur_accounts_from_assets(self, svc):
         """Report summary assets include only SEK accounts; EUR accounts are excluded."""
         report = svc.get_report_summary()
-        # Same as single-currency fixture: Assets (2729.50) + Expenses (1020.50) + Income (5000.00) = 8188.50
-        assert report.assets == "8188.50"
+        # Asset totals no longer double-count parent/root hierarchy rows.
+        assert report.assets == "2729.50"
         assert report.currency == "SEK"
 
     def test_summary_excludes_eur_from_liabilities(self, svc):
         """Report summary liabilities include only SEK accounts."""
         report = svc.get_report_summary()
-        assert report.liabilities == "-2500.00"
+        assert report.liabilities == "-1250.00"
 
     def test_summary_net_worth_excludes_eur(self, svc):
         """Net worth is based on SEK accounts only."""
         report = svc.get_report_summary()
-        assert report.net_worth == "5688.50"
+        assert report.net_worth == "1479.50"
 
     def test_summary_income_excludes_eur(self, svc):
         """Income this month excludes EUR income."""
@@ -100,21 +100,22 @@ class TestMultiCurrencyReportSummary:
         assert "EUR" in limitations
         assert "excluded rather than converted or combined" in limitations
 
-    def test_summary_unknown_base_currency_limitations_explain_zero_totals(self):
-        """Unknown base-currency summaries must explain XXX/zero-total limitations."""
+    def test_summary_unknown_base_currency_detects_dominant_active_currency(self):
+        """Missing base currency auto-detects the dominant active currency instead of returning XXX zeros."""
         unknown_base_svc = GnuCashBookService({"uri_or_path": FIXTURE_PATH, "base_currency": None})
 
         report = unknown_base_svc.get_report_summary("2026-02-28")
 
-        assert report.currency == "XXX"
+        assert report.currency == "SEK"
         assert report.reporting_basis == "base_currency_only"
         assert report.includes_currency_conversion is False
-        assert report.assets == "0.00"
-        assert report.liabilities == "0.00"
+        assert report.reporting_currency.status == "ready"
+        assert report.reporting_currency.source == "detected"
+        assert report.reporting_currency.selected_currency == "SEK"
+        assert report.reporting_currency.excluded_currencies == ["EUR"]
         limitations = " ".join(report.limitations)
-        assert "unknown (XXX)" in limitations
-        assert "zero totals may mean no matching base-currency accounts" in limitations
-        assert "rather than an empty book" in limitations
+        assert "unknown (XXX)" not in limitations
+        assert "EUR" in limitations
         assert "no currency conversion" in limitations
 
 

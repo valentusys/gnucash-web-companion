@@ -368,11 +368,19 @@ class TestReportSummaryMVP:
 
         assert response.status_code == 200
         data = response.json()
-        assert data["net_worth"] == "0.00"
-        assert data["assets"] == "0.00"
-        assert data["liabilities"] == "0.00"
-        assert data["income_this_month"] == "0.00"
-        assert data["expenses_this_month"] == "0.00"
+        assert data["status"] == "setup_required"
+        assert "net_worth" not in data
+        assert "assets" not in data
+        assert "liabilities" not in data
+        assert "income_this_month" not in data
+        assert "expenses_this_month" not in data
+        assert data["reporting_currency"]["status"] == "setup_required"
+        assert data["reporting_currency"]["source"] == "none"
+        assert data["reporting_currency"]["reason"] == "no_eligible_currency"
+        assert data["reporting_currency"]["configured_currency"] == "SEK"
+        assert data["reporting_currency"]["configured_currency_status"] == "absent"
+        assert data["reporting_currency"]["selected_currency"] is None
+        assert data["reporting_currency"]["candidates"] == []
         limitations = " ".join(data["limitations"])
         assert "reporting_basis=base_currency_only" in limitations
         assert "no currency conversion" in limitations
@@ -640,10 +648,13 @@ class TestReportSummaryMVP:
 
         assert response.status_code == 200
         data = response.json()
-        assert data["assets"] == "-125.50"
-        assert data["liabilities"] == "25.25"
-        assert data["net_worth"] == "-100.25"
-        assert isinstance(data["assets"], str)
+        assert data["status"] == "setup_required"
+        assert data["reporting_currency"]["configured_currency"] == "SEK"
+        assert data["reporting_currency"]["configured_currency_status"] == "inactive"
+        assert data["reporting_currency"]["selected_currency"] is None
+        assert "assets" not in data
+        assert "liabilities" not in data
+        assert "net_worth" not in data
 
     def test_multi_currency_accounts_are_excluded_from_base_currency_summary(
         self,
@@ -830,8 +841,11 @@ class TestExpensesByAccountMVP:
             headers=auth_headers,
         )
 
-        assert response.status_code == 200
-        assert response.json() == []
+        assert response.status_code == 409
+        detail = response.json()["detail"]
+        assert detail["code"] == "REPORTING_CURRENCY_SETUP_REQUIRED"
+        assert detail["reporting_currency"]["status"] == "setup_required"
+        assert detail["reporting_currency"]["selected_currency"] is None
 
     def test_expenses_sorted_by_total_desc(
         self, client, auth_headers, sample_book, fake_book_for_reports, session_factory
@@ -913,12 +927,11 @@ class TestCashflowMVP:
             headers=auth_headers,
         )
 
-        assert response.status_code == 200
-        data = response.json()
-        assert data["currency"] == "SEK"
-        assert data["inflow"] == "0.00"
-        assert data["outflow"] == "0.00"
-        assert data["net"] == "0.00"
+        assert response.status_code == 409
+        detail = response.json()["detail"]
+        assert detail["code"] == "REPORTING_CURRENCY_SETUP_REQUIRED"
+        assert detail["reporting_currency"]["status"] == "setup_required"
+        assert detail["reporting_currency"]["selected_currency"] is None
 
     def test_cashflow_excludes_non_base_currency_splits(
         self,
@@ -1185,20 +1198,11 @@ class TestBookPeriodReport:
             headers=auth_headers,
         )
 
-        assert response.status_code == 200
-        data = response.json()
-        assert data["partial_failure"] is False
-        assert data["empty"] is True
-        assert data["summary"]["net_worth"] == "0.00"
-        assert data["cashflow"]["net"] == "0.00"
-        assert data["monthly_cashflow"] == []
-        assert data["expenses_by_account"] == []
-        assert {status["section"]: status["status"] for status in data["section_statuses"]} == {
-            "summary": "empty",
-            "cashflow": "empty",
-            "monthly_cashflow": "empty",
-            "expenses_by_account": "empty",
-        }
+        assert response.status_code == 409
+        detail = response.json()["detail"]
+        assert detail["code"] == "REPORTING_CURRENCY_SETUP_REQUIRED"
+        assert detail["reporting_currency"]["status"] == "setup_required"
+        assert detail["reporting_currency"]["selected_currency"] is None
 
     def test_period_report_rejects_invalid_and_reversed_ranges(self, client, auth_headers, sample_book):
         invalid = client.get(
@@ -1230,7 +1234,7 @@ class TestBookPeriodReport:
 
         assert response.status_code == 403
 
-    def test_period_report_discloses_mixed_and_unknown_currency_limitations(
+    def test_period_report_auto_detects_only_active_currency_when_base_missing(
         self, client, auth_headers, sample_book, fake_book_for_reports, session_factory, monkeypatch
     ):
         sek = FakeCommodity(mnemonic="SEK")
@@ -1267,11 +1271,10 @@ class TestBookPeriodReport:
 
         assert response.status_code == 200
         data = response.json()
-        assert data["currency"] == "XXX"
+        assert data["currency"] == "EUR"
         limitations = " ".join(data["limitations"])
-        assert "unknown (XXX)" in limitations
-        assert "zero totals may mean no matching base-currency accounts" in limitations
-        assert "EUR" in limitations
+        assert "unknown (XXX)" not in limitations
+        assert "commodity is EUR" in limitations
         assert "no currency conversion" in limitations
 
     def test_period_report_preserves_signed_decimal_strings(
@@ -1313,12 +1316,12 @@ class TestBookPeriodReport:
             headers=auth_headers,
         )
 
-        assert response.status_code == 200
-        summary = response.json()["summary"]
-        assert summary["assets"] == "-125.50"
-        assert summary["liabilities"] == "25.25"
-        assert summary["net_worth"] == "-100.25"
-        assert isinstance(summary["assets"], str)
+        assert response.status_code == 409
+        detail = response.json()["detail"]
+        assert detail["code"] == "REPORTING_CURRENCY_SETUP_REQUIRED"
+        assert detail["reporting_currency"]["configured_currency"] == "SEK"
+        assert detail["reporting_currency"]["configured_currency_status"] == "inactive"
+        assert detail["reporting_currency"]["selected_currency"] is None
 
     def test_period_report_partial_section_failure_is_user_safe(
         self, client, auth_headers, sample_book, fake_book_for_reports, session_factory, monkeypatch
@@ -1517,9 +1520,9 @@ class TestBookPeriodComparisonReport:
         assert [row.account_id for row in report.expense_changes] == ["utilities", "food"]
 
     def test_preset_modes_require_exact_server_derived_comparison_dates(
-        self, client, auth_headers, sample_book, empty_fake_book_for_reports, session_factory
+        self, client, auth_headers, sample_book, fake_book_for_reports, session_factory
     ):
-        self._point_book_at(session_factory, sample_book, empty_fake_book_for_reports)
+        self._point_book_at(session_factory, sample_book, fake_book_for_reports)
 
         previous_mismatch = client.get(
             f"/books/{sample_book}/reports/comparison?"
@@ -1706,7 +1709,7 @@ class TestBookPeriodComparisonReport:
         assert row["absolute_delta"] is None
         assert "changed between periods" in row["detail"]
 
-    def test_unknown_base_currency_suppresses_delta_sections_as_not_comparable(
+    def test_missing_base_currency_can_still_auto_detect_comparable_currency(
         self, client, auth_headers, sample_book, fake_book_for_reports, session_factory
     ):
         self._point_book_at(session_factory, sample_book, fake_book_for_reports, base_currency=None)
@@ -1718,16 +1721,16 @@ class TestBookPeriodComparisonReport:
 
         assert response.status_code == 200
         data = response.json()
-        assert data["comparable"] is False
+        assert data["comparable"] is True
         assert {status["section"]: status["status"] for status in data["delta_section_statuses"]} == {
-            "summary": "not_comparable",
-            "cashflow": "not_comparable",
-            "expenses_by_account": "not_comparable",
+            "summary": "ok",
+            "cashflow": "ok",
+            "expenses_by_account": "ok",
         }
-        assert data["summary_delta"] is None
-        assert data["cashflow_delta"] is None
-        assert data["expense_changes"] == []
-        assert "unknown (XXX)" in " ".join(data["limitations"])
+        assert data["summary_delta"] is not None
+        assert data["cashflow_delta"] is not None
+        assert data["expense_changes"]
+        assert "unknown (XXX)" not in " ".join(data["limitations"])
 
     def test_partial_section_errors_are_redacted_and_do_not_zero_failed_side(
         self, client, auth_headers, sample_book, fake_book_for_reports, session_factory, monkeypatch

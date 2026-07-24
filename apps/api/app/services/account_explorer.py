@@ -30,6 +30,8 @@ from app.schemas.accounts import (
     AccountOverviewResponseDTO,
     CommodityRefDTO,
 )
+from app.services.account_visibility import AccountVisibilityIndex, build_account_visibility_index
+from app.services.transaction_direction import build_transaction_direction
 
 MAX_QUERY_CODEPOINTS = 120
 MAX_TYPE_FILTERS = 20
@@ -99,6 +101,7 @@ class _AccountRecord:
     parent_id: str | None
     root_id: str | None
     name: str
+    display_name: str
     type: str
     commodity_namespace: str
     commodity_mnemonic: str
@@ -400,6 +403,7 @@ def build_account_overview_response(
         full_path=prepared.full_path_by_id[record.id],
         depth=prepared.depth_by_id[record.id],
         name=record.name,
+        display_name=record.display_name,
         type=record.type,
         commodity=_commodity_ref_dto(record.commodity_key),
         hidden=record.hidden,
@@ -689,6 +693,7 @@ def _overview_child_dto(
         full_path=full_path_by_id[record.id],
         depth=depth_by_id[record.id],
         name=record.name,
+        display_name=record.display_name,
         type=record.type,
         commodity=_commodity_ref_dto(record.commodity_key),
         hidden=record.hidden,
@@ -708,6 +713,9 @@ def _recursive_balance_dtos(record: _AccountRecord, buckets: dict[CommodityKey, 
 
 
 def _load_activity_account(book: Any, account_id: str, *, base_currency: str) -> tuple[Any | None, _AccountRecord | None, int]:
+    visibility = build_account_visibility_index(book)
+    if not visibility.is_visible_id(account_id):
+        return None, None, 0
     session = getattr(book, "session", None)
     query = getattr(session, "query", None) if session is not None else None
     if callable(query):
@@ -717,10 +725,10 @@ def _load_activity_account(book: Any, account_id: str, *, base_currency: str) ->
             .filter(piecash.Account.guid == account_id)
             .first()
         )
-        return account, _account_record(account, base_currency=base_currency) if account is not None else None, 1
+        return account, _account_record(account, base_currency=base_currency, visibility=visibility) if account is not None else None, 1
     for account in getattr(book, "accounts", []) or []:
         if _guid(getattr(account, "guid", account)) == account_id:
-            return account, _account_record(account, base_currency=base_currency), 0
+            return account, _account_record(account, base_currency=base_currency, visibility=visibility), 0
     return None, None, 0
 
 
@@ -792,6 +800,8 @@ def _build_activity_recent_section(
             query_count = recent.query_count
         else:
             transactions = _activity_fallback_recent_transactions(account, record.id, query)
+        visibility = build_account_visibility_index(book)
+        transactions = [transaction for transaction in transactions if visibility.transaction_is_visible(transaction)]
         probe = transactions[: query.limit + 1]
         has_more = len(probe) > query.limit
         returned = probe[: query.limit]
@@ -801,7 +811,7 @@ def _build_activity_recent_section(
             split_rows = prechecked_split_rows
         if split_rows > MAX_ACTIVITY_SPLIT_ROWS:
             raise _ActivitySectionReadError(query_count=query_count)
-        items = [_activity_recent_item(transaction, record) for transaction in returned]
+        items = [_activity_recent_item(transaction, record, visibility=visibility) for transaction in returned]
     except _ActivitySectionReadError:
         raise
     except Exception as exc:
@@ -880,7 +890,12 @@ def _activity_fallback_recent_transactions(account: Any, account_id: str, query:
     return rows[: query.limit + 1]
 
 
-def _activity_recent_item(transaction: Any, record: _AccountRecord) -> AccountActivityRecentTransactionDTO:
+def _activity_recent_item(
+    transaction: Any,
+    record: _AccountRecord,
+    *,
+    visibility: AccountVisibilityIndex | None = None,
+) -> AccountActivityRecentTransactionDTO:
     splits = _transaction_splits(transaction)
     selected_splits = [split for split in splits if _split_account_id(split) == record.id]
     if not selected_splits:
@@ -892,6 +907,7 @@ def _activity_recent_item(transaction: Any, record: _AccountRecord) -> AccountAc
         description=str(getattr(transaction, "description", "") or ""),
         matched_quantity=_balance_dto(matched_quantity, record.commodity_key),
         counter_account_name=_counter_account_name(splits, record.id),
+        direction=build_transaction_direction(transaction, visibility=visibility, fallback_currency=record.commodity_mnemonic),
         is_write_alpha_owned=False,
     )
 
@@ -1001,7 +1017,9 @@ def _load_account_records(book: Any, *, base_currency: str) -> tuple[list[_Accou
             .limit(MAX_CANDIDATE_ACCOUNTS + 1)
             .all()
         )
-        records = [_account_record(account, base_currency=base_currency) for account in accounts]
+        visibility = build_account_visibility_index(book, accounts=accounts)
+        visible_accounts = [account for account in accounts if visibility.is_visible_account(account)]
+        records = [_account_record(account, base_currency=base_currency, visibility=visibility) for account in visible_accounts]
         records_by_id = _records_by_id(records, allow_over_limit=True)
         if len(records) > MAX_CANDIDATE_ACCOUNTS:
             return records, 1, _SplitAggregateStats(split_rows=0, aggregate_rows=0, query_count=0)
@@ -1009,11 +1027,13 @@ def _load_account_records(book: Any, *, base_currency: str) -> tuple[list[_Accou
         return records, 1 + split_stats.query_count, split_stats
 
     accounts = list(getattr(book, "accounts", []) or [])
-    records = [_account_record(account, base_currency=base_currency) for account in accounts]
+    visibility = build_account_visibility_index(book, accounts=accounts)
+    visible_accounts = [account for account in accounts if visibility.is_visible_account(account)]
+    records = [_account_record(account, base_currency=base_currency, visibility=visibility) for account in visible_accounts]
     records_by_id = _records_by_id(records, allow_over_limit=True)
     if len(records) > MAX_CANDIDATE_ACCOUNTS:
         return records, 0, _SplitAggregateStats(split_rows=0, aggregate_rows=0, query_count=0)
-    split_stats = _load_fallback_split_totals(accounts, records_by_id)
+    split_stats = _load_fallback_split_totals(visible_accounts, records_by_id)
     return records, 0, split_stats
 
 
@@ -1140,7 +1160,12 @@ def _non_negative_int(value: Any) -> int:
     return parsed
 
 
-def _account_record(account: Any, *, base_currency: str) -> _AccountRecord:
+def _account_record(
+    account: Any,
+    *,
+    base_currency: str,
+    visibility: AccountVisibilityIndex | None = None,
+) -> _AccountRecord:
     account_id = _guid(getattr(account, "guid", account))
     parent_id = _parent_id(account)
     commodity = getattr(account, "commodity", None)
@@ -1152,6 +1177,7 @@ def _account_record(account: Any, *, base_currency: str) -> _AccountRecord:
         parent_id=None,
         root_id=None,
         name=unicodedata.normalize("NFC", str(getattr(account, "name", "") or "")),
+        display_name=visibility.display_name(account) if visibility is not None else unicodedata.normalize("NFC", str(getattr(account, "name", "") or "")),
         type=unicodedata.normalize("NFC", str(getattr(account, "type", "") or "")).upper(),
         commodity_namespace=unicodedata.normalize("NFC", namespace),
         commodity_mnemonic=unicodedata.normalize("NFC", mnemonic),
@@ -1262,7 +1288,7 @@ def _preorder(
                 "Account hierarchy depth exceeds the bounded explorer limit.",
             )
         record = records_by_id[account_id]
-        segment = AccountExplorerPathSegmentDTO(id=account_id, name=record.name)
+        segment = AccountExplorerPathSegmentDTO(id=account_id, name=record.name, display_name=record.display_name)
         path = [*parent_path, segment]
         preorder.append(account_id)
         depth_by_id[account_id] = depth
@@ -1355,6 +1381,7 @@ def _node_dto(
         full_path=full_path_by_id[record.id],
         depth=depth_by_id[record.id],
         name=record.name,
+        display_name=record.display_name,
         type=record.type,
         commodity=_commodity_ref_dto(record.commodity_key),
         hidden=record.hidden,

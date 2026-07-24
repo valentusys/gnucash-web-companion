@@ -102,6 +102,7 @@ class TransactionCreatePreviewAccountDTO(BaseModel):
 
     id: str
     name: str
+    display_name: str | None = None
     full_name: str
     type: str = "UNKNOWN"
     currency: str

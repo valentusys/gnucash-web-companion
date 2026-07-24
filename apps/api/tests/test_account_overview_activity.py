@@ -397,16 +397,13 @@ class TestAccountOverviewEndpoint:
         assert data["book_id"] == book_id
         assert data["id"] == ASSETS
         assert data["source_parent_id"] == ROOT
-        assert data["parent_id"] == ROOT
-        assert data["root_id"] == ROOT
-        assert data["full_path"] == "Root Account:Assets"
+        assert data["parent_id"] is None
+        assert data["root_id"] == ASSETS
+        assert data["full_path"] == "Assets"
         assert data["path"] == [
-            {"id": ROOT, "name": "Root Account"},
-            {"id": ASSETS, "name": "Assets"},
+            {"id": ASSETS, "name": "Assets", "display_name": "Assets"},
         ]
-        assert data["breadcrumbs"] == [
-            {"id": ROOT, "name": "Root Account"},
-        ]
+        assert data["breadcrumbs"] == []
         assert data["subtree_account_count"] == 5
         assert data["child_count"] == 4
         assert data["children_returned"] == 2
@@ -415,7 +412,7 @@ class TestAccountOverviewEndpoint:
         _assert_identity_commodity(data)
         _assert_identity_commodity(data["children"][0])
         assert data["children"][0]["direct_balance"] == _amount("-97")
-        assert data["scan"]["candidate_accounts"] == 10
+        assert data["scan"]["candidate_accounts"] == 9
         assert data["scan"]["query_count"] <= 8
         assert data["scan"]["rollup_bucket_cells"] >= 0
         assert "rollup_cells" not in data["scan"]

@@ -408,11 +408,14 @@ class TestListAccounts:
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
-        assert len(data) == 4
+        assert len(data) == 3
         names = [a["name"] for a in data]
-        assert "Assets" in names
+        assert "Assets" not in names
+        assert "Bank" in names
         assert "Checking" in names
         checking = next(a for a in data if a["name"] == "Checking")
+        assert checking["display_name"] == "Checking"
+        assert checking["full_name"] == "Assets:Bank:Checking"
         assert checking["currency"] == "SEK"
         assert "commodity" not in checking
         assert "commodity_namespace" not in checking
@@ -455,17 +458,16 @@ class TestAccountTree:
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
-        # Root-level nodes: Assets and Hidden placeholder
+        # Structural ROOT is suppressed; visible children are promoted to ordinary roots.
         root_ids = [n["id"] for n in data]
-        assert "root-guid" in root_ids
+        assert "root-guid" not in root_ids
+        assert "bank-guid" in root_ids
         assert "placeholder-guid" in root_ids
 
-        # Check nesting: Assets -> Bank -> Checking
-        assets = next(n for n in data if n["id"] == "root-guid")
-        assert len(assets["children"]) == 1
-        assert assets["children"][0]["id"] == "bank-guid"
-        assert len(assets["children"][0]["children"]) == 1
-        assert assets["children"][0]["children"][0]["id"] == "checking-guid"
+        # Check promoted nesting: Bank -> Checking
+        bank = next(n for n in data if n["id"] == "bank-guid")
+        assert len(bank["children"]) == 1
+        assert bank["children"][0]["id"] == "checking-guid"
 
     def test_access_denied(
         self, client, viewer_headers, sample_book, fake_book_path, session_factory
@@ -512,9 +514,8 @@ class TestAccountExplorer:
         assert data["balance_basis"] == "native_commodity_account_natural_sign"
         assert data["includes_currency_conversion"] is False
         assert any("currency conversion" in item for item in data["limitations"])
-        assert data["root_ids"] == [_hex_guid(1)]
+        assert data["root_ids"] == [_hex_guid(2), _hex_guid(5)]
         assert [node["id"] for node in data["nodes"]] == [
-            _hex_guid(1),
             _hex_guid(2),
             _hex_guid(3),
             _hex_guid(4),
@@ -522,9 +523,9 @@ class TestAccountExplorer:
             _hex_guid(8),
             _hex_guid(5),
         ]
-        assert data["returned_count"] == 7
-        assert data["scan"]["candidate_accounts"] == 8
-        assert data["scan"]["returned_nodes"] == 7
+        assert data["returned_count"] == 6
+        assert data["scan"]["candidate_accounts"] == 7
+        assert data["scan"]["returned_nodes"] == 6
         assert data["scan"]["split_rows"] == 4
         assert data["scan"]["query_count"] <= 8
         assert data["scan"]["rollup_bucket_cells"] >= 0
@@ -536,14 +537,13 @@ class TestAccountExplorer:
         bank = by_id[_hex_guid(3)]
         assert bank["source_parent_id"] == _hex_guid(2)
         assert bank["parent_id"] == _hex_guid(2)
-        assert bank["root_id"] == _hex_guid(1)
-        assert bank["depth"] == 2
+        assert bank["root_id"] == _hex_guid(2)
+        assert bank["depth"] == 1
         assert bank["path"] == [
-            {"id": _hex_guid(1), "name": "Root"},
-            {"id": _hex_guid(2), "name": "Assets"},
-            {"id": _hex_guid(3), "name": "Bank"},
+            {"id": _hex_guid(2), "name": "Assets", "display_name": "Assets"},
+            {"id": _hex_guid(3), "name": "Bank", "display_name": "Bank"},
         ]
-        assert bank["full_path"] == "Root:Assets:Bank"
+        assert bank["full_path"] == "Assets:Bank"
         assert bank["type"] == "BANK"
         _assert_identity_commodity(bank)
         assert bank["direct_balance"] == _amount("123.4567")
@@ -551,11 +551,11 @@ class TestAccountExplorer:
         assert bank["child_count"] == 0
         assert bank["match_state"] == "match"
         assert bank["structure_status"] == "normal"
-        assert by_id[_hex_guid(1)]["structure_status"] == "root"
+        assert by_id[_hex_guid(2)]["structure_status"] == "orphan_promoted"
 
         cafe = by_id[_hex_guid(4)]
         assert cafe["name"] == "Café"
-        assert cafe["full_path"] == "Root:Assets:Café"
+        assert cafe["full_path"] == "Assets:Café"
         assert cafe["direct_balance"]["amount"] == "1.2345"
 
         assets = by_id[_hex_guid(2)]
@@ -582,8 +582,8 @@ class TestAccountExplorer:
         assert tree.status_code == 200
         tree_data = tree.json()
         assert tree_data["normalized_filters"]["query"] == "café"
-        assert [node["id"] for node in tree_data["nodes"]] == [_hex_guid(1), _hex_guid(2), _hex_guid(4)]
-        assert [node["match_state"] for node in tree_data["nodes"]] == ["ancestor_context", "ancestor_context", "match"]
+        assert [node["id"] for node in tree_data["nodes"]] == [_hex_guid(2), _hex_guid(4)]
+        assert [node["match_state"] for node in tree_data["nodes"]] == ["ancestor_context", "match"]
 
         flat = client.get(
             f"/books/{sample_book}/accounts/explorer",
@@ -594,7 +594,7 @@ class TestAccountExplorer:
         flat_data = flat.json()
         assert flat_data["mode"] == "flat"
         assert [node["id"] for node in flat_data["nodes"]] == [_hex_guid(4)]
-        assert flat_data["nodes"][0]["root_id"] == _hex_guid(1)
+        assert flat_data["nodes"][0]["root_id"] == _hex_guid(2)
 
         typed = client.get(
             f"/books/{sample_book}/accounts/explorer",
@@ -605,7 +605,6 @@ class TestAccountExplorer:
         typed_data = typed.json()
         assert typed_data["normalized_filters"]["types"] == ["ASSET", "BANK"]
         assert [node["id"] for node in typed_data["nodes"]] == [
-            _hex_guid(1),
             _hex_guid(2),
             _hex_guid(3),
             _hex_guid(4),
@@ -623,8 +622,8 @@ class TestAccountExplorer:
             params={"hidden": "only"},
         )
         assert hidden_only.status_code == 200
-        assert [node["id"] for node in hidden_only.json()["nodes"]] == [_hex_guid(1), _hex_guid(6)]
-        assert [node["match_state"] for node in hidden_only.json()["nodes"]] == ["ancestor_context", "match"]
+        assert [node["id"] for node in hidden_only.json()["nodes"]] == [_hex_guid(6)]
+        assert [node["match_state"] for node in hidden_only.json()["nodes"]] == ["match"]
 
         placeholder_excluded = client.get(
             f"/books/{sample_book}/accounts/explorer",
@@ -711,7 +710,7 @@ class TestAccountExplorer:
     ):
         import app.services.account_explorer as ae
 
-        root = FakeAccount(guid=_hex_guid(40), name="Root", type="ROOT", splits=[FakeSplit(Decimal("1"))])
+        root = FakeAccount(guid=_hex_guid(40), name="Top", type="ASSET", splits=[FakeSplit(Decimal("1"))])
         child = FakeAccount(
             guid=_hex_guid(41),
             name="Child",
@@ -761,7 +760,7 @@ class TestAccountExplorer:
 
         monkeypatch.setattr(gb_module, "format_money", forbidden_format_money)
 
-        root = GuardAccount(guid=_hex_guid(50), name="Root", type="ROOT")
+        root = GuardAccount(guid=_hex_guid(50), name="Root", type="ASSET")
         child = GuardAccount(
             guid=_hex_guid(51),
             name="Precise",
@@ -813,7 +812,19 @@ class TestGetAccount:
         assert data["balance"] == "12345.67"
         assert data["currency"] == "SEK"
         assert data["parent_id"] == "bank-guid"
-        assert set(data) == {"id", "name", "full_name", "type", "currency", "balance", "placeholder", "hidden", "parent_id"}
+        assert data["display_name"] == "Checking"
+        assert set(data) == {
+            "id",
+            "name",
+            "display_name",
+            "full_name",
+            "type",
+            "currency",
+            "balance",
+            "placeholder",
+            "hidden",
+            "parent_id",
+        }
 
     def test_unknown_account_returns_404(
         self, client, auth_headers, sample_book, fake_book_path, session_factory
@@ -865,7 +876,7 @@ class TestMVPAliases:
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
-        assert len(data) == 4
+        assert len(data) == 3
 
     def test_tree_requires_auth(self, client):
         response = client.get("/accounts/tree")
@@ -884,7 +895,8 @@ class TestMVPAliases:
         data = response.json()
         assert isinstance(data, list)
         root_ids = [n["id"] for n in data]
-        assert "root-guid" in root_ids
+        assert "root-guid" not in root_ids
+        assert "bank-guid" in root_ids
 
     def test_get_requires_auth(self, client):
         response = client.get("/accounts/some-id")

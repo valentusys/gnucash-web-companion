@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, Literal, cast
 
 import piecash
@@ -33,6 +34,7 @@ from app.schemas.gnucash import (
     ReportMoneyDeltaDTO,
     ReportSummaryComparisonDeltaDTO,
     ReportSummaryDTO,
+    ReportSummarySetupDTO,
     ScheduledTransactionDTO,
     ScheduledTransactionRecurrenceDTO,
     TransactionDetailDTO,
@@ -60,6 +62,15 @@ from app.services.gnucash_exceptions import (
     EntityNotFoundError,
     GnuCashReadError,
 )
+from app.services.account_visibility import (
+    AccountVisibilityIndex,
+    account_guid,
+    build_account_visibility_index,
+    commodity_mnemonic,
+    visible_accounts,
+)
+from app.services.reporting_currency import ReportingCurrencySetupRequired, require_ready_reporting_currency, resolve_reporting_currency
+from app.services.transaction_direction import build_transaction_direction
 from app.services.transaction_explorer import (
     TransactionExplorerError,
     TransactionExplorerQuery,
@@ -98,6 +109,7 @@ class _ReportReadContext:
     book: Any
     accounts: list[Any] | None = None
     transactions: list[Any] | None = None
+    visibility: AccountVisibilityIndex | None = None
 
 
 @dataclass(frozen=True)
@@ -188,10 +200,15 @@ class GnuCashBookService:
         return getattr(book_config, "uri_or_path", None)
 
     @staticmethod
-    def _get_base_currency(book_config: Any) -> str:
+    def _get_base_currency(book_config: Any) -> str | None:
         if isinstance(book_config, dict):
-            return str(book_config.get("base_currency") or "XXX")
-        return str(getattr(book_config, "base_currency", None) or "XXX")
+            value = book_config.get("base_currency")
+        else:
+            value = getattr(book_config, "base_currency", None)
+        if value is None:
+            return None
+        text = str(value).strip().upper()
+        return text or None
 
     @staticmethod
     def _get_book_id(book_config: Any) -> int | None:
@@ -244,20 +261,25 @@ class GnuCashBookService:
             self._active_report_context = previous
 
     def _report_accounts(self, book: Any) -> Iterable[Any]:
-        context = self._active_report_context
-        if context is not None and context.book is book:
-            if context.accounts is None:
-                context.accounts = list(self._accounts(book))
-            return context.accounts
-        return self._accounts(book)
+        visibility = self._report_visibility(book)
+        return visible_accounts(visibility)
 
     def _report_transactions(self, book: Any) -> Iterable[Any]:
+        visibility = self._report_visibility(book)
         context = self._active_report_context
         if context is not None and context.book is book:
             if context.transactions is None:
                 context.transactions = list(self._transactions(book))
-            return context.transactions
-        return self._transactions(book)
+            return [transaction for transaction in context.transactions if visibility.transaction_is_visible(transaction)]
+        return [transaction for transaction in self._transactions(book) if visibility.transaction_is_visible(transaction)]
+
+    def _report_visibility(self, book: Any) -> AccountVisibilityIndex:
+        context = self._active_report_context
+        if context is not None and context.book is book:
+            if context.visibility is None:
+                context.visibility = build_account_visibility_index(book)
+            return context.visibility
+        return build_account_visibility_index(book)
 
     @contextmanager
     def _open_book(self):
@@ -266,7 +288,14 @@ class GnuCashBookService:
         try:
             book = self._open_piecash_book(uri_or_path)
             yield book
-        except (BookNotConfiguredError, BookNotFoundError, EntityNotFoundError, TransactionExplorerError, AccountExplorerError):
+        except (
+            BookNotConfiguredError,
+            BookNotFoundError,
+            EntityNotFoundError,
+            TransactionExplorerError,
+            AccountExplorerError,
+            ReportingCurrencySetupRequired,
+        ):
             raise
         except Exception as exc:  # pragma: no cover - exact piecash exceptions vary by backend
             raise GnuCashReadError(str(exc)) from exc
@@ -283,7 +312,8 @@ class GnuCashBookService:
 
     def list_accounts(self) -> list[AccountDTO]:
         with self._open_book() as book:
-            return [self._account_to_dto(account) for account in self._accounts(book)]
+            visibility = build_account_visibility_index(book)
+            return [self._account_to_dto(account, visibility=visibility) for account in visible_accounts(visibility)]
 
     def list_accounts_by_ids(
         self,
@@ -316,19 +346,20 @@ class GnuCashBookService:
     def get_account(self, account_id: str) -> AccountDTO:
         with self._open_book() as book:
             account = self._find_account(book, account_id)
-            if account is None:
+            visibility = build_account_visibility_index(book)
+            if account is None or not visibility.is_visible_id(account_id):
                 raise EntityNotFoundError("account", account_id)
-            return self._account_to_dto(account)
+            return self._account_to_dto(account, visibility=visibility)
 
     def get_account_tree(self) -> list[AccountTreeNodeDTO]:
         with self._open_book() as book:
-            accounts = list(self._accounts(book))
-            nodes = {self._account_id(account): self._account_to_tree_node(account) for account in accounts}
+            visibility = build_account_visibility_index(book)
+            accounts = visible_accounts(visibility)
+            nodes = {self._account_id(account): self._account_to_tree_node(account, visibility=visibility) for account in accounts}
             roots: list[AccountTreeNodeDTO] = []
             for account in accounts:
                 node = nodes[self._account_id(account)]
-                parent = getattr(account, "parent", None)
-                parent_id = self._account_id(parent) if parent is not None else None
+                parent_id = visibility.effective_parent_id(account)
                 if parent_id and parent_id in nodes:
                     nodes[parent_id].children.append(node)
                 else:
@@ -342,7 +373,7 @@ class GnuCashBookService:
                 book,
                 request,
                 book_id=book_id if book_id is not None else self._get_book_id(self.book_config) or 0,
-                base_currency=self.base_currency,
+                base_currency=self.base_currency or "XXX",
             )
 
     def get_account_overview(self, account_id: str, *, book_id: int | None = None) -> AccountOverviewResponseDTO:
@@ -352,7 +383,7 @@ class GnuCashBookService:
                 book,
                 account_id,
                 book_id=book_id if book_id is not None else self._get_book_id(self.book_config) or 0,
-                base_currency=self.base_currency,
+                base_currency=self.base_currency or "XXX",
             )
 
     def get_account_activity(
@@ -379,7 +410,7 @@ class GnuCashBookService:
                 account_id,
                 activity_query,
                 book_id=book_id if book_id is not None else self._get_book_id(self.book_config) or 0,
-                base_currency=self.base_currency,
+                base_currency=self.base_currency or "XXX",
             )
 
     def list_transactions(
@@ -404,8 +435,11 @@ class GnuCashBookService:
         min_decimal = self._optional_decimal(min_amount)
         max_decimal = self._optional_decimal(max_amount)
         with self._open_book() as book:
+            visibility = build_account_visibility_index(book)
             items: list[TransactionListItemDTO] = []
             for transaction in self._candidate_transactions(book, account_id):
+                if not visibility.transaction_is_visible(transaction):
+                    continue
                 if not self._transaction_matches(
                     transaction,
                     account_id,
@@ -417,16 +451,17 @@ class GnuCashBookService:
                     max_decimal,
                 ):
                     continue
-                items.append(self._transaction_to_list_item(transaction, account_id))
+                items.append(self._transaction_to_list_item(transaction, account_id, visibility=visibility))
             items.sort(key=lambda item: (item.date, item.id), reverse=True)
             return items[offset : offset + limit]
 
     def get_transaction(self, transaction_id: str) -> TransactionDetailDTO:
         with self._open_book() as book:
             transaction = self._find_transaction(book, transaction_id)
-            if transaction is None:
+            visibility = build_account_visibility_index(book)
+            if transaction is None or not visibility.transaction_is_visible(transaction):
                 raise EntityNotFoundError("transaction", transaction_id)
-            return self._transaction_to_detail(transaction)
+            return self._transaction_to_detail(transaction, visibility=visibility)
 
     def list_scheduled_transactions(self) -> list[ScheduledTransactionDTO]:
         """Return safe read-only scheduled transaction metadata.
@@ -456,9 +491,11 @@ class GnuCashBookService:
         min_decimal = self._optional_decimal(min_amount)
         max_decimal = self._optional_decimal(max_amount)
         with self._open_book() as book:
+            visibility = build_account_visibility_index(book)
             return sum(
                 1
                 for transaction in self._candidate_transactions(book, account_id)
+                if visibility.transaction_is_visible(transaction)
                 if self._transaction_matches(
                     transaction,
                     account_id,
@@ -480,11 +517,12 @@ class GnuCashBookService:
         pushed into SQLite are guarded by candidate/split limits.
         """
         with self._open_book() as book:
+            visibility = build_account_visibility_index(book)
             account_queries = 0
             selected_accounts: dict[str, Any] = {}
             if request.account_ids:
                 account_queries += 1
-                selected_accounts = self._explorer_selected_accounts(book, request.account_ids)
+                selected_accounts = self._explorer_selected_accounts(book, request.account_ids, visibility=visibility)
 
             matches: list[TransactionExplorerItemDTO] = []
             candidate_rows_scanned = 0
@@ -509,6 +547,8 @@ class GnuCashBookService:
 
                 for transaction in chunk:
                     candidate_rows_scanned += 1
+                    if not visibility.transaction_is_visible(transaction):
+                        continue
                     tx_key = self._explorer_transaction_key(transaction)
                     if tx_key is not None:
                         last_candidate_key = tx_key
@@ -519,7 +559,7 @@ class GnuCashBookService:
                             "result_too_complex",
                             "Explorer result is too complex for one bounded request; narrow the filters.",
                         )
-                    item = self._explorer_match_to_item(transaction, request, selected_accounts)
+                    item = self._explorer_match_to_item(transaction, request, selected_accounts, visibility=visibility)
                     if item is not None:
                         matches.append(item)
                         if len(matches) >= target_count:
@@ -626,7 +666,7 @@ class GnuCashBookService:
             return BookSummaryDTO(
                 account_count=len(accounts),
                 transaction_count=len(transactions),
-                currency=self.base_currency,
+                currency=self.base_currency or "XXX",
             )
 
     def get_cashflow(self, date_from: date | str, date_to: date | str) -> CashflowDTO:
@@ -637,7 +677,15 @@ class GnuCashBookService:
         inflow = Decimal("0")
         outflow = Decimal("0")
         with self._open_report_section_book() as book:
-            for transaction in self._report_transactions(book):
+            report_transactions = self._report_transactions(book)
+            resolution = require_ready_reporting_currency(
+                book,
+                self.base_currency,
+                visibility=self._report_visibility(book),
+                transactions=report_transactions,
+            )
+            reporting_currency = resolution.selected_currency or "XXX"
+            for transaction in report_transactions:
                 tx_date = _coerce_date(self._transaction_date(transaction))
                 if tx_date is None or tx_date < start or tx_date > end:
                     continue
@@ -647,7 +695,7 @@ class GnuCashBookService:
                     if account_type not in {"INCOME", "EXPENSE"}:
                         continue
                     currency = self._account_currency(account)
-                    if currency != self.base_currency:
+                    if currency != reporting_currency:
                         continue
                     amount = self._split_amount(split)
                     if account_type == "INCOME":
@@ -664,46 +712,65 @@ class GnuCashBookService:
         return CashflowDTO(
             date_from=start.isoformat(),
             date_to=end.isoformat(),
-            currency=self.base_currency,
+            currency=reporting_currency,
             inflow=format_money(inflow),
             outflow=format_money(outflow),
             net=format_money(net),
         )
 
-    def get_report_summary(self, as_of_date: date | str | None = None) -> ReportSummaryDTO:
-        """Return dashboard summary: net worth, assets, liabilities, income/expenses this month.
-
-        Multi-currency limitation: only accounts whose commodity matches the book's
-        base currency are included. Accounts in other currencies are silently excluded
-        from asset/liability totals.
-        """
+    def get_report_summary(self, as_of_date: date | str | None = None) -> ReportSummaryDTO | ReportSummarySetupDTO:
+        """Return dashboard summary or explicit setup-required reporting-currency state."""
         as_of = _coerce_date(as_of_date) or date.today()
         today = as_of
         month_start = date(today.year, today.month, 1)
-        asset_account_types = {"ASSET", "BANK", "CASH", "RECEIVABLE", "STOCK", "MUTUAL"}
+        asset_account_types = {"ASSET", "BANK", "CASH", "RECEIVABLE"}
         liability_account_types = {"LIABILITY", "CREDIT", "PAYABLE"}
         assets = Decimal("0")
         liabilities = Decimal("0")
         split_assets = Decimal("0")
         split_liabilities = Decimal("0")
-        saw_base_currency_balance_split = False
-        excluded_currencies: set[str] = set()
-        base_currency_account_count = 0
+        saw_reporting_currency_balance_split = False
         income_this_month = Decimal("0")
         expenses_this_month = Decimal("0")
         with self._open_report_section_book() as book:
+            visibility = self._report_visibility(book)
+            report_transactions = self._report_transactions(book)
+            resolution = resolve_reporting_currency(
+                book,
+                self.base_currency,
+                visibility=visibility,
+                transactions=report_transactions,
+            )
+            limitations = self._report_summary_limitations(
+                base_currency=resolution.selected_currency or resolution.configured_currency or "XXX",
+                excluded_currencies=set(resolution.excluded_currencies),
+                base_currency_account_count=sum(
+                    1
+                    for account in self._report_accounts(book)
+                    if self._account_currency(account) == (resolution.selected_currency or "")
+                ),
+            )
+            if resolution.status != "ready" or resolution.selected_currency is None:
+                return ReportSummarySetupDTO(
+                    as_of_date=today.isoformat(),
+                    reporting_basis="base_currency_only",
+                    includes_currency_conversion=False,
+                    limitations=limitations,
+                    reporting_currency=resolution,
+                )
+            reporting_currency = resolution.selected_currency
             for account in self._report_accounts(book):
+                if visibility.child_count(account) > 0 or bool(getattr(account, "placeholder", False)):
+                    continue
                 account_type = str(getattr(account, "type", "")).upper()
                 currency = self._account_currency(account)
-                if currency != self.base_currency:
-                    excluded_currencies.add(currency or "unknown")
+                if currency != reporting_currency:
                     continue
-                base_currency_account_count += 1
                 if account_type in asset_account_types:
                     assets += self._account_balance(account)
                 elif account_type in liability_account_types:
                     liabilities += self._account_balance(account)
-            for transaction in self._report_transactions(book):
+            for transaction in report_transactions:
                 tx_date = _coerce_date(self._transaction_date(transaction))
                 if tx_date is None or tx_date > today:
                     continue
@@ -714,16 +781,15 @@ class GnuCashBookService:
                         continue
                     account_type = str(getattr(account, "type", "")).upper()
                     currency = self._account_currency(account)
-                    if currency != self.base_currency:
-                        excluded_currencies.add(currency or "unknown")
+                    if currency != reporting_currency:
                         continue
                     amount = self._split_amount(split)
                     if account_type in asset_account_types:
                         split_assets += amount
-                        saw_base_currency_balance_split = True
+                        saw_reporting_currency_balance_split = True
                     elif account_type in liability_account_types:
                         split_liabilities += amount
-                        saw_base_currency_balance_split = True
+                        saw_reporting_currency_balance_split = True
                     if not in_current_month:
                         continue
                     if account_type == "INCOME":
@@ -736,17 +802,12 @@ class GnuCashBookService:
                             expenses_this_month += amount
                         else:
                             income_this_month += abs(amount)
-        if assets == 0 and liabilities == 0 and saw_base_currency_balance_split:
+        if assets == 0 and liabilities == 0 and saw_reporting_currency_balance_split:
             assets = split_assets
             liabilities = split_liabilities
         net_worth = assets + liabilities  # liabilities are already negative
-        limitations = self._report_summary_limitations(
-            base_currency=self.base_currency,
-            excluded_currencies=excluded_currencies,
-            base_currency_account_count=base_currency_account_count,
-        )
         return ReportSummaryDTO(
-            currency=self.base_currency,
+            currency=reporting_currency,
             net_worth=format_money(net_worth),
             assets=format_money(assets),
             liabilities=format_money(liabilities),
@@ -756,6 +817,7 @@ class GnuCashBookService:
             reporting_basis="base_currency_only",
             includes_currency_conversion=False,
             limitations=limitations,
+            reporting_currency=resolution,
         )
 
     @staticmethod
@@ -795,18 +857,23 @@ class GnuCashBookService:
         date_from: date | str | None = None,
         date_to: date | str | None = None,
     ) -> list[ExpenseByAccountDTO]:
-        """Return total expenses grouped by expense account within a date range.
-
-        Multi-currency limitation: only splits whose account commodity matches the
-        book's base currency are included.
-        """
+        """Return total expenses grouped by expense account within a date range."""
         start = _coerce_date(date_from)
         end = _coerce_date(date_to)
         totals: dict[str, Decimal] = {}
         account_names: dict[str, str] = {}
         account_currencies: dict[str, str] = {}
         with self._open_report_section_book() as book:
-            for transaction in self._report_transactions(book):
+            visibility = self._report_visibility(book)
+            report_transactions = self._report_transactions(book)
+            resolution = require_ready_reporting_currency(
+                book,
+                self.base_currency,
+                visibility=visibility,
+                transactions=report_transactions,
+            )
+            reporting_currency = resolution.selected_currency or "XXX"
+            for transaction in report_transactions:
                 tx_date = _coerce_date(self._transaction_date(transaction))
                 if tx_date is None:
                     continue
@@ -822,7 +889,7 @@ class GnuCashBookService:
                     if account_type != "EXPENSE":
                         continue
                     currency = self._account_currency(account)
-                    if currency != self.base_currency:
+                    if currency != reporting_currency:
                         continue
                     amount = self._split_amount(split)
                     account_id = self._account_id(account)
@@ -837,9 +904,9 @@ class GnuCashBookService:
         result = [
             ExpenseByAccountDTO(
                 account_id=aid,
-                account_name=account_names.get(aid, ""),
+                account_name=account_names[aid],
+                currency=account_currencies.get(aid, self.base_currency or "XXX"),
                 total=format_money(totals[aid]),
-                currency=account_currencies.get(aid, self.base_currency),
             )
             for aid in totals
         ]
@@ -858,7 +925,15 @@ class GnuCashBookService:
             raise ValueError("date_from and date_to are required")
         months: dict[str, dict[str, Decimal]] = {}
         with self._open_report_section_book() as book:
-            for transaction in self._report_transactions(book):
+            report_transactions = self._report_transactions(book)
+            resolution = require_ready_reporting_currency(
+                book,
+                self.base_currency,
+                visibility=self._report_visibility(book),
+                transactions=report_transactions,
+            )
+            reporting_currency = resolution.selected_currency or "XXX"
+            for transaction in report_transactions:
                 tx_date = _coerce_date(self._transaction_date(transaction))
                 if tx_date is None or tx_date < start or tx_date > end:
                     continue
@@ -873,7 +948,7 @@ class GnuCashBookService:
                     if account_type not in {"INCOME", "EXPENSE"}:
                         continue
                     currency = self._account_currency(account)
-                    if currency != self.base_currency:
+                    if currency != reporting_currency:
                         continue
                     amount = self._split_amount(split)
                     if account_type == "INCOME":
@@ -923,11 +998,13 @@ class GnuCashBookService:
         monthly_cashflow: list[CashflowPeriodDTO] = []
         expenses_by_account: list[ExpenseByAccountDTO] = []
         section_statuses: list[PeriodReportSectionStatusDTO] = []
-        limitations = self._period_report_base_limitations(self.base_currency)
+        limitations = self._period_report_base_limitations(self.base_currency or "XXX")
 
         try:
             dashboard_summary = self.get_report_summary(as_of_date=end)
-            limitations = self._merge_limitations(limitations, dashboard_summary.limitations)
+            if isinstance(dashboard_summary, ReportSummarySetupDTO):
+                raise ReportingCurrencySetupRequired(dashboard_summary.reporting_currency)
+            limitations = list(dashboard_summary.limitations)
             summary = self._period_report_summary_from_report_summary(dashboard_summary)
             section_statuses.append(
                 self._period_report_section_status(
@@ -975,7 +1052,7 @@ class GnuCashBookService:
 
         partial_failure = any(section.status == "error" for section in section_statuses)
         empty = not partial_failure and all(section.status == "empty" for section in section_statuses)
-        currency = summary.currency if summary is not None else cashflow.currency if cashflow is not None else self.base_currency
+        currency = summary.currency if summary is not None else cashflow.currency if cashflow is not None else self.base_currency or "XXX"
         return PeriodReportDTO(
             book_id=resolved_book_id or 0,
             date_from=start.isoformat(),
@@ -1052,7 +1129,7 @@ class GnuCashBookService:
         comparison: PeriodReportDTO,
     ) -> ReportComparisonDeltaDTO:
         shared_currency, currency_detail = self._comparison_shared_currency(primary, comparison)
-        currency = shared_currency or primary.currency or comparison.currency or self.base_currency
+        currency = shared_currency or primary.currency or comparison.currency or self.base_currency or "XXX"
         section_statuses: list[ReportComparisonSectionStatusDTO] = []
 
         summary = self._summary_comparison_delta(
@@ -1395,13 +1472,15 @@ class GnuCashBookService:
         session = getattr(book, "session", None)
         query = getattr(session, "query", None) if session is not None else None
         if callable(query):
-            return self._sql_account_dtos_by_ids(session, account_ids, counters=counters)
+            return self._sql_account_dtos_by_ids(book, session, account_ids, counters=counters)
 
         accounts = self._accounts_by_ids(book, account_ids, counters=counters)
-        return [self._account_to_dto(account) for account in accounts]
+        visibility = build_account_visibility_index(book)
+        return [self._account_to_dto(account, visibility=visibility) for account in accounts]
 
     def _sql_account_dtos_by_ids(
         self,
+        book: Any,
         session: Any,
         account_ids: list[str],
         *,
@@ -1436,6 +1515,7 @@ class GnuCashBookService:
             row_map,
             counters=counters,
         )
+        visibility = build_account_visibility_index(SimpleNamespace(accounts=list(row_map.values())), accounts=row_map.values())
         if counters is not None:
             counters["account_materialized_unique_count"] = len(row_map)
             counters["account_materialized_unique_row_count"] = len(row_map)
@@ -1448,7 +1528,10 @@ class GnuCashBookService:
             )
             counters["account_materialized_tuple_row_count"] = counters["account_materialized_count"]
 
-        return [self._bounded_account_row_to_dto(row, row_map, balances.get(row.guid, Decimal("0"))) for row in requested_rows]
+        return [
+            self._bounded_account_row_to_dto(row, row_map, balances.get(row.guid, Decimal("0")), visibility=visibility)
+            for row in requested_rows
+        ]
 
     def _sql_account_rows_by_guids(
         self,
@@ -1706,11 +1789,13 @@ class GnuCashBookService:
         balances: dict[str, Decimal] = {}
         for requested_row in requested_rows:
             descendant_ids = descendant_ids_by_requested.get(requested_row.guid, {requested_row.guid})
-            for descendant_id in descendant_ids:
-                descendant = row_map.get(descendant_id)
-                if descendant is not None and descendant.commodity_guid != requested_row.commodity_guid:
-                    raise GnuCashReadError("Bounded account lookup cannot compute cross-commodity recursive balances")
-            balance = sum((raw_balances.get(account_id, Decimal("0")) for account_id in descendant_ids), Decimal("0"))
+            same_commodity_ids = {
+                descendant_id
+                for descendant_id in descendant_ids
+                if (descendant := row_map.get(descendant_id)) is None
+                or descendant.commodity_guid == requested_row.commodity_guid
+            }
+            balance = sum((raw_balances.get(account_id, Decimal("0")) for account_id in same_commodity_ids), Decimal("0"))
             if requested_row.account_type.upper() in ACCOUNT_TYPES_WITH_NATURAL_SIGN_REVERSED:
                 balance = -balance
             balances[requested_row.guid] = balance
@@ -1721,20 +1806,28 @@ class GnuCashBookService:
         row: _BoundedAccountRow,
         row_map: dict[str, _BoundedAccountRow],
         balance: Decimal,
+        *,
+        visibility: AccountVisibilityIndex | None = None,
     ) -> AccountDTO:
-        currency = row.commodity_mnemonic or self.base_currency
+        currency = row.commodity_mnemonic or self.base_currency or "XXX"
+        full_name = visibility.full_name(row) if visibility is not None else self._bounded_account_full_name(row, row_map)
+        display_name = visibility.display_name(row) if visibility is not None else row.name
+        parent_id = visibility.effective_parent_id(row) if visibility is not None else row.parent_guid
         return AccountDTO(
             id=row.guid,
             name=row.name,
-            full_name=self._bounded_account_full_name(row, row_map),
+            display_name=display_name,
+            full_name=full_name,
             type=row.account_type,
             currency=currency,
             balance=self._money(balance, currency).amount,
             placeholder=row.placeholder,
             hidden=row.hidden,
-            parent_id=row.parent_guid,
+            parent_id=parent_id,
             commodity_namespace=row.commodity_namespace,
             commodity_fraction=row.commodity_fraction,
+            ordinary_visibility_excluded=not visibility.is_visible_id(row.guid) if visibility is not None else False,
+            ordinary_visibility_reason=visibility.exclusion_reason(row.guid) if visibility is not None else None,
         )
 
     def _bounded_account_full_name(self, row: _BoundedAccountRow, row_map: dict[str, _BoundedAccountRow]) -> str:
@@ -1873,12 +1966,18 @@ class GnuCashBookService:
             return candidates
         return self._transactions(book)
 
-    def _explorer_selected_accounts(self, book: Any, account_ids: tuple[str, ...]) -> dict[str, Any]:
+    def _explorer_selected_accounts(
+        self,
+        book: Any,
+        account_ids: tuple[str, ...],
+        *,
+        visibility: AccountVisibilityIndex,
+    ) -> dict[str, Any]:
         accounts = {self._account_id(account).lower(): account for account in self._accounts(book)}
         selected: dict[str, Any] = {}
         for account_id in account_ids:
             account = accounts.get(account_id)
-            if account is None:
+            if account is None or not visibility.is_visible_id(account_id):
                 raise TransactionExplorerError("unknown_account", "One or more selected accounts were not found")
             currency = self._account_currency(account)
             if currency != self.base_currency:
@@ -2001,6 +2100,8 @@ class GnuCashBookService:
         transaction: Any,
         request: TransactionExplorerQuery,
         selected_accounts: dict[str, Any],
+        *,
+        visibility: AccountVisibilityIndex,
     ) -> TransactionExplorerItemDTO | None:
         splits = self._splits(transaction)
         if not splits:
@@ -2070,12 +2171,15 @@ class GnuCashBookService:
             representative_amount=self._money(display_amount, display_currency),
             representative_account=TransactionExplorerAccountRefDTO(
                 id=self._account_id(account),
-                name=account_full_name(account),
+                name=visibility.full_name(account),
+                display_name=visibility.display_name(account),
+                full_name=visibility.full_name(account),
             ),
-            matched_amount=self._money(matched_amount, self.base_currency) if matched_amount is not None else None,
+            matched_amount=self._money(matched_amount, self.base_currency or "XXX") if matched_amount is not None else None,
             amount_basis=amount_basis,
             matched_account_ids=matched_account_ids,
             counter_account_name=self._counter_account_name(splits, account),
+            direction=build_transaction_direction(transaction, visibility=visibility, fallback_currency=display_currency),
         )
 
     def _explorer_type_splits_and_amount(self, splits: list[Any], transaction_type: str) -> tuple[list[Any], Decimal]:
@@ -2147,7 +2251,7 @@ class GnuCashBookService:
         return _guid(account)
 
     def _account_currency(self, account: Any) -> str:
-        return _commodity_code(getattr(account, "commodity", None), self.base_currency)
+        return _commodity_code(getattr(account, "commodity", None), self.base_currency or "XXX")
 
     def _account_commodity_namespace(self, account: Any) -> str | None:
         commodity = getattr(account, "commodity", None)
@@ -2170,36 +2274,108 @@ class GnuCashBookService:
     def _account_balance(self, account: Any) -> Decimal:
         get_balance = getattr(account, "get_balance", None)
         if callable(get_balance):
-            return self._decimal(get_balance())
+            return self._same_commodity_recursive_balance(account)
         for attr in ("balance", "current_balance"):
             value = getattr(account, attr, None)
             if value is not None:
                 return self._decimal(value)
         total = Decimal("0")
         for split in getattr(account, "splits", []) or []:
-            total += self._split_amount(split)
+            total += self._split_quantity(split)
         return total
 
-    def _account_to_dto(self, account: Any) -> AccountDTO:
+    def _same_commodity_recursive_balance(self, account: Any) -> Decimal:
+        """Return a piecash-compatible recursive balance without cross-commodity FX."""
+
+        target_key = self._account_commodity_key(account)
+        raw_total = Decimal("0")
+        stack = [account]
+        seen: set[int] = set()
+        for _depth in range(REQUEST_ACCOUNT_HIERARCHY_MAX_DEPTH + 1):
+            if not stack:
+                break
+            current = stack.pop()
+            object_id = id(current)
+            if object_id in seen:
+                continue
+            seen.add(object_id)
+            if self._account_commodity_key(current) == target_key:
+                raw_total += self._account_direct_raw_balance(current)
+            stack.extend(list(getattr(current, "children", []) or []))
+        else:
+            if stack:
+                raise GnuCashReadError("Account balance hierarchy depth exceeded")
+        if str(getattr(account, "type", "") or "").upper() in ACCOUNT_TYPES_WITH_NATURAL_SIGN_REVERSED:
+            raw_total = Decimal("-0") if raw_total == 0 else -raw_total
+        return raw_total
+
+    def _account_direct_raw_balance(self, account: Any) -> Decimal:
+        get_balance = getattr(account, "get_balance", None)
+        if callable(get_balance):
+            try:
+                return self._decimal(get_balance(recurse=False, natural_sign=False))
+            except TypeError:
+                pass
+        total = Decimal("0")
+        for split in getattr(account, "splits", []) or []:
+            total += self._split_quantity(split)
+        return total
+
+    def _account_commodity_key(self, account: Any) -> tuple[str, str]:
+        commodity = getattr(account, "commodity", None)
+        commodity_id = getattr(commodity, "guid", None)
+        if commodity_id:
+            return ("guid", str(commodity_id))
+        return (self._account_commodity_namespace(account) or "", self._account_currency(account) or "")
+
+    def _account_to_dto(
+        self,
+        account: Any,
+        *,
+        visibility: AccountVisibilityIndex | None = None,
+        ordinary_visibility_excluded: bool | None = None,
+        ordinary_visibility_reason: str | None = None,
+    ) -> AccountDTO:
         parent = getattr(account, "parent", None)
         currency = self._account_currency(account)
         balance = self._money(self._account_balance(account), currency)
+        if visibility is not None:
+            account_id = self._account_id(account)
+            parent_id = visibility.effective_parent_id(account)
+            full_name = visibility.full_name(account)
+            display_name = visibility.display_name(account)
+            excluded = ordinary_visibility_excluded if ordinary_visibility_excluded is not None else not visibility.is_visible_id(account_id)
+            reason = ordinary_visibility_reason if ordinary_visibility_reason is not None else visibility.exclusion_reason(account_id)
+        else:
+            parent_id = self._account_id(parent) if parent is not None else None
+            full_name = account_full_name(account)
+            display_name = str(getattr(account, "name", ""))
+            excluded = bool(ordinary_visibility_excluded)
+            reason = ordinary_visibility_reason
         return AccountDTO(
             id=self._account_id(account),
             name=str(getattr(account, "name", "")),
-            full_name=account_full_name(account),
+            display_name=display_name,
+            full_name=full_name,
             type=str(getattr(account, "type", "")),
             currency=balance.currency,
             balance=balance.amount,
             placeholder=bool(getattr(account, "placeholder", False)),
             hidden=bool(getattr(account, "hidden", False)),
-            parent_id=self._account_id(parent) if parent is not None else None,
+            parent_id=parent_id,
             commodity_namespace=self._account_commodity_namespace(account),
             commodity_fraction=self._account_commodity_fraction(account),
+            ordinary_visibility_excluded=excluded,
+            ordinary_visibility_reason=reason,
         )
 
-    def _account_to_tree_node(self, account: Any) -> AccountTreeNodeDTO:
-        dto = self._account_to_dto(account)
+    def _account_to_tree_node(
+        self,
+        account: Any,
+        *,
+        visibility: AccountVisibilityIndex | None = None,
+    ) -> AccountTreeNodeDTO:
+        dto = self._account_to_dto(account, visibility=visibility)
         return AccountTreeNodeDTO(**dto.model_dump(), children=[])
 
     def _find_account(self, book: Any, account_id: str) -> Any | None:
@@ -2216,6 +2392,13 @@ class GnuCashBookService:
 
     def _split_amount(self, split: Any) -> Decimal:
         for attr in ("value", "quantity", "amount"):
+            value = getattr(split, attr, None)
+            if value is not None:
+                return self._decimal(value)
+        return Decimal("0")
+
+    def _split_quantity(self, split: Any) -> Decimal:
+        for attr in ("quantity", "value", "amount"):
             value = getattr(split, attr, None)
             if value is not None:
                 return self._decimal(value)
@@ -2290,11 +2473,19 @@ class GnuCashBookService:
             splits = [split for split in splits if self._account_id(getattr(split, "account", None)) == account_id]
         return any(str(getattr(split, "reconcile_state", "") or "").lower() == expected_state for split in splits)
 
-    def _transaction_to_list_item(self, transaction: Any, account_id: str | None = None) -> TransactionListItemDTO:
+    def _transaction_to_list_item(
+        self,
+        transaction: Any,
+        account_id: str | None = None,
+        *,
+        visibility: AccountVisibilityIndex | None = None,
+    ) -> TransactionListItemDTO:
         splits = self._splits(transaction)
         selected = self._select_split(splits, account_id)
         account = getattr(selected, "account", None)
         money = self._money(self._split_amount(selected), self._account_currency(account))
+        full_name = visibility.full_name(account) if visibility is not None and account is not None else account_full_name(account)
+        display_name = visibility.display_name(account) if visibility is not None and account is not None else str(getattr(account, "name", ""))
         return TransactionListItemDTO(
             id=_guid(transaction),
             date=_date_string(self._transaction_date(transaction)),
@@ -2302,13 +2493,21 @@ class GnuCashBookService:
             amount=money.amount,
             currency=money.currency,
             account_id=self._account_id(account),
-            account_name=account_full_name(account),
+            account_name=full_name,
+            account_display_name=display_name,
             counter_account_name=self._counter_account_name(splits, account),
+            direction=build_transaction_direction(transaction, visibility=visibility, fallback_currency=money.currency),
+            is_write_alpha_owned=False,
         )
 
-    def _transaction_to_detail(self, transaction: Any) -> TransactionDetailDTO:
-        split_dtos = [self._split_to_dto(split) for split in self._splits(transaction)]
-        currency = split_dtos[0].currency if split_dtos else self.base_currency
+    def _transaction_to_detail(
+        self,
+        transaction: Any,
+        *,
+        visibility: AccountVisibilityIndex | None = None,
+    ) -> TransactionDetailDTO:
+        split_dtos = [self._split_to_dto(split, visibility=visibility) for split in self._splits(transaction)]
+        currency = split_dtos[0].currency if split_dtos else self.base_currency or "XXX"
         return TransactionDetailDTO(
             id=_guid(transaction),
             date=_date_string(self._transaction_date(transaction)),
@@ -2376,12 +2575,20 @@ class GnuCashBookService:
             return None
         return int(value)
 
-    def _split_to_dto(self, split: Any) -> TransactionSplitDTO:
+    def _split_to_dto(
+        self,
+        split: Any,
+        *,
+        visibility: AccountVisibilityIndex | None = None,
+    ) -> TransactionSplitDTO:
         account = getattr(split, "account", None)
         money = self._money(self._split_amount(split), self._account_currency(account))
+        full_name = visibility.full_name(account) if visibility is not None and account is not None else account_full_name(account)
+        display_name = visibility.display_name(account) if visibility is not None and account is not None else str(getattr(account, "name", ""))
         return TransactionSplitDTO(
             account_id=self._account_id(account),
-            account_name=account_full_name(account),
+            account_name=full_name,
+            account_display_name=display_name,
             memo=str(getattr(split, "memo", "") or ""),
             reconcile_state=str(getattr(split, "reconcile_state", "") or ""),
             amount=money.amount,

@@ -171,9 +171,9 @@ class TestCompatibilityFixtureV1ReadOnlyCoverage:
 
         report = svc.get_report_summary("2024-01-31")
         assert report.currency == "SEK"
-        assert report.assets == "10937.78"
+        assert report.assets == "5468.89"
         assert report.liabilities == "0.00"
-        assert report.net_worth == "10937.78"
+        assert report.net_worth == "5468.89"
         assert report.income_this_month == "3012.34"
         assert report.expenses_this_month == "-543.45"
 

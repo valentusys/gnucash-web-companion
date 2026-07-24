@@ -40,6 +40,7 @@ from app.services.gnucash_exceptions import (
     EntityNotFoundError,
     GnuCashReadError,
 )
+from app.services.reporting_currency import ReportingCurrencySetupRequired
 
 router = APIRouter(tags=["reports"])
 
@@ -191,6 +192,8 @@ async def get_book_period_report_comparison(
             comparison_mode=normalized_mode,
             book_id=book.id,
         )
+    except ReportingCurrencySetupRequired as exc:
+        raise HTTPException(status_code=409, detail=exc.detail()) from exc
     except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
         handle_gnucash_error(exc)
         raise
@@ -213,6 +216,8 @@ async def get_book_period_report(
             parsed_to,
             book_id=book.id,
         )
+    except ReportingCurrencySetupRequired as exc:
+        raise HTTPException(status_code=409, detail=exc.detail()) from exc
     except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
         handle_gnucash_error(exc)
         raise
@@ -231,6 +236,8 @@ async def get_book_report_summary(
     try:
         service = transaction_service_for(book)
         summary = service.get_report_summary(as_of_date=parsed_date)
+    except ReportingCurrencySetupRequired as exc:
+        raise HTTPException(status_code=409, detail=exc.detail()) from exc
     except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
         handle_gnucash_error(exc)
     return summary.model_dump()
@@ -257,6 +264,8 @@ async def get_book_cashflow(
             periods = service.get_cashflow_by_month(date_from, date_to)
             return [period.model_dump() for period in periods]
         cashflow = service.get_cashflow(date_from, date_to)
+    except ReportingCurrencySetupRequired as exc:
+        raise HTTPException(status_code=409, detail=exc.detail()) from exc
     except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
         handle_gnucash_error(exc)
     if by_month:
@@ -281,6 +290,8 @@ async def get_book_expenses_by_account(
     try:
         service = transaction_service_for(book)
         expenses = service.get_expenses_by_account(date_from, date_to)
+    except ReportingCurrencySetupRequired as exc:
+        raise HTTPException(status_code=409, detail=exc.detail()) from exc
     except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
         handle_gnucash_error(exc)
     return [expense.model_dump() for expense in expenses]
@@ -298,6 +309,8 @@ async def get_book_recent_transactions(
     try:
         service = transaction_service_for(book)
         items = service.list_transactions(limit=limit, offset=0)
+    except ReportingCurrencySetupRequired as exc:
+        raise HTTPException(status_code=409, detail=exc.detail()) from exc
     except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
         handle_gnucash_error(exc)
     return [_serialize_transaction_list_item(item) for item in items]
@@ -320,6 +333,8 @@ async def get_default_report_summary(
     try:
         service = transaction_service_for(book)
         summary = service.get_report_summary(as_of_date=parsed_date)
+    except ReportingCurrencySetupRequired as exc:
+        raise HTTPException(status_code=409, detail=exc.detail()) from exc
     except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
         handle_gnucash_error(exc)
     return summary.model_dump()
@@ -345,6 +360,8 @@ async def get_default_cashflow(
             periods = service.get_cashflow_by_month(date_from, date_to)
             return [period.model_dump() for period in periods]
         cashflow = service.get_cashflow(date_from, date_to)
+    except ReportingCurrencySetupRequired as exc:
+        raise HTTPException(status_code=409, detail=exc.detail()) from exc
     except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
         handle_gnucash_error(exc)
     if by_month:
@@ -368,6 +385,8 @@ async def get_default_expenses_by_account(
     try:
         service = transaction_service_for(book)
         expenses = service.get_expenses_by_account(date_from, date_to)
+    except ReportingCurrencySetupRequired as exc:
+        raise HTTPException(status_code=409, detail=exc.detail()) from exc
     except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
         handle_gnucash_error(exc)
     return [expense.model_dump() for expense in expenses]
@@ -384,6 +403,8 @@ async def get_default_recent_transactions(
     try:
         service = transaction_service_for(book)
         items = service.list_transactions(limit=limit, offset=0)
+    except ReportingCurrencySetupRequired as exc:
+        raise HTTPException(status_code=409, detail=exc.detail()) from exc
     except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
         handle_gnucash_error(exc)
     return [_serialize_transaction_list_item(item) for item in items]
