@@ -9,7 +9,7 @@
 	let { data }: { data: any } = $props();
 	let locale = $derived<Locale>(data.locale ?? DEFAULT_LOCALE);
 	let isRouteLoading = $derived(navigating.to?.url.pathname === '/accounts');
-	const accountTypes = ['ROOT', 'ASSET', 'BANK', 'CASH', 'CREDIT', 'LIABILITY', 'EQUITY', 'INCOME', 'EXPENSE', 'RECEIVABLE', 'PAYABLE', 'STOCK', 'MUTUAL'];
+	const accountTypes = ['ASSET', 'BANK', 'CASH', 'CREDIT', 'LIABILITY', 'EQUITY', 'INCOME', 'EXPENSE', 'RECEIVABLE', 'PAYABLE', 'STOCK', 'MUTUAL'];
 	const nodes = $derived<AccountExplorerNode[]>(data.accounts?.nodes ?? []);
 	const isFlat = $derived(data.filters?.mode === 'flat');
 	const hasRows = $derived(nodes.length > 0);
@@ -49,6 +49,14 @@
 	function depthStyle(node: AccountExplorerNode): string {
 		return `padding-left: ${Math.min(node.depth, 6) * 0.75}rem;`;
 	}
+
+	function accountDisplayName(node: AccountExplorerNode): string {
+		return node.display_name || node.name || node.full_path;
+	}
+
+	function childCountLabel(count: number): string {
+		return t(locale, 'accounts.explorer.childCountShort', { count });
+	}
 </script>
 
 {#snippet amountBadge(balance: AccountCommodityAmount)}
@@ -84,6 +92,7 @@
 			<span class="rounded-full px-2 py-1" style="background: color-mix(in srgb, var(--app-warning) 14%, var(--app-panel)); color: var(--app-text);">{t(locale, 'accounts.explorer.hiddenBadge')}</span>
 		{/if}
 		{#if node.placeholder}
+			<span class="rounded-full px-2 py-1" style="background: color-mix(in srgb, var(--app-success) 10%, var(--app-panel)); color: var(--app-text);">{t(locale, 'accounts.explorer.groupBadge')}</span>
 			<span class="rounded-full px-2 py-1" style="background: color-mix(in srgb, var(--app-accent) 10%, var(--app-panel)); color: var(--app-text);">{t(locale, 'accounts.explorer.placeholderBadge')}</span>
 		{/if}
 		{#if node.match_state === 'ancestor_context'}
@@ -99,14 +108,18 @@
 	<div class="min-w-0 rounded-xl border p-4" style="border-color: var(--app-border); background: var(--app-panel); {depthStyle(node)}">
 		<div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
 			<div class="min-w-0">
-				<a class="break-words text-base font-semibold hover:underline" style="color: var(--app-accent);" href={nodeHref(node)}>{node.name}</a>
-				<p class="mt-1 break-words text-sm" style="color: var(--app-muted);">{node.full_path}</p>
-				<p class="mt-1 break-all text-xs" style="color: var(--app-muted);">{t(locale, 'transactionSplits.accountId')}: {node.id}</p>
+				<a class="break-words text-base font-semibold hover:underline" style="color: var(--app-accent);" href={nodeHref(node)} title={node.full_path}>{accountDisplayName(node)}</a>
+				<p class="mt-1 break-words break-all text-sm" style="color: var(--app-muted);">{node.full_path}</p>
+				{#if node.placeholder}
+					<p class="mt-1 text-sm" style="color: var(--app-muted);">{t(locale, 'accounts.explorer.nonPostableGroup')} · {childCountLabel(node.child_count)}</p>
+				{/if}
 				{@render nodeBadges(node)}
 			</div>
-			<div class="min-w-0 lg:w-[28rem]">
-				{@render balanceBlock(node)}
-			</div>
+			{#if !node.placeholder}
+				<div class="min-w-0 lg:w-[28rem]">
+					{@render balanceBlock(node)}
+				</div>
+			{/if}
 		</div>
 	</div>
 {/snippet}

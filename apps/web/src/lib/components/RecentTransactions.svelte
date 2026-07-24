@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { isNonNegativeDecimalString } from '$lib/money.js';
+	import Money from '$lib/components/Money.svelte';
+	import TransactionDirection from '$lib/components/TransactionDirection.svelte';
 	import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 
 	type Transaction = import('$lib/api/types').TransactionListItem;
@@ -33,18 +34,20 @@
 	{:else}
 		<ul class="mt-4 divide-y" style="border-color: var(--app-border);">
 			{#each transactions as tx (tx.id)}
-				<li class="flex items-center justify-between py-3" style="border-color: var(--app-border);">
-					<div class="min-w-0">
-						<p class="truncate text-sm font-medium" style="color: var(--app-text);">{tx.description || '—'}</p>
-						<p class="text-xs" style="color: var(--app-muted);">{tx.date} · {tx.account_name}</p>
+				{@const representative = tx.direction?.status === 'resolved' ? (tx.representative_amount ?? tx.matched_amount ?? null) : null}
+				<li class="flex min-w-0 flex-col gap-2 py-3 sm:flex-row sm:items-start sm:justify-between" style="border-color: var(--app-border);">
+					<div class="min-w-0 flex-1">
+						<p class="truncate text-sm font-medium" style="color: var(--app-text);" title={tx.description || t(locale, 'transactionDetail.noDescription')}>{tx.description || t(locale, 'transactionDetail.noDescription')}</p>
+						<p class="text-xs" style="color: var(--app-muted);">{tx.date}</p>
+						<div class="mt-2 min-w-0">
+							<TransactionDirection direction={tx.direction ?? null} {locale} compact />
+						</div>
 					</div>
-					<span
-						class="ml-4 whitespace-nowrap text-sm font-semibold tabular-nums"
-						style="color: {isNonNegativeDecimalString(tx.amount) ? 'var(--app-success)' : 'var(--app-danger)'};"
-					>
-						{tx.amount}
-						<span class="ml-0.5 text-xs font-normal" style="color: var(--app-muted);">{tx.currency}</span>
-					</span>
+					{#if representative}
+						<span class="shrink-0 text-sm font-semibold tabular-nums"><Money amount={representative.amount} currency={representative.currency} /></span>
+					{:else if tx.direction}
+						<span class="shrink-0 text-xs" style="color: var(--app-muted);">{t(locale, 'transactions.direction.amountHidden')}</span>
+					{/if}
 				</li>
 			{/each}
 		</ul>

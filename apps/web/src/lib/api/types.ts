@@ -242,6 +242,7 @@ export type Book = {
 export type Account = {
 	id: string;
 	name: string;
+	display_name?: string | null;
 	full_name: string;
 	type: string;
 	currency: string;
@@ -258,6 +259,7 @@ export type AccountTreeNode = Account & {
 export type AccountExplorerPathSegment = {
 	id: string;
 	name: string;
+	display_name?: string | null;
 };
 
 export type CommodityRef = {
@@ -279,6 +281,7 @@ export type AccountExplorerNode = {
 	full_path: string;
 	depth: number;
 	name: string;
+	display_name?: string | null;
 	type: string;
 	commodity: CommodityRef;
 	hidden: boolean;
@@ -336,6 +339,7 @@ export type AccountActivityRecentTransaction = {
 	description: string;
 	matched_quantity: AccountCommodityAmount;
 	counter_account_name: string;
+	direction?: TransactionDirection;
 	is_write_alpha_owned: boolean;
 };
 
@@ -380,6 +384,7 @@ export type AccountActivity = {
 export type TransactionSplit = {
 	account_id: string;
 	account_name: string;
+	account_display_name?: string | null;
 	memo: string;
 	reconcile_state?: string;
 	amount: string;
@@ -391,6 +396,28 @@ export type MoneyDTO = {
 	currency: string;
 };
 
+export type TransactionDirectionEntry = {
+	account_id: string;
+	display_name: string;
+	full_name: string;
+	value: string;
+	split_count: number;
+};
+
+export type TransactionDirection = {
+	status: 'resolved' | 'composite' | 'ambiguous';
+	reason:
+		| 'balanced'
+		| 'multiple_accounts'
+		| 'no_nonzero_splits'
+		| 'single_sided'
+		| 'unbalanced'
+		| 'account_on_both_sides';
+	currency: string;
+	from_accounts: TransactionDirectionEntry[];
+	to_accounts: TransactionDirectionEntry[];
+};
+
 export type TransactionListItem = {
 	id: string;
 	date: string;
@@ -399,9 +426,11 @@ export type TransactionListItem = {
 	currency: string;
 	account_id: string;
 	account_name: string;
+	account_display_name?: string | null;
 	counter_account_name: string;
+	direction?: TransactionDirection;
 	representative_amount?: MoneyDTO;
-	representative_account?: { id: string; name: string } | null;
+	representative_account?: { id: string; name: string; display_name?: string | null; full_name?: string | null } | null;
 	matched_amount?: MoneyDTO | null;
 	amount_basis?: 'selected_accounts' | 'income' | 'expense' | 'representative_split' | string;
 	matched_account_ids?: string[];
@@ -415,6 +444,26 @@ export type TransactionDetail = {
 	currency: string;
 	splits: TransactionSplit[];
 	is_write_alpha_owned?: boolean;
+};
+
+export type ReportingCurrencyCandidate = {
+	currency: string;
+	distinct_transaction_count: number;
+	nonzero_split_count: number;
+	active_leaf_account_count: number;
+	eligible_leaf_account_count: number;
+};
+
+export type ReportingCurrencyResolution = {
+	status: 'ready' | 'setup_required';
+	source: 'configured' | 'detected' | 'none';
+	reason: 'configured_valid' | 'dominant_detected' | 'no_eligible_currency' | 'dominance_tie';
+	configured_currency: string | null;
+	configured_currency_status: 'valid' | 'missing' | 'xxx' | 'absent' | 'template_only' | 'non_monetary' | 'inactive';
+	selected_currency: string | null;
+	candidates: ReportingCurrencyCandidate[];
+	excluded_currencies: string[];
+	non_currency_commodities_excluded: boolean;
 };
 
 export type ScheduledTransactionRecurrence = {
@@ -474,7 +523,8 @@ export type TransactionExplorerPage = {
 	limitations: string[];
 };
 
-export type ReportSummary = {
+export type ReportSummaryReady = {
+	status: 'ready';
 	currency: string;
 	net_worth: string;
 	assets: string;
@@ -485,7 +535,19 @@ export type ReportSummary = {
 	reporting_basis: string;
 	includes_currency_conversion: boolean;
 	limitations: string[];
+	reporting_currency: ReportingCurrencyResolution;
 };
+
+export type ReportSummarySetup = {
+	status: 'setup_required';
+	as_of_date: string;
+	reporting_basis: string;
+	includes_currency_conversion: false;
+	limitations: string[];
+	reporting_currency: ReportingCurrencyResolution;
+};
+
+export type ReportSummary = ReportSummaryReady | ReportSummarySetup;
 
 export type DashboardDrilldownLinks = {
 	recent: string;
@@ -634,6 +696,7 @@ export type TransactionCreateRequest = {
 export type TransactionCreatePreviewAccount = {
 	id: string;
 	name: string;
+	display_name?: string | null;
 	full_name: string;
 	type: string;
 	currency: string;

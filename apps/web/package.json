@@ -18,6 +18,7 @@
 		"test:reports": "node scripts/test-reports-static.mjs",
 		"test:reports-browser": "npm run build && node scripts/test-reports-browser.mjs",
 		"test:dashboard-browser": "npm run build && node scripts/test-dashboard-browser.mjs",
+		"test:issue60-usability-browser": "npm run build && node scripts/test-issue60-usability-browser.mjs",
 		"test:accounts-explorer": "node scripts/test-accounts-explorer-static.mjs",
 		"test:admin-users": "node scripts/test-admin-users-static.mjs",
 		"test:admin-users-auth-hardening": "node scripts/test-admin-users-auth-hardening.mjs",

@@ -38,6 +38,9 @@ export type MessageKey =
 	| 'nav.books'
 	| 'nav.adminUsers'
 	| 'nav.logout'
+	| 'nav.mobileNavigation'
+	| 'nav.mobileOpen'
+	| 'nav.mobileClose'
 	| 'adminUsers.kicker'
 	| 'adminUsers.title'
 	| 'adminUsers.subtitle'
@@ -155,6 +158,9 @@ export type MessageKey =
 	| 'safety.currentBook'
 	| 'safety.noActiveBook'
 	| 'safety.reviewBooks'
+	| 'safety.shortBoundary'
+	| 'safety.writeDisabled'
+	| 'safety.detailsLabel'
 	| 'error.badgeWithCode'
 	| 'error.badgeNetwork'
 	| 'error.forbiddenTitle'
@@ -206,6 +212,9 @@ export type MessageKey =
 	| 'accounts.explorer.noRecursiveBuckets'
 	| 'accounts.explorer.hiddenBadge'
 	| 'accounts.explorer.placeholderBadge'
+	| 'accounts.explorer.groupBadge'
+	| 'accounts.explorer.nonPostableGroup'
+	| 'accounts.explorer.childCountShort'
 	| 'accounts.explorer.contextBadge'
 	| 'accounts.explorer.repairedBadge'
 	| 'accounts.explorer.readyTitle'
@@ -280,6 +289,19 @@ export type MessageKey =
 	| 'dashboard.currencyConversion'
 	| 'dashboard.currencyConversionIncluded'
 	| 'dashboard.currencyConversionNotIncluded'
+	| 'dashboard.reportingCurrency'
+	| 'dashboard.reportingCurrencyConfigured'
+	| 'dashboard.reportingCurrencyDetected'
+	| 'dashboard.reportingCurrencyNone'
+	| 'dashboard.excludedCurrencies'
+	| 'dashboard.nonCurrencyCommoditiesExcluded'
+	| 'dashboard.setupRequiredTitle'
+	| 'dashboard.setupRequiredAdmin'
+	| 'dashboard.setupRequiredUser'
+	| 'dashboard.setupAction'
+	| 'dashboard.setupReason.no_eligible_currency'
+	| 'dashboard.setupReason.dominance_tie'
+	| 'dashboard.configuredCurrencyStatus'
 	| 'dashboard.netWorth'
 	| 'dashboard.assets'
 	| 'dashboard.liabilities'
@@ -399,6 +421,12 @@ export type MessageKey =
 	| 'transactionDetail.back'
 	| 'transactionDetail.kicker'
 	| 'transactionDetail.noDescription'
+	| 'transactions.direction.from'
+	| 'transactions.direction.to'
+	| 'transactions.direction.ambiguous'
+	| 'transactions.direction.composite'
+	| 'transactions.direction.more'
+	| 'transactions.direction.amountHidden'
 	| 'transactionDetail.helper'
 	| 'transactionDetail.date'
 	| 'transactionDetail.currency'
@@ -1012,6 +1040,9 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'nav.books': 'Books',
 		'nav.adminUsers': 'Admin users',
 		'nav.logout': 'Logout',
+		'nav.mobileNavigation': 'Mobile navigation',
+		'nav.mobileOpen': 'Open mobile menu',
+		'nav.mobileClose': 'Close mobile menu',
 		'adminUsers.kicker': 'Admin foundation',
 		'adminUsers.title': 'User and book access administration',
 		'adminUsers.subtitle': 'Server-rendered local-user management for self-hosted installs. The backend remains authoritative and GnuCash data stays read-only.',
@@ -1131,6 +1162,9 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'safety.currentBook': 'Current book',
 		'safety.noActiveBook': 'No active book selected',
 		'safety.reviewBooks': 'Review books',
+		'safety.shortBoundary': 'GnuCash Desktop remains the authoritative editor.',
+		'safety.writeDisabled': 'Writes disabled',
+		'safety.detailsLabel': 'Safety details',
 		'error.badgeWithCode': 'Error {statusCode}',
 		'error.badgeNetwork': 'API/network error',
 		'error.forbiddenTitle': 'Access denied',
@@ -1184,6 +1218,9 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'accounts.explorer.noRecursiveBuckets': 'No native balance buckets returned.',
 		'accounts.explorer.hiddenBadge': 'Hidden',
 		'accounts.explorer.placeholderBadge': 'Placeholder',
+		'accounts.explorer.groupBadge': 'Group',
+		'accounts.explorer.nonPostableGroup': 'Non-postable group; choose a child account for transactions.',
+		'accounts.explorer.childCountShort': '{count} child account(s)',
 		'accounts.explorer.contextBadge': 'Ancestor context',
 		'accounts.explorer.repairedBadge': 'Repaired hierarchy',
 		'accounts.explorer.readyTitle': 'Account explorer loaded',
@@ -1259,6 +1296,19 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'dashboard.currencyConversion': 'Currency conversion',
 		'dashboard.currencyConversionIncluded': 'included',
 		'dashboard.currencyConversionNotIncluded': 'not included',
+		'dashboard.reportingCurrency': 'Reporting currency',
+		'dashboard.reportingCurrencyConfigured': 'Configured reporting currency',
+		'dashboard.reportingCurrencyDetected': 'Auto-detected reporting currency',
+		'dashboard.reportingCurrencyNone': 'No usable reporting currency selected',
+		'dashboard.excludedCurrencies': 'Other currencies excluded: {currencies}. No FX conversion is performed.',
+		'dashboard.nonCurrencyCommoditiesExcluded': 'Securities and non-currency commodities are excluded from money totals.',
+		'dashboard.setupRequiredTitle': 'Choose a reporting currency',
+		'dashboard.setupRequiredAdmin': 'This book has no unambiguous active currency for dashboard totals. Choose a valid reporting currency in book settings; no fake zero or XXX total is shown.',
+		'dashboard.setupRequiredUser': 'This book needs an administrator to choose a valid reporting currency before dashboard totals can be shown. No fake zero or XXX total is shown.',
+		'dashboard.setupAction': 'Open book settings',
+		'dashboard.setupReason.no_eligible_currency': 'No eligible active currency was found.',
+		'dashboard.setupReason.dominance_tie': 'Several active currencies tie, so the app will not choose one alphabetically.',
+		'dashboard.configuredCurrencyStatus': 'Configured currency status: {status}',
 		'dashboard.netWorth': 'Net Worth',
 		'dashboard.assets': 'Assets',
 		'dashboard.liabilities': 'Liabilities',
@@ -1393,6 +1443,12 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'transactionDetail.back': 'Back to transactions',
 		'transactionDetail.kicker': 'Transaction detail',
 		'transactionDetail.noDescription': 'No description',
+		'transactions.direction.from': 'From',
+		'transactions.direction.to': 'To',
+		'transactions.direction.ambiguous': 'Direction could not be determined unambiguously.',
+		'transactions.direction.composite': 'Composite transaction: multiple split-derived accounts are shown.',
+		'transactions.direction.more': '+{count} more',
+		'transactions.direction.amountHidden': 'No representative total is shown for this composite or ambiguous transaction.',
 		'transactionDetail.helper': 'Read-only view of the selected GnuCash transaction. Split rows below show memo and reconciliation metadata when available.',
 		'transactionDetail.date': 'Date',
 		'transactionDetail.currency': 'Currency',
@@ -1428,7 +1484,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 			'Read-only book metadata only. This page shows already configured books that your account can access; it does not provide book data editing workflows.',
 		'books.activeDefault': 'Active/default book',
 		'books.configuredTitle': 'Configured books',
-		'books.hiddenPolicy': 'Archived and unauthorized books are hidden or blocked by the API.',
+		'books.hiddenPolicy': 'Archived and unauthorized books are hidden or blocked by the API. Independent read-only books only.',
 		'books.noMutationBadge': 'No upload, deletion, or GnuCash data editing here',
 		'books.currentBook': 'Current book',
 		'books.defaultBook': 'Active/default book',
@@ -2052,8 +2108,11 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'nav.scheduled': 'Плановые',
 		'nav.reports': 'Отчёты',
 		'nav.books': 'Книги',
-		'nav.adminUsers': 'Админ users',
+		'nav.adminUsers': 'Администраторы',
 		'nav.logout': 'Выйти',
+		'nav.mobileNavigation': 'Мобильная навигация',
+		'nav.mobileOpen': 'Открыть мобильное меню',
+		'nav.mobileClose': 'Закрыть мобильное меню',
 		'adminUsers.kicker': 'Админ foundation',
 		'adminUsers.title': 'Управление users и доступом к книгам',
 		'adminUsers.subtitle': 'Server-rendered управление локальными пользователями для self-hosted установки. Backend остаётся authoritative, данные GnuCash остаются read-only.',
@@ -2165,7 +2224,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'adminUsers.success.book_access_granted': 'Book access granted или updated.',
 		'adminUsers.success.book_access_revoked': 'Book access revoked.',
 		'safety.statusLabel': 'Статус безопасности read-only режима',
-		'safety.badge': 'Read-only по умолчанию',
+		'safety.badge': 'Только чтение по умолчанию',
 		'safety.message':
 			'Pre-alpha MVP по умолчанию работает только на чтение. GNUCASH_WRITES_ENABLED=false — безопасное значение по умолчанию; GnuCash Desktop остаётся главным редактором.',
 		'safety.releaseCritical':
@@ -2173,6 +2232,9 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'safety.currentBook': 'Текущая книга',
 		'safety.noActiveBook': 'Активная книга не выбрана',
 		'safety.reviewBooks': 'Проверить книги',
+		'safety.shortBoundary': 'GnuCash Desktop остаётся основным редактором.',
+		'safety.writeDisabled': 'Запись отключена',
+		'safety.detailsLabel': 'Подробнее о безопасности',
 		'error.badgeWithCode': 'Ошибка {statusCode}',
 		'error.badgeNetwork': 'Ошибка API/сети',
 		'error.forbiddenTitle': 'Доступ запрещён',
@@ -2206,28 +2268,31 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'accounts.emptyTitle': 'Счета не найдены',
 		'accounts.emptyMessage': 'Выбранная read-only книга не вернула счета. Проверьте активную test-copy книгу и доступные метаданные книги, прежде чем полагаться на этот вид.',
 		'accounts.emptyAction': 'Проверить доступные книги',
-		'accounts.explorer.reset': 'Сбросить account explorer',
-		'accounts.explorer.filtersTitle': 'Фильтры account explorer',
+		'accounts.explorer.reset': 'Сбросить просмотр счетов',
+		'accounts.explorer.filtersTitle': 'Фильтры счетов',
 		'accounts.explorer.formHelp':
 			'URL — источник истины. Форма отправляет read-only GET в /accounts; сервер валидирует фильтры до вызова bounded account explorer API.',
 		'accounts.explorer.mode': 'Режим отображения',
-		'accounts.explorer.modeTree': 'Дерево с ancestor context',
-		'accounts.explorer.modeFlat': 'Плоские matching rows',
+		'accounts.explorer.modeTree': 'Дерево с родительским контекстом',
+		'accounts.explorer.modeFlat': 'Плоский список совпадений',
 		'accounts.explorer.query': 'Поиск',
 		'accounts.explorer.type': 'Тип счёта',
-		'accounts.explorer.hidden': 'Hidden счета',
-		'accounts.explorer.placeholder': 'Placeholder счета',
+		'accounts.explorer.hidden': 'Скрытые счета',
+		'accounts.explorer.placeholder': 'Групповые счета',
 		'accounts.explorer.visibilityExclude': 'Исключить',
 		'accounts.explorer.visibilityInclude': 'Включить',
 		'accounts.explorer.visibilityOnly': 'Только',
 		'accounts.explorer.typesLegend': 'Фильтры типов',
-		'accounts.explorer.directBalance': 'Прямой native balance',
-		'accounts.explorer.recursiveBuckets': 'Recursive native-commodity buckets',
-		'accounts.explorer.noRecursiveBuckets': 'Native balance buckets не вернулись.',
-		'accounts.explorer.hiddenBadge': 'Hidden',
-		'accounts.explorer.placeholderBadge': 'Placeholder',
-		'accounts.explorer.contextBadge': 'Ancestor context',
-		'accounts.explorer.repairedBadge': 'Repaired hierarchy',
+		'accounts.explorer.directBalance': 'Прямой баланс',
+		'accounts.explorer.recursiveBuckets': 'Итоги по валютам дочерних счетов',
+		'accounts.explorer.noRecursiveBuckets': 'Итоги по валютам не вернулись.',
+		'accounts.explorer.hiddenBadge': 'Скрыт',
+		'accounts.explorer.placeholderBadge': 'Групповой счёт',
+		'accounts.explorer.groupBadge': 'Группа',
+		'accounts.explorer.nonPostableGroup': 'Непроводимая группа; для транзакций выберите дочерний счёт.',
+		'accounts.explorer.childCountShort': 'Дочерних счетов: {count}',
+		'accounts.explorer.contextBadge': 'Родительский контекст',
+		'accounts.explorer.repairedBadge': 'Иерархия исправлена',
 		'accounts.explorer.readyTitle': 'Account explorer загружен',
 		'accounts.explorer.readyMessage': 'Bounded account explorer вернул server-filtered строки счетов для этого URL.',
 		'accounts.explorer.noMatchesTitle': 'Нет счетов по этим фильтрам',
@@ -2244,7 +2309,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'accounts.explorer.warningsTitle': 'Предупреждения account explorer',
 		'accounts.explorer.contextWarning': 'Некоторые строки — ancestors, добавленные только для сохранения search/filter context.',
 		'accounts.explorer.hiddenWarning': 'Hidden счета видны, потому что текущий URL явно включает или выбирает их.',
-		'accounts.explorer.placeholderWarning': 'Placeholder счета показаны как metadata rows, а не как transaction-bearing totals.',
+		'accounts.explorer.placeholderWarning': 'Групповые счета показаны как непроводимые строки, без карточек баланса и операций.',
 		'accounts.explorer.repairedWarning': 'В иерархии были orphan/cycle repairs; source parent IDs сохранены там, где API их сообщил.',
 		'accounts.explorer.mixedCommodityWarning': 'Recursive balances — отдельные native-commodity buckets. FX conversion и cross-commodity total не подразумеваются.',
 		'accounts.explorer.resultsLabel': 'Server-filtered результаты account explorer',
@@ -2301,6 +2366,19 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'dashboard.currencyConversion': 'Конвертация валют',
 		'dashboard.currencyConversionIncluded': 'включена',
 		'dashboard.currencyConversionNotIncluded': 'не включена',
+		'dashboard.reportingCurrency': 'Валюта отчёта',
+		'dashboard.reportingCurrencyConfigured': 'Настроенная валюта отчёта',
+		'dashboard.reportingCurrencyDetected': 'Автоматически определённая валюта отчёта',
+		'dashboard.reportingCurrencyNone': 'Подходящая валюта отчёта не выбрана',
+		'dashboard.excludedCurrencies': 'Другие валюты не включены: {currencies}. Конвертация не выполняется.',
+		'dashboard.nonCurrencyCommoditiesExcluded': 'Ценные бумаги и невалютные товары не включены в денежные итоги.',
+		'dashboard.setupRequiredTitle': 'Выберите валюту отчёта',
+		'dashboard.setupRequiredAdmin': 'У этой книги нет однозначной активной валюты для итогов. Выберите корректную валюту отчёта в настройках книги; фиктивные нули и XXX не показываются.',
+		'dashboard.setupRequiredUser': 'Администратор должен выбрать корректную валюту отчёта, прежде чем итоги станут доступны. Фиктивные нули и XXX не показываются.',
+		'dashboard.setupAction': 'Открыть настройки книги',
+		'dashboard.setupReason.no_eligible_currency': 'Не найдена подходящая активная валюта.',
+		'dashboard.setupReason.dominance_tie': 'Несколько активных валют имеют одинаковый приоритет, поэтому приложение не выбирает по алфавиту.',
+		'dashboard.configuredCurrencyStatus': 'Статус настроенной валюты: {status}',
 		'dashboard.netWorth': 'Чистая стоимость',
 		'dashboard.assets': 'Активы',
 		'dashboard.liabilities': 'Обязательства',
@@ -2435,6 +2513,12 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'transactionDetail.back': 'Назад к транзакциям',
 		'transactionDetail.kicker': 'Детали транзакции',
 		'transactionDetail.noDescription': 'Без описания',
+		'transactions.direction.from': 'Откуда',
+		'transactions.direction.to': 'Куда',
+		'transactions.direction.ambiguous': 'Направление не удалось определить однозначно.',
+		'transactions.direction.composite': 'Составная транзакция: показаны несколько счетов из проводок.',
+		'transactions.direction.more': 'ещё {count}',
+		'transactions.direction.amountHidden': 'Для составной или неоднозначной транзакции представительная сумма не показана.',
 		'transactionDetail.helper': 'Read-only просмотр выбранной транзакции GnuCash. Строки split ниже показывают memo и metadata сверки, если они доступны.',
 		'transactionDetail.date': 'Дата',
 		'transactionDetail.currency': 'Валюта',
@@ -2470,7 +2554,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 			'Только read-only метаданные книг. Эта страница показывает уже настроенные книги, доступные вашей учётной записи; разделов редактирования данных книги здесь нет.',
 		'books.activeDefault': 'Активная/основная книга',
 		'books.configuredTitle': 'Настроенные книги',
-		'books.hiddenPolicy': 'Архивные и недоступные книги скрываются или блокируются API.',
+		'books.hiddenPolicy': 'Независимые книги только для чтения; архивные и недоступные книги скрываются или блокируются API.',
 		'books.noMutationBadge': 'Без загрузки, удаления и редактирования данных GnuCash',
 		'books.currentBook': 'Текущая книга',
 		'books.defaultBook': 'Активная/основная книга',

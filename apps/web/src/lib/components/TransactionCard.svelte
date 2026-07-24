@@ -1,6 +1,7 @@
 <script lang="ts">
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import Money from '$lib/components/Money.svelte';
+	import TransactionDirection from '$lib/components/TransactionDirection.svelte';
 	import type { TransactionListItem } from '$lib/api/types';
 	import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 
@@ -19,6 +20,7 @@
 
 <div class="space-y-3 md:hidden">
 	{#each transactions as tx (tx.id)}
+		{@const representative = tx.direction?.status === 'resolved' ? (tx.representative_amount ?? tx.matched_amount ?? null) : null}
 		<div
 			class="cursor-pointer rounded-xl p-4"
 			style="background-color: var(--app-panel); box-shadow: 0 1px 3px var(--app-panel-shadow); border: 1px solid var(--app-border);"
@@ -30,9 +32,9 @@
 			<div class="flex items-start justify-between gap-3">
 				<div class="min-w-0">
 					{#if detailHref}
-						<a class="block truncate text-sm font-medium hover:underline" style="color: var(--app-accent);" href={detailHref(tx.id)}>{tx.description || 'No description'}</a>
+						<a class="block truncate text-sm font-medium hover:underline" style="color: var(--app-accent);" href={detailHref(tx.id)}>{tx.description || t(locale, 'transactionDetail.noDescription')}</a>
 					{:else}
-						<p class="truncate text-sm font-medium" style="color: var(--app-text);">{tx.description || 'No description'}</p>
+						<p class="truncate text-sm font-medium" style="color: var(--app-text);">{tx.description || t(locale, 'transactionDetail.noDescription')}</p>
 					{/if}
 					<p class="mt-1 text-xs" style="color: var(--app-muted);">{tx.date}</p>
 					{#if tx.is_write_alpha_owned}
@@ -42,19 +44,23 @@
 					{/if}
 				</div>
 				<div class="shrink-0 text-right">
-					<p class="text-sm font-semibold"><Money amount={tx.amount} currency={tx.currency} /></p>
+					{#if representative}
+						<p class="text-sm font-semibold"><Money amount={representative.amount} currency={representative.currency} /></p>
+					{:else if tx.direction}
+						<p class="max-w-32 text-xs" style="color: var(--app-muted);">{t(locale, 'transactions.direction.amountHidden')}</p>
+					{:else}
+						<p class="text-sm font-semibold"><Money amount={tx.amount} currency={tx.currency} /></p>
+					{/if}
 				</div>
 			</div>
-			<div class="mt-2 flex flex-wrap gap-2 text-xs" style="color: var(--app-muted);">
-				<span class="rounded px-2 py-0.5" style="background-color: var(--app-elevated-bg);">{tx.account_name}</span>
-				<span style="color: var(--app-border);">→</span>
-				<span class="rounded px-2 py-0.5" style="background-color: var(--app-elevated-bg);">{tx.counter_account_name}</span>
+			<div class="mt-2 min-w-0">
+				<TransactionDirection direction={tx.direction ?? null} {locale} compact />
 			</div>
 		</div>
 	{:else}
 		<EmptyState
-			title="No transactions match this view"
-			message="Try resetting filters or choose another account. This screen is read-only."
+			title={t(locale, 'transactions.explorer.trueEmptyTitle')}
+			message={t(locale, 'transactions.explorer.trueEmptyMessage')}
 		/>
 	{/each}
 </div>

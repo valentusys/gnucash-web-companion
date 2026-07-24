@@ -104,7 +104,11 @@
 	const errorSummary = $derived(message(form?.errorKey));
 
 	function accountLabel(account: Account): string {
-		return `${account.full_name} / ${account.type} / ${account.currency}`;
+		return `${account.display_name || account.name} · ${account.type} · ${account.currency}`;
+	}
+
+	function accountTitle(account: Account): string {
+		return `${account.full_name} · ${account.type} · ${account.currency}`;
 	}
 
 	function accountById(accountId: string): Account | undefined {
@@ -292,7 +296,7 @@
 								<select id={`split-account-${split.client_id}`} name="split_account_id" required bind:value={split.account_id} class="mt-1 min-h-11 w-full min-w-0 rounded-lg border px-3 py-2" style="border-color: var(--app-border); background: var(--app-panel); color: var(--app-text);">
 									<option value="">{t(locale, 'transactionCreate.accountChoose')}</option>
 									{#each data.accounts as account (account.id)}
-										<option value={account.id}>{accountLabel(account)}</option>
+										<option value={account.id} title={accountTitle(account)}>{accountLabel(account)}</option>
 									{/each}
 								</select>
 							</label>
@@ -345,7 +349,7 @@
 				{#each preview.splits as split (split.index)}
 					<li class="min-w-0 rounded-xl border p-3 text-sm" style="border-color: var(--app-border); color: var(--app-text);">
 						<p class="font-semibold">{t(locale, 'transactionCreate.previewSplit')} {split.index + 1}: {split.amount} {preview.currency}</p>
-						<p class="break-words">{split.account.full_name} / {split.account.type} / {split.account.currency}</p>
+						<p class="break-words" title={split.account.full_name}>{split.account.display_name || split.account.name || split.account.full_name} · {split.account.type} · {split.account.currency}</p>
 						<p class="break-words" style="color: var(--app-muted);">{t(locale, 'transactionCreate.memoDisplay')}: {split.memo || '—'}</p>
 					</li>
 				{/each}

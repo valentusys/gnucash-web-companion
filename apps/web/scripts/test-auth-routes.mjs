@@ -56,15 +56,16 @@ for (const [routeName, relativePath, variant] of [
 	assert.match(routePage, new RegExp(`isRouteLoading[\\s\\S]*navigating\\.to[\\s\\S]*<LoadingState[\\s\\S]*variant="${variant}"`, 's'), `${routeName} page must show its ${variant} skeleton while route data is loading`);
 }
 const dashboardPage = read('src/routes/dashboard/+page.svelte');
+const summaryGrid = read('src/lib/components/SummaryGrid.svelte');
 assert.match(
-	dashboardPage,
-	/dashboard\.conservativeTotals[\s\S]*dashboard\.reportingBasis[\s\S]*data\.summary\.reporting_basis[\s\S]*dashboard\.currencyConversion[\s\S]*data\.summary\.includes_currency_conversion/s,
+	summaryGrid,
+	/dashboard\.conservativeTotals[\s\S]*dashboard\.reportingBasis[\s\S]*readySummary\.reporting_basis[\s\S]*dashboard\.currencyConversion[\s\S]*readySummary\.includes_currency_conversion/s,
 	'dashboard must show localized reporting_basis and whether currency conversion is included'
 );
 assert.match(
-	dashboardPage,
-	/data\.summary\.limitations[\s\S]*\{#each data\.summary\.limitations as limitation\}/s,
-	'dashboard must render backend reporting limitations instead of implying converted totals'
+	summaryGrid,
+	/dashboard\.reportingCurrency[\s\S]*dashboard\.excludedCurrencies[\s\S]*dashboard\.nonCurrencyCommoditiesExcluded/s,
+	'dashboard must render structured reporting-currency notices instead of raw backend limitations'
 );
 assert.match(
 	read('src/routes/dashboard/+page.server.ts'),
@@ -437,7 +438,7 @@ assert.match(mobileNav, /href: '\/scheduled'[\s\S]*label: t\(locale, 'nav\.sched
 assert.match(desktopNav, /href: '\/books'[\s\S]*label: t\(locale, 'nav\.books'\)/, 'desktop nav must expose the localized /books management page');
 assert.match(mobileNav, /href: '\/books'[\s\S]*label: t\(locale, 'nav\.books'\)/, 'mobile nav must expose the localized /books management page');
 assert.match(desktopNav, /<header class="hidden[^"]*md:block/s, 'desktop header must be hidden below the md breakpoint so mobile navigation is not duplicated');
-assert.match(mobileNav, /md:hidden[\s\S]*aria-label="Mobile navigation"/, 'mobile navigation must be the only app navigation below the md breakpoint');
+assert.match(mobileNav, /md:hidden[\s\S]*aria-label=\{t\(locale, 'nav\.mobileNavigation'\)\}/, 'mobile navigation must be the only app navigation below the md breakpoint');
 assert.match(mobileNav, /let menuOpen = \$state\(false\)[\s\S]*aria-expanded=\{menuOpen\}[\s\S]*onclick=\{toggleMenu\}/s, 'mobile nav must expose a touch-friendly menu button that opens and closes the mobile menu');
 assert.match(mobileNav, /data-mobile-menu[\s\S]*BookSwitcher[\s\S]*LocaleSwitcher[\s\S]*ThemeSwitcher[\s\S]*method="POST" action="\/logout"/s, 'mobile menu must contain book, locale, theme, and logout touch controls');
 assert.match(mobileNav, /min-h-\[44px\][\s\S]*min-w-\[44px\]/s, 'mobile menu controls and nav links must declare at least 44px touch targets');
@@ -513,13 +514,12 @@ assert.match(
 );
 for (const requiredClass of [
 	'w-28 px-4 py-3',
-	'w-[32%] px-4 py-3',
-	'w-[22%] px-4 py-3',
-	'w-[22%] px-4 py-3',
-	'w-36 px-4 py-3 text-right',
+	'w-[30%] px-4 py-3',
+	'w-[40%] px-4 py-3',
+	'w-40 px-4 py-3 text-right',
 	'truncate font-medium',
-	'truncate text-sm',
-	'whitespace-nowrap text-right'
+	'block truncate font-medium',
+	'whitespace-nowrap'
 ]) {
 	assert.ok(transactionTable.includes(requiredClass), `transaction table must include stable/truncating class: ${requiredClass}`);
 }
@@ -865,7 +865,7 @@ for (const routeFile of [
 }
 
 const bookSwitcher = read('src/lib/components/BookSwitcher.svelte');
-assert.match(bookSwitcher, /Current book:/, 'book switcher must label the current book clearly');
+assert.match(bookSwitcher, /t\(locale, 'safety\.currentBook'\)[\s\S]*:/, 'book switcher must label the current book clearly');
 assert.match(
 	bookSwitcher,
 	/currentRouteNext\(\)[\s\S]*window\.location\.pathname[\s\S]*window\.location\.search[\s\S]*\/books\/\$\{encodeURIComponent\(bookId\)\}\/select\?next=\$\{encodeURIComponent\(currentRouteNext\(\)\)\}[\s\S]*goto\(safeBookSelectHref\(bookId\)\)/s,
@@ -878,8 +878,8 @@ assert.doesNotMatch(
 );
 assert.match(
 	bookSwitcher,
-	/independent read-only books/,
-	'book switcher copy must frame multi-book as independent read-only books, not collaborative editing'
+	/books\.hiddenPolicy/,
+	'book switcher copy must frame multi-book through localized safe book-policy copy, not collaborative editing'
 );
 assert.doesNotMatch(
 	bookSwitcher,
@@ -900,7 +900,7 @@ assert.match(
 );
 assert.match(
 	transactionFilters,
-	/activeFilterSummary[\s\S]*transactions\.filters\.summary\.search[\s\S]*selectedAccount\.full_name[\s\S]*transactions\.filters\.summary\.amount/s,
+	/activeFilterSummary[\s\S]*transactions\.filters\.summary\.search[\s\S]*accountOptionLabel\(selectedAccount\)[\s\S]*transactions\.filters\.summary\.amount/s,
 	'transaction filters must build a readable active filter summary for search, account, date, and amount filters'
 );
 assert.match(

@@ -14,7 +14,7 @@ export const safetyGlossaryTerms: SafetyGlossaryTerm[] = [
 		canonicalEnglish: 'read-only by default; GNUCASH_WRITES_ENABLED=false',
 		preferredRussian: 'read-only по умолчанию; GNUCASH_WRITES_ENABLED=false',
 		notes: 'Visible safety copy must keep the default-disabled read-only boundary explicit.',
-		messageKeys: ['safety.badge', 'safety.message', 'books.readOnlyDefault', 'writeMode.message', 'writeMode.acknowledgement']
+		messageKeys: ['safety.badge', 'safety.writeDisabled', 'safety.message', 'books.readOnlyDefault', 'writeMode.message', 'writeMode.acknowledgement']
 	},
 	{
 		id: 'write-alpha-disposable-test-boundary',
@@ -72,6 +72,6 @@ export const safetyGlossaryTerms: SafetyGlossaryTerm[] = [
 		canonicalEnglish: 'GnuCash Desktop remains the authoritative editor',
 		preferredRussian: 'GnuCash Desktop остаётся главным редактором',
 		notes: 'Use for all write-boundary warnings; do not present the web app as the authoritative editor.',
-		messageKeys: ['safety.message', 'books.safetyNote', 'scheduled.subtitle', 'writeMode.desktop', 'writeMode.acknowledgement']
+		messageKeys: ['safety.shortBoundary', 'safety.message', 'books.safetyNote', 'scheduled.subtitle', 'writeMode.desktop', 'writeMode.acknowledgement']
 	}
 ];

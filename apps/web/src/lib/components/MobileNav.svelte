@@ -65,7 +65,7 @@
 <nav
 	class="fixed inset-x-0 bottom-0 z-40 max-w-full overflow-x-hidden border-t md:hidden"
 	style="background-color: var(--app-nav-bg); border-color: var(--app-nav-border);"
-	aria-label="Mobile navigation"
+	aria-label={t(locale, 'nav.mobileNavigation')}
 >
 	{#if menuOpen}
 		<div
@@ -76,7 +76,7 @@
 		>
 			<div class="mx-auto flex max-w-full flex-col gap-3">
 				<div class="min-w-0">
-					<BookSwitcher {books} {activeBook} compact />
+					<BookSwitcher {books} {activeBook} {locale} compact />
 				</div>
 				<div class="flex max-w-full flex-wrap items-center gap-2">
 					<LocaleSwitcher {locale} {returnTo} compact />
@@ -98,7 +98,7 @@
 	<div class="flex max-w-full items-center justify-between gap-2 border-b px-3 py-2" style="border-color: var(--app-nav-border);">
 		<div class="min-w-0 flex-1 truncate text-xs font-medium" style="color: var(--app-muted);">
 			{#if activeBook}
-				<span class="sr-only">Current book:</span>{activeBook.name}
+				<span class="sr-only">{t(locale, 'safety.currentBook')}:</span>{activeBook.name}
 			{:else}
 				GnuCash Web Companion
 			{/if}
@@ -112,7 +112,7 @@
 			onclick={toggleMenu}
 		>
 			<span aria-hidden="true">☰</span>
-			<span class="sr-only">{menuOpen ? 'Close mobile menu' : 'Open mobile menu'}</span>
+			<span class="sr-only">{menuOpen ? t(locale, 'nav.mobileClose') : t(locale, 'nav.mobileOpen')}</span>
 		</button>
 	</div>
 

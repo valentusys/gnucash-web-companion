@@ -65,34 +65,36 @@ export async function load({ cookies, fetch: fetchFn }: { cookies: any; fetch: a
 		sectionErrors.summary = true;
 	}
 
-	try {
-		expenses = await apiFetch<ExpenseByAccount[]>(
-			fetchFn,
-			`${bookPrefix}/reports/expenses-by-account?date_from=${dateFrom}&date_to=${dateTo}`,
-			token
-		);
-	} catch (reason) {
-		if (isRedirect(reason)) throw reason;
-		sectionErrors.expenses = true;
-		expenses = [];
-	}
+	if (summary?.status !== 'setup_required') {
+		try {
+			expenses = await apiFetch<ExpenseByAccount[]>(
+				fetchFn,
+				`${bookPrefix}/reports/expenses-by-account?date_from=${dateFrom}&date_to=${dateTo}`,
+				token
+			);
+		} catch (reason) {
+			if (isRedirect(reason)) throw reason;
+			sectionErrors.expenses = true;
+			expenses = [];
+		}
 
-	try {
-		cashflowPeriods = await apiFetch<CashflowPeriod[]>(
-			fetchFn,
-			`${bookPrefix}/reports/cashflow?date_from=${dateFrom}&date_to=${dateTo}&by_month=true`,
-			token
-		);
-	} catch (reason) {
-		if (isRedirect(reason)) throw reason;
-		sectionErrors.cashflow = true;
-		cashflowPeriods = [];
+		try {
+			cashflowPeriods = await apiFetch<CashflowPeriod[]>(
+				fetchFn,
+				`${bookPrefix}/reports/cashflow?date_from=${dateFrom}&date_to=${dateTo}&by_month=true`,
+				token
+			);
+		} catch (reason) {
+			if (isRedirect(reason)) throw reason;
+			sectionErrors.cashflow = true;
+			cashflowPeriods = [];
+		}
 	}
 
 	try {
 		recentTransactions = await apiFetch<TransactionListItem[]>(
 			fetchFn,
-			`${bookPrefix}/reports/recent-transactions?limit=10`,
+			`${bookPrefix}/reports/recent-transactions?limit=20`,
 			token
 		);
 	} catch (reason) {

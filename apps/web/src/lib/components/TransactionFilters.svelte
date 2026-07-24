@@ -46,6 +46,11 @@
 	const hasActiveFilters = $derived(
 		Boolean(query || dateFrom || dateTo || (!lockedAccountLabel && accountId) || minAmount || maxAmount || transactionState)
 	);
+
+	function accountOptionLabel(account: Account): string {
+		return account.display_name || account.name || account.full_name;
+	}
+
 	const activeFilterSummary = $derived.by(() => {
 		const filters: string[] = [];
 		const selectedAccount = accounts.find((account) => account.id === accountId);
@@ -58,7 +63,7 @@
 
 		if (query) filters.push(`${t(locale, 'transactions.filters.summary.search')}: ${query}`);
 		if (lockedAccountLabel) filters.push(`${t(locale, 'transactions.filters.accountScope')}: ${lockedAccountLabel}`);
-		else if (selectedAccount) filters.push(`${t(locale, 'transactions.filters.summary.account')}: ${selectedAccount.full_name}`);
+		else if (selectedAccount) filters.push(`${t(locale, 'transactions.filters.summary.account')}: ${accountOptionLabel(selectedAccount)}`);
 		else if (accountId) filters.push(`${t(locale, 'transactions.filters.accountId')}: ${accountId}`);
 		if (dateFrom && dateTo) filters.push(`${t(locale, 'transactions.filters.summary.dates')}: ${dateFrom} – ${dateTo}`);
 		else if (dateFrom) filters.push(`${t(locale, 'transactions.filters.summary.from')}: ${dateFrom}`);
@@ -211,7 +216,7 @@
 			>
 				<option value="" selected={!accountId}>{t(locale, 'transactions.filters.allAccounts')}</option>
 				{#each accounts as account (account.id)}
-					<option value={account.id} selected={accountId === account.id}>{account.full_name}</option>
+					<option value={account.id} selected={accountId === account.id} title={account.full_name}>{accountOptionLabel(account)}</option>
 				{/each}
 			</select>
 		{/if}

@@ -10,6 +10,8 @@
 	let { data }: { data: any } = $props();
 	let locale = $derived<Locale>(data.locale ?? DEFAULT_LOCALE);
 	let isRouteLoading = $derived(navigating.to?.url.pathname === '/dashboard');
+	const summarySetupRequired = $derived(data.summary?.status === 'setup_required');
+	const settingsHref = $derived(data.activeBook ? `/books/${encodeURIComponent(String(data.activeBook.id))}/settings` : '/books');
 </script>
 
 <svelte:head>
@@ -36,27 +38,9 @@
 					<p class="font-semibold">{t(locale, 'dashboard.sectionError.title')}</p>
 					<p class="mt-1" style="color: var(--app-muted);">{t(locale, 'dashboard.sectionError.redacted')}</p>
 				</div>
-			{:else if data.summary}
-				<div
-					class="mb-3 rounded-lg p-3 text-sm"
-					style="background-color: color-mix(in srgb, var(--app-warning) 10%, var(--app-panel)); color: var(--app-text); border: 1px solid color-mix(in srgb, var(--app-warning) 55%, var(--app-border));"
-				>
-					<p class="font-semibold">{t(locale, 'dashboard.conservativeTotals')}</p>
-					<p class="mt-1" style="color: var(--app-muted);">
-						{t(locale, 'dashboard.reportingBasis')}: <code>{data.summary.reporting_basis}</code>. {t(locale, 'dashboard.currencyConversion')}:
-						{data.summary.includes_currency_conversion ? t(locale, 'dashboard.currencyConversionIncluded') : t(locale, 'dashboard.currencyConversionNotIncluded')}.
-					</p>
-					{#if data.summary.limitations?.length}
-						<ul class="mt-1 list-disc pl-5" style="color: var(--app-muted);">
-							{#each data.summary.limitations as limitation}
-								<li>{limitation}</li>
-							{/each}
-						</ul>
-					{/if}
-				</div>
 			{/if}
 			{#if !data.sectionErrors.summary}
-				<SummaryGrid summary={data.summary} drilldowns={data.drilldowns} {locale} />
+				<SummaryGrid summary={data.summary} drilldowns={data.drilldowns} {locale} {settingsHref} isAdmin={data.isAdmin === true} />
 			{/if}
 		</section>
 
@@ -76,7 +60,12 @@
 				<RecentTransactions transactions={data.recentTransactions} drilldownHref={data.drilldowns.recent} {locale} />
 			{/if}
 
-			{#if data.sectionErrors.expenses}
+			{#if summarySetupRequired}
+				<section class="rounded-xl p-5 text-sm" role="status" style="background-color: var(--app-panel); box-shadow: 0 1px 3px var(--app-panel-shadow); border: 1px solid var(--app-border); color: var(--app-muted);">
+					<h2 class="text-lg font-semibold" style="color: var(--app-text);">{t(locale, 'dashboard.expensesByAccount')}</h2>
+					<p class="mt-3">{t(locale, 'dashboard.setupRequiredTitle')}</p>
+				</section>
+			{:else if data.sectionErrors.expenses}
 				<section
 					data-dashboard-section-error="expenses"
 					role="alert"
@@ -94,7 +83,12 @@
 
 		<section class="mt-6" aria-labelledby="cashflow-heading">
 			<h2 id="cashflow-heading" class="sr-only">{t(locale, 'dashboard.cashflow')}</h2>
-			{#if data.sectionErrors.cashflow}
+			{#if summarySetupRequired}
+				<div class="rounded-xl p-5 text-sm" role="status" style="background-color: var(--app-panel); box-shadow: 0 1px 3px var(--app-panel-shadow); border: 1px solid var(--app-border); color: var(--app-muted);">
+					<h3 class="text-lg font-semibold" style="color: var(--app-text);">{t(locale, 'dashboard.cashflow')}</h3>
+					<p class="mt-3">{t(locale, 'dashboard.setupRequiredTitle')}</p>
+				</div>
+			{:else if data.sectionErrors.cashflow}
 				<div
 					data-dashboard-section-error="cashflow"
 					role="alert"

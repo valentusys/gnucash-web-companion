@@ -705,7 +705,7 @@ async function pageSnapshot(cdp) {
 		statuses: document.querySelectorAll('[role="status"], [aria-live]').length,
 		adminNavLinks: document.querySelectorAll('header nav a[href="/admin/users"], nav[aria-label="Mobile navigation"] a[href="/admin/users"]').length,
 		activeAdminNavLinks: document.querySelectorAll('a[href="/admin/users"][aria-current="page"][data-active-route="true"]').length,
-		bookOptions: Array.from(document.querySelectorAll('select[aria-label="Select book"] option')).map((option) => ({ value: option.value, text: option.textContent ?? '' })),
+		bookOptions: Array.from(document.querySelectorAll('select[data-testid="book-switcher-select"] option')).map((option) => ({ value: option.value, text: option.textContent ?? '' })),
 		grantBookOptions: Array.from(document.querySelectorAll('form[action*="/grantAccess"] select[name="book_id"] option')).map((option) => ({ value: option.value, text: option.textContent ?? '' })),
 		passwordValues: Array.from(document.querySelectorAll('input[type="password"]')).map((input) => input.value)
 	}))()`);

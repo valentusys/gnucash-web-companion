@@ -55,7 +55,7 @@
 		</nav>
 
 		<div class="flex items-center gap-3">
-			<BookSwitcher {books} {activeBook} />
+			<BookSwitcher {books} {activeBook} {locale} />
 			<LocaleSwitcher {locale} {returnTo} compact />
 			<ThemeSwitcher />
 			<form method="POST" action="/logout">

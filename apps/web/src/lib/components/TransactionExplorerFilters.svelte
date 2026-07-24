@@ -30,6 +30,10 @@
 	const hasAccountMode = $derived(filters.accountIds.length > 0);
 	const hasTypeMode = $derived(Boolean(filters.type));
 	const hasActiveFilters = $derived(activeFilters.length > 0);
+
+	function accountOptionLabel(account: Account): string {
+		return account.display_name || account.name || account.full_name;
+	}
 </script>
 
 <form
@@ -182,7 +186,7 @@
 						aria-describedby="tx-account-ids-help"
 					>
 						{#each accounts as account (account.id)}
-							<option value={account.id.toLowerCase()} selected={selectedAccounts.has(account.id.toLowerCase())}>{account.full_name}</option>
+							<option value={account.id.toLowerCase()} selected={selectedAccounts.has(account.id.toLowerCase())} title={account.full_name}>{accountOptionLabel(account)}</option>
 						{/each}
 					</select>
 					<span id="tx-account-ids-help" class="mt-1 block text-xs" style="color: var(--app-muted);">

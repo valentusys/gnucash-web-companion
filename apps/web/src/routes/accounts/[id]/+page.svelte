@@ -3,6 +3,7 @@
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import LoadingState from '$lib/components/LoadingState.svelte';
 	import Money from '$lib/components/Money.svelte';
+	import TransactionDirection from '$lib/components/TransactionDirection.svelte';
 	import type { AccountActivitySectionStatus, AccountCommodityAmount, AccountOverviewChild } from '$lib/api/types';
 	import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 
@@ -32,6 +33,10 @@
 	function transactionHref(id: string): string {
 		return data.transactionHrefs?.[id] ?? `/transactions/${encodeURIComponent(id)}`;
 	}
+
+	function accountLabel(account: { name: string; display_name?: string | null; full_path?: string }): string {
+		return account.display_name || account.name || account.full_path || '';
+	}
 </script>
 
 {#snippet amountBadge(balance: AccountCommodityAmount | null)}
@@ -58,7 +63,7 @@
 {/snippet}
 
 <svelte:head>
-	<title>{overview?.name ?? t(locale, 'accounts.detail.kicker')} — GnuCash Web Companion</title>
+	<title>{overview ? accountLabel(overview) : t(locale, 'accounts.detail.kicker')} — GnuCash Web Companion</title>
 </svelte:head>
 
 <main class="mx-auto max-w-6xl px-4 py-8">
@@ -74,13 +79,13 @@
 		<nav class="text-sm font-medium" aria-label={t(locale, 'accounts.detail.breadcrumbAria')}>
 			<ol class="flex flex-wrap items-center gap-2">
 				<li><a href={data.returnTo} class="hover:underline" style="color: var(--app-accent);">{t(locale, 'accounts.kicker')}</a></li>
-				{#each [...overview.breadcrumbs, { id: overview.id, name: overview.name }] as segment, index}
+				{#each [...overview.breadcrumbs, { id: overview.id, name: overview.name, display_name: overview.display_name }] as segment, index}
 					<li aria-hidden="true" style="color: var(--app-muted);">/</li>
 					<li>
 						{#if index === overview.breadcrumbs.length}
-							<span style="color: var(--app-text);" aria-current="page">{segment.name}</span>
+							<span style="color: var(--app-text);" aria-current="page">{accountLabel(segment)}</span>
 						{:else}
-							<span style="color: var(--app-muted);">{segment.name}</span>
+							<span style="color: var(--app-muted);">{accountLabel(segment)}</span>
 						{/if}
 					</li>
 				{/each}
@@ -91,24 +96,30 @@
 			<div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
 				<div class="min-w-0">
 					<p class="text-sm font-medium uppercase tracking-wide" style="color: var(--app-accent);">{t(locale, 'accounts.detail.kicker')}</p>
-					<h1 class="mt-1 break-words text-3xl font-bold" style="color: var(--app-text);">{overview.name}</h1>
+					<h1 class="mt-1 break-words text-3xl font-bold" style="color: var(--app-text);">{accountLabel(overview)}</h1>
 					<p class="mt-2 break-words" style="color: var(--app-muted);">{overview.full_path}</p>
-					<p class="mt-1 break-all text-xs" style="color: var(--app-muted);">{t(locale, 'transactionSplits.accountId')}: {overview.id}</p>
 					<div class="mt-3 flex flex-wrap gap-2 text-xs">
 						<span class="rounded-full px-2 py-1" style="background: var(--app-elevated-bg); color: var(--app-muted);">{overview.type}</span>
 						<span class="rounded-full px-2 py-1" style="background: var(--app-elevated-bg); color: var(--app-muted);">{overview.commodity.namespace}:{overview.commodity.mnemonic}</span>
 						{#if overview.hidden}<span class="rounded-full px-2 py-1" style="background: color-mix(in srgb, var(--app-warning) 14%, var(--app-panel)); color: var(--app-text);">{t(locale, 'accounts.explorer.hiddenBadge')}</span>{/if}
-						{#if overview.placeholder}<span class="rounded-full px-2 py-1" style="background: color-mix(in srgb, var(--app-accent) 10%, var(--app-panel)); color: var(--app-text);">{t(locale, 'accounts.explorer.placeholderBadge')}</span>{/if}
+						{#if overview.placeholder}<span class="rounded-full px-2 py-1" style="background: color-mix(in srgb, var(--app-success) 10%, var(--app-panel)); color: var(--app-text);">{t(locale, 'accounts.explorer.groupBadge')}</span><span class="rounded-full px-2 py-1" style="background: color-mix(in srgb, var(--app-accent) 10%, var(--app-panel)); color: var(--app-text);">{t(locale, 'accounts.explorer.placeholderBadge')}</span>{/if}
 						{#if overview.structure_status !== 'root' && overview.structure_status !== 'normal'}<span class="rounded-full px-2 py-1" style="background: color-mix(in srgb, var(--app-danger) 10%, var(--app-panel)); color: var(--app-text);">{t(locale, 'accounts.explorer.repairedBadge')}: {overview.structure_status}</span>{/if}
 					</div>
 				</div>
-				<div class="grid min-w-0 gap-3 sm:grid-cols-2 lg:w-[36rem]">
-					<div class="rounded-xl p-4" style="background: var(--app-elevated-bg);">
-						<p class="text-xs font-semibold uppercase tracking-wide" style="color: var(--app-muted);">{t(locale, 'accounts.explorer.directBalance')}</p>
-						<p class="mt-2">{@render amountBadge(overview.direct_balance)}</p>
+				{#if overview.placeholder}
+					<div class="min-w-0 rounded-xl p-4 lg:w-[28rem]" style="background: var(--app-elevated-bg); color: var(--app-muted);">
+						<p class="font-medium" style="color: var(--app-text);">{t(locale, 'accounts.explorer.nonPostableGroup')}</p>
+						<p class="mt-1 text-sm">{t(locale, 'accounts.explorer.childCountShort', { count: overview.child_count })}</p>
 					</div>
-					{@render balancePanel(t(locale, 'accounts.explorer.recursiveBuckets'), overview.recursive_balances)}
-				</div>
+				{:else}
+					<div class="grid min-w-0 gap-3 sm:grid-cols-2 lg:w-[36rem]">
+						<div class="rounded-xl p-4" style="background: var(--app-elevated-bg);">
+							<p class="text-xs font-semibold uppercase tracking-wide" style="color: var(--app-muted);">{t(locale, 'accounts.explorer.directBalance')}</p>
+							<p class="mt-2">{@render amountBadge(overview.direct_balance)}</p>
+						</div>
+						{@render balancePanel(t(locale, 'accounts.explorer.recursiveBuckets'), overview.recursive_balances)}
+					</div>
+				{/if}
 			</div>
 			<dl class="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
 				<div class="rounded-xl p-4" style="background: var(--app-elevated-bg);"><dt class="text-xs font-semibold uppercase" style="color: var(--app-muted);">{t(locale, 'accounts.detail.subtreeCount')}</dt><dd class="mt-1" style="color: var(--app-text);">{overview.subtree_account_count}</dd></div>
@@ -144,7 +155,7 @@
 						<li class="rounded-xl border p-4" style="border-color: var(--app-border); background: var(--app-elevated-bg);">
 							<div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
 								<div class="min-w-0">
-									<a class="break-words font-semibold hover:underline" style="color: var(--app-accent);" href={childHref(child)}>{child.name}</a>
+									<a class="break-words font-semibold hover:underline" style="color: var(--app-accent);" href={childHref(child)} title={child.full_path}>{accountLabel(child)}</a>
 									<p class="mt-1 break-words text-sm" style="color: var(--app-muted);">{child.full_path}</p>
 									<p class="mt-1 text-xs" style="color: var(--app-muted);">{child.type} · {child.child_count} {t(locale, 'accounts.detail.childrenTitle')}</p>
 								</div>
@@ -158,6 +169,7 @@
 			{/if}
 		</section>
 
+		{#if !overview.placeholder}
 		<section class="mt-6 rounded-2xl border p-6" style="background-color: var(--app-panel); box-shadow: 0 1px 3px var(--app-panel-shadow); border-color: var(--app-border);">
 			<div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
 				<div>
@@ -221,7 +233,8 @@
 									<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 										<div class="min-w-0">
 											<a class="break-words font-semibold hover:underline" style="color: var(--app-accent);" href={transactionHref(tx.id)}>{tx.description || t(locale, 'transactionDetail.noDescription')}</a>
-											<p class="mt-1 text-sm" style="color: var(--app-muted);">{tx.date} · {tx.counter_account_name}</p>
+											<p class="mt-1 text-sm" style="color: var(--app-muted);">{tx.date}</p>
+											<div class="mt-2 min-w-0"><TransactionDirection direction={tx.direction ?? null} {locale} compact /></div>
 											{#if tx.is_write_alpha_owned}<span class="mt-2 inline-flex rounded-full px-2 py-1 text-xs font-semibold" style="background: #fffbeb; color: #92400e; border: 1px solid #fcd34d;">{t(locale, 'transactions.writeAlphaHistoryBadge')}</span>{/if}
 										</div>
 										<div>{@render amountBadge(tx.matched_quantity)}</div>
@@ -235,5 +248,6 @@
 				</section>
 			{/if}
 		</section>
+		{/if}
 	{/if}
 </main>

@@ -42,6 +42,19 @@ const FALLBACK_CREATE_SETTINGS: TransactionCreateSettings = {
 	blocked_codes: []
 };
 
+const CREATE_POSTABLE_TYPES = new Set([
+	'ASSET',
+	'BANK',
+	'CASH',
+	'CREDIT',
+	'LIABILITY',
+	'EQUITY',
+	'INCOME',
+	'EXPENSE',
+	'RECEIVABLE',
+	'PAYABLE'
+]);
+
 const SUPPORTED_CREATE_CODES = new Set([
 	'CREATE_DEPLOYMENT_DISABLED',
 	'CREATE_BOOK_DISABLED',
@@ -266,6 +279,17 @@ function isTransactionCreateRequest(value: unknown): value is TransactionCreateR
 	);
 }
 
+function isCreatePostableAccount(account: Account): boolean {
+	const currency = String(account.currency ?? '').trim().toUpperCase();
+	return (
+		!account.placeholder &&
+		!account.hidden &&
+		CREATE_POSTABLE_TYPES.has(String(account.type ?? '').toUpperCase()) &&
+		/^[A-Z]{3}$/.test(currency) &&
+		currency !== 'XXX'
+	);
+}
+
 function transactionFromJson(raw: string): TransactionCreateRequest | null {
 	try {
 		const parsed = JSON.parse(raw) as unknown;
@@ -302,6 +326,7 @@ function retryPreviewFromConfirmFailure(
 			account: {
 				id: split.account_id,
 				name: '',
+				display_name: null,
 				full_name: split.account_id,
 				type: '',
 				currency: transaction.currency
@@ -331,7 +356,7 @@ export const load: PageServerLoad = async ({ cookies, fetch }) => {
 		locale: localeFromCookie(cookies),
 		books,
 		activeBook,
-		accounts: accounts.filter((account) => !account.placeholder && !account.hidden),
+		accounts: accounts.filter(isCreatePostableAccount),
 		createSettings,
 		previewOnly: false
 	};

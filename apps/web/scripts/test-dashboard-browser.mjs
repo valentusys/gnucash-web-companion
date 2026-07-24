@@ -78,8 +78,23 @@ function jsonResponse(res, status, body) {
 }
 
 function summaryPayload(mode) {
+	const reporting_currency = {
+		status: 'ready',
+		source: 'detected',
+		reason: 'dominant_detected',
+		configured_currency: null,
+		configured_currency_status: 'missing',
+		selected_currency: 'SEK',
+		candidates: [
+			{ currency: 'SEK', distinct_transaction_count: 2, nonzero_split_count: 4, active_leaf_account_count: 2, eligible_leaf_account_count: 2 },
+			{ currency: 'EUR', distinct_transaction_count: 1, nonzero_split_count: 2, active_leaf_account_count: 1, eligible_leaf_account_count: 1 }
+		],
+		excluded_currencies: ['EUR'],
+		non_currency_commodities_excluded: true
+	};
 	if (mode === 'empty') {
 		return {
+			status: 'ready',
 			currency: 'SEK',
 			net_worth: '0.00',
 			assets: '0.00',
@@ -89,10 +104,12 @@ function summaryPayload(mode) {
 			as_of_date: '2026-07-31',
 			reporting_basis: 'base_currency_only',
 			includes_currency_conversion: false,
-			limitations: []
+			limitations: [],
+			reporting_currency
 		};
 	}
 	return {
+		status: 'ready',
 		currency: 'SEK',
 		net_worth: '1450.00',
 		assets: '2000.00',
@@ -102,7 +119,8 @@ function summaryPayload(mode) {
 		as_of_date: '2026-07-31',
 		reporting_basis: 'base_currency_only',
 		includes_currency_conversion: false,
-		limitations: ['base_currency_only: No FX conversion; synthetic fixture excludes non-base currencies.']
+		limitations: ['base_currency_only: No FX conversion; synthetic fixture excludes non-base currencies.'],
+		reporting_currency
 	};
 }
 
@@ -127,7 +145,16 @@ function recentTransactionsPayload(mode) {
 			currency: 'SEK',
 			account_id: 'income-salary',
 			account_name: 'Synthetic Income',
-			counter_account_name: 'Synthetic Bank'
+			counter_account_name: 'Synthetic Bank',
+			direction: {
+				status: 'resolved',
+				reason: 'balanced',
+				currency: 'SEK',
+				from_accounts: [{ account_id: 'income-salary', display_name: 'Synthetic Income', full_name: 'Income:Synthetic Salary', value: '-125.00', split_count: 1 }],
+				to_accounts: [{ account_id: 'bank-main', display_name: 'Synthetic Bank', full_name: 'Assets:Synthetic Bank', value: '125.00', split_count: 1 }]
+			},
+			representative_amount: { amount: '125.00', currency: 'SEK' },
+			matched_amount: { amount: '125.00', currency: 'SEK' }
 		}
 	];
 }

@@ -22,6 +22,10 @@
 	function shortAccountId(accountId: string) {
 		return accountId ? accountId.slice(0, 8) : '—';
 	}
+
+	function splitAccountLabel(split: TransactionSplit): string {
+		return split.account_display_name || split.account_name;
+	}
 </script>
 
 <section
@@ -52,7 +56,7 @@
 					<div class="flex min-w-0 items-start justify-between gap-3">
 						<div class="min-w-0">
 							<div class="text-xs font-semibold uppercase" style="color: var(--app-muted);">{t(locale, 'transactionSplits.splitAccount').replace('{index}', String(index + 1))}</div>
-							<div class="break-words text-sm font-medium" style="color: var(--app-text);" title={split.account_name}>{split.account_name}</div>
+							<div class="break-words text-sm font-medium" style="color: var(--app-text);" title={split.account_name}>{splitAccountLabel(split)}</div>
 						</div>
 						<div class="min-w-0 max-w-[45%] text-right text-sm font-semibold">
 							<Money amount={split.amount} currency={split.currency} />
@@ -93,7 +97,7 @@
 					{#each splits as split}
 						<tr class="border-b last:border-0" style="border-color: var(--app-border);">
 							<td class="min-w-0 px-3 py-3" style="color: var(--app-text);">
-								<div class="truncate font-medium" title={split.account_name}>{split.account_name}</div>
+								<div class="truncate font-medium" title={split.account_name}>{splitAccountLabel(split)}</div>
 								<div class="truncate font-mono text-xs" style="color: var(--app-muted);" title={split.account_id}>{t(locale, 'transactionDetail.id')} {shortAccountId(split.account_id)}</div>
 							</td>
 							<td class="truncate px-3 py-3" style="color: var(--app-muted);" title={split.memo || t(locale, 'transactionSplits.noMemo')}>{split.memo || t(locale, 'transactionSplits.noMemo')}</td>
