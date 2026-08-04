@@ -69,6 +69,14 @@ the current write-alpha publication baseline remains Phase 261.
   attempt 1, succeeded; final acceptance comment
   [#issuecomment-5009945433](https://github.com/valentusys/gnucash-web-companion/issues/59#issuecomment-5009945433)
   is recorded, and the issue closed as completed at `2026-07-18T04:45:00Z`.
+- **Issue #60 usability cleanup completed:** product head
+  `73f55ea11f6581056449dcecf5219367d984b456` adds deterministic reporting-currency setup without
+  `XXX`/fake-zero totals, typed split-derived transaction direction, canonical Root/Template
+  filtering, compact non-postable account groups, and aligned EN/RU desktop/320 px behavior. It uses
+  exact selected-currency values only: no FX, external rates, or security valuation. Exact-head CI
+  [30864811558](https://github.com/valentusys/gnucash-web-companion/actions/runs/30864811558)
+  succeeded and [#60](https://github.com/valentusys/gnucash-web-companion/issues/60) is closed.
+  This remains pre-alpha/test-copy-first; `GNUCASH_WRITES_ENABLED=false` remains default.
 - **Closed maintenance boundary:** #36 controlled-write readiness is closed as
   `CLOSE_36_AS_MAINTENANCE_BOUNDARY`; it is historical maintenance evidence only, not real-book
   approval.

@@ -1,6 +1,6 @@
 # PROJECT_STATUS
 
-Last updated: 2026-07-18
+Last updated: 2026-08-04
 
 ## Quick navigation
 
@@ -20,6 +20,11 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   for historical controlled-write boundaries, and
   [docs/handoff/hermes-kanban-product-run-9-write-create.md](docs/handoff/hermes-kanban-product-run-9-write-create.md)
   for the #59 handoff.
+- Current accepted usability head: issue #60 is closed as completed at product head
+  `73f55ea11f6581056449dcecf5219367d984b456` after independent clean QA, FF-only integration,
+  exact-head CI success, and factual issue closeout. Reporting remains selected-currency-only with
+  no FX conversion or external rates, and `GNUCASH_WRITES_ENABLED=false` remains default. See
+  [docs/handoff/hermes-kanban-product-run-10-usability.md](docs/handoff/hermes-kanban-product-run-10-usability.md).
 - Recently completed product issues:
   [#51](https://github.com/valentusys/gnucash-web-companion/issues/51),
   [#52](https://github.com/valentusys/gnucash-web-companion/issues/52),
@@ -28,8 +33,9 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   [#55](https://github.com/valentusys/gnucash-web-companion/issues/55),
   [#56](https://github.com/valentusys/gnucash-web-companion/issues/56),
   [#57](https://github.com/valentusys/gnucash-web-companion/issues/57),
-  [#58](https://github.com/valentusys/gnucash-web-companion/issues/58), and
-  [#59](https://github.com/valentusys/gnucash-web-companion/issues/59) are closed as completed.
+  [#58](https://github.com/valentusys/gnucash-web-companion/issues/58),
+  [#59](https://github.com/valentusys/gnucash-web-companion/issues/59), and
+  [#60](https://github.com/valentusys/gnucash-web-companion/issues/60) are closed as completed.
   #53 has accepted read-only period comparison implementation at exact product head `3b094cd`, final
   documentation closeout at `3eeaf5f`, successful operational closeout CI
   [29180390237](https://github.com/valentusys/gnucash-web-companion/actions/runs/29180390237), and
@@ -77,6 +83,14 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   acceptance comment
   [#issuecomment-5009945433](https://github.com/valentusys/gnucash-web-companion/issues/59#issuecomment-5009945433)
   is recorded, and the issue closed as completed at `2026-07-18T04:45:00Z`.
+  #60 is closed as completed at accepted product head
+  `73f55ea11f6581056449dcecf5219367d984b456` / tree
+  `46eb7f940b4fb78727138f73d197e641a89e2361`, integrated and pushed FF-only. Exact-head CI
+  [30864811558](https://github.com/valentusys/gnucash-web-companion/actions/runs/30864811558)
+  completed success for Foundation, Frontend, Backend, and Docker Compose jobs. Factual closeout
+  comment
+  [#issuecomment-5173158786](https://github.com/valentusys/gnucash-web-companion/issues/60#issuecomment-5173158786)
+  is recorded, and the issue is closed as completed.
 - Controlled-write boundary: [#36](https://github.com/valentusys/gnucash-web-companion/issues/36)
   is closed as `CLOSE_36_AS_MAINTENANCE_BOUNDARY`. Trackers #45–#50 remain separate experimental
   evidence/workflow history; they do not authorize owner/private DELETE or batch, release publication,
@@ -87,6 +101,7 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   [#22](https://github.com/valentusys/gnucash-web-companion/issues/22) and
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28).
 - Latest handoffs/docs:
+  [docs/handoff/hermes-kanban-product-run-10-usability.md](docs/handoff/hermes-kanban-product-run-10-usability.md),
   [docs/handoff/hermes-kanban-product-run-9-write-create.md](docs/handoff/hermes-kanban-product-run-9-write-create.md),
   [docs/handoff/hermes-kanban-product-run-7.md](docs/handoff/hermes-kanban-product-run-7.md),
   [docs/handoff/hermes-kanban-product-run-6.md](docs/handoff/hermes-kanban-product-run-6.md),
@@ -149,6 +164,31 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
 
 ## Current status snapshot
 
+- The tenth Hermes Kanban product run completed
+  [#60](https://github.com/valentusys/gnucash-web-companion/issues/60) at accepted product head
+  `73f55ea11f6581056449dcecf5219367d984b456` and tree
+  `46eb7f940b4fb78727138f73d197e641a89e2361`. Deterministic reporting-currency resolution selects a
+  valid configured currency or a unique dominant active `CURRENCY` candidate; ties/no candidates
+  return setup-required without `XXX` or fake zero totals. Dashboard totals remain exact
+  Decimal/string and selected-currency-only, with actual excluded currencies and no FX, conversion,
+  external rates, or security valuation. Latest transactions use typed signed-split From/To
+  direction with honest composite/ambiguous states. Canonical Root Account and Template Root rows,
+  template descendants, GUID display, and non-postable placeholder choices are absent from ordinary
+  surfaces while a legitimate account named `Template Root` stays visible. Touched EN/RU status,
+  dashboard, account, and transaction surfaces passed desktop and 320 px browser gates.
+  Independent clean QA `t_6132dd89`, run `257`, passed full backend `1490`, the required frontend
+  static/browser matrix, generated fixture and exact-one issue #59 CREATE/idempotency/read-back
+  regression, safety, and hygiene gates on the exact unchanged head. The head was integrated and
+  pushed FF-only; exact-head GitHub Actions run
+  [30864811558](https://github.com/valentusys/gnucash-web-companion/actions/runs/30864811558)
+  completed success for Foundation, Frontend, Backend, and Docker Compose. Factual closeout comment
+  [#issuecomment-5173158786](https://github.com/valentusys/gnucash-web-companion/issues/60#issuecomment-5173158786)
+  is recorded, and #60 is closed. Generated/disposable evidence used one source, one disposable copy,
+  one target CREATE and one duplicate confirm; owner/private/original/Syncthing access and mutations,
+  target PATCH/DELETE, browser-forbidden mutations, and committed raw/runtime/private artifacts were
+  all zero. This remains pre-alpha, test-copy-first software; `GNUCASH_WRITES_ENABLED=false` remains
+  default, and no production, security-audit, hosted-SaaS, release, or broad compatibility claim is
+  added. Evidence: `docs/handoff/hermes-kanban-product-run-10-usability.md`.
 - The ninth Hermes Kanban product run closed
   [#59](https://github.com/valentusys/gnucash-web-companion/issues/59) as completed. Parent
   implementation gate `t_47be8f49` accepted exact candidate

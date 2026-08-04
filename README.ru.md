@@ -49,6 +49,14 @@ release docs и handoff-файлах, чтобы этот файл не стан
   attempt 1, succeeded; final acceptance comment
   [#issuecomment-5009945433](https://github.com/valentusys/gnucash-web-companion/issues/59#issuecomment-5009945433)
   recorded, issue closed as completed at `2026-07-18T04:45:00Z`.
+- #60 usability cleanup закрыта как completed: product head
+  `73f55ea11f6581056449dcecf5219367d984b456` добавляет deterministic reporting-currency setup без
+  `XXX`/fake-zero totals, typed direction из transaction splits, canonical Root/Template filtering,
+  компактные non-postable account groups и согласованное EN/RU поведение на desktop/320 px. Значения
+  остаются exact и selected-currency-only: без FX, external rates и security valuation. Exact-head CI
+  [30864811558](https://github.com/valentusys/gnucash-web-companion/actions/runs/30864811558)
+  succeeded, [#60](https://github.com/valentusys/gnucash-web-companion/issues/60) закрыта. Проект
+  остаётся pre-alpha/test-copy-first; `GNUCASH_WRITES_ENABLED=false` остаётся дефолтом.
 - Controlled-write код, если присутствует, является experimental post-MVP/write-alpha,
   отключён по умолчанию и дополнительно ограничен backend `APP_ENV=test` gate при явном включении.
 - real/private/original/only-copy books не являются безопасной write-целью.
