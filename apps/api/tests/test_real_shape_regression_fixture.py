@@ -14,6 +14,7 @@ import sys
 from dataclasses import dataclass
 from decimal import Decimal
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from fastapi.testclient import TestClient
@@ -68,6 +69,25 @@ def real_shape_fixture(tmp_path_factory) -> RealShapeRegressionFixture:
 
 def _service(fixture: RealShapeRegressionFixture) -> GnuCashBookService:
     return GnuCashBookService({"uri_or_path": str(fixture.source_path), "base_currency": BASE_CURRENCY})
+
+
+def _a5_account(
+    guid: str,
+    *,
+    children: list[SimpleNamespace] | None = None,
+    amount: str = "0.00",
+    account_type: str = "ASSET",
+    commodity: SimpleNamespace | None = None,
+) -> SimpleNamespace:
+    currency = commodity or SimpleNamespace(guid="commodity-rub", mnemonic=BASE_CURRENCY, namespace="CURRENCY", fraction=100)
+    return SimpleNamespace(
+        guid=guid,
+        name=guid,
+        type=account_type,
+        commodity=currency,
+        children=list(children or []),
+        splits=[SimpleNamespace(quantity=Decimal(amount))] if Decimal(amount) else [],
+    )
 
 
 def _create_api_context(tmp_path: Path, fixture: RealShapeRegressionFixture) -> _ApiContext:
@@ -244,8 +264,7 @@ def test_red_historical_as_of_balances_ignore_later_balance_sheet_splits(
     assert early.net_worth != late.net_worth
 
 
-@RED_XFAIL
-def test_red_shallow_wide_account_tree_does_not_trip_depth_guard(real_shape_fixture: RealShapeRegressionFixture) -> None:
+def test_a5_shallow_wide_account_tree_does_not_trip_depth_guard(real_shape_fixture: RealShapeRegressionFixture) -> None:
     service = _service(real_shape_fixture)
 
     tree = service.get_account_tree()
@@ -259,6 +278,84 @@ def test_red_shallow_wide_account_tree_does_not_trip_depth_guard(real_shape_fixt
 
     assert len(wide.children) == real_shape_fixture.expected["wide_child_count"]
     assert len(wide.children) > 64
+
+
+def test_a5_real_shape_legacy_and_bounded_account_reads_pass_wide_tree(
+    real_shape_fixture: RealShapeRegressionFixture,
+) -> None:
+    service = _service(real_shape_fixture)
+    counters: dict[str, int] = {}
+
+    accounts = service.list_accounts()
+    bounded = service.list_accounts_by_ids(
+        [real_shape_fixture.expected["wide_parent_id"], real_shape_fixture.expected["primary_bank_id"]],
+        counters=counters,
+    )
+
+    assert any(account.id == real_shape_fixture.expected["wide_parent_id"] for account in accounts)
+    assert [account.id for account in bounded] == [
+        real_shape_fixture.expected["wide_parent_id"],
+        real_shape_fixture.expected["primary_bank_id"],
+    ]
+    assert counters["account_unique_descendant_row_count"] >= real_shape_fixture.expected["wide_child_count"]
+    assert counters["account_materialized_unique_count"] < real_shape_fixture.expected["account_count"]
+
+
+def test_a5_recursive_balance_uses_branch_depth_not_visited_node_count(monkeypatch) -> None:
+    from app.services import gnucash_book as gnucash_book_module
+
+    monkeypatch.setattr(gnucash_book_module, "REQUEST_ACCOUNT_HIERARCHY_MAX_DEPTH", 2)
+    monkeypatch.setattr(gnucash_book_module, "REQUEST_ACCOUNT_HIERARCHY_ROW_MAX", 100)
+    service = GnuCashBookService({"uri_or_path": "/synthetic/not-opened", "base_currency": BASE_CURRENCY})
+    children = [_a5_account(f"child-{index:03d}", amount="1.00") for index in range(80)]
+    root = _a5_account("root", children=children)
+
+    assert service._same_commodity_recursive_balance(root) == Decimal("80.00")
+
+
+def test_a5_recursive_balance_fails_typed_for_deep_cycle_and_oversized(monkeypatch) -> None:
+    from app.services import gnucash_book as gnucash_book_module
+    from app.services.gnucash_exceptions import GnuCashReadError
+
+    service = GnuCashBookService({"uri_or_path": "/synthetic/not-opened", "base_currency": BASE_CURRENCY})
+    monkeypatch.setattr(gnucash_book_module, "REQUEST_ACCOUNT_HIERARCHY_MAX_DEPTH", 2)
+    monkeypatch.setattr(gnucash_book_module, "REQUEST_ACCOUNT_HIERARCHY_ROW_MAX", 100)
+    deep_leaf = _a5_account("deep-leaf")
+    deep_child = _a5_account("deep-child", children=[deep_leaf])
+    deep_parent = _a5_account("deep-parent", children=[deep_child])
+    deep_root = _a5_account("deep-root", children=[deep_parent])
+    with pytest.raises(GnuCashReadError, match="hierarchy depth exceeded"):
+        service._same_commodity_recursive_balance(deep_root)
+
+    cycle_root = _a5_account("cycle-root")
+    cycle_child = _a5_account("cycle-child")
+    cycle_root.children = [cycle_child]
+    cycle_child.children = [cycle_root]
+    with pytest.raises(GnuCashReadError, match="hierarchy cycle detected"):
+        service._same_commodity_recursive_balance(cycle_root)
+
+    monkeypatch.setattr(gnucash_book_module, "REQUEST_ACCOUNT_HIERARCHY_ROW_MAX", 2)
+    oversized_root = _a5_account(
+        "oversized-root",
+        children=[_a5_account("oversized-1"), _a5_account("oversized-2"), _a5_account("oversized-3")],
+    )
+    with pytest.raises(GnuCashReadError, match="hierarchy row limit exceeded"):
+        service._same_commodity_recursive_balance(oversized_root)
+
+
+def test_a5_open_book_does_not_double_wrap_gnucash_read_error(
+    real_shape_fixture: RealShapeRegressionFixture,
+) -> None:
+    from app.services.gnucash_exceptions import GnuCashReadError
+
+    service = _service(real_shape_fixture)
+
+    with pytest.raises(GnuCashReadError) as excinfo:
+        with service._open_book():
+            raise GnuCashReadError("synthetic hierarchy read failure sentinel")
+
+    assert excinfo.value.detail == "synthetic hierarchy read failure sentinel"
+    assert str(excinfo.value).count("GnuCash read error:") == 1
 
 
 @RED_XFAIL

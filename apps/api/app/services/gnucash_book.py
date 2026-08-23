@@ -296,6 +296,7 @@ class GnuCashBookService:
             BookNotConfiguredError,
             BookNotFoundError,
             EntityNotFoundError,
+            GnuCashReadError,
             TransactionExplorerError,
             AccountExplorerError,
             ReportingCurrencySetupRequired,
@@ -1917,14 +1918,12 @@ class GnuCashBookService:
     ) -> bool:
         current_guid: str | None = parent_guid
         seen: set[str] = set()
-        for _depth in range(REQUEST_ACCOUNT_HIERARCHY_MAX_DEPTH + 1):
-            if not current_guid:
-                return False
+        while current_guid:
             if current_guid == child_guid or current_guid in seen:
                 return True
             seen.add(current_guid)
             current_guid = parent_ids_by_child.get(current_guid)
-        return True
+        return False
 
     def _sql_account_balances(
         self,
@@ -2476,25 +2475,38 @@ class GnuCashBookService:
 
         target_key = self._account_commodity_key(account)
         raw_total = Decimal("0")
-        stack = [account]
-        seen: set[int] = set()
-        for _depth in range(REQUEST_ACCOUNT_HIERARCHY_MAX_DEPTH + 1):
-            if not stack:
-                break
-            current = stack.pop()
-            object_id = id(current)
-            if object_id in seen:
+        stack: list[tuple[Any, int]] = [(account, 0)]
+        visited_keys: set[str] = set()
+        parent_key_by_child: dict[str, str | None] = {self._account_hierarchy_key(account): None}
+        while stack:
+            current, depth = stack.pop()
+            if depth > REQUEST_ACCOUNT_HIERARCHY_MAX_DEPTH:
+                raise GnuCashReadError("Account balance hierarchy depth exceeded")
+            current_key = self._account_hierarchy_key(current)
+            if current_key in visited_keys:
                 continue
-            seen.add(object_id)
+            visited_keys.add(current_key)
+            if len(visited_keys) > REQUEST_ACCOUNT_HIERARCHY_ROW_MAX:
+                raise GnuCashReadError("Account balance hierarchy row limit exceeded")
             if self._account_commodity_key(current) == target_key:
                 raw_total += self._account_direct_raw_balance(current)
-            stack.extend(list(getattr(current, "children", []) or []))
-        else:
-            if stack:
-                raise GnuCashReadError("Account balance hierarchy depth exceeded")
+            children = list(getattr(current, "children", []) or [])
+            for child in children:
+                child_key = self._account_hierarchy_key(child)
+                if self._bounded_account_row_creates_cycle(child_key, current_key, parent_key_by_child):
+                    raise GnuCashReadError("Account balance hierarchy cycle detected")
+                parent_key_by_child.setdefault(child_key, current_key)
+                stack.append((child, depth + 1))
         if natural_sign and str(getattr(account, "type", "") or "").upper() in ACCOUNT_TYPES_WITH_NATURAL_SIGN_REVERSED:
             raw_total = Decimal("-0") if raw_total == 0 else -raw_total
         return raw_total
+
+    @staticmethod
+    def _account_hierarchy_key(account: Any) -> str:
+        guid = str(getattr(account, "guid", "") or "").strip().lower()
+        if guid:
+            return f"guid:{guid}"
+        return f"object:{id(account)}"
 
     def _account_direct_raw_balance(self, account: Any) -> Decimal:
         get_balance = getattr(account, "get_balance", None)
