@@ -460,3 +460,85 @@ def test_a6_account_options_candidate_cap_reports_typed_redacted_partial_failure
     assert payload["error_code"] == "candidate_row_limit_exceeded"
     assert payload["scan"]["candidate_accounts"] == 10
     assert str(real_shape_fixture.source_path) not in response.text
+
+
+def test_a6_account_options_serialized_byte_cap_measures_actual_response_body(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    real_shape_fixture: RealShapeRegressionFixture,
+) -> None:
+    from app.services import account_options as account_options_module
+
+    ctx = _create_api_context(tmp_path, real_shape_fixture)
+    path = f"/books/{ctx.book_id}/accounts/options?purpose=transactions_filter&limit=200"
+    monkeypatch.setattr(account_options_module, "ACCOUNT_OPTIONS_SERIALIZED_BYTES_LIMIT", 1_000_000)
+    uncapped = ctx.client.get(path, headers=ctx.headers)
+    assert uncapped.status_code == 200, uncapped.text
+    uncapped_payload = uncapped.json()
+    assert uncapped_payload["returned_count"] > 1
+
+    edge_cap = max(2048, len(uncapped.content) - 1024)
+    monkeypatch.setattr(account_options_module, "ACCOUNT_OPTIONS_SERIALIZED_BYTES_LIMIT", edge_cap)
+
+    response = ctx.client.get(path, headers=ctx.headers)
+
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    actual_response_bytes = len(response.content)
+    assert actual_response_bytes <= edge_cap
+    assert payload["scan"]["serialized_bytes"] == actual_response_bytes
+    assert payload["scan"]["serialized_bytes"] <= payload["scan"]["limits"]["serialized_bytes"]
+    assert payload["partial_failure"] is True
+    assert payload["error_code"] == "response_bytes_limited"
+    assert payload["returned_count"] < uncapped_payload["returned_count"]
+
+
+def test_a6_account_options_enforces_actual_serialized_response_byte_cap() -> None:
+    from app.services import account_options as account_options_module
+
+    commodity = SimpleNamespace(namespace="CURRENCY", mnemonic=BASE_CURRENCY, guid="c" * 32, fraction=100)
+    accounts = [
+        SimpleNamespace(
+            guid="0" * 32,
+            name="Root Account",
+            type="ROOT",
+            parent_guid=None,
+            parent=None,
+            hidden=False,
+            placeholder=False,
+            commodity=commodity,
+        )
+    ]
+    for index in range(1, 205):
+        accounts.append(
+            SimpleNamespace(
+                guid=f"{index:032x}",
+                name=("A" * 134) + str(index),
+                type="ASSET",
+                parent_guid="0" * 32,
+                parent=None,
+                hidden=False,
+                placeholder=False,
+                commodity=commodity,
+            )
+        )
+    request = account_options_module.build_account_options_request(
+        purpose="transaction_create_preview",
+        query=None,
+        currency=BASE_CURRENCY,
+        limit=200,
+        cursor=None,
+    )
+
+    response = account_options_module.build_account_options_response(
+        SimpleNamespace(accounts=accounts),
+        request,
+        book_id=1,
+        base_currency=BASE_CURRENCY,
+    )
+    actual_model_bytes = len(response.model_dump_json().encode("utf-8"))
+    actual_body_bytes = account_options_module._serialized_response_bytes(response)
+
+    assert actual_model_bytes <= account_options_module.ACCOUNT_OPTIONS_SERIALIZED_BYTES_LIMIT
+    assert actual_body_bytes <= account_options_module.ACCOUNT_OPTIONS_SERIALIZED_BYTES_LIMIT
+    assert response.scan.serialized_bytes == actual_body_bytes

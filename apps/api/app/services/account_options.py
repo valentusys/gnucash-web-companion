@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from itertools import islice
+import json
 import re
 from types import SimpleNamespace
 from typing import Any, cast
@@ -445,23 +446,23 @@ def _enforce_serialized_byte_limit(
     offset: int,
     original_page_size: int,
 ) -> None:
-    size = _serialized_response_bytes(response)
-    if size <= ACCOUNT_OPTIONS_SERIALIZED_BYTES_LIMIT:
-        response.scan.serialized_bytes = size
-        return
+    while True:
+        size = _settle_serialized_response_bytes(response)
+        if size <= ACCOUNT_OPTIONS_SERIALIZED_BYTES_LIMIT:
+            return
 
-    response.partial_failure = True
-    if response.error_code is None:
-        response.error_code = "response_bytes_limited"
-    while response.items and size > ACCOUNT_OPTIONS_SERIALIZED_BYTES_LIMIT:
+        response.partial_failure = True
+        if response.error_code is None:
+            response.error_code = "response_bytes_limited"
+        if not response.items:
+            break
         response.items.pop()
         response.returned_count = len(response.items)
         response.scan.returned_items = len(response.items)
         response.next_cursor = str(offset + len(response.items))
         response.scan.exhausted = False
-        size = _serialized_response_bytes(response)
-    response.scan.serialized_bytes = size
-    if not response.items and original_page_size > 0 and size > ACCOUNT_OPTIONS_SERIALIZED_BYTES_LIMIT:
+
+    if original_page_size > 0 or size > ACCOUNT_OPTIONS_SERIALIZED_BYTES_LIMIT:
         raise AccountOptionsError(
             "response_too_large",
             "account options response is too large for one bounded request",
@@ -469,9 +470,27 @@ def _enforce_serialized_byte_limit(
         )
 
 
+def _settle_serialized_response_bytes(response: AccountOptionsResponseDTO) -> int:
+    """Set and return the final serialized size, including this counter itself."""
+
+    response.scan.serialized_bytes = 0
+    for _attempt in range(8):
+        size = _serialized_response_bytes(response)
+        if response.scan.serialized_bytes == size:
+            return size
+        response.scan.serialized_bytes = size
+    size = _serialized_response_bytes(response)
+    response.scan.serialized_bytes = size
+    return size
+
+
 def _serialized_response_bytes(response: AccountOptionsResponseDTO) -> int:
     try:
-        return len(response.model_dump_json().encode("utf-8"))
+        # Match Starlette/FastAPI JSONResponse's compact UTF-8 body size rather
+        # than Pydantic's direct JSON serializer, so the exposed counter and cap
+        # describe the actual emitted API response envelope.
+        body = json.dumps(response.model_dump(), ensure_ascii=False, allow_nan=False, separators=(",", ":"))
+        return len(body.encode("utf-8"))
     except Exception as exc:  # pragma: no cover - pydantic serialization should stay deterministic
         raise AccountOptionsError(
             "response_too_large",
