@@ -27,6 +27,7 @@ BASE_CURRENCY = "RUB"
 SECONDARY_CURRENCY = "USD"
 SECURITY_MNEMONIC = "BTC"
 FIXTURE_ID = "readonly-real-shape-regression-v1"
+SOURCE_HASH_ALGORITHM = "canonical-sqlite-v1"
 EARLY_AS_OF_DATE = date(2026, 3, 31)
 LATE_AS_OF_DATE = date(2026, 12, 31)
 WIDE_CHILD_COUNT = 80
@@ -52,6 +53,62 @@ def sha256_file(path: Path | str) -> str:
     return digest.hexdigest()
 
 
+def canonical_sqlite_hash(path: Path | str) -> str:
+    """Hash the logical SQLite schema/content, not nondeterministic page bytes."""
+
+    digest = hashlib.sha256()
+    con = sqlite3.connect(Path(path))
+    try:
+        for schema_row in con.execute(
+            """
+            select type, name, tbl_name, coalesce(sql, '')
+            from sqlite_master
+            where name not like 'sqlite_%'
+            order by type, name, tbl_name, coalesce(sql, '')
+            """
+        ):
+            digest.update(_canonical_json_line(("schema", tuple(schema_row))))
+
+        table_names = [
+            str(row[0])
+            for row in con.execute(
+                "select name from sqlite_master where type = 'table' and name not like 'sqlite_%' order by name"
+            )
+        ]
+        for table_name in table_names:
+            quoted_table = _quote_sqlite_identifier(table_name)
+            columns = [tuple(row) for row in con.execute(f"pragma table_info({quoted_table})")]
+            column_names = [str(column[1]) for column in columns]
+            quoted_columns = ", ".join(_quote_sqlite_identifier(column) for column in column_names)
+            rows = [
+                tuple(_normalize_sqlite_value(value) for value in row)
+                for row in con.execute(f"select {quoted_columns} from {quoted_table}")
+            ]
+            rows.sort(key=_canonical_sort_key)
+            digest.update(_canonical_json_line(("table", table_name, columns, rows)))
+    finally:
+        con.close()
+    return digest.hexdigest()
+
+
+def _canonical_json_line(value: Any) -> bytes:
+    return (json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
+
+
+def _canonical_sort_key(value: Any) -> str:
+    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
+def _normalize_sqlite_value(value: Any) -> Any:
+    if isinstance(value, bytes):
+        return {"__bytes__": value.hex()}
+    return value
+
+
+def _quote_sqlite_identifier(identifier: str) -> str:
+    return '"' + identifier.replace('"', '""') + '"'
+
+
 @dataclass(frozen=True)
 class RealShapeRegressionFixture:
     root: Path
@@ -71,6 +128,7 @@ class RealShapeRegressionFixture:
             "root": str(self.root),
             "source_path": str(self.source_path),
             "target_path": str(self.target_path),
+            "source_hash_algorithm": SOURCE_HASH_ALGORITHM,
             "source_hash": self.source_hash,
             "target_hash_before": self.target_hash_before,
             "accounts": self.accounts,
@@ -113,16 +171,17 @@ def generate_real_shape_regression_fixture(root: Path | str, *, seed: int = FIXT
 
     creation = _create_source_book(source_path, seed=seed)
     _stabilize_default_identity(source_path, creation["default_ids"])
-    source_hash = sha256_file(source_path)
+    source_hash = canonical_sqlite_hash(source_path)
     source_path.chmod(0o444)
     shutil.copy2(source_path, target_path)
     target_path.chmod(0o600)
-    target_hash_before = sha256_file(target_path)
+    target_hash_before = canonical_sqlite_hash(target_path)
 
     expected = _expected_contract(creation["accounts"], creation["transaction_specs"])
     expected.update(
         {
             "fixture_id": FIXTURE_ID,
+            "source_hash_algorithm": SOURCE_HASH_ALGORITHM,
             "contains_real_data": False,
             "account_count": len(creation["accounts"]),
             "transaction_count": len(creation["transaction_specs"]),

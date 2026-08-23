@@ -1,12 +1,16 @@
 """A1 generated real-shape fixture plus RED read-only correctness tests.
 
-The xfail tests are intentional RED evidence for the later roadmap blocks. Run this
-module normally to keep the suite green; run with ``--runxfail`` to reproduce the
-current failures without product fixes.
+The xfail tests are intentional RED evidence for later roadmap blocks. Per the
+A0 PM clarification, the source-hash invariant is an always-green safety guard.
+Run this module normally to keep the suite green; run with ``--runxfail`` to
+reproduce current product-contract failures without product fixes.
 """
 
 from __future__ import annotations
 
+import json
+import subprocess
+import sys
 from dataclasses import dataclass
 from decimal import Decimal
 from pathlib import Path
@@ -29,6 +33,8 @@ from tests.support.generate_real_shape_regression_fixture import (
     EARLY_AS_OF_DATE,
     LATE_AS_OF_DATE,
     RealShapeRegressionFixture,
+    SOURCE_HASH_ALGORITHM,
+    canonical_sqlite_hash,
     generate_real_shape_regression_fixture,
     sha256_file,
 )
@@ -131,7 +137,11 @@ def test_generated_real_shape_fixture_source_hash_is_stable_and_readonly(tmp_pat
     assert first.source_hash == second.source_hash
     assert first.target_hash_before == first.source_hash
     assert second.target_hash_before == second.source_hash
-    assert sha256_file(first.source_path) == first.source_hash
+    assert first.to_manifest()["source_hash_algorithm"] == SOURCE_HASH_ALGORITHM
+    assert first.expected["source_hash_algorithm"] == SOURCE_HASH_ALGORITHM
+    assert canonical_sqlite_hash(first.source_path) == first.source_hash
+    assert canonical_sqlite_hash(first.target_path) == first.target_hash_before
+    assert sha256_file(first.source_path) == sha256_file(first.target_path)
     assert not (first.source_path.stat().st_mode & 0o222)
     assert first.target_path.stat().st_mode & 0o200
     assert first.expected["contains_real_data"] is False
@@ -144,7 +154,49 @@ def test_generated_real_shape_fixture_source_hash_is_stable_and_readonly(tmp_pat
     )
 
 
-def test_generated_real_shape_fixture_has_required_model_edges(real_shape_fixture: RealShapeRegressionFixture) -> None:
+def test_generated_real_shape_fixture_cli_source_hash_is_stable(tmp_path: Path) -> None:
+    script = Path(__file__).parent / "support" / "generate_real_shape_regression_fixture.py"
+    first_manifest_path = tmp_path / "cli-first" / "manifest.json"
+    second_manifest_path = tmp_path / "cli-second" / "manifest.json"
+
+    for root, manifest_path in (
+        (tmp_path / "cli-first", first_manifest_path),
+        (tmp_path / "cli-second", second_manifest_path),
+    ):
+        result = subprocess.run(
+            [sys.executable, str(script), str(root), "--manifest", str(manifest_path)],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        assert result.stdout == ""
+
+    first = json.loads(first_manifest_path.read_text(encoding="utf-8"))
+    second = json.loads(second_manifest_path.read_text(encoding="utf-8"))
+
+    assert first["source_hash_algorithm"] == SOURCE_HASH_ALGORITHM
+    assert second["source_hash_algorithm"] == SOURCE_HASH_ALGORITHM
+    assert first["source_hash"] == second["source_hash"]
+    assert first["target_hash_before"] == first["source_hash"]
+    assert second["target_hash_before"] == second["source_hash"]
+
+
+def test_generated_real_shape_fixture_source_hash_survives_readonly_service_operations(
+    real_shape_fixture: RealShapeRegressionFixture,
+) -> None:
+    before = canonical_sqlite_hash(real_shape_fixture.source_path)
+    service = _service(real_shape_fixture)
+
+    assert service.check_connection() is True
+    service.get_report_summary(EARLY_AS_OF_DATE)
+    service.get_report_summary(LATE_AS_OF_DATE)
+    assert service.list_transactions(limit=25)
+
+    after = canonical_sqlite_hash(real_shape_fixture.source_path)
+    assert after == before == real_shape_fixture.source_hash
+
+
+def test_generated_real_shape_fixture_has_mandatory_model_edges(real_shape_fixture: RealShapeRegressionFixture) -> None:
     accounts = real_shape_fixture.accounts
     expected = real_shape_fixture.expected
 
