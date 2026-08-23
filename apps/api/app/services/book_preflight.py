@@ -583,6 +583,21 @@ def _verify_sqlite_gnucash_schema(canonical_path: str) -> _SQLiteProbeResult:
     )
 
 
+def _close_piecash_book_and_dispose_bind(book: Any) -> None:
+    """Close piecash and explicitly dispose its SQLAlchemy engine/pool."""
+
+    session = getattr(book, "session", None)
+    bind = getattr(session, "bind", None)
+    close = getattr(book, "close", None)
+    try:
+        if callable(close):
+            close()
+    finally:
+        dispose = getattr(bind, "dispose", None)
+        if callable(dispose):
+            dispose()
+
+
 def _open_piecash_readonly_once(canonical_path: str) -> None:
     book = None
     try:
@@ -591,9 +606,7 @@ def _open_piecash_readonly_once(canonical_path: str) -> None:
         raise _problem("open_failed") from exc
     finally:
         if book is not None:
-            close = getattr(book, "close", None)
-            if callable(close):
-                close()
+            _close_piecash_book_and_dispose_bind(book)
 
 
 def _ready_status(code: str, message: str) -> BookSectionStatusDTO:

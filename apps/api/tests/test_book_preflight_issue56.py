@@ -588,6 +588,36 @@ def test_full_probe_leaf_replacement_before_piecash_does_not_open_replacement_in
     assert book_path.name not in response.text
 
 
+def test_open_piecash_readonly_once_disposes_engine_after_close(monkeypatch):
+    from app.services import book_preflight
+
+    events: list[str] = []
+
+    class FakeBind:
+        def dispose(self) -> None:
+            events.append("dispose")
+
+    class FakeSession:
+        bind = FakeBind()
+
+    class FakeBook:
+        session = FakeSession()
+
+        def close(self) -> None:
+            events.append("close")
+
+    def fake_open_book(path, *args, **kwargs):
+        assert path == "/proc/self/fd/123"
+        assert kwargs == {"readonly": True}
+        return FakeBook()
+
+    monkeypatch.setattr(book_preflight.piecash, "open_book", fake_open_book)
+
+    book_preflight._open_piecash_readonly_once("/proc/self/fd/123")
+
+    assert events == ["close", "dispose"]
+
+
 def test_full_probe_closes_pinned_source_fd_on_success_and_error(api_context, monkeypatch):
     from app.services import book_preflight
 
