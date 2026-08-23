@@ -1244,6 +1244,32 @@ async def list_book_accounts(
     return [account.model_dump() for account in accounts]
 
 
+@router.get("/{book_id}/accounts/options")
+async def list_book_account_options(
+    book_id: int,
+    request: Request,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+) -> dict[str, Any]:
+    """Return bounded account selector options without balances or split scans."""
+    book = resolve_readonly_data_book(book_id, user, session)
+    try:
+        result = account_service_for(book).list_account_options(
+            purpose=request.query_params.get("purpose"),
+            query=request.query_params.get("query"),
+            currency=request.query_params.get("currency"),
+            limit=request.query_params.get("limit"),
+            cursor=request.query_params.get("cursor"),
+            book_id=book.id,
+        )
+    except AccountExplorerError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail()) from exc
+    except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
+        handle_gnucash_error(exc)
+        raise
+    return result.model_dump()
+
+
 @router.get("/{book_id}/accounts/tree")
 async def get_book_account_tree(
     book_id: int,

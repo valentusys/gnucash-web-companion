@@ -11,6 +11,7 @@ from app.schemas.gnucash import TransactionDirectionDTO, default_transaction_dir
 AccountExplorerMode = Literal["tree", "flat"]
 AccountExplorerMatchState = Literal["match", "ancestor_context"]
 AccountExplorerStructureStatus = Literal["root", "normal", "orphan_promoted", "cycle_broken_root", "cycle_member"]
+AccountOptionsPurpose = Literal["transactions_filter", "transaction_create_preview"]
 AccountActivitySection = Literal["change", "recent_transactions"]
 AccountActivitySectionStatusValue = Literal["ok", "empty", "error"]
 
@@ -38,6 +39,52 @@ class CommodityAmountDTO(BaseModel):
 
 
 AccountExplorerBalanceDTO = CommodityAmountDTO
+
+
+class AccountOptionItemDTO(BaseModel):
+    """One bounded selectable account option without balances."""
+
+    id: str
+    parent_id: str | None = None
+    name: str
+    display_name: str | None = None
+    full_name: str
+    type: str
+    commodity: CommodityRefDTO
+    currency: str
+    hidden: bool = False
+    placeholder: bool = False
+    selectable: bool = True
+
+
+class AccountOptionsScanDTO(BaseModel):
+    """Bounded account-options counters exposed without private book data."""
+
+    candidate_accounts: int = 0
+    matched_accounts: int = 0
+    returned_items: int = 0
+    query_count: int = 0
+    serialized_bytes: int = 0
+    exhausted: bool = True
+    limits: dict[str, int] = Field(default_factory=dict)
+
+
+class AccountOptionsResponseDTO(BaseModel):
+    """Bounded account option list for filters and preview account selectors."""
+
+    book_id: int
+    purpose: AccountOptionsPurpose
+    normalized_filters: dict[str, Any]
+    items: list[AccountOptionItemDTO]
+    limit: int
+    returned_count: int
+    next_cursor: str | None = None
+    partial_failure: bool = False
+    error_code: str | None = None
+    scan: AccountOptionsScanDTO
+    balance_basis: Literal["not_loaded"] = "not_loaded"
+    includes_currency_conversion: bool = False
+    limitations: list[str] = Field(default_factory=list)
 
 
 class AccountExplorerNodeDTO(BaseModel):

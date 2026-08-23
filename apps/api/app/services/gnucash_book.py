@@ -41,7 +41,12 @@ from app.schemas.gnucash import (
     TransactionListItemDTO,
     TransactionSplitDTO,
 )
-from app.schemas.accounts import AccountActivityResponseDTO, AccountExplorerResponseDTO, AccountOverviewResponseDTO
+from app.schemas.accounts import (
+    AccountActivityResponseDTO,
+    AccountExplorerResponseDTO,
+    AccountOptionsResponseDTO,
+    AccountOverviewResponseDTO,
+)
 from app.services.account_explorer import (
     AccountActivityQuery,
     AccountExplorerError,
@@ -50,6 +55,7 @@ from app.services.account_explorer import (
     build_account_explorer_response,
     build_account_overview_response,
 )
+from app.services.account_options import build_account_options_request, build_account_options_response
 from app.schemas.transaction_explorer import (
     TransactionExplorerAccountRefDTO,
     TransactionExplorerItemDTO,
@@ -319,6 +325,33 @@ class GnuCashBookService:
         with self._open_book() as book:
             visibility = build_account_visibility_index(book)
             return [self._account_to_dto(account, visibility=visibility) for account in visible_accounts(visibility)]
+
+    def list_account_options(
+        self,
+        *,
+        purpose: str | None = None,
+        query: str | None = None,
+        currency: str | None = None,
+        limit: str | int | None = None,
+        cursor: str | None = None,
+        book_id: int | None = None,
+    ) -> AccountOptionsResponseDTO:
+        """Return bounded account selector options without account balance reads."""
+
+        request = build_account_options_request(
+            purpose=purpose,
+            query=query,
+            currency=currency,
+            limit=limit,
+            cursor=cursor,
+        )
+        with self._open_book() as book:
+            return build_account_options_response(
+                book,
+                request,
+                book_id=book_id if book_id is not None else self._get_book_id(self.book_config) or 0,
+                base_currency=self.base_currency or "XXX",
+            )
 
     def list_accounts_by_ids(
         self,

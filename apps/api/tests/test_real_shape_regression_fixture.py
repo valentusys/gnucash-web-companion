@@ -42,7 +42,6 @@ from tests.support.generate_real_shape_regression_fixture import (
 
 JWT_SECRET = "readonly-real-shape-regression-" + "x" * 32
 ADMIN_PASSWORD = "real-shape-admin-pass"
-RED_XFAIL = pytest.mark.xfail(strict=True, reason="A1 RED evidence only; later blocks implement product fixes")
 
 
 @dataclass(frozen=True)
@@ -358,8 +357,7 @@ def test_a5_open_book_does_not_double_wrap_gnucash_read_error(
     assert str(excinfo.value).count("GnuCash read error:") == 1
 
 
-@RED_XFAIL
-def test_red_transactions_have_bounded_selectable_account_options_prerequisite(
+def test_a6_transactions_have_bounded_selectable_account_options_prerequisite(
     tmp_path: Path,
     real_shape_fixture: RealShapeRegressionFixture,
 ) -> None:
@@ -376,6 +374,89 @@ def test_red_transactions_have_bounded_selectable_account_options_prerequisite(
     assert payload["items"]
     assert payload["limit"] == 25
     assert "next_cursor" in payload
+    assert payload["partial_failure"] is False
+    assert payload["error_code"] is None
+    assert payload["scan"]["query_count"] <= payload["scan"]["limits"]["query_count"]
+    assert payload["scan"]["candidate_accounts"] <= payload["scan"]["limits"]["candidate_accounts"]
+    assert payload["scan"]["serialized_bytes"] <= payload["scan"]["limits"]["serialized_bytes"]
     assert any(item["id"] == real_shape_fixture.expected["primary_bank_id"] for item in payload["items"])
     assert all("balance" not in item for item in payload["items"])
     assert all(item.get("selectable") is True for item in payload["items"])
+
+
+def test_a6_account_options_do_not_call_balance_recursion(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    real_shape_fixture: RealShapeRegressionFixture,
+) -> None:
+    def fail_balance(*_args, **_kwargs):
+        raise AssertionError("account options must not calculate balances")
+
+    def fail_legacy_list_accounts(*_args, **_kwargs):
+        raise AssertionError("account options must not call legacy list_accounts")
+
+    monkeypatch.setattr(GnuCashBookService, "_account_balance", fail_balance)
+    monkeypatch.setattr(GnuCashBookService, "list_accounts", fail_legacy_list_accounts)
+    ctx = _create_api_context(tmp_path, real_shape_fixture)
+
+    response = ctx.client.get(
+        f"/books/{ctx.book_id}/accounts/options?purpose=transactions_filter&limit=25",
+        headers=ctx.headers,
+    )
+
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert payload["items"]
+    assert all("balance" not in item for item in payload["items"])
+
+
+def test_a6_preview_account_options_preserve_posting_visibility_and_currency_rules(
+    tmp_path: Path,
+    real_shape_fixture: RealShapeRegressionFixture,
+) -> None:
+    ctx = _create_api_context(tmp_path, real_shape_fixture)
+
+    response = ctx.client.get(
+        f"/books/{ctx.book_id}/accounts/options?purpose=transaction_create_preview&currency={BASE_CURRENCY}&limit=200",
+        headers=ctx.headers,
+    )
+
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    ids = {item["id"] for item in payload["items"]}
+    assert payload["purpose"] == "transaction_create_preview"
+    assert real_shape_fixture.expected["primary_bank_id"] in ids
+    assert real_shape_fixture.expected["credit_card_id"] in ids
+    assert real_shape_fixture.expected["placeholder_account_id"] not in ids
+    assert real_shape_fixture.expected["hidden_account_id"] not in ids
+    assert set(real_shape_fixture.expected["template_account_ids"]).isdisjoint(ids)
+    assert real_shape_fixture.accounts["usd_bank"]["id"] not in ids
+    assert real_shape_fixture.accounts["btc_wallet"]["id"] not in ids
+    assert all(item["currency"] == BASE_CURRENCY for item in payload["items"])
+    assert all(item["commodity"]["namespace"] == "CURRENCY" for item in payload["items"])
+    assert all(item["placeholder"] is False for item in payload["items"])
+    assert all(item["hidden"] is False for item in payload["items"])
+    assert all(item["selectable"] is True for item in payload["items"])
+
+
+def test_a6_account_options_candidate_cap_reports_typed_redacted_partial_failure(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    real_shape_fixture: RealShapeRegressionFixture,
+) -> None:
+    from app.services import account_options as account_options_module
+
+    monkeypatch.setattr(account_options_module, "ACCOUNT_OPTIONS_CANDIDATE_ROW_LIMIT", 10)
+    ctx = _create_api_context(tmp_path, real_shape_fixture)
+
+    response = ctx.client.get(
+        f"/books/{ctx.book_id}/accounts/options?purpose=transactions_filter&limit=25",
+        headers=ctx.headers,
+    )
+
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert payload["partial_failure"] is True
+    assert payload["error_code"] == "candidate_row_limit_exceeded"
+    assert payload["scan"]["candidate_accounts"] == 10
+    assert str(real_shape_fixture.source_path) not in response.text
