@@ -95,7 +95,7 @@ function summaryPayload(dateTo, side = 'primary', mode = 'full') {
 		currency,
 		net_worth: side === 'primary' ? '1450.00' : '1250.00',
 		assets: side === 'primary' ? '2000.00' : '1800.00',
-		liabilities: side === 'primary' ? '-550.00' : '-550.00',
+		liabilities: side === 'primary' ? '550.00' : '550.00',
 		as_of_date: dateTo,
 		reporting_basis: 'base_currency_only',
 		includes_currency_conversion: false,
@@ -204,7 +204,7 @@ function comparisonReportPayload(params, mode = 'full') {
 				? {
 						currency: 'SEK',
 						assets: moneyDelta('2000.00', '1800.00', '200.00', '200.00'),
-						liabilities: moneyDelta('-550.00', '-550.00', '0.00', '0.00'),
+						liabilities: moneyDelta('550.00', '550.00', '0.00', '0.00'),
 						net_worth: moneyDelta('1450.00', '1250.00', '200.00', '200.00')
 					}
 				: null,

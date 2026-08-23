@@ -18,6 +18,7 @@ from app.database import Base
 from app.main import app
 from app.models import User, Book, UserBookAccess
 from app.routers.auth import get_db
+from app.schemas.gnucash import PeriodReportDTO, PeriodReportSectionStatusDTO, PeriodReportSummaryDTO
 from app.services.auth import hash_password
 from app.services.gnucash_book import GnuCashBookService
 from app.services.gnucash_exceptions import GnuCashReadError
@@ -436,9 +437,9 @@ class TestReportSummaryMVP:
         data = response.json()
         # Assets: checking 150000 + savings 50000 = 200000
         assert data["assets"] == "200000.00"
-        # Liabilities: credit card -30000
-        assert data["liabilities"] == "-30000.00"
-        # Net worth: 200000 + (-30000) = 170000
+        # Liabilities expose a natural-sign display value while net worth uses
+        # signed balance-sheet arithmetic: 200000 - 30000 = 170000.
+        assert data["liabilities"] == "30000.00"
         assert data["net_worth"] == "170000.00"
         # Income this month: salary 45000
         assert data["income_this_month"] == "45000.00"
@@ -541,12 +542,69 @@ class TestReportSummaryMVP:
         assert response.status_code == 200
         data = response.json()
         assert data["assets"] == "1420.00"
-        assert data["liabilities"] == "-200.00"
+        assert data["liabilities"] == "200.00"
         assert data["net_worth"] == "1220.00"
         assert data["income_this_month"] == "500.00"
         assert data["expenses_this_month"] == "-50.00"
         for key in ("assets", "liabilities", "net_worth", "income_this_month", "expenses_this_month"):
             assert isinstance(data[key], str)
+
+    def test_zero_liabilities_do_not_serialize_negative_zero(
+        self, client, auth_headers, sample_book, fake_book_for_reports, session_factory, monkeypatch
+    ):
+        sek = FakeCommodity(mnemonic="SEK")
+        root = FakeAccount(guid="root", name="Root Account", type="ROOT", commodity=sek)
+        checking = FakeAccount(
+            guid="checking",
+            name="Checking",
+            type="BANK",
+            commodity=sek,
+            parent=root,
+            balance=Decimal("100.00"),
+        )
+        credit_card = FakeAccount(
+            guid="cc",
+            name="Credit Card",
+            type="CREDIT",
+            commodity=sek,
+            parent=root,
+            balance=Decimal("-0.00"),
+        )
+        equity = FakeAccount(guid="equity", name="Equity", type="EQUITY", commodity=sek, parent=root)
+        accounts = [root, checking, credit_card, equity]
+        transactions = [
+            FakeTransaction(
+                guid="opening-cash",
+                post_date=date(2026, 5, 1),
+                description="Opening checking balance",
+                splits=[
+                    FakeSplit(account=checking, value=Decimal("100.00")),
+                    FakeSplit(account=equity, value=Decimal("-100.00")),
+                ],
+            )
+        ]
+
+        def fake_open_book(path, readonly=False):
+            return FakeBookForReports(accounts=accounts, transactions=transactions)
+
+        import app.services.gnucash_book as gb_module
+
+        monkeypatch.setattr(gb_module.piecash, "open_book", fake_open_book)
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(fake_book_for_reports)
+            session.commit()
+
+        response = client.get(
+            "/reports/summary?as_of_date=2026-05-16",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["assets"] == "100.00"
+        assert data["liabilities"] == "0.00"
+        assert data["net_worth"] == "100.00"
 
     def test_mixed_currency_splits_are_excluded_and_disclosed_without_conversion(
         self, client, auth_headers, sample_book, fake_book_for_reports, session_factory, monkeypatch
@@ -555,10 +613,12 @@ class TestReportSummaryMVP:
         eur = FakeCommodity(mnemonic="EUR")
         root = FakeAccount(guid="root", name="Root Account", type="ROOT", commodity=sek)
         checking = FakeAccount(guid="checking", name="Checking", type="BANK", commodity=sek, parent=root)
+        sek_card = FakeAccount(guid="sek-card", name="SEK Credit Card", type="CREDIT", commodity=sek, parent=root)
         salary = FakeAccount(guid="salary", name="Salary", type="INCOME", commodity=sek, parent=root)
         food = FakeAccount(guid="food", name="Food", type="EXPENSE", commodity=sek, parent=root)
         eur_travel = FakeAccount(guid="eur-travel", name="EUR Travel", type="EXPENSE", commodity=eur, parent=root)
-        accounts = [root, checking, salary, food]
+        eur_card = FakeAccount(guid="eur-card", name="EUR Credit Card", type="CREDIT", commodity=eur, parent=root)
+        accounts = [root, checking, sek_card, salary, food, eur_travel, eur_card]
         transactions = [
             FakeTransaction(
                 guid="mixed-income-eur-expense",
@@ -576,6 +636,24 @@ class TestReportSummaryMVP:
                 splits=[
                     FakeSplit(account=checking, value=Decimal("-25.00")),
                     FakeSplit(account=food, value=Decimal("25.00")),
+                ],
+            ),
+            FakeTransaction(
+                guid="base-card-charge",
+                post_date=date(2026, 5, 10),
+                description="Base-currency card charge",
+                splits=[
+                    FakeSplit(account=sek_card, value=Decimal("-40.00")),
+                    FakeSplit(account=food, value=Decimal("40.00")),
+                ],
+            ),
+            FakeTransaction(
+                guid="foreign-card-charge",
+                post_date=date(2026, 5, 10),
+                description="Foreign-currency card charge",
+                splits=[
+                    FakeSplit(account=eur_card, value=Decimal("-9999.99")),
+                    FakeSplit(account=eur_travel, value=Decimal("9999.99")),
                 ],
             ),
         ]
@@ -600,12 +678,97 @@ class TestReportSummaryMVP:
         data = response.json()
         assert data["currency"] == "SEK"
         assert data["income_this_month"] == "100.00"
-        assert data["expenses_this_month"] == "-25.00"
+        assert data["expenses_this_month"] == "-65.00"
         assert data["assets"] == "-25.00"
+        assert data["liabilities"] == "40.00"
+        assert data["net_worth"] == "-65.00"
         limitations = " ".join(data["limitations"])
         assert "EUR" in limitations
         assert "excluded rather than converted or combined" in limitations
         assert "no currency conversion" in limitations
+
+    def test_summary_contract_uses_signed_calculation_and_natural_liability_display(
+        self, client, auth_headers, sample_book, fake_book_for_reports, session_factory, monkeypatch
+    ):
+        sek = FakeCommodity(mnemonic="SEK")
+        root = FakeAccount(guid="root", name="Root Account", type="ROOT", commodity=sek)
+        checking = FakeAccount(guid="checking", name="Checking", type="BANK", commodity=sek, parent=root, balance=Decimal("1000.00"))
+        credit_card = FakeAccount(
+            guid="credit-card",
+            name="Credit Card",
+            type="CREDIT",
+            commodity=sek,
+            parent=root,
+            balance=Decimal("-200.00"),
+        )
+        payable = FakeAccount(
+            guid="payable",
+            name="Payable",
+            type="PAYABLE",
+            commodity=sek,
+            parent=root,
+            balance=Decimal("-30.25"),
+        )
+        loan = FakeAccount(
+            guid="loan",
+            name="Loan",
+            type="LIABILITY",
+            commodity=sek,
+            parent=root,
+            balance=Decimal("-69.75"),
+        )
+        zero_liability = FakeAccount(
+            guid="zero-liability",
+            name="Zero Liability",
+            type="LIABILITY",
+            commodity=sek,
+            parent=root,
+            balance=Decimal("0.00"),
+        )
+        contra_liability = FakeAccount(
+            guid="contra-liability",
+            name="Contra Liability",
+            type="LIABILITY",
+            commodity=sek,
+            parent=root,
+            balance=Decimal("25.00"),
+        )
+        salary = FakeAccount(guid="salary", name="Salary", type="INCOME", commodity=sek, parent=root)
+        accounts = [root, checking, credit_card, payable, loan, zero_liability, contra_liability, salary]
+        transactions = [
+            FakeTransaction(
+                guid="currency-activity",
+                post_date=date(2026, 5, 16),
+                description="Synthetic activity to make SEK reportable",
+                splits=[
+                    FakeSplit(account=checking, value=Decimal("1.00")),
+                    FakeSplit(account=salary, value=Decimal("-1.00")),
+                ],
+            )
+        ]
+
+        def fake_open_book(path, readonly=False):
+            return FakeBookForReports(accounts=accounts, transactions=transactions)
+
+        import app.services.gnucash_book as gb_module
+
+        monkeypatch.setattr(gb_module.piecash, "open_book", fake_open_book)
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(fake_book_for_reports)
+            session.commit()
+
+        response = client.get(
+            "/reports/summary?as_of_date=2026-05-16",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["assets"] == "1000.00"
+        assert data["liabilities"] == "275.00"
+        assert data["net_worth"] == "725.00"
+        assert Decimal(data["net_worth"]) == Decimal(data["assets"]) - Decimal(data["liabilities"])
 
     def test_negative_contra_balances_remain_signed_decimal_strings(
         self, client, auth_headers, sample_book, fake_book_for_reports, session_factory, monkeypatch
@@ -1467,6 +1630,16 @@ class TestBookPeriodComparisonReport:
         assert data["comparison"]["date_to"] == "2026-05-09"
         assert data["primary"]["cashflow"]["outflow"] == "2150.00"
         assert data["comparison"]["cashflow"]["outflow"] == "850.00"
+        assert data["primary"]["summary"]["liabilities"] == "30000.00"
+        assert data["comparison"]["summary"]["liabilities"] == "30000.00"
+        assert data["primary"]["summary"]["net_worth"] == "170000.00"
+        assert data["summary_delta"]["liabilities"] == {
+            "currency": "SEK",
+            "primary": "30000.00",
+            "comparison": "30000.00",
+            "delta": "0.00",
+            "absolute_delta": "0.00",
+        }
         assert data["cashflow_delta"]["outflow"] == {
             "currency": "SEK",
             "primary": "2150.00",
@@ -1518,6 +1691,59 @@ class TestBookPeriodComparisonReport:
         assert report.cashflow_delta is not None
         assert report.cashflow_delta.net.delta == "-1300.00"
         assert [row.account_id for row in report.expense_changes] == ["utilities", "food"]
+
+    def test_summary_delta_uses_natural_liability_values_with_non_zero_delta(self):
+        service = GnuCashBookService({"uri_or_path": "synthetic://comparison", "base_currency": "SEK"})
+        primary = PeriodReportDTO(
+            book_id=123,
+            date_from="2026-05-10",
+            date_to="2026-05-15",
+            currency="SEK",
+            section_statuses=[PeriodReportSectionStatusDTO(section="summary", status="ok", detail=None)],
+            summary=PeriodReportSummaryDTO(
+                currency="SEK",
+                assets="2000.00",
+                liabilities="750.00",
+                net_worth="1250.00",
+                as_of_date="2026-05-15",
+            ),
+        )
+        comparison = PeriodReportDTO(
+            book_id=123,
+            date_from="2026-05-04",
+            date_to="2026-05-09",
+            currency="SEK",
+            section_statuses=[PeriodReportSectionStatusDTO(section="summary", status="ok", detail=None)],
+            summary=PeriodReportSummaryDTO(
+                currency="SEK",
+                assets="1800.00",
+                liabilities="500.00",
+                net_worth="1300.00",
+                as_of_date="2026-05-09",
+            ),
+        )
+        statuses = []
+
+        delta = service._summary_comparison_delta(
+            primary,
+            comparison,
+            shared_currency="SEK",
+            currency_detail=None,
+            section_statuses=statuses,
+        )
+
+        assert delta is not None
+        assert delta.liabilities.model_dump() == {
+            "currency": "SEK",
+            "primary": "750.00",
+            "comparison": "500.00",
+            "delta": "250.00",
+            "absolute_delta": "250.00",
+        }
+        assert delta.net_worth.delta == "-50.00"
+        assert [status.model_dump() for status in statuses] == [
+            {"section": "summary", "status": "ok", "detail": None}
+        ]
 
     def test_preset_modes_require_exact_server_derived_comparison_dates(
         self, client, auth_headers, sample_book, fake_book_for_reports, session_factory

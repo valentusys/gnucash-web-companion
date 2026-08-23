@@ -1,9 +1,8 @@
 """A1 generated real-shape fixture plus RED read-only correctness tests.
 
-The xfail tests are intentional RED evidence for later roadmap blocks. Per the
-A0 PM clarification, the source-hash invariant is an always-green safety guard.
-Run this module normally to keep the suite green; run with ``--runxfail`` to
-reproduce current product-contract failures without product fixes.
+The remaining xfail tests are intentional RED evidence for later roadmap blocks.
+Per the A0 PM clarification, the source-hash invariant is an always-green safety
+guard. The A2 liabilities/net-worth contract now runs as a normal green test.
 """
 
 from __future__ import annotations
@@ -211,8 +210,7 @@ def test_generated_real_shape_fixture_has_mandatory_model_edges(real_shape_fixtu
     assert accounts["visible_template_named"]["ordinary_visible"] is True
 
 
-@RED_XFAIL
-def test_red_net_worth_uses_natural_liabilities_and_assets_minus_liabilities(
+def test_a2_net_worth_uses_natural_liabilities_and_assets_minus_liabilities(
     real_shape_fixture: RealShapeRegressionFixture,
 ) -> None:
     service = _service(real_shape_fixture)

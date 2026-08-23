@@ -8,6 +8,7 @@ Fixture: tests/fixtures/test-book.gnucash.sqlite (synthetic data, SEK only).
 
 from __future__ import annotations
 
+from decimal import Decimal
 from pathlib import Path
 
 import pytest
@@ -223,7 +224,12 @@ class TestFixtureReportSummary:
         # Asset/liability totals use only leaf balance-sheet accounts, avoiding
         # parent/root hierarchy double-counting.
         assert report.assets == "2729.50"
+        # Legacy synthetic fixture records the credit-card side with debit-sign
+        # splits, so its natural liability display is negative. The A2 contract
+        # still reconciles as net_worth = assets - liabilities.
         assert report.liabilities == "-1250.00"
+        assert report.net_worth == "3979.50"
+        assert Decimal(report.net_worth) == Decimal(report.assets) - Decimal(report.liabilities)
         assert report.currency == "SEK"
 
     def test_fixture_report_as_of_february(self, svc):

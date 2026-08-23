@@ -236,9 +236,12 @@ class ReportSummaryDTO(BaseModel):
 
     status: Literal["ready"] = "ready"
     currency: str
-    net_worth: str
-    assets: str
-    liabilities: str
+    net_worth: str = Field(..., description="Signed Decimal string; equals assets minus natural-sign liabilities")
+    assets: str = Field(..., description="Signed Decimal string asset total in the reporting currency")
+    liabilities: str = Field(
+        ...,
+        description="Natural-sign Decimal string liability total in the reporting currency; positive means money owed",
+    )
     income_this_month: str
     expenses_this_month: str
     as_of_date: str
@@ -268,9 +271,12 @@ class PeriodReportSummaryDTO(BaseModel):
     """
 
     currency: str
-    net_worth: str
-    assets: str
-    liabilities: str
+    net_worth: str = Field(..., description="Signed Decimal string; equals assets minus natural-sign liabilities")
+    assets: str = Field(..., description="Signed Decimal string asset total in the reporting currency")
+    liabilities: str = Field(
+        ...,
+        description="Natural-sign Decimal string liability total in the reporting currency; positive means money owed",
+    )
     as_of_date: str
     reporting_basis: str = "base_currency_only"
     includes_currency_conversion: bool = False
@@ -345,7 +351,9 @@ class ReportSummaryComparisonDeltaDTO(BaseModel):
     currency: str
     net_worth: ReportMoneyDeltaDTO
     assets: ReportMoneyDeltaDTO
-    liabilities: ReportMoneyDeltaDTO
+    liabilities: ReportMoneyDeltaDTO = Field(
+        ..., description="Delta over natural-sign liability display values; positive delta means liabilities increased"
+    )
 
 
 class CashflowComparisonDeltaDTO(BaseModel):

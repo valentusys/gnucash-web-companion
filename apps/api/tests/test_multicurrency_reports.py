@@ -14,6 +14,7 @@ Fixture: tests/fixtures/test-book-multicurrency.gnucash.sqlite
 
 from __future__ import annotations
 
+from decimal import Decimal
 from pathlib import Path
 
 import pytest
@@ -69,12 +70,15 @@ class TestMultiCurrencyReportSummary:
     def test_summary_excludes_eur_from_liabilities(self, svc):
         """Report summary liabilities include only SEK accounts."""
         report = svc.get_report_summary()
+        # Legacy synthetic fixture records the credit-card side with debit-sign
+        # splits, so its natural liability display is negative.
         assert report.liabilities == "-1250.00"
 
     def test_summary_net_worth_excludes_eur(self, svc):
         """Net worth is based on SEK accounts only."""
         report = svc.get_report_summary()
-        assert report.net_worth == "1479.50"
+        assert report.net_worth == "3979.50"
+        assert Decimal(report.net_worth) == Decimal(report.assets) - Decimal(report.liabilities)
 
     def test_summary_income_excludes_eur(self, svc):
         """Income this month excludes EUR income."""

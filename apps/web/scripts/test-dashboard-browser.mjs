@@ -113,7 +113,7 @@ function summaryPayload(mode) {
 		currency: 'SEK',
 		net_worth: '1450.00',
 		assets: '2000.00',
-		liabilities: '-550.00',
+		liabilities: '550.00',
 		income_this_month: '125.00',
 		expenses_this_month: '45.67',
 		as_of_date: '2026-07-31',

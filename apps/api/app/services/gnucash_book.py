@@ -726,9 +726,9 @@ class GnuCashBookService:
         asset_account_types = {"ASSET", "BANK", "CASH", "RECEIVABLE"}
         liability_account_types = {"LIABILITY", "CREDIT", "PAYABLE"}
         assets = Decimal("0")
-        liabilities = Decimal("0")
+        liabilities_signed = Decimal("0")
         split_assets = Decimal("0")
-        split_liabilities = Decimal("0")
+        split_liabilities_signed = Decimal("0")
         saw_reporting_currency_balance_split = False
         income_this_month = Decimal("0")
         expenses_this_month = Decimal("0")
@@ -767,9 +767,9 @@ class GnuCashBookService:
                 if currency != reporting_currency:
                     continue
                 if account_type in asset_account_types:
-                    assets += self._account_balance(account)
+                    assets += self._account_signed_balance(account)
                 elif account_type in liability_account_types:
-                    liabilities += self._account_balance(account)
+                    liabilities_signed += self._account_signed_balance(account)
             for transaction in report_transactions:
                 tx_date = _coerce_date(self._transaction_date(transaction))
                 if tx_date is None or tx_date > today:
@@ -788,7 +788,7 @@ class GnuCashBookService:
                         split_assets += amount
                         saw_reporting_currency_balance_split = True
                     elif account_type in liability_account_types:
-                        split_liabilities += amount
+                        split_liabilities_signed += amount
                         saw_reporting_currency_balance_split = True
                     if not in_current_month:
                         continue
@@ -802,10 +802,11 @@ class GnuCashBookService:
                             expenses_this_month += amount
                         else:
                             income_this_month += abs(amount)
-        if assets == 0 and liabilities == 0 and saw_reporting_currency_balance_split:
+        if assets == 0 and liabilities_signed == 0 and saw_reporting_currency_balance_split:
             assets = split_assets
-            liabilities = split_liabilities
-        net_worth = assets + liabilities  # liabilities are already negative
+            liabilities_signed = split_liabilities_signed
+        liabilities = self._natural_liability_display_value(liabilities_signed)
+        net_worth = assets + liabilities_signed
         return ReportSummaryDTO(
             currency=reporting_currency,
             net_worth=format_money(net_worth),
@@ -2275,6 +2276,14 @@ class GnuCashBookService:
         get_balance = getattr(account, "get_balance", None)
         if callable(get_balance):
             return self._same_commodity_recursive_balance(account)
+        return self._account_signed_balance(account)
+
+    def _account_signed_balance(self, account: Any) -> Decimal:
+        """Return the signed calculation balance without natural-sign reversal."""
+
+        get_balance = getattr(account, "get_balance", None)
+        if callable(get_balance):
+            return self._same_commodity_recursive_balance(account, natural_sign=False)
         for attr in ("balance", "current_balance"):
             value = getattr(account, attr, None)
             if value is not None:
@@ -2284,7 +2293,14 @@ class GnuCashBookService:
             total += self._split_quantity(split)
         return total
 
-    def _same_commodity_recursive_balance(self, account: Any) -> Decimal:
+    @staticmethod
+    def _natural_liability_display_value(signed_balance: Decimal) -> Decimal:
+        """Return natural-sign liability display from signed calculation balance."""
+
+        value = -signed_balance
+        return Decimal("0") if value == 0 else value
+
+    def _same_commodity_recursive_balance(self, account: Any, *, natural_sign: bool = True) -> Decimal:
         """Return a piecash-compatible recursive balance without cross-commodity FX."""
 
         target_key = self._account_commodity_key(account)
@@ -2305,7 +2321,7 @@ class GnuCashBookService:
         else:
             if stack:
                 raise GnuCashReadError("Account balance hierarchy depth exceeded")
-        if str(getattr(account, "type", "") or "").upper() in ACCOUNT_TYPES_WITH_NATURAL_SIGN_REVERSED:
+        if natural_sign and str(getattr(account, "type", "") or "").upper() in ACCOUNT_TYPES_WITH_NATURAL_SIGN_REVERSED:
             raw_total = Decimal("-0") if raw_total == 0 else -raw_total
         return raw_total
 
