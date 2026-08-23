@@ -8,8 +8,12 @@ from decimal import Decimal
 from pathlib import Path
 
 import pytest
+import piecash
 from fastapi.testclient import TestClient
+from piecash import Account, Split, Transaction
 from sqlalchemy import create_engine
+from sqlalchemy import event
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -185,6 +189,11 @@ class FakeBookForReports:
         self.closed = True
 
 
+def _assign_guid(obj, guid: str):
+    obj.guid = guid
+    return obj
+
+
 @pytest.fixture
 def fake_report_data():
     """Create a realistic set of accounts and transactions for report testing."""
@@ -246,6 +255,30 @@ def fake_report_data():
         balance=Decimal("0"),
     )
 
+    root_equity = FakeAccount(guid="root-equity", name="Equity", type="ROOT")
+    equity = FakeAccount(guid="equity", name="Opening Balances", type="EQUITY", parent=root_equity)
+
+    tx_opening_assets = FakeTransaction(
+        guid="tx-opening-assets",
+        post_date=date(2026, 4, 1),
+        description="Opening asset balances",
+        splits=[
+            FakeSplit(account=checking, value=Decimal("120000.00")),
+            FakeSplit(account=savings, value=Decimal("50000.00")),
+            FakeSplit(account=equity, value=Decimal("-170000.00")),
+        ],
+    )
+
+    tx_opening_credit = FakeTransaction(
+        guid="tx-opening-credit",
+        post_date=date(2026, 4, 1),
+        description="Opening credit card balance",
+        splits=[
+            FakeSplit(account=credit_card, value=Decimal("-30000.00")),
+            FakeSplit(account=equity, value=Decimal("30000.00")),
+        ],
+    )
+
     # Transactions this month (May 2026)
     tx_salary = FakeTransaction(
         guid="tx-salary",
@@ -297,9 +330,31 @@ def fake_report_data():
         ],
     )
 
-    accounts = [root, bank, checking, savings, root_liab, credit_card,
-                root_income, salary, root_expense, food, rent, utilities]
-    transactions = [tx_salary, tx_rent, tx_groceries1, tx_groceries2, tx_utilities]
+    accounts = [
+        root,
+        bank,
+        checking,
+        savings,
+        root_liab,
+        credit_card,
+        root_income,
+        salary,
+        root_expense,
+        food,
+        rent,
+        utilities,
+        root_equity,
+        equity,
+    ]
+    transactions = [
+        tx_opening_assets,
+        tx_opening_credit,
+        tx_salary,
+        tx_rent,
+        tx_groceries1,
+        tx_groceries2,
+        tx_utilities,
+    ]
     return accounts, transactions
 
 
@@ -446,7 +501,110 @@ class TestReportSummaryMVP:
         # Expenses this month: rent 12000 + food 1470 + utilities 1530 = -15000
         assert data["expenses_this_month"] == "-15000.00"
 
-    def test_summary_falls_back_to_current_base_currency_splits_when_balances_are_zero(
+    def test_summary_uses_as_of_split_history_not_current_account_balances(
+        self, client, auth_headers, sample_book, fake_book_for_reports, session_factory
+    ):
+        with session_factory() as session:
+            book = session.query(Book).filter(Book.id == sample_book).first()
+            book.uri_or_path = str(fake_book_for_reports)
+            session.commit()
+
+        early = client.get(
+            "/reports/summary?as_of_date=2026-05-04",
+            headers=auth_headers,
+        )
+        later = client.get(
+            "/reports/summary?as_of_date=2026-05-15",
+            headers=auth_headers,
+        )
+
+        assert early.status_code == 200
+        assert later.status_code == 200
+        early_data = early.json()
+        later_data = later.json()
+        assert early_data["assets"] == "203000.00"
+        assert early_data["liabilities"] == "30000.00"
+        assert early_data["net_worth"] == "173000.00"
+        assert later_data["assets"] == "200000.00"
+        assert later_data["liabilities"] == "30000.00"
+        assert later_data["net_worth"] == "170000.00"
+        assert early_data["net_worth"] != later_data["net_worth"]
+
+    def test_historical_balance_sql_path_reports_bounded_counters(self, tmp_path):
+        book_path = tmp_path / "report-summary-history.gnucash.sqlite"
+        book = piecash.create_book(currency="SEK", sqlite_file=str(book_path), overwrite=True)
+        sek = _assign_guid(book.commodities[0], "99999999999999999999999999999999")
+        root = _assign_guid(book.root_account, "00000000000000000000000000000001")
+        assets = _assign_guid(Account(name="Assets", type="ASSET", parent=root, commodity=sek), "00000000000000000000000000000002")
+        checking = _assign_guid(Account(name="Checking", type="BANK", parent=assets, commodity=sek), "00000000000000000000000000000003")
+        credit_card = _assign_guid(Account(name="Card", type="CREDIT", parent=root, commodity=sek), "00000000000000000000000000000004")
+        equity = _assign_guid(Account(name="Equity", type="EQUITY", parent=root, commodity=sek), "00000000000000000000000000000005")
+
+        def tx(guid: str, posted: date, splits: list[Split]) -> None:
+            _assign_guid(Transaction(currency=sek, description=guid, post_date=posted, splits=splits), guid)
+
+        tx(
+            "10000000000000000000000000000001",
+            date(2026, 5, 1),
+            [Split(account=checking, value=Decimal("100.00")), Split(account=equity, value=Decimal("-100.00"))],
+        )
+        tx(
+            "10000000000000000000000000000002",
+            date(2026, 5, 5),
+            [Split(account=checking, value=Decimal("25.00")), Split(account=equity, value=Decimal("-25.00"))],
+        )
+        tx(
+            "10000000000000000000000000000003",
+            date(2026, 5, 7),
+            [Split(account=credit_card, value=Decimal("-10.00")), Split(account=equity, value=Decimal("10.00"))],
+        )
+        tx(
+            "10000000000000000000000000000004",
+            date(2026, 6, 1),
+            [Split(account=checking, value=Decimal("999.00")), Split(account=equity, value=Decimal("-999.00"))],
+        )
+        book.save()
+        book.close()
+
+        service = GnuCashBookService({"uri_or_path": str(book_path), "base_currency": "SEK"})
+        statements: list[str] = []
+        split_loads: list[str] = []
+
+        def before_cursor_execute(conn, cursor, statement, parameters, context, executemany):
+            if statement.lstrip().lower().startswith("select"):
+                statements.append(str(statement))
+
+        def on_split_load(target, context):
+            split_loads.append(target.guid)
+
+        with service._open_book() as opened_book:
+            visibility = service._report_visibility(opened_book)
+            counters: dict[str, int] = {}
+            event.listen(Engine, "before_cursor_execute", before_cursor_execute)
+            event.listen(piecash.Split, "load", on_split_load)
+            try:
+                assets_total, liabilities_signed = service._historical_report_balance_totals(
+                    opened_book,
+                    visibility=visibility,
+                    reporting_currency="SEK",
+                    as_of=date(2026, 5, 10),
+                    report_transactions=[],
+                    counters=counters,
+                )
+            finally:
+                event.remove(piecash.Split, "load", on_split_load)
+                event.remove(Engine, "before_cursor_execute", before_cursor_execute)
+
+        balance_statements = [statement for statement in statements if "FROM splits" in statement]
+        assert assets_total == Decimal("125.00")
+        assert liabilities_signed == Decimal("-10.00")
+        assert counters["report_summary_balance_query_limit"] >= counters["report_summary_balance_query_count"] == len(balance_statements) == 1
+        assert counters["report_summary_balance_account_count"] == 2
+        assert counters["report_summary_balance_split_row_count"] == 3
+        assert counters["report_summary_balance_materialized_split_count"] == 0
+        assert split_loads == []
+
+    def test_summary_aggregates_current_base_currency_splits_when_balances_are_zero(
         self, client, auth_headers, sample_book, fake_book_for_reports, session_factory, monkeypatch
     ):
         sek = FakeCommodity(mnemonic="SEK")
@@ -734,15 +892,20 @@ class TestReportSummaryMVP:
             balance=Decimal("25.00"),
         )
         salary = FakeAccount(guid="salary", name="Salary", type="INCOME", commodity=sek, parent=root)
-        accounts = [root, checking, credit_card, payable, loan, zero_liability, contra_liability, salary]
+        equity = FakeAccount(guid="equity", name="Equity", type="EQUITY", commodity=sek, parent=root)
+        accounts = [root, checking, credit_card, payable, loan, zero_liability, contra_liability, salary, equity]
         transactions = [
             FakeTransaction(
-                guid="currency-activity",
-                post_date=date(2026, 5, 16),
-                description="Synthetic activity to make SEK reportable",
+                guid="opening-contract-balances",
+                post_date=date(2026, 5, 1),
+                description="Synthetic opening balances",
                 splits=[
-                    FakeSplit(account=checking, value=Decimal("1.00")),
-                    FakeSplit(account=salary, value=Decimal("-1.00")),
+                    FakeSplit(account=checking, value=Decimal("1000.00")),
+                    FakeSplit(account=credit_card, value=Decimal("-200.00")),
+                    FakeSplit(account=payable, value=Decimal("-30.25")),
+                    FakeSplit(account=loan, value=Decimal("-69.75")),
+                    FakeSplit(account=contra_liability, value=Decimal("25.00")),
+                    FakeSplit(account=equity, value=Decimal("-725.00")),
                 ],
             )
         ]
@@ -1630,15 +1793,32 @@ class TestBookPeriodComparisonReport:
         assert data["comparison"]["date_to"] == "2026-05-09"
         assert data["primary"]["cashflow"]["outflow"] == "2150.00"
         assert data["comparison"]["cashflow"]["outflow"] == "850.00"
+        assert data["primary"]["summary"]["assets"] == "200000.00"
         assert data["primary"]["summary"]["liabilities"] == "30000.00"
-        assert data["comparison"]["summary"]["liabilities"] == "30000.00"
         assert data["primary"]["summary"]["net_worth"] == "170000.00"
+        assert data["comparison"]["summary"]["assets"] == "202150.00"
+        assert data["comparison"]["summary"]["liabilities"] == "30000.00"
+        assert data["comparison"]["summary"]["net_worth"] == "172150.00"
+        assert data["summary_delta"]["assets"] == {
+            "currency": "SEK",
+            "primary": "200000.00",
+            "comparison": "202150.00",
+            "delta": "-2150.00",
+            "absolute_delta": "2150.00",
+        }
         assert data["summary_delta"]["liabilities"] == {
             "currency": "SEK",
             "primary": "30000.00",
             "comparison": "30000.00",
             "delta": "0.00",
             "absolute_delta": "0.00",
+        }
+        assert data["summary_delta"]["net_worth"] == {
+            "currency": "SEK",
+            "primary": "170000.00",
+            "comparison": "172150.00",
+            "delta": "-2150.00",
+            "absolute_delta": "2150.00",
         }
         assert data["cashflow_delta"]["outflow"] == {
             "currency": "SEK",

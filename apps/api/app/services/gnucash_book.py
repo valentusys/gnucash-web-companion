@@ -99,6 +99,10 @@ REQUEST_ACCOUNT_HIERARCHY_MAX_DEPTH = 64
 REQUEST_ACCOUNT_HIERARCHY_ROW_MAX = REQUEST_ACCOUNT_LOOKUP_MAX * REQUEST_ACCOUNT_HIERARCHY_MAX_DEPTH
 REQUEST_ACCOUNT_BALANCE_SPLIT_ROW_MAX = 20_000
 REQUEST_ACCOUNT_QUERY_LIMIT = 64
+REPORT_SUMMARY_BALANCE_ACCOUNT_ROW_LIMIT = 10_000
+REPORT_SUMMARY_BALANCE_TRANSACTION_ROW_LIMIT = 20_000
+REPORT_SUMMARY_BALANCE_SPLIT_ROW_LIMIT = 20_000
+REPORT_SUMMARY_BALANCE_QUERY_LIMIT = 4
 ACCOUNT_TYPES_WITH_NATURAL_SIGN_REVERSED = {"LIABILITY", "PAYABLE", "CREDIT", "INCOME", "EQUITY"}
 
 
@@ -723,13 +727,6 @@ class GnuCashBookService:
         as_of = _coerce_date(as_of_date) or date.today()
         today = as_of
         month_start = date(today.year, today.month, 1)
-        asset_account_types = {"ASSET", "BANK", "CASH", "RECEIVABLE"}
-        liability_account_types = {"LIABILITY", "CREDIT", "PAYABLE"}
-        assets = Decimal("0")
-        liabilities_signed = Decimal("0")
-        split_assets = Decimal("0")
-        split_liabilities_signed = Decimal("0")
-        saw_reporting_currency_balance_split = False
         income_this_month = Decimal("0")
         expenses_this_month = Decimal("0")
         with self._open_report_section_book() as book:
@@ -759,17 +756,13 @@ class GnuCashBookService:
                     reporting_currency=resolution,
                 )
             reporting_currency = resolution.selected_currency
-            for account in self._report_accounts(book):
-                if visibility.child_count(account) > 0 or bool(getattr(account, "placeholder", False)):
-                    continue
-                account_type = str(getattr(account, "type", "")).upper()
-                currency = self._account_currency(account)
-                if currency != reporting_currency:
-                    continue
-                if account_type in asset_account_types:
-                    assets += self._account_signed_balance(account)
-                elif account_type in liability_account_types:
-                    liabilities_signed += self._account_signed_balance(account)
+            assets, liabilities_signed = self._historical_report_balance_totals(
+                book,
+                visibility=visibility,
+                reporting_currency=reporting_currency,
+                as_of=today,
+                report_transactions=report_transactions,
+            )
             for transaction in report_transactions:
                 tx_date = _coerce_date(self._transaction_date(transaction))
                 if tx_date is None or tx_date > today:
@@ -784,12 +777,6 @@ class GnuCashBookService:
                     if currency != reporting_currency:
                         continue
                     amount = self._split_amount(split)
-                    if account_type in asset_account_types:
-                        split_assets += amount
-                        saw_reporting_currency_balance_split = True
-                    elif account_type in liability_account_types:
-                        split_liabilities_signed += amount
-                        saw_reporting_currency_balance_split = True
                     if not in_current_month:
                         continue
                     if account_type == "INCOME":
@@ -802,9 +789,6 @@ class GnuCashBookService:
                             expenses_this_month += amount
                         else:
                             income_this_month += abs(amount)
-        if assets == 0 and liabilities_signed == 0 and saw_reporting_currency_balance_split:
-            assets = split_assets
-            liabilities_signed = split_liabilities_signed
         liabilities = self._natural_liability_display_value(liabilities_signed)
         net_worth = assets + liabilities_signed
         return ReportSummaryDTO(
@@ -820,6 +804,193 @@ class GnuCashBookService:
             limitations=limitations,
             reporting_currency=resolution,
         )
+
+    def _historical_report_balance_totals(
+        self,
+        book: Any,
+        *,
+        visibility: AccountVisibilityIndex,
+        reporting_currency: str,
+        as_of: date,
+        report_transactions: Iterable[Any],
+        counters: dict[str, int] | None = None,
+    ) -> tuple[Decimal, Decimal]:
+        """Return exact balance-sheet totals from splits posted on or before ``as_of``.
+
+        The account ``balance``/``current_balance`` fields are deliberately not
+        used here: those describe the current book state and make historical
+        period summaries collapse to today's balances.  This helper only includes
+        visible, non-placeholder leaf accounts in the selected reporting currency.
+        """
+
+        account_types_by_id = self._eligible_report_balance_account_types(
+            book,
+            visibility=visibility,
+            reporting_currency=reporting_currency,
+            counters=counters,
+        )
+        if not account_types_by_id:
+            self._set_counter(counters, "report_summary_balance_split_row_count", 0)
+            self._set_counter(counters, "report_summary_balance_materialized_split_count", 0)
+            return Decimal("0"), Decimal("0")
+
+        session = getattr(book, "session", None)
+        query = getattr(session, "query", None) if session is not None else None
+        if callable(query):
+            return self._historical_report_balance_totals_sql(
+                session,
+                account_types_by_id,
+                as_of=as_of,
+                counters=counters,
+            )
+
+        return self._historical_report_balance_totals_materialized(
+            account_types_by_id,
+            as_of=as_of,
+            report_transactions=report_transactions,
+            counters=counters,
+        )
+
+    def _eligible_report_balance_account_types(
+        self,
+        book: Any,
+        *,
+        visibility: AccountVisibilityIndex,
+        reporting_currency: str,
+        counters: dict[str, int] | None,
+    ) -> dict[str, str]:
+        del book  # visibility already owns the ordinary account set for this book.
+        self._set_counter(counters, "report_summary_balance_account_row_limit", REPORT_SUMMARY_BALANCE_ACCOUNT_ROW_LIMIT)
+        balance_account_types = {"ASSET", "BANK", "CASH", "RECEIVABLE", "LIABILITY", "CREDIT", "PAYABLE"}
+        account_types_by_id: dict[str, str] = {}
+        visible_row_count = 0
+        for account in visible_accounts(visibility):
+            visible_row_count += 1
+            if visible_row_count > REPORT_SUMMARY_BALANCE_ACCOUNT_ROW_LIMIT:
+                raise GnuCashReadError("Report summary balance account row limit exceeded")
+            account_id = account_guid(account)
+            if not account_id:
+                continue
+            if visibility.child_count(account) > 0 or bool(getattr(account, "placeholder", False)):
+                continue
+            if bool(getattr(account, "hidden", False)):
+                continue
+            if self._account_currency(account) != reporting_currency:
+                continue
+            account_type = str(getattr(account, "type", "") or "").upper()
+            if account_type in balance_account_types:
+                account_types_by_id[account_id] = account_type
+        self._set_counter(counters, "report_summary_balance_account_row_count", visible_row_count)
+        self._set_counter(counters, "report_summary_balance_account_count", len(account_types_by_id))
+        return account_types_by_id
+
+    def _historical_report_balance_totals_sql(
+        self,
+        session: Any,
+        account_types_by_id: dict[str, str],
+        *,
+        as_of: date,
+        counters: dict[str, int] | None,
+    ) -> tuple[Decimal, Decimal]:
+        self._record_report_summary_balance_query(counters)
+        split_table = piecash.Split.__table__
+        transaction_table = piecash.Transaction.__table__
+        rows = (
+            session.query(
+                split_table.c.account_guid,
+                split_table.c.quantity_num,
+                split_table.c.quantity_denom,
+            )
+            .select_from(split_table)
+            .join(transaction_table, split_table.c.tx_guid == transaction_table.c.guid)
+            .filter(split_table.c.account_guid.in_(sorted(account_types_by_id)))
+            .filter(transaction_table.c.post_date <= as_of)
+            .limit(REPORT_SUMMARY_BALANCE_SPLIT_ROW_LIMIT + 1)
+            .all()
+        )
+        if len(rows) > REPORT_SUMMARY_BALANCE_SPLIT_ROW_LIMIT:
+            raise GnuCashReadError("Report summary balance split row limit exceeded")
+        self._set_counter(counters, "report_summary_balance_query_limit", REPORT_SUMMARY_BALANCE_QUERY_LIMIT)
+        self._set_counter(counters, "report_summary_balance_split_row_limit", REPORT_SUMMARY_BALANCE_SPLIT_ROW_LIMIT)
+        self._set_counter(counters, "report_summary_balance_split_row_count", len(rows))
+        self._set_counter(counters, "report_summary_balance_materialized_transaction_count", 0)
+        self._set_counter(counters, "report_summary_balance_materialized_split_count", 0)
+        return self._summarize_report_balance_rows(
+            (
+                (str(account_guid_value), self._decimal_from_num_denom(quantity_num, quantity_denom))
+                for account_guid_value, quantity_num, quantity_denom in rows
+            ),
+            account_types_by_id,
+        )
+
+    def _historical_report_balance_totals_materialized(
+        self,
+        account_types_by_id: dict[str, str],
+        *,
+        as_of: date,
+        report_transactions: Iterable[Any],
+        counters: dict[str, int] | None,
+    ) -> tuple[Decimal, Decimal]:
+        self._set_counter(counters, "report_summary_balance_query_limit", REPORT_SUMMARY_BALANCE_QUERY_LIMIT)
+        self._set_counter(counters, "report_summary_balance_query_count", 0)
+        self._set_counter(counters, "report_summary_balance_transaction_row_limit", REPORT_SUMMARY_BALANCE_TRANSACTION_ROW_LIMIT)
+        self._set_counter(counters, "report_summary_balance_split_row_limit", REPORT_SUMMARY_BALANCE_SPLIT_ROW_LIMIT)
+        included_rows: list[tuple[str, Decimal]] = []
+        transaction_count = 0
+        materialized_split_count = 0
+        for transaction in report_transactions:
+            transaction_count += 1
+            if transaction_count > REPORT_SUMMARY_BALANCE_TRANSACTION_ROW_LIMIT:
+                raise GnuCashReadError("Report summary balance transaction row limit exceeded")
+            tx_date = _coerce_date(self._transaction_date(transaction))
+            if tx_date is None or tx_date > as_of:
+                continue
+            for split in self._splits(transaction):
+                materialized_split_count += 1
+                if materialized_split_count > REPORT_SUMMARY_BALANCE_SPLIT_ROW_LIMIT:
+                    raise GnuCashReadError("Report summary balance split row limit exceeded")
+                split_account = getattr(split, "account", None)
+                split_account_id = account_guid(split_account) or account_guid(getattr(split, "account_guid", None))
+                if split_account_id not in account_types_by_id:
+                    continue
+                included_rows.append((split_account_id, self._split_quantity(split)))
+        self._set_counter(counters, "report_summary_balance_materialized_transaction_count", transaction_count)
+        self._set_counter(counters, "report_summary_balance_materialized_split_count", materialized_split_count)
+        self._set_counter(counters, "report_summary_balance_split_row_count", len(included_rows))
+        return self._summarize_report_balance_rows(included_rows, account_types_by_id)
+
+    @staticmethod
+    def _summarize_report_balance_rows(
+        rows: Iterable[tuple[str, Decimal]],
+        account_types_by_id: dict[str, str],
+    ) -> tuple[Decimal, Decimal]:
+        asset_account_types = {"ASSET", "BANK", "CASH", "RECEIVABLE"}
+        liability_account_types = {"LIABILITY", "CREDIT", "PAYABLE"}
+        assets = Decimal("0")
+        liabilities_signed = Decimal("0")
+        for account_id, amount in rows:
+            account_type = account_types_by_id.get(account_id)
+            if account_type in asset_account_types:
+                assets += amount
+            elif account_type in liability_account_types:
+                liabilities_signed += amount
+        return assets, liabilities_signed
+
+    def _record_report_summary_balance_query(self, counters: dict[str, int] | None) -> None:
+        if counters is None:
+            return
+        self._set_counter(counters, "report_summary_balance_query_limit", REPORT_SUMMARY_BALANCE_QUERY_LIMIT)
+        next_count = counters.get("report_summary_balance_query_count", 0) + 1
+        if next_count > REPORT_SUMMARY_BALANCE_QUERY_LIMIT:
+            counters["report_summary_balance_query_overflow_count"] = next_count
+            raise GnuCashReadError("Report summary balance query limit exceeded")
+        counters["report_summary_balance_query_count"] = next_count
+
+    def _decimal_from_num_denom(self, numerator: Any, denominator: Any) -> Decimal:
+        denom = Decimal(str(denominator))
+        if denom == 0:
+            raise GnuCashReadError("Report summary balance contains invalid split denominator")
+        return Decimal(str(numerator)) / denom
 
     @staticmethod
     def _report_summary_limitations(

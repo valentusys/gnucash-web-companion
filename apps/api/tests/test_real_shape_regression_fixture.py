@@ -2,7 +2,8 @@
 
 The remaining xfail tests are intentional RED evidence for later roadmap blocks.
 Per the A0 PM clarification, the source-hash invariant is an always-green safety
-guard. The A2 liabilities/net-worth contract now runs as a normal green test.
+guard. The A2 liabilities/net-worth and A3 historical as-of contracts now run
+as normal green tests.
 """
 
 from __future__ import annotations
@@ -224,7 +225,6 @@ def test_a2_net_worth_uses_natural_liabilities_and_assets_minus_liabilities(
     assert Decimal(report.net_worth) == Decimal(report.assets) - Decimal(report.liabilities)
 
 
-@RED_XFAIL
 def test_red_historical_as_of_balances_ignore_later_balance_sheet_splits(
     real_shape_fixture: RealShapeRegressionFixture,
 ) -> None:
