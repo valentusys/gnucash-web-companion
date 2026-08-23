@@ -13,7 +13,7 @@ import secrets
 import sqlite3
 import stat
 import time
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
@@ -542,7 +542,10 @@ def _section_status(section: str, row: Any | None) -> BookSectionStatusDTO:
 def _verify_sqlite_gnucash_schema(canonical_path: str) -> _SQLiteProbeResult:
     query_count = 0
     try:
-        with sqlite3.connect(_sqlite_uri(canonical_path), uri=True) as conn:
+        # sqlite3.Connection is a transaction context manager only; it does
+        # not close the DB handle on __exit__.  Close explicitly so a successful
+        # preflight cannot retain a descriptor to the source book until GC.
+        with closing(sqlite3.connect(_sqlite_uri(canonical_path), uri=True)) as conn:
             conn.execute("pragma query_only = on")
             required = tuple(sorted(REQUIRED_GNUCASH_TABLES))
             placeholders = ", ".join("?" for _ in required)

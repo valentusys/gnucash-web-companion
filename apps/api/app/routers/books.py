@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import sqlite3
 import json
+from contextlib import closing
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -351,7 +352,9 @@ def _sqlite_gnucash_shape_error(path: Path) -> str | None:
     """Return a path-redacted schema problem, or None when the target looks usable."""
     required_tables = {"versions", "books", "accounts", "transactions", "splits", "commodities"}
     try:
-        with sqlite3.connect(f"file:{path}?mode=ro", uri=True) as conn:
+        # sqlite3.Connection.__exit__ commits/rolls back but does not close;
+        # close explicitly to keep metadata diagnostics from pinning source FDs.
+        with closing(sqlite3.connect(f"file:{path}?mode=ro", uri=True)) as conn:
             rows = conn.execute(
                 "select name from sqlite_master where type = 'table'"
             ).fetchall()
