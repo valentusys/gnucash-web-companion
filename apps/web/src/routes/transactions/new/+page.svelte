@@ -1,7 +1,7 @@
 <script lang="ts">
 	import WriteModeWarning from '$lib/components/WriteModeWarning.svelte';
 	import type {
-		Account,
+		AccountOption,
 		Book,
 		TransactionCreatePreviewResponse,
 		TransactionCreateRequest,
@@ -25,7 +25,11 @@
 		locale?: Locale;
 		books: Book[];
 		activeBook: Book | null;
-		accounts: Account[];
+		accounts: AccountOption[];
+		accountOptionsAvailable: boolean;
+		accountOptionsLimited: boolean;
+		accountOptionsPartialFailure: boolean;
+		accountOptionsErrorCode: string | null;
 		createSettings: TransactionCreateSettings;
 		previewOnly: boolean;
 	};
@@ -61,7 +65,7 @@
 		return initialDraftSplits(initialPayload(), data.accounts);
 	}
 
-	function initialDraftSplits(payload: TransactionCreateRequest | null, accounts: Account[]): DraftSplit[] {
+	function initialDraftSplits(payload: TransactionCreateRequest | null, accounts: AccountOption[]): DraftSplit[] {
 		if (payload?.splits.length) {
 			return payload.splits.map((split, index) => ({
 				client_id: `loaded-${index}-${split.account_id}`,
@@ -103,15 +107,15 @@
 	const visibleAccountCount = $derived(data.accounts.length);
 	const errorSummary = $derived(message(form?.errorKey));
 
-	function accountLabel(account: Account): string {
+	function accountLabel(account: AccountOption): string {
 		return `${account.display_name || account.name} · ${account.type} · ${account.currency}`;
 	}
 
-	function accountTitle(account: Account): string {
+	function accountTitle(account: AccountOption): string {
 		return `${account.full_name} · ${account.type} · ${account.currency}`;
 	}
 
-	function accountById(accountId: string): Account | undefined {
+	function accountById(accountId: string): AccountOption | undefined {
 		return data.accounts.find((account) => account.id === accountId);
 	}
 
@@ -239,6 +243,33 @@
 		</dl>
 	</section>
 
+	{#if !data.accountOptionsAvailable || data.accountOptionsPartialFailure}
+		<section
+			id="transaction-create-account-options-status"
+			class="mt-6 rounded-2xl border p-4 text-sm"
+			style="border-color: var(--app-warning); background: color-mix(in srgb, var(--app-warning) 10%, var(--app-panel)); color: var(--app-text);"
+			role={data.accountOptionsAvailable ? 'status' : 'alert'}
+		>
+			<h2 class="font-semibold">
+				{!data.accountOptionsAvailable
+					? locale === 'ru' ? 'Варианты posting-счетов временно недоступны' : 'Posting-account choices are temporarily unavailable'
+					: locale === 'ru' ? 'Список posting-счетов ограничен' : 'Posting-account choices are partially limited'}
+			</h2>
+			<p class="mt-1">
+				{data.accountOptionsAvailable
+					? locale === 'ru'
+						? 'Доступен ограниченный bounded-набор posting-счетов; preview остаётся доступен без legacy balance reads.'
+						: 'A bounded subset of posting accounts is available; preview remains usable without legacy balance reads.'
+					: locale === 'ru'
+						? 'Выбор счетов и отправка preview отключены безопасно. Другие read-only разделы остаются доступны.'
+						: 'Account selection and preview submission are safely disabled. Other read-only views remain available.'}
+			</p>
+			<a class="mt-3 inline-flex min-h-11 items-center rounded-xl border px-4 py-2 font-semibold" style="border-color: var(--app-border); color: var(--app-text);" href="/diagnostics">
+				{locale === 'ru' ? 'Открыть redacted diagnostics' : 'Open redacted diagnostics'}
+			</a>
+		</section>
+	{/if}
+
 	{#if errorSummary}
 		<section id="transaction-create-error-summary" class="mt-6 rounded-2xl border p-4 text-sm" role="alert" tabindex="-1" style="border-color: var(--app-danger); background: var(--app-card-bg); color: var(--app-text);">
 			<h2 class="font-semibold">{t(locale, 'transactionCreate.requestFailedTitle')}</h2>
@@ -293,7 +324,7 @@
 						<div class="grid min-w-0 gap-3 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
 							<label class="block min-w-0 text-sm font-medium" style="color: var(--app-text);" for={`split-account-${split.client_id}`}>
 								{t(locale, 'transactionCreate.accountLabel')}
-								<select id={`split-account-${split.client_id}`} name="split_account_id" required bind:value={split.account_id} class="mt-1 min-h-11 w-full min-w-0 rounded-lg border px-3 py-2" style="border-color: var(--app-border); background: var(--app-panel); color: var(--app-text);">
+								<select id={`split-account-${split.client_id}`} name="split_account_id" required bind:value={split.account_id} disabled={!data.accountOptionsAvailable} class="mt-1 min-h-11 w-full min-w-0 rounded-lg border px-3 py-2 disabled:cursor-not-allowed disabled:opacity-60" style="border-color: var(--app-border); background: var(--app-panel); color: var(--app-text);">
 									<option value="">{t(locale, 'transactionCreate.accountChoose')}</option>
 									{#each data.accounts as account (account.id)}
 										<option value={account.id} title={accountTitle(account)}>{accountLabel(account)}</option>
@@ -322,7 +353,7 @@
 
 		<div class="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 			<p class="text-sm" style="color: var(--app-muted);">{t(locale, 'transactionCreate.previewHelp')}</p>
-			<button type="submit" formaction="?/preview" class="min-h-11 rounded-xl px-4 py-2 font-semibold text-white" style="background: var(--app-accent);">{t(locale, 'transactionCreate.previewSubmit')}</button>
+			<button type="submit" formaction="?/preview" disabled={!data.accountOptionsAvailable} class="min-h-11 rounded-xl px-4 py-2 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60" style="background: var(--app-accent);">{t(locale, 'transactionCreate.previewSubmit')}</button>
 		</div>
 	</form>
 

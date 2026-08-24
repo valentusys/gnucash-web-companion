@@ -248,6 +248,7 @@
 				maxAmount={data.filters.maxAmount}
 				transactionState={data.filters.transactionState}
 				accounts={data.accounts}
+				accountOptionsAvailable={data.accountOptionsAvailable}
 				datePresets={data.datePresets}
 				clearFiltersHref={data.clearFiltersHref}
 				{locale}
@@ -257,6 +258,7 @@
 			<TransactionExplorerFilters
 				filters={data.filters}
 				accounts={data.accountOptions}
+				accountOptionsAvailable={data.accountOptionsAvailable}
 				accountOptionsLimited={data.accountOptionsLimited}
 				datePresets={data.datePresets}
 				activeFilters={data.activeFilters}
@@ -264,6 +266,29 @@
 				pageSizeOptions={data.pageSizeOptions}
 				{locale}
 			/>
+		{/if}
+
+		{#if !data.accountOptionsAvailable || data.accountOptionsPartialFailure}
+			<section
+				id="transactions-account-options-status"
+				class="mb-4 rounded-xl border p-4 text-sm"
+				style="border-color: var(--app-warning); background: color-mix(in srgb, var(--app-warning) 10%, var(--app-panel)); color: var(--app-text);"
+				role={data.accountOptionsAvailable ? 'status' : 'alert'}
+			>
+				<p class="font-semibold">
+					{data.accountOptionsAvailable
+						? locale === 'ru' ? 'Список вариантов счетов ограничен' : 'Account choices are partially limited'
+						: locale === 'ru' ? 'Фильтры по счетам временно недоступны' : 'Account-specific filters are temporarily unavailable'}
+				</p>
+				<p class="mt-1">
+					{locale === 'ru'
+						? 'Данные Transaction Explorer остаются доступны. Фильтры type, dates, state и search продолжают работать.'
+						: 'Transaction Explorer data remains available. Type, date, state, and search filters continue to work.'}
+				</p>
+				<a class="mt-3 inline-flex min-h-11 items-center rounded-xl border px-4 py-2 font-semibold" style="border-color: var(--app-border); color: var(--app-text);" href="/diagnostics">
+					{locale === 'ru' ? 'Открыть redacted diagnostics' : 'Open redacted diagnostics'}
+				</a>
+			</section>
 		{/if}
 
 		<section

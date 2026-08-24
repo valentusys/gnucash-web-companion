@@ -98,6 +98,7 @@ export async function loadAccountOptions(
 		const payload = (await response.json().catch(() => null)) as AccountOptionsResponse | unknown;
 		if (!response.ok) return unavailable(responseErrorCode(payload, `account_options_http_${response.status}`));
 		if (!isRecord(payload) || !Array.isArray(payload.items)) return unavailable('invalid_account_options_response');
+		const scan = isRecord(payload.scan) ? payload.scan : null;
 		const items = payload.items
 			.map(normalizeAccountOption)
 			.filter((item): item is AccountOption => item !== null)
@@ -107,7 +108,7 @@ export async function loadAccountOptions(
 		return {
 			items,
 			available: true,
-			limited: Boolean(payload.next_cursor) || payload.scan?.exhausted === false,
+			limited: Boolean(payload.next_cursor) || scan?.exhausted === false,
 			partialFailure,
 			errorCode: partialFailure ? safeErrorCode(payload.error_code, 'account_options_partial') : null
 		};

@@ -41,7 +41,9 @@ assert.match(apiTypes, /export type TransactionExplorerPage[\s\S]*items: Transac
 assert.match(apiTypes, /representative_amount\?: MoneyDTO[\s\S]*matched_amount\?: MoneyDTO \| null[\s\S]*amount_basis\?: 'selected_accounts' \| 'income' \| 'expense' \| 'representative_split' \| string/s, 'transaction list items must tolerate explorer exact amount DTOs while preserving old list rendering');
 assert.match(apiTypes, /export type AccountOption[\s\S]*commodity: CommodityRef[\s\S]*selectable: boolean[\s\S]*export type AccountOptionsResponse[\s\S]*purpose: 'transactions_filter' \| 'transaction_create_preview'[\s\S]*partial_failure: boolean[\s\S]*balance_basis: 'not_loaded'/s, 'frontend API types must model the bounded balance-free account-options contract');
 
-assert.match(accountOptionsServer, /ACCOUNT_OPTIONS_LIMIT = 200[\s\S]*method: 'GET'[\s\S]*response\.status === 401[\s\S]*isRedirect[\s\S]*partialFailure[\s\S]*next_cursor[\s\S]*scan\?\.exhausted/s, 'shared account-options loader must use a GET-only bounded, redirect-safe, partial-failure-aware contract');
+assert.match(accountOptionsServer, /ACCOUNT_OPTIONS_LIMIT = 200[\s\S]*method: 'GET'[\s\S]*response\.status === 401/s, 'shared account-options loader must use a GET-only bounded contract and preserve login redirects');
+assert.match(accountOptionsServer, /partialFailure[\s\S]*next_cursor[\s\S]*scan\?\.exhausted/s, 'shared account-options loader must expose partial and pagination-limit state');
+assert.match(accountOptionsServer, /catch \(reason\)[\s\S]*isRedirect\(reason\)[\s\S]*throw reason/s, 'shared account-options loader must not swallow SvelteKit redirects');
 assert.doesNotMatch(accountOptionsServer, /method:\s*['"`](?:POST|PUT|PATCH|DELETE)['"`]|\/accounts(?:\?|['"`])/, 'bounded account-options loader must not issue mutations or fall back to legacy /accounts');
 
 assert.match(explorer, /TRANSACTIONS_EXPLORER_DEFAULT_SORT = 'date_desc'/, 'canonical explorer default sort must be date_desc');
@@ -55,7 +57,7 @@ assert.match(explorer, /detailHrefWithReturnTo[\s\S]*encodeURIComponent\(safeRet
 
 assert.match(server, /getActiveBookContext\(fetch, cookies, token\)[\s\S]*loadAccountOptions\([\s\S]*purpose: 'transactions_filter'[\s\S]*validateTransactionsExplorerUrl\(url\)[\s\S]*`\$\{bookPrefix\}\/transactions\/explorer\?\$\{explorerParams\.toString\(\)\}`/s, '/transactions SSR load must resolve active book, load bounded filter options, validate URL state, and call the explorer API');
 assert.doesNotMatch(server, /`\$\{bookPrefix\}\/accounts(?:\?|`)/, '/transactions must not call the legacy account list endpoint');
-assert.match(server, /accountOptionsState\.available[\s\S]*accountOptionsAvailable[\s\S]*accountOptionsPartialFailure[\s\S]*accountOptionsErrorCode/s, '/transactions must preserve a typed account-options availability state instead of failing the whole page');
+assert.match(server, /accountOptionsAvailable: accountOptionsState\.available[\s\S]*accountOptionsPartialFailure: accountOptionsState\.partialFailure[\s\S]*accountOptionsErrorCode: accountOptionsState\.errorCode/s, '/transactions must preserve a typed account-options availability state instead of failing the whole page');
 assert.match(server, /hasBoundedExplorerDateRange[\s\S]*filters\.dateFrom[\s\S]*filters\.dateTo/s, '/transactions SSR load must have an explicit paired date-range gate before explorer API calls');
 assert.match(server, /dateRangeRequiredStatus[\s\S]*transactions\.explorer\.dateRangeRequiredTitle[\s\S]*transactions\.explorer\.dateRangeRequiredMessage/s, 'bounded date range required state must use localized i18n copy');
 assert.match(server, /if \(!hasBoundedExplorerDateRange\(filters\)\)[\s\S]*emptyExplorerPage\(filters\.sort, filters\.pageSize\)[\s\S]*dateRangeRequiredStatus\(locale\)[\s\S]*detailHrefs: \{\}[\s\S]*const explorerParams/s, 'no-date reset/default route must render a bounded date range required state before any explorer request');

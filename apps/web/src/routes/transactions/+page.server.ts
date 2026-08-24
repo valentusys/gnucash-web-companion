@@ -1,7 +1,8 @@
 import { env } from '$env/dynamic/private';
 import { redirect } from '@sveltejs/kit';
+import { loadAccountOptions } from '$lib/accounts/options.server';
 import { apiFetch, getAuthToken, getActiveBookContext } from '$lib/api/server';
-import type { Account, PaginatedTransactions, TransactionExplorerPage, TransactionListItem } from '$lib/api/types';
+import type { AccountOption, PaginatedTransactions, TransactionExplorerPage, TransactionListItem } from '$lib/api/types';
 import {
 	TRANSACTIONS_EXPLORER_DEFAULT_PAGE_SIZE,
 	TRANSACTIONS_EXPLORER_DEFAULT_SORT,
@@ -21,8 +22,6 @@ import {
 } from '$lib/transactions/explorer';
 import { localeFromCookie, t, type Locale } from '$lib/i18n';
 import type { PageServerLoad } from './$types';
-
-const ACCOUNT_OPTION_LIMIT = 200;
 
 type LegacyFilters = {
 	query: string;
@@ -410,12 +409,12 @@ function explorerStatus(page: TransactionExplorerPage, request: TransactionExplo
 	};
 }
 
-function accountLabel(accounts: Account[], accountId: string): string {
+function accountLabel(accounts: AccountOption[], accountId: string): string {
 	const account = accounts.find((candidate) => candidate.id.toLowerCase() === accountId.toLowerCase());
 	return account?.full_name || account?.name || accountId;
 }
 
-function activeExplorerChips(filters: TransactionExplorerValidatedInput, accounts: Account[], locale: Locale): ActiveFilterChip[] {
+function activeExplorerChips(filters: TransactionExplorerValidatedInput, accounts: AccountOption[], locale: Locale): ActiveFilterChip[] {
 	const chips: ActiveFilterChip[] = [];
 	const withoutCursor = stripTransactionsExplorerCursor(filters);
 	if (filters.dateFrom && filters.dateTo) {
@@ -505,7 +504,10 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 			mode: 'explorer' as const,
 			accounts: [],
 			accountOptions: [],
+			accountOptionsAvailable: false,
 			accountOptionsLimited: false,
+			accountOptionsPartialFailure: false,
+			accountOptionsErrorCode: 'no_active_book',
 			activeBook,
 			writesEnabled,
 			filters: resetValidation.ok ? resetValidation.value : null,
@@ -526,16 +528,26 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 		throw redirect(303, canonicalLegacyHref);
 	}
 
-	const accounts = await apiFetch<Account[]>(fetch, `${bookPrefix}/accounts?limit=${ACCOUNT_OPTION_LIMIT}`, token);
-	const accountOptions = accounts.slice(0, ACCOUNT_OPTION_LIMIT);
+	const accountOptionsState = await loadAccountOptions(fetch, bookPrefix, token, {
+		purpose: 'transactions_filter',
+		currency: activeBook.base_currency
+	});
+	const accountOptions = accountOptionsState.items;
+	const accounts = accountOptions;
+	const accountOptionsPageState = {
+		accountOptions,
+		accountOptionsAvailable: accountOptionsState.available,
+		accountOptionsLimited: accountOptionsState.limited,
+		accountOptionsPartialFailure: accountOptionsState.partialFailure,
+		accountOptionsErrorCode: accountOptionsState.errorCode
+	};
 
 	if (hasAdvancedFieldsWithLegacyOffset(url)) {
 		const fallback = validateTransactionsExplorerUrl(new URL(buildTransactionsExplorerUrl(), url.origin)).value;
 		return {
 			mode: 'explorer' as const,
 			accounts,
-			accountOptions,
-			accountOptionsLimited: accounts.length > ACCOUNT_OPTION_LIMIT,
+			...accountOptionsPageState,
 			activeBook,
 			writesEnabled,
 			filters: fallback,
@@ -559,8 +571,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 		return {
 			mode: 'legacy' as const,
 			accounts,
-			accountOptions,
-			accountOptionsLimited: accounts.length > ACCOUNT_OPTION_LIMIT,
+			...accountOptionsPageState,
 			activeBook,
 			writesEnabled,
 			filters,
@@ -587,8 +598,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 		return {
 			mode: 'explorer' as const,
 			accounts,
-			accountOptions,
-			accountOptionsLimited: accounts.length > ACCOUNT_OPTION_LIMIT,
+			...accountOptionsPageState,
 			activeBook,
 			writesEnabled,
 			filters,
@@ -608,8 +618,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 		return {
 			mode: 'explorer' as const,
 			accounts,
-			accountOptions,
-			accountOptionsLimited: accounts.length > ACCOUNT_OPTION_LIMIT,
+			...accountOptionsPageState,
 			activeBook,
 			writesEnabled,
 			filters,
@@ -631,8 +640,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 		return {
 			mode: 'explorer' as const,
 			accounts,
-			accountOptions,
-			accountOptionsLimited: accounts.length > ACCOUNT_OPTION_LIMIT,
+			...accountOptionsPageState,
 			activeBook,
 			writesEnabled,
 			filters,
@@ -653,8 +661,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 	return {
 		mode: 'explorer' as const,
 		accounts,
-		accountOptions,
-		accountOptionsLimited: accounts.length > ACCOUNT_OPTION_LIMIT,
+		...accountOptionsPageState,
 		activeBook,
 		writesEnabled,
 		filters,

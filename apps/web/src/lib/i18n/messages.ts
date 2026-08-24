@@ -175,6 +175,7 @@ export type MessageKey =
 	| 'error.retryPage'
 	| 'error.backDashboard'
 	| 'error.reviewBooks'
+	| 'error.openDiagnostics'
 	| 'dashboard.title'
 	| 'accounts.kicker'
 	| 'accounts.title'
@@ -1180,6 +1181,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'error.retryPage': 'Retry this page',
 		'error.backDashboard': 'Back to dashboard',
 		'error.reviewBooks': 'Review books and storage diagnostics',
+		'error.openDiagnostics': 'Open redacted diagnostics',
 		'dashboard.title': 'Dashboard',
 		'accounts.kicker': 'Accounts',
 		'accounts.title': 'Account tree',
@@ -2250,6 +2252,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'error.retryPage': 'Повторить эту страницу',
 		'error.backDashboard': 'Назад к обзору',
 		'error.reviewBooks': 'Проверить книги и storage diagnostics',
+		'error.openDiagnostics': 'Открыть redacted diagnostics',
 		'dashboard.title': 'Обзор',
 		'accounts.kicker': 'Счета',
 		'accounts.title': 'Дерево счетов',

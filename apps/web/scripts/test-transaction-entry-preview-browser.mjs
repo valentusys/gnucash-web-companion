@@ -11,6 +11,7 @@ import net from 'node:net';
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..');
 const repoRoot = join(root, '..', '..');
+const a7PreviewOnlyBrowser = process.env.A7_PREVIEW_ONLY_BROWSER === 'true';
 const viteBin = join(root, 'node_modules', 'vite', 'bin', 'vite.js');
 const previewServerIndex = join(root, '.svelte-kit', 'output', 'server', 'index.js');
 const smokeHome = process.env.TRANSACTION_ENTRY_SMOKE_HOME ?? (process.env.USER ? join('/home', process.env.USER) : homedir());
@@ -283,6 +284,22 @@ const syntheticAccounts = [
 		parent_id: null
 	}
 ];
+
+const syntheticAccountOptions = syntheticAccounts
+	.filter((account) => !account.hidden && !account.placeholder)
+	.map((account) => ({
+		id: account.id,
+		parent_id: account.parent_id,
+		name: account.name,
+		display_name: account.name,
+		full_name: account.full_name,
+		type: account.type,
+		commodity: { namespace: 'CURRENCY', mnemonic: account.currency },
+		currency: account.currency,
+		hidden: false,
+		placeholder: false,
+		selectable: true
+	}));
 
 function isProductTransactionPreviewPayload(payload) {
 	return Boolean(
@@ -1119,8 +1136,36 @@ async function startSyntheticApi() {
 			if (req.method === 'GET' && url.pathname === '/books') {
 				return jsonResponse(res, 200, [syntheticBook]);
 			}
+			if (req.method === 'GET' && url.pathname === '/books/1/accounts/options') {
+				if (url.searchParams.get('purpose') !== 'transaction_create_preview') {
+					return jsonResponse(res, 400, { detail: { code: 'invalid_synthetic_options_purpose' } });
+				}
+				return jsonResponse(res, 200, {
+					book_id: 1,
+					purpose: 'transaction_create_preview',
+					normalized_filters: { query: null, currency: url.searchParams.get('currency'), cursor: null },
+					items: syntheticAccountOptions,
+					limit: Number(url.searchParams.get('limit') ?? '200'),
+					returned_count: syntheticAccountOptions.length,
+					next_cursor: null,
+					partial_failure: false,
+					error_code: null,
+					scan: {
+						candidate_accounts: syntheticAccounts.length,
+						matched_accounts: syntheticAccountOptions.length,
+						returned_items: syntheticAccountOptions.length,
+						query_count: 1,
+						serialized_bytes: 2048,
+						exhausted: true,
+						limits: { max_items: 200 }
+					},
+					balance_basis: 'not_loaded',
+					includes_currency_conversion: false,
+					limitations: []
+				});
+			}
 			if (req.method === 'GET' && url.pathname === '/books/1/accounts') {
-				return jsonResponse(res, 200, syntheticAccounts);
+				return jsonResponse(res, 410, { detail: 'Legacy balance-bearing accounts are forbidden in the A7 preview browser flow.' });
 			}
 			if (req.method === 'GET' && url.pathname === '/books/1/transaction-create-settings') {
 				return jsonResponse(res, 200, {
@@ -3371,9 +3416,11 @@ async function assertExplicitSyntheticDeleteHarnessRejectsUserMode(api, browserR
 
 async function runProductCreateModeSmoke() {
 	assertMutationRequestPredicates();
-	assertExplicitSyntheticCreateHarnessReviewedEvidenceRejectsUnreviewedOrUnlinkedEvidence();
-	assertProductDrillEnvironmentIsDisposableOnly(productDrillEnvironment());
-	assertRedactedSyntheticFailureUiDrillPanels(buildRedactedSyntheticFailureUiDrillPanels());
+	if (!a7PreviewOnlyBrowser) {
+		assertExplicitSyntheticCreateHarnessReviewedEvidenceRejectsUnreviewedOrUnlinkedEvidence();
+		assertProductDrillEnvironmentIsDisposableOnly(productDrillEnvironment());
+		assertRedactedSyntheticFailureUiDrillPanels(buildRedactedSyntheticFailureUiDrillPanels());
+	}
 	assert.ok(existsSync(viteBin), 'Vite must be installed before running the product-mode legacy browser smoke');
 	assert.ok(existsSync(previewServerIndex), 'Build output must exist before browser smoke; run npm run build before npm run test:transaction-entry-preview-browser');
 	assert.ok(existsSync(chromiumBin), `Chromium binary not found at ${chromiumBin}`);
@@ -3498,6 +3545,18 @@ async function runProductCreateModeSmoke() {
 		);
 		assertBrowserToAppToApiBoundary(browserRequests, webBase, api.url, 'product-mode legacy browser preview');
 		assertDisposableSyntheticApiTargetBoundary(api, 'product-mode legacy browser preview');
+		assert.equal(
+			api.requests.filter((request) => request.path === '/books/1/accounts').length,
+			0,
+			'product preview must not request the legacy balance-bearing /accounts endpoint'
+		);
+
+		if (a7PreviewOnlyBrowser) {
+			assertNoMutationRequestsObserved(api, browserRequests, 'A7 preview-only transaction-entry browser smoke');
+			assert.equal(api.explicitCreatePayloads.length, 0, 'A7 preview-only browser smoke must skip the legacy disposable CREATE drill');
+			console.log(`A7 preview-only transaction-entry browser smoke passed: preview_requests=${createPreviewCalls.length} mutation_requests=0 legacy_accounts=0`);
+			return;
+		}
 
 		const reviewedApprovalEvidence = expectedReviewedApprovalEvidence(previewPayload, 1);
 		const createResultPanel = await runExplicitSyntheticCreateHarness(api, browserRequests, previewPayload, reviewedApprovalEvidence);
@@ -3524,7 +3583,11 @@ async function runSmoke() {
 	const pageSource = readSource('src', 'routes', 'transactions', 'new', '+page.svelte');
 	if (pageSource.includes('id="confirm-create-form"')) {
 		await runProductCreateModeSmoke();
-		console.log('transaction-entry-preview-browser: ok (#59 product UI plus legacy real issue-51 disposable CREATE route drill)');
+		console.log(
+			a7PreviewOnlyBrowser
+				? 'transaction-entry-preview-browser: ok (A7 bounded preview-only/no-mutation mode)'
+				: 'transaction-entry-preview-browser: ok (#59 product UI plus legacy real issue-51 disposable CREATE route drill)'
+		);
 		return;
 	}
 	assertSourceSafety();
@@ -3990,7 +4053,9 @@ async function runSmoke() {
 }
 
 await runSmoke();
-if (readSource('src', 'routes', 'transactions', 'new', '+page.svelte').includes('id="confirm-create-form"')) {
+if (a7PreviewOnlyBrowser) {
+	console.log('transaction-entry-preview-browser: ok (A7 bounded options, writes disabled, zero mutation requests)');
+} else if (readSource('src', 'routes', 'transactions', 'new', '+page.svelte').includes('id="confirm-create-form"')) {
 	console.log('transaction-entry-preview-browser: ok (#59 product CREATE mode; real issue-51 disposable CREATE drill executed)');
 } else {
 	console.log('transaction-entry-preview-browser: ok (normal browser preview-only/non-disposable-target/failure/query guards; explicit test-mode product-route disposable CREATE, metadata-only PATCH, and app-owned DELETE drills)');

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Account } from '$lib/api/types';
+	import type { AccountOption } from '$lib/api/types';
 	import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 	import type { TransactionExplorerValidatedInput } from '$lib/transactions/explorer';
 
@@ -9,6 +9,7 @@
 	let {
 		filters,
 		accounts = [],
+		accountOptionsAvailable = true,
 		accountOptionsLimited = false,
 		datePresets = [],
 		activeFilters = [],
@@ -17,7 +18,8 @@
 		locale = DEFAULT_LOCALE
 	}: {
 		filters: TransactionExplorerValidatedInput;
-		accounts?: Account[];
+		accounts?: AccountOption[];
+		accountOptionsAvailable?: boolean;
 		accountOptionsLimited?: boolean;
 		datePresets?: DatePreset[];
 		activeFilters?: ActiveFilterChip[];
@@ -31,7 +33,7 @@
 	const hasTypeMode = $derived(Boolean(filters.type));
 	const hasActiveFilters = $derived(activeFilters.length > 0);
 
-	function accountOptionLabel(account: Account): string {
+	function accountOptionLabel(account: AccountOption): string {
 		return account.display_name || account.name || account.full_name;
 	}
 </script>
@@ -180,7 +182,7 @@
 						name="account_ids"
 						multiple
 						size="6"
-						disabled={hasTypeMode}
+						disabled={hasTypeMode || !accountOptionsAvailable}
 						class="mt-1 min-h-11 w-full rounded-xl border px-3 py-2"
 						style="border-color: var(--app-input-border); background-color: var(--app-input-bg); color: var(--app-text);"
 						aria-describedby="tx-account-ids-help"
@@ -213,7 +215,7 @@
 					<select
 						id="tx-direction"
 						name="direction"
-						disabled={!hasAccountMode}
+						disabled={!hasAccountMode || !accountOptionsAvailable}
 						class="mt-1 min-h-11 w-full rounded-xl border px-3 py-2"
 						style="border-color: var(--app-input-border); background-color: var(--app-input-bg); color: var(--app-text);"
 						aria-describedby="tx-direction-help"

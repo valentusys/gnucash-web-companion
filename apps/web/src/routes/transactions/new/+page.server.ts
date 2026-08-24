@@ -1,9 +1,9 @@
 import { env } from '$env/dynamic/private';
 import { fail, redirect, type Actions } from '@sveltejs/kit';
-import { apiFetch, getActiveBookContext, getAuthToken } from '$lib/api/server';
+import { loadAccountOptions, type AccountOptionsLoadState } from '$lib/accounts/options.server';
+import { getActiveBookContext, getAuthToken } from '$lib/api/server';
 import { localeFromCookie } from '$lib/i18n';
 import type {
-	Account,
 	Book,
 	TransactionCreateConfirmResult,
 	TransactionCreateErrorEnvelope,
@@ -41,19 +41,6 @@ const FALLBACK_CREATE_SETTINGS: TransactionCreateSettings = {
 	recovery_required: false,
 	blocked_codes: []
 };
-
-const CREATE_POSTABLE_TYPES = new Set([
-	'ASSET',
-	'BANK',
-	'CASH',
-	'CREDIT',
-	'LIABILITY',
-	'EQUITY',
-	'INCOME',
-	'EXPENSE',
-	'RECEIVABLE',
-	'PAYABLE'
-]);
 
 const SUPPORTED_CREATE_CODES = new Set([
 	'CREATE_DEPLOYMENT_DISABLED',
@@ -279,17 +266,6 @@ function isTransactionCreateRequest(value: unknown): value is TransactionCreateR
 	);
 }
 
-function isCreatePostableAccount(account: Account): boolean {
-	const currency = String(account.currency ?? '').trim().toUpperCase();
-	return (
-		!account.placeholder &&
-		!account.hidden &&
-		CREATE_POSTABLE_TYPES.has(String(account.type ?? '').toUpperCase()) &&
-		/^[A-Z]{3}$/.test(currency) &&
-		currency !== 'XXX'
-	);
-}
-
 function transactionFromJson(raw: string): TransactionCreateRequest | null {
 	try {
 		const parsed = JSON.parse(raw) as unknown;
@@ -341,22 +317,37 @@ function retryPreviewFromConfirmFailure(
 export const load: PageServerLoad = async ({ cookies, fetch }) => {
 	const token = getAuthToken(cookies);
 	const { books, activeBook, bookPrefix } = await getActiveBookContext(fetch, cookies, token);
-	const [accounts, createSettings] = activeBook
-		? await Promise.all([
-				apiFetch<Account[]>(fetch, `${bookPrefix}/accounts`, token),
-				apiGetOptionalJson<TransactionCreateSettings>(
-					fetch,
-					`/books/${activeBook.id}/transaction-create-settings`,
-					token,
-					FALLBACK_CREATE_SETTINGS
-				)
-			])
-		: [[], FALLBACK_CREATE_SETTINGS];
+	let accountOptionsState: AccountOptionsLoadState = {
+		items: [],
+		available: false,
+		limited: false,
+		partialFailure: false,
+		errorCode: 'no_active_book'
+	};
+	let createSettings = FALLBACK_CREATE_SETTINGS;
+	if (activeBook) {
+		[accountOptionsState, createSettings] = await Promise.all([
+			loadAccountOptions(fetch, bookPrefix, token, {
+				purpose: 'transaction_create_preview',
+				currency: activeBook.base_currency
+			}),
+			apiGetOptionalJson<TransactionCreateSettings>(
+				fetch,
+				`/books/${activeBook.id}/transaction-create-settings`,
+				token,
+				FALLBACK_CREATE_SETTINGS
+			)
+		]);
+	}
 	return {
 		locale: localeFromCookie(cookies),
 		books,
 		activeBook,
-		accounts: accounts.filter(isCreatePostableAccount),
+		accounts: accountOptionsState.items,
+		accountOptionsAvailable: accountOptionsState.available,
+		accountOptionsLimited: accountOptionsState.limited,
+		accountOptionsPartialFailure: accountOptionsState.partialFailure,
+		accountOptionsErrorCode: accountOptionsState.errorCode,
 		createSettings,
 		previewOnly: false
 	};

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Account } from '$lib/api/types';
+	import type { AccountOption } from '$lib/api/types';
 	import { DEFAULT_LOCALE, t, type Locale, type MessageKey } from '$lib/i18n';
 	import { compareDecimalStrings } from '$lib/money.js';
 
@@ -12,6 +12,7 @@
 		maxAmount = '',
 		transactionState = '',
 		accounts = [],
+		accountOptionsAvailable = true,
 		datePresets = [],
 		clearFiltersHref = '/transactions?limit=50&offset=0',
 		lockedAccountLabel = '',
@@ -25,7 +26,8 @@
 		minAmount?: string;
 		maxAmount?: string;
 		transactionState?: string;
-		accounts?: Account[];
+		accounts?: AccountOption[];
+		accountOptionsAvailable?: boolean;
 		datePresets?: { label: string; href: string; active: boolean }[];
 		clearFiltersHref?: string;
 		lockedAccountLabel?: string;
@@ -47,7 +49,7 @@
 		Boolean(query || dateFrom || dateTo || (!lockedAccountLabel && accountId) || minAmount || maxAmount || transactionState)
 	);
 
-	function accountOptionLabel(account: Account): string {
+	function accountOptionLabel(account: AccountOption): string {
 		return account.display_name || account.name || account.full_name;
 	}
 
@@ -211,6 +213,7 @@
 			<select
 				id="tx-account"
 				name="account_id"
+				disabled={!accountOptionsAvailable}
 				class="mt-1 block w-full rounded-lg border px-3 py-2 text-sm"
 				style="border-color: var(--app-input-border); background-color: var(--app-input-bg); color: var(--app-text);"
 			>

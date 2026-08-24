@@ -253,19 +253,42 @@ function accountExplorerPayload(bookId) {
 }
 
 function accountOptions(bookId) {
-	return [
-		{
-			id: `book-${bookId}-checking`,
-			name: 'Synthetic Checking',
-			full_name: 'Assets:Synthetic Checking',
-			type: 'ASSET',
-			currency: 'SEK',
-			balance: '10.00',
-			placeholder: false,
-			hidden: false,
-			parent_id: null
-		}
-	];
+	const items = [{
+		id: `book-${bookId}-checking`,
+		parent_id: null,
+		name: 'Synthetic Checking',
+		display_name: 'Synthetic Checking',
+		full_name: 'Assets:Synthetic Checking',
+		type: 'ASSET',
+		commodity: { namespace: 'CURRENCY', mnemonic: 'SEK' },
+		currency: 'SEK',
+		placeholder: false,
+		hidden: false,
+		selectable: true
+	}];
+	return {
+		book_id: bookId,
+		purpose: 'transactions_filter',
+		normalized_filters: { query: null, currency: 'SEK', cursor: null },
+		items,
+		limit: 200,
+		returned_count: items.length,
+		next_cursor: null,
+		partial_failure: false,
+		error_code: null,
+		scan: {
+			candidate_accounts: items.length,
+			matched_accounts: items.length,
+			returned_items: items.length,
+			query_count: 1,
+			serialized_bytes: 1024,
+			exhausted: true,
+			limits: { max_items: 200 }
+		},
+		balance_basis: 'not_loaded',
+		includes_currency_conversion: false,
+		limitations: []
+	};
 }
 
 function isForbiddenGnuCashMutation(method, pathname, search = '') {
@@ -423,7 +446,8 @@ async function startSyntheticApi(sourcePaths) {
 			if (!book) return jsonResponse(res, 404, fixedProblem('unknown_book_problem'));
 
 			if (method === 'GET' && suffix === '') return jsonResponse(res, 200, book);
-			if (method === 'GET' && suffix === 'accounts') return jsonResponse(res, 200, accountOptions(bookId));
+			if (method === 'GET' && suffix === 'accounts/options') return jsonResponse(res, 200, accountOptions(bookId));
+			if (method === 'GET' && suffix === 'accounts') return jsonResponse(res, 410, fixedProblem('unknown_book_problem'));
 			if (method === 'GET' && suffix === 'accounts/explorer') return jsonResponse(res, 200, accountExplorerPayload(bookId));
 			if (method === 'GET' && suffix === 'reports/comparison') return jsonResponse(res, 500, fixedProblem('unknown_book_problem'));
 
@@ -1074,7 +1098,8 @@ async function runSmoke() {
 
 		await navigate(cdp, webBase, `/books/${registeredBookId}/select?next=/transactions`, 'select transactions', '/transactions');
 		await waitForExpression(cdp, `location.pathname === '/transactions' && /Transactions|Transaction Explorer/.test(document.body.innerText)`, 'transactions reached', 30000);
-		assert.equal(api.requests.some((request) => request.path === `/books/${registeredBookId}/accounts`), true, 'Transactions link must select exact book before loading transaction account options');
+		assert.equal(api.requests.some((request) => request.path === `/books/${registeredBookId}/accounts/options`), true, 'Transactions link must select exact book before loading bounded transaction account options');
+		assert.equal(api.requests.some((request) => request.path === `/books/${registeredBookId}/accounts`), false, 'Transactions link must not load legacy balance-bearing account options');
 
 		await navigate(cdp, webBase, `/books/${registeredBookId}/select?next=/reports`, 'select reports', '/reports');
 		await waitForExpression(cdp, `location.pathname === '/reports' && document.body.innerText.includes('Reports')`, 'reports reached', 30000);

@@ -337,8 +337,13 @@ assert.match(
 const newTransactionServer = read('src/routes/transactions/new/+page.server.ts');
 assert.match(
 	newTransactionServer,
-	/getActiveBookContext\(fetch, cookies, token\)[\s\S]*apiFetch<Account\[\]>\(fetch, `\$\{bookPrefix\}\/accounts`, token\)/s,
-	'new transaction preview page must resolve books/accounts through the active accessible book context'
+	/getActiveBookContext\(fetch, cookies, token\)[\s\S]*loadAccountOptions\(fetch, bookPrefix, token[\s\S]*purpose: 'transaction_create_preview'[\s\S]*currency: activeBook\.base_currency/s,
+	'new transaction preview page must resolve bounded posting choices through the active accessible book context'
+);
+assert.doesNotMatch(
+	newTransactionServer,
+	/apiFetch<Account\[\]>|`\$\{bookPrefix\}\/accounts(?:\?|`)/,
+	'new transaction preview page must not restore the legacy balance-bearing account list'
 );
 assert.match(
 	newTransactionServer,
