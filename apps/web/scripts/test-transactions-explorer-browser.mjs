@@ -68,10 +68,69 @@ const syntheticBook = {
 	}
 };
 
+function accountOption(id, name, fullName, type) {
+	return {
+		id,
+		parent_id: null,
+		name,
+		display_name: name,
+		full_name: fullName,
+		type,
+		commodity: { namespace: 'CURRENCY', mnemonic: 'SEK' },
+		currency: 'SEK',
+		hidden: false,
+		placeholder: false,
+		selectable: true
+	};
+}
+
 const accounts = [
-	{ id: accountId, name: 'Synthetic Checking', full_name: 'Assets:Synthetic Checking', type: 'ASSET', currency: 'SEK', balance: '123.45', placeholder: false, hidden: false, parent_id: null },
-	{ id: secondAccountId, name: 'Synthetic Expenses', full_name: 'Expenses:Synthetic', type: 'EXPENSE', currency: 'SEK', balance: '0.00', placeholder: false, hidden: false, parent_id: null }
+	accountOption(accountId, 'Synthetic Checking', 'Assets:Synthetic Checking', 'ASSET'),
+	accountOption(secondAccountId, 'Synthetic Expenses', 'Expenses:Synthetic', 'EXPENSE'),
+	...Array.from({ length: 218 }, (_, index) => {
+		const ordinal = index + 1;
+		const id = ordinal.toString(16).padStart(32, '0');
+		const type = ordinal % 2 === 0 ? 'EXPENSE' : 'ASSET';
+		return accountOption(
+			id,
+			`Generated option ${String(ordinal).padStart(3, '0')}`,
+			`${type === 'ASSET' ? 'Assets' : 'Expenses'}:Generated:${String(ordinal).padStart(3, '0')}`,
+			type
+		);
+	})
 ];
+
+function accountOptionsPayload(url) {
+	const limit = Math.min(Number(url.searchParams.get('limit') ?? '50'), 200);
+	const items = accounts.slice(0, limit);
+	return {
+		book_id: 1,
+		purpose: url.searchParams.get('purpose') ?? 'transactions_filter',
+		normalized_filters: {
+			query: url.searchParams.get('query'),
+			currency: url.searchParams.get('currency'),
+			cursor: url.searchParams.get('cursor')
+		},
+		items,
+		limit,
+		returned_count: items.length,
+		next_cursor: accounts.length > items.length ? String(items.length) : null,
+		partial_failure: false,
+		error_code: null,
+		scan: {
+			candidate_accounts: accounts.length,
+			matched_accounts: accounts.length,
+			returned_items: items.length,
+			query_count: 1,
+			serialized_bytes: 32000,
+			exhausted: accounts.length <= items.length,
+			limits: { max_items: 200 }
+		},
+		balance_basis: 'not_loaded',
+		includes_currency_conversion: false,
+		limitations: []
+	};
+}
 
 function jsonResponse(res, status, body) {
 	const payload = Buffer.from(JSON.stringify(body));
@@ -134,6 +193,7 @@ function isForbiddenApiMutation(method) {
 async function startSyntheticApi() {
 	const requests = [];
 	const forbiddenRequests = [];
+	const state = { failFilterOptions: false };
 	const server = createServer((req, res) => {
 		const url = new URL(req.url ?? '/', 'http://127.0.0.1');
 		requests.push({ method: req.method, path: url.pathname, search: url.search, pathWithSearch: `${url.pathname}${url.search}` });
@@ -147,10 +207,31 @@ async function startSyntheticApi() {
 			return jsonResponse(res, 200, { id: 1, username: 'synthetic_transactions', display_name: 'Synthetic Transactions', is_admin: false });
 		}
 		if (url.pathname === '/books') return jsonResponse(res, 200, [syntheticBook]);
-		if (url.pathname === '/books/1/accounts') return jsonResponse(res, 200, accounts);
+		if (url.pathname === '/books/1/accounts/options') {
+			if (state.failFilterOptions && url.searchParams.get('purpose') === 'transactions_filter') {
+				return jsonResponse(res, 503, { detail: { code: 'synthetic_account_options_unavailable' } });
+			}
+			return jsonResponse(res, 200, accountOptionsPayload(url));
+		}
+		if (url.pathname === '/books/1/accounts') {
+			return jsonResponse(res, 410, { detail: 'Legacy accounts endpoint is forbidden in the A7 primary UI smoke.' });
+		}
+		if (url.pathname === '/books/1/transaction-create-settings') {
+			return jsonResponse(res, 200, {
+				known: true,
+				enabled: false,
+				create_generation: 1,
+				recovery_required: false,
+				blocked_codes: ['CREATE_DEPLOYMENT_DISABLED']
+			});
+		}
 		if (url.pathname === '/books/1/transactions/explorer') return jsonResponse(res, 200, explorerPayload(url));
 		const detailMatch = url.pathname.match(/^\/books\/1\/transactions\/(.+)$/);
-		if (detailMatch) return jsonResponse(res, 200, transactionDetailPayload(decodeURIComponent(detailMatch[1])));
+		if (detailMatch) {
+			const transactionId = decodeURIComponent(detailMatch[1]);
+			if (transactionId === 'fail-503') return jsonResponse(res, 503, { detail: 'Synthetic redacted read failure.' });
+			return jsonResponse(res, 200, transactionDetailPayload(transactionId));
+		}
 		return jsonResponse(res, 404, { detail: 'Synthetic explorer smoke endpoint not found.' });
 	});
 
@@ -163,6 +244,7 @@ async function startSyntheticApi() {
 		url: `http://127.0.0.1:${address.port}`,
 		requests,
 		forbiddenRequests,
+		state,
 		close: () => new Promise((resolve) => server.close(resolve))
 	};
 }
@@ -364,6 +446,17 @@ function explorerRequests(api) {
 	return api.requests.filter((request) => request.path === '/books/1/transactions/explorer');
 }
 
+function accountOptionRequests(api, purpose = null) {
+	return api.requests.filter((request) => {
+		if (request.path !== '/books/1/accounts/options') return false;
+		return purpose === null || new URLSearchParams(request.search).get('purpose') === purpose;
+	});
+}
+
+function legacyAccountRequests(api) {
+	return api.requests.filter((request) => request.path === '/books/1/accounts');
+}
+
 function forbiddenBrowserMutationRequests(browserRequests) {
 	return browserRequests.filter((request) => {
 		const url = new URL(request.url);
@@ -439,6 +532,116 @@ async function assertNoMobileOverflowAndAccessibleExplorer(cdp, label) {
 	assert.equal(state.shortTargets, 0, `${label}: explorer form controls must expose at least 40px rendered touch height`);
 	assert.match(state.bodyText, /Transaction Explorer|Обзор транзакций|Transactions|Транзакции|Просмотр транзакций/i, `${label}: transactions page title must be visible at 320px`);
 	return state;
+}
+
+async function setViewport(cdp, width, height = 900) {
+	await cdp.send('Emulation.setDeviceMetricsOverride', {
+		width,
+		height,
+		deviceScaleFactor: width <= 390 ? 2 : 1,
+		mobile: width <= 390
+	});
+}
+
+async function assertViewportNoOverflow(cdp, expectedWidth, label) {
+	const state = await evaluate(cdp, `(() => ({
+		viewportWidth: window.innerWidth,
+		scrollWidth: Math.max(document.documentElement?.scrollWidth ?? 0, document.body?.scrollWidth ?? 0),
+		title: document.title,
+		bodyText: document.body?.innerText ?? ''
+	}))()`);
+	assert.equal(state.viewportWidth, expectedWidth, `${label}: viewport width must match browser evidence`);
+	assert.ok(state.scrollWidth <= expectedWidth + 8, `${label}: must not have obvious horizontal overflow (${state.scrollWidth} > ${expectedWidth})`);
+	return state;
+}
+
+async function assertExplorerSurvivesAccountOptionsFailure(cdp, api, browserRequests, webBase, width) {
+	const beforeExplorer = explorerRequests(api).length;
+	const beforeOptions = accountOptionRequests(api, 'transactions_filter').length;
+	await setViewport(cdp, width, width <= 390 ? 900 : 960);
+	await navigate(
+		cdp,
+		webBase,
+		'/transactions?date_from=2026-07-01&date_to=2026-07-31&sort=date_desc&page_size=50',
+		`account-options failure ${width}`
+	);
+	await waitForExpression(
+		cdp,
+		`document.body.innerText.includes('Synthetic explorer transaction') && document.querySelector('#transactions-account-options-status')`,
+		`account-options failure recovery ${width}`,
+		20000
+	);
+	const state = await evaluate(cdp, `(() => ({
+		accountDisabled: document.querySelector('#tx-account-ids')?.disabled ?? null,
+		typeDisabled: document.querySelector('#tx-type')?.disabled ?? null,
+		directionDisabled: document.querySelector('#tx-direction')?.disabled ?? null,
+		rowVisible: document.body.innerText.includes('Synthetic explorer transaction'),
+		diagnosticsHref: document.querySelector('#transactions-account-options-status a[href="/diagnostics"]')?.getAttribute('href') ?? '',
+		legacyAccountCalls: 0
+	}))()`);
+	assert.equal(state.accountDisabled, true, `${width}px: failed account options must disable the account selector`);
+	assert.equal(state.typeDisabled, false, `${width}px: failed account options must not disable type filtering`);
+	assert.equal(state.directionDisabled, true, `${width}px: account-specific direction must remain disabled without account options`);
+	assert.equal(state.rowVisible, true, `${width}px: explorer results must remain visible when account options fail`);
+	assert.equal(state.diagnosticsHref, '/diagnostics', `${width}px: partial recovery must link to redacted diagnostics`);
+	assert.equal(explorerRequests(api).length, beforeExplorer + 1, `${width}px: explorer request must continue independently`);
+	assert.equal(accountOptionRequests(api, 'transactions_filter').length, beforeOptions + 1, `${width}px: bounded account options must be attempted once`);
+	await assertViewportNoOverflow(cdp, width, `transactions account-options failure ${width}px`);
+	assertNoMutationRequestsObserved(api, browserRequests, `transactions account-options failure ${width}px`);
+}
+
+async function assertWidePreviewChoices(cdp, api, browserRequests, webBase, width) {
+	const beforePreviewOptions = accountOptionRequests(api, 'transaction_create_preview').length;
+	await setViewport(cdp, width, width <= 390 ? 980 : 960);
+	await navigate(cdp, webBase, '/transactions/new', `wide preview choices ${width}`, '/transactions/new');
+	await waitForExpression(
+		cdp,
+		`document.querySelectorAll('select[name="split_account_id"]').length === 2 && document.querySelectorAll('select[name="split_account_id"] option').length >= 400`,
+		`wide preview options ${width}`,
+		20000
+	);
+	const state = await evaluate(cdp, `(() => ({
+		selectors: document.querySelectorAll('select[name="split_account_id"]').length,
+		options: document.querySelectorAll('select[name="split_account_id"] option').length,
+		allEnabled: Array.from(document.querySelectorAll('select[name="split_account_id"]')).every((el) => !el.disabled),
+		previewEnabled: !document.querySelector('button[formaction="?/preview"]')?.disabled,
+		failureStatus: Boolean(document.querySelector('#transaction-create-account-options-status')),
+		bodyText: document.body.innerText
+	}))()`);
+	assert.equal(state.selectors, 2, `${width}px: preview must render two posting selectors`);
+	assert.ok(state.options >= 400, `${width}px: generated wide bounded choices must populate both selectors`);
+	assert.equal(state.allEnabled, true, `${width}px: bounded posting choices must be usable`);
+	assert.equal(state.previewEnabled, true, `${width}px: preview submission must remain available when options load`);
+	assert.equal(state.failureStatus, false, `${width}px: successful options load must not render recovery status`);
+	assert.match(state.bodyText, /New transaction|Новая транзакция/, `${width}px: preview page title must remain visible`);
+	assert.equal(accountOptionRequests(api, 'transaction_create_preview').length, beforePreviewOptions + 1, `${width}px: preview must issue one bounded posting-choice request`);
+	const latestOptions = accountOptionRequests(api, 'transaction_create_preview').at(-1);
+	const params = new URLSearchParams(latestOptions.search);
+	assert.equal(params.get('limit'), '200', `${width}px: preview account choices must use the bounded max page`);
+	assert.equal(params.get('currency'), 'SEK', `${width}px: preview account choices must be currency-scoped`);
+	await assertViewportNoOverflow(cdp, width, `wide preview choices ${width}px`);
+	assertNoMutationRequestsObserved(api, browserRequests, `wide preview choices ${width}px`);
+}
+
+async function assert503RecoveryPage(cdp, api, browserRequests, webBase) {
+	await setViewport(cdp, 390, 900);
+	await navigate(cdp, webBase, '/transactions/fail-503', 'transaction detail 503', '/transactions/fail-503');
+	await waitForExpression(cdp, `document.body.innerText.includes('Service temporarily unavailable')`, '503 recovery page', 20000);
+	const state = await evaluate(cdp, `(() => ({
+		title: document.title,
+		retry: document.querySelector('a[href="/transactions/fail-503"]')?.getAttribute('href') ?? '',
+		diagnostics: document.querySelector('a[href="/diagnostics"]')?.getAttribute('href') ?? '',
+		transactionsNav: Boolean(document.querySelector('nav a[href="/transactions"]')),
+		bodyText: document.body.innerText
+	}))()`);
+	assert.match(state.title, /Service temporarily unavailable/, '503 page must preserve a useful document title');
+	assert.equal(state.retry, '/transactions/fail-503', '503 page must offer same-page retry');
+	assert.equal(state.diagnostics, '/diagnostics', '503 page must offer redacted diagnostics');
+	assert.equal(state.transactionsNav, true, '503 page must preserve app navigation');
+	assert.match(state.bodyText, /Review books and storage diagnostics/, '503 page must preserve safe book recovery');
+	await assertViewportNoOverflow(cdp, 390, '503 recovery page');
+	assert.equal(legacyAccountRequests(api).length, 0, 'A7 primary UI must never request legacy /accounts');
+	assertNoMutationRequestsObserved(api, browserRequests, '503 recovery page');
 }
 
 async function runSmoke() {
@@ -598,8 +801,18 @@ async function runSmoke() {
 		assert.equal(lastParams.get('date_to'), '2026-07-31', 'paired date range request must include date_to');
 		assert.equal(lastParams.get('page_size'), '50', 'paired date range request must preserve canonical page_size');
 
+		api.state.failFilterOptions = true;
+		for (const width of [1280, 390, 320]) {
+			await assertExplorerSurvivesAccountOptionsFailure(cdp, api, browserRequests, webBase, width);
+		}
+		for (const width of [1280, 390, 320]) {
+			await assertWidePreviewChoices(cdp, api, browserRequests, webBase, width);
+		}
+		await assert503RecoveryPage(cdp, api, browserRequests, webBase);
+
+		assert.equal(legacyAccountRequests(api).length, 0, 'transactions and preview primary UI must not call legacy /accounts');
 		assertNoMutationRequestsObserved(api, browserRequests, 'transactions explorer browser smoke');
-		console.log(`transactions explorer browser smoke passed: explorer_requests=${explorerRequests(api).length} no_date_explorer_requests=0 api_forbidden=${api.forbiddenRequests.length} browser_forbidden=${forbiddenBrowserMutationRequests(browserRequests).length} mobile_width=${noDateMobileState.viewportWidth}/${mobileState.viewportWidth} scroll_width=${noDateMobileState.scrollWidth}/${mobileState.scrollWidth}`);
+		console.log(`transactions explorer browser smoke passed: explorer_requests=${explorerRequests(api).length} filter_option_requests=${accountOptionRequests(api, 'transactions_filter').length} preview_option_requests=${accountOptionRequests(api, 'transaction_create_preview').length} legacy_accounts=${legacyAccountRequests(api).length} api_forbidden=${api.forbiddenRequests.length} browser_forbidden=${forbiddenBrowserMutationRequests(browserRequests).length} viewports=1280/390/320 scroll_width=${noDateMobileState.scrollWidth}/${mobileState.scrollWidth}`);
 	} catch (error) {
 		const webTail = webProcess?.outputTail?.() ?? '';
 		const chromiumTail = chromiumProcess?.outputTail?.() ?? '';

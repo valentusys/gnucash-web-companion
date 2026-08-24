@@ -34,6 +34,7 @@ assert.match(errorStateComponent, /retryHref[\s\S]*backHref[\s\S]*aria-label/s, 
 const errorPage = read('src/routes/+error.svelte');
 assert.match(errorPage, /import ErrorState/, 'global error page must reuse ErrorState');
 assert.match(errorPage, /statusCode=\{page\.status\}[\s\S]*retryHref=\{page\.url\.pathname \+ page\.url\.search\}[\s\S]*page\.status === 503[\s\S]*'\/books'[\s\S]*error\.reviewBooks/s, 'global error page must pass status, retry, and localized /books recovery for unavailable read-only book errors');
+assert.match(errorPage, /<svelte:head>[\s\S]*<title>[\s\S]*error\.serviceTitle[\s\S]*page\.status === 503[\s\S]*href="\/diagnostics"[\s\S]*error\.openDiagnostics/s, '503 error page must keep a useful document title and expose retry plus redacted diagnostics recovery');
 const loadingStateComponent = read('src/lib/components/LoadingState.svelte');
 assert.match(
 	loadingStateComponent,

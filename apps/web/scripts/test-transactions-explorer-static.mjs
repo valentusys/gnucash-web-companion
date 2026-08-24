@@ -18,6 +18,7 @@ assert.ok(existsSync(pathOf('src', 'routes', 'transactions', '+page.server.ts'))
 assert.ok(existsSync(pathOf('src', 'routes', 'transactions', '+page.svelte')), '/transactions page route must exist');
 assert.ok(existsSync(pathOf('src', 'lib', 'transactions', 'explorer.ts')), 'canonical transactions explorer helper must exist');
 assert.ok(existsSync(pathOf('src', 'lib', 'components', 'TransactionExplorerFilters.svelte')), 'explorer-specific filter form must exist');
+assert.ok(existsSync(pathOf('src', 'lib', 'accounts', 'options.server.ts')), 'bounded account-options loader must exist');
 
 const packageJson = JSON.parse(read('package.json'));
 const explorer = read('src', 'lib', 'transactions', 'explorer.ts');
@@ -25,6 +26,7 @@ const apiTypes = read('src', 'lib', 'api', 'types.ts');
 const server = read('src', 'routes', 'transactions', '+page.server.ts');
 const page = read('src', 'routes', 'transactions', '+page.svelte');
 const filters = read('src', 'lib', 'components', 'TransactionExplorerFilters.svelte');
+const accountOptionsServer = read('src', 'lib', 'accounts', 'options.server.ts');
 const detailServer = read('src', 'routes', 'transactions', '[id]', '+page.server.ts');
 const detailPage = read('src', 'routes', 'transactions', '[id]', '+page.svelte');
 const reportsServer = read('src', 'routes', 'reports', '+page.server.ts');
@@ -37,6 +39,10 @@ assert.equal(packageJson.scripts?.['test:transactions-explorer-browser'], 'npm r
 assert.match(apiTypes, /export type TransactionExplorerScan[\s\S]*candidate_rows[\s\S]*split_rows[\s\S]*query_count[\s\S]*scan_limited[\s\S]*exhausted/s, 'API types must model explorer scan diagnostics without legacy scan_limited top-level fields');
 assert.match(apiTypes, /export type TransactionExplorerPage[\s\S]*items: TransactionListItem\[\][\s\S]*page_size[\s\S]*returned_count[\s\S]*has_more[\s\S]*previous_cursor[\s\S]*scan: TransactionExplorerScan[\s\S]*limitations: string\[\]/s, 'API types must model cursor-paginated explorer responses');
 assert.match(apiTypes, /representative_amount\?: MoneyDTO[\s\S]*matched_amount\?: MoneyDTO \| null[\s\S]*amount_basis\?: 'selected_accounts' \| 'income' \| 'expense' \| 'representative_split' \| string/s, 'transaction list items must tolerate explorer exact amount DTOs while preserving old list rendering');
+assert.match(apiTypes, /export type AccountOption[\s\S]*commodity: CommodityRef[\s\S]*selectable: boolean[\s\S]*export type AccountOptionsResponse[\s\S]*purpose: 'transactions_filter' \| 'transaction_create_preview'[\s\S]*partial_failure: boolean[\s\S]*balance_basis: 'not_loaded'/s, 'frontend API types must model the bounded balance-free account-options contract');
+
+assert.match(accountOptionsServer, /ACCOUNT_OPTIONS_LIMIT = 200[\s\S]*method: 'GET'[\s\S]*response\.status === 401[\s\S]*isRedirect[\s\S]*partialFailure[\s\S]*next_cursor[\s\S]*scan\?\.exhausted/s, 'shared account-options loader must use a GET-only bounded, redirect-safe, partial-failure-aware contract');
+assert.doesNotMatch(accountOptionsServer, /method:\s*['"`](?:POST|PUT|PATCH|DELETE)['"`]|\/accounts(?:\?|['"`])/, 'bounded account-options loader must not issue mutations or fall back to legacy /accounts');
 
 assert.match(explorer, /TRANSACTIONS_EXPLORER_DEFAULT_SORT = 'date_desc'/, 'canonical explorer default sort must be date_desc');
 assert.match(explorer, /TRANSACTIONS_EXPLORER_DEFAULT_PAGE_SIZE = 50/, 'canonical explorer default page_size must be 50');
@@ -47,7 +53,9 @@ assert.match(explorer, /validateTransactionsExplorerUrl[\s\S]*rawParams\.has\('a
 assert.match(explorer, /safeTransactionsReturnTo[\s\S]*parsed\.origin !== 'http:\/\/127\.0\.0\.1'[\s\S]*parsed\.pathname !== '\/transactions'[\s\S]*return `\$\{parsed\.pathname\}\$\{parsed\.search\}`/s, 'return_to sanitizer must allow only same-origin /transactions URLs');
 assert.match(explorer, /detailHrefWithReturnTo[\s\S]*encodeURIComponent\(safeReturnTo\)/s, 'detail links must URL-encode sanitized return_to');
 
-assert.match(server, /getActiveBookContext\(fetch, cookies, token\)[\s\S]*`\$\{bookPrefix\}\/accounts\?limit=\$\{ACCOUNT_OPTION_LIMIT\}`[\s\S]*validateTransactionsExplorerUrl\(url\)[\s\S]*`\$\{bookPrefix\}\/transactions\/explorer\?\$\{explorerParams\.toString\(\)\}`/s, '/transactions SSR load must resolve active book, bounded account options, validate URL state, and call the explorer API');
+assert.match(server, /getActiveBookContext\(fetch, cookies, token\)[\s\S]*loadAccountOptions\([\s\S]*purpose: 'transactions_filter'[\s\S]*validateTransactionsExplorerUrl\(url\)[\s\S]*`\$\{bookPrefix\}\/transactions\/explorer\?\$\{explorerParams\.toString\(\)\}`/s, '/transactions SSR load must resolve active book, load bounded filter options, validate URL state, and call the explorer API');
+assert.doesNotMatch(server, /`\$\{bookPrefix\}\/accounts(?:\?|`)/, '/transactions must not call the legacy account list endpoint');
+assert.match(server, /accountOptionsState\.available[\s\S]*accountOptionsAvailable[\s\S]*accountOptionsPartialFailure[\s\S]*accountOptionsErrorCode/s, '/transactions must preserve a typed account-options availability state instead of failing the whole page');
 assert.match(server, /hasBoundedExplorerDateRange[\s\S]*filters\.dateFrom[\s\S]*filters\.dateTo/s, '/transactions SSR load must have an explicit paired date-range gate before explorer API calls');
 assert.match(server, /dateRangeRequiredStatus[\s\S]*transactions\.explorer\.dateRangeRequiredTitle[\s\S]*transactions\.explorer\.dateRangeRequiredMessage/s, 'bounded date range required state must use localized i18n copy');
 assert.match(server, /if \(!hasBoundedExplorerDateRange\(filters\)\)[\s\S]*emptyExplorerPage\(filters\.sort, filters\.pageSize\)[\s\S]*dateRangeRequiredStatus\(locale\)[\s\S]*detailHrefs: \{\}[\s\S]*const explorerParams/s, 'no-date reset/default route must render a bounded date range required state before any explorer request');
@@ -61,10 +69,11 @@ assert.match(server, /legacyCsvParamsFromExplorer[\s\S]*filters\.cursor \|\| fil
 assert.doesNotMatch(server, /parseFloat\(|Number\([^)]*(?:amount|minAmount|maxAmount|total|balance)/, 'transactions server must not use float/Number conversion on money strings');
 
 assert.match(filters, /method="GET"[\s\S]*action="\/transactions"[\s\S]*name="account_ids"[\s\S]*multiple[\s\S]*name="type"[\s\S]*name="direction"[\s\S]*name="page_size"/s, 'explorer form must submit canonical GET URL fields, including multi-account and cursor page_size state');
-assert.match(filters, /disabled=\{hasTypeMode\}[\s\S]*disabled=\{hasAccountMode\}[\s\S]*disabled=\{!hasAccountMode\}/s, 'explorer form must prevent incompatible account/type/direction combinations in the browser');
+assert.match(filters, /accountOptionsAvailable = true[\s\S]*disabled=\{hasTypeMode \|\| !accountOptionsAvailable\}[\s\S]*disabled=\{hasAccountMode\}[\s\S]*disabled=\{!hasAccountMode \|\| !accountOptionsAvailable\}/s, 'explorer form must disable only account-specific controls when bounded options fail while preserving type mode');
 assert.doesNotMatch(filters, /localStorage|sessionStorage|method="POST"/s, 'explorer form must remain SSR/URL-driven with no browser storage or write submission');
 
 assert.match(page, /TransactionExplorerFilters[\s\S]*filters=\{data\.filters\}[\s\S]*resetHref=\{data\.resetHref\}[\s\S]*pageSizeOptions=\{data\.pageSizeOptions\}/s, '/transactions page must render the shared validated SSR explorer state');
+assert.match(page, /accountOptionsAvailable=\{data\.accountOptionsAvailable\}[\s\S]*transactions-account-options-status[\s\S]*data\.accountOptionsAvailable[\s\S]*href="\/diagnostics"[\s\S]*txs\.items\.length/s, '/transactions must show bounded-option recovery without hiding explorer results');
 assert.match(page, /detailHref = \(id: string\) => data\.detailHrefs\?\.\[id\][\s\S]*TransactionTable[\s\S]*detailHref=\{detailHref\}[\s\S]*TransactionCard[\s\S]*detailHref=\{detailHref\}/s, 'desktop and mobile transaction rows must share detail return_to links');
 assert.match(page, /data\.pagination\?\.previousHref[\s\S]*data\.pagination\?\.nextHref[\s\S]*data\.pagination\?\.continueHref/s, 'explorer page must expose cursor previous/next/continue links from server data');
 assert.doesNotMatch(page, /localStorage|sessionStorage|fetch\(|formaction="\?\/create"|method="POST"/s, '/transactions explorer page must remain SSR-first and read-only');

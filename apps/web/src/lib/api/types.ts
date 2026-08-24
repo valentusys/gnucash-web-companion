@@ -267,6 +267,48 @@ export type CommodityRef = {
 	mnemonic: string;
 };
 
+export type AccountOptionsPurpose = 'transactions_filter' | 'transaction_create_preview';
+
+export type AccountOption = {
+	id: string;
+	parent_id: string | null;
+	name: string;
+	display_name?: string | null;
+	full_name: string;
+	type: string;
+	commodity: CommodityRef;
+	currency: string;
+	hidden: boolean;
+	placeholder: boolean;
+	selectable: boolean;
+};
+
+export type AccountOptionsScan = {
+	candidate_accounts: number;
+	matched_accounts: number;
+	returned_items: number;
+	query_count: number;
+	serialized_bytes: number;
+	exhausted: boolean;
+	limits: Record<string, number>;
+};
+
+export type AccountOptionsResponse = {
+	book_id: number;
+	purpose: 'transactions_filter' | 'transaction_create_preview';
+	normalized_filters: Record<string, unknown>;
+	items: AccountOption[];
+	limit: number;
+	returned_count: number;
+	next_cursor: string | null;
+	partial_failure: boolean;
+	error_code: string | null;
+	scan: AccountOptionsScan;
+	balance_basis: 'not_loaded';
+	includes_currency_conversion: false;
+	limitations: string[];
+};
+
 export type AccountCommodityAmount = {
 	amount: string;
 	commodity: CommodityRef;

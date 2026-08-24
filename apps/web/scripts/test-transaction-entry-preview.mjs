@@ -22,6 +22,7 @@ const page = read('src', 'routes', 'transactions', 'new', '+page.svelte');
 const server = read('src', 'routes', 'transactions', 'new', '+page.server.ts');
 const transactionsList = read('src', 'routes', 'transactions', '+page.svelte');
 const browserSmoke = read('scripts', 'test-transaction-entry-preview-browser.mjs');
+const accountOptionsServer = read('src', 'lib', 'accounts', 'options.server.ts');
 
 assert.doesNotMatch(
 	browserSmoke,
@@ -385,6 +386,11 @@ const productFormActionAssignments = [...page.matchAll(/\bformaction\s*=\s*(?:"(
 assert.deepEqual([...new Set(productFormActionAssignments)].sort(), ['?/confirm', '?/preview'].sort(), 'product page must expose only preview and confirm SvelteKit action targets');
 
 assert.match(server, /export const actions: Actions = \{[\s\S]*preview:\s*async[\s\S]*confirm:\s*async/s, '/transactions/new must expose preview and confirm actions only for product CREATE');
+assert.match(server, /loadAccountOptions\([\s\S]*purpose: 'transaction_create_preview'[\s\S]*currency: activeBook\.base_currency[\s\S]*accountOptionsAvailable[\s\S]*accountOptionsPartialFailure/s, '/transactions/new must load bounded posting choices and expose safe availability state');
+assert.doesNotMatch(server, /apiFetch<Account\[\]>|`\$\{bookPrefix\}\/accounts(?:\?|`)/, '/transactions/new must not load the legacy balance-bearing account list');
+assert.match(accountOptionsServer, /purpose: 'transactions_filter' \| 'transaction_create_preview'/, 'shared account-options loader must accept only the two bounded UI purposes');
+assert.match(page, /transaction-create-account-options-status[\s\S]*!data\.accountOptionsAvailable[\s\S]*href="\/diagnostics"/s, 'preview page must render account-option recovery without becoming a route-level 503');
+assert.match(page, /name="split_account_id"[\s\S]*disabled=\{!data\.accountOptionsAvailable\}[\s\S]*formaction="\?\/preview"[\s\S]*disabled=\{!data\.accountOptionsAvailable\}/s, 'preview page must disable account selectors and preview submission when bounded posting choices are unavailable');
 assert.deepEqual([...server.matchAll(/^\s*([A-Za-z0-9_]+):\s*async/gm)].map((match) => match[1]), ['preview', 'confirm'], '/transactions/new actions must be exactly preview and confirm');
 assert.match(server, /apiPostJson<TransactionCreatePreviewResponse>[\s\S]*`\/books\/\$\{activeBook\.id\}\/transactions\/create-preview`[\s\S]*body: transaction/s, 'product preview action must post the normalized draft to create-preview for the active book');
 assert.match(server, /apiPostJson<TransactionCreateConfirmResult>[\s\S]*`\/books\/\$\{activeBook\.id\}\/transactions`[\s\S]*body:\s*\{\s*preview_token: previewToken,\s*transaction\s*\}[\s\S]*'Idempotency-Key': idempotencyKey/s, 'product confirm action must post frozen token+transaction with the preview idempotency key');
