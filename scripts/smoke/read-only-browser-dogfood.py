@@ -41,6 +41,36 @@ class CheckResult:
     detail: str
 
 
+BOUNDED_TRANSACTION_FILTERS: tuple[tuple[str, str], ...] = (
+    ("date_from", "2024-01-01"),
+    ("date_to", "2024-12-31"),
+    ("transaction_state", "unreconciled"),
+    ("sort", "date_desc"),
+    ("page_size", "25"),
+)
+SUPPORTED_EXPORT_FILTERS = BOUNDED_TRANSACTION_FILTERS[:3]
+
+
+def _bounded_transactions_url(base_url: str) -> str:
+    query = urllib.parse.urlencode(BOUNDED_TRANSACTION_FILTERS)
+    return f"{base_url.rstrip('/')}/transactions?{query}"
+
+
+def _assert_export_preserves_supported_filters(export_href: str | None) -> None:
+    if not isinstance(export_href, str):
+        raise DogfoodFailure(
+            f"CSV export link did not preserve supported active filters: {export_href!r}"
+        )
+    query = urllib.parse.parse_qs(
+        urllib.parse.urlparse(export_href).query,
+        keep_blank_values=True,
+    )
+    if any(query.get(name) != [value] for name, value in SUPPORTED_EXPORT_FILTERS):
+        raise DogfoodFailure(
+            f"CSV export link did not preserve supported active filters: {export_href!r}"
+        )
+
+
 class WebSocket:
     """Tiny client for unencrypted ws:// CDP connections."""
 
@@ -432,9 +462,18 @@ def run(args: argparse.Namespace) -> list[CheckResult]:
         else:
             results.append(CheckResult("account_detail", "skipped: no account detail link found"))
 
-        filter_url = f"{base_url}/transactions?query=Fixture&date_from=2024-01-01&date_to=2024-12-31&transaction_state=unreconciled&limit=25&offset=0"
+        filter_url = _bounded_transactions_url(base_url)
         page.navigate(filter_url)
-        page.wait_for("location.pathname === '/transactions' && location.search.includes('query=Fixture')")
+        page.wait_for(
+            "(() => { const params = new URLSearchParams(location.search); return "
+            "location.pathname === '/transactions' && "
+            "params.get('date_from') === '2024-01-01' && "
+            "params.get('date_to') === '2024-12-31' && "
+            "params.get('transaction_state') === 'unreconciled' && "
+            "params.get('sort') === 'date_desc' && "
+            "params.get('page_size') === '25' && "
+            "!params.has('query') && !params.has('limit') && !params.has('offset'); })()"
+        )
         page.wait_for("document.body && document.body.innerText.includes('Transactions')")
         if page.evaluate("document.body.innerText.includes('New transaction')"):
             raise DogfoodFailure("write UI unexpectedly visible on transactions page")
@@ -442,9 +481,13 @@ def run(args: argparse.Namespace) -> list[CheckResult]:
         export_href = page.evaluate(
             "Array.from(document.querySelectorAll('a[href*=\"/transactions/export\"]')).map(a => a.getAttribute('href')).find(Boolean) || null"
         )
-        if not isinstance(export_href, str) or "query=Fixture" not in export_href:
-            raise DogfoodFailure(f"CSV export link did not preserve active filters: {export_href!r}")
-        results.append(CheckResult("transactions_filters", "filtered transactions page loaded; export link preserved query"))
+        _assert_export_preserves_supported_filters(export_href)
+        results.append(
+            CheckResult(
+                "transactions_filters",
+                "bounded transactions page loaded; export link preserved date/state filters",
+            )
+        )
 
         page.navigate(f"{base_url}/transactions?limit=25&offset=0")
         row_clicked = page.evaluate(
