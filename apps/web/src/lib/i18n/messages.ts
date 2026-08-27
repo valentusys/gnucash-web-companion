@@ -238,6 +238,16 @@ export type MessageKey =
 	| 'accounts.explorer.repairedWarning'
 	| 'accounts.explorer.mixedCommodityWarning'
 	| 'accounts.explorer.resultsLabel'
+	| 'accounts.explorer.advancedFilters'
+	| 'accounts.explorer.advancedFiltersActive'
+	| 'accounts.explorer.balanceDetails'
+	| 'accounts.explorer.balanceDetailsHelp'
+	| 'accounts.explorer.expandGroup'
+	| 'accounts.explorer.collapseGroup'
+	| 'accounts.explorer.childPagination'
+	| 'accounts.explorer.previousPage'
+	| 'accounts.explorer.nextPage'
+	| 'accounts.explorer.pageStatus'
 	| 'accounts.detail.loading'
 	| 'accounts.detail.kicker'
 	| 'accounts.detail.breadcrumbAria'
@@ -1200,7 +1210,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'accounts.emptyTitle': 'No accounts found',
 		'accounts.emptyMessage': 'The selected read-only book did not return any accounts. Verify the active test-copy book and accessible book metadata before relying on this view.',
 		'accounts.emptyAction': 'Review available books',
-		'accounts.explorer.reset': 'Reset account explorer',
+		'accounts.explorer.reset': 'Reset',
 		'accounts.explorer.filtersTitle': 'Account explorer filters',
 		'accounts.explorer.formHelp':
 			'URL is the source of truth. The form submits a read-only GET request to /accounts; the server validates filters before calling the bounded account explorer API.',
@@ -1245,6 +1255,16 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'accounts.explorer.repairedWarning': 'The hierarchy contained orphan or cycle repairs; source parent IDs are preserved where reported.',
 		'accounts.explorer.mixedCommodityWarning': 'Recursive balances are separate native-commodity buckets. No FX conversion or cross-commodity total is implied.',
 		'accounts.explorer.resultsLabel': 'Server-filtered account explorer results',
+		'accounts.explorer.advancedFilters': 'Advanced filters',
+		'accounts.explorer.advancedFiltersActive': 'Advanced filters · active',
+		'accounts.explorer.balanceDetails': 'Balance details',
+		'accounts.explorer.balanceDetailsHelp': 'Technical native-commodity buckets are exact strings. No FX conversion or cross-commodity total is implied.',
+		'accounts.explorer.expandGroup': 'Expand {name}',
+		'accounts.explorer.collapseGroup': 'Collapse {name}',
+		'accounts.explorer.childPagination': 'Account group pagination',
+		'accounts.explorer.previousPage': 'Previous accounts',
+		'accounts.explorer.nextPage': 'Next accounts',
+		'accounts.explorer.pageStatus': 'Showing {start}–{end} of {total}',
 		'accounts.detail.loading': 'Loading account overview for the selected read-only book…',
 		'accounts.detail.kicker': 'Account detail',
 		'accounts.detail.breadcrumbAria': 'Account breadcrumb',
@@ -2271,7 +2291,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'accounts.emptyTitle': 'Счета не найдены',
 		'accounts.emptyMessage': 'Выбранная read-only книга не вернула счета. Проверьте активную test-copy книгу и доступные метаданные книги, прежде чем полагаться на этот вид.',
 		'accounts.emptyAction': 'Проверить доступные книги',
-		'accounts.explorer.reset': 'Сбросить просмотр счетов',
+		'accounts.explorer.reset': 'Сбросить',
 		'accounts.explorer.filtersTitle': 'Фильтры счетов',
 		'accounts.explorer.formHelp':
 			'URL — источник истины. Форма отправляет read-only GET в /accounts; сервер валидирует фильтры до вызова bounded account explorer API.',
@@ -2316,6 +2336,16 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'accounts.explorer.repairedWarning': 'В иерархии были orphan/cycle repairs; source parent IDs сохранены там, где API их сообщил.',
 		'accounts.explorer.mixedCommodityWarning': 'Recursive balances — отдельные native-commodity buckets. FX conversion и cross-commodity total не подразумеваются.',
 		'accounts.explorer.resultsLabel': 'Server-filtered результаты account explorer',
+		'accounts.explorer.advancedFilters': 'Расширенные фильтры',
+		'accounts.explorer.advancedFiltersActive': 'Расширенные фильтры · активны',
+		'accounts.explorer.balanceDetails': 'Детали баланса',
+		'accounts.explorer.balanceDetailsHelp': 'Технические native-commodity buckets показаны точными строками. FX conversion и cross-commodity total не подразумеваются.',
+		'accounts.explorer.expandGroup': 'Развернуть {name}',
+		'accounts.explorer.collapseGroup': 'Свернуть {name}',
+		'accounts.explorer.childPagination': 'Пагинация группы счетов',
+		'accounts.explorer.previousPage': 'Предыдущие счета',
+		'accounts.explorer.nextPage': 'Следующие счета',
+		'accounts.explorer.pageStatus': 'Показано {start}–{end} из {total}',
 		'accounts.detail.loading': 'Загрузка account overview для выбранной read-only книги…',
 		'accounts.detail.kicker': 'Детали счёта',
 		'accounts.detail.breadcrumbAria': 'Breadcrumb счёта',

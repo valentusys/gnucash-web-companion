@@ -257,7 +257,25 @@ const childNode = node({
 	recursiveBalances: [amount('10.00')]
 });
 
-const allExplorerNodes = [assetsNode, liabilitiesNode, checkingNode, duplicateCheckingNode, placeholderNode, hiddenNode, securityNode, repairedNode];
+const largeAccountCount = 220;
+const largeAssetNodes = Array.from({ length: largeAccountCount }, (_, index) => {
+	const sequence = String(index + 1).padStart(3, '0');
+	const id = (0x1000 + index).toString(16).padStart(32, '0');
+	return node({
+		id,
+		parentId: assetRootId,
+		rootId: assetRootId,
+		path: [segment(assetRootId, 'Assets'), segment(id, `Generated Account ${sequence}`)],
+		depth: 1,
+		name: `Generated Account ${sequence}`,
+		type: 'BANK',
+		directBalance: amount(`${index + 1}.00`),
+		recursiveBalances: [amount(`${index + 1}.00`)]
+	});
+});
+assetsNode.child_count += largeAssetNodes.length;
+
+const allExplorerNodes = [assetsNode, liabilitiesNode, checkingNode, duplicateCheckingNode, placeholderNode, hiddenNode, securityNode, repairedNode, ...largeAssetNodes];
 
 function scanFor(nodes) {
 	return {
@@ -269,7 +287,7 @@ function scanFor(nodes) {
 		rollup_bucket_cells: nodes.reduce((total, item) => total + item.recursive_balances.length, 0),
 		serialized_bytes: JSON.stringify(nodes).length,
 		exhausted: true,
-		limits: { accounts: 50, depth: 12, split_rows: 500 }
+		limits: { accounts: 500, depth: 12, split_rows: 5000 }
 	};
 }
 
@@ -789,7 +807,7 @@ async function assertStorageEmpty(cdp, label) {
 	assert.deepEqual(accountSessionKeys, [], `${label}: account flow must not persist account/filter/cursor state in sessionStorage`);
 }
 
-async function assertAccessibleResponsiveAccounts(cdp, label, expectedLocalePattern) {
+async function assertAccessibleResponsiveAccounts(cdp, label, expectedLocalePattern, expectedWidth) {
 	const state = await evaluate(cdp, `(() => {
 		const root = document.documentElement;
 		const body = document.body;
@@ -809,18 +827,22 @@ async function assertAccessibleResponsiveAccounts(cdp, label, expectedLocalePatt
 			ariaLive: Boolean(document.querySelector('[aria-live="polite"], [aria-live="assertive"]')),
 			submitFocused: document.activeElement === submit,
 			shortTargets: targetRects.filter((rect) => rect.height < 40).length,
-			semanticNestedLists: Boolean(document.querySelector('section[aria-label] ul li details summary')),
+			semanticNestedLists: Boolean(document.querySelector('section[aria-label] ul li button[aria-expanded]')),
+			documentHeight: root?.scrollHeight ?? 0,
+			accountRows: document.querySelectorAll('[data-account-row]').length,
 			bodyText: body?.innerText ?? ''
 		};
 	})()`);
-	assert.equal(state.viewportWidth, 320, `${label}: browser evidence must run at a 320px viewport`);
-	assert.ok(state.scrollWidth <= state.viewportWidth + 8, `${label}: 320px viewport must not have meaningful horizontal overflow (${state.scrollWidth} > ${state.viewportWidth})`);
+	assert.equal(state.viewportWidth, expectedWidth, `${label}: browser evidence must run at the expected mobile viewport`);
+	assert.ok(state.scrollWidth <= state.viewportWidth + 8, `${label}: mobile viewport must not have meaningful horizontal overflow (${state.scrollWidth} > ${state.viewportWidth})`);
 	assert.ok(state.labels >= 15, `${label}: account explorer controls must have visible labels`);
 	assert.ok(state.fieldsets >= 1, `${label}: account type filters must use fieldset/legend semantics`);
 	assert.ok(state.ariaLive, `${label}: account status/validation must expose aria-live`);
 	assert.ok(state.submitFocused, `${label}: submit control must be keyboard-focusable`);
 	assert.equal(state.shortTargets, 0, `${label}: visible controls must be at least 40px high`);
-	assert.ok(state.semanticNestedLists, `${label}: tree mode must render semantic nested lists/details/summary`);
+	assert.ok(state.semanticNestedLists, `${label}: tree mode must render semantic nested lists with native branch buttons`);
+	assert.ok(state.accountRows <= 8, `${label}: collapsed mobile tree must mount only bounded root rows, got ${state.accountRows}`);
+	assert.ok(state.documentHeight <= 2000, `${label}: collapsed mobile document height must stay bounded, got ${state.documentHeight}`);
 	assert.match(state.bodyText, expectedLocalePattern, `${label}: expected localized account title/status must be visible`);
 	return state;
 }
@@ -914,21 +936,57 @@ async function runSmoke() {
 			bodyText: document.body.innerText,
 			resetHref: Array.from(document.querySelectorAll('a')).map((a) => a.getAttribute('href')).find((href) => href === '/accounts') ?? '',
 			paths: Array.from(document.querySelectorAll('p')).map((p) => p.textContent.trim()).filter((text) => text.includes('Checking')),
-			detailsCount: document.querySelectorAll('details summary').length,
+			initialDomRows: document.querySelectorAll('[data-account-row]').length,
+			initialDocumentHeight: document.documentElement.scrollHeight,
+			groupToggleCount: document.querySelectorAll('[data-account-toggle]').length,
 			resultsLabel: document.querySelector('section[aria-label="Server-filtered account explorer results"]')?.getAttribute('aria-label') ?? ''
 		}))()`);
+		assert.ok(allExplorerNodes.length >= 212, 'synthetic account fixture must contain at least 212 discoverable accounts');
 		assert.equal(defaultState.resetHref, '/accounts', 'default account explorer reset href must be exactly /accounts');
-		assert.ok(defaultState.paths.some((text) => text.includes('Assets:') && text.includes('Checking')), 'duplicate Checking account must be distinguished by Assets path');
-		assert.ok(defaultState.paths.some((text) => text.includes('Liabilities:Checking')), 'duplicate Checking account must be distinguished by Liabilities path');
-		assert.ok(defaultState.detailsCount >= 1, 'tree mode must render nested details/summary lists');
+		assert.ok(defaultState.initialDomRows <= 8, `collapsed initial tree must mount only bounded root rows, got ${defaultState.initialDomRows}`);
+		assert.ok(defaultState.initialDocumentHeight <= 4200, `collapsed initial document height must stay bounded, got ${defaultState.initialDocumentHeight}`);
+		assert.ok(defaultState.groupToggleCount >= 2, 'tree mode must expose top-level branch toggles');
 		assert.equal(defaultState.resultsLabel, 'Server-filtered account explorer results', 'results section must be semantically labelled');
-		assert.match(defaultState.bodyText, /Direct native balance/i, `direct native balance label must be visible; body excerpt: ${defaultState.bodyText.slice(0, 800)}`);
-		assert.match(defaultState.bodyText, /Recursive native-commodity buckets/i, `recursive native buckets label must be visible; body excerpt: ${defaultState.bodyText.slice(0, 800)}`);
-		assert.match(defaultState.bodyText, /No FX conversion|native-commodity buckets/i, 'mixed native commodity warning must not imply an FX total');
+		assert.doesNotMatch(defaultState.bodyText, /Recursive native-commodity buckets/i, 'technical native buckets must be hidden before disclosure');
+		assert.match(defaultState.bodyText, /Balance details/i, 'collapsed balance disclosure must be available from each visible account row');
 		assert.doesNotMatch(defaultState.bodyText, /FX total|converted total|cross-currency total/i, 'account explorer must not display a fake FX/cross-commodity total');
-		await assertStorageEmpty(cdp, 'default /accounts');
-		screenshots.push(await captureScreenshot(cdp, 'accounts-desktop-en-default'));
+		screenshots.push(await captureScreenshot(cdp, 'accounts-desktop-en-initial'));
+		await evaluate(cdp, `document.querySelector('[data-account-balance-details="${assetRootId}"] summary')?.click()`);
+		await waitForExpression(cdp, `document.body.innerText.includes('RECURSIVE NATIVE-COMMODITY BUCKETS')`, 'technical balance disclosure');
+		const disclosedBalanceText = await evaluate(cdp, `document.body.innerText`);
+		assert.match(disclosedBalanceText, /Direct native balance[\s\S]*Recursive native-commodity buckets/i, 'balance disclosure must reveal exact direct and native-bucket labels');
+		assert.match(disclosedBalanceText, /No FX conversion|No FX/i, 'balance disclosure must state the no-FX boundary');
 
+		await evaluate(cdp, `document.querySelector('[data-account-toggle="${assetRootId}"]')?.focus()`);
+		await cdp.send('Input.dispatchKeyEvent', { type: 'rawKeyDown', key: ' ', code: 'Space', windowsVirtualKeyCode: 32 });
+		await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', key: ' ', code: 'Space', windowsVirtualKeyCode: 32 });
+		await waitForExpression(cdp, `document.querySelector('[data-account-toggle="${assetRootId}"]')?.getAttribute('aria-expanded') === 'true'`, 'keyboard-expand Assets');
+		const expandedState = await evaluate(cdp, `(() => ({
+			rows: document.querySelectorAll('[data-account-row]').length,
+			height: document.documentElement.scrollHeight,
+			firstGeneratedVisible: document.body.innerText.includes('Generated Account 001'),
+			nextButton: Boolean(document.querySelector('[data-account-page-next="${assetRootId}"]'))
+		}))()`);
+		assert.ok(expandedState.rows <= 32, `expanded branch must mount one bounded child window, got ${expandedState.rows}`);
+		assert.ok(expandedState.height <= 9000, `expanded branch document height must remain bounded, got ${expandedState.height}`);
+		assert.equal(expandedState.firstGeneratedVisible, true, 'first child window must expose generated accounts');
+		assert.equal(expandedState.nextButton, true, 'large child group must expose a next-page button');
+		await evaluate(cdp, `document.querySelector('[data-account-page-next="${assetRootId}"]')?.click()`);
+		await waitForExpression(cdp, `document.body.innerText.includes('Generated Account 025')`, 'second Assets child page');
+		const secondPageState = await evaluate(cdp, `(() => ({ rows: document.querySelectorAll('[data-account-row]').length, first: document.body.innerText.includes('Generated Account 001'), later: document.body.innerText.includes('Generated Account 025') }))()`);
+		assert.ok(secondPageState.rows <= 32, `second child page must keep DOM bounded, got ${secondPageState.rows}`);
+		assert.equal(secondPageState.first, false, 'moving to the next child page must unmount the first window');
+		assert.equal(secondPageState.later, true, 'moving to the next child page must mount later accounts');
+		await assertStorageEmpty(cdp, 'default /accounts');
+		screenshots.push(await captureScreenshot(cdp, 'accounts-desktop-en-paged'));
+
+		await navigateAndWait(cdp, webBase, '/accounts?query=Generated%20Account%20220', `location.pathname === '/accounts' && document.body.innerText.includes('Generated Account 220')`, 'far generated account search discovery');
+		const farSearchState = await evaluate(cdp, `(() => ({ rows: document.querySelectorAll('[data-account-row]').length, height: document.documentElement.scrollHeight, bodyText: document.body.innerText }))()`);
+		assert.ok(farSearchState.rows <= 8, `server search must reveal the far account without mounting the full tree, got ${farSearchState.rows}`);
+		assert.ok(farSearchState.height <= 5000, `far-account search document height must stay bounded, got ${farSearchState.height}`);
+		assert.match(farSearchState.bodyText, /Generated Account 220/, 'all generated accounts must remain discoverable through sticky server search');
+
+		const beforeCanonicalExplorer = accountExplorerRequests(api).length;
 		await navigateAndWait(
 			cdp,
 			webBase,
@@ -936,10 +994,11 @@ async function runSmoke() {
 			`location.pathname === '/accounts' && location.search === '?query=checking&type=ASSET' && document.body.innerText.includes('Account explorer loaded')`,
 			'canonical account explorer URL'
 		);
-		assert.equal(accountExplorerRequests(api).length, 2, 'canonical explorer URL must issue exactly one new explorer request');
+		assert.equal(accountExplorerRequests(api).length, beforeCanonicalExplorer + 1, 'canonical explorer URL must issue exactly one new explorer request');
 		assertRequestParams(accountExplorerRequests(api).at(-1), { query: 'checking', type: 'ASSET' }, 'canonical account explorer request');
 		assertRequestParamsAbsent(accountExplorerRequests(api).at(-1), ['mode', 'hidden', 'placeholder', 'cursor', 'offset'], 'canonical account explorer request');
 
+		const beforeFlatExplorer = accountExplorerRequests(api).length;
 		await navigateAndWait(
 			cdp,
 			webBase,
@@ -947,7 +1006,7 @@ async function runSmoke() {
 			`location.pathname === '/accounts' && location.search === '?mode=flat&query=checking&hidden=include' && document.body.innerText.includes('Account explorer loaded')`,
 			'flat account explorer warnings'
 		);
-		assert.equal(accountExplorerRequests(api).length, 3, 'flat warning URL must issue exactly one new explorer request');
+		assert.equal(accountExplorerRequests(api).length, beforeFlatExplorer + 1, 'flat warning URL must issue exactly one new explorer request');
 		assertRequestParams(accountExplorerRequests(api).at(-1), { mode: 'flat', query: 'checking', hidden: 'include' }, 'flat warning explorer request');
 		const warningState = await evaluate(cdp, `document.body.innerText`);
 		assert.match(warningState, /Assets:[\s\S]*Checking[\s\S]*Liabilities:Checking/, 'duplicate account names must remain distinguishable by full path');
@@ -978,10 +1037,15 @@ async function runSmoke() {
 		await cdp.send('Emulation.setDeviceMetricsOverride', { width: 320, height: 700, deviceScaleFactor: 2, mobile: true });
 		await cdp.send('Network.setCookie', { name: 'ui_locale', value: 'ru', url: webBase, path: '/', sameSite: 'Lax' });
 		await navigateAndWait(cdp, webBase, '/accounts?hidden=include', `location.pathname === '/accounts' && document.body.innerText.includes('Account explorer загружен')`, 'mobile RU accounts explorer');
-		const mobileState = await assertAccessibleResponsiveAccounts(cdp, 'mobile RU accounts explorer', /Дерево счетов|Account explorer загружен/);
+		const mobileState = await assertAccessibleResponsiveAccounts(cdp, 'mobile RU accounts explorer', /Дерево счетов|Account explorer загружен/, 320);
 		await assertStorageEmpty(cdp, 'mobile RU accounts explorer');
 		screenshots.push(await captureScreenshot(cdp, 'accounts-mobile-ru-320x700'));
 		await cdp.send('Network.setCookie', { name: 'ui_locale', value: 'en', url: webBase, path: '/', sameSite: 'Lax' });
+		await cdp.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 780, deviceScaleFactor: 2, mobile: true });
+		await navigateAndWait(cdp, webBase, '/accounts', `location.pathname === '/accounts' && document.body.innerText.includes('Account explorer loaded')`, 'mobile EN 390 accounts explorer');
+		const mobile390State = await assertAccessibleResponsiveAccounts(cdp, 'mobile EN 390 accounts explorer', /Account tree|Account explorer loaded/, 390);
+		assert.ok((await evaluate(cdp, `document.querySelectorAll('[data-account-row]').length`)) <= 8, '390px initial account DOM must remain collapsed and bounded');
+		await assertStorageEmpty(cdp, 'mobile EN 390 accounts explorer');
 		await cdp.send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
 
 		const overviewBefore = accountOverviewRequests(api).length;
@@ -1107,7 +1171,7 @@ async function runSmoke() {
 
 		assertNoMutationRequestsObserved(api, browserRequests, 'accounts explorer browser smoke');
 		assertNoConsoleErrors(runtimeExceptions, consoleErrors);
-		console.log(`accounts explorer browser smoke passed: account_explorer_requests=${accountExplorerRequests(api).length} overview_requests=${accountOverviewRequests(api).length} activity_requests=${accountActivityRequests(api).length} transaction_explorer_requests=${transactionExplorerRequests(api).length} html_contains_private_sentinel=${htmlContainsPrivateSentinel} api_forbidden=${api.forbiddenRequests.length} browser_forbidden=${forbiddenBrowserMutationRequests(browserRequests).length} runtime_exceptions=${runtimeExceptions.length} console_errors=${consoleErrors.length} mobile_width=${mobileState.viewportWidth} mobile_scroll_width=${mobileState.scrollWidth} screenshots=${screenshots.join(',')}`);
+		console.log(`accounts explorer browser smoke passed: account_explorer_requests=${accountExplorerRequests(api).length} overview_requests=${accountOverviewRequests(api).length} activity_requests=${accountActivityRequests(api).length} transaction_explorer_requests=${transactionExplorerRequests(api).length} initial_dom_rows=${defaultState.initialDomRows} initial_document_height=${defaultState.initialDocumentHeight} discoverable_accounts=${allExplorerNodes.length} html_contains_private_sentinel=${htmlContainsPrivateSentinel} api_forbidden=${api.forbiddenRequests.length} browser_forbidden=${forbiddenBrowserMutationRequests(browserRequests).length} runtime_exceptions=${runtimeExceptions.length} console_errors=${consoleErrors.length} mobile_width=${mobileState.viewportWidth} mobile_scroll_width=${mobileState.scrollWidth} mobile_390_width=${mobile390State.viewportWidth} screenshots=${screenshots.join(',')}`);
 	} catch (error) {
 		let failureEvidence = '';
 		try {
