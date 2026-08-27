@@ -40,7 +40,19 @@
 				</div>
 			{/if}
 			{#if !data.sectionErrors.summary}
-				<SummaryGrid summary={data.summary} drilldowns={data.drilldowns} {locale} {settingsHref} isAdmin={data.isAdmin === true} />
+				<SummaryGrid
+					summary={data.summary}
+					drilldowns={data.drilldowns}
+					monthCashflow={data.monthCashflow}
+					expenseChanges={data.expenseChanges}
+					upcomingObligations={data.upcomingObligations}
+					comparisonPeriod={data.comparisonPeriod}
+					changesUnavailable={data.sectionErrors.changes}
+					obligationsUnavailable={data.sectionErrors.upcomingObligations}
+					{locale}
+					{settingsHref}
+					isAdmin={data.isAdmin === true}
+				/>
 			{/if}
 		</section>
 
@@ -77,7 +89,7 @@
 					<p class="mt-1" style="color: var(--app-muted);">{t(locale, 'dashboard.sectionError.redacted')}</p>
 				</section>
 			{:else}
-				<ExpensesByAccount expenses={data.expenses} drilldownHrefs={data.drilldowns.expensesByAccount} {locale} />
+				<ExpensesByAccount expenses={data.expenses} drilldownHrefs={data.drilldowns.expensesByAccount} viewAllHref={data.drilldowns.expensesAll} {locale} />
 			{/if}
 		</div>
 

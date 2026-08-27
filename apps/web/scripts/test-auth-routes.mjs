@@ -85,8 +85,8 @@ assert.match(
 );
 assert.match(
 	dashboardPage,
-	/<SummaryGrid summary=\{data\.summary\} drilldowns=\{data\.drilldowns\}[\s\S]*<RecentTransactions transactions=\{data\.recentTransactions\} drilldownHref=\{data\.drilldowns\.recent\}[\s\S]*<ExpensesByAccount expenses=\{data\.expenses\} drilldownHrefs=\{data\.drilldowns\.expensesByAccount\}[\s\S]*<CashflowSummary periods=\{data\.cashflowPeriods\} drilldownHrefs=\{data\.drilldowns\.cashflowByMonth\}/s,
-	'dashboard must pass active-book-preserving transaction drilldown URLs into report sections'
+	/<SummaryGrid[\s\S]*summary=\{data\.summary\}[\s\S]*drilldowns=\{data\.drilldowns\}[\s\S]*monthCashflow=\{data\.monthCashflow\}[\s\S]*expenseChanges=\{data\.expenseChanges\}[\s\S]*upcomingObligations=\{data\.upcomingObligations\}[\s\S]*<RecentTransactions transactions=\{data\.recentTransactions\} drilldownHref=\{data\.drilldowns\.recent\}[\s\S]*<ExpensesByAccount expenses=\{data\.expenses\} drilldownHrefs=\{data\.drilldowns\.expensesByAccount\} viewAllHref=\{data\.drilldowns\.expensesAll\}[\s\S]*<CashflowSummary periods=\{data\.cashflowPeriods\} drilldownHrefs=\{data\.drilldowns\.cashflowByMonth\}/s,
+	'dashboard must pass active-book-preserving transaction drilldown URLs and exact decision data into report sections'
 );
 assert.match(
 	read('src/lib/components/SummaryGrid.svelte'),

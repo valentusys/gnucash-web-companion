@@ -4,19 +4,38 @@
 
 	type Expense = import('$lib/api/types').ExpenseByAccount;
 
-	let { expenses, loading = false, drilldownHrefs = {}, locale = DEFAULT_LOCALE }: { expenses: Expense[]; loading?: boolean; drilldownHrefs?: Record<string, string>; locale?: Locale } = $props();
+	let {
+		expenses,
+		loading = false,
+		drilldownHrefs = {},
+		viewAllHref = '/reports',
+		locale = DEFAULT_LOCALE
+	}: {
+		expenses: Expense[];
+		loading?: boolean;
+		drilldownHrefs?: Record<string, string>;
+		viewAllHref?: string;
+		locale?: Locale;
+	} = $props();
 
 	function barWidth(total: string, all: Expense[]): string {
 		return decimalBarWidthPercent(
 			total,
-			all.map((e) => e.total)
+			all.map((expense) => expense.total)
 		);
 	}
 </script>
 
 <section class="rounded-xl p-5" style="background-color: var(--app-panel); box-shadow: 0 1px 3px var(--app-panel-shadow); border: 1px solid var(--app-border);">
-	<h2 class="text-lg font-semibold" style="color: var(--app-text);">{t(locale, 'dashboard.expensesByAccount')}</h2>
-	<p class="mt-1 text-xs" style="color: var(--app-muted);">{t(locale, 'dashboard.expensesByAccountHelp')}</p>
+	<div class="flex items-start justify-between gap-3">
+		<div>
+			<h2 class="text-lg font-semibold" style="color: var(--app-text);">{t(locale, 'dashboard.expensesByAccount')}</h2>
+			<p class="mt-1 text-xs" style="color: var(--app-muted);">{t(locale, 'dashboard.expensesByAccountHelp')}</p>
+		</div>
+		{#if expenses.length > 5}
+			<a class="shrink-0 text-sm font-semibold" style="color: var(--app-accent);" href={viewAllHref}>{t(locale, 'dashboard.viewAllExpenses')}</a>
+		{/if}
+	</div>
 
 	{#if loading}
 		<div class="mt-4 space-y-3">
@@ -31,10 +50,10 @@
 		<p class="mt-4 text-sm" style="color: var(--app-muted);">{t(locale, 'dashboard.noExpenses')}</p>
 	{:else}
 		<ul class="mt-4 space-y-3">
-			{#each expenses as exp (exp.account_id)}
-				<li>
+			{#each expenses.slice(0, 5) as exp (exp.account_id)}
+				<li data-dashboard-expense-row>
 					<div class="flex items-center justify-between text-sm">
-						<a class="truncate font-medium" style="color: var(--app-accent);" href={drilldownHrefs[exp.account_id] ?? `/transactions?account_id=${encodeURIComponent(exp.account_id)}&limit=50&offset=0`}>{exp.account_name}</a>
+						<a class="truncate font-medium" style="color: var(--app-accent);" href={drilldownHrefs[exp.account_id] ?? `/transactions?account_id=${encodeURIComponent(exp.account_id)}`}>{exp.account_name}</a>
 						<span class="ml-4 whitespace-nowrap tabular-nums" style="color: var(--app-text);">
 							{exp.total}
 							<span class="ml-0.5 text-xs" style="color: var(--app-muted);">{exp.currency}</span>

@@ -314,6 +314,23 @@ export type MessageKey =
 	| 'dashboard.setupReason.dominance_tie'
 	| 'dashboard.configuredCurrencyStatus'
 	| 'dashboard.netWorth'
+	| 'dashboard.position'
+	| 'dashboard.asOf'
+	| 'dashboard.monthResult'
+	| 'dashboard.monthResultUnavailable'
+	| 'dashboard.largestChanges'
+	| 'dashboard.largestChangesUnavailable'
+	| 'dashboard.noLargestChanges'
+	| 'dashboard.comparedWith'
+	| 'dashboard.changeIncrease'
+	| 'dashboard.changeDecrease'
+	| 'dashboard.changeUnchanged'
+	| 'dashboard.upcomingObligations'
+	| 'dashboard.upcomingObligationsUnavailable'
+	| 'dashboard.enabledSchedules'
+	| 'dashboard.nextDueUnavailable'
+	| 'dashboard.reviewScheduled'
+	| 'dashboard.calculationDetails'
 	| 'dashboard.assets'
 	| 'dashboard.liabilities'
 	| 'dashboard.incomeThisMonth'
@@ -322,10 +339,13 @@ export type MessageKey =
 	| 'dashboard.drilldownSafety'
 	| 'dashboard.recentTransactions'
 	| 'dashboard.recentTransactionsHelp'
+	| 'dashboard.transactionFromTo'
+	| 'dashboard.amountNotShown'
 	| 'dashboard.viewTransactions'
 	| 'dashboard.noRecentTransactions'
 	| 'dashboard.expensesByAccount'
 	| 'dashboard.expensesByAccountHelp'
+	| 'dashboard.viewAllExpenses'
 	| 'dashboard.noExpenses'
 	| 'dashboard.cashflow'
 	| 'dashboard.cashflowHelp'
@@ -1332,6 +1352,23 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'dashboard.setupReason.dominance_tie': 'Several active currencies tie, so the app will not choose one alphabetically.',
 		'dashboard.configuredCurrencyStatus': 'Configured currency status: {status}',
 		'dashboard.netWorth': 'Net Worth',
+		'dashboard.position': 'Position',
+		'dashboard.asOf': 'As of',
+		'dashboard.monthResult': 'Month result',
+		'dashboard.monthResultUnavailable': 'Month result is unavailable for this reporting period.',
+		'dashboard.largestChanges': 'Largest changes',
+		'dashboard.largestChangesUnavailable': 'A safe period comparison is unavailable.',
+		'dashboard.noLargestChanges': 'No comparable expense changes were returned.',
+		'dashboard.comparedWith': 'Compared with',
+		'dashboard.changeIncrease': 'Increase',
+		'dashboard.changeDecrease': 'Decrease',
+		'dashboard.changeUnchanged': 'Unchanged',
+		'dashboard.upcomingObligations': 'Upcoming obligations',
+		'dashboard.upcomingObligationsUnavailable': 'Scheduled metadata is unavailable.',
+		'dashboard.enabledSchedules': '{count} enabled schedules',
+		'dashboard.nextDueUnavailable': 'Exact next due dates are not available yet; no date or amount is inferred.',
+		'dashboard.reviewScheduled': 'Review schedules',
+		'dashboard.calculationDetails': 'Calculation and safety details',
 		'dashboard.assets': 'Assets',
 		'dashboard.liabilities': 'Liabilities',
 		'dashboard.incomeThisMonth': 'Income This Month',
@@ -1341,10 +1378,13 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 			'Drilldowns preserve the active book and use existing read-only transaction URL filters. Dashboard totals remain base-currency-only with no FX conversion; transaction filter views are evidence for the same period/account context, not invented recomputations.',
 		'dashboard.recentTransactions': 'Recent Transactions',
 		'dashboard.recentTransactionsHelp': 'Same read-only transaction list, newest first; CSV export uses matching filters.',
+		'dashboard.transactionFromTo': 'From {from} to {to}',
+		'dashboard.amountNotShown': 'Amount not shown',
 		'dashboard.viewTransactions': 'View transactions',
 		'dashboard.noRecentTransactions': 'No transactions found.',
 		'dashboard.expensesByAccount': 'Expenses by Account',
-		'dashboard.expensesByAccountHelp': 'Base-currency-only reporting; account links open the same read-only date/account filter used for CSV parity.',
+		'dashboard.expensesByAccountHelp': 'Top five expense accounts for the as-of month, using exact base-currency strings.',
+		'dashboard.viewAllExpenses': 'View all expenses',
 		'dashboard.noExpenses': 'No expenses found for the selected period.',
 		'dashboard.cashflow': 'Cashflow',
 		'dashboard.cashflowHelp': 'Monthly drilldowns use date_from/date_to transaction filters for the active book. No FX conversion is inferred.',
@@ -2413,6 +2453,23 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'dashboard.setupReason.dominance_tie': 'Несколько активных валют имеют одинаковый приоритет, поэтому приложение не выбирает по алфавиту.',
 		'dashboard.configuredCurrencyStatus': 'Статус настроенной валюты: {status}',
 		'dashboard.netWorth': 'Чистая стоимость',
+		'dashboard.position': 'Позиция',
+		'dashboard.asOf': 'На дату',
+		'dashboard.monthResult': 'Результат месяца',
+		'dashboard.monthResultUnavailable': 'Результат месяца недоступен для этого отчётного периода.',
+		'dashboard.largestChanges': 'Крупнейшие изменения',
+		'dashboard.largestChangesUnavailable': 'Безопасное сравнение периодов недоступно.',
+		'dashboard.noLargestChanges': 'Сопоставимые изменения расходов не вернулись.',
+		'dashboard.comparedWith': 'Сравнение с',
+		'dashboard.changeIncrease': 'Рост',
+		'dashboard.changeDecrease': 'Снижение',
+		'dashboard.changeUnchanged': 'Без изменений',
+		'dashboard.upcomingObligations': 'Предстоящие обязательства',
+		'dashboard.upcomingObligationsUnavailable': 'Метаданные плановых операций недоступны.',
+		'dashboard.enabledSchedules': 'Активных расписаний: {count}',
+		'dashboard.nextDueUnavailable': 'Точные даты следующих операций пока недоступны; дата и сумма не предполагаются.',
+		'dashboard.reviewScheduled': 'Проверить расписания',
+		'dashboard.calculationDetails': 'Расчёты и безопасность',
 		'dashboard.assets': 'Активы',
 		'dashboard.liabilities': 'Обязательства',
 		'dashboard.incomeThisMonth': 'Доходы за месяц',
@@ -2422,10 +2479,13 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 			'Drilldown-ссылки сохраняют активную книгу и используют существующие read-only URL-фильтры транзакций. Итоги обзора остаются только в базовой валюте без FX-конвертации; виды транзакций — это evidence для того же периода/счёта, а не заново рассчитанные итоги.',
 		'dashboard.recentTransactions': 'Последние транзакции',
 		'dashboard.recentTransactionsHelp': 'Тот же read-only список транзакций, новые сначала; CSV export использует совпадающие фильтры.',
+		'dashboard.transactionFromTo': 'Со счёта «{from}» на счёт «{to}»',
+		'dashboard.amountNotShown': 'Сумма не показана',
 		'dashboard.viewTransactions': 'Открыть транзакции',
 		'dashboard.noRecentTransactions': 'Транзакции не найдены.',
 		'dashboard.expensesByAccount': 'Расходы по счетам',
-		'dashboard.expensesByAccountHelp': 'Отчёт только в базовой валюте; ссылки по счетам открывают тот же read-only фильтр даты/счёта для parity с CSV.',
+		'dashboard.expensesByAccountHelp': 'Пять крупнейших счетов расходов за месяц на дату отчёта; точные строки в базовой валюте.',
+		'dashboard.viewAllExpenses': 'Все расходы',
 		'dashboard.noExpenses': 'За выбранный период расходы не найдены.',
 		'dashboard.cashflow': 'Денежный поток',
 		'dashboard.cashflowHelp': 'Месячные drilldown-ссылки используют фильтры транзакций date_from/date_to для активной книги. FX-конвертация не предполагается.',

@@ -595,6 +595,7 @@ export type DashboardDrilldownLinks = {
 	recent: string;
 	incomeThisMonth: string;
 	expensesThisMonth: string;
+	expensesAll: string;
 	cashflowByMonth: Record<string, string>;
 	expensesByAccount: Record<string, string>;
 };
@@ -604,6 +605,20 @@ export type DashboardSectionErrors = {
 	expenses: boolean;
 	cashflow: boolean;
 	recentTransactions: boolean;
+	changes: boolean;
+	upcomingObligations: boolean;
+};
+
+export type DashboardExpenseChange = {
+	account_id: string;
+	account_name: string;
+	delta: string;
+	absolute_delta: string;
+	currency: string;
+};
+
+export type DashboardUpcomingObligations = {
+	enabled_count: number;
 };
 
 export type ExpenseByAccount = {

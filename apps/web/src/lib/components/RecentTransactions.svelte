@@ -4,8 +4,38 @@
 	import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 
 	type Transaction = import('$lib/api/types').TransactionListItem;
+	type DashboardTransactionKind = 'ordinary' | 'composite' | 'ambiguous';
 
-	let { transactions, loading = false, drilldownHref = '/transactions?limit=50&offset=0', locale = DEFAULT_LOCALE }: { transactions: Transaction[]; loading?: boolean; drilldownHref?: string; locale?: Locale } = $props();
+	let { transactions, loading = false, drilldownHref = '/transactions', locale = DEFAULT_LOCALE }: { transactions: Transaction[]; loading?: boolean; drilldownHref?: string; locale?: Locale } = $props();
+
+	function ordinaryTwoSplit(tx: Transaction): boolean {
+		const direction = tx.direction;
+		return Boolean(
+			direction?.status === 'resolved' &&
+				direction.from_accounts.length === 1 &&
+				direction.to_accounts.length === 1 &&
+				direction.from_accounts[0].split_count === 1 &&
+				direction.to_accounts[0].split_count === 1
+		);
+	}
+
+	function transactionKind(tx: Transaction): DashboardTransactionKind {
+		if (ordinaryTwoSplit(tx)) return 'ordinary';
+		return tx.direction?.status === 'composite' ? 'composite' : 'ambiguous';
+	}
+
+	function entryLabel(entry: { account_id: string; display_name: string; full_name: string }): string {
+		return entry.display_name || entry.full_name || entry.account_id;
+	}
+
+	function friendlyDirection(tx: Transaction): string {
+		const direction = tx.direction;
+		if (!direction) return t(locale, 'transactions.direction.ambiguous');
+		return t(locale, 'dashboard.transactionFromTo', {
+			from: entryLabel(direction.from_accounts[0]),
+			to: entryLabel(direction.to_accounts[0])
+		});
+	}
 </script>
 
 <section class="rounded-xl p-5" style="background-color: var(--app-panel); box-shadow: 0 1px 3px var(--app-panel-shadow); border: 1px solid var(--app-border);">
@@ -34,19 +64,28 @@
 	{:else}
 		<ul class="mt-4 divide-y" style="border-color: var(--app-border);">
 			{#each transactions as tx (tx.id)}
-				{@const representative = tx.direction?.status === 'resolved' ? (tx.representative_amount ?? tx.matched_amount ?? null) : null}
-				<li class="flex min-w-0 flex-col gap-2 py-3 sm:flex-row sm:items-start sm:justify-between" style="border-color: var(--app-border);">
+				{@const kind = transactionKind(tx)}
+				{@const representative = ordinaryTwoSplit(tx) ? (tx.representative_amount ?? null) : null}
+				<li
+					data-dashboard-recent-kind={kind}
+					class="flex min-w-0 flex-col gap-2 py-3 sm:flex-row sm:items-start sm:justify-between"
+					style="border-color: var(--app-border);"
+				>
 					<div class="min-w-0 flex-1">
 						<p class="truncate text-sm font-medium" style="color: var(--app-text);" title={tx.description || t(locale, 'transactionDetail.noDescription')}>{tx.description || t(locale, 'transactionDetail.noDescription')}</p>
-						<p class="text-xs" style="color: var(--app-muted);">{tx.date}</p>
+						<time data-dashboard-date class="whitespace-nowrap text-xs" style="color: var(--app-muted);" datetime={tx.date}>{tx.date}</time>
 						<div class="mt-2 min-w-0">
-							<TransactionDirection direction={tx.direction ?? null} {locale} compact />
+							{#if kind === 'ordinary'}
+								<p class="truncate text-xs" style="color: var(--app-muted);" title={friendlyDirection(tx)}>{friendlyDirection(tx)}</p>
+							{:else}
+								<TransactionDirection direction={tx.direction ?? null} {locale} compact />
+							{/if}
 						</div>
 					</div>
 					{#if representative}
 						<span class="shrink-0 text-sm font-semibold tabular-nums"><Money amount={representative.amount} currency={representative.currency} /></span>
 					{:else if tx.direction}
-						<span class="shrink-0 text-xs" style="color: var(--app-muted);">{t(locale, 'transactions.direction.amountHidden')}</span>
+						<span class="shrink-0 text-xs" style="color: var(--app-muted);">{t(locale, 'dashboard.amountNotShown')}</span>
 					{/if}
 				</li>
 			{/each}

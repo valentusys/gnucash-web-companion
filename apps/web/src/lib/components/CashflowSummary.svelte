@@ -27,7 +27,7 @@
 		<div class="mt-4 space-y-3">
 			{#each periods as period (period.month)}
 				<div class="rounded-lg p-3" style="background-color: var(--app-elevated-bg);">
-					<a class="text-xs font-medium uppercase tracking-wide" style="color: var(--app-accent);" href={drilldownHrefs[period.month] ?? '/transactions?limit=50&offset=0'}>{period.month}</a>
+					<a data-dashboard-date class="whitespace-nowrap text-xs font-medium uppercase tracking-wide" style="color: var(--app-accent);" href={drilldownHrefs[period.month] ?? '/transactions'}>{period.month}</a>
 					<div class="mt-2 grid grid-cols-3 gap-2 text-sm">
 						<div>
 							<span style="color: var(--app-muted);">{t(locale, 'dashboard.cashflowIn')}</span>

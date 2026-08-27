@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { spawn } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -126,7 +126,15 @@ function summaryPayload(mode) {
 
 function expensesPayload(mode) {
 	if (mode === 'empty') return [];
-	return [{ account_id: 'expense-food', account_name: 'Synthetic Food', total: '45.67', currency: 'SEK' }];
+	return [
+		{ account_id: 'expense-housing', account_name: 'Synthetic Housing', total: '15.00', currency: 'SEK' },
+		{ account_id: 'expense-food', account_name: 'Synthetic Food', total: '10.00', currency: 'SEK' },
+		{ account_id: 'expense-transport', account_name: 'Synthetic Transport', total: '8.00', currency: 'SEK' },
+		{ account_id: 'expense-health', account_name: 'Synthetic Health', total: '6.00', currency: 'SEK' },
+		{ account_id: 'expense-utilities', account_name: 'Synthetic Utilities', total: '4.00', currency: 'SEK' },
+		{ account_id: 'expense-dining', account_name: 'Synthetic Dining', total: '2.00', currency: 'SEK' },
+		{ account_id: 'expense-books', account_name: 'Synthetic Books', total: '0.67', currency: 'SEK' }
+	];
 }
 
 function cashflowPayload(mode) {
@@ -155,8 +163,167 @@ function recentTransactionsPayload(mode) {
 			},
 			representative_amount: { amount: '125.00', currency: 'SEK' },
 			matched_amount: { amount: '125.00', currency: 'SEK' }
+		},
+		{
+			id: 'tx-dashboard-no-representative',
+			date: '2026-07-10',
+			description: 'Synthetic Missing Representative',
+			amount: '999.91',
+			currency: 'SEK',
+			account_id: 'expense-food',
+			account_name: 'Synthetic Food',
+			counter_account_name: 'Synthetic Bank',
+			direction: {
+				status: 'resolved',
+				reason: 'balanced',
+				currency: 'SEK',
+				from_accounts: [{ account_id: 'bank-main', display_name: 'Synthetic Bank', full_name: 'Assets:Synthetic Bank', value: '-9.91', split_count: 1 }],
+				to_accounts: [{ account_id: 'expense-food', display_name: 'Synthetic Food', full_name: 'Expenses:Synthetic Food', value: '9.91', split_count: 1 }]
+			},
+			matched_amount: { amount: '999.91', currency: 'SEK' }
+		},
+		{
+			id: 'tx-dashboard-composite',
+			date: '2026-07-09',
+			description: 'Synthetic Composite Purchase',
+			amount: '777.72',
+			currency: 'SEK',
+			account_id: 'expense-food',
+			account_name: 'Synthetic Food',
+			counter_account_name: 'Synthetic Bank',
+			direction: {
+				status: 'composite',
+				reason: 'multiple_accounts',
+				currency: 'SEK',
+				from_accounts: [{ account_id: 'bank-main', display_name: 'Synthetic Bank', full_name: 'Assets:Synthetic Bank', value: '-12.00', split_count: 1 }],
+				to_accounts: [
+					{ account_id: 'expense-food', display_name: 'Synthetic Food', full_name: 'Expenses:Synthetic Food', value: '8.00', split_count: 1 },
+					{ account_id: 'expense-supplies', display_name: 'Synthetic Supplies', full_name: 'Expenses:Synthetic Supplies', value: '4.00', split_count: 1 }
+				]
+			},
+			representative_amount: { amount: '777.72', currency: 'SEK' }
+		},
+		{
+			id: 'tx-dashboard-ambiguous',
+			date: '2026-07-08',
+			description: 'Synthetic Ambiguous Entry',
+			amount: '888.83',
+			currency: 'SEK',
+			account_id: 'bank-main',
+			account_name: 'Synthetic Bank',
+			counter_account_name: '',
+			direction: {
+				status: 'ambiguous',
+				reason: 'unbalanced',
+				currency: 'SEK',
+				from_accounts: [],
+				to_accounts: []
+			},
+			representative_amount: { amount: '888.83', currency: 'SEK' }
 		}
 	];
+}
+
+function scheduledPayload(mode) {
+	if (mode === 'empty') return [];
+	return [
+		{ id: 'schedule-rent', name: 'Synthetic Rent', enabled: true, start_date: '2025-01-01' },
+		{ id: 'schedule-insurance', name: 'Synthetic Insurance', enabled: true, start_date: '2025-02-01' },
+		{ id: 'schedule-disabled', name: 'Synthetic Disabled Rule', enabled: false, start_date: '2025-03-01' }
+	];
+}
+
+function periodReport({ dateFrom, dateTo, mode, comparison = false }) {
+	const failed = mode === 'failed-sections' && !comparison;
+	const empty = mode === 'empty';
+	const expenses = comparison
+		? [
+			{ account_id: 'expense-housing', account_name: 'Synthetic Housing', total: '5.00', currency: 'SEK' },
+			{ account_id: 'expense-food', account_name: 'Synthetic Food', total: '9.00', currency: 'SEK' },
+			{ account_id: 'expense-transport', account_name: 'Synthetic Transport', total: '12.00', currency: 'SEK' }
+		]
+		: expensesPayload(mode);
+	const cashflow = comparison
+		? { date_from: dateFrom, date_to: dateTo, currency: 'SEK', inflow: '100.00', outflow: '30.00', net: '70.00' }
+		: { date_from: dateFrom, date_to: dateTo, currency: 'SEK', inflow: '125.00', outflow: '45.67', net: '79.33' };
+	return {
+		book_id: 1,
+		date_from: dateFrom,
+		date_to: dateTo,
+		currency: 'SEK',
+		reporting_basis: 'base_currency_only',
+		includes_currency_conversion: false,
+		limitations: [],
+		partial_failure: failed,
+		empty,
+		section_statuses: [
+			{ section: 'summary', status: empty ? 'empty' : 'ok', detail: null },
+			{ section: 'cashflow', status: failed ? 'error' : empty ? 'empty' : 'ok', detail: failed ? privateDashboardSentinel : null },
+			{ section: 'monthly_cashflow', status: failed ? 'error' : empty ? 'empty' : 'ok', detail: failed ? privateDashboardSentinel : null },
+			{ section: 'expenses_by_account', status: failed ? 'error' : empty ? 'empty' : 'ok', detail: failed ? privateDashboardSentinel : null }
+		],
+		summary: empty ? null : {
+			currency: 'SEK',
+			net_worth: comparison ? '1350.00' : '1450.00',
+			assets: comparison ? '1900.00' : '2000.00',
+			liabilities: '550.00',
+			as_of_date: dateTo,
+			reporting_basis: 'base_currency_only',
+			includes_currency_conversion: false,
+			limitations: []
+		},
+		cashflow: failed || empty ? null : cashflow,
+		monthly_cashflow: failed || empty ? [] : [{ month: dateTo.slice(0, 7), inflow: cashflow.inflow, outflow: cashflow.outflow, net: cashflow.net }],
+		expenses_by_account: failed || empty ? [] : expenses
+	};
+}
+
+function comparisonPayload(mode, url) {
+	const dateFrom = url.searchParams.get('date_from');
+	const dateTo = url.searchParams.get('date_to');
+	const comparisonDateFrom = url.searchParams.get('comparison_date_from');
+	const comparisonDateTo = url.searchParams.get('comparison_date_to');
+	assert.equal(dateFrom, '2026-07-01', 'dashboard comparison must start at the summary as-of month');
+	assert.equal(dateTo, '2026-07-31', 'dashboard comparison must end at the summary as-of date');
+	assert.equal(comparisonDateFrom, '2026-05-31', 'dashboard previous-equivalent range must use exact inclusive date arithmetic');
+	assert.equal(comparisonDateTo, '2026-06-30', 'dashboard previous-equivalent range must end immediately before the primary period');
+	assert.equal(url.searchParams.get('comparison_mode'), 'previous_equivalent', 'dashboard comparison mode');
+	const failed = mode === 'failed-sections';
+	const empty = mode === 'empty';
+	return {
+		book_id: 1,
+		comparison_mode: 'previous_equivalent',
+		reporting_basis: 'base_currency_only',
+		includes_currency_conversion: false,
+		limitations: [],
+		primary: periodReport({ dateFrom, dateTo, mode }),
+		comparison: periodReport({ dateFrom: comparisonDateFrom, dateTo: comparisonDateTo, mode, comparison: true }),
+		comparable: !failed && !empty,
+		partial_failure: failed,
+		empty,
+		delta_section_statuses: [
+			{ section: 'summary', status: empty ? 'empty' : 'ok', detail: null },
+			{ section: 'cashflow', status: failed ? 'error' : empty ? 'empty' : 'ok', detail: failed ? privateDashboardSentinel : null },
+			{ section: 'expenses_by_account', status: failed ? 'error' : empty ? 'empty' : 'ok', detail: failed ? privateDashboardSentinel : null }
+		],
+		summary_delta: empty ? null : {
+			currency: 'SEK',
+			assets: { primary: '2000.00', comparison: '1900.00', delta: '100.00', absolute_delta: '100.00', currency: 'SEK' },
+			liabilities: { primary: '550.00', comparison: '550.00', delta: '0.00', absolute_delta: '0.00', currency: 'SEK' },
+			net_worth: { primary: '1450.00', comparison: '1350.00', delta: '100.00', absolute_delta: '100.00', currency: 'SEK' }
+		},
+		cashflow_delta: empty ? null : {
+			currency: 'SEK',
+			inflow: { primary: '125.00', comparison: '100.00', delta: '25.00', absolute_delta: '25.00', currency: 'SEK' },
+			outflow: { primary: '45.67', comparison: '30.00', delta: '15.67', absolute_delta: '15.67', currency: 'SEK' },
+			net: { primary: '79.33', comparison: '70.00', delta: '9.33', absolute_delta: '9.33', currency: 'SEK' }
+		},
+		expense_changes: empty ? [] : [
+			{ account_id: 'expense-housing', account_name: 'Synthetic Housing', primary_total: '15.00', comparison_total: '5.00', delta: '10.00', absolute_delta: '10.00', currency: 'SEK', status: 'ok', detail: null },
+			{ account_id: 'expense-transport', account_name: 'Synthetic Transport', primary_total: '8.00', comparison_total: '12.00', delta: '-4.00', absolute_delta: '4.00', currency: 'SEK', status: 'ok', detail: null },
+			{ account_id: 'expense-food', account_name: 'Synthetic Food', primary_total: '10.00', comparison_total: '9.00', delta: '1.00', absolute_delta: '1.00', currency: 'SEK', status: 'ok', detail: null }
+		]
+	};
 }
 
 function isForbiddenApiMutation(method, pathname, search = '') {
@@ -188,12 +355,16 @@ async function startSyntheticApi() {
 		if (req.method === 'GET' && url.pathname === '/books') {
 			return jsonResponse(res, 200, [syntheticBook]);
 		}
+		if (req.method === 'GET' && url.pathname === '/books/1/scheduled-transactions') {
+			return jsonResponse(res, 200, scheduledPayload(state.mode));
+		}
 		if (req.method !== 'GET' || !url.pathname.startsWith('/books/1/reports/')) {
 			return jsonResponse(res, 404, { detail: 'Synthetic dashboard smoke endpoint not found.' });
 		}
 
 		if (url.pathname === '/books/1/reports/summary') return jsonResponse(res, 200, summaryPayload(state.mode));
 		if (url.pathname === '/books/1/reports/recent-transactions') return jsonResponse(res, 200, recentTransactionsPayload(state.mode));
+		if (url.pathname === '/books/1/reports/comparison') return jsonResponse(res, 200, comparisonPayload(state.mode, url));
 		if (url.pathname === '/books/1/reports/expenses-by-account') {
 			if (state.mode === 'failed-sections') return jsonResponse(res, 500, { detail: privateDashboardSentinel });
 			return jsonResponse(res, 200, expensesPayload(state.mode));
@@ -411,6 +582,45 @@ function assertNoMutationRequestsObserved(api, browserRequests, label) {
 	assert.deepEqual(forbiddenBrowserMutationRequests(browserRequests), [], `${label}: browser must issue zero mutation-capable requests`);
 }
 
+async function assertDecisionDashboard(cdp, { requireFirstViewport }) {
+	const state = await evaluate(cdp, `(() => ({
+		bodyText: document.body?.innerText ?? '',
+		viewportHeight: window.innerHeight,
+		overflowX: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+		decisions: Array.from(document.querySelectorAll('[data-dashboard-decision]')).map((node) => ({
+			id: node.getAttribute('data-dashboard-decision'),
+			top: node.getBoundingClientRect().top,
+			bottom: node.getBoundingClientRect().bottom
+		})),
+		safetyDetails: Array.from(document.querySelectorAll('details[data-dashboard-safety-details]')).map((node) => ({ open: node.open })),
+		expenseRows: Array.from(document.querySelectorAll('[data-dashboard-expense-row]')).map((node) => node.textContent.replace(/\\s+/g, ' ').trim()),
+		recentKinds: Array.from(document.querySelectorAll('[data-dashboard-recent-kind]')).map((node) => node.getAttribute('data-dashboard-recent-kind')),
+		dateWhiteSpaces: Array.from(document.querySelectorAll('[data-dashboard-date]')).map((node) => getComputedStyle(node).whiteSpace),
+		links: Array.from(document.querySelectorAll('a[href]')).map((node) => node.getAttribute('href'))
+	}))()`);
+
+	assert.equal(state.overflowX, false, 'decision dashboard must not overflow horizontally');
+	assert.deepEqual(state.decisions.map((item) => item.id), ['position', 'month-result', 'largest-changes', 'upcoming-obligations'], 'dashboard must order the four decision cards first');
+	if (requireFirstViewport) {
+		assert.ok(state.decisions.every((item) => item.top >= 0 && item.bottom <= state.viewportHeight), 'desktop first viewport must contain all four decision cards');
+	}
+	assert.deepEqual(state.safetyDetails, [{ open: false }], 'dashboard must have exactly one collapsed calculation/safety details panel');
+	assert.match(state.bodyText, /Position[\s\S]*1450\.00[\s\S]*As of[\s\S]*2026-07-31/, 'position card must show exact signed net worth and summary as-of date');
+	assert.match(state.bodyText, /Month result[\s\S]*79\.33[\s\S]*125\.00[\s\S]*45\.67/, 'month result must use exact API cashflow strings');
+	assert.match(state.bodyText, /Largest changes[\s\S]*Synthetic Housing[\s\S]*10\.00[\s\S]*Synthetic Transport[\s\S]*-4\.00/, 'largest changes must preserve signed Decimal deltas');
+	assert.match(state.bodyText, /Upcoming obligations[\s\S]*2 enabled schedules[\s\S]*Exact next due dates are not available yet/, 'upcoming obligations must be honest when next-occurrence data is unavailable');
+	assert.equal(state.expenseRows.length, 5, 'dashboard must show exactly the top five expenses');
+	assert.match(state.expenseRows.join('\n'), /Synthetic Housing[\s\S]*Synthetic Utilities/, 'top-five expenses must remain visible');
+	assert.doesNotMatch(state.bodyText, /Synthetic Dining|Synthetic Books/, 'expenses beyond the top five must stay out of the compact dashboard');
+	assert.ok(state.links.some((href) => href?.startsWith('/reports?preset=custom&date_from=2026-07-01&date_to=2026-07-31')), 'view-all expenses link must preserve the exact as-of month report range');
+	assert.ok(state.links.includes('/scheduled'), 'upcoming obligations must link to the read-only scheduled view');
+	assert.match(state.bodyText, /From Synthetic Income to Synthetic Bank/, 'ordinary two-split transaction must use a friendly one-line summary');
+	assert.deepEqual(state.recentKinds, ['ordinary', 'ordinary', 'composite', 'ambiguous'], 'composite and ambiguous copy must be reserved for true non-ordinary cases');
+	assert.match(state.bodyText, /125\.00\s+SEK/, 'ordinary transaction may show its explicit representative amount');
+	assert.doesNotMatch(state.bodyText, /999\.91|777\.72|888\.83/, 'dashboard must not invent or leak representative amounts from fallback/composite/ambiguous values');
+	assert.ok(state.dateWhiteSpaces.length >= 5 && state.dateWhiteSpaces.every((value) => value === 'nowrap'), 'as-of and recent transaction dates must not wrap');
+}
+
 async function assertEmptyDashboard(cdp) {
 	const state = await evaluate(cdp, `(() => ({
 		bodyText: document.body?.innerText ?? '',
@@ -442,10 +652,20 @@ async function assertFailedSectionsDashboard(cdp) {
 function assertStaticSafety() {
 	const server = readFileSync(join(root, 'src', 'routes', 'dashboard', '+page.server.ts'), 'utf8');
 	const page = readFileSync(join(root, 'src', 'routes', 'dashboard', '+page.svelte'), 'utf8');
+	const summaryGrid = readFileSync(join(root, 'src', 'lib', 'components', 'SummaryGrid.svelte'), 'utf8');
+	const recent = readFileSync(join(root, 'src', 'lib', 'components', 'RecentTransactions.svelte'), 'utf8');
+	const expenses = readFileSync(join(root, 'src', 'lib', 'components', 'ExpensesByAccount.svelte'), 'utf8');
 	assert.match(server, /sectionErrors[\s\S]*summary[\s\S]*expenses[\s\S]*cashflow[\s\S]*recentTransactions/s, 'dashboard server must return explicit per-section error state');
 	assert.match(page, /data-dashboard-section-error[\s\S]*role="alert"[\s\S]*dashboard\.sectionError\.redacted/s, 'dashboard page must render accessible fixed-copy section errors');
 	assert.doesNotMatch(server, /e\.message|error\.message/, 'dashboard server must not return raw backend exception messages');
-	assert.doesNotMatch(`${server}\n${page}`, /parseFloat\(|Number\([^)]*(?:amount|total|net|inflow|outflow|expense|income)/, 'dashboard must not use float/Number conversion on money strings');
+	assert.match(server, /summary\.as_of_date[\s\S]*monthStart[\s\S]*previousEquivalentRange[\s\S]*reports\/comparison/s, 'dashboard report range must derive from the summary as-of date and use exact previous-equivalent dates');
+	assert.match(summaryGrid, /data-dashboard-decision="position"[\s\S]*data-dashboard-decision="month-result"[\s\S]*data-dashboard-decision="largest-changes"[\s\S]*data-dashboard-decision="upcoming-obligations"/s, 'dashboard summary must prioritize the four decision cards');
+	assert.match(summaryGrid, /<details[\s\S]*data-dashboard-safety-details[\s\S]*dashboard\.reportingBasis[\s\S]*dashboard\.currencyConversion/s, 'technical calculation and safety copy must live in one disclosure');
+	assert.match(expenses, /expenses\.slice\(0, 5\)[\s\S]*data-dashboard-expense-row/s, 'expenses component must render only five rows');
+	assert.match(expenses, /viewAllHref[\s\S]*dashboard\.viewAllExpenses/s, 'expenses component must expose a view-all link');
+	assert.match(recent, /ordinaryTwoSplit[\s\S]*representative_amount[\s\S]*data-dashboard-recent-kind/s, 'recent transactions must gate friendly summary and representative amounts on an ordinary two-split classification');
+	assert.doesNotMatch(`${server}\n${page}\n${summaryGrid}\n${recent}\n${expenses}`, /parseFloat\(|Number\([^)]*(?:amount|total|net|inflow|outflow|expense|income|delta)/, 'dashboard must not use float/Number conversion on money strings');
+	assert.doesNotMatch(`${summaryGrid}\n${expenses}`, /from ['"][^'"]*(?:chart|d3|echarts|plotly|recharts)/i, 'dashboard trends must not add a heavy chart dependency');
 	assert.doesNotMatch(page, /localStorage|sessionStorage|formaction="\?\/create"|method="POST"/s, 'dashboard must not add browser storage or write submissions');
 }
 
@@ -516,8 +736,28 @@ async function runSmoke() {
 		await cdp.send('Page.enable');
 		await cdp.send('Runtime.enable');
 		await cdp.send('Network.enable');
-		await cdp.send('Emulation.setDeviceMetricsOverride', { width: 320, height: 760, deviceScaleFactor: 2, mobile: true });
+		await cdp.send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 900, deviceScaleFactor: 1, mobile: false });
 		await cdp.send('Network.setCookie', { name: 'access_token', value: syntheticToken, url: webBase, path: '/', sameSite: 'Lax' });
+
+		api.setMode('populated');
+		await navigateDashboard(cdp, webBase, 'decision dashboard desktop');
+		await assertDecisionDashboard(cdp, { requireFirstViewport: true });
+		if (process.env.DASHBOARD_SMOKE_SCREENSHOT) {
+			const screenshot = await cdp.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
+			writeFileSync(process.env.DASHBOARD_SMOKE_SCREENSHOT, Buffer.from(screenshot.data, 'base64'));
+		}
+		assertNoMutationRequestsObserved(api, browserRequests, 'decision dashboard desktop');
+
+		for (const width of [390, 320]) {
+			await cdp.send('Emulation.setDeviceMetricsOverride', { width, height: 760, deviceScaleFactor: 2, mobile: true });
+			await navigateDashboard(cdp, webBase, `decision dashboard mobile ${width}`);
+			await assertDecisionDashboard(cdp, { requireFirstViewport: false });
+			if (width === 320 && process.env.DASHBOARD_SMOKE_MOBILE_SCREENSHOT) {
+				const screenshot = await cdp.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
+				writeFileSync(process.env.DASHBOARD_SMOKE_MOBILE_SCREENSHOT, Buffer.from(screenshot.data, 'base64'));
+			}
+			assertNoMutationRequestsObserved(api, browserRequests, `decision dashboard mobile ${width}`);
+		}
 
 		api.setMode('empty');
 		await navigateDashboard(cdp, webBase, 'empty dashboard');
