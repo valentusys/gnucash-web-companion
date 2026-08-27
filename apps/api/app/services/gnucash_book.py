@@ -7,7 +7,9 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal, ROUND_HALF_UP
+from itertools import islice
 from pathlib import Path
+import re
 from types import SimpleNamespace
 from typing import Any, Literal, cast
 
@@ -35,7 +37,9 @@ from app.schemas.gnucash import (
     ReportSummaryComparisonDeltaDTO,
     ReportSummaryDTO,
     ReportSummarySetupDTO,
+    ScheduledTransactionAmountDTO,
     ScheduledTransactionDTO,
+    ScheduledTransactionForecastDTO,
     ScheduledTransactionRecurrenceDTO,
     TransactionDetailDTO,
     TransactionListItemDTO,
@@ -67,6 +71,7 @@ from app.services.gnucash_exceptions import (
     BookNotFoundError,
     EntityNotFoundError,
     GnuCashReadError,
+    ScheduledRecurrenceError,
 )
 from app.services.account_visibility import (
     AccountVisibilityIndex,
@@ -82,6 +87,7 @@ from app.services.transaction_explorer import (
     TransactionExplorerQuery,
     encode_explorer_cursor,
 )
+from app.services.scheduled_recurrence import RecurrenceSpec, build_schedule_forecast
 
 MONEY_QUANT = Decimal("0.01")
 SPLIT_TRANSACTION_LABEL = "Split transaction"
@@ -110,6 +116,11 @@ REPORT_SUMMARY_BALANCE_TRANSACTION_ROW_LIMIT = 20_000
 REPORT_TRANSACTION_ROW_LIMIT = REPORT_SUMMARY_BALANCE_TRANSACTION_ROW_LIMIT
 REPORT_SUMMARY_BALANCE_SPLIT_ROW_LIMIT = 20_000
 REPORT_SUMMARY_BALANCE_QUERY_LIMIT = 4
+SCHEDULED_DECIMAL_FORMULA = re.compile(r"^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$")
+SCHEDULED_CURRENCY_CODE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,31}$")
+SCHEDULED_RECURRENCE_ROW_LIMIT = 4_096
+SCHEDULED_TEMPLATE_SPLIT_LIMIT = 4_096
+SCHEDULED_FORMULA_TEXT_LIMIT = 4_096
 ACCOUNT_TYPES_WITH_NATURAL_SIGN_REVERSED = {"LIABILITY", "PAYABLE", "CREDIT", "INCOME", "EQUITY"}
 
 
@@ -336,6 +347,7 @@ class GnuCashBookService:
             TransactionExplorerError,
             AccountExplorerError,
             ReportingCurrencySetupRequired,
+            ScheduledRecurrenceError,
         ):
             raise
         except Exception as exc:  # pragma: no cover - exact piecash exceptions vary by backend
@@ -584,14 +596,21 @@ class GnuCashBookService:
                 raise EntityNotFoundError("transaction", transaction_id)
             return self._transaction_to_detail(transaction, visibility=visibility)
 
-    def list_scheduled_transactions(self) -> list[ScheduledTransactionDTO]:
-        """Return safe read-only scheduled transaction metadata.
+    def list_scheduled_transactions(self, as_of_date: date | None = None) -> list[ScheduledTransactionDTO]:
+        """Return safe metadata plus deterministic, bounded read-only forecasts."""
 
-        This intentionally exposes only summary fields supported by piecash and does
-        not compute or predict next-run dates.
-        """
+        forecast_date = as_of_date or date.today()
         with self._open_book() as book:
-            items = [self._scheduled_transaction_to_dto(item) for item in self._scheduled_transactions(book)]
+            scheduled_items = list(self._scheduled_transactions(book))
+            recurrence_rows = self._scheduled_recurrence_rows(book, scheduled_items)
+            items = [
+                self._scheduled_transaction_to_dto(
+                    item,
+                    recurrences=recurrence_rows.get(_guid(item), []),
+                    as_of_date=forecast_date,
+                )
+                for item in scheduled_items
+            ]
             items.sort(key=lambda item: ((item.start_date or "9999-99-99"), item.name.lower(), item.id))
             return items
 
@@ -2552,6 +2571,53 @@ class GnuCashBookService:
         raw_items: Any = all_items()
         return list(raw_items)
 
+    def _scheduled_recurrence_rows(
+        self,
+        book: Any,
+        scheduled_items: list[Any],
+    ) -> dict[str, list[Any]]:
+        """Read every recurrence table row, bypassing piecash's scalar relationship."""
+
+        scheduled_ids = {_guid(item) for item in scheduled_items}
+        rows_by_id: dict[str, list[Any]] = {scheduled_id: [] for scheduled_id in scheduled_ids}
+        if not scheduled_ids:
+            return rows_by_id
+
+        session = getattr(book, "session", None)
+        query = getattr(session, "query", None) if session is not None else None
+        if callable(query):
+            try:
+                query_fn = cast(Any, query)
+                result = (
+                    query_fn(piecash.Recurrence)
+                    .filter(piecash.Recurrence.obj_guid.in_(sorted(scheduled_ids)))
+                    .order_by(piecash.Recurrence.obj_guid, piecash.Recurrence.id)
+                    .limit(SCHEDULED_RECURRENCE_ROW_LIMIT + 1)
+                )
+                all_items = getattr(result, "all", None)
+                if not callable(all_items):
+                    raise GnuCashReadError("Scheduled recurrence rows could not be read safely")
+                raw_rows: Any = all_items()
+                rows = list(raw_rows)
+            except GnuCashReadError:
+                raise
+            except Exception as exc:
+                raise GnuCashReadError("Scheduled recurrence rows could not be read safely") from exc
+            if len(rows) > SCHEDULED_RECURRENCE_ROW_LIMIT:
+                raise ScheduledRecurrenceError("scheduled_recurrence_invalid_metadata")
+            for row in rows:
+                scheduled_id = str(getattr(row, "obj_guid", "") or "")
+                if scheduled_id in rows_by_id:
+                    rows_by_id[scheduled_id].append(row)
+            return rows_by_id
+
+        for scheduled in scheduled_items:
+            rows = self._recurrences(scheduled)
+            if len(rows) > SCHEDULED_RECURRENCE_ROW_LIMIT:
+                raise ScheduledRecurrenceError("scheduled_recurrence_invalid_metadata")
+            rows_by_id[_guid(scheduled)] = rows
+        return rows_by_id
+
     def _account_id(self, account: Any) -> str:
         return _guid(account)
 
@@ -2849,64 +2915,247 @@ class GnuCashBookService:
             splits=split_dtos,
         )
 
-    def _scheduled_transaction_to_dto(self, scheduled: Any) -> ScheduledTransactionDTO:
+    def _scheduled_transaction_to_dto(
+        self,
+        scheduled: Any,
+        *,
+        recurrences: list[Any],
+        as_of_date: date,
+    ) -> ScheduledTransactionDTO:
         has_template_account = bool(
             getattr(scheduled, "template_act_guid", None) or getattr(scheduled, "template_account", None)
         )
         template_reference_status = "present_redacted" if has_template_account else "not_present_redacted"
+        recurrence_dtos = [self._recurrence_to_dto(item) for item in recurrences]
+        recurrence_specs = [self._recurrence_to_spec(item) for item in recurrence_dtos]
+        start_date = self._scheduled_optional_date(getattr(scheduled, "start_date", None))
+        end_date = self._scheduled_optional_date(getattr(scheduled, "end_date", None))
+        last_occurrence = self._scheduled_optional_date(getattr(scheduled, "last_occur", None))
+        num_occurrences = self._scheduled_optional_int(getattr(scheduled, "num_occur", None))
+        remaining_occurrences = self._scheduled_optional_int(getattr(scheduled, "rem_occur", None))
+        forecast = build_schedule_forecast(
+            recurrence_specs,
+            as_of_date=as_of_date,
+            start_date=start_date,
+            end_date=end_date,
+            last_occurrence=last_occurrence,
+            num_occurrences=num_occurrences,
+            remaining_occurrences=remaining_occurrences,
+            enabled=bool(getattr(scheduled, "enabled", False)),
+        )
+        amount = self._scheduled_amount_resolution(scheduled, has_template_account=has_template_account)
         limitations = [
-            "Read-only summary metadata only; edit scheduled transactions in GnuCash Desktop.",
-            "Next occurrence dates are not calculated by this pre-alpha view.",
-            "Template split details are intentionally not exposed.",
+            "Read-only forecast only; edit scheduled transactions in GnuCash Desktop.",
+            "Forecast dates are bounded to 30 days and never materialize transactions.",
+            "Template account names, memos, descriptions, formulas, and raw SQL are never exposed.",
             (
-                "Template account reference is present, but template split amounts, accounts, memos, transaction descriptions, and raw SQL are redacted."
+                "A template account reference is present; only a safely resolved constant amount or a redacted unresolved state is returned."
                 if has_template_account
-                else "No template account reference was reported; template split amounts, accounts, memos, transaction descriptions, and raw SQL are not queried or inferred."
+                else "No template account reference was reported; no amount is available."
             ),
         ]
         return ScheduledTransactionDTO(
             id=_guid(scheduled),
             name=str(getattr(scheduled, "name", "") or ""),
             enabled=bool(getattr(scheduled, "enabled", False)),
-            start_date=self._optional_date_string(getattr(scheduled, "start_date", None)),
-            end_date=self._optional_date_string(getattr(scheduled, "end_date", None)),
-            last_occurred=self._optional_date_string(getattr(scheduled, "last_occur", None)),
-            num_occurrences=self._optional_int(getattr(scheduled, "num_occur", None)),
-            remaining_occurrences=self._optional_int(getattr(scheduled, "rem_occur", None)),
+            start_date=start_date.isoformat() if start_date else None,
+            end_date=end_date.isoformat() if end_date else None,
+            last_occurred=last_occurrence.isoformat() if last_occurrence else None,
+            num_occurrences=num_occurrences,
+            remaining_occurrences=remaining_occurrences,
             auto_create=bool(getattr(scheduled, "auto_create", False)),
             auto_notify=bool(getattr(scheduled, "auto_notify", False)),
-            advance_create_days=self._optional_int(getattr(scheduled, "adv_creation", None)),
-            advance_notify_days=self._optional_int(getattr(scheduled, "adv_notify", None)),
-            instance_count=self._optional_int(getattr(scheduled, "instance_count", None)),
+            advance_create_days=self._scheduled_optional_int(getattr(scheduled, "adv_creation", None)),
+            advance_notify_days=self._scheduled_optional_int(getattr(scheduled, "adv_notify", None)),
+            instance_count=self._scheduled_optional_int(getattr(scheduled, "instance_count", None)),
             has_template_account=has_template_account,
             template_reference_status=template_reference_status,
-            recurrence=[self._recurrence_to_dto(item) for item in self._recurrences(scheduled)],
+            recurrence=recurrence_dtos,
+            forecast=ScheduledTransactionForecastDTO(
+                status=forecast.status,
+                as_of_date=forecast.as_of_date,
+                next_due_date=forecast.next_due_date,
+                is_overdue=forecast.is_overdue,
+                upcoming_7_days=forecast.upcoming_7_days,
+                upcoming_30_days=forecast.upcoming_30_days,
+            ),
+            amount=amount,
+            new_transactions_created=forecast.new_transactions_created,
             limitations=limitations,
         )
 
     def _recurrences(self, scheduled: Any) -> list[Any]:
         recurrence = getattr(scheduled, "recurrence", []) or []
-        if isinstance(recurrence, list):
-            return recurrence
+        if isinstance(recurrence, (list, tuple)):
+            return list(recurrence)
         return [recurrence]
 
     def _recurrence_to_dto(self, recurrence: Any) -> ScheduledTransactionRecurrenceDTO:
         return ScheduledTransactionRecurrenceDTO(
-            period_type=str(getattr(recurrence, "recurrence_period_type", "") or ""),
-            multiplier=self._optional_int(getattr(recurrence, "recurrence_mult", None)),
-            period_start=self._optional_date_string(getattr(recurrence, "recurrence_period_start", None)),
-            weekend_adjust=str(getattr(recurrence, "recurrence_weekend_adjust", "") or ""),
+            period_type=str(getattr(recurrence, "recurrence_period_type", "") or "").strip().lower(),
+            multiplier=self._scheduled_optional_int(getattr(recurrence, "recurrence_mult", None)),
+            period_start=(
+                value.isoformat()
+                if (value := self._scheduled_optional_date(getattr(recurrence, "recurrence_period_start", None)))
+                else None
+            ),
+            weekend_adjust=str(getattr(recurrence, "recurrence_weekend_adjust", "") or "").strip().lower(),
         )
 
-    def _optional_date_string(self, value: Any) -> str | None:
-        if value is None or value == "":
-            return None
-        return _date_string(value)
+    def _recurrence_to_spec(self, recurrence: ScheduledTransactionRecurrenceDTO) -> RecurrenceSpec:
+        if recurrence.multiplier is None or recurrence.period_start is None:
+            raise ScheduledRecurrenceError("scheduled_recurrence_invalid_metadata")
+        try:
+            period_start = date.fromisoformat(recurrence.period_start)
+        except (TypeError, ValueError) as exc:
+            raise ScheduledRecurrenceError("scheduled_recurrence_invalid_metadata") from exc
+        return RecurrenceSpec(
+            period_type=recurrence.period_type,
+            multiplier=recurrence.multiplier,
+            period_start=period_start,
+            weekend_adjust=recurrence.weekend_adjust,
+        )
 
-    def _optional_int(self, value: Any) -> int | None:
+    def _scheduled_amount_resolution(
+        self,
+        scheduled: Any,
+        *,
+        has_template_account: bool,
+    ) -> ScheduledTransactionAmountDTO:
+        if not has_template_account:
+            return ScheduledTransactionAmountDTO(
+                status="not_available",
+                reason="no_template_reference",
+            )
+
+        template_account = getattr(scheduled, "template_account", None)
+        raw_splits = getattr(template_account, "splits", []) if template_account is not None else []
+        try:
+            splits = list(islice(iter(raw_splits or ()), SCHEDULED_TEMPLATE_SPLIT_LIMIT + 1))
+        except TypeError:
+            splits = []
+        if not splits:
+            return ScheduledTransactionAmountDTO(
+                status="unresolved",
+                reason="template_data_unavailable",
+            )
+        if len(splits) > SCHEDULED_TEMPLATE_SPLIT_LIMIT:
+            return ScheduledTransactionAmountDTO(
+                status="unresolved",
+                reason="template_shape_unsupported",
+            )
+
+        transactions: dict[str, Any] = {}
+        signed_values: list[Decimal] = []
+        unresolved_formula_count = 0
+        nonempty_formula_count = 0
+        for split in splits:
+            transaction = getattr(split, "transaction", None)
+            if transaction is None:
+                return ScheduledTransactionAmountDTO(
+                    status="unresolved",
+                    reason="template_shape_unsupported",
+                )
+            transactions[_guid(transaction)] = transaction
+            debit_text = self._scheduled_formula_text(split, "debit-formula")
+            credit_text = self._scheduled_formula_text(split, "credit-formula")
+            if debit_text is None or credit_text is None:
+                return ScheduledTransactionAmountDTO(
+                    status="unresolved",
+                    reason="template_shape_unsupported",
+                )
+            nonempty_formula_count += int(bool(debit_text)) + int(bool(credit_text))
+            debit, debit_unresolved = self._scheduled_constant_formula(debit_text)
+            credit, credit_unresolved = self._scheduled_constant_formula(credit_text)
+            unresolved_formula_count += int(debit_unresolved) + int(credit_unresolved)
+            if not debit_unresolved and not credit_unresolved:
+                signed_values.append(cast(Decimal, debit) - cast(Decimal, credit))
+
+        if nonempty_formula_count == 0:
+            return ScheduledTransactionAmountDTO(
+                status="unresolved",
+                reason="template_shape_unsupported",
+            )
+        if unresolved_formula_count:
+            return ScheduledTransactionAmountDTO(
+                status="unresolved",
+                unresolved_formula_count=unresolved_formula_count,
+                reason="template_variables_unresolved",
+            )
+        if len(transactions) != 1 or len(signed_values) != len(splits):
+            return ScheduledTransactionAmountDTO(
+                status="unresolved",
+                reason="template_shape_unsupported",
+            )
+        if sum(signed_values, Decimal("0")) != 0:
+            return ScheduledTransactionAmountDTO(
+                status="unresolved",
+                reason="template_unbalanced",
+            )
+
+        [transaction] = transactions.values()
+        currency = self._scheduled_currency_code(getattr(transaction, "currency", None))
+        if not currency:
+            return ScheduledTransactionAmountDTO(
+                status="unresolved",
+                reason="currency_unavailable",
+            )
+        amount = sum((value for value in signed_values if value > 0), Decimal("0"))
+        return ScheduledTransactionAmountDTO(
+            status="resolved",
+            amount=format(amount, "f"),
+            currency=currency,
+        )
+
+    @staticmethod
+    def _scheduled_currency_code(value: Any) -> str | None:
+        mnemonic = getattr(value, "mnemonic", None)
+        if not isinstance(mnemonic, str):
+            return None
+        code = mnemonic.strip()
+        return code if SCHEDULED_CURRENCY_CODE.fullmatch(code) else None
+
+    @staticmethod
+    def _scheduled_formula_text(split: Any, key: str) -> str | None:
+        try:
+            container = split["sched-xaction"]
+            raw_value = container[key]
+        except (AttributeError, KeyError, TypeError):
+            return None
+        value = getattr(raw_value, "value", raw_value)
+        text = "" if value is None else str(value).strip()
+        return text if len(text) <= SCHEDULED_FORMULA_TEXT_LIMIT else None
+
+    @staticmethod
+    def _scheduled_constant_formula(value: str) -> tuple[Decimal | None, bool]:
+        if not value:
+            return Decimal("0"), False
+        if not SCHEDULED_DECIMAL_FORMULA.fullmatch(value):
+            return None, True
+        try:
+            return Decimal(value), False
+        except Exception:
+            return None, True
+
+    def _scheduled_optional_date(self, value: Any) -> date | None:
         if value is None or value == "":
             return None
-        return int(value)
+        if isinstance(value, datetime):
+            return value.date()
+        if isinstance(value, date):
+            return value
+        try:
+            return date.fromisoformat(str(value))
+        except (TypeError, ValueError) as exc:
+            raise ScheduledRecurrenceError("scheduled_recurrence_invalid_metadata") from exc
+
+    def _scheduled_optional_int(self, value: Any) -> int | None:
+        if value is None or value == "":
+            return None
+        try:
+            return int(value)
+        except (TypeError, ValueError) as exc:
+            raise ScheduledRecurrenceError("scheduled_recurrence_invalid_metadata") from exc
 
     def _split_to_dto(
         self,

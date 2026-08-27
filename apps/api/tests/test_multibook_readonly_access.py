@@ -23,7 +23,9 @@ from app.schemas.gnucash import (
     CashflowDTO,
     ExpenseByAccountDTO,
     ReportSummaryDTO,
+    ScheduledTransactionAmountDTO,
     ScheduledTransactionDTO,
+    ScheduledTransactionForecastDTO,
     TransactionDetailDTO,
     TransactionListItemDTO,
 )
@@ -314,8 +316,45 @@ class ReadOnlyServiceProbe:
             splits=[],
         )
 
-    def list_scheduled_transactions(self):
-        return [ScheduledTransactionDTO(id=f"sched-{self.book_id}", name="Synthetic schedule")]
+    def list_scheduled_transactions(self, as_of_date=None):
+        forecast_date = as_of_date.isoformat() if as_of_date is not None else "2026-06-01"
+        return [
+            ScheduledTransactionDTO(
+                id=f"sched-{self.book_id}",
+                name="Synthetic schedule",
+                enabled=False,
+                start_date=None,
+                end_date=None,
+                last_occurred=None,
+                num_occurrences=None,
+                remaining_occurrences=None,
+                auto_create=False,
+                auto_notify=False,
+                advance_create_days=None,
+                advance_notify_days=None,
+                instance_count=None,
+                has_template_account=False,
+                template_reference_status="not_present_redacted",
+                recurrence=[],
+                forecast=ScheduledTransactionForecastDTO(
+                    status="disabled",
+                    as_of_date=forecast_date,
+                    next_due_date=None,
+                    is_overdue=False,
+                    upcoming_7_days=[],
+                    upcoming_30_days=[],
+                ),
+                amount=ScheduledTransactionAmountDTO(
+                    status="not_available",
+                    amount=None,
+                    currency=None,
+                    unresolved_formula_count=0,
+                    reason="no_template_reference",
+                ),
+                new_transactions_created=0,
+                limitations=[],
+            )
+        ]
 
     def get_report_summary(self, as_of_date=None):
         return ReportSummaryDTO(

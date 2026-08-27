@@ -134,15 +134,40 @@ class TransactionDetailDTO(BaseModel):
 
 
 class ScheduledTransactionRecurrenceDTO(BaseModel):
-    """Raw recurrence metadata for a GnuCash scheduled transaction.
+    """One recurrence table row used by the deterministic forecast."""
 
-    This is intentionally not a computed next-run schedule.
-    """
+    period_type: str = Field("", description="GnuCash recurrence period type")
+    multiplier: int | None = Field(None, description="GnuCash recurrence multiplier")
+    period_start: str | None = Field(None, description="Recurrence anchor date as YYYY-MM-DD")
+    weekend_adjust: str = Field("", description="GnuCash weekend adjustment mode")
 
-    period_type: str = Field("", description="Raw GnuCash recurrence period type")
-    multiplier: int | None = Field(None, description="Raw GnuCash recurrence multiplier")
-    period_start: str | None = Field(None, description="Raw recurrence start date as YYYY-MM-DD when available")
-    weekend_adjust: str = Field("", description="Raw weekend adjustment mode when available")
+
+class ScheduledTransactionForecastDTO(BaseModel):
+    """Bounded due-date projection; this never materializes transactions."""
+
+    status: Literal["ready", "disabled", "exhausted"]
+    as_of_date: str
+    next_due_date: str | None
+    is_overdue: bool = False
+    upcoming_7_days: list[str] = Field(default_factory=list, max_length=7)
+    upcoming_30_days: list[str] = Field(default_factory=list, max_length=30)
+
+
+class ScheduledTransactionAmountDTO(BaseModel):
+    """Safely resolved template amount or a redacted unresolved state."""
+
+    status: Literal["resolved", "unresolved", "not_available"]
+    amount: str | None = None
+    currency: str | None = None
+    unresolved_formula_count: int = 0
+    reason: Literal[
+        "no_template_reference",
+        "template_data_unavailable",
+        "template_variables_unresolved",
+        "template_shape_unsupported",
+        "template_unbalanced",
+        "currency_unavailable",
+    ] | None = None
 
 
 class ScheduledTransactionDTO(BaseModel):
@@ -167,6 +192,12 @@ class ScheduledTransactionDTO(BaseModel):
         description="Safe template-reference status only; never exposes template split/source data",
     )
     recurrence: list[ScheduledTransactionRecurrenceDTO] = Field(default_factory=list)
+    forecast: ScheduledTransactionForecastDTO
+    amount: ScheduledTransactionAmountDTO
+    new_transactions_created: Literal[0] = Field(
+        0,
+        description="Invariant: forecast reads never materialize scheduled transactions",
+    )
     limitations: list[str] = Field(default_factory=list)
 
 

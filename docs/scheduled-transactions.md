@@ -1,53 +1,82 @@
 # Scheduled/recurring transactions
 
-Status: Phase 157 pre-alpha read-only awareness with URL-only display filtering.
+Status: pre-alpha, read-only deterministic occurrence forecast.
 
-`gnucash-web-companion` can show a conservative read-only summary of GnuCash scheduled/recurring transaction metadata when the configured book exposes that metadata through the safe piecash adapter path. The `/scheduled` page can filter and sort the displayed safe metadata with URL query parameters only; it does not persist scheduled metadata or filter values in browser storage.
+`gnucash-web-companion` can show a conservative scheduled-transaction forecast from GnuCash metadata. GnuCash Desktop remains the authoritative editor. The backend opens the book read-only, reads every recurrence table row for each schedule, and never creates or updates a scheduled instance.
 
 ## What is shown
 
-The API/UI may show:
+The API may show:
 
-- scheduled transaction id and name
-- enabled/disabled state
-- configured start/end/last-occurred dates
-- configured occurrence counts when present
-- auto-create/auto-notify flags
-- advance creation/notification day values
-- whether a template account reference exists
-- raw recurrence metadata such as period type, multiplier, period start, and weekend adjustment
+- scheduled transaction id and name;
+- enabled/disabled state;
+- configured start, end, and last-occurrence dates;
+- configured total and remaining occurrence counts;
+- auto-create/auto-notify flags and advance-day values;
+- every recurrence row: period type, multiplier, anchor date, and weekend adjustment;
+- deterministic next due date and overdue state;
+- bounded due-date lists for the next 7 and 30 days;
+- a template amount only when one template transaction has balanced constant decimal formulas and a known currency;
+- otherwise, a typed redacted `unresolved` or `not_available` amount state;
+- `new_transactions_created: 0` as an explicit read-only invariant.
 
-## What is intentionally not shown
+The optional `as_of_date=YYYY-MM-DD` query parameter makes forecast results reproducible. Without it, the backend uses the request date and returns that date in `forecast.as_of_date`.
 
-The pre-alpha view does not show or do any of the following:
+## Recurrence semantics
 
-- create, edit, delete, or instantiate scheduled transactions
-- calculate or promise exact upcoming run dates
-- expose template split details, memos, transaction descriptions, account names, amounts, or raw SQL dumps
-- replace GnuCash Desktop as the scheduled-transaction editor
-- enable write mode or change `GNUCASH_WRITES_ENABLED=false` default posture
+Forecasting preserves the GnuCash schedule anchors and supports the stored recurrence period types:
 
-If no scheduled transactions are present, or if a book/schema cannot expose them through the safe adapter path, the UI shows an empty/limitation state. That is intentional; the app must not fake schedule predictions.
+- once;
+- day;
+- week;
+- month;
+- end of month;
+- nth weekday;
+- last weekday;
+- year.
 
-## Display filtering and sorting
+Composite schedules use the union of all recurrence rows, including semi-monthly and multiple-weekday schedules. Dates are de-duplicated and ordered. Schedule start, inclusive end date, last occurrence, finite remaining occurrences, short months, leap years, and `none`/`back`/`forward` weekend adjustment are applied deterministically.
 
-The web page supports URL-only display controls for the already-safe metadata returned by the API:
+The 7-day list contains at most 7 unique dates, starting on `as_of_date`. The 30-day list contains at most 30 unique dates. An overdue `next_due_date` remains visible even though overdue dates are not repeated in the future windows.
 
-- status filter: all, enabled, or disabled
-- template-reference filter: all, template present, or no template reference
-- sort display: start date, name, or enabled first
+## Typed safe failures
 
-These controls do not call write routes, do not expose additional GnuCash template details, and do not use localStorage/sessionStorage. Filtered empty states explain that the current display filters hide the safe metadata rows and provide a clear-filters link.
+Missing, cyclic/non-advancing, inconsistent, or unsupported recurrence metadata does not produce a guessed date. End-date and finite-occurrence limits are mutually exclusive in GnuCash metadata; a conflicting pair or a last occurrence after the end date is rejected. The API returns HTTP 422 with a redacted stable detail code:
+
+- `scheduled_recurrence_invalid_metadata`;
+- `scheduled_recurrence_cycle`.
+
+The error does not include schedule names, formulas, account names, book paths, or raw metadata.
+
+## Template amount safety
+
+Template account names, target account names, memos, transaction descriptions, raw formulas, and raw SQL are never returned. Formula text is accepted only when every required formula is a constant decimal string and the template is balanced. Any variable, expression, missing formula slot, unsupported shape, missing currency, or imbalance returns `amount: null` with a redacted reason. It is never converted to a fake zero.
+
+No currency conversion is attempted.
+
+## What is intentionally not done
+
+The forecast does not:
+
+- create, edit, delete, defer, or instantiate scheduled transactions;
+- update last-occurrence, remaining-occurrence, or instance-count fields;
+- enable write mode or change the `GNUCASH_WRITES_ENABLED=false` default;
+- expose template account names, target accounts, memos, descriptions, formula text, private paths, or SQL;
+- replace GnuCash Desktop as the scheduled-transaction editor.
 
 ## API endpoints
 
 Authenticated read-only endpoints:
 
-- `GET /scheduled-transactions` — default-book alias for the MVP single-book flow.
-- `GET /books/{book_id}/scheduled-transactions` — book-aware endpoint for the active accessible book.
+- `GET /scheduled-transactions` — default-book alias;
+- `GET /books/{book_id}/scheduled-transactions` — active accessible book.
 
-Both endpoints preserve the existing book access boundary. Archived or unauthorized books remain hidden/blocked by the existing books API rules.
+Both accept optional `as_of_date=YYYY-MM-DD` and preserve the existing book access boundary. Archived or unauthorized books remain hidden or blocked by the books API rules.
+
+## Display filtering
+
+The existing `/scheduled` page can filter and sort the safe API rows with URL query parameters only. It does not persist schedule metadata or filters in browser storage. A later frontend block consumes the forecast fields for upcoming, overdue, and next-30-days grouping.
 
 ## Safety note
 
-GnuCash Desktop remains the authoritative editor. Use this app only as a read-only companion, preferably against copied/disposable books while the project is pre-alpha and not production-ready or security-audited.
+Use the application as a read-only companion. During pre-alpha testing, use generated/disposable books. GnuCash Desktop remains the authoritative accounting application.

@@ -265,6 +265,30 @@ def run(args: argparse.Namespace | None = None) -> None:
             unsafe_keys.isdisjoint(scheduled_item.keys()),
             f"scheduled transaction item exposed unsafe template/source keys: {scheduled_item.keys()}",
         )
+        _check(
+            scheduled_item.get("new_transactions_created") == 0,
+            "scheduled forecast violated the no-materialization invariant",
+        )
+        forecast = _require_mapping(
+            scheduled_item.get("forecast"),
+            f"/books/{book_id}/scheduled-transactions[{index}].forecast",
+        )
+        upcoming_7 = _require_list(
+            forecast.get("upcoming_7_days"),
+            f"/books/{book_id}/scheduled-transactions[{index}].forecast.upcoming_7_days",
+        )
+        upcoming_30 = _require_list(
+            forecast.get("upcoming_30_days"),
+            f"/books/{book_id}/scheduled-transactions[{index}].forecast.upcoming_30_days",
+        )
+        _check(len(upcoming_7) <= 7, "scheduled 7-day forecast is not bounded")
+        _check(len(upcoming_30) <= 30, "scheduled 30-day forecast is not bounded")
+        amount = _require_mapping(
+            scheduled_item.get("amount"),
+            f"/books/{book_id}/scheduled-transactions[{index}].amount",
+        )
+        if amount.get("status") != "resolved":
+            _check(amount.get("amount") is None, "unresolved scheduled amount must not contain a fake value")
     print("ok: scheduled transactions endpoint")
 
     audit = client.request(

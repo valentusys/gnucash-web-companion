@@ -36,3 +36,22 @@ class GnuCashReadError(Exception):
     def __init__(self, detail: str):
         self.detail = detail
         super().__init__(f"GnuCash read error: {detail}")
+
+
+class ScheduledRecurrenceError(Exception):
+    """Typed, redacted failure for unsafe scheduled recurrence metadata."""
+
+    MESSAGES = {
+        "scheduled_recurrence_invalid_metadata": "Scheduled transaction recurrence metadata is invalid.",
+        "scheduled_recurrence_cycle": "Scheduled transaction recurrence could not advance safely.",
+    }
+
+    def __init__(self, code: str):
+        if code not in self.MESSAGES:
+            code = "scheduled_recurrence_invalid_metadata"
+        self.code = code
+        self.message = self.MESSAGES[code]
+        super().__init__(self.message)
+
+    def detail(self) -> dict[str, str]:
+        return {"code": self.code, "message": self.message}
