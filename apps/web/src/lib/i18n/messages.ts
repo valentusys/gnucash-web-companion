@@ -359,6 +359,7 @@ export type MessageKey =
 	| 'reports.bookLabel'
 	| 'reports.viewTransactionsPeriod'
 	| 'reports.period.title'
+	| 'reports.period.help'
 	| 'reports.period.urlBackedHelp'
 	| 'reports.period.presetsAria'
 	| 'reports.period.customAria'
@@ -366,6 +367,7 @@ export type MessageKey =
 	| 'reports.period.dateTo'
 	| 'reports.period.applyCustom'
 	| 'reports.comparison.title'
+	| 'reports.comparison.help'
 	| 'reports.comparison.urlBackedHelp'
 	| 'reports.comparison.modeAria'
 	| 'reports.comparison.mode.previousEquivalent'
@@ -397,6 +399,33 @@ export type MessageKey =
 	| 'reports.comparison.decrease'
 	| 'reports.comparison.absoluteChange'
 	| 'reports.comparison.noExpenseChanges'
+	| 'reports.comparison.topChangesHelp'
+	| 'reports.comparison.showRemaining'
+	| 'reports.filters.customTitle'
+	| 'reports.filters.customHelp'
+	| 'reports.filters.title'
+	| 'reports.executive.title'
+	| 'reports.executive.help'
+	| 'reports.executive.netCashChange'
+	| 'reports.executive.netCashHelp'
+	| 'reports.executive.largestIncrease'
+	| 'reports.executive.largestDecrease'
+	| 'reports.executive.noIncrease'
+	| 'reports.executive.noDecrease'
+	| 'reports.executive.unavailable'
+	| 'reports.technical.title'
+	| 'reports.technical.help'
+	| 'reports.technical.readOnly'
+	| 'reports.technical.baseCurrencyNoFx'
+	| 'reports.technical.currencyConversionIncluded'
+	| 'reports.technical.unknownBasis'
+	| 'reports.technical.limitationsReported'
+	| 'reports.technical.balanceSemantics'
+	| 'reports.technical.exactDrilldowns'
+	| 'reports.section.summary'
+	| 'reports.section.cashflow'
+	| 'reports.section.monthlyCashflow'
+	| 'reports.section.expenses'
 	| 'reports.preset.thisMonth'
 	| 'reports.preset.lastMonth'
 	| 'reports.preset.yearToDate'
@@ -1393,11 +1422,12 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'dashboard.cashflowOut': 'Out',
 		'dashboard.cashflowNet': 'Net',
 		'reports.metaTitle': 'Period reports',
-		'reports.kicker': 'Read-only reports',
-		'reports.title': 'Period reports explorer',
+		'reports.kicker': 'Financial reports',
+		'reports.title': 'Compare financial periods',
 		'reports.bookLabel': 'Book: {name}',
-		'reports.viewTransactionsPeriod': 'View /transactions for this period',
+		'reports.viewTransactionsPeriod': 'View transactions',
 		'reports.period.title': 'Report period',
+		'reports.period.help': 'Showing {dateFrom} to {dateTo}. Choose a quick period or enter your own dates.',
 		'reports.period.urlBackedHelp':
 			'URL-backed range: {dateFrom} to {dateTo}. Presets and custom dates only change read-only query parameters.',
 		'reports.period.presetsAria': 'Report period presets',
@@ -1406,6 +1436,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'reports.period.dateTo': 'Date to',
 		'reports.period.applyCustom': 'Apply custom range',
 		'reports.comparison.title': 'Comparison period',
+		'reports.comparison.help': 'Comparing with {dateFrom} to {dateTo}. Choose the previous equal period, last year, or your own dates.',
 		'reports.comparison.urlBackedHelp':
 			'URL-backed comparison: {dateFrom} to {dateTo}. The comparison endpoint receives primary and comparison dates in one read-only GET request.',
 		'reports.comparison.modeAria': 'Comparison period modes',
@@ -1417,57 +1448,84 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'reports.comparison.applyCustom': 'Apply comparison',
 		'reports.comparison.validation.unsupportedMode': 'Choose a supported comparison mode.',
 		'reports.comparison.validation.invalidDateRange':
-			'Enter valid comparison_date_from/comparison_date_to values using YYYY-MM-DD dates.',
-		'reports.comparison.validation.invalidRange': 'Invalid comparison range: comparison_date_from must be on or before comparison_date_to.',
+			'Enter valid start and end dates for the comparison period.',
+		'reports.comparison.validation.invalidRange': 'The comparison start date must be on or before its end date.',
 		'reports.comparison.validation.inconsistentRange':
-			'This comparison mode requires comparison_date_from={dateFrom} and comparison_date_to={dateTo}. No reports API request was made.',
-		'reports.comparison.deltaError': 'Comparison delta is unavailable because one source section returned an explicit error. Backend details were redacted.',
+			'This comparison type requires {dateFrom} to {dateTo}. No report was loaded.',
+		'reports.comparison.deltaError': 'This comparison is unavailable because part of the report could not be calculated.',
 		'reports.comparison.notComparable':
-			'Comparison is not comparable for this section. Unknown or mismatched currency/no-FX limitations are preserved below as technical backend limitation text.',
+			'Comparison is not comparable for this section. Different currencies cannot be compared without currency conversion.',
 		'reports.comparison.rowNotComparable':
-			'This account row is not comparable. Side totals and exact drilldowns are shown, but the backend row detail is redacted and no delta is calculated.',
-		'reports.comparison.emptyDelta': 'No comparable delta rows were returned for this section.',
+			'This account row is not comparable. Both period totals are shown, but no difference is calculated.',
+		'reports.comparison.emptyDelta': 'There is no comparable change for this part of the report.',
 		'reports.comparison.zeroHint':
-			'Exact 0.00 values are genuine data and unchanged deltas remain visible; one-sided successful zero values are not treated as missing.',
+			'Exact zero values are real results. Unchanged amounts remain visible, and a zero on one side is not treated as missing.',
 		'reports.comparison.technicalLimitation': 'Backend limitation: {limitation}',
 		'reports.comparison.primarySide': 'Primary period',
 		'reports.comparison.comparisonSide': 'Comparison period',
 		'reports.comparison.sourcePeriodsTitle': 'Primary and comparison totals',
 		'reports.comparison.sourcePeriodsHelp':
-			'Each side links to /transactions with its exact date_from/date_to. Balance totals remain as-of each side date_to.',
+			'Open either period to review the exact matching transactions. Balance totals are measured at the end of each period.',
 		'reports.comparison.summaryDeltaTitle': 'Balance change',
 		'reports.comparison.cashflowDeltaTitle': 'Cashflow change',
 		'reports.comparison.expenseChangesTitle': 'Spending changes by account',
 		'reports.comparison.expenseChangesHelp':
-			'Rows preserve the backend-ranked account union. Each side opens /transactions with the side dates and account_id.',
+			'The largest changes are shown first. Open either amount to review the matching account and dates.',
 		'reports.comparison.unchanged': 'Unchanged',
 		'reports.comparison.increase': 'Increase',
 		'reports.comparison.decrease': 'Decrease',
 		'reports.comparison.absoluteChange': 'Absolute change',
-		'reports.comparison.noExpenseChanges': 'No expense-account comparison rows were returned.',
+		'reports.comparison.noExpenseChanges': 'No spending changes are available for these periods.',
+		'reports.comparison.topChangesHelp': 'Top five changes by size; increases and decreases keep their sign.',
+		'reports.comparison.showRemaining': 'Show all changes ({count} more)',
+		'reports.filters.customTitle': 'Use your own dates',
+		'reports.filters.customHelp': 'Custom dates stay in the page address, so refresh and sharing keep the same comparison.',
+		'reports.filters.title': 'Periods and comparison',
+		'reports.executive.title': 'What changed',
+		'reports.executive.help': 'Comparing {primaryFrom}–{primaryTo} with {comparisonFrom}–{comparisonTo}.',
+		'reports.executive.netCashChange': 'Net cash change',
+		'reports.executive.netCashHelp': 'Difference in net cash flow between the two periods.',
+		'reports.executive.largestIncrease': 'Largest spending increase',
+		'reports.executive.largestDecrease': 'Largest spending decrease',
+		'reports.executive.noIncrease': 'No spending increase was found.',
+		'reports.executive.noDecrease': 'No spending decrease was found.',
+		'reports.executive.unavailable': 'This result is unavailable for the selected periods.',
+		'reports.technical.title': 'Calculation and data details',
+		'reports.technical.help': 'Read-only scope, currency rules, period totals, and exact transaction links.',
+		'reports.technical.readOnly': 'This report only reads existing book data; it does not create or change transactions.',
+		'reports.technical.baseCurrencyNoFx': "Totals use the book's base currency. No currency conversion is included.",
+		'reports.technical.currencyConversionIncluded': 'The source report indicates that currency conversion was included.',
+		'reports.technical.unknownBasis': 'The calculation basis could not be confirmed; verify totals against the matching transactions.',
+		'reports.technical.limitationsReported': 'Some totals have additional limitations. Treat them as indicative and review the matching transactions.',
+		'reports.technical.balanceSemantics': 'Income, spending, and cash flow cover each full period. Assets, liabilities, and net worth are balances at the period end date.',
+		'reports.technical.exactDrilldowns': 'Every link below keeps the exact period and account used for that value.',
+		'reports.section.summary': 'balances',
+		'reports.section.cashflow': 'cash flow',
+		'reports.section.monthlyCashflow': 'monthly cash flow',
+		'reports.section.expenses': 'spending by account',
 		'reports.preset.thisMonth': 'This month',
 		'reports.preset.lastMonth': 'Last month',
 		'reports.preset.yearToDate': 'Year to date',
-		'reports.loading': 'Loading read-only period reports…',
-		'reports.validation.invalidDateRange': 'Enter a valid custom date_from/date_to range using YYYY-MM-DD dates.',
+		'reports.loading': 'Loading period reports…',
+		'reports.validation.invalidDateRange': 'Enter valid start and end dates for the report period.',
 		'reports.validation.unsupportedPreset': 'Choose a supported report period preset.',
-		'reports.validation.invalidRange': 'Invalid range: date_from must be on or before date_to.',
+		'reports.validation.invalidRange': 'The report start date must be on or before its end date.',
 		'reports.validation.invalidTitle': 'Invalid range',
-		'reports.validation.invalidNoRequest': 'No reports API request was made for this invalid range.',
+		'reports.validation.invalidNoRequest': 'No report was loaded for these dates.',
 		'reports.error.title': 'Report request failed',
 		'reports.error.redactedHelp':
-			'Unknown API details are redacted; genuine empty report sections are shown separately below when available.',
-		'reports.error.requestFailed': 'Reports API request failed safely.',
-		'reports.error.serviceUnavailable': 'Reports API is unavailable. Backend details are redacted.',
+			'Technical error details are hidden. Try again or choose another period.',
+		'reports.error.requestFailed': 'Could not load this report.',
+		'reports.error.serviceUnavailable': 'Reports are temporarily unavailable.',
 		'reports.error.forbidden': 'You do not have access to this read-only reports view.',
 		'reports.error.notFound': 'Requested report data was not found.',
-		'reports.error.unknown': 'Reports API is unavailable or returned an unsupported response. Unknown backend details are redacted.',
-		'reports.sectionError.redacted': 'Reports API returned a section error. Backend details are redacted.',
+		'reports.error.unknown': 'Could not load this report. Technical details are hidden.',
+		'reports.sectionError.redacted': 'This part of the report could not be loaded.',
 		'reports.empty.title': 'No report data',
 		'reports.empty.message':
-			'The reports API returned no summary, cashflow, monthly, or expense rows for this read-only period. Try another date range or inspect transactions for the same filters.',
+			'No totals or spending rows are available for this period. Try another date range or review the matching transactions.',
 		'reports.empty.aria': 'No report data for the selected period',
-		'reports.empty.action': 'Open matching /transactions filter',
+		'reports.empty.action': 'Review matching transactions',
 		'reports.limitations.title': 'Reporting limitations',
 		'reports.limitations.reportingBasis':
 			'Reporting basis: {reportingBasis}. No FX conversion is performed; totals are base_currency_only and should not be interpreted as converted multi-currency totals.',
@@ -1477,7 +1535,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'reports.partial.help': 'One or more sections returned an explicit error state; unaffected sections remain visible.',
 		'reports.summary.title': 'Summary totals',
 		'reports.summary.help': 'Period income/expenses/net come from cashflow for {dateFrom} through {dateTo}; balance totals are as of date_to.',
-		'reports.summary.openFilter': 'Open matching transaction filter',
+		'reports.summary.openFilter': 'Review matching transactions',
 		'reports.summary.income': 'Income',
 		'reports.summary.expenses': 'Expenses',
 		'reports.summary.netPeriodResult': 'Net period result',
@@ -2494,11 +2552,12 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'dashboard.cashflowOut': 'Выход',
 		'dashboard.cashflowNet': 'Итого',
 		'reports.metaTitle': 'Отчёты за период',
-		'reports.kicker': 'Read-only отчёты',
-		'reports.title': 'Просмотр отчётов за период',
+		'reports.kicker': 'Финансовые отчёты',
+		'reports.title': 'Сравнение периодов',
 		'reports.bookLabel': 'Книга: {name}',
-		'reports.viewTransactionsPeriod': 'Открыть /transactions за этот период',
+		'reports.viewTransactionsPeriod': 'Открыть транзакции',
 		'reports.period.title': 'Период отчёта',
+		'reports.period.help': 'Показаны даты с {dateFrom} по {dateTo}. Выберите быстрый период или укажите свои даты.',
 		'reports.period.urlBackedHelp':
 			'URL-диапазон: {dateFrom} — {dateTo}. Быстрые периоды и свои даты меняют только read-only query parameters.',
 		'reports.period.presetsAria': 'Быстрые периоды отчёта',
@@ -2507,6 +2566,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'reports.period.dateTo': 'Дата по',
 		'reports.period.applyCustom': 'Применить свой диапазон',
 		'reports.comparison.title': 'Период сравнения',
+		'reports.comparison.help': 'Сравнение с периодом {dateFrom}–{dateTo}. Можно выбрать предыдущий равный период, прошлый год или свои даты.',
 		'reports.comparison.urlBackedHelp':
 			'URL-сравнение: {dateFrom} — {dateTo}. Comparison endpoint получает primary и comparison dates одним read-only GET request.',
 		'reports.comparison.modeAria': 'Режимы периода сравнения',
@@ -2518,57 +2578,84 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'reports.comparison.applyCustom': 'Применить сравнение',
 		'reports.comparison.validation.unsupportedMode': 'Выберите поддерживаемый comparison mode.',
 		'reports.comparison.validation.invalidDateRange':
-			'Введите корректные comparison_date_from/comparison_date_to в формате YYYY-MM-DD.',
-		'reports.comparison.validation.invalidRange': 'Некорректный диапазон сравнения: comparison_date_from должен быть не позже comparison_date_to.',
+			'Введите корректные даты начала и окончания периода сравнения.',
+		'reports.comparison.validation.invalidRange': 'Дата начала периода сравнения должна быть не позже даты окончания.',
 		'reports.comparison.validation.inconsistentRange':
-			'Этот comparison mode требует comparison_date_from={dateFrom} и comparison_date_to={dateTo}. Запрос к reports API не выполнялся.',
-		'reports.comparison.deltaError': 'Comparison delta недоступна, потому что одна source section вернула явную ошибку. Backend details скрыты.',
+			'Для этого вида сравнения нужен период {dateFrom}–{dateTo}. Отчёт не загружен.',
+		'reports.comparison.deltaError': 'Сравнение недоступно: часть отчёта не удалось рассчитать.',
 		'reports.comparison.notComparable':
-			'Эту секцию нельзя корректно сравнить. Unknown or mismatched currency/no-FX limitations сохранены ниже как technical backend limitation text.',
+			'Эту часть отчёта нельзя корректно сравнить. Разные валюты нельзя сопоставить без конвертации.',
 		'reports.comparison.rowNotComparable':
-			'Эту строку счёта нельзя корректно сравнить. Итоги сторон и точные drilldown-ссылки показаны, но detail строки от backend скрыт и delta не рассчитывается.',
-		'reports.comparison.emptyDelta': 'Для этой секции не вернулись сравнимые delta rows.',
+			'Эту строку счёта нельзя корректно сравнить. Показаны суммы за оба периода, но разница не рассчитана.',
+		'reports.comparison.emptyDelta': 'Для этой части отчёта нет сравнимого изменения.',
 		'reports.comparison.zeroHint':
-			'Точные значения 0.00 — реальные данные; unchanged deltas остаются видимыми, а one-sided successful zero не считается missing.',
+			'Точные нулевые значения — реальные результаты. Суммы без изменений остаются видимыми, а ноль с одной стороны не считается пропуском.',
 		'reports.comparison.technicalLimitation': 'Backend limitation: {limitation}',
 		'reports.comparison.primarySide': 'Основной период',
 		'reports.comparison.comparisonSide': 'Период сравнения',
 		'reports.comparison.sourcePeriodsTitle': 'Итоги основного периода и сравнения',
 		'reports.comparison.sourcePeriodsHelp':
-			'Каждая сторона ведёт в /transactions с точными date_from/date_to. Балансовые итоги остаются as-of date_to каждой стороны.',
+			'Откройте любой период, чтобы проверить соответствующие транзакции. Балансовые итоги рассчитаны на конец каждого периода.',
 		'reports.comparison.summaryDeltaTitle': 'Изменение баланса',
 		'reports.comparison.cashflowDeltaTitle': 'Изменение cashflow',
 		'reports.comparison.expenseChangesTitle': 'Изменения расходов по счетам',
 		'reports.comparison.expenseChangesHelp':
-			'Строки сохраняют backend-ranked account union. Каждая сторона открывает /transactions с датами стороны и account_id.',
+			'Сначала показаны самые заметные изменения. Откройте любую сумму, чтобы проверить счёт и даты.',
 		'reports.comparison.unchanged': 'Без изменений',
 		'reports.comparison.increase': 'Рост',
 		'reports.comparison.decrease': 'Снижение',
 		'reports.comparison.absoluteChange': 'Абсолютное изменение',
-		'reports.comparison.noExpenseChanges': 'Expense-account comparison rows не вернулись.',
+		'reports.comparison.noExpenseChanges': 'Для этих периодов нет изменений расходов.',
+		'reports.comparison.topChangesHelp': 'Пять самых крупных изменений; рост и снижение показаны со знаком.',
+		'reports.comparison.showRemaining': 'Показать все изменения (ещё {count})',
+		'reports.filters.customTitle': 'Свои даты',
+		'reports.filters.customHelp': 'Выбранные даты сохраняются в адресе страницы, поэтому обновление и отправка ссылки не меняют сравнение.',
+		'reports.filters.title': 'Периоды отчёта и сравнения',
+		'reports.executive.title': 'Что изменилось',
+		'reports.executive.help': 'Период {primaryFrom}–{primaryTo} сравнивается с {comparisonFrom}–{comparisonTo}.',
+		'reports.executive.netCashChange': 'Изменение денежного потока',
+		'reports.executive.netCashHelp': 'Разница чистого денежного потока между двумя периодами.',
+		'reports.executive.largestIncrease': 'Самый заметный рост расходов',
+		'reports.executive.largestDecrease': 'Самое заметное снижение расходов',
+		'reports.executive.noIncrease': 'Рост расходов не найден.',
+		'reports.executive.noDecrease': 'Снижение расходов не найдено.',
+		'reports.executive.unavailable': 'Результат недоступен для выбранных периодов.',
+		'reports.technical.title': 'Как рассчитан отчёт',
+		'reports.technical.help': 'Режим без изменений данных, правила валют, итоги периодов и точные ссылки на транзакции.',
+		'reports.technical.readOnly': 'Отчёт только читает существующие данные книги и не создаёт и не изменяет транзакции.',
+		'reports.technical.baseCurrencyNoFx': 'Итоги показаны в базовой валюте книги. Конвертация валют не выполнялась.',
+		'reports.technical.currencyConversionIncluded': 'Источник отчёта сообщает, что конвертация валют была включена.',
+		'reports.technical.unknownBasis': 'Не удалось подтвердить основу расчёта; проверьте итоги по соответствующим транзакциям.',
+		'reports.technical.limitationsReported': 'Для части итогов есть дополнительные ограничения. Считайте их ориентировочными и проверьте соответствующие транзакции.',
+		'reports.technical.balanceSemantics': 'Доходы, расходы и денежный поток охватывают весь период. Активы, обязательства и чистая стоимость показаны на дату окончания периода.',
+		'reports.technical.exactDrilldowns': 'Каждая ссылка ниже сохраняет точный период и счёт, использованные для значения.',
+		'reports.section.summary': 'балансы',
+		'reports.section.cashflow': 'денежный поток',
+		'reports.section.monthlyCashflow': 'денежный поток по месяцам',
+		'reports.section.expenses': 'расходы по счетам',
 		'reports.preset.thisMonth': 'Этот месяц',
 		'reports.preset.lastMonth': 'Прошлый месяц',
 		'reports.preset.yearToDate': 'С начала года',
-		'reports.loading': 'Загрузка read-only отчётов за период…',
-		'reports.validation.invalidDateRange': 'Введите корректный custom date_from/date_to диапазон в формате YYYY-MM-DD.',
+		'reports.loading': 'Загрузка отчётов за период…',
+		'reports.validation.invalidDateRange': 'Введите корректные даты начала и окончания периода отчёта.',
 		'reports.validation.unsupportedPreset': 'Выберите поддерживаемый быстрый период отчёта.',
-		'reports.validation.invalidRange': 'Некорректный диапазон: date_from должен быть не позже date_to.',
+		'reports.validation.invalidRange': 'Дата начала периода отчёта должна быть не позже даты окончания.',
 		'reports.validation.invalidTitle': 'Некорректный диапазон',
-		'reports.validation.invalidNoRequest': 'Для этого некорректного диапазона запрос к reports API не выполнялся.',
+		'reports.validation.invalidNoRequest': 'Для этих дат отчёт не загружен.',
 		'reports.error.title': 'Запрос отчёта не удался',
 		'reports.error.redactedHelp':
-			'Неизвестные детали API скрыты; настоящие пустые секции отчёта показываются отдельно, когда доступны.',
-		'reports.error.requestFailed': 'Запрос к reports API безопасно завершился ошибкой.',
-		'reports.error.serviceUnavailable': 'Reports API недоступен. Детали backend скрыты.',
+			'Технические детали ошибки скрыты. Повторите попытку или выберите другой период.',
+		'reports.error.requestFailed': 'Не удалось загрузить отчёт.',
+		'reports.error.serviceUnavailable': 'Отчёты временно недоступны.',
 		'reports.error.forbidden': 'Нет доступа к этому read-only разделу отчётов.',
 		'reports.error.notFound': 'Запрошенные данные отчёта не найдены.',
-		'reports.error.unknown': 'Reports API недоступен или вернул неподдержанный ответ. Неизвестные backend details скрыты.',
-		'reports.sectionError.redacted': 'Reports API вернул ошибку секции. Backend details скрыты.',
+		'reports.error.unknown': 'Не удалось загрузить отчёт. Технические детали скрыты.',
+		'reports.sectionError.redacted': 'Эту часть отчёта не удалось загрузить.',
 		'reports.empty.title': 'Нет данных отчёта',
 		'reports.empty.message':
-			'Reports API не вернул summary, cashflow, monthly или expense rows для этого read-only периода. Попробуйте другой диапазон дат или откройте транзакции с теми же фильтрами.',
+			'За этот период нет итогов или строк расходов. Попробуйте другой диапазон дат или проверьте соответствующие транзакции.',
 		'reports.empty.aria': 'Нет данных отчёта за выбранный период',
-		'reports.empty.action': 'Открыть matching /transactions filter',
+		'reports.empty.action': 'Проверить соответствующие транзакции',
 		'reports.limitations.title': 'Ограничения отчёта',
 		'reports.limitations.reportingBasis':
 			'База отчёта: {reportingBasis}. No FX conversion не выполняется; итоги base_currency_only не являются сконвертированными мультивалютными итогами.',
@@ -2578,7 +2665,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'reports.partial.help': 'Одна или несколько секций вернули явную ошибку; остальные секции остаются видимыми.',
 		'reports.summary.title': 'Итоги summary',
 		'reports.summary.help': 'Доходы/расходы/итог берутся из cashflow за {dateFrom} — {dateTo}; балансовые итоги показаны на date_to.',
-		'reports.summary.openFilter': 'Открыть matching transaction filter',
+		'reports.summary.openFilter': 'Проверить соответствующие транзакции',
 		'reports.summary.income': 'Доходы',
 		'reports.summary.expenses': 'Расходы',
 		'reports.summary.netPeriodResult': 'Итог периода',

@@ -65,9 +65,9 @@ type DeltaSectionMessages = Record<DeltaSectionKey, string | null>;
 
 type ReportView = {
 	requestedPeriod: ReportPeriod;
-	reportingBasis: string;
+	reportingBasis: 'base_currency_only' | 'unknown';
 	includesCurrencyConversion: boolean;
-	limitations: string[];
+	limitationsReported: boolean;
 	partialFailure: boolean;
 	empty: boolean;
 	summary: ReportSummaryView | null;
@@ -113,9 +113,9 @@ type ComparisonReportView = {
 	comparisonMode: ComparisonMode;
 	primary: ReportView;
 	comparison: ReportView;
-	reportingBasis: string;
+	reportingBasis: 'base_currency_only' | 'unknown';
 	includesCurrencyConversion: boolean;
-	limitations: string[];
+	limitationsReported: boolean;
 	partialFailure: boolean;
 	empty: boolean;
 	comparable: boolean;
@@ -472,6 +472,10 @@ function stringValue(value: unknown): string | null {
 	return typeof value === 'string' && value.trim() ? value : null;
 }
 
+function safeReportingBasis(value: unknown): 'base_currency_only' | 'unknown' {
+	return value === 'base_currency_only' ? 'base_currency_only' : 'unknown';
+}
+
 function normalizeSummary(
 	value: PeriodReport['summary'],
 	cashflow: CashflowData | null,
@@ -575,9 +579,9 @@ function normalizeReportView(periodReport: PeriodReport, period: ReportPeriod, l
 
 	return {
 		requestedPeriod,
-		reportingBasis: stringValue(periodReport.reporting_basis) ?? 'base_currency_only',
+		reportingBasis: safeReportingBasis(periodReport.reporting_basis),
 		includesCurrencyConversion: periodReport.includes_currency_conversion === true,
-		limitations: Array.isArray(periodReport.limitations) ? periodReport.limitations : [],
+		limitationsReported: Array.isArray(periodReport.limitations) && periodReport.limitations.length > 0,
 		partialFailure: periodReport.partial_failure === true,
 		empty: periodReport.empty === true,
 		summary: normalizeSummary(periodReport.summary, cashflow, fallbackCurrency),
@@ -684,9 +688,9 @@ async function loadComparisonReport(
 				comparisonMode,
 				primary,
 				comparison: comparisonReport,
-				reportingBasis: stringValue(payload.reporting_basis) ?? 'base_currency_only',
+				reportingBasis: safeReportingBasis(payload.reporting_basis),
 				includesCurrencyConversion: payload.includes_currency_conversion === true,
-				limitations: Array.isArray(payload.limitations) ? payload.limitations : [],
+				limitationsReported: Array.isArray(payload.limitations) && payload.limitations.length > 0,
 				partialFailure: payload.partial_failure === true,
 				empty: payload.empty === true,
 				comparable: payload.comparable === true,
@@ -703,15 +707,22 @@ async function loadComparisonReport(
 	}
 }
 
-function sectionWarnings(report: ComparisonReportView | null): SectionWarning[] {
+function sectionLabel(section: ReportSectionKey, locale: Locale): string {
+	if (section === 'summary') return t(locale, 'reports.section.summary');
+	if (section === 'cashflow') return t(locale, 'reports.section.cashflow');
+	if (section === 'monthly_cashflow') return t(locale, 'reports.section.monthlyCashflow');
+	return t(locale, 'reports.section.expenses');
+}
+
+function sectionWarnings(report: ComparisonReportView | null, locale: Locale): SectionWarning[] {
 	if (!report) return [];
 	return [
 		...Object.entries(report.primary.sectionErrors)
 			.filter((entry): entry is [string, string] => entry[1] !== null)
-			.map(([section, message]) => ({ source: 'primary' as const, section, message })),
+			.map(([section, message]) => ({ source: 'primary' as const, section: sectionLabel(section as ReportSectionKey, locale), message })),
 		...Object.entries(report.comparison.sectionErrors)
 			.filter((entry): entry is [string, string] => entry[1] !== null)
-			.map(([section, message]) => ({ source: 'comparison' as const, section, message }))
+			.map(([section, message]) => ({ source: 'comparison' as const, section: sectionLabel(section as ReportSectionKey, locale), message }))
 	];
 }
 
@@ -760,7 +771,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 		loadError,
 		report: comparisonReport?.primary ?? null,
 		comparisonReport,
-		sectionWarnings: sectionWarnings(comparisonReport),
+		sectionWarnings: sectionWarnings(comparisonReport, locale),
 		drilldowns
 	};
 };

@@ -15,6 +15,7 @@ const smokeHome = process.env.REPORTS_SMOKE_HOME ?? (process.env.USER ? join('/h
 const smokeTempRoot = process.env.REPORTS_SMOKE_TMPDIR ?? join(smokeHome, '.cache', 'gwc-rpt');
 const syntheticToken = 'synthetic-reports-smoke-token';
 const privateReportSentinel = 'PRIVATE_REPORT_SENTINEL_4F1B2C_ACCOUNT_PATH_GUID';
+const rawBackendLimitation = 'base_currency_only: No FX conversion; synthetic comparison fixture excludes non-base currencies.';
 const cdpCommandTimeoutMs = Number(process.env.REPORTS_CDP_TIMEOUT_MS ?? '90000');
 
 function resolveChromiumBin() {
@@ -190,7 +191,7 @@ function comparisonReportPayload(params, mode = 'full') {
 		limitations:
 			mode === 'not_comparable'
 				? ['currency_mismatch: XXX vs SEK; no FX conversion configured.']
-				: ['base_currency_only: No FX conversion; synthetic comparison fixture excludes non-base currencies.'],
+				: [rawBackendLimitation],
 		partial_failure: partial,
 		empty,
 		comparable,
@@ -230,12 +231,39 @@ function comparisonReportPayload(params, mode = 'full') {
 							currency: 'SEK'
 						},
 						{
+							account_id: 'expense-travel',
+							account_name: 'Synthetic Travel',
+							primary_total: '125.00',
+							comparison_total: '50.00',
+							delta: '75.00',
+							absolute_delta: '75.00',
+							currency: 'SEK'
+						},
+						{
+							account_id: 'expense-utilities',
+							account_name: 'Synthetic Utilities',
+							primary_total: '90.00',
+							comparison_total: '60.00',
+							delta: '30.00',
+							absolute_delta: '30.00',
+							currency: 'SEK'
+						},
+						{
 							account_id: 'expense-refund',
 							account_name: 'Synthetic Refund',
 							primary_total: '-10.00',
 							comparison_total: '5.00',
 							delta: '-15.00',
 							absolute_delta: '15.00',
+							currency: 'SEK'
+						},
+						{
+							account_id: 'expense-transport',
+							account_name: 'Synthetic Transport',
+							primary_total: '30.00',
+							comparison_total: '20.00',
+							delta: '10.00',
+							absolute_delta: '10.00',
 							currency: 'SEK'
 						},
 						{
@@ -515,7 +543,7 @@ function jsString(value) {
 	return JSON.stringify(value);
 }
 
-async function navigateReports(cdp, webBase, path, label, readyText = 'Period reports explorer') {
+async function navigateReports(cdp, webBase, path, label, readyText = 'Compare financial periods') {
 	const load = waitForCdpEvent(cdp, 'Page.loadEventFired', label, 20000).catch(() => null);
 	await cdp.send('Page.navigate', { url: `${webBase}${path}` });
 	await Promise.race([
@@ -557,15 +585,48 @@ async function assertNoMobileOverflowAndActiveReportsNav(cdp, label) {
 	});
 	const state = await evaluate(cdp, `(() => ({
 		viewportWidth: document.documentElement.clientWidth,
+		viewportHeight: window.innerHeight,
 		scrollWidth: document.documentElement.scrollWidth,
 		activeReportsLinks: Array.from(document.querySelectorAll('a[href="/reports"][aria-current="page"][data-active-route="true"]')).length,
 		fieldsets: document.querySelectorAll('fieldset legend').length,
+		executiveTop: document.querySelector('#reports-executive-title')?.closest('section')?.getBoundingClientRect().top ?? null,
+		filterControlsOpen: document.querySelector('#reports-filter-controls')?.open ?? null,
+		customRangesOpen: document.querySelector('#reports-custom-ranges')?.open ?? null,
 		bodyText: document.body?.innerText ?? ''
 	}))()`);
 	assert.ok(state.scrollWidth <= state.viewportWidth + 8, `${label}: 320px viewport must not have obvious horizontal overflow (${state.scrollWidth} > ${state.viewportWidth})`);
 	assert.ok(state.activeReportsLinks >= 1, `${label}: Reports navigation must expose active aria-current route state`);
 	assert.ok(state.fieldsets >= 2, `${label}: primary and comparison controls must use fieldset/legend semantics`);
-	assert.match(state.bodyText, /Period reports explorer|Просмотр отчётов за период/, `${label}: reports page title must be visible at 320px`);
+	assert.equal(state.filterControlsOpen, false, `${label}: period controls must be collapsed semantically on mobile`);
+	assert.equal(state.customRangesOpen, false, `${label}: custom date forms must be collapsed initially`);
+	assert.ok(state.executiveTop !== null && state.executiveTop < state.viewportHeight, `${label}: executive summary must begin in the first mobile viewport`);
+	assert.match(state.bodyText, /Compare financial periods|Сравнение периодов/, `${label}: reports page title must be visible at 320px`);
+}
+
+async function assertCompactDesktopInitialReport(cdp, label) {
+	await cdp.send('Emulation.setDeviceMetricsOverride', {
+		width: 1280,
+		height: 900,
+		deviceScaleFactor: 1,
+		mobile: false
+	});
+	const state = await evaluate(cdp, `(() => ({
+		viewportWidth: document.documentElement.clientWidth,
+		scrollWidth: document.documentElement.scrollWidth,
+		executiveBottom: document.querySelector('#reports-executive-title')?.closest('section')?.getBoundingClientRect().bottom ?? null,
+		filterControlsOpen: document.querySelector('#reports-filter-controls')?.open ?? null,
+		visibleFieldsets: Array.from(document.querySelectorAll('fieldset')).filter((fieldset) => fieldset.getClientRects().length > 0).length,
+		customRangesOpen: document.querySelector('#reports-custom-ranges')?.open ?? null,
+		technicalContractOpen: document.querySelector('#reports-technical-contract')?.open ?? null,
+		moreChangesOpen: document.querySelector('#reports-expense-changes-more')?.open ?? null
+	}))()`);
+	assert.ok(state.scrollWidth <= state.viewportWidth + 8, `${label}: 1280px viewport must not have horizontal overflow`);
+	assert.ok(state.executiveBottom !== null && state.executiveBottom <= 900, `${label}: the complete executive summary must fit in the first desktop viewport`);
+	assert.equal(state.filterControlsOpen, true, `${label}: period controls must be expanded semantically on desktop`);
+	assert.ok(state.visibleFieldsets >= 2, `${label}: primary and comparison controls must be visible on desktop`);
+	assert.equal(state.customRangesOpen, false, `${label}: custom dates must remain collapsed initially`);
+	assert.equal(state.technicalContractOpen, false, `${label}: technical contract must remain collapsed initially`);
+	assert.equal(state.moreChangesOpen, false, `${label}: full comparison remainder must remain collapsed initially`);
 }
 
 function assertHrefParams(href, expectedPath, expectedParams, label) {
@@ -596,12 +657,17 @@ async function assertFullComparisonPage(cdp) {
 			comparisonDateTo: document.querySelector('input[name="comparison_date_to"]')?.value ?? '',
 			bodyText,
 			html: document.documentElement.outerHTML,
-			periodHref: linkRows.find((link) => link.text.includes('View /transactions for this period'))?.href ?? '',
+			periodHref: linkRows.find((link) => link.text === 'View transactions')?.href ?? '',
 			primaryExpenseHref: linkRows.find((link) => link.text.includes('Primary period: 0.00'))?.href ?? '',
 			comparisonExpenseHref: linkRows.find((link) => link.text.includes('Comparison period: 100.00'))?.href ?? '',
 			primaryNotComparableHref: linkRows.find((link) => link.text.includes('Primary period: 80.00'))?.href ?? '',
 			comparisonNotComparableHref: linkRows.find((link) => link.text.includes('Comparison period: 75.00'))?.href ?? '',
-			rowOrder: Array.from(document.querySelectorAll('section[aria-labelledby="reports-expense-changes-title"] li')).map((row) => row.textContent.replace(/\\s+/g, ' ').trim()),
+			rowOrder: Array.from(document.querySelectorAll('section[aria-labelledby="reports-expense-changes-title"] [data-expense-change-row]')).map((row) => row.textContent.replace(/\\s+/g, ' ').trim()),
+			visibleExpenseRows: Array.from(document.querySelectorAll('[data-expense-change-row]')).filter((row) => !row.closest('details:not([open])')).length,
+			totalExpenseRows: document.querySelectorAll('[data-expense-change-row]').length,
+			customRangesOpen: document.querySelector('#reports-custom-ranges')?.open ?? null,
+			technicalContractOpen: document.querySelector('#reports-technical-contract')?.open ?? null,
+			moreChangesOpen: document.querySelector('#reports-expense-changes-more')?.open ?? null,
 			presetHrefs: linkRows.filter((link) => /This month|Last month|Year to date/.test(link.text)).map((link) => link.href),
 			comparisonModeHrefs: linkRows.filter((link) => /Previous equivalent|Same period last year/.test(link.text)).map((link) => link.href)
 		};
@@ -612,23 +678,30 @@ async function assertFullComparisonPage(cdp) {
 	assert.equal(state.dateTo, '2026-07-31', 'custom date_to input must persist selected value');
 	assert.equal(state.comparisonDateFrom, '2026-06-01', 'comparison date_from input must persist selected value');
 	assert.equal(state.comparisonDateTo, '2026-06-30', 'comparison date_to input must persist selected value');
-	assert.match(state.bodyText, /No FX conversion/, 'base-currency/no-FX limitation must render');
-	assert.match(state.bodyText, /Backend limitation:/, 'raw limitations must be visibly technical backend limitation text');
-	assert.match(state.bodyText, /Exact 0\.00 values are genuine data/, 'zero-vs-missing safety copy must render');
-	assert.match(state.bodyText, /Primary and comparison totals/, 'source period cards must render');
-	assert.match(state.bodyText, /Balance change/, 'summary delta section must render');
-	assert.match(state.bodyText, /Cashflow change/, 'cashflow delta section must render');
+	assert.match(state.bodyText, /What changed/, 'executive summary must lead the report');
+	assert.match(state.bodyText, /Net cash change[\s\S]*39\.33/, 'executive summary must show the exact signed net cash change');
+	assert.match(state.bodyText, /Largest spending increase[\s\S]*Synthetic Travel[\s\S]*75\.00/, 'executive summary must show the backend-ranked largest positive spending delta');
+	assert.match(state.bodyText, /Largest spending decrease[\s\S]*Synthetic Rent[\s\S]*-100\.00/, 'executive summary must show the backend-ranked largest negative spending delta');
 	assert.match(state.bodyText, /Spending changes by account/, 'expense change section must render');
-	assert.match(state.bodyText, /Unchanged/, 'zero delta must be labeled unchanged');
+
 	assert.match(state.bodyText, /Synthetic Rent[\s\S]*0\.00[\s\S]*100\.00/, 'one-sided successful zero expense row must stay visible');
 	assert.match(state.bodyText, /Synthetic Refund[\s\S]*-10\.00[\s\S]*5\.00/, 'negative expense totals must stay visible and signed');
-	assert.match(state.bodyText, /Synthetic Dining[\s\S]*80\.00[\s\S]*75\.00/, 'row-local not_comparable expense row must preserve side totals');
-	assert.match(state.bodyText, /This account row is not comparable/, 'row-local not_comparable expense row must render fixed redacted copy');
+	assert.doesNotMatch(state.bodyText, /Synthetic Dining/, 'rows after the top five must be hidden initially');
 	assert.doesNotMatch(state.html, new RegExp(privateReportSentinel), 'row-local backend detail must not be serialized into the browser HTML');
+	assert.doesNotMatch(state.html, new RegExp(rawBackendLimitation), 'raw backend limitation strings must not be serialized into browser HTML');
+	assert.doesNotMatch(state.bodyText, /Backend limitation:|URL-backed|comparison endpoint/i, 'happy-path user copy must not expose implementation language');
+	assert.equal(state.visibleExpenseRows, 5, 'initial report must show exactly the bounded top-five comparison rows');
+	assert.equal(state.totalExpenseRows, 7, 'collapsed disclosure must retain the complete seven-row comparison');
+	assert.equal(state.customRangesOpen, false, 'custom date forms must be collapsed initially');
+	assert.equal(state.technicalContractOpen, false, 'technical contract must be collapsed initially');
+	assert.equal(state.moreChangesOpen, false, 'full expense comparison remainder must be collapsed initially');
 	assert.ok(state.rowOrder[0]?.includes('Synthetic Rent'), 'backend-ranked expense rows must be preserved: largest absolute delta first');
-	assert.ok(state.rowOrder[1]?.includes('Synthetic Refund'), 'backend-ranked expense rows must preserve second row');
-	assert.ok(state.rowOrder[2]?.includes('Synthetic Food'), 'backend-ranked expense rows must preserve unchanged zero row');
-	assert.ok(state.rowOrder[3]?.includes('Synthetic Dining'), 'backend-ranked expense rows must preserve row-local not_comparable row after comparable rows');
+	assert.ok(state.rowOrder[1]?.includes('Synthetic Travel'), 'backend-ranked expense rows must preserve second row');
+	assert.ok(state.rowOrder[2]?.includes('Synthetic Utilities'), 'backend-ranked expense rows must preserve third row');
+	assert.ok(state.rowOrder[3]?.includes('Synthetic Refund'), 'backend-ranked expense rows must preserve fourth row');
+	assert.ok(state.rowOrder[4]?.includes('Synthetic Transport'), 'backend-ranked expense rows must preserve fifth row');
+	assert.ok(state.rowOrder[5]?.includes('Synthetic Food'), 'expandable remainder must preserve unchanged zero row');
+	assert.ok(state.rowOrder[6]?.includes('Synthetic Dining'), 'expandable remainder must preserve row-local not_comparable row');
 	for (const href of state.presetHrefs) {
 		const url = new URL(href);
 		assert.equal(url.pathname, '/reports', 'preset link path');
@@ -643,13 +716,27 @@ async function assertFullComparisonPage(cdp) {
 			assert.ok(url.searchParams.get(key), `comparison link keeps ${key} query`);
 		}
 	}
-	for (const href of [state.periodHref]) {
-		assertHrefParams(href, '/transactions', { sort: 'date_desc', page_size: '50', date_from: '2026-07-01', date_to: '2026-07-31' }, 'primary period transaction drilldown');
-	}
+	assertHrefParams(state.periodHref, '/transactions', { sort: 'date_desc', page_size: '50', date_from: '2026-07-01', date_to: '2026-07-31' }, 'primary period transaction drilldown');
 	assertHrefParams(state.primaryExpenseHref, '/transactions', { sort: 'date_desc', page_size: '50', account_ids: 'expense-rent', date_from: '2026-07-01', date_to: '2026-07-31' }, 'primary expense drilldown');
 	assertHrefParams(state.comparisonExpenseHref, '/transactions', { sort: 'date_desc', page_size: '50', account_ids: 'expense-rent', date_from: '2026-06-01', date_to: '2026-06-30' }, 'comparison expense drilldown');
 	assertHrefParams(state.primaryNotComparableHref, '/transactions', { sort: 'date_desc', page_size: '50', account_ids: 'expense-dining', date_from: '2026-07-01', date_to: '2026-07-31' }, 'row-local not_comparable primary expense drilldown');
 	assertHrefParams(state.comparisonNotComparableHref, '/transactions', { sort: 'date_desc', page_size: '50', account_ids: 'expense-dining', date_from: '2026-06-01', date_to: '2026-06-30' }, 'row-local not_comparable comparison expense drilldown');
+
+	await evaluate(cdp, `(() => {
+		document.querySelector('#reports-expense-changes-more').open = true;
+		document.querySelector('#reports-technical-contract').open = true;
+	})()`);
+	const expandedState = await evaluate(cdp, `(() => ({
+		visibleExpenseRows: Array.from(document.querySelectorAll('[data-expense-change-row]')).filter((row) => !row.closest('details:not([open])')).length,
+		visibleText: document.body?.innerText ?? '',
+		technicalText: document.querySelector('#reports-technical-contract')?.innerText ?? ''
+	}))()`);
+	assert.equal(expandedState.visibleExpenseRows, 7, 'expanding the remainder must reveal the complete comparison list');
+	assert.match(expandedState.visibleText, /Synthetic Dining[\s\S]*80\.00[\s\S]*75\.00/, 'expanded row-local not_comparable row must preserve side totals');
+	assert.match(expandedState.visibleText, /This account row is not comparable/, 'expanded row-local not_comparable row must render fixed redacted copy');
+	assert.match(expandedState.visibleText, /Synthetic Food[\s\S]*Unchanged/, 'expanded zero delta must remain visible and labeled unchanged');
+	assert.match(expandedState.technicalText, /Exact zero values[\s\S]*base currency[\s\S]*No currency conversion/i, 'technical disclosure must preserve zero/base-currency/no-FX semantics');
+	assert.match(expandedState.technicalText, /Primary period[\s\S]*Comparison period/, 'technical disclosure must preserve exact side totals and drilldowns');
 }
 
 async function runSmoke() {
@@ -729,6 +816,7 @@ async function runSmoke() {
 			'full reports comparison page'
 		);
 		await assertNoMobileOverflowAndActiveReportsNav(cdp, 'full reports comparison page');
+		await assertCompactDesktopInitialReport(cdp, 'full reports comparison page');
 		await assertFullComparisonPage(cdp);
 		assert.equal(reportRequests(api).length, 1, 'full reports page must call exactly one combined read-only comparison endpoint');
 		assertRequestParams(lastReportRequest(api), {
@@ -779,7 +867,7 @@ async function runSmoke() {
 			'Invalid range'
 		);
 		const invalidText = await evaluate(cdp, `document.body?.innerText ?? ''`);
-		assert.match(invalidText, /No reports API request was made for this invalid range/, 'invalid comparison range must explicitly skip reports API calls');
+		assert.match(invalidText, /No report was loaded for these dates/, 'invalid comparison range must explicitly skip report loading');
 		assert.equal(reportRequests(api).length, reportCountBeforeInvalid, 'invalid comparison range must not add report endpoint requests');
 		assertNoMutationRequestsObserved(api, browserRequests, 'invalid custom comparison range');
 
@@ -792,7 +880,7 @@ async function runSmoke() {
 			'Invalid range'
 		);
 		const inconsistentText = await evaluate(cdp, `document.body?.innerText ?? ''`);
-		assert.match(inconsistentText, /comparison_date_from=2026-01-01 and comparison_date_to=2026-07-01/, 'inconsistent derived comparison dates must show canonical required dates');
+		assert.match(inconsistentText, /requires 2026-01-01 to 2026-07-01/, 'inconsistent derived comparison dates must show canonical required dates');
 		assert.equal(reportRequests(api).length, reportCountBeforeInconsistent, 'inconsistent derived comparison range must not add report endpoint requests');
 		assertNoMutationRequestsObserved(api, browserRequests, 'inconsistent derived comparison range');
 
@@ -818,7 +906,7 @@ async function runSmoke() {
 		const partialText = await evaluate(cdp, `document.body?.innerText ?? ''`);
 		const partialHtml = await evaluate(cdp, `document.documentElement.outerHTML`);
 		assert.match(partialText, /Partial report/, 'partial source section failure must render a partial report alert');
-		assert.match(partialText, /Comparison delta is unavailable/, 'partial delta section failure must render fixed redacted copy');
+		assert.match(partialText, /comparison is unavailable because part of the report could not be calculated/i, 'partial delta section failure must render fixed user-language copy');
 		assert.doesNotMatch(partialText, new RegExp(privateReportSentinel), 'partial section failure must redact backend details');
 		assert.doesNotMatch(partialHtml, new RegExp(privateReportSentinel), 'partial section backend detail must not be serialized into browser HTML');
 		assert.match(partialText, /Synthetic Rent/, 'unaffected expense-change section must remain visible after a partial error');
@@ -833,7 +921,8 @@ async function runSmoke() {
 		);
 		const notComparableText = await evaluate(cdp, `document.body?.innerText ?? ''`);
 		assert.match(notComparableText, /Comparison is not comparable/, 'unknown/mismatched currency must render not_comparable copy');
-		assert.match(notComparableText, /Backend limitation: currency_mismatch: XXX vs SEK; no FX conversion configured\./, 'technical backend limitation text must remain visibly technical');
+		assert.match(notComparableText, /different currencies cannot be compared without currency conversion/i, 'not-comparable reports must use bounded user-language currency guidance');
+		assert.doesNotMatch(notComparableText, /currency_mismatch|XXX vs SEK|Backend limitation/i, 'not-comparable reports must not expose raw backend limitation text');
 		assert.doesNotMatch(notComparableText, /No report data/, 'not_comparable must not masquerade as empty');
 		assertNoMutationRequestsObserved(api, browserRequests, 'not comparable reports comparison page');
 
@@ -846,7 +935,7 @@ async function runSmoke() {
 		);
 		const errorText = await evaluate(cdp, `document.body?.innerText ?? ''`);
 		assert.match(errorText, /Report request failed/, 'whole-request failure must render load error state');
-		assert.match(errorText, /Reports API request failed safely|Reports API is unavailable/, 'whole-request failure must use fixed safe copy');
+		assert.match(errorText, /Could not load this report|Reports are temporarily unavailable/, 'whole-request failure must use fixed user-language copy');
 		assert.doesNotMatch(errorText, new RegExp(privateReportSentinel), 'whole-request failure must redact unknown backend detail');
 		assert.doesNotMatch(errorText, /No report data/, 'whole-request failure must not be presented as an empty report');
 		assertNoMutationRequestsObserved(api, browserRequests, 'all-error reports comparison page');
