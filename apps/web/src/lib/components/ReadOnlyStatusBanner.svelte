@@ -14,39 +14,32 @@
 </script>
 
 <section
-	class="border-b px-4 py-2 text-xs md:text-sm"
+	data-read-only-banner
+	class="border-b px-3 py-1.5 text-xs md:px-4 md:text-sm"
 	style="background: color-mix(in srgb, var(--app-accent) 8%, var(--app-panel)); border-color: var(--app-border); color: var(--app-text);"
 	aria-label={t(locale, 'safety.statusLabel')}
 >
-	<div class="mx-auto flex max-w-5xl flex-col gap-2 md:flex-row md:items-start md:justify-between">
-		<div class="flex min-w-0 flex-col gap-1 font-medium sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
-			<span class="inline-flex items-center gap-2 rounded-full border px-2 py-1" style="border-color: var(--app-border); background: var(--app-panel);">
-				<span
-					class="inline-flex h-2 w-2 rounded-full shrink-0"
-					style="background: var(--app-success);"
-					aria-hidden="true"
-				></span>
-				<span>{t(locale, 'safety.badge')}</span>
-			</span>
-			<span class="inline-flex rounded-full border px-2 py-1" style="border-color: var(--app-border); background: var(--app-panel); color: var(--app-muted);">
-				{t(locale, 'safety.writeDisabled')}
-			</span>
-			<span class="min-w-0 truncate rounded-full border px-2 py-1" style="border-color: var(--app-border); background: var(--app-panel);" title={currentBookLabel}>
-				{currentBookLabel}
-			</span>
-			<a class="rounded-full border px-2 py-1 underline-offset-2 hover:underline focus:outline-none focus:ring-2" style="border-color: var(--app-border); color: var(--app-accent);" href="/books">
-				{t(locale, 'safety.reviewBooks')}
-			</a>
-		</div>
-		<div class="min-w-0 leading-snug" style="color: var(--app-muted);">
-			<p class="break-words">{t(locale, 'safety.shortBoundary')}</p>
-			<details class="mt-1 max-w-3xl">
-				<summary class="cursor-pointer font-medium underline-offset-2 hover:underline" style="color: var(--app-accent);">
-					{t(locale, 'safety.detailsLabel')}
-				</summary>
-				<p class="mt-1 text-[0.72rem] md:text-xs">{bannerMessage}</p>
-				<p class="mt-1 text-[0.72rem] md:text-xs">{t(locale, 'safety.releaseCritical')}</p>
-			</details>
-		</div>
+	<div class="mx-auto flex min-w-0 items-center flex-wrap gap-2 whitespace-nowrap md:max-w-5xl">
+		<span class="inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2 py-1 font-semibold" style="border-color: var(--app-border); background: var(--app-panel);">
+			<span class="inline-flex h-2 w-2 shrink-0 rounded-full" style="background: var(--app-success);" aria-hidden="true"></span>
+			<span>{t(locale, 'safety.badge')}</span>
+		</span>
+		<span class="hidden shrink-0 rounded-full border px-2 py-1 sm:inline-flex" style="border-color: var(--app-border); background: var(--app-panel); color: var(--app-muted);">
+			{t(locale, 'safety.writeDisabled')}
+		</span>
+		<span class="min-w-0 flex-1 truncate" title={currentBookLabel}>{currentBookLabel}</span>
+		<details class="min-w-0 shrink-0 whitespace-normal open:basis-full open:w-full">
+			<summary class="cursor-pointer font-semibold underline-offset-2 hover:underline focus:outline-none focus:ring-2" style="color: var(--app-accent);">
+				{t(locale, 'safety.detailsLabel')}
+			</summary>
+			<div class="mt-2 max-w-3xl space-y-1 pb-1 text-[0.72rem] leading-snug md:text-xs" style="color: var(--app-muted);">
+				<p class="break-words">{t(locale, 'safety.shortBoundary')}</p>
+				<p class="break-words">{bannerMessage}</p>
+				<p class="break-words">{t(locale, 'safety.releaseCritical')}</p>
+				<a class="inline-block font-semibold underline-offset-2 hover:underline focus:outline-none focus:ring-2" style="color: var(--app-accent);" href="/books">
+					{t(locale, 'safety.reviewBooks')}
+				</a>
+			</div>
+		</details>
 	</div>
 </section>

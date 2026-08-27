@@ -17,11 +17,14 @@
 	let menuOpen = $state(false);
 	const showAdminUsers = $derived(isAdmin === true);
 
-	const navLinks = $derived([
+	const primaryLinks = $derived([
 		{ href: '/dashboard', label: t(locale, 'nav.dashboard'), icon: 'home' },
 		{ href: '/accounts', label: t(locale, 'nav.accounts'), icon: 'accounts' },
 		{ href: '/transactions', label: t(locale, 'nav.transactions'), icon: 'transactions' },
-		{ href: '/scheduled', label: t(locale, 'nav.scheduled'), icon: 'scheduled' },
+		{ href: '/scheduled', label: t(locale, 'nav.scheduled'), icon: 'scheduled' }
+	] as const);
+
+	const secondaryLinks = $derived([
 		{ href: '/reports', label: t(locale, 'nav.reports'), icon: 'reports' },
 		{ href: '/books', label: t(locale, 'nav.books'), icon: 'books' },
 		...(showAdminUsers ? [{ href: '/admin/users', label: t(locale, 'nav.adminUsers'), icon: 'admin-users' }] : [])
@@ -30,6 +33,8 @@
 	function isActivePath(href: string): boolean {
 		return currentPath === href || currentPath.startsWith(`${href}/`);
 	}
+
+	const secondaryRouteActive = $derived(secondaryLinks.some((link) => isActivePath(link.href)));
 
 	function toggleMenu() {
 		menuOpen = !menuOpen;
@@ -56,6 +61,8 @@
 				return `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>`;
 			case 'admin-users':
 				return `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`;
+			case 'more':
+				return `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="${c}"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>`;
 			default:
 				return '';
 		}
@@ -63,6 +70,7 @@
 </script>
 
 <nav
+	data-mobile-nav
 	class="fixed inset-x-0 bottom-0 z-40 max-w-full overflow-x-hidden border-t md:hidden"
 	style="background-color: var(--app-nav-bg); border-color: var(--app-nav-border);"
 	aria-label={t(locale, 'nav.mobileNavigation')}
@@ -74,7 +82,22 @@
 			class="border-b px-3 py-3 shadow-lg"
 			style="border-color: var(--app-nav-border); background-color: var(--app-nav-bg);"
 		>
-			<div class="mx-auto flex max-w-full flex-col gap-3">
+			<div class="mx-auto flex max-w-lg flex-col gap-3">
+				<div class="grid grid-cols-2 gap-2">
+					{#each secondaryLinks as link}
+						{@const active = isActivePath(link.href)}
+						<a
+							href={link.href}
+							aria-current={active ? 'page' : undefined}
+							class="flex min-h-[44px] min-w-0 items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium"
+							style={active ? 'border-color: var(--app-accent); color: var(--app-accent); background: var(--app-hover-bg);' : 'border-color: var(--app-border); color: var(--app-text);'}
+							onclick={closeMenu}
+						>
+							<span class="h-[22px] w-[22px] shrink-0" aria-hidden="true">{@html iconFor(link.icon, active)}</span>
+							<span class="min-w-0 break-words leading-tight">{link.label}</span>
+						</a>
+					{/each}
+				</div>
 				<div class="min-w-0">
 					<BookSwitcher {books} {activeBook} {locale} compact />
 				</div>
@@ -95,43 +118,35 @@
 		</div>
 	{/if}
 
-	<div class="flex max-w-full items-center justify-between gap-2 border-b px-3 py-2" style="border-color: var(--app-nav-border);">
-		<div class="min-w-0 flex-1 truncate text-xs font-medium" style="color: var(--app-muted);">
-			{#if activeBook}
-				<span class="sr-only">{t(locale, 'safety.currentBook')}:</span>{activeBook.name}
-			{:else}
-				GnuCash Web Companion
-			{/if}
-		</div>
-		<button
-			type="button"
-			class="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border px-3 text-sm font-medium transition-colors hover:bg-[var(--app-hover-bg)]"
-			style="border-color: var(--app-border); color: var(--app-text);"
-			aria-expanded={menuOpen}
-			aria-controls="mobile-nav-menu"
-			onclick={toggleMenu}
-		>
-			<span aria-hidden="true">☰</span>
-			<span class="sr-only">{menuOpen ? t(locale, 'nav.mobileClose') : t(locale, 'nav.mobileOpen')}</span>
-		</button>
-	</div>
-
 	<div class="safe-bottom flex max-w-full items-stretch justify-around">
-		{#each navLinks as link}
+		{#each primaryLinks as link}
 			{@const active = isActivePath(link.href)}
 			<a
 				href={link.href}
 				aria-current={active ? 'page' : undefined}
 				data-active-route={active ? 'true' : 'false'}
-				class="flex min-h-[44px] min-w-[44px] flex-1 flex-col items-center justify-center gap-0.5 px-1 py-2 text-[10px] font-medium transition-colors"
+				data-mobile-primary
+				class="flex min-h-[56px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[10px] font-medium transition-colors"
 				style={active ? 'color: var(--app-accent); background: var(--app-hover-bg);' : 'color: var(--app-muted);'}
 				onclick={closeMenu}
 			>
-				<span class="h-[22px] w-[22px]" aria-hidden="true">
-					{@html iconFor(link.icon, active)}
-				</span>
-				<span class="max-w-full truncate">{link.label}</span>
+				<span class="h-[22px] w-[22px]" aria-hidden="true">{@html iconFor(link.icon, active)}</span>
+				<span class="max-w-full break-words text-center leading-tight">{link.label}</span>
 			</a>
 		{/each}
+		<button
+			type="button"
+			data-mobile-more
+			data-active-route={secondaryRouteActive ? 'true' : 'false'}
+			class="flex min-h-[56px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[10px] font-medium transition-colors"
+			style={secondaryRouteActive || menuOpen ? 'color: var(--app-accent); background: var(--app-hover-bg);' : 'color: var(--app-muted);'}
+			aria-expanded={menuOpen}
+			aria-controls="mobile-nav-menu"
+			aria-label={menuOpen ? t(locale, 'nav.mobileClose') : t(locale, 'nav.mobileOpen')}
+			onclick={toggleMenu}
+		>
+			<span class="h-[22px] w-[22px]" aria-hidden="true">{@html iconFor('more', secondaryRouteActive || menuOpen)}</span>
+			<span class="max-w-full break-words text-center leading-tight">{t(locale, 'nav.mobileMore')}</span>
+		</button>
 	</div>
 </nav>

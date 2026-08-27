@@ -34,7 +34,7 @@ assert.match(errorStateComponent, /retryHref[\s\S]*backHref[\s\S]*aria-label/s, 
 const errorPage = read('src/routes/+error.svelte');
 assert.match(errorPage, /import ErrorState/, 'global error page must reuse ErrorState');
 assert.match(errorPage, /statusCode=\{page\.status\}[\s\S]*retryHref=\{page\.url\.pathname \+ page\.url\.search\}[\s\S]*page\.status === 503[\s\S]*'\/books'[\s\S]*error\.reviewBooks/s, 'global error page must pass status, retry, and localized /books recovery for unavailable read-only book errors');
-assert.match(errorPage, /<svelte:head>[\s\S]*<title>[\s\S]*error\.serviceTitle[\s\S]*page\.status === 503[\s\S]*href="\/diagnostics"[\s\S]*error\.openDiagnostics/s, '503 error page must keep a useful document title and expose retry plus redacted diagnostics recovery');
+assert.match(errorPage, /const errorTitle = \$derived[\s\S]*page\.status === 403[\s\S]*error\.forbiddenTitle[\s\S]*page\.status === 404[\s\S]*error\.notFoundTitle[\s\S]*page\.status >= 500[\s\S]*<title>\{errorTitle\}[\s\S]*retryHref[\s\S]*backHref[\s\S]*page\.status >= 500[\s\S]*href="\/diagnostics"[\s\S]*error\.openDiagnostics/s, 'global error page must keep status-appropriate document titles and expose retry plus redacted diagnostics recovery for 5xx failures');
 const loadingStateComponent = read('src/lib/components/LoadingState.svelte');
 assert.match(
 	loadingStateComponent,
@@ -440,22 +440,25 @@ assert.match(i18nMessages, /writeMode\.message[\s\S]*not production-ready or sec
 const desktopNav = read('src/lib/components/DesktopNav.svelte');
 const mobileNav = read('src/lib/components/MobileNav.svelte');
 assert.match(desktopNav, /href: '\/scheduled'[\s\S]*label: t\(locale, 'nav\.scheduled'\)/, 'desktop nav must expose the localized /scheduled page');
-assert.match(mobileNav, /href: '\/scheduled'[\s\S]*label: t\(locale, 'nav\.scheduled'\)/, 'mobile nav must expose the localized /scheduled page');
+assert.match(mobileNav, /const primaryLinks[\s\S]*href: '\/scheduled'[\s\S]*label: t\(locale, 'nav\.scheduled'\)/, 'mobile primary nav must expose the localized /scheduled page');
 assert.match(desktopNav, /href: '\/books'[\s\S]*label: t\(locale, 'nav\.books'\)/, 'desktop nav must expose the localized /books management page');
-assert.match(mobileNav, /href: '\/books'[\s\S]*label: t\(locale, 'nav\.books'\)/, 'mobile nav must expose the localized /books management page');
+assert.match(mobileNav, /const secondaryLinks[\s\S]*href: '\/books'[\s\S]*label: t\(locale, 'nav\.books'\)/, 'mobile More menu must expose the localized /books management page');
 assert.match(desktopNav, /<header class="hidden[^"]*md:block/s, 'desktop header must be hidden below the md breakpoint so mobile navigation is not duplicated');
 assert.match(mobileNav, /md:hidden[\s\S]*aria-label=\{t\(locale, 'nav\.mobileNavigation'\)\}/, 'mobile navigation must be the only app navigation below the md breakpoint');
 assert.match(mobileNav, /let menuOpen = \$state\(false\)[\s\S]*aria-expanded=\{menuOpen\}[\s\S]*onclick=\{toggleMenu\}/s, 'mobile nav must expose a touch-friendly menu button that opens and closes the mobile menu');
 assert.match(mobileNav, /data-mobile-menu[\s\S]*BookSwitcher[\s\S]*LocaleSwitcher[\s\S]*ThemeSwitcher[\s\S]*method="POST" action="\/logout"/s, 'mobile menu must contain book, locale, theme, and logout touch controls');
 assert.match(mobileNav, /min-h-\[44px\][\s\S]*min-w-\[44px\]/s, 'mobile menu controls and nav links must declare at least 44px touch targets');
+assert.match(mobileNav, /data-mobile-primary[\s\S]*data-mobile-more[\s\S]*nav\.mobileMore/s, 'compact mobile chrome must expose four primary destinations and one labelled More control');
 assert.doesNotMatch(mobileNav, /overflow-x-auto|min-w-full/, 'mobile navigation must not introduce horizontal scrolling at 320px widths');
+assert.doesNotMatch(mobileNav, /max-w-full truncate|text-overflow:\s*ellipsis/, 'mobile navigation labels must not be visibly truncated');
 const layoutPage = read('src/routes/+layout.svelte');
-assert.match(layoutPage, /overflow-x-hidden[\s\S]*max-w-full[\s\S]*pb-32 md:pb-0/s, 'app shell must prevent mobile horizontal scroll and reserve enough space for the fixed mobile navigation');
+assert.match(layoutPage, /overflow-x-hidden[\s\S]*max-w-full[\s\S]*pb-24 md:pb-0/s, 'app shell must prevent mobile horizontal scroll and reserve the compact single-row mobile navigation height');
 assert.match(layoutPage, /<ReadOnlyStatusBanner \{locale\} \{activeBook\}/, 'app shell must pass the active book into the read-only runtime status banner');
 const readOnlyStatusBanner = read('src/lib/components/ReadOnlyStatusBanner.svelte');
 assert.match(readOnlyStatusBanner, /activeBook\?: Book \| null[\s\S]*activeBook\?\.name[\s\S]*safety\.currentBook/s, 'read-only status banner must show the current active book name');
 assert.match(readOnlyStatusBanner, /href="\/books"[\s\S]*safety\.reviewBooks/s, 'read-only status banner must provide a safe link to review books');
 assert.match(readOnlyStatusBanner, /safety\.releaseCritical/s, 'app shell safety banner must expose release-critical pre-alpha/not-production wording');
+assert.match(readOnlyStatusBanner, /data-read-only-banner[\s\S]*flex min-w-0 items-center[\s\S]*whitespace-nowrap[\s\S]*<details/s, 'healthy read-only chrome must be one compact line until its native details disclosure opens');
 assert.match(i18nMessages, /Pre-alpha read-only MVP[\s\S]*GNUCASH_WRITES_ENABLED=false[\s\S]*Not production-ready or security-audited[\s\S]*outside-git copied\/restorable test books[\s\S]*originals untouched[\s\S]*Pre-alpha MVP[\s\S]*Не production-ready[\s\S]*outside-git copied\/restorable test books/s, 'localized safety copy must state pre-alpha, default-disabled, not-production, not-security-audited, and copied-book-only boundaries');
 const bookSwitcherComponent = read('src/lib/components/BookSwitcher.svelte');
 assert.match(bookSwitcherComponent, /compact = false[\s\S]*min-h-11[\s\S]*max-w-full[\s\S]*truncate/s, 'book switcher must support compact mobile rendering with 44px touch height and no overflow');
@@ -480,16 +483,17 @@ assert.match(
 );
 assert.match(
 	scheduledServer,
-	/scheduledFilterHref[\s\S]*status[\s\S]*template[\s\S]*sort[\s\S]*filterScheduledTransactions[\s\S]*has_template_account[\s\S]*sortScheduledTransactions/s,
-	'scheduled server load must provide URL-only status/template filters and deterministic safe metadata sorting'
+	/ScheduledSort = 'next_due'[\s\S]*scheduledFilterHref[\s\S]*filterScheduledTransactions[\s\S]*sortScheduledTransactions[\s\S]*forecastGroupKey[\s\S]*upcoming_7_days[\s\S]*upcoming_30_days[\s\S]*groupScheduledTransactions/s,
+	'scheduled server load must provide URL-only filters plus deterministic overdue/next-7/next-30 forecast grouping'
 );
 const scheduledPage = read('src/routes/scheduled/+page.svelte');
 for (const scheduledPhrase of [
 	'Scheduled transactions',
 	'Read-only scheduled transaction awareness',
 	'Use GnuCash Desktop as the authoritative editor',
-	'Template split details and private raw SQL are not exposed',
-	'Filters and sorting are URL-only display controls',
+	'Next 7 days',
+	'Next 30 days',
+	'Amount unavailable',
 	'Status filter',
 	'Template metadata filter',
 	'Sort display',
@@ -498,17 +502,19 @@ for (const scheduledPhrase of [
 ]) {
 	assert.ok(i18nMessages.includes(scheduledPhrase), `scheduled i18n catalog must include conservative copy: ${scheduledPhrase}`);
 }
-assert.match(scheduledPage, /DEFAULT_LOCALE[\s\S]*t\(locale, 'scheduled\.title'\)[\s\S]*t\(locale, 'scheduled\.metadataHelp'\)/s, 'scheduled page must render release-critical copy through the localized catalog');
+assert.match(scheduledPage, /DEFAULT_LOCALE[\s\S]*t\(locale, 'scheduled\.title'\)[\s\S]*t\(locale, 'scheduled\.subtitle'\)/s, 'scheduled page must render release-critical copy through the localized catalog');
 assert.match(scheduledPage, /import EmptyState/, 'scheduled page must reuse EmptyState for no schedules');
 assert.match(scheduledPage, /data\.scheduledSummary\.shown[\s\S]*data\.scheduledSummary\.total[\s\S]*data\.filters\.links\.clear/s, 'scheduled page must show filtered counts and clear URL-only scheduled filters');
 assert.match(scheduledPage, /templateStatusLabel[\s\S]*present_redacted[\s\S]*scheduled\.templatePresentRedacted[\s\S]*scheduled\.templateNotPresentRedacted/s, 'scheduled page must render only redacted template-reference status, including no-template cases');
-assert.match(scheduledPage, /min-w-0 rounded-xl border p-4[\s\S]*scheduled\.templateReferenceStatus[\s\S]*scheduled\.template_reference_status/s, 'scheduled cards must keep bounded layout and show safe template metadata status');
+assert.match(scheduledPage, /data-schedule-group[\s\S]*data-schedule-row[\s\S]*scheduled\.templateReferenceStatus[\s\S]*scheduled\.template_reference_status/s, 'scheduled groups and compact rows must keep bounded layout and safe template metadata status');
+assert.match(scheduledPage, /hasResolvedAmount[\s\S]*amount\.status === 'resolved'[\s\S]*scheduled\.amount\.amount[\s\S]*scheduled\.amount\.currency/s, 'scheduled rows must show amount only for the complete backend-resolved state');
+assert.match(scheduledPage, /<details[\s\S]*scheduled\.details\.summary[\s\S]*scheduled\.forecast\.asOf[\s\S]*scheduled\.recurrenceMetadata/s, 'technical forecast and recurrence metadata must be behind keyboard-native disclosures');
 assert.match(scheduledPage, /<EmptyState[\s\S]*title=\{t\(locale, 'scheduled\.noMatchesTitle'\)\}[\s\S]*href=\{data\.filters\.links\.clear\}[\s\S]*scheduled\.clearFilters/s, 'scheduled filtered empty state must explain URL-only filters and offer a localized clear action');
 assert.match(scheduledPage, /<EmptyState[\s\S]*title=\{t\(locale, 'scheduled\.emptyTitle'\)\}[\s\S]*href="\/transactions"[\s\S]*scheduled\.browseTransactions/s, 'scheduled empty state must include localized copy and keyboard-focusable navigation');
 assert.doesNotMatch(
 	scheduledPage,
-	/<form|method="POST"|New scheduled|Edit scheduled|Delete scheduled|next occurrence|next-run|localStorage|sessionStorage/i,
-	'scheduled page must not expose scheduling editor controls, browser persistence, or fake next-run copy'
+	/<form|method="POST"|New scheduled|Edit scheduled|Delete scheduled|localStorage|sessionStorage|scheduled\.limitations/i,
+	'scheduled page must not expose scheduling editor controls, browser persistence, raw limitations, or write paths'
 );
 
 const transactionTable = read('src/lib/components/TransactionTable.svelte');

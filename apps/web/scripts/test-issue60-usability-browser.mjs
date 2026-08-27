@@ -449,16 +449,25 @@ async function assertDashboard(cdp, webBase, locale, width) {
 	await cdp.send('Network.setCookie', { name: 'ui_locale', value: locale, url: webBase, path: '/', sameSite: 'Lax' });
 	await navigate(cdp, webBase, `/dashboard?issue60_locale=${locale}&issue60_width=${width}`, `dashboard ${locale} ${width}`);
 	await waitForExpression(cdp, `document.body.innerText.includes(${jsString(locale === 'ru' ? 'Обзор' : 'Dashboard')})`, `dashboard localized title ${locale}`);
-	const state = await pageState(cdp);
-	assertNoPrivateOrTechnicalLeak(state, `dashboard ${locale} ${width}`, { allowVisibleTemplateName: true });
-	assert.match(state.text, /RUB/, `dashboard ${locale}: RUB reporting currency must be visible`);
+	const collapsedState = await pageState(cdp);
+	assertNoPrivateOrTechnicalLeak(collapsedState, `dashboard ${locale} ${width} collapsed`, { allowVisibleTemplateName: true });
+	assert.match(collapsedState.text, /RUB/, `dashboard ${locale}: RUB reporting currency must be visible`);
 	assert.doesNotMatch(
-		state.text,
+		collapsedState.text,
 		locale === 'ru'
 			? /(?:Капитал|Активы|Обязательства|Доходы|Расходы)[\s\S]{0,120}\bUSD\b/i
 			: /(?:Net worth|Assets|Liabilities|Income|Expenses)[\s\S]{0,120}\bUSD\b/i,
 		`dashboard ${locale}: USD must not be mixed into primary totals`
 	);
+	const safetyDisclosureOpened = await evaluate(cdp, `(() => {
+		const details = document.querySelector('[data-dashboard-safety-details]');
+		if (!details) return false;
+		details.open = true;
+		return details.open;
+	})()`);
+	assert.equal(safetyDisclosureOpened, true, `dashboard ${locale}: calculation/safety disclosure must open natively`);
+	const state = await pageState(cdp);
+	assertNoPrivateOrTechnicalLeak(state, `dashboard ${locale} ${width} expanded`, { allowVisibleTemplateName: true });
 	if (locale === 'ru') {
 		for (const phrase of [
 			'Другие валюты не включены: USD. Конвертация не выполняется.',
@@ -501,6 +510,14 @@ async function assertAccounts(cdp, webBase, manifest, width) {
 	await setViewport(cdp, width, width <= 480 ? 1000 : 900);
 	await cdp.send('Network.setCookie', { name: 'ui_locale', value: 'ru', url: webBase, path: '/', sameSite: 'Lax' });
 	await navigate(cdp, webBase, '/accounts', `accounts ${width}`);
+	await evaluate(cdp, `(async () => {
+		for (let pass = 0; pass < 4; pass += 1) {
+			for (const button of document.querySelectorAll('[data-account-toggle][aria-expanded="false"]')) button.click();
+			await new Promise((resolve) => setTimeout(resolve, 75));
+		}
+		return true;
+	})()`, { awaitPromise: true });
+	await waitForExpression(cdp, `document.body.innerText.includes('Сбербанк — Банки')`, `accounts expanded ${width}`);
 	const state = await pageState(cdp);
 	assertNoPrivateOrTechnicalLeak(state, `accounts ${width}`, { allowVisibleTemplateName: true });
 	for (const phrase of ['Сбербанк — Банки', 'Сбербанк — Бизнес', 'Template Root', 'Группа', 'Непроводимая группа']) {

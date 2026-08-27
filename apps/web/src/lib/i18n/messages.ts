@@ -30,6 +30,7 @@ export type MessageKey =
 	| 'login.firstRun.status.ok'
 	| 'login.firstRun.status.warning'
 	| 'login.firstRun.status.actionRequired'
+	| 'login.firstRun.details'
 	| 'nav.dashboard'
 	| 'nav.accounts'
 	| 'nav.transactions'
@@ -41,6 +42,7 @@ export type MessageKey =
 	| 'nav.mobileNavigation'
 	| 'nav.mobileOpen'
 	| 'nav.mobileClose'
+	| 'nav.mobileMore'
 	| 'adminUsers.kicker'
 	| 'adminUsers.title'
 	| 'adminUsers.subtitle'
@@ -1063,7 +1065,27 @@ export type MessageKey =
 	| 'scheduled.recurrenceEvery'
 	| 'scheduled.recurrenceFrom'
 	| 'scheduled.recurrenceWeekend'
-	| 'scheduled.recurrenceUnavailable';
+	| 'scheduled.recurrenceUnavailable'
+	| 'scheduled.group.overdue'
+	| 'scheduled.group.upcoming'
+	| 'scheduled.group.next30'
+	| 'scheduled.group.laterOrInactive'
+	| 'scheduled.nextDue'
+	| 'scheduled.noDueDate'
+	| 'scheduled.amount.label'
+	| 'scheduled.amount.unavailable'
+	| 'scheduled.details.summary'
+	| 'scheduled.filterSummary'
+	| 'scheduled.nextDueFirst'
+	| 'scheduled.forecast.asOf'
+	| 'scheduled.forecast.status'
+	| 'scheduled.forecast.upcoming7'
+	| 'scheduled.forecast.upcoming30'
+	| 'scheduled.forecast.none'
+	| 'scheduled.forecast.status.ready'
+	| 'scheduled.forecast.status.disabled'
+	| 'scheduled.forecast.status.exhausted'
+	| 'scheduled.forecast.readOnlyInvariant';
 
 export const messages: Record<Locale, Record<MessageKey, string>> = {
 	en: {
@@ -1092,6 +1114,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'login.firstRun.status.ok': 'OK',
 		'login.firstRun.status.warning': 'Warning',
 		'login.firstRun.status.actionRequired': 'Action required',
+		'login.firstRun.details': 'Deployment check details',
 		'nav.dashboard': 'Dashboard',
 		'nav.accounts': 'Accounts',
 		'nav.transactions': 'Transactions',
@@ -1103,6 +1126,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'nav.mobileNavigation': 'Mobile navigation',
 		'nav.mobileOpen': 'Open mobile menu',
 		'nav.mobileClose': 'Close mobile menu',
+		'nav.mobileMore': 'More',
 		'adminUsers.kicker': 'Admin foundation',
 		'adminUsers.title': 'User and book access administration',
 		'adminUsers.subtitle': 'Server-rendered local-user management for self-hosted installs. The backend remains authoritative and GnuCash data stays read-only.',
@@ -2144,11 +2168,11 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'scheduled.title': 'Scheduled transactions',
 		'scheduled.kicker': 'Read-only scheduled transaction awareness',
 		'scheduled.subtitle':
-			'Safe summary metadata from the active GnuCash book. This pre-alpha page does not create, edit, delete, or calculate upcoming schedule predictions for scheduled transactions. Use GnuCash Desktop as the authoritative editor.',
+			'Bounded read-only forecast. No schedule is created or changed; use GnuCash Desktop to edit.',
 		'scheduled.activeBook': 'Active book',
 		'scheduled.recurringMetadata': 'Recurring metadata',
 		'scheduled.metadataHelp':
-			'Only safe schedule fields are shown. Template split details and private raw SQL are not exposed. Filters and sorting are URL-only display controls; they do not save scheduled metadata in browser storage.',
+			'Only safe schedule fields are shown. No template split amounts, accounts, memos, transaction descriptions, or raw SQL are exposed. Filters and sorting are URL-only display controls; they do not save scheduled metadata in browser storage. Use GnuCash Desktop as the authoritative editor.',
 		'scheduled.readOnlyBadge': 'Read-only · no scheduling editor',
 		'scheduled.statusFilter': 'Status filter',
 		'scheduled.templateFilter': 'Template metadata filter',
@@ -2164,7 +2188,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'scheduled.name': 'Name',
 		'scheduled.enabledFirst': 'Enabled first',
 		'scheduled.shownStatus':
-			'Showing {shown} of {total} safe scheduled metadata rows. No template split amounts, accounts, memos, transaction descriptions, or raw SQL are exposed.',
+			'Showing {shown} of {total} schedules. Forecasts are read-only.',
 		'scheduled.clearFilters': 'Clear scheduled filters',
 		'scheduled.unnamed': 'Unnamed scheduled transaction',
 		'scheduled.templateAccount': 'Template account',
@@ -2194,7 +2218,27 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'scheduled.recurrenceEvery': 'every {count}',
 		'scheduled.recurrenceFrom': 'from {date}',
 		'scheduled.recurrenceWeekend': 'weekend: {value}',
-		'scheduled.recurrenceUnavailable': 'Raw recurrence metadata unavailable'
+		'scheduled.recurrenceUnavailable': 'Raw recurrence metadata unavailable',
+		'scheduled.group.overdue': 'Overdue',
+		'scheduled.group.upcoming': 'Next 7 days',
+		'scheduled.group.next30': 'Next 30 days',
+		'scheduled.group.laterOrInactive': 'Later or inactive',
+		'scheduled.nextDue': 'Next due',
+		'scheduled.noDueDate': 'No upcoming date',
+		'scheduled.amount.label': 'Resolved amount',
+		'scheduled.amount.unavailable': 'Amount unavailable',
+		'scheduled.details.summary': 'Schedule and recurrence details',
+		'scheduled.filterSummary': 'Display filters and sorting',
+		'scheduled.nextDueFirst': 'Next due first',
+		'scheduled.forecast.asOf': 'Forecast as of',
+		'scheduled.forecast.status': 'Forecast status',
+		'scheduled.forecast.upcoming7': 'Occurrences in 7 days',
+		'scheduled.forecast.upcoming30': 'Occurrences in 30 days',
+		'scheduled.forecast.none': 'None in this bounded window',
+		'scheduled.forecast.status.ready': 'Ready',
+		'scheduled.forecast.status.disabled': 'Disabled',
+		'scheduled.forecast.status.exhausted': 'Exhausted',
+		'scheduled.forecast.readOnlyInvariant': 'Forecast only. No scheduled transaction was created or changed.'
 	},
 	ru: {
 		'locale.english': 'Английский',
@@ -2222,6 +2266,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'login.firstRun.status.ok': 'OK',
 		'login.firstRun.status.warning': 'Предупреждение',
 		'login.firstRun.status.actionRequired': 'Требуется действие',
+		'login.firstRun.details': 'Подробности проверок deployment',
 		'nav.dashboard': 'Обзор',
 		'nav.accounts': 'Счета',
 		'nav.transactions': 'Транзакции',
@@ -2233,6 +2278,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'nav.mobileNavigation': 'Мобильная навигация',
 		'nav.mobileOpen': 'Открыть мобильное меню',
 		'nav.mobileClose': 'Закрыть мобильное меню',
+		'nav.mobileMore': 'Ещё',
 		'adminUsers.kicker': 'Админ foundation',
 		'adminUsers.title': 'Управление users и доступом к книгам',
 		'adminUsers.subtitle': 'Server-rendered управление локальными пользователями для self-hosted установки. Backend остаётся authoritative, данные GnuCash остаются read-only.',
@@ -3274,7 +3320,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'scheduled.title': 'Плановые транзакции',
 		'scheduled.kicker': 'Read-only просмотр плановых транзакций',
 		'scheduled.subtitle':
-			'Безопасные сводные метаданные из активной книги GnuCash. Эта pre-alpha страница не создаёт, не редактирует, не удаляет и не рассчитывает будущие выполнения плановых транзакций. GnuCash Desktop остаётся главным редактором.',
+			'Ограниченный read-only прогноз. Расписание не создаётся и не меняется; редактируйте его в GnuCash Desktop.',
 		'scheduled.activeBook': 'Активная книга',
 		'scheduled.recurringMetadata': 'Recurring metadata',
 		'scheduled.metadataHelp':
@@ -3294,7 +3340,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'scheduled.name': 'Название',
 		'scheduled.enabledFirst': 'Включённые первыми',
 		'scheduled.shownStatus':
-			'Показано {shown} из {total} безопасных строк scheduled metadata. Template split amounts, accounts, memos, transaction descriptions и raw SQL не раскрываются.',
+			'Показано расписаний: {shown} из {total}. Прогноз работает только на чтение.',
 		'scheduled.clearFilters': 'Сбросить фильтры плановых',
 		'scheduled.unnamed': 'Плановая транзакция без названия',
 		'scheduled.templateAccount': 'Template account',
@@ -3324,6 +3370,26 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'scheduled.recurrenceEvery': 'каждые {count}',
 		'scheduled.recurrenceFrom': 'с {date}',
 		'scheduled.recurrenceWeekend': 'выходные: {value}',
-		'scheduled.recurrenceUnavailable': 'Raw recurrence metadata недоступны'
+		'scheduled.recurrenceUnavailable': 'Raw recurrence metadata недоступны',
+		'scheduled.group.overdue': 'Просрочено',
+		'scheduled.group.upcoming': 'Ближайшие 7 дней',
+		'scheduled.group.next30': 'Ближайшие 30 дней',
+		'scheduled.group.laterOrInactive': 'Позже или неактивно',
+		'scheduled.nextDue': 'Ближайшая дата',
+		'scheduled.noDueDate': 'Нет ближайшей даты',
+		'scheduled.amount.label': 'Рассчитанная сумма',
+		'scheduled.amount.unavailable': 'Сумма недоступна',
+		'scheduled.details.summary': 'Параметры расписания и повторов',
+		'scheduled.filterSummary': 'Фильтры и сортировка',
+		'scheduled.nextDueFirst': 'Сначала ближайшие',
+		'scheduled.forecast.asOf': 'Прогноз на дату',
+		'scheduled.forecast.status': 'Статус прогноза',
+		'scheduled.forecast.upcoming7': 'Выполнения за 7 дней',
+		'scheduled.forecast.upcoming30': 'Выполнения за 30 дней',
+		'scheduled.forecast.none': 'В этом ограниченном периоде нет дат',
+		'scheduled.forecast.status.ready': 'Готов',
+		'scheduled.forecast.status.disabled': 'Отключено',
+		'scheduled.forecast.status.exhausted': 'Завершено',
+		'scheduled.forecast.readOnlyInvariant': 'Только прогноз. Плановые транзакции не создавались и не изменялись.'
 	}
 };

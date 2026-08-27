@@ -515,6 +515,31 @@ export type ScheduledTransactionRecurrence = {
 	weekend_adjust: string;
 };
 
+export type ScheduledTransactionForecast = {
+	status: 'ready' | 'disabled' | 'exhausted';
+	as_of_date: string;
+	next_due_date: string | null;
+	is_overdue: boolean;
+	upcoming_7_days: string[];
+	upcoming_30_days: string[];
+};
+
+export type ScheduledTransactionAmountReason =
+	| 'no_template_reference'
+	| 'template_data_unavailable'
+	| 'template_variables_unresolved'
+	| 'template_shape_unsupported'
+	| 'template_unbalanced'
+	| 'currency_unavailable';
+
+export type ScheduledTransactionAmount = {
+	status: 'resolved' | 'unresolved' | 'not_available';
+	amount: string | null;
+	currency: string | null;
+	unresolved_formula_count: number;
+	reason: ScheduledTransactionAmountReason | null;
+};
+
 export type ScheduledTransaction = {
 	id: string;
 	name: string;
@@ -532,6 +557,9 @@ export type ScheduledTransaction = {
 	has_template_account: boolean;
 	template_reference_status: string;
 	recurrence: ScheduledTransactionRecurrence[];
+	forecast: ScheduledTransactionForecast;
+	amount: ScheduledTransactionAmount;
+	new_transactions_created: 0;
 	limitations: string[];
 };
 

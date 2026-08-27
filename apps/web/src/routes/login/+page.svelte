@@ -17,6 +17,11 @@
 		['cors', 'login.firstRun.cors'],
 		['write_mode', 'login.firstRun.writeMode']
 	];
+	const firstRunAllGreen = $derived(
+		data.firstRun !== null
+		&& firstRunLabels.every(([checkKey]) => data.firstRun?.checks[checkKey].status === 'ok')
+		&& data.firstRun?.action_required.length === 0
+	);
 
 	function statusLabel(status: string): string {
 		if (status === 'ok') return t(locale, 'login.firstRun.status.ok');
@@ -105,25 +110,30 @@
 				<h2 class="text-base font-semibold" style="color: var(--app-text);">{t(locale, 'login.firstRun.title')}</h2>
 				<p class="mt-2" style="color: var(--app-muted);">{t(locale, 'login.firstRun.summary')}</p>
 				<p class="mt-1 text-xs" style="color: var(--app-muted);">{t(locale, 'login.firstRun.safeDiagnostics')}</p>
-				<ul class="mt-4 space-y-2">
-					{#each firstRunLabels as [checkKey, labelKey]}
-						{@const check = data.firstRun.checks[checkKey]}
-						<li class="min-w-0 rounded-xl border p-3" style="border-color: var(--app-border);">
-							<div class="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
-								<p class="font-medium" style="color: var(--app-text);">{t(locale, labelKey)}</p>
-								<span class="w-fit rounded-full px-2 py-1 text-xs font-semibold" style="background-color: var(--app-hover-bg); color: var(--app-muted);">{statusLabel(check.status)}</span>
-							</div>
-							<p class="mt-2 break-words text-xs" style="color: var(--app-muted);">{check.message}</p>
-							{#if check.safe_next_actions?.length}
-								<ul class="mt-2 list-disc space-y-1 pl-4 text-xs" style="color: var(--app-muted);">
-									{#each check.safe_next_actions as action}
-										<li class="break-words">{action}</li>
-									{/each}
-								</ul>
-							{/if}
-						</li>
-					{/each}
-				</ul>
+				<details class="mt-4" open={!firstRunAllGreen} data-first-run-checks>
+					<summary class="cursor-pointer font-semibold underline-offset-2 hover:underline focus:outline-none focus:ring-2" style="color: var(--app-accent);">
+						{t(locale, 'login.firstRun.details')}
+					</summary>
+					<ul class="mt-3 space-y-2">
+						{#each firstRunLabels as [checkKey, labelKey]}
+							{@const check = data.firstRun.checks[checkKey]}
+							<li class="min-w-0 rounded-xl border p-3" style="border-color: var(--app-border);">
+								<div class="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+									<p class="font-medium" style="color: var(--app-text);">{t(locale, labelKey)}</p>
+									<span class="w-fit rounded-full px-2 py-1 text-xs font-semibold" style="background-color: var(--app-hover-bg); color: var(--app-muted);">{statusLabel(check.status)}</span>
+								</div>
+								<p class="mt-2 break-words text-xs" style="color: var(--app-muted);">{check.message}</p>
+								{#if check.safe_next_actions?.length}
+									<ul class="mt-2 list-disc space-y-1 pl-4 text-xs" style="color: var(--app-muted);">
+										{#each check.safe_next_actions as action}
+											<li class="break-words">{action}</li>
+										{/each}
+									</ul>
+								{/if}
+							</li>
+						{/each}
+					</ul>
+				</details>
 			</section>
 		{/if}
 	</section>

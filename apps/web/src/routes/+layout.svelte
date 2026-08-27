@@ -19,8 +19,8 @@
 		<DesktopNav {books} {activeBook} {locale} {isAdmin} currentPath={data.pathname} returnTo={data.pathname} />
 		<ReadOnlyStatusBanner {locale} {activeBook} />
 		<MobileNav {books} {activeBook} {locale} {isAdmin} currentPath={data.pathname} returnTo={data.pathname} />
-		<!-- Bottom nav spacer: prevents content from being hidden behind fixed bottom nav on mobile -->
-		<div class="pb-32 md:pb-0">
+		<!-- Bottom nav spacer: prevents content from being hidden behind the compact mobile tab bar -->
+		<div class="pb-24 md:pb-0">
 			{@render children()}
 		</div>
 	{:else}

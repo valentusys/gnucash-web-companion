@@ -13,6 +13,11 @@
 	let diagnostics = $derived(data.diagnostics);
 	let firstRun = $derived(diagnostics?.first_run ?? null);
 	let checks = $derived(firstRun ? Object.entries(firstRun.checks) : []);
+	let allChecksGreen = $derived(
+		checks.length > 0
+		&& checks.every(([, check]) => check.status === 'ok')
+		&& (firstRun?.action_required.length ?? 0) === 0
+	);
 
 	function badgeClass(status: FirstRunCheck['status']): string {
 		if (status === 'ok') return 'border-green-500/40 bg-green-500/10 text-green-700 dark:text-green-300';
@@ -20,6 +25,10 @@
 		return 'border-red-500/40 bg-red-500/10 text-red-700 dark:text-red-300';
 	}
 </script>
+
+<svelte:head>
+	<title>First-run diagnostics — GnuCash Web Companion</title>
+</svelte:head>
 
 <main class="min-h-screen px-4 py-6 md:py-10" style="background-color: var(--app-bg); color: var(--app-text);">
 	<div class="mx-auto flex max-w-5xl items-start justify-between gap-4">
@@ -60,24 +69,29 @@
 					{/if}
 				</div>
 
-				<div class="mt-5 grid gap-4 md:grid-cols-2">
-					{#each checks as [key, check]}
-						<article class="rounded-xl border p-4" style="border-color: var(--app-border);">
-							<div class="flex items-center justify-between gap-3">
-								<h3 class="font-semibold">{checkLabels[key] ?? key}</h3>
-								<span class={`rounded-full border px-2 py-1 text-xs font-semibold ${badgeClass(check.status)}`}>{check.status}</span>
-							</div>
-							<p class="mt-3 text-sm" style="color: var(--app-muted);">{check.message}</p>
-							{#if check.safe_next_actions?.length}
-								<ul class="mt-3 list-disc space-y-1 pl-5 text-sm">
-									{#each check.safe_next_actions as action}
-										<li>{action}</li>
-									{/each}
-								</ul>
-							{/if}
-						</article>
-					{/each}
-				</div>
+				<details class="mt-5" open={!allChecksGreen} data-first-run-checks>
+					<summary class="cursor-pointer font-semibold underline-offset-2 hover:underline focus:outline-none focus:ring-2" style="color: var(--app-accent);">
+						Deployment check details ({checks.length})
+					</summary>
+					<div class="mt-4 grid gap-4 md:grid-cols-2">
+						{#each checks as [key, check]}
+							<article class="min-w-0 rounded-xl border p-4" style="border-color: var(--app-border);">
+								<div class="flex min-w-0 items-center justify-between gap-3">
+									<h3 class="min-w-0 break-words font-semibold">{checkLabels[key] ?? key}</h3>
+									<span class={`shrink-0 rounded-full border px-2 py-1 text-xs font-semibold ${badgeClass(check.status)}`}>{check.status}</span>
+								</div>
+								<p class="mt-3 break-words text-sm" style="color: var(--app-muted);">{check.message}</p>
+								{#if check.safe_next_actions?.length}
+									<ul class="mt-3 list-disc space-y-1 pl-5 text-sm">
+										{#each check.safe_next_actions as action}
+											<li class="break-words">{action}</li>
+										{/each}
+									</ul>
+								{/if}
+							</article>
+						{/each}
+					</div>
+				</details>
 			{/if}
 
 			{#if diagnostics.warnings.length > 0}

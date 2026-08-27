@@ -155,6 +155,37 @@ function createApiServer() {
 				jsonResponse(res, 200, syntheticBook);
 				return;
 			}
+			if (req.method === 'GET' && url.pathname === '/books/1/accounts/options') {
+				jsonResponse(res, 200, {
+					book_id: 1,
+					purpose: 'transaction_create_preview',
+					normalized_filters: { currency: 'SEK' },
+					items: accounts.map((account) => ({
+						...account,
+						display_name: account.full_name,
+						commodity: { namespace: 'CURRENCY', mnemonic: account.currency },
+						selectable: true
+					})),
+					limit: 200,
+					returned_count: accounts.length,
+					next_cursor: null,
+					partial_failure: false,
+					error_code: null,
+					scan: {
+						candidate_accounts: accounts.length,
+						matched_accounts: accounts.length,
+						returned_items: accounts.length,
+						query_count: 1,
+						serialized_bytes: 512,
+						exhausted: true,
+						limits: { limit: 200 }
+					},
+					balance_basis: 'not_loaded',
+					includes_currency_conversion: false,
+					limitations: ['Synthetic bounded account options; no balances loaded.']
+				});
+				return;
+			}
 			if (req.method === 'GET' && url.pathname === '/books/1/accounts') {
 				jsonResponse(res, 200, accounts);
 				return;

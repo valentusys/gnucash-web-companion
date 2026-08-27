@@ -1102,7 +1102,7 @@ async function runSmoke() {
 		assert.equal(api.requests.some((request) => request.path === `/books/${registeredBookId}/accounts`), false, 'Transactions link must not load legacy balance-bearing account options');
 
 		await navigate(cdp, webBase, `/books/${registeredBookId}/select?next=/reports`, 'select reports', '/reports');
-		await waitForExpression(cdp, `location.pathname === '/reports' && document.body.innerText.includes('Reports')`, 'reports reached', 30000);
+		await waitForExpression(cdp, `location.pathname === '/reports' && /Compare financial periods|FINANCIAL REPORTS/.test(document.body.innerText)`, 'reports reached', 30000);
 		assert.equal(api.requests.some((request) => request.path === `/books/${registeredBookId}/reports/comparison`), true, 'Reports link must select exact book before loading reports');
 
 		await navigate(cdp, webBase, `/books/${registeredBookId}/settings`, 'admin settings');
