@@ -85,6 +85,7 @@ ISSUE55_ACCOUNT_DATASETS: dict[str, tuple[int, int]] = {
 ISSUE56_EXTRA_REGISTERED_BOOKS = 5
 LOCAL_TIMING_BUDGETS_MS = {
     "1k": {
+        "accounts_explorer_primary": 2_500,
         "issue55_1k_account_unfiltered_tree": 2_500,
         "issue55_1k_account_text_filtered_tree": 2_500,
         "issue55_1k_account_flat_search": 2_500,
@@ -98,8 +99,14 @@ LOCAL_TIMING_BUDGETS_MS = {
         "transaction_explorer_sparse_scan_limited": 2_500,
         "transaction_explorer_later_forward_page": 1_500,
         "transaction_explorer_previous_page": 1_500,
+        "dashboard_summary": 2_500,
+        "dashboard_cashflow_monthly": 2_500,
+        "dashboard_expenses_by_account_month": 2_500,
+        "dashboard_recent_transactions": 2_500,
+        "period_report_primary": 2_500,
     },
     "10k": {
+        "accounts_explorer_primary": 12_000,
         "issue55_10k_account_filtered_tree": 8_000,
         "issue55_10k_root_overview": 8_000,
         "issue55_10k_direct_activity": 8_000,
@@ -109,6 +116,11 @@ LOCAL_TIMING_BUDGETS_MS = {
         "transaction_explorer_sparse_scan_limited": 8_000,
         "transaction_explorer_later_forward_page": 4_000,
         "transaction_explorer_previous_page": 4_000,
+        "dashboard_summary": 12_000,
+        "dashboard_cashflow_monthly": 12_000,
+        "dashboard_expenses_by_account_month": 12_000,
+        "dashboard_recent_transactions": 8_000,
+        "period_report_primary": 12_000,
     },
 }
 DEFAULT_OUTPUT_PATH = (
@@ -131,6 +143,7 @@ class BenchmarkCase:
 
 BENCHMARK_CASES: list[BenchmarkCase] = [
     BenchmarkCase("accounts_tree_load", "GET", "/books/{book_id}/accounts/tree"),
+    BenchmarkCase("accounts_explorer_primary", "GET", "/books/{book_id}/accounts/explorer"),
     BenchmarkCase(
         "accounts_tree_large_hierarchy_filter_seed",
         "GET",
@@ -216,6 +229,11 @@ BENCHMARK_CASES: list[BenchmarkCase] = [
         "dashboard_recent_transactions",
         "GET",
         "/books/{book_id}/reports/recent-transactions?limit=10",
+    ),
+    BenchmarkCase(
+        "period_report_primary",
+        "GET",
+        "/books/{book_id}/reports?date_from=2026-01-01&date_to=2026-12-31",
     ),
     BenchmarkCase(
         "period_comparison_previous_equivalent",
@@ -403,6 +421,11 @@ class BenchmarkResult:
     legacy_count_call_count_max: int | None = None
     full_transaction_materialization_count_max: int | None = None
     report_transaction_visit_count_max: int | None = None
+    gnucash_sql_statement_count_min: int | None = None
+    gnucash_sql_statement_count_max: int | None = None
+    account_object_materialization_count_max: int | None = None
+    transaction_object_materialization_count_max: int | None = None
+    split_object_materialization_count_max: int | None = None
     app_db_statement_count_min: int | None = None
     app_db_statement_count_max: int | None = None
     preflight_sqlite_query_count_min: int | None = None
@@ -1302,6 +1325,10 @@ class _BenchmarkRequestCounters:
     legacy_count_calls: int = 0
     full_transaction_materializations: int = 0
     report_transaction_visits: int = 0
+    gnucash_sql_statements: int = 0
+    account_objects_materialized: int = 0
+    transaction_objects_materialized: int = 0
+    split_objects_materialized: int = 0
     app_db_statements: int = 0
     preflight_piecash_opens: int = 0
     preflight_sqlite_queries: int = 0
@@ -1320,6 +1347,7 @@ class _PreparedBenchmarkRequest:
 @contextmanager
 def _instrument_benchmark_request(app_db_engine: Any | None = None):
     counters = _BenchmarkRequestCounters()
+    gnucash_engines: list[Any] = []
     original_open = GnuCashBookService._open_piecash_book
     original_count = GnuCashBookService.count_transactions
     original_transactions = GnuCashBookService._transactions
@@ -1330,9 +1358,26 @@ def _instrument_benchmark_request(app_db_engine: Any | None = None):
     def before_cursor_execute(conn, cursor, statement, parameters, context, executemany):
         counters.app_db_statements += 1
 
+    def before_gnucash_cursor_execute(conn, cursor, statement, parameters, context, executemany):
+        counters.gnucash_sql_statements += 1
+
+    def account_loaded(target, context):
+        counters.account_objects_materialized += 1
+
+    def transaction_loaded(target, context):
+        counters.transaction_objects_materialized += 1
+
+    def split_loaded(target, context):
+        counters.split_objects_materialized += 1
+
     def counted_open(self: GnuCashBookService, uri_or_path: str):
         counters.read_only_book_opens += 1
-        return original_open(self, uri_or_path)
+        book = original_open(self, uri_or_path)
+        engine = getattr(getattr(book, "session", None), "bind", None)
+        if engine is not None and all(existing is not engine for existing in gnucash_engines):
+            event.listen(engine, "before_cursor_execute", before_gnucash_cursor_execute)
+            gnucash_engines.append(engine)
+        return book
 
     def counted_count(self: GnuCashBookService, *args: Any, **kwargs: Any):
         counters.legacy_count_calls += 1
@@ -1367,11 +1412,19 @@ def _instrument_benchmark_request(app_db_engine: Any | None = None):
     GnuCashBookService._report_transactions = counted_report_transactions  # type: ignore[method-assign]
     book_preflight._open_piecash_readonly_once = counted_health_open  # type: ignore[assignment]
     book_preflight._verify_sqlite_gnucash_schema = counted_sqlite_schema_probe  # type: ignore[assignment]
+    event.listen(piecash.Account, "load", account_loaded)
+    event.listen(piecash.Transaction, "load", transaction_loaded)
+    event.listen(piecash.Split, "load", split_loaded)
     if app_db_engine is not None:
         event.listen(app_db_engine, "before_cursor_execute", before_cursor_execute)
     try:
         yield counters
     finally:
+        event.remove(piecash.Account, "load", account_loaded)
+        event.remove(piecash.Transaction, "load", transaction_loaded)
+        event.remove(piecash.Split, "load", split_loaded)
+        for engine in gnucash_engines:
+            event.remove(engine, "before_cursor_execute", before_gnucash_cursor_execute)
         if app_db_engine is not None:
             event.remove(app_db_engine, "before_cursor_execute", before_cursor_execute)
         GnuCashBookService._open_piecash_book = original_open  # type: ignore[method-assign]
@@ -1575,6 +1628,11 @@ def _counter_summary(counters: list[_BenchmarkRequestCounters]) -> dict[str, int
             "legacy_count_call_count_max": None,
             "full_transaction_materialization_count_max": None,
             "report_transaction_visit_count_max": None,
+            "gnucash_sql_statement_count_min": None,
+            "gnucash_sql_statement_count_max": None,
+            "account_object_materialization_count_max": None,
+            "transaction_object_materialization_count_max": None,
+            "split_object_materialization_count_max": None,
             "app_db_statement_count_min": None,
             "app_db_statement_count_max": None,
             "preflight_sqlite_query_count_min": None,
@@ -1592,6 +1650,13 @@ def _counter_summary(counters: list[_BenchmarkRequestCounters]) -> dict[str, int
             counter.full_transaction_materializations for counter in counters
         ),
         "report_transaction_visit_count_max": max(counter.report_transaction_visits for counter in counters),
+        "gnucash_sql_statement_count_min": min(counter.gnucash_sql_statements for counter in counters),
+        "gnucash_sql_statement_count_max": max(counter.gnucash_sql_statements for counter in counters),
+        "account_object_materialization_count_max": max(counter.account_objects_materialized for counter in counters),
+        "transaction_object_materialization_count_max": max(
+            counter.transaction_objects_materialized for counter in counters
+        ),
+        "split_object_materialization_count_max": max(counter.split_objects_materialized for counter in counters),
         "app_db_statement_count_min": min(counter.app_db_statements for counter in counters),
         "app_db_statement_count_max": max(counter.app_db_statements for counter in counters),
         "preflight_sqlite_query_count_min": min(counter.preflight_sqlite_queries for counter in counters),
@@ -2041,6 +2106,10 @@ def _run_benchmark_cases(
                 relative_reference_ms = median_by_case.get("transaction_explorer_first_page")
                 if relative_reference_ms is not None:
                     relative_budget_passed = median_ms <= (2 * relative_reference_ms)
+            if case.name == "transaction_explorer_first_page":
+                relative_reference_ms = median_by_case.get("transactions_list_first_page")
+                if relative_reference_ms is not None:
+                    relative_budget_passed = median_ms <= (0.5 * relative_reference_ms)
             results.append(
                 BenchmarkResult(
                     name=case.name,
@@ -2279,6 +2348,14 @@ def main(argv: list[str] | None = None) -> int:
                 f"{result.preflight_sqlite_query_count_max}, "
                 f"preflight_opens={result.preflight_piecash_open_count_min}-"
                 f"{result.preflight_piecash_open_count_max}"
+            )
+        if result.gnucash_sql_statement_count_max is not None:
+            extra += (
+                f", gnucash_sql={result.gnucash_sql_statement_count_min}-"
+                f"{result.gnucash_sql_statement_count_max}, account_objects="
+                f"{result.account_object_materialization_count_max}, tx_objects="
+                f"{result.transaction_object_materialization_count_max}, split_objects="
+                f"{result.split_object_materialization_count_max}"
             )
         if result.local_timing_budget_ms is not None:
             extra += (

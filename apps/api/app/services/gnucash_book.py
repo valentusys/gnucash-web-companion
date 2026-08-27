@@ -107,6 +107,7 @@ REQUEST_ACCOUNT_BALANCE_SPLIT_ROW_MAX = 20_000
 REQUEST_ACCOUNT_QUERY_LIMIT = 64
 REPORT_SUMMARY_BALANCE_ACCOUNT_ROW_LIMIT = 10_000
 REPORT_SUMMARY_BALANCE_TRANSACTION_ROW_LIMIT = 20_000
+REPORT_TRANSACTION_ROW_LIMIT = REPORT_SUMMARY_BALANCE_TRANSACTION_ROW_LIMIT
 REPORT_SUMMARY_BALANCE_SPLIT_ROW_LIMIT = 20_000
 REPORT_SUMMARY_BALANCE_QUERY_LIMIT = 4
 ACCOUNT_TYPES_WITH_NATURAL_SIGN_REVERSED = {"LIABILITY", "PAYABLE", "CREDIT", "INCOME", "EQUITY"}
@@ -279,9 +280,38 @@ class GnuCashBookService:
         context = self._active_report_context
         if context is not None and context.book is book:
             if context.transactions is None:
-                context.transactions = list(self._transactions(book))
-            return [transaction for transaction in context.transactions if visibility.transaction_is_visible(transaction)]
-        return [transaction for transaction in self._transactions(book) if visibility.transaction_is_visible(transaction)]
+                context.transactions = self._load_report_transactions(book)
+            transactions = context.transactions
+        else:
+            transactions = self._load_report_transactions(book)
+        return [transaction for transaction in transactions if visibility.transaction_is_visible(transaction)]
+
+    def _load_report_transactions(self, book: Any) -> list[Any]:
+        """Load report transactions with splits/accounts in one bounded ORM query.
+
+        Real piecash sessions otherwise lazily fetch ``transaction.splits`` once
+        per row. Report routes deliberately materialize at most the existing
+        report transaction bound, but avoid that N+1 query pattern. Lightweight
+        test doubles retain the historical ``book.transactions`` fallback.
+        """
+        session = getattr(book, "session", None)
+        query = getattr(session, "query", None) if session is not None else None
+        if callable(query):
+            query_fn = cast(Any, query)
+            rows = list(
+                query_fn(piecash.Transaction)
+                .options(
+                    joinedload(piecash.Transaction.splits)
+                    .joinedload(piecash.Split.account)
+                    .joinedload(piecash.Account.commodity)
+                )
+                .limit(REPORT_TRANSACTION_ROW_LIMIT + 1)
+                .all()
+            )
+            if len(rows) > REPORT_TRANSACTION_ROW_LIMIT:
+                raise GnuCashReadError("Report transaction row limit exceeded")
+            return rows
+        return list(self._transactions(book))
 
     def _report_visibility(self, book: Any) -> AccountVisibilityIndex:
         context = self._active_report_context
@@ -474,6 +504,26 @@ class GnuCashBookService:
         max_decimal = self._optional_decimal(max_amount)
         with self._open_book() as book:
             visibility = build_account_visibility_index(book)
+            if (
+                account_id is None
+                and start is None
+                and end is None
+                and normalized_query is None
+                and normalized_state is None
+                and min_decimal is None
+                and max_decimal is None
+            ):
+                recent_rows = self._sql_recent_transactions(
+                    book,
+                    visibility=visibility,
+                    limit=limit,
+                    offset=offset,
+                )
+                if recent_rows is not None:
+                    return [
+                        self._transaction_to_list_item(transaction, None, visibility=visibility)
+                        for transaction in recent_rows
+                    ]
             items: list[TransactionListItemDTO] = []
             for transaction in self._candidate_transactions(book, account_id):
                 if not visibility.transaction_is_visible(transaction):
@@ -492,6 +542,39 @@ class GnuCashBookService:
                 items.append(self._transaction_to_list_item(transaction, account_id, visibility=visibility))
             items.sort(key=lambda item: (item.date, item.id), reverse=True)
             return items[offset : offset + limit]
+
+    def _sql_recent_transactions(
+        self,
+        book: Any,
+        *,
+        visibility: AccountVisibilityIndex,
+        limit: int,
+        offset: int,
+    ) -> list[Any] | None:
+        """Return exact unfiltered recent rows without materializing the book list."""
+        if limit <= 0:
+            return []
+        session = getattr(book, "session", None)
+        query = getattr(session, "query", None) if session is not None else None
+        if not callable(query):
+            return None
+        query_fn = cast(Any, query)
+        rows = query_fn(piecash.Transaction).options(
+            joinedload(piecash.Transaction.splits)
+            .joinedload(piecash.Split.account)
+            .joinedload(piecash.Account.commodity)
+        )
+        excluded_account_ids = sorted(set(visibility.accounts_by_id) - set(visibility.visible_account_ids))
+        if excluded_account_ids:
+            rows = rows.filter(
+                ~piecash.Transaction.splits.any(piecash.Split.account_guid.in_(excluded_account_ids))
+            )
+        return list(
+            rows.order_by(piecash.Transaction.post_date.desc(), piecash.Transaction.guid.desc())
+            .offset(offset)
+            .limit(limit)
+            .all()
+        )
 
     def get_transaction(self, transaction_id: str) -> TransactionDetailDTO:
         with self._open_book() as book:
@@ -1198,6 +1281,24 @@ class GnuCashBookService:
         if start > end:
             raise ValueError("date_from must be on or before date_to")
 
+        if self._active_report_context is not None:
+            return self._build_period_report_from_context(start, end, book_id=book_id)
+        try:
+            with self._open_book() as book:
+                with self._use_report_read_context(book):
+                    return self._build_period_report_from_context(start, end, book_id=book_id)
+        except REPORT_SECTION_EXCEPTIONS:
+            # Preserve the historical per-section partial-error contract when a
+            # shared request-local open cannot be established.
+            return self._build_period_report_from_context(start, end, book_id=book_id)
+
+    def _build_period_report_from_context(
+        self,
+        start: date,
+        end: date,
+        *,
+        book_id: int | None,
+    ) -> PeriodReportDTO:
         resolved_book_id = book_id if book_id is not None else self._get_book_id(self.book_config)
         summary: PeriodReportSummaryDTO | None = None
         cashflow: CashflowDTO | None = None

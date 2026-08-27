@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import hashlib
 import sqlite3
 from pathlib import Path
 
 from app.schemas.gnucash import TransactionDetailDTO, TransactionSplitDTO
+from app.services.gnucash_book import GnuCashBookService
 from app.performance.large_book_benchmark import (
     BENCHMARK_CASES,
     BenchmarkCase,
@@ -41,6 +43,7 @@ def test_benchmark_plan_covers_phase_87_read_only_scope() -> None:
 
     assert names == [
         "accounts_tree_load",
+        "accounts_explorer_primary",
         "accounts_tree_large_hierarchy_filter_seed",
         "transactions_list_first_page",
         "transaction_filters",
@@ -60,6 +63,7 @@ def test_benchmark_plan_covers_phase_87_read_only_scope() -> None:
         "dashboard_cashflow_monthly",
         "dashboard_expenses_by_account_month",
         "dashboard_recent_transactions",
+        "period_report_primary",
         "period_comparison_previous_equivalent",
         "csv_export_up_to_cap",
     ]
@@ -732,6 +736,110 @@ def test_issue54_report_comparison_benchmark_records_one_open_and_visit_bound(tm
     assert result.full_transaction_materialization_count_max <= 1
     assert result.report_transaction_visit_count_max is not None
     assert result.report_transaction_visit_count_max <= 8 * metadata.transaction_count
+
+
+def test_b1_primary_routes_have_explicit_budgets_and_bounded_read_work(tmp_path: Path, monkeypatch) -> None:
+    output = tmp_path / "b1-primary-routes.gnucash.sqlite"
+    metadata = create_large_synthetic_book(
+        output,
+        transaction_count=2_050,
+        expense_account_count=120,
+        account_branch_count=20,
+        account_depth=2,
+        many_split_count=60,
+    )
+    source_hash_before = hashlib.sha256(output.read_bytes()).hexdigest()
+
+    results = run_benchmark(
+        output,
+        repeats=1,
+        warmups=0,
+        case_names={
+            "accounts_explorer_primary",
+            "transactions_list_first_page",
+            "transaction_explorer_first_page",
+            "dashboard_summary",
+            "dashboard_cashflow_monthly",
+            "dashboard_expenses_by_account_month",
+            "dashboard_recent_transactions",
+            "period_report_primary",
+        },
+    )
+
+    assert metadata.transaction_count >= 2_000
+    assert hashlib.sha256(output.read_bytes()).hexdigest() == source_hash_before
+    by_name = {result.name: result for result in results}
+    assert set(by_name) == {
+        "accounts_explorer_primary",
+        "transactions_list_first_page",
+        "transaction_explorer_first_page",
+        "dashboard_summary",
+        "dashboard_cashflow_monthly",
+        "dashboard_expenses_by_account_month",
+        "dashboard_recent_transactions",
+        "period_report_primary",
+    }
+    for name in {
+        "accounts_explorer_primary",
+        "transaction_explorer_first_page",
+        "dashboard_summary",
+        "dashboard_cashflow_monthly",
+        "dashboard_expenses_by_account_month",
+        "dashboard_recent_transactions",
+        "period_report_primary",
+    }:
+        result = by_name[name]
+        assert result.status_code == 200
+        assert result.mutation_capable_request_count == 0
+        assert result.read_only_book_open_count_max == 1
+        assert result.legacy_count_call_count_max == 0
+        assert result.local_timing_budget_dataset == "1k"
+        assert result.local_timing_budget_ms is not None
+        assert result.local_timing_budget_passed is True
+        assert result.gnucash_sql_statement_count_max is not None
+        assert result.transaction_object_materialization_count_max is not None
+        assert result.split_object_materialization_count_max is not None
+
+    account_explorer = by_name["accounts_explorer_primary"]
+    assert account_explorer.gnucash_sql_statement_count_max is not None
+    assert account_explorer.gnucash_sql_statement_count_max <= 8
+
+    for name in {
+        "dashboard_summary",
+        "dashboard_cashflow_monthly",
+        "dashboard_expenses_by_account_month",
+        "period_report_primary",
+    }:
+        result = by_name[name]
+        assert result.gnucash_sql_statement_count_max is not None
+        assert result.gnucash_sql_statement_count_max <= 12
+        assert result.transaction_object_materialization_count_max is not None
+        assert result.transaction_object_materialization_count_max <= metadata.transaction_count
+
+    recent = by_name["dashboard_recent_transactions"]
+    assert recent.full_transaction_materialization_count_max == 0
+    assert recent.gnucash_sql_statement_count_max is not None
+    assert recent.gnucash_sql_statement_count_max <= 8
+    assert recent.transaction_object_materialization_count_max is not None
+    assert recent.transaction_object_materialization_count_max <= 10
+
+    period_report = by_name["period_report_primary"]
+    assert period_report.full_transaction_materialization_count_max is not None
+    assert period_report.full_transaction_materialization_count_max <= 1
+    assert period_report.report_transaction_visit_count_max is not None
+    assert period_report.report_transaction_visit_count_max <= 4 * metadata.transaction_count
+
+    explorer = by_name["transaction_explorer_first_page"]
+    assert explorer.local_relative_timing_budget_reference_ms == by_name["transactions_list_first_page"].duration_ms_median
+    assert explorer.local_relative_timing_budget_passed is True
+
+    service = GnuCashBookService({"uri_or_path": str(output), "base_currency": "SEK"})
+    optimized_recent = [item.model_dump() for item in service.list_transactions(limit=10, offset=0)]
+    with monkeypatch.context() as patcher:
+        patcher.setattr(GnuCashBookService, "_sql_recent_transactions", lambda *args, **kwargs: None)
+        legacy_recent = [item.model_dump() for item in service.list_transactions(limit=10, offset=0)]
+    assert optimized_recent == legacy_recent
+    assert hashlib.sha256(output.read_bytes()).hexdigest() == source_hash_before
 
 
 def test_csv_export_benchmark_summary_records_limit_header() -> None:

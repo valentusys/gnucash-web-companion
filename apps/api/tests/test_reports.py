@@ -1739,6 +1739,7 @@ class TestBookPeriodReport:
         assert report.partial_failure is False
         assert readonly_flags
         assert all(readonly_flags)
+        assert len(readonly_flags) == 1
 
 
 # ---------------------------------------------------------------------------
