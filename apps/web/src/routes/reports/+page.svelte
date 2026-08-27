@@ -337,7 +337,7 @@
 						{#if comparisonReport.deltaSectionMessages.cashflow}
 							<p class="mt-2 text-sm" style="color: var(--app-warning);">{comparisonReport.deltaSectionMessages.cashflow}</p>
 						{:else if comparisonReport.cashflowDelta}
-							<p class="mt-2 text-2xl font-bold tabular-nums" style={`color: ${deltaTone(comparisonReport.cashflowDelta.net)};`}>{comparisonReport.cashflowDelta.net.delta}</p>
+							<p class="mt-2 text-2xl font-bold tabular-nums" style={`color: ${deltaTone(comparisonReport.cashflowDelta.net)};`}>{comparisonReport.cashflowDelta.net.delta} {comparisonReport.cashflowDelta.net.currency}</p>
 							<p class="mt-1 text-xs" style="color: var(--app-muted);">{t(locale, 'reports.executive.netCashHelp')}</p>
 						{:else}
 							<p class="mt-2 text-sm" style="color: var(--app-muted);">{t(locale, 'reports.executive.unavailable')}</p>
@@ -346,7 +346,9 @@
 
 					<article class="rounded-xl border p-4" style="border-color: var(--app-border); background: var(--app-bg);">
 						<p class="text-sm font-semibold" style="color: var(--app-muted);">{t(locale, 'reports.executive.largestIncrease')}</p>
-						{#if largestExpenseIncrease}
+						{#if comparisonReport.deltaSectionMessages.expenses_by_account}
+							<p class="mt-2 text-sm" style="color: var(--app-warning);">{comparisonReport.deltaSectionMessages.expenses_by_account}</p>
+						{:else if largestExpenseIncrease}
 							<p class="mt-2 truncate font-semibold">{largestExpenseIncrease.accountName}</p>
 							<p class="mt-1 text-2xl font-bold tabular-nums" style="color: var(--app-danger);">{largestExpenseIncrease.delta}</p>
 							<p class="text-xs" style="color: var(--app-muted);">{largestExpenseIncrease.currency}</p>
@@ -357,7 +359,9 @@
 
 					<article class="rounded-xl border p-4" style="border-color: var(--app-border); background: var(--app-bg);">
 						<p class="text-sm font-semibold" style="color: var(--app-muted);">{t(locale, 'reports.executive.largestDecrease')}</p>
-						{#if largestExpenseDecrease}
+						{#if comparisonReport.deltaSectionMessages.expenses_by_account}
+							<p class="mt-2 text-sm" style="color: var(--app-warning);">{comparisonReport.deltaSectionMessages.expenses_by_account}</p>
+						{:else if largestExpenseDecrease}
 							<p class="mt-2 truncate font-semibold">{largestExpenseDecrease.accountName}</p>
 							<p class="mt-1 text-2xl font-bold tabular-nums" style="color: var(--app-success);">{largestExpenseDecrease.delta}</p>
 							<p class="text-xs" style="color: var(--app-muted);">{largestExpenseDecrease.currency}</p>

@@ -122,7 +122,7 @@ function monthlyPayload(side = 'primary', mode = 'full') {
 }
 
 function expensesPayload(side = 'primary', mode = 'full') {
-	if (mode === 'empty' || mode === 'not_comparable') return [];
+	if (mode === 'empty' || mode === 'not_comparable' || mode === 'expenses_error') return [];
 	return side === 'primary'
 		? [
 				{ account_id: 'expense-food', account_name: 'Synthetic Food', total: '45.67', currency: 'SEK' },
@@ -145,11 +145,13 @@ function sectionStatuses(mode = 'full') {
 			{ section: 'expenses_by_account', status: 'empty', detail: null }
 		];
 	}
+	const cashflowError = mode === 'partial';
+	const expensesError = mode === 'expenses_error';
 	return [
 		{ section: 'summary', status: 'ok', detail: null },
-		{ section: 'cashflow', status: mode === 'partial' ? 'error' : 'ok', detail: mode === 'partial' ? privateReportSentinel : null },
-		{ section: 'monthly_cashflow', status: mode === 'partial' ? 'error' : 'ok', detail: mode === 'partial' ? privateReportSentinel : null },
-		{ section: 'expenses_by_account', status: 'ok', detail: null }
+		{ section: 'cashflow', status: cashflowError ? 'error' : 'ok', detail: cashflowError ? privateReportSentinel : null },
+		{ section: 'monthly_cashflow', status: cashflowError ? 'error' : 'ok', detail: cashflowError ? privateReportSentinel : null },
+		{ section: 'expenses_by_account', status: expensesError ? 'error' : 'ok', detail: expensesError ? privateReportSentinel : null }
 	];
 }
 
@@ -162,7 +164,7 @@ function periodReportPayload(dateFrom, dateTo, side = 'primary', mode = 'full') 
 		reporting_basis: 'base_currency_only',
 		includes_currency_conversion: false,
 		limitations: ['base_currency_only: No FX conversion; synthetic fixture excludes non-base currencies.'],
-		partial_failure: mode === 'partial',
+		partial_failure: mode === 'partial' || mode === 'expenses_error',
 		empty: mode === 'empty',
 		section_statuses: sectionStatuses(mode),
 		summary: summaryPayload(dateTo, side, mode),
@@ -178,7 +180,9 @@ function moneyDelta(primary, comparison, delta, absoluteDelta, currency = 'SEK')
 
 function comparisonReportPayload(params, mode = 'full') {
 	const comparable = mode !== 'not_comparable';
-	const partial = mode === 'partial';
+	const cashflowError = mode === 'partial';
+	const expensesError = mode === 'expenses_error';
+	const partial = cashflowError || expensesError;
 	const empty = mode === 'empty';
 	const deltaStatus = mode === 'not_comparable' ? 'not_comparable' : empty ? 'empty' : 'ok';
 	return {
@@ -197,8 +201,8 @@ function comparisonReportPayload(params, mode = 'full') {
 		comparable,
 		delta_section_statuses: [
 			{ section: 'summary', status: deltaStatus, detail: null },
-			{ section: 'cashflow', status: partial ? 'error' : deltaStatus, detail: partial ? privateReportSentinel : null },
-			{ section: 'expenses_by_account', status: deltaStatus, detail: null }
+			{ section: 'cashflow', status: cashflowError ? 'error' : deltaStatus, detail: cashflowError ? privateReportSentinel : null },
+			{ section: 'expenses_by_account', status: expensesError ? 'error' : deltaStatus, detail: expensesError ? privateReportSentinel : null }
 		],
 		summary_delta:
 			comparable && !empty
@@ -210,7 +214,7 @@ function comparisonReportPayload(params, mode = 'full') {
 					}
 				: null,
 		cashflow_delta:
-			comparable && !empty && !partial
+			comparable && !empty && !cashflowError
 				? {
 						currency: 'SEK',
 						inflow: moneyDelta('125.00', '100.00', '25.00', '25.00'),
@@ -219,7 +223,7 @@ function comparisonReportPayload(params, mode = 'full') {
 					}
 				: null,
 		expense_changes:
-			comparable && !empty
+			comparable && !empty && !expensesError
 				? [
 						{
 							account_id: 'expense-rent',
@@ -296,6 +300,7 @@ function reportMode(dateFrom, dateTo) {
 	if (dateFrom === '2026-07-10') return 'partial';
 	if (dateFrom === '2026-09-01' || dateTo === '2026-09-30') return 'error';
 	if (dateFrom === '2026-10-01') return 'not_comparable';
+	if (dateFrom === '2026-11-01') return 'expenses_error';
 	return 'full';
 }
 
@@ -657,6 +662,7 @@ async function assertFullComparisonPage(cdp) {
 			comparisonDateTo: document.querySelector('input[name="comparison_date_to"]')?.value ?? '',
 			bodyText,
 			html: document.documentElement.outerHTML,
+			executiveCards: Array.from(document.querySelectorAll('#reports-executive-title ~ div article')).map((card) => card.textContent.replace(/\\s+/g, ' ').trim()),
 			periodHref: linkRows.find((link) => link.text === 'View transactions')?.href ?? '',
 			primaryExpenseHref: linkRows.find((link) => link.text.includes('Primary period: 0.00'))?.href ?? '',
 			comparisonExpenseHref: linkRows.find((link) => link.text.includes('Comparison period: 100.00'))?.href ?? '',
@@ -679,7 +685,7 @@ async function assertFullComparisonPage(cdp) {
 	assert.equal(state.comparisonDateFrom, '2026-06-01', 'comparison date_from input must persist selected value');
 	assert.equal(state.comparisonDateTo, '2026-06-30', 'comparison date_to input must persist selected value');
 	assert.match(state.bodyText, /What changed/, 'executive summary must lead the report');
-	assert.match(state.bodyText, /Net cash change[\s\S]*39\.33/, 'executive summary must show the exact signed net cash change');
+	assert.match(state.executiveCards[0] ?? '', /Net cash change[\s\S]*39\.33\s+SEK/, 'executive summary must show the exact signed net cash change with its currency');
 	assert.match(state.bodyText, /Largest spending increase[\s\S]*Synthetic Travel[\s\S]*75\.00/, 'executive summary must show the backend-ranked largest positive spending delta');
 	assert.match(state.bodyText, /Largest spending decrease[\s\S]*Synthetic Rent[\s\S]*-100\.00/, 'executive summary must show the backend-ranked largest negative spending delta');
 	assert.match(state.bodyText, /Spending changes by account/, 'expense change section must render');
@@ -919,12 +925,42 @@ async function runSmoke() {
 			'not comparable reports comparison page',
 			'Comparison is not comparable'
 		);
-		const notComparableText = await evaluate(cdp, `document.body?.innerText ?? ''`);
+		const notComparableState = await evaluate(cdp, `(() => {
+			const executive = document.querySelector('#reports-executive-title')?.closest('section');
+			return {
+				bodyText: document.body?.innerText ?? '',
+				executiveText: executive?.innerText ?? '',
+				html: document.documentElement.outerHTML
+			};
+		})()`);
+		const notComparableText = notComparableState.bodyText;
 		assert.match(notComparableText, /Comparison is not comparable/, 'unknown/mismatched currency must render not_comparable copy');
 		assert.match(notComparableText, /different currencies cannot be compared without currency conversion/i, 'not-comparable reports must use bounded user-language currency guidance');
 		assert.doesNotMatch(notComparableText, /currency_mismatch|XXX vs SEK|Backend limitation/i, 'not-comparable reports must not expose raw backend limitation text');
+		assert.match(notComparableState.executiveText, /different currencies cannot be compared without currency conversion/i, 'not-comparable executive spending cards must show bounded unavailable guidance');
+		assert.doesNotMatch(notComparableState.executiveText, /No spending increase was found|No spending decrease was found/i, 'not-comparable executive spending cards must not make false no-change claims');
+		assert.doesNotMatch(notComparableState.html, /currency_mismatch|XXX vs SEK|Backend limitation/i, 'not-comparable backend details must not be serialized into browser HTML');
 		assert.doesNotMatch(notComparableText, /No report data/, 'not_comparable must not masquerade as empty');
 		assertNoMutationRequestsObserved(api, browserRequests, 'not comparable reports comparison page');
+
+		await navigateReports(
+			cdp,
+			webBase,
+			'/reports?preset=custom&date_from=2026-11-01&date_to=2026-11-30&comparison_mode=custom&comparison_date_from=2026-10-01&comparison_date_to=2026-10-31',
+			'expense-error reports comparison page',
+			'Partial report'
+		);
+		const expenseErrorState = await evaluate(cdp, `(() => {
+			const executive = document.querySelector('#reports-executive-title')?.closest('section');
+			return {
+				executiveText: executive?.innerText ?? '',
+				html: document.documentElement.outerHTML
+			};
+		})()`);
+		assert.match(expenseErrorState.executiveText, /comparison is unavailable because part of the report could not be calculated/i, 'expense-error executive cards must show bounded unavailable guidance');
+		assert.doesNotMatch(expenseErrorState.executiveText, /No spending increase was found|No spending decrease was found/i, 'expense-error executive cards must not make false no-change claims');
+		assert.doesNotMatch(expenseErrorState.html, new RegExp(privateReportSentinel), 'expense-error backend details must not be serialized into browser HTML');
+		assertNoMutationRequestsObserved(api, browserRequests, 'expense-error reports comparison page');
 
 		await navigateReports(
 			cdp,
