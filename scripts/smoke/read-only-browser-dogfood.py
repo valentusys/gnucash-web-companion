@@ -72,7 +72,10 @@ def _assert_export_preserves_supported_filters(export_href: str | None) -> None:
 
 
 class WebSocket:
-    """Tiny client for unencrypted ws:// CDP connections."""
+    """Small RFC 6455 client for loopback CDP connections."""
+
+    _GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+    _MAX_MESSAGE_BYTES = 16 * 1024 * 1024
 
     def __init__(self, url: str) -> None:
         parsed = urllib.parse.urlparse(url)
@@ -83,9 +86,11 @@ class WebSocket:
         self.path = parsed.path or "/"
         if parsed.query:
             self.path += f"?{parsed.query}"
+        self._recv_buffer = bytearray()
         self.sock = socket.create_connection((self.host, self.port), timeout=10)
         self.sock.settimeout(10)
         self._handshake()
+        self.sock.settimeout(1)
 
     def _handshake(self) -> None:
         key = base64.b64encode(os.urandom(16)).decode("ascii")
@@ -104,8 +109,36 @@ class WebSocket:
             if not chunk:
                 break
             response += chunk
-        if b" 101 " not in response.split(b"\r\n", 1)[0]:
-            raise DogfoodFailure(f"CDP WebSocket handshake failed: {response[:200]!r}")
+            if len(response) > 64 * 1024:
+                raise DogfoodFailure("CDP WebSocket handshake headers exceeded 64 KiB")
+        headers_blob, separator, remainder = response.partition(b"\r\n\r\n")
+        if not separator:
+            raise DogfoodFailure("CDP WebSocket handshake ended before headers completed")
+        lines = headers_blob.split(b"\r\n")
+        if not lines or b" 101 " not in lines[0]:
+            raise DogfoodFailure(f"CDP WebSocket handshake failed: {headers_blob[:200]!r}")
+        headers: dict[str, str] = {}
+        for line in lines[1:]:
+            name, delimiter, value = line.partition(b":")
+            if not delimiter:
+                continue
+            headers[name.decode("ascii", errors="replace").strip().lower()] = value.decode(
+                "ascii", errors="replace"
+            ).strip()
+        expected_accept = base64.b64encode(
+            hashlib.sha1((key + self._GUID).encode("ascii")).digest()
+        ).decode("ascii")
+        if headers.get("sec-websocket-accept") != expected_accept:
+            raise DogfoodFailure("CDP WebSocket Sec-WebSocket-Accept validation failed")
+        if headers.get("upgrade", "").lower() != "websocket":
+            raise DogfoodFailure("CDP WebSocket handshake omitted Upgrade: websocket")
+        connection_tokens = {
+            token.strip().lower() for token in headers.get("connection", "").split(",")
+        }
+        if "upgrade" not in connection_tokens:
+            raise DogfoodFailure("CDP WebSocket handshake omitted Connection: Upgrade")
+        if remainder:
+            self._recv_buffer.extend(remainder)
 
     def send_json(self, payload: dict[str, Any]) -> None:
         data = json.dumps(payload, separators=(",", ":")).encode("utf-8")
@@ -124,44 +157,83 @@ class WebSocket:
         self.sock.sendall(bytes(header) + mask + masked)
 
     def recv_json(self) -> dict[str, Any]:
+        fragments = bytearray()
+        fragmented_opcode: int | None = None
         while True:
             first = self._recv_exact(2)
+            final = bool(first[0] & 0x80)
+            reserved = first[0] & 0x70
             opcode = first[0] & 0x0F
             masked = bool(first[1] & 0x80)
             length = first[1] & 0x7F
+            if reserved:
+                raise DogfoodFailure("CDP WebSocket used unsupported reserved frame bits")
             if length == 126:
                 length = struct.unpack("!H", self._recv_exact(2))[0]
             elif length == 127:
                 length = struct.unpack("!Q", self._recv_exact(8))[0]
-            mask = self._recv_exact(4) if masked else b""
-            payload = self._recv_exact(length) if length else b""
+            if length > self._MAX_MESSAGE_BYTES:
+                raise DogfoodFailure("CDP WebSocket frame exceeded 16 MiB safety limit")
             if masked:
-                payload = bytes(byte ^ mask[index % 4] for index, byte in enumerate(payload))
+                raise DogfoodFailure("CDP WebSocket server sent an invalid masked frame")
+            if opcode >= 0x8 and (not final or length > 125):
+                raise DogfoodFailure("CDP WebSocket sent an invalid control frame")
+            payload = self._recv_exact(length) if length else b""
             if opcode == 0x8:
                 raise DogfoodFailure("CDP WebSocket closed unexpectedly")
-            if opcode == 0x9:  # ping
+            if opcode == 0x9:
                 self._send_pong(payload)
                 continue
-            if opcode != 0x1:
+            if opcode == 0xA:
                 continue
-            return json.loads(payload.decode("utf-8"))
+            if opcode == 0x1:
+                if fragmented_opcode is not None:
+                    raise DogfoodFailure("CDP WebSocket started a message before continuation completed")
+                if final:
+                    return self._decode_json(payload)
+                fragmented_opcode = opcode
+                fragments.extend(payload)
+                continue
+            if opcode == 0x0:
+                if fragmented_opcode != 0x1:
+                    raise DogfoodFailure("CDP WebSocket sent an unexpected continuation frame")
+                fragments.extend(payload)
+                if len(fragments) > self._MAX_MESSAGE_BYTES:
+                    raise DogfoodFailure("CDP WebSocket message exceeded 16 MiB safety limit")
+                if final:
+                    return self._decode_json(bytes(fragments))
+                continue
+            raise DogfoodFailure(f"CDP WebSocket sent unsupported opcode 0x{opcode:x}")
+
+    @staticmethod
+    def _decode_json(payload: bytes) -> dict[str, Any]:
+        try:
+            decoded = json.loads(payload.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise DogfoodFailure("CDP WebSocket returned invalid JSON") from exc
+        if not isinstance(decoded, dict):
+            raise DogfoodFailure("CDP WebSocket JSON message was not an object")
+        return decoded
 
     def _send_pong(self, payload: bytes) -> None:
-        header = bytearray([0x8A])
-        length = len(payload)
-        header.append(0x80 | length)
+        header = bytearray([0x8A, 0x80 | len(payload)])
         mask = os.urandom(4)
         masked = bytes(byte ^ mask[index % 4] for index, byte in enumerate(payload))
         self.sock.sendall(bytes(header) + mask + masked)
 
     def _recv_exact(self, length: int) -> bytes:
-        data = b""
+        buffer = getattr(self, "_recv_buffer", bytearray())
+        data = bytearray()
+        if buffer:
+            take = min(length, len(buffer))
+            data.extend(buffer[:take])
+            del buffer[:take]
         while len(data) < length:
             chunk = self.sock.recv(length - len(data))
             if not chunk:
                 raise DogfoodFailure("CDP WebSocket connection ended")
-            data += chunk
-        return data
+            data.extend(chunk)
+        return bytes(data)
 
     def close(self) -> None:
         try:
@@ -171,23 +243,30 @@ class WebSocket:
 
 
 class CDPPage:
-    def __init__(self, websocket_url: str) -> None:
+    def __init__(self, websocket_url: str, *, command_timeout: float = 60) -> None:
         self.ws = WebSocket(websocket_url)
         self.next_id = 1
+        self.command_timeout = command_timeout
 
     def call(self, method: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
         message_id = self.next_id
         self.next_id += 1
         self.ws.send_json({"id": message_id, "method": method, "params": params or {}})
-        deadline = time.time() + 15
-        while time.time() < deadline:
-            message = self.ws.recv_json()
+        deadline = time.monotonic() + self.command_timeout
+        while time.monotonic() < deadline:
+            try:
+                message = self.ws.recv_json()
+            except socket.timeout:
+                continue
             if message.get("id") != message_id:
                 continue
             if "error" in message:
                 raise DogfoodFailure(f"CDP {method} failed: {message['error']}")
-            return message.get("result", {})
-        raise DogfoodFailure(f"CDP {method} timed out")
+            result = message.get("result", {})
+            if not isinstance(result, dict):
+                raise DogfoodFailure(f"CDP {method} returned an invalid result")
+            return result
+        raise DogfoodFailure(f"CDP {method} timed out after {self.command_timeout:g}s")
 
     def evaluate(self, expression: str, *, await_promise: bool = False) -> Any:
         result = self.call(
@@ -266,40 +345,127 @@ def _chrome_binary(explicit: str | None) -> str:
     raise DogfoodFailure("Chromium/Chrome binary not found")
 
 
-def _wait_for_debugger(stderr, timeout: float = 15) -> str:
-    deadline = time.time() + timeout
-    lines: list[str] = []
-    while time.time() < deadline:
-        line = stderr.readline()
-        if not line:
-            time.sleep(0.1)
-            continue
-        lines.append(line.strip())
-        marker = "DevTools listening on "
-        if marker in line:
-            return line.split(marker, 1)[1].strip()
-    raise DogfoodFailure(f"Chromium did not expose DevTools URL; stderr={lines[-5:]}")
+def _free_loopback_port() -> int:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
+        listener.bind(("127.0.0.1", 0))
+        return int(listener.getsockname()[1])
 
 
-def _new_page(browser_ws_url: str) -> str:
-    parsed = urllib.parse.urlparse(browser_ws_url)
-    host = parsed.hostname or "127.0.0.1"
-    port = parsed.port
-    if not port:
-        raise DogfoodFailure("DevTools URL did not include a port")
-    base = f"http://{host}:{port}"
-    try:
-        request = urllib.request.Request(f"{base}/json/new?about:blank", method="PUT")
-        with urllib.request.urlopen(request, timeout=10) as response:
-            data = json.loads(response.read().decode("utf-8"))
-    except urllib.error.HTTPError:
-        request = urllib.request.Request(f"{base}/json/new?about:blank", method="GET")
-        with urllib.request.urlopen(request, timeout=10) as response:
-            data = json.loads(response.read().decode("utf-8"))
-    websocket_url = data.get("webSocketDebuggerUrl")
+def _wait_for_devtools(
+    debug_port: int,
+    proc: subprocess.Popen[str],
+    timeout: float = 30,
+) -> dict[str, Any]:
+    deadline = time.monotonic() + timeout
+    version_url = f"http://127.0.0.1:{debug_port}/json/version"
+    last_error = "endpoint not ready"
+    while time.monotonic() < deadline:
+        return_code = proc.poll()
+        if return_code is not None:
+            raise DogfoodFailure(f"Chromium exited before CDP became ready: exit={return_code}")
+        try:
+            data = _http_json(version_url)
+            if isinstance(data, dict) and isinstance(data.get("webSocketDebuggerUrl"), str):
+                return data
+            last_error = "version response omitted webSocketDebuggerUrl"
+        except (OSError, urllib.error.URLError, json.JSONDecodeError) as exc:
+            last_error = type(exc).__name__
+        time.sleep(0.1)
+    raise DogfoodFailure(f"Chromium CDP endpoint did not become ready: {last_error}")
+
+
+def _page_websocket_url(debug_port: int) -> str:
+    base = f"http://127.0.0.1:{debug_port}"
+    targets = _http_json(f"{base}/json/list")
+    if isinstance(targets, list):
+        for target in targets:
+            if (
+                isinstance(target, dict)
+                and target.get("type") == "page"
+                and isinstance(target.get("webSocketDebuggerUrl"), str)
+            ):
+                return target["webSocketDebuggerUrl"]
+    request = urllib.request.Request(f"{base}/json/new?about:blank", method="PUT")
+    with urllib.request.urlopen(request, timeout=10) as response:
+        data = json.loads(response.read().decode("utf-8"))
+    websocket_url = data.get("webSocketDebuggerUrl") if isinstance(data, dict) else None
     if not isinstance(websocket_url, str):
-        raise DogfoodFailure("DevTools /json/new did not return page websocket URL")
+        raise DogfoodFailure("DevTools did not expose a page websocket URL")
     return websocket_url
+
+
+def _launch_chrome(
+    chrome: str,
+    user_data: Path,
+) -> tuple[subprocess.Popen[str], int, dict[str, Any]]:
+    debug_port = _free_loopback_port()
+    proc = subprocess.Popen(
+        [
+            chrome,
+            "--headless=new",
+            "--disable-gpu",
+            "--no-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-background-networking",
+            "--disable-component-update",
+            "--disable-default-apps",
+            "--no-first-run",
+            "--no-proxy-server",
+            "--proxy-server=direct://",
+            "--proxy-bypass-list=*",
+            "--remote-debugging-address=127.0.0.1",
+            f"--remote-debugging-port={debug_port}",
+            f"--user-data-dir={user_data}",
+            "about:blank",
+        ],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    try:
+        version = _wait_for_devtools(debug_port, proc)
+    except Exception:
+        _stop_chrome(proc)
+        raise
+    return proc, debug_port, version
+
+
+def _stop_chrome(proc: subprocess.Popen[str] | None) -> None:
+    if proc is None or proc.poll() is not None:
+        return
+    proc.terminate()
+    try:
+        proc.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        proc.wait(timeout=5)
+
+
+def _probe_cdp(args: argparse.Namespace) -> str:
+    chrome = _chrome_binary(args.chromium)
+    temp_root = Path(tempfile.mkdtemp(prefix="gwc-cdp-probe-"))
+    page: CDPPage | None = None
+    proc: subprocess.Popen[str] | None = None
+    try:
+        proc, debug_port, endpoint_version = _launch_chrome(
+            chrome,
+            temp_root / "chromium-profile",
+        )
+        page = CDPPage(_page_websocket_url(debug_port))
+        cdp_version = page.call("Browser.getVersion")
+        product = cdp_version.get("product") or endpoint_version.get("Browser")
+        protocol = cdp_version.get("protocolVersion") or endpoint_version.get("Protocol-Version")
+        if not isinstance(product, str) or not product:
+            raise DogfoodFailure("CDP Browser.getVersion omitted product")
+        if not isinstance(protocol, str) or not protocol:
+            raise DogfoodFailure("CDP Browser.getVersion omitted protocol version")
+        return f"{product} protocol={protocol}"
+    finally:
+        if page is not None:
+            page.close()
+        _stop_chrome(proc)
+        if not args.keep_temp:
+            shutil.rmtree(temp_root, ignore_errors=True)
 
 
 def _js_string(value: str) -> str:
@@ -319,28 +485,17 @@ def run(args: argparse.Namespace) -> list[CheckResult]:
     download_dir = temp_root / "downloads"
     download_dir.mkdir(parents=True, exist_ok=True)
 
-    proc = subprocess.Popen(
-        [
-            chrome,
-            "--headless=new",
-            "--disable-gpu",
-            "--no-sandbox",
-            "--disable-dev-shm-usage",
-            "--remote-debugging-port=0",
-            f"--user-data-dir={user_data}",
-            "about:blank",
-        ],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.PIPE,
-        text=True,
-    )
+    proc: subprocess.Popen[str] | None = None
     page: CDPPage | None = None
     results: list[CheckResult] = []
     try:
-        if proc.stderr is None:
-            raise DogfoodFailure("Chromium stderr pipe unavailable")
-        browser_ws = _wait_for_debugger(proc.stderr)
-        page = CDPPage(_new_page(browser_ws))
+        proc, debug_port, endpoint_version = _launch_chrome(chrome, user_data)
+        page = CDPPage(_page_websocket_url(debug_port))
+        cdp_version = page.call("Browser.getVersion")
+        browser_product = cdp_version.get("product") or endpoint_version.get("Browser")
+        if not isinstance(browser_product, str) or not browser_product:
+            raise DogfoodFailure("CDP Browser.getVersion omitted product")
+        results.append(CheckResult("browser_cdp", browser_product))
         page.call("Page.enable")
         page.call("Runtime.enable")
         page.call("Browser.setDownloadBehavior", {"behavior": "deny"})
@@ -539,11 +694,7 @@ def run(args: argparse.Namespace) -> list[CheckResult]:
     finally:
         if page is not None:
             page.close()
-        proc.terminate()
-        try:
-            proc.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            proc.kill()
+        _stop_chrome(proc)
         if not args.keep_temp:
             shutil.rmtree(temp_root, ignore_errors=True)
 
@@ -554,6 +705,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--username", default=None)
     parser.add_argument("--password", default=None)
     parser.add_argument("--chromium", default=os.environ.get("CHROMIUM_BIN"))
+    parser.add_argument(
+        "--cdp-probe",
+        action="store_true",
+        help="Launch Chrome, verify the CDP transport, report version, and exit without loading the app",
+    )
     parser.add_argument("--keep-temp", action="store_true", help="Keep temporary browser profile for debugging only")
     parser.add_argument("--fixture-path", default=None, help="Optional fixture path to hash/report without printing full path")
     parser.add_argument("--viewport-width", type=int, default=320, help="Viewport width for read-only UI dogfood")
@@ -570,6 +726,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     try:
+        if args.cdp_probe:
+            print(f"PASS: Chrome CDP probe completed: {_probe_cdp(args)}")
+            return 0
         print(f"read-only browser dogfood: target={args.base_url.rstrip('/')}")
         if args.fixture_path:
             fixture = Path(args.fixture_path)

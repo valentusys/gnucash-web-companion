@@ -1,0 +1,48 @@
+# Python environments, bytecode, generated outputs, and tool caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage*
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# Tests and fixtures are not part of the production image
+tests/
+
+# Local configuration, logs, and runtime/private artifacts
+.env*
+*.log
+data/
+backups/
+*.db
+*.sqlite*
+*.gnucash*
+*.bak
+*.backup
+
+# Credentials and local certificates
+secrets/
+credentials/
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pfx
+
+# Frontend artifacts accidentally copied into the API context
+node_modules/
+
+# VCS, editors, and OS metadata
+.git/
+.gitignore
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

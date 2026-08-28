@@ -1,0 +1,44 @@
+# Dependencies, generated outputs, and tool caches
+node_modules/
+.svelte-kit/
+build/
+coverage/
+.vite/
+.cache/
+.npm/
+.pnpm-store/
+.eslintcache
+*.tsbuildinfo
+
+# Test/development harnesses are not part of the production image
+scripts/
+
+# Local configuration, logs, and runtime/private artifacts
+.env*
+*.log
+npm-debug.log*
+data/
+backups/
+*.db
+*.sqlite*
+*.gnucash*
+*.bak
+*.backup
+
+# Credentials and local certificates
+secrets/
+credentials/
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pfx
+
+# VCS, editors, and OS metadata
+.git/
+.gitignore
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
