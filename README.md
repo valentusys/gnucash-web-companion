@@ -77,6 +77,15 @@ the current write-alpha publication baseline remains Phase 261.
   [30864811558](https://github.com/valentusys/gnucash-web-companion/actions/runs/30864811558)
   succeeded and [#60](https://github.com/valentusys/gnucash-web-companion/issues/60) is closed.
   This remains pre-alpha/test-copy-first; `GNUCASH_WRITES_ENABLED=false` remains default.
+- **Read-only correctness milestone:** [#61](https://github.com/valentusys/gnucash-web-companion/issues/61)
+  tracks accepted product head `43313767f28ff83893a592ee8fd39f9668a6c303` for corrected report
+  sign/history semantics, bounded account options, recovered Transactions/preview flows, compact
+  account/dashboard/report/scheduled UX, and hardened dependency/Docker/browser checks. Exact-head
+  CI [33139548729](https://github.com/valentusys/gnucash-web-companion/actions/runs/33139548729)
+  succeeded; the final copied-book gate kept source/copy hashes stable with writes disabled and zero
+  successful mutations. This is not a release, broad compatibility, production-readiness, or
+  security-audit claim; selected-currency-only/no-FX behavior and `GNUCASH_WRITES_ENABLED=false`
+  remain unchanged.
 - **Closed maintenance boundary:** #36 controlled-write readiness is closed as
   `CLOSE_36_AS_MAINTENANCE_BOUNDARY`; it is historical maintenance evidence only, not real-book
   approval.

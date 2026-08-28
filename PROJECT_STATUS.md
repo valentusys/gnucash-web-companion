@@ -1,6 +1,6 @@
 # PROJECT_STATUS
 
-Last updated: 2026-08-04
+Last updated: 2026-08-28
 
 ## Quick navigation
 
@@ -25,6 +25,16 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   exact-head CI success, and factual issue closeout. Reporting remains selected-currency-only with
   no FX conversion or external rates, and `GNUCASH_WRITES_ENABLED=false` remains default. See
   [docs/handoff/hermes-kanban-product-run-10-usability.md](docs/handoff/hermes-kanban-product-run-10-usability.md).
+- Current accepted read-only correctness head: issue #61 tracks product head
+  `43313767f28ff83893a592ee8fd39f9668a6c303` / tree
+  `c793f72a099f57ba3d68aa240d790091b2d738cb`. The original 18-card roadmap, the archived A7
+  salvage, its accepted recovery, and the stock browser-harness correction were reconciled through
+  independent A8/C1/C2 gates. Exact-product-head CI
+  [33139548729](https://github.com/valentusys/gnucash-web-companion/actions/runs/33139548729)
+  succeeded for all four jobs; fresh copied-book C2 evidence remained read-only with stable hashes
+  and zero successful mutations. `GNUCASH_WRITES_ENABLED=false`, selected-currency-only/no-FX
+  reporting, and `NO_RELEASE` remain unchanged. See
+  [docs/handoff/read-only-correctness-closeout.md](docs/handoff/read-only-correctness-closeout.md).
 - Recently completed product issues:
   [#51](https://github.com/valentusys/gnucash-web-companion/issues/51),
   [#52](https://github.com/valentusys/gnucash-web-companion/issues/52),
@@ -101,6 +111,7 @@ handoff, release, dogfood, and audit docs rather than duplicating long blocks he
   [#22](https://github.com/valentusys/gnucash-web-companion/issues/22) and
   [#28](https://github.com/valentusys/gnucash-web-companion/issues/28).
 - Latest handoffs/docs:
+  [docs/handoff/read-only-correctness-closeout.md](docs/handoff/read-only-correctness-closeout.md),
   [docs/handoff/hermes-kanban-product-run-10-usability.md](docs/handoff/hermes-kanban-product-run-10-usability.md),
   [docs/handoff/hermes-kanban-product-run-9-write-create.md](docs/handoff/hermes-kanban-product-run-9-write-create.md),
   [docs/handoff/hermes-kanban-product-run-7.md](docs/handoff/hermes-kanban-product-run-7.md),
