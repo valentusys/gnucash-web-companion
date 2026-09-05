@@ -3,6 +3,7 @@
 	import Money from '$lib/components/Money.svelte';
 	import TransactionDirection from '$lib/components/TransactionDirection.svelte';
 	import type { TransactionListItem } from '$lib/api/types';
+	import { transactionDisplayMoney } from '$lib/transactions/display-money';
 	import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 
 	let {
@@ -20,7 +21,7 @@
 
 <div class="space-y-3 md:hidden">
 	{#each transactions as tx (tx.id)}
-		{@const representative = tx.direction?.status === 'resolved' ? (tx.representative_amount ?? tx.matched_amount ?? null) : null}
+		{@const display = transactionDisplayMoney(tx)}
 		<div
 			class="cursor-pointer rounded-xl p-4"
 			style="background-color: var(--app-panel); box-shadow: 0 1px 3px var(--app-panel-shadow); border: 1px solid var(--app-border);"
@@ -44,12 +45,11 @@
 					{/if}
 				</div>
 				<div class="shrink-0 text-right">
-					{#if representative}
-						<p class="text-sm font-semibold"><Money amount={representative.amount} currency={representative.currency} /></p>
-					{:else if tx.direction}
-						<p class="max-w-32 text-xs" style="color: var(--app-muted);">{t(locale, 'transactions.direction.amountHidden')}</p>
+					{#if display.money}
+						<p class="text-sm font-semibold"><Money amount={display.money.amount} currency={display.money.currency} /></p>
+						<p class="mt-1 max-w-40 text-xs" style="color: var(--app-muted);">{t(locale, display.label, { account: display.account })}</p>
 					{:else}
-						<p class="text-sm font-semibold"><Money amount={tx.amount} currency={tx.currency} /></p>
+						<p class="max-w-32 text-xs" style="color: var(--app-muted);">{t(locale, 'transactions.direction.amountHidden')}</p>
 					{/if}
 				</div>
 			</div>

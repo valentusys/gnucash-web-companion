@@ -57,9 +57,30 @@ unchanged, quick_check is read-only, mutation requests are zero, and test runtim
   [33997832744](https://github.com/valentusys/gnucash-web-companion/actions/runs/33997832744)
   succeeded for all four jobs. This is not final roadmap CI.
 
+## QA-03 — implemented and locally verified
+
+Unscoped explorer DTOs expose `neutral_magnitude` only for proven simple pairs,
+otherwise `multiple_amounts` with no representative total. Reordering splits and
+changing synthetic split GUIDs must not choose the amount sign. Account scopes
+use signed net quantities of the selected accounts; type scopes use quantities
+of matching accounts. The existing configured-currency restrictions remain.
+The legacy list/CSV account amount and amount filter now use account quantities,
+including repeated account splits; CSV IDs and monetary basis are covered.
+
+Both responsive views share a decimal-string display adapter and label unsigned
+magnitude versus account change. Its cases include zero, negative scoped amounts,
+large fractional values, missing/unknown bases and unavailable complex totals.
+The real synthetic browser checks unscoped and scoped amounts (including a net
+zero transfer) at mobile/desktop EN/RU, with unchanged book hash and zero book
+mutation requests. Synthetic app metadata currency setup is counted separately.
+
+Targeted API, money helper, neighboring explorer browser and static guards pass.
+A full API integration run is pending at this checkpoint; final acceptance is
+still pending all remaining QA IDs and exact-head CI/full matrix.
+
 ## Remaining
 
-QA-03 money representation, QA-04/09 date and drilldown, QA-05/06 account groups, QA-07/08/10
+QA-04/09 date and drilldown, QA-05/06 account groups, QA-07/08/10
 form and pagination states, QA-11/12 layout/localization, followed by full exact-head integration
 and CI. No independent reviewer agent has been run. No final acceptance is claimed.
 

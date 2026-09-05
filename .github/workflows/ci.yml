@@ -112,6 +112,7 @@ jobs:
           npm run test:accounts-explorer
           npm run test:scheduled-forecast
           npm run test:qa-loaders
+          npm run test:qa-money
           npm run test:transaction-entry-create-disposable-browser
           npm run test:accounts-explorer-browser
           npm run test:transactions-explorer-browser

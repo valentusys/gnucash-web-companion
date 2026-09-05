@@ -29,12 +29,12 @@ class TransactionExplorerItemDTO(BaseModel):
     id: str = Field(..., description="Transaction GUID")
     date: str = Field(..., description="Transaction post date as YYYY-MM-DD")
     description: str = Field(..., description="Transaction description")
-    representative_amount: MoneyDTO
+    representative_amount: MoneyDTO | None
     representative_account: TransactionExplorerAccountRefDTO | None = None
     counter_account_name: str = Field(..., description="Counter account label for display only")
     direction: TransactionDirectionDTO = Field(default_factory=default_transaction_direction, description="Split-derived typed From/To direction")
     matched_amount: MoneyDTO | None = Field(None, description="Exact scoped amount when a scoped filter is active")
-    amount_basis: Literal["selected_accounts", "income", "expense", "representative_split"] = "representative_split"
+    amount_basis: Literal["selected_accounts", "income", "expense", "representative_split", "neutral_magnitude", "multiple_amounts"] = "representative_split"
     matched_account_ids: list[str] = Field(default_factory=list)
     is_write_alpha_owned: bool = False
 

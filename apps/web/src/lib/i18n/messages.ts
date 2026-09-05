@@ -489,6 +489,11 @@ export type MessageKey =
 	| 'transactions.direction.composite'
 	| 'transactions.direction.more'
 	| 'transactions.direction.amountHidden'
+	| 'transactions.amount.neutral'
+	| 'transactions.amount.selectedAccount'
+	| 'transactions.amount.selectedAccounts'
+	| 'transactions.amount.income'
+	| 'transactions.amount.expense'
 	| 'transactionDetail.helper'
 	| 'transactionDetail.date'
 	| 'transactionDetail.currency'
@@ -1596,6 +1601,11 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'transactions.direction.composite': 'Composite transaction: multiple split-derived accounts are shown.',
 		'transactions.direction.more': '+{count} more',
 		'transactions.direction.amountHidden': 'No representative total is shown for this composite or ambiguous transaction.',
+		'transactions.amount.neutral': 'Unsigned magnitude',
+		'transactions.amount.selectedAccount': 'Account change: {account}',
+		'transactions.amount.selectedAccounts': 'Net change of selected accounts',
+		'transactions.amount.income': 'Income-account total',
+		'transactions.amount.expense': 'Expense-account total',
 		'transactionDetail.helper': 'Read-only view of the selected GnuCash transaction. Split rows below show memo and reconciliation metadata when available.',
 		'transactionDetail.date': 'Date',
 		'transactionDetail.currency': 'Currency',
@@ -2751,6 +2761,11 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'transactions.direction.composite': 'Составная транзакция: показаны несколько счетов из проводок.',
 		'transactions.direction.more': 'ещё {count}',
 		'transactions.direction.amountHidden': 'Для составной или неоднозначной транзакции представительная сумма не показана.',
+		'transactions.amount.neutral': 'Сумма без знака',
+		'transactions.amount.selectedAccount': 'Изменение счёта: {account}',
+		'transactions.amount.selectedAccounts': 'Итоговое изменение выбранных счетов',
+		'transactions.amount.income': 'Итог по счетам доходов',
+		'transactions.amount.expense': 'Итог по счетам расходов',
 		'transactionDetail.helper': 'Read-only просмотр выбранной транзакции GnuCash. Строки split ниже показывают memo и metadata сверки, если они доступны.',
 		'transactionDetail.date': 'Дата',
 		'transactionDetail.currency': 'Валюта',

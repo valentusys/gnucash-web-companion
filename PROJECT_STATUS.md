@@ -10,7 +10,10 @@ Last updated: 2026-09-06
   valid, and empty lists. No new browser acceptance executes book writes.
 - QA-02 restores recent dashboard amounts from the actual report DTO, with backend proof of a
   simple balanced single-currency pair, neutral magnitude and explicit complex-amount fallback.
-- QA-03–QA-12 and final exact-head integration/CI remain pending. This is not final acceptance,
+- QA-03 gives unscoped explorer rows an order-independent unsigned magnitude only
+  when proven simple; scoped rows use labelled account quantities (including zero).
+  Complex/mixed totals remain unavailable. CSV amount basis is documented and tested.
+- QA-04–QA-12 and final exact-head integration/CI remain pending. This is not final acceptance,
   a merge, a release, or deployment authorization. See [QA handoff](docs/handoff/qa-remediation.md).
 
 ## Quick navigation

@@ -20,6 +20,7 @@
 		"test:reports-browser": "npm run build && node scripts/test-reports-browser.mjs",
 		"test:scheduled-forecast": "node scripts/test-scheduled-forecast-static.mjs",
 		"test:qa-loaders": "node scripts/test-qa-loaders.mjs",
+		"test:qa-money": "node scripts/test-qa-money.mjs",
 		"test:qa-regressions-browser": "npm run build && node scripts/test-qa-regressions-browser.mjs",
 		"test:scheduled-forecast-browser": "npm run build && node scripts/test-scheduled-forecast-browser.mjs",
 		"test:dashboard-browser": "npm run build && node scripts/test-dashboard-browser.mjs",

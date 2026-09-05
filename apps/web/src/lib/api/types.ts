@@ -471,7 +471,7 @@ export type TransactionListItem = {
 	account_display_name?: string | null;
 	counter_account_name: string;
 	direction?: TransactionDirection;
-	representative_amount?: MoneyDTO;
+	representative_amount?: MoneyDTO | null;
 	representative_account?: { id: string; name: string; display_name?: string | null; full_name?: string | null } | null;
 	matched_amount?: MoneyDTO | null;
 	amount_basis?: 'selected_accounts' | 'income' | 'expense' | 'representative_split' | string;

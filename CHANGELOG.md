@@ -32,6 +32,10 @@ reading the full history linearly.
 
 ### QA remediation (in progress)
 
+- QA-03: unscoped explorer amounts are neutral and split-order independent. Scoped
+  account changes are labelled in table/mobile views; CSV values/filters use account
+  quantities without FX conversion. Complex totals are not inferred.
+
 - QA-02: recent dashboard rows use report amount/currency rather than explorer-only fields.
   A backend classification permits neutral magnitudes only for simple balanced single-currency
   pairs (including zero); composite, ambiguous and multi-currency amounts are not summarized.

@@ -28,6 +28,7 @@ let proxy;
 let cdp;
 let fixture;
 let recentPayload;
+let scopeIds;
 let failure;
 const hash = (path) => createHash('sha256').update(readFileSync(path)).digest('hex');
 const delay = (ms) => new Promise((done) => setTimeout(done, ms));
@@ -169,6 +170,11 @@ try {
     };
     start(apiPython, ['-m', 'uvicorn', 'app.main:app', '--host', '127.0.0.1', '--port', String(apiPort)], apiEnv, apiRoot, 'api');
     await waitHttp(`${apiBase}/health`);
+    if (scenario === 'money') {
+        // Isolated synthetic APP metadata setup only; never writes the generated GnuCash book.
+        scopeIds = pythonJson('import json,sqlite3,sys\nfrom tests.support.generate_qa_regression_fixture import guid\nwith sqlite3.connect(sys.argv[1]) as db:\n cursor=db.execute("UPDATE books SET base_currency=? WHERE uri_or_path=?", ("RUB",sys.argv[2]))\n assert cursor.rowcount == 1\nprint(json.dumps({name:guid("account:"+name) for name in ["cash","expense","savings"]}))', [join(root, 'app.db'), fixture.book_path]);
+        evidence.synthetic_app_metadata_setup_updates = 1;
+    }
     // Transparent proxy observes real web→API responses. No response stubs/DTO rewriting.
     proxy = createServer(async (request, response) => {
         const record = { method: request.method, path: new URL(request.url, apiBase).pathname, status: null };
@@ -258,6 +264,32 @@ try {
                 }
             }
             evidence.recent_money_rows = domRows.length;
+            await cdp.navigate(`${webBase}/transactions?date_from=2026-09-01&date_to=2026-09-02&page_size=20`);
+            const explorerRows = await cdp.evaluate(`Array.from(document.querySelectorAll('[role=button]')).filter(row => row.getClientRects().length && row.innerText.includes('SYNTHETIC QA ')).map(row => ({text:row.innerText, amount:(row.querySelector('td:last-child') ?? row.querySelector('.shrink-0.text-right'))?.innerText.replace(/\\s+/g,' ').trim() ?? ''}))`);
+            assert.equal(explorerRows.length, Object.keys(fixture.transactions).length, 'QA-03 real explorer rows must render');
+            for (const [name, spec] of Object.entries(fixture.transactions)) {
+                const row = explorerRows.find(row => row.text.includes(`SYNTHETIC QA ${name}`));
+                assert.ok(row);
+                if (spec.magnitude !== null) {
+                    const payload = recentPayload.find(row => row.id === spec.id);
+                    assert.ok(row.amount.startsWith(`${payload.amount.replace(/^[+-]/, '')} ${spec.currency}`), `QA-03 ${name}: explorer must show neutral magnitude, not arbitrary signed first split: ${row.amount}`);
+                } else {
+                    assert.match(row.amount, locale === 'ru' ? /сумма не показана/ : /No representative total is shown/, 'QA-03 complex amount stays explicit');
+                }
+            }
+            evidence.explorer_money_rows = explorerRows.length;
+            for (const [account, description, expected, group] of [
+                ['cash', 'expense', '-123.45 RUB', false],
+                ['expense', 'expense', '123.45 RUB', false],
+                ['cash', 'transfer', '0.00 RUB', true],
+            ]) {
+                const scope = `account_ids=${scopeIds[account]}${group ? `&account_ids=${scopeIds.savings}` : ''}`;
+                await cdp.navigate(`${webBase}/transactions?date_from=2026-09-01&date_to=2026-09-02&page_size=20&${scope}`);
+                const amount = await cdp.evaluate(`(() => {const row=Array.from(document.querySelectorAll('[role=button]')).find(row=>row.getClientRects().length && row.innerText.includes(${JSON.stringify(`SYNTHETIC QA ${description}`)})); return (row?.querySelector('td:last-child') ?? row?.querySelector('.shrink-0.text-right'))?.innerText.replace(/\\s+/g,' ').trim() ?? '';})()`);
+                assert.ok(amount.startsWith(expected), `QA-03 scoped signed quantity must match: ${amount}`);
+                assert.match(amount, group ? (locale === 'ru' ? /выбранных счетов/ : /selected accounts/) : (locale === 'ru' ? /Изменение счёта/ : /Account change/), 'signed quantity must identify its account basis');
+            }
+            evidence.scoped_money_cases = 3;
         }
         evidence.cases.push({ locale, width, scheduled_rows: rows, unavailable_rows: expectedInvalid });
     }

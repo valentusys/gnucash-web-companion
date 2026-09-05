@@ -2,6 +2,7 @@
 	import Money from '$lib/components/Money.svelte';
 	import TransactionDirection from '$lib/components/TransactionDirection.svelte';
 	import type { TransactionListItem } from '$lib/api/types';
+	import { transactionDisplayMoney } from '$lib/transactions/display-money';
 	import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 
 	let {
@@ -29,7 +30,7 @@
 		</thead>
 		<tbody>
 			{#each transactions as tx (tx.id)}
-				{@const representative = tx.direction?.status === 'resolved' ? (tx.representative_amount ?? tx.matched_amount ?? null) : null}
+				{@const display = transactionDisplayMoney(tx)}
 				<tr
 					class="cursor-pointer border-b hover:opacity-80"
 					style="border-color: var(--app-border);"
@@ -57,12 +58,11 @@
 						<TransactionDirection direction={tx.direction ?? null} {locale} compact />
 					</td>
 					<td class="w-40 px-4 py-3 text-right">
-						{#if representative}
-							<Money amount={representative.amount} currency={representative.currency} />
-						{:else if tx.direction}
-							<span class="text-xs" style="color: var(--app-muted);">{t(locale, 'transactions.direction.amountHidden')}</span>
+						{#if display.money}
+							<Money amount={display.money.amount} currency={display.money.currency} />
+							<p class="mt-1 text-xs" style="color: var(--app-muted);">{t(locale, display.label, { account: display.account })}</p>
 						{:else}
-							<Money amount={tx.amount} currency={tx.currency} />
+							<span class="text-xs" style="color: var(--app-muted);">{t(locale, 'transactions.direction.amountHidden')}</span>
 						{/if}
 					</td>
 				</tr>
