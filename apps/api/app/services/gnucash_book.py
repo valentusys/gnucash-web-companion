@@ -603,14 +603,21 @@ class GnuCashBookService:
         with self._open_book() as book:
             scheduled_items = list(self._scheduled_transactions(book))
             recurrence_rows = self._scheduled_recurrence_rows(book, scheduled_items)
-            items = [
-                self._scheduled_transaction_to_dto(
-                    item,
-                    recurrences=recurrence_rows.get(_guid(item), []),
-                    as_of_date=forecast_date,
-                )
-                for item in scheduled_items
-            ]
+            items = []
+            for item in scheduled_items:
+                try:
+                    dto = self._scheduled_transaction_to_dto(
+                        item,
+                        recurrences=recurrence_rows.get(_guid(item), []),
+                        as_of_date=forecast_date,
+                    )
+                except ScheduledRecurrenceError as exc:
+                    # Only known record-level metadata errors are recoverable.
+                    # Batch reads/budgets above and recurrence-cycle failures still fail closed.
+                    if exc.code != "scheduled_recurrence_invalid_metadata":
+                        raise
+                    dto = self._unavailable_scheduled_transaction(item, as_of_date=forecast_date)
+                items.append(dto)
             items.sort(key=lambda item: ((item.start_date or "9999-99-99"), item.name.lower(), item.id))
             return items
 
@@ -2913,6 +2920,25 @@ class GnuCashBookService:
             description=str(getattr(transaction, "description", "")),
             currency=currency,
             splits=split_dtos,
+        )
+
+    @staticmethod
+    def _unavailable_scheduled_transaction(scheduled: Any, *, as_of_date: date) -> ScheduledTransactionDTO:
+        """Keep authorized identity only; do not reparse known-invalid metadata."""
+        has_template = bool(getattr(scheduled, "template_act_guid", None))
+        return ScheduledTransactionDTO(
+            id=_guid(scheduled),
+            name=str(getattr(scheduled, "name", "") or ""),
+            enabled=bool(getattr(scheduled, "enabled", False)),
+            has_template_account=has_template,
+            template_reference_status="present_redacted" if has_template else "not_present_redacted",
+            forecast=ScheduledTransactionForecastDTO(
+                status="unavailable",
+                reason="scheduled_recurrence_invalid_metadata",
+                as_of_date=as_of_date.isoformat(),
+                next_due_date=None,
+            ),
+            amount=ScheduledTransactionAmountDTO(status="not_available", reason="forecast_unavailable"),
         )
 
     def _scheduled_transaction_to_dto(

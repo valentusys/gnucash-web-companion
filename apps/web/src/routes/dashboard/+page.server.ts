@@ -135,7 +135,7 @@ export async function load({ cookies, fetch: fetchFn }: { cookies: any; fetch: a
 	let monthCashflow: CashflowData | null = null;
 	let recentTransactions: TransactionListItem[] = [];
 	let expenseChanges: DashboardExpenseChange[] = [];
-	let upcomingObligations: DashboardUpcomingObligations = { enabled_count: 0 };
+	let upcomingObligations: DashboardUpcomingObligations = { enabled_count: 0, unavailable_count: 0 };
 	const sectionErrors: DashboardSectionErrors = {
 		summary: false,
 		expenses: false,
@@ -198,7 +198,10 @@ export async function load({ cookies, fetch: fetchFn }: { cookies: any; fetch: a
 	const obligationsTask = async () => {
 		try {
 			const scheduled = await apiFetch<ScheduledTransaction[]>(fetchFn, `${bookPrefix}/scheduled-transactions`, token);
-			upcomingObligations = { enabled_count: scheduled.filter((item) => item.enabled).length };
+			upcomingObligations = {
+				enabled_count: scheduled.filter((item) => item.enabled).length,
+				unavailable_count: scheduled.filter((item) => item.forecast.status === 'unavailable').length
+			};
 		} catch (reason) {
 			if (isRedirect(reason)) throw reason;
 			sectionErrors.upcomingObligations = true;

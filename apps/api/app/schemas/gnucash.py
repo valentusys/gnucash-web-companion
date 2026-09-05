@@ -145,7 +145,8 @@ class ScheduledTransactionRecurrenceDTO(BaseModel):
 class ScheduledTransactionForecastDTO(BaseModel):
     """Bounded due-date projection; this never materializes transactions."""
 
-    status: Literal["ready", "disabled", "exhausted"]
+    status: Literal["ready", "disabled", "exhausted", "unavailable"]
+    reason: Literal["scheduled_recurrence_invalid_metadata"] | None = None
     as_of_date: str
     next_due_date: str | None
     is_overdue: bool = False
@@ -167,6 +168,7 @@ class ScheduledTransactionAmountDTO(BaseModel):
         "template_shape_unsupported",
         "template_unbalanced",
         "currency_unavailable",
+        "forecast_unavailable",
     ] | None = None
 
 

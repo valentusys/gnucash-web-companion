@@ -516,7 +516,8 @@ export type ScheduledTransactionRecurrence = {
 };
 
 export type ScheduledTransactionForecast = {
-	status: 'ready' | 'disabled' | 'exhausted';
+	status: 'ready' | 'disabled' | 'exhausted' | 'unavailable';
+	reason: 'scheduled_recurrence_invalid_metadata' | null;
 	as_of_date: string;
 	next_due_date: string | null;
 	is_overdue: boolean;
@@ -530,7 +531,8 @@ export type ScheduledTransactionAmountReason =
 	| 'template_variables_unresolved'
 	| 'template_shape_unsupported'
 	| 'template_unbalanced'
-	| 'currency_unavailable';
+	| 'currency_unavailable'
+	| 'forecast_unavailable';
 
 export type ScheduledTransactionAmount = {
 	status: 'resolved' | 'unresolved' | 'not_available';
@@ -647,6 +649,7 @@ export type DashboardExpenseChange = {
 
 export type DashboardUpcomingObligations = {
 	enabled_count: number;
+	unavailable_count: number;
 };
 
 export type ExpenseByAccount = {

@@ -231,6 +231,7 @@ def test_default_scheduled_transactions_returns_safe_summary(
             ],
             "forecast": {
                 "status": "ready",
+                "reason": None,
                 "as_of_date": "2026-06-01",
                 "next_due_date": "2026-06-01",
                 "is_overdue": False,
@@ -381,6 +382,7 @@ def test_scheduled_transactions_read_all_recurrence_rows_and_never_materialize(
     assert [row["period_start"] for row in item["recurrence"]] == ["2026-01-01", "2026-01-05"]
     assert item["forecast"] == {
         "status": "ready",
+        "reason": None,
         "as_of_date": "2026-06-01",
         "next_due_date": "2026-06-01",
         "is_overdue": False,
@@ -598,13 +600,13 @@ def test_template_formula_length_is_bounded_and_unresolved(
     assert amount["reason"] == "template_shape_unsupported"
 
 
-def test_invalid_recurrence_metadata_returns_typed_redacted_error(
+def test_invalid_recurrence_metadata_returns_typed_redacted_record(
     client, auth_headers, sample_book, session_factory, monkeypatch, tmp_path
 ):
     private_marker = "PRIVATE-SCHEDULE-MARKER"
     scheduled = FakeScheduledTransaction(
         guid="sx-invalid",
-        name=private_marker,
+        name="Synthetic unavailable schedule",
         recurrence=[
             FakeRecurrence(
                 recurrence_period_type=f"unsupported-{private_marker}",
@@ -617,13 +619,13 @@ def test_invalid_recurrence_metadata_returns_typed_redacted_error(
 
     response = client.get("/scheduled-transactions?as_of_date=2026-06-01", headers=auth_headers)
 
-    assert response.status_code == 422
-    assert response.json() == {
-        "detail": {
-            "code": "scheduled_recurrence_invalid_metadata",
-            "message": "Scheduled transaction recurrence metadata is invalid.",
-        }
-    }
+    assert response.status_code == 200
+    [item] = response.json()
+    assert item["id"] == "sx-invalid"
+    assert item["forecast"]["status"] == "unavailable"
+    assert item["forecast"]["reason"] == "scheduled_recurrence_invalid_metadata"
+    assert item["forecast"]["next_due_date"] is None
+    assert item["recurrence"] == []
     assert private_marker not in response.text
 
 

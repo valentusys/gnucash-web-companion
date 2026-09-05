@@ -15,7 +15,7 @@
 		drilldowns,
 		monthCashflow = null,
 		expenseChanges = [],
-		upcomingObligations = { enabled_count: 0 },
+		upcomingObligations = { enabled_count: 0, unavailable_count: 0 },
 		comparisonPeriod = { date_from: '', date_to: '' },
 		changesUnavailable = false,
 		obligationsUnavailable = false,

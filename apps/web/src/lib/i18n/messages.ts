@@ -1085,6 +1085,9 @@ export type MessageKey =
 	| 'scheduled.forecast.status.ready'
 	| 'scheduled.forecast.status.disabled'
 	| 'scheduled.forecast.status.exhausted'
+	| 'scheduled.forecast.status.unavailable'
+	| 'scheduled.forecast.incomplete'
+	| 'scheduled.forecast.invalidMetadata'
 	| 'scheduled.forecast.readOnlyInvariant';
 
 export const messages: Record<Locale, Record<MessageKey, string>> = {
@@ -2238,6 +2241,9 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'scheduled.forecast.status.ready': 'Ready',
 		'scheduled.forecast.status.disabled': 'Disabled',
 		'scheduled.forecast.status.exhausted': 'Exhausted',
+		'scheduled.forecast.status.unavailable': 'Forecast unavailable',
+		'scheduled.forecast.incomplete': 'Forecast incomplete: {count} schedules could not be forecast. Upcoming counts exclude them.',
+		'scheduled.forecast.invalidMetadata': 'This schedule has incomplete or unsupported recurrence settings. Review it in GnuCash Desktop. No dates or amounts were inferred.',
 		'scheduled.forecast.readOnlyInvariant': 'Forecast only. No scheduled transaction was created or changed.'
 	},
 	ru: {
@@ -3390,6 +3396,9 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'scheduled.forecast.status.ready': 'Готов',
 		'scheduled.forecast.status.disabled': 'Отключено',
 		'scheduled.forecast.status.exhausted': 'Завершено',
+		'scheduled.forecast.status.unavailable': 'Прогноз недоступен',
+		'scheduled.forecast.incomplete': 'Прогноз неполный: для {count} расписаний прогноз недоступен. Они не включены в число предстоящих операций.',
+		'scheduled.forecast.invalidMetadata': 'В этом расписании неполные или неподдерживаемые настройки повторения. Проверьте его в GnuCash Desktop. Даты и суммы не подставлялись.',
 		'scheduled.forecast.readOnlyInvariant': 'Только прогноз. Плановые транзакции не создавались и не изменялись.'
 	}
 };

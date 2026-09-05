@@ -5,14 +5,14 @@ import type { PageServerLoad } from './$types';
 type ScheduledStatusFilter = 'all' | 'enabled' | 'disabled';
 type ScheduledTemplateFilter = 'all' | 'with_template' | 'without_template';
 type ScheduledSort = 'next_due' | 'name' | 'enabled_first';
-type ScheduledForecastGroupKey = 'overdue' | 'upcoming' | 'next_30_days' | 'later_or_inactive';
+type ScheduledForecastGroupKey = 'overdue' | 'upcoming' | 'next_30_days' | 'later_or_inactive' | 'unavailable';
 
 type ScheduledForecastGroups = Record<ScheduledForecastGroupKey, ScheduledTransaction[]>;
 
 const STATUS_FILTERS: ScheduledStatusFilter[] = ['all', 'enabled', 'disabled'];
 const TEMPLATE_FILTERS: ScheduledTemplateFilter[] = ['all', 'with_template', 'without_template'];
 const SORT_OPTIONS: ScheduledSort[] = ['next_due', 'name', 'enabled_first'];
-const GROUP_ORDER: ScheduledForecastGroupKey[] = ['overdue', 'upcoming', 'next_30_days', 'later_or_inactive'];
+const GROUP_ORDER: ScheduledForecastGroupKey[] = ['overdue', 'upcoming', 'next_30_days', 'later_or_inactive', 'unavailable'];
 
 function normalizeParam<T extends string>(value: string | null, allowed: readonly T[], fallback: T): T {
 	return value && allowed.includes(value as T) ? (value as T) : fallback;
@@ -63,6 +63,7 @@ function sortScheduledTransactions(items: ScheduledTransaction[], sort: Schedule
 
 function forecastGroupKey(item: ScheduledTransaction): ScheduledForecastGroupKey {
 	const { forecast } = item;
+	if (forecast.status === 'unavailable') return 'unavailable';
 	if (forecast.is_overdue) return 'overdue';
 	const nextDue = forecast.next_due_date;
 	if (nextDue && forecast.upcoming_7_days.includes(nextDue)) return 'upcoming';
@@ -75,7 +76,8 @@ function groupScheduledTransactions(items: ScheduledTransaction[]): ScheduledFor
 		overdue: [],
 		upcoming: [],
 		next_30_days: [],
-		later_or_inactive: []
+		later_or_inactive: [],
+		unavailable: []
 	};
 	for (const item of items) groups[forecastGroupKey(item)].push(item);
 	return groups;
@@ -108,6 +110,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 		scheduledSummary: {
 			total: scheduledTransactionsRaw.length,
 			shown: scheduledTransactions.length,
+			unavailable: scheduledTransactionsRaw.filter((item) => item.forecast.status === 'unavailable').length,
 			enabled: enabledCount,
 			disabled: disabledCount,
 			withTemplate: templateCount,

@@ -30,6 +30,14 @@ reading the full history linearly.
 
 ## [Unreleased]
 
+### QA remediation (in progress)
+
+- QA-01: preserve readable scheduled transactions when another record has invalid recurrence
+  metadata. Return an explicit unavailable forecast without inferred dates or amounts and show
+  forecast incompleteness on Scheduled and Dashboard. Global failures still fail closed.
+- Add deterministic synthetic-only, real FastAPI/SvelteKit read-only browser regression coverage.
+  Remaining QA corrections and final integration acceptance are pending; no release is published.
+
 ### Current autonomous/readability and compatibility work
 
 - v0.4 owner-writebeta RC readiness packet:

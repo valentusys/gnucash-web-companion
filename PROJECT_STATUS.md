@@ -1,6 +1,15 @@
 # PROJECT_STATUS
 
-Last updated: 2026-08-28
+Last updated: 2026-09-06
+
+## QA remediation in progress (dedicated fix branch)
+
+- QA-01 isolates invalid per-record scheduled recurrence metadata and exposes an explicit
+  unavailable forecast; valid records and global read/authorization failures retain their contracts.
+- Deterministic generated-book API and real-backend browser checks cover partial, all-invalid,
+  valid, and empty lists. No new browser acceptance executes book writes.
+- QA-02–QA-12 and final exact-head integration/CI remain pending. This is not final acceptance,
+  a merge, a release, or deployment authorization. See [QA handoff](docs/handoff/qa-remediation.md).
 
 ## Quick navigation
 

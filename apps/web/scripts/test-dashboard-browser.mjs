@@ -230,7 +230,19 @@ function scheduledPayload(mode) {
 		{ id: 'schedule-rent', name: 'Synthetic Rent', enabled: true, start_date: '2025-01-01' },
 		{ id: 'schedule-insurance', name: 'Synthetic Insurance', enabled: true, start_date: '2025-02-01' },
 		{ id: 'schedule-disabled', name: 'Synthetic Disabled Rule', enabled: false, start_date: '2025-03-01' }
-	];
+	].map((item) => ({
+		...item,
+		forecast: {
+			status: item.enabled ? 'ready' : 'disabled', reason: null, as_of_date: '2026-07-15',
+			next_due_date: item.enabled ? '2026-08-01' : null, is_overdue: false,
+			upcoming_7_days: [], upcoming_30_days: item.enabled ? ['2026-08-01'] : []
+		},
+		amount: { status: 'not_available', amount: null, currency: null, unresolved_formula_count: 0, reason: 'no_template_reference' },
+		recurrence: [], new_transactions_created: 0, limitations: [],
+		end_date: null, last_occurred: null, num_occurrences: null, remaining_occurrences: null,
+		auto_create: false, auto_notify: false, advance_create_days: 0, advance_notify_days: 0,
+		instance_count: 0, has_template_account: false, template_reference_status: 'not_present_redacted'
+	}));
 }
 
 function periodReport({ dateFrom, dateTo, mode, comparison = false }) {

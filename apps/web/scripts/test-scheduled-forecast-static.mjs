@@ -35,6 +35,12 @@ assert.equal(packageJson.scripts?.['test:scheduled-forecast-browser'], 'npm run 
 
 assert.match(apiTypes, /export type ScheduledTransactionForecast[\s\S]*status: 'ready' \| 'disabled' \| 'exhausted'[\s\S]*as_of_date: string[\s\S]*next_due_date: string \| null[\s\S]*is_overdue: boolean[\s\S]*upcoming_7_days: string\[\][\s\S]*upcoming_30_days: string\[\]/s, 'frontend API types must model the bounded non-materializing forecast DTO');
 assert.match(apiTypes, /export type ScheduledTransactionAmount[\s\S]*status: 'resolved' \| 'unresolved' \| 'not_available'[\s\S]*amount: string \| null[\s\S]*currency: string \| null[\s\S]*unresolved_formula_count: number[\s\S]*reason:/s, 'frontend API types must model resolved and fail-closed amount states');
+assert.match(apiTypes, /status: 'ready' \| 'disabled' \| 'exhausted' \| 'unavailable';\s*reason: 'scheduled_recurrence_invalid_metadata' \| null/, 'QA-01 unavailable forecast has a fixed safe reason');
+assert.match(server, /if \(forecast.status === 'unavailable'\) return 'unavailable'/, 'QA-01 invalid metadata is not ordinary later/inactive data');
+assert.match(server, /unavailable: scheduledTransactionsRaw.filter/, 'QA-01 filters cannot hide global incompleteness');
+assert.match(page, /data-forecast-incomplete role="status"/, 'QA-01 scheduled incompleteness remains visible');
+assert.match(page, /scheduled.forecast.status === 'unavailable'[\s\S]*scheduled.forecast.invalidMetadata/, 'QA-01 diagnostic row explains correction in Desktop, without inferred amounts');
+assert.match(read('src', 'routes', 'dashboard', '+page.svelte'), /unavailable_count > 0[\s\S]*data-obligations-incomplete role="status"[\s\S]*data.sectionErrors.summary/, 'QA-01 dashboard must disclose partial forecasts even while reporting currency needs setup');
 assert.match(apiTypes, /export type ScheduledTransaction[\s\S]*forecast: ScheduledTransactionForecast[\s\S]*amount: ScheduledTransactionAmount[\s\S]*new_transactions_created: 0/s, 'scheduled transaction type must preserve the zero-materialization invariant');
 
 assert.match(server, /type ScheduledForecastGroupKey = 'overdue' \| 'upcoming' \| 'next_30_days' \| 'later_or_inactive'/, 'server must use explicit forecast group keys');
