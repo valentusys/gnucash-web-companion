@@ -3,7 +3,7 @@
 	import TransactionDirection from '$lib/components/TransactionDirection.svelte';
 	import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 
-	type Transaction = import('$lib/api/types').TransactionListItem;
+	type Transaction = import('$lib/api/types').RecentTransaction;
 	type DashboardTransactionKind = 'ordinary' | 'composite' | 'ambiguous';
 
 	let { transactions, loading = false, drilldownHref = '/transactions', locale = DEFAULT_LOCALE }: { transactions: Transaction[]; loading?: boolean; drilldownHref?: string; locale?: Locale } = $props();
@@ -65,7 +65,7 @@
 		<ul class="mt-4 divide-y" style="border-color: var(--app-border);">
 			{#each transactions as tx (tx.id)}
 				{@const kind = transactionKind(tx)}
-				{@const representative = ordinaryTwoSplit(tx) ? (tx.representative_amount ?? null) : null}
+				{@const representative = tx.amount_is_unambiguous ? { amount: tx.amount.replace(/^[+-]/, ''), currency: tx.currency } : null}
 				<li
 					data-dashboard-recent-kind={kind}
 					class="flex min-w-0 flex-col gap-2 py-3 sm:flex-row sm:items-start sm:justify-between"

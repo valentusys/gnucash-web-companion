@@ -12,7 +12,7 @@ import type {
 	PeriodReportComparison,
 	ReportSummary,
 	ScheduledTransaction,
-	TransactionListItem
+	RecentTransaction
 } from '$lib/api/types';
 import { compareDecimalStrings } from '$lib/money.js';
 import { buildTransactionsExplorerUrl } from '$lib/transactions/explorer';
@@ -133,7 +133,7 @@ export async function load({ cookies, fetch: fetchFn }: { cookies: any; fetch: a
 	let expenses: ExpenseByAccount[] = [];
 	let cashflowPeriods: CashflowPeriod[] = [];
 	let monthCashflow: CashflowData | null = null;
-	let recentTransactions: TransactionListItem[] = [];
+	let recentTransactions: RecentTransaction[] = [];
 	let expenseChanges: DashboardExpenseChange[] = [];
 	let upcomingObligations: DashboardUpcomingObligations = { enabled_count: 0, unavailable_count: 0 };
 	const sectionErrors: DashboardSectionErrors = {
@@ -184,7 +184,7 @@ export async function load({ cookies, fetch: fetchFn }: { cookies: any; fetch: a
 
 	const recentTask = async () => {
 		try {
-			recentTransactions = await apiFetch<TransactionListItem[]>(
+			recentTransactions = await apiFetch<RecentTransaction[]>(
 				fetchFn,
 				`${bookPrefix}/reports/recent-transactions?limit=20`,
 				token

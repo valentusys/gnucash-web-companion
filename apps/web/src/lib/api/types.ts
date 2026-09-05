@@ -479,6 +479,12 @@ export type TransactionListItem = {
 	is_write_alpha_owned?: boolean;
 };
 
+// The recent-report endpoint is NOT an explorer item. Do not accept explorer-only fields.
+export type RecentTransaction = Pick<TransactionListItem,
+    'id' | 'date' | 'description' | 'amount' | 'currency' | 'account_id' | 'account_name' |
+    'account_display_name' | 'counter_account_name' | 'direction' | 'is_write_alpha_owned'
+> & { amount_is_unambiguous: boolean };
+
 export type TransactionDetail = {
 	id: string;
 	date: string;

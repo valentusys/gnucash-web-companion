@@ -41,6 +41,20 @@ def test_generated_scenarios_are_separate(tmp_path, scenario, counts):
         assert (db.execute("select count(*) from schedxactions").fetchone()[0], db.execute("select count(*) from recurrences").fetchone()[0]) == counts
 
 
+def test_generated_money_scenario_is_deterministic_and_balanced(tmp_path):
+    first = generate_qa_regression_fixture(tmp_path / "money1", scenario="money")
+    second = generate_qa_regression_fixture(tmp_path / "money2", scenario="money")
+    assert Path(first["book_path"]).read_bytes() == Path(second["book_path"]).read_bytes()
+    assert set(first["transactions"]) == {"income", "expense", "refund", "transfer", "credit", "zero", "large", "composite", "multicurrency"}
+    from fractions import Fraction
+    with sqlite3.connect(f"file:{first['book_path']}?mode=ro", uri=True) as db:
+        for tx in first["transactions"].values():
+            values = db.execute("select value_num,value_denom from splits where tx_guid=?", (tx["id"],)).fetchall()
+            assert sum((Fraction(n, d) for n, d in values), Fraction()) == 0
+        assert db.execute("select count(*) from schedxactions").fetchone() == (0,)
+    assert first["transactions"]["large"]["magnitude"] == "90071992547409.91"
+
+
 def test_generator_refuses_existing_directory_or_symlink(tmp_path):
     existing = tmp_path / "existing"
     existing.mkdir()

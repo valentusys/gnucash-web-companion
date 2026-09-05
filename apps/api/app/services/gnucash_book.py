@@ -2879,6 +2879,26 @@ class GnuCashBookService:
             splits = [split for split in splits if self._account_id(getattr(split, "account", None)) == account_id]
         return any(str(getattr(split, "reconcile_state", "") or "").lower() == expected_state for split in splits)
 
+    def _transaction_amount_is_unambiguous(self, transaction: Any) -> bool:
+        """Approve neutral magnitude only for a simple single-currency balanced pair."""
+        splits = self._splits(transaction)
+        currency = getattr(transaction, "currency", None)
+        code = _commodity_code(currency, "XXX")
+        if len(splits) != 2 or code == "XXX" or getattr(currency, "namespace", None) != "CURRENCY":
+            return False
+        accounts = [getattr(split, "account", None) for split in splits]
+        if any(account is None for account in accounts) or len({_guid(account) for account in accounts}) != 2:
+            return False
+        for split, account in zip(splits, accounts):
+            commodity = getattr(account, "commodity", None)
+            if _commodity_code(commodity, "XXX") != code or getattr(commodity, "namespace", None) != "CURRENCY":
+                return False
+            if getattr(split, "value", None) is None or getattr(split, "quantity", None) is None:
+                return False
+            if self._split_quantity(split) != self._split_amount(split):
+                return False
+        return sum((self._split_amount(split) for split in splits), Decimal("0")) == 0
+
     def _transaction_to_list_item(
         self,
         transaction: Any,
@@ -2897,6 +2917,7 @@ class GnuCashBookService:
             date=_date_string(self._transaction_date(transaction)),
             description=str(getattr(transaction, "description", "")),
             amount=money.amount,
+            amount_is_unambiguous=self._transaction_amount_is_unambiguous(transaction),
             currency=money.currency,
             account_id=self._account_id(account),
             account_name=full_name,

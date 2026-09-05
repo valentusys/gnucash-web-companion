@@ -32,6 +32,10 @@ reading the full history linearly.
 
 ### QA remediation (in progress)
 
+- QA-02: recent dashboard rows use report amount/currency rather than explorer-only fields.
+  A backend classification permits neutral magnitudes only for simple balanced single-currency
+  pairs (including zero); composite, ambiguous and multi-currency amounts are not summarized.
+
 - QA-01: preserve readable scheduled transactions when another record has invalid recurrence
   metadata. Return an explicit unavailable forecast without inferred dates or amounts and show
   forecast incompleteness on Scheduled and Dashboard. Global failures still fail closed.

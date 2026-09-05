@@ -161,8 +161,7 @@ function recentTransactionsPayload(mode) {
 				from_accounts: [{ account_id: 'income-salary', display_name: 'Synthetic Income', full_name: 'Income:Synthetic Salary', value: '-125.00', split_count: 1 }],
 				to_accounts: [{ account_id: 'bank-main', display_name: 'Synthetic Bank', full_name: 'Assets:Synthetic Bank', value: '125.00', split_count: 1 }]
 			},
-			representative_amount: { amount: '125.00', currency: 'SEK' },
-			matched_amount: { amount: '125.00', currency: 'SEK' }
+			amount_is_unambiguous: true
 		},
 		{
 			id: 'tx-dashboard-no-representative',
@@ -180,7 +179,7 @@ function recentTransactionsPayload(mode) {
 				from_accounts: [{ account_id: 'bank-main', display_name: 'Synthetic Bank', full_name: 'Assets:Synthetic Bank', value: '-9.91', split_count: 1 }],
 				to_accounts: [{ account_id: 'expense-food', display_name: 'Synthetic Food', full_name: 'Expenses:Synthetic Food', value: '9.91', split_count: 1 }]
 			},
-			matched_amount: { amount: '999.91', currency: 'SEK' }
+			amount_is_unambiguous: false
 		},
 		{
 			id: 'tx-dashboard-composite',
@@ -201,7 +200,7 @@ function recentTransactionsPayload(mode) {
 					{ account_id: 'expense-supplies', display_name: 'Synthetic Supplies', full_name: 'Expenses:Synthetic Supplies', value: '4.00', split_count: 1 }
 				]
 			},
-			representative_amount: { amount: '777.72', currency: 'SEK' }
+			amount_is_unambiguous: false
 		},
 		{
 			id: 'tx-dashboard-ambiguous',
@@ -675,7 +674,8 @@ function assertStaticSafety() {
 	assert.match(summaryGrid, /<details[\s\S]*data-dashboard-safety-details[\s\S]*dashboard\.reportingBasis[\s\S]*dashboard\.currencyConversion/s, 'technical calculation and safety copy must live in one disclosure');
 	assert.match(expenses, /expenses\.slice\(0, 5\)[\s\S]*data-dashboard-expense-row/s, 'expenses component must render only five rows');
 	assert.match(expenses, /viewAllHref[\s\S]*dashboard\.viewAllExpenses/s, 'expenses component must expose a view-all link');
-	assert.match(recent, /ordinaryTwoSplit[\s\S]*representative_amount[\s\S]*data-dashboard-recent-kind/s, 'recent transactions must gate friendly summary and representative amounts on an ordinary two-split classification');
+	assert.match(recent, /RecentTransaction[\s\S]*ordinaryTwoSplit[\s\S]*tx\.amount_is_unambiguous[\s\S]*tx\.amount\.replace[\s\S]*currency: tx\.currency[\s\S]*data-dashboard-recent-kind/s, 'QA-02 recent amounts must use the real report contract and backend simple-amount classification');
+	assert.doesNotMatch(recent, /tx\.representative_amount|tx\.matched_amount/, 'QA-02 explorer-only amount fields cannot leak into recent rendering');
 	assert.doesNotMatch(`${server}\n${page}\n${summaryGrid}\n${recent}\n${expenses}`, /parseFloat\(|Number\([^)]*(?:amount|total|net|inflow|outflow|expense|income|delta)/, 'dashboard must not use float/Number conversion on money strings');
 	assert.doesNotMatch(`${summaryGrid}\n${expenses}`, /from ['"][^'"]*(?:chart|d3|echarts|plotly|recharts)/i, 'dashboard trends must not add a heavy chart dependency');
 	assert.doesNotMatch(page, /localStorage|sessionStorage|formaction="\?\/create"|method="POST"/s, 'dashboard must not add browser storage or write submissions');

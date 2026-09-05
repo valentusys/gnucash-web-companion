@@ -9,6 +9,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import net from 'node:net';
+import { compareDecimalStrings } from '../src/lib/money.js';
 
 const webRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const repoRoot = resolve(webRoot, '../..');
@@ -26,6 +27,7 @@ const ports = [];
 let proxy;
 let cdp;
 let fixture;
+let recentPayload;
 let failure;
 const hash = (path) => createHash('sha256').update(readFileSync(path)).digest('hex');
 const delay = (ms) => new Promise((done) => setTimeout(done, ms));
@@ -182,7 +184,9 @@ try {
             });
             record.status = upstream.status;
             response.writeHead(upstream.status, { 'content-type': upstream.headers.get('content-type') ?? 'application/json' });
-            response.end(Buffer.from(await upstream.arrayBuffer()));
+            const body = Buffer.from(await upstream.arrayBuffer());
+            if (record.path.endsWith('/reports/recent-transactions') && upstream.ok) recentPayload = JSON.parse(body.toString());
+            response.end(body);
         } catch { record.status = 502; response.writeHead(502); response.end(); }
     });
     await new Promise((done, reject) => { proxy.once('error', reject); proxy.listen(0, '127.0.0.1', done); });
@@ -233,6 +237,28 @@ try {
         writeFileSync(join(root, `synthetic-scheduled-${locale}.png`), Buffer.from(screenshot.data, 'base64'), { mode: 0o600 });
         await cdp.navigate(`${webBase}/dashboard`);
         assert.equal(await cdp.evaluate('Boolean(document.querySelector("[data-obligations-incomplete]"))'), expectedInvalid > 0, 'Dashboard must disclose incomplete forecast even when reporting needs setup');
+        if (scenario === 'money') {
+            assert.ok(Array.isArray(recentPayload), 'real recent report response must be observed');
+            assert.equal(recentPayload.length, Object.keys(fixture.transactions).length);
+            const domRows = await cdp.evaluate(`Array.from(document.querySelectorAll('[data-dashboard-recent-kind]')).map(row => ({text: row.innerText, amount: row.querySelector(':scope > span.shrink-0')?.innerText.replace(/\\s+/g,' ').trim() ?? ''}))`);
+            for (const [name, spec] of Object.entries(fixture.transactions)) {
+                const payload = recentPayload.find(row => row.id === spec.id);
+                assert.equal(typeof payload?.amount, 'string', 'QA-02 real DTO must retain amount');
+                assert.equal(typeof payload?.currency, 'string', 'QA-02 real DTO must retain currency');
+                assert.equal(payload.representative_amount, undefined, 'recent reports must not pretend to be explorer DTOs');
+                const row = domRows.find(row => row.text.includes(`SYNTHETIC QA ${name}`));
+                assert.ok(row, `real recent row ${name} must render`);
+                if (spec.magnitude !== null) {
+                    const magnitude = payload.amount.replace(/^[+-]/, '');
+                    assert.equal(compareDecimalStrings(magnitude, spec.magnitude), 0, 'real amount must equal the deterministic fixture amount');
+                    assert.equal(payload.currency, spec.currency);
+                    assert.equal(row.amount, `${magnitude} ${payload.currency}`, `QA-02 ${name}: show exact neutral magnitude from the real DTO, including zero`);
+                } else {
+                    assert.equal(row.amount, locale === 'ru' ? 'Сумма не показана' : 'Amount not shown', 'complex/multicurrency must not masquerade as a simple amount');
+                }
+            }
+            evidence.recent_money_rows = domRows.length;
+        }
         evidence.cases.push({ locale, width, scheduled_rows: rows, unavailable_rows: expectedInvalid });
     }
     assert.ok(apiRequests.some((r) => r.path.endsWith('/scheduled-transactions') && r.status === 200));

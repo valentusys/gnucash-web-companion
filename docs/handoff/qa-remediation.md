@@ -34,9 +34,32 @@ Its generated books are not copies of user data. Chromium D-Bus addresses are is
 portal startup cannot move test processes to a transient systemd scope. All test servers are
 local subprocesses. Existing CREATE browser runners are not imported by this acceptance gate.
 
+## QA-02 — implemented and locally verified
+
+`RecentTransaction` now types the report endpoint independently of explorer-only fields.
+The backend adds `amount_is_unambiguous`: two balanced splits in distinct monetary accounts,
+with quantities equal to values and all commodities matching the transaction currency. Missing
+metadata, securities, mixed currencies and non-simple shapes fail closed. Raw legacy amount
+fields remain compatible; the recent UI displays their exact unsigned string magnitude only
+when the classification permits it. Zero is displayed, not treated as missing. RU/EN explain
+neutral magnitude versus From/To direction.
+
+The generated money scenario covers income, expense, refund, transfer, credit, zero, a value
+beyond JavaScript safe-integer precision, composite and multi-currency transactions. Browser RED
+observed `Amount not shown` instead of the actual income amount. GREEN verifies the actual API
+amount/currency and DOM for all nine rows in RU/EN. No response rewrite is used. Book hashes are
+unchanged, quick_check is read-only, mutation requests are zero, and test runtimes stop.
+
+- API generated/recent/reports/transactions suite: 153 passed, 24 warnings.
+- Real-service money browser and neighboring dashboard browser: PASS.
+- Svelte check, auth, money, transaction/account/scheduled static and QA loader checks: PASS.
+- QA-01 commit `2ec96bb0d710caacdd606a981352d8f9a4a28ea9` CI run
+  [33997832744](https://github.com/valentusys/gnucash-web-companion/actions/runs/33997832744)
+  succeeded for all four jobs. This is not final roadmap CI.
+
 ## Remaining
 
-QA-02/03 money representation, QA-04/09 date and drilldown, QA-05/06 account groups, QA-07/08/10
+QA-03 money representation, QA-04/09 date and drilldown, QA-05/06 account groups, QA-07/08/10
 form and pagination states, QA-11/12 layout/localization, followed by full exact-head integration
 and CI. No independent reviewer agent has been run. No final acceptance is claimed.
 

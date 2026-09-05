@@ -6,6 +6,8 @@ missing recurrence metadata). Product reads start only after final hash/chmod.
 from __future__ import annotations
 
 import hashlib
+from datetime import date
+from decimal import Decimal
 from pathlib import Path
 import sqlite3
 
@@ -14,11 +16,44 @@ import piecash
 from tests.support.generate_issue60_usability_fixture import _stabilize_default_identity
 
 SEED = 20260906
-SCENARIOS = {"scheduled_partial", "scheduled_valid", "scheduled_invalid", "empty"}
+SCENARIOS = {"scheduled_partial", "scheduled_valid", "scheduled_invalid", "empty", "money"}
 
 
 def guid(label: str) -> str:
     return hashlib.sha256(f"synthetic-qa:{SEED}:{label}".encode()).hexdigest()[:32]
+
+
+def _money_scenario(book):
+    rub = book.default_currency
+    usd = piecash.Commodity(namespace="CURRENCY", mnemonic="USD", fullname="Synthetic USD", fraction=100)
+    usd.guid = guid("usd")
+    accounts = {}
+    for name, kind, currency in [("cash", "BANK", rub), ("savings", "BANK", rub), ("income", "INCOME", rub), ("expense", "EXPENSE", rub), ("fees", "EXPENSE", rub), ("credit", "CREDIT", rub), ("usd", "BANK", usd)]:
+        account = piecash.Account(name=f"SYNTHETIC {name}", type=kind, commodity=currency, parent=book.root_account)
+        account.guid = guid(f"account:{name}")
+        accounts[name] = account
+    cases = {
+        "income": [("income", "-2500", "-2500"), ("cash", "2500", "2500")],
+        "expense": [("cash", "-123.45", "-123.45"), ("expense", "123.45", "123.45")],
+        "refund": [("expense", "-25.01", "-25.01"), ("cash", "25.01", "25.01")],
+        "transfer": [("cash", "-80", "-80"), ("savings", "80", "80")],
+        "credit": [("credit", "-40", "-40"), ("expense", "40", "40")],
+        "zero": [("cash", "0", "0"), ("savings", "0", "0")],
+        "large": [("cash", "-90071992547409.91", "-90071992547409.91"), ("savings", "90071992547409.91", "90071992547409.91")],
+        "composite": [("cash", "-31", "-31"), ("expense", "30", "30"), ("fees", "1", "1")],
+        "multicurrency": [("cash", "-90", "-90"), ("usd", "90", "1")],
+    }
+    manifest = {}
+    for name, specs in cases.items():
+        splits = []
+        for index, (account, value, quantity) in enumerate(specs):
+            split = piecash.Split(account=accounts[account], value=Decimal(value), quantity=Decimal(quantity))
+            split.guid = guid(f"split:{name}:{index}")
+            splits.append(split)
+        tx = piecash.Transaction(currency=rub, description=f"SYNTHETIC QA {name}", post_date=date(2026, 9, 1), splits=splits)
+        tx.guid = guid(f"tx:{name}")
+        manifest[name] = {"id": tx.guid, "magnitude": str(abs(Decimal(specs[0][1]))) if name not in {"composite", "multicurrency"} else None, "currency": "RUB"}
+    return manifest
 
 
 def generate_qa_regression_fixture(root: Path | str, *, scenario: str = "scheduled_partial") -> dict:
@@ -36,6 +71,7 @@ def generate_qa_regression_fixture(root: Path | str, *, scenario: str = "schedul
             "old_template_root": book.root_template.guid, "new_template_root": guid("template-root"),
             "old_rub": book.default_currency.guid, "new_rub": guid("rub"),
         }
+        transactions = _money_scenario(book) if scenario == "money" else {}
         book.save()
     finally:
         book.close()
@@ -64,4 +100,5 @@ def generate_qa_regression_fixture(root: Path | str, *, scenario: str = "schedul
         "seed": SEED, "scenario": scenario, "book_path": str(path),
         "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
         "valid_schedule_ids": valid_ids, "invalid_schedule_ids": invalid_ids,
+        "transactions": transactions,
     }

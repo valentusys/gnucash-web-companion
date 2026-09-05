@@ -8,7 +8,9 @@ Last updated: 2026-09-06
   unavailable forecast; valid records and global read/authorization failures retain their contracts.
 - Deterministic generated-book API and real-backend browser checks cover partial, all-invalid,
   valid, and empty lists. No new browser acceptance executes book writes.
-- QA-02–QA-12 and final exact-head integration/CI remain pending. This is not final acceptance,
+- QA-02 restores recent dashboard amounts from the actual report DTO, with backend proof of a
+  simple balanced single-currency pair, neutral magnitude and explicit complex-amount fallback.
+- QA-03–QA-12 and final exact-head integration/CI remain pending. This is not final acceptance,
   a merge, a release, or deployment authorization. See [QA handoff](docs/handoff/qa-remediation.md).
 
 ## Quick navigation

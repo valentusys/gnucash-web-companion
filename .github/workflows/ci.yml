@@ -120,7 +120,7 @@ jobs:
           node scripts/test-dashboard-browser.mjs
           node scripts/test-scheduled-forecast-browser.mjs
           # Reuse the production build above; these cases never execute book writes.
-          for scenario in scheduled_partial scheduled_valid scheduled_invalid empty; do
+          for scenario in scheduled_partial scheduled_valid scheduled_invalid empty money; do
             QA_SCENARIO="$scenario" node scripts/test-qa-regressions-browser.mjs
           done
 

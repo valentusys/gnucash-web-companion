@@ -1433,7 +1433,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'dashboard.drilldownSafety':
 			'Drilldowns preserve the active book and use existing read-only transaction URL filters. Dashboard totals remain base-currency-only with no FX conversion; transaction filter views are evidence for the same period/account context, not invented recomputations.',
 		'dashboard.recentTransactions': 'Recent Transactions',
-		'dashboard.recentTransactionsHelp': 'Same read-only transaction list, newest first; CSV export uses matching filters.',
+		'dashboard.recentTransactionsHelp': 'Newest first. Simple amounts are unsigned magnitudes; From → To shows the movement. Complex amounts are not summarized.',
 		'dashboard.transactionFromTo': 'From {from} to {to}',
 		'dashboard.amountNotShown': 'Amount not shown',
 		'dashboard.viewTransactions': 'View transactions',
@@ -2588,7 +2588,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'dashboard.drilldownSafety':
 			'Drilldown-ссылки сохраняют активную книгу и используют существующие read-only URL-фильтры транзакций. Итоги обзора остаются только в базовой валюте без FX-конвертации; виды транзакций — это evidence для того же периода/счёта, а не заново рассчитанные итоги.',
 		'dashboard.recentTransactions': 'Последние транзакции',
-		'dashboard.recentTransactionsHelp': 'Тот же read-only список транзакций, новые сначала; CSV export использует совпадающие фильтры.',
+		'dashboard.recentTransactionsHelp': 'Новые сначала. Простые суммы показаны без знака; «Откуда → Куда» поясняет движение. Сложные суммы не сводятся к одному числу.',
 		'dashboard.transactionFromTo': 'Со счёта «{from}» на счёт «{to}»',
 		'dashboard.amountNotShown': 'Сумма не показана',
 		'dashboard.viewTransactions': 'Открыть транзакции',
