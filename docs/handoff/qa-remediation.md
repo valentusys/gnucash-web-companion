@@ -87,8 +87,9 @@ browser runs passed for east/west offsets, new year, leap-month rollover and DST
 each EN desktop/RU mobile, unchanged generated-book hashes and no book mutations.
 The native clock remains the API process local date; no new timezone/freeze setting.
 Reports, dashboard, scheduled and transaction neighboring browser gates passed.
-QA-01–QA-03 full API integration passed (1607 tests); another full API run including
-QA-04 is pending. These are incremental checks, not final roadmap acceptance.
+QA-01–QA-04 full API integration passed locally: 1620 tests, 149 warnings in 741.44s.
+Historical synthetic-write suites remain separate from new read-only acceptance. These are
+incremental checks, not final roadmap acceptance.
 
 QA-04 follow-up: exact-head CI for `03b113caac373bf40304458622682906b04580b6`
 failed in the umbrella auth guard, which still required a scheduled URL without a date query.
@@ -96,6 +97,13 @@ Local RED reproduced that assertion. The reconciled guard requires the encoded e
 active-book prefix and auth token, and forbids a frontend-computed scheduled today. Svelte
 check and all current non-browser npm test scripts passed after reconciliation; replacement
 exact-head CI is not yet claimed here. No product write/auth/date behavior was weakened.
+
+The next CI run at `438cc7e97849fdcbcb58337aafe91b2f21ad283d` passed backend,
+foundation and Compose checks but exposed an onboarding browser stub missing the reporting-date
+endpoint. Its Reports assertion was reproduced locally. The deterministic stub now models that
+endpoint and asserts exact selected-book month/date query values; the onboarding browser passed.
+This is explicitly a stub-backed lifecycle regression, not replacement real-backend acceptance.
+The replacement commit's exact-head CI remains pending.
 
 QA-09 drilldown, QA-05/06 account groups, QA-07/08/10
 form and pagination states, QA-11/12 layout/localization, followed by full exact-head integration
