@@ -490,6 +490,7 @@ export type MessageKey =
 	| 'transactions.direction.more'
 	| 'transactions.direction.amountHidden'
 	| 'transactions.amount.neutral'
+	| 'reporting.dateUnavailable'
 	| 'transactions.amount.selectedAccount'
 	| 'transactions.amount.selectedAccounts'
 	| 'transactions.amount.income'
@@ -1602,6 +1603,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'transactions.direction.more': '+{count} more',
 		'transactions.direction.amountHidden': 'No representative total is shown for this composite or ambiguous transaction.',
 		'transactions.amount.neutral': 'Unsigned magnitude',
+		'reporting.dateUnavailable': 'The reporting date is unavailable. Choose an explicit period or retry.',
 		'transactions.amount.selectedAccount': 'Account change: {account}',
 		'transactions.amount.selectedAccounts': 'Net change of selected accounts',
 		'transactions.amount.income': 'Income-account total',
@@ -2762,6 +2764,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'transactions.direction.more': 'ещё {count}',
 		'transactions.direction.amountHidden': 'Для составной или неоднозначной транзакции представительная сумма не показана.',
 		'transactions.amount.neutral': 'Сумма без знака',
+		'reporting.dateUnavailable': 'Дата отчётности недоступна. Укажите период вручную или повторите запрос.',
 		'transactions.amount.selectedAccount': 'Изменение счёта: {account}',
 		'transactions.amount.selectedAccounts': 'Итоговое изменение выбранных счетов',
 		'transactions.amount.income': 'Итог по счетам доходов',

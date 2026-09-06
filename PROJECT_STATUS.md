@@ -13,7 +13,9 @@ Last updated: 2026-09-06
 - QA-03 gives unscoped explorer rows an order-independent unsigned magnitude only
   when proven simple; scoped rows use labelled account quantities (including zero).
   Complex/mixed totals remain unavailable. CSV amount basis is documented and tested.
-- QA-04–QA-12 and final exact-head integration/CI remain pending. This is not final acceptance,
+- QA-04 shares the API installation calendar across Summary, Reports, Scheduled and quick
+  presets, with explicit unavailable fallback and test-only cross-zone clocks.
+- QA-05–QA-12 and final exact-head integration/CI remain pending. This is not final acceptance,
   a merge, a release, or deployment authorization. See [QA handoff](docs/handoff/qa-remediation.md).
 
 ## Quick navigation

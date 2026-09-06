@@ -352,6 +352,7 @@ async function startSyntheticApi() {
 	const server = createServer((req, res) => {
 		const url = new URL(req.url ?? '/', 'http://127.0.0.1');
 		requests.push({ method: req.method, path: url.pathname, search: url.search, pathWithSearch: `${url.pathname}${url.search}` });
+		if (req.method === 'GET' && url.pathname === '/books/1/reports/reporting-date') return jsonResponse(res, 200, { as_of_date: '2026-09-06', basis: 'api_local_calendar' });
 
 		if (isForbiddenApiMutation(req.method ?? 'GET', url.pathname, url.search)) {
 			forbiddenRequests.push({ method: req.method, path: url.pathname, search: url.search });
@@ -669,7 +670,8 @@ function assertStaticSafety() {
 	assert.match(server, /sectionErrors[\s\S]*summary[\s\S]*expenses[\s\S]*cashflow[\s\S]*recentTransactions/s, 'dashboard server must return explicit per-section error state');
 	assert.match(page, /data-dashboard-section-error[\s\S]*role="alert"[\s\S]*dashboard\.sectionError\.redacted/s, 'dashboard page must render accessible fixed-copy section errors');
 	assert.doesNotMatch(server, /e\.message|error\.message/, 'dashboard server must not return raw backend exception messages');
-	assert.match(server, /summary\.as_of_date[\s\S]*monthStart[\s\S]*previousEquivalentRange[\s\S]*reports\/comparison/s, 'dashboard report range must derive from the summary as-of date and use exact previous-equivalent dates');
+	assert.match(server, /getReportingDate\(fetchFn, bookPrefix, token, summary\?\.as_of_date\)[\s\S]*monthStart[\s\S]*previousEquivalentRange[\s\S]*reports\/comparison/s, 'dashboard report range must prefer summary as-of and use exact previous-equivalent dates');
+	assert.doesNotMatch(server, /new Date\(\)\.toISOString\(\)/, 'QA-04 dashboard fallback cannot derive today from a JS UTC instant');
 	assert.match(summaryGrid, /data-dashboard-decision="position"[\s\S]*data-dashboard-decision="month-result"[\s\S]*data-dashboard-decision="largest-changes"[\s\S]*data-dashboard-decision="upcoming-obligations"/s, 'dashboard summary must prioritize the four decision cards');
 	assert.match(summaryGrid, /<details[\s\S]*data-dashboard-safety-details[\s\S]*dashboard\.reportingBasis[\s\S]*dashboard\.currencyConversion/s, 'technical calculation and safety copy must live in one disclosure');
 	assert.match(expenses, /expenses\.slice\(0, 5\)[\s\S]*data-dashboard-expense-row/s, 'expenses component must render only five rows');

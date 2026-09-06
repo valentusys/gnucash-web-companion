@@ -23,6 +23,7 @@ from app.routers.auth import get_current_user, get_db
 from app.routers.books import (
     handle_gnucash_error,
     resolve_readonly_data_book,
+    resolve_viewable_book,
     transaction_service_for,
 )
 from app.schemas.gnucash import (
@@ -41,6 +42,7 @@ from app.services.gnucash_exceptions import (
     GnuCashReadError,
 )
 from app.services.reporting_currency import ReportingCurrencySetupRequired
+from app.services import reporting_clock
 
 router = APIRouter(tags=["reports"])
 
@@ -52,7 +54,7 @@ def _serialize_transaction_list_item(item: TransactionListItemDTO) -> dict[str, 
 
 
 def _current_month_range() -> tuple[str, str]:
-    today = date.today()
+    today = reporting_clock.reporting_today()
     first_of_month = date(today.year, today.month, 1)
     return first_of_month.isoformat(), today.isoformat()
 
@@ -221,6 +223,17 @@ async def get_book_period_report(
     except (BookNotFoundError, BookNotConfiguredError, EntityNotFoundError, GnuCashReadError) as exc:
         handle_gnucash_error(exc)
         raise
+
+
+@router.get("/books/{book_id}/reports/reporting-date")
+async def get_book_reporting_date(
+    book_id: int,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+) -> dict[str, str]:
+    """Authoritative installation calendar date, independent of book readability/currency."""
+    resolve_viewable_book(book_id, user, session)
+    return {"as_of_date": reporting_clock.reporting_today().isoformat(), "basis": "api_local_calendar"}
 
 
 @router.get("/books/{book_id}/reports/summary")

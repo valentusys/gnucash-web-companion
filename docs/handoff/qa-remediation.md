@@ -80,7 +80,17 @@ still pending all remaining QA IDs and exact-head CI/full matrix.
 
 ## Remaining
 
-QA-04/09 date and drilldown, QA-05/06 account groups, QA-07/08/10
+QA-04 is also locally verified: shared API calendar, metadata-only authorized date
+endpoint, Summary fallback, Reports/quick presets and explicit scheduled as-of.
+See [reporting calendar contract](../reporting-date.md). Clock-controlled real API
+browser runs passed for east/west offsets, new year, leap-month rollover and DST,
+each EN desktop/RU mobile, unchanged generated-book hashes and no book mutations.
+The native clock remains the API process local date; no new timezone/freeze setting.
+Reports, dashboard, scheduled and transaction neighboring browser gates passed.
+QA-01–QA-03 full API integration passed (1607 tests); another full API run including
+QA-04 is pending. These are incremental checks, not final roadmap acceptance.
+
+QA-09 drilldown, QA-05/06 account groups, QA-07/08/10
 form and pagination states, QA-11/12 layout/localization, followed by full exact-head integration
 and CI. No independent reviewer agent has been run. No final acceptance is claimed.
 

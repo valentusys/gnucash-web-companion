@@ -15,6 +15,7 @@ function loader(path, apiFetch, activeBook = { id: 1 }) {
         exports, URLSearchParams, URL, require: (name) => {
             if (name === '$lib/api/server') return { apiFetch, getAuthToken: () => 'synthetic', getActiveBookContext: async () => ({ books: activeBook ? [activeBook] : [], activeBook, bookPrefix: '/books/1' }) };
             if (name === '@sveltejs/kit') return { isRedirect: () => false };
+            if (name === '$lib/server/reporting-date') return { getReportingDate: async (_fetch, _prefix, _token, summaryAsOf) => summaryAsOf ?? '2026-09-06' };
             if (name === '$lib/money.js') return { compareDecimalStrings: () => { throw new Error('unexpected money comparison'); } };
             if (name === '$lib/transactions/explorer') return { buildTransactionsExplorerUrl: () => '/transactions' };
             throw new Error(`Unexpected import ${name}`);
@@ -48,7 +49,7 @@ for (const [values, expected] of [[items, 1], [[item('bad', 'unavailable')], 1],
     const dashboard = loader('src/routes/dashboard/+page.server.ts', async (_fetch, path) => {
         if (path.endsWith('/reports/summary')) return { status: 'setup_required', as_of_date: '2026-09-06' };
         if (path.includes('/reports/recent-transactions')) return [];
-        if (path.endsWith('/scheduled-transactions')) return values;
+        if (path.split('?')[0].endsWith('/scheduled-transactions')) return values;
         throw new Error(`Unexpected request ${path}`);
     });
     const data = await dashboard(args());

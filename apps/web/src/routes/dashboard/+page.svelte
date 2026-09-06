@@ -26,6 +26,9 @@
 			<LoadingState variant="dashboard" message={t(locale, 'dashboard.loading')} />
 		</div>
 	{:else}
+		{#if data.reportingDate === null}
+			<p role="status" data-reporting-date-unavailable class="mt-4 text-sm" style="color: var(--app-warning);">{t(locale, 'reporting.dateUnavailable')}</p>
+		{/if}
 		{#if data.upcomingObligations.unavailable_count > 0}
 			<p data-obligations-incomplete role="status" class="mt-4 text-sm" style="color: var(--app-warning);">{t(locale, 'scheduled.forecast.incomplete', { count: data.upcomingObligations.unavailable_count })} <a href="/scheduled" class="font-semibold underline">{t(locale, 'dashboard.reviewScheduled')}</a></p>
 		{/if}

@@ -28,6 +28,8 @@ let proxy;
 let cdp;
 let fixture;
 let recentPayload;
+let summaryAsOf;
+let scheduledAsOf = [];
 let scopeIds;
 let failure;
 const hash = (path) => createHash('sha256').update(readFileSync(path)).digest('hex');
@@ -168,7 +170,15 @@ try {
         GNUCASH_WRITES_ENABLED: 'false', JWT_SECRET: randomBytes(48).toString('hex'),
         APP_ADMIN_USERNAME: 'admin', APP_ADMIN_PASSWORD: password, APP_ADMIN_PASSWORD_HASH: '',
     };
-    start(apiPython, ['-m', 'uvicorn', 'app.main:app', '--host', '127.0.0.1', '--port', String(apiPort)], apiEnv, apiRoot, 'api');
+    const clockInstant = process.env.QA_REPORTING_INSTANT;
+    const clockZone = process.env.QA_REPORTING_ZONE ?? 'UTC';
+    const expectedClockDate = clockInstant ? pythonJson('import json,sys\nfrom datetime import datetime\nfrom zoneinfo import ZoneInfo\nprint(json.dumps(datetime.fromisoformat(sys.argv[1]).astimezone(ZoneInfo(sys.argv[2])).date().isoformat()))', [clockInstant, clockZone]) : null;
+    // Test-only clock injection before app import; no production freeze-clock setting and no host clock/TZ changes.
+    const apiArgs = clockInstant
+        ? ['-c', 'import sys,uvicorn\nfrom datetime import datetime\nfrom zoneinfo import ZoneInfo\nfrom app.services import reporting_clock\nfrozen=datetime.fromisoformat(sys.argv[1]).astimezone(ZoneInfo(sys.argv[2])).date()\nreporting_clock.reporting_today=lambda:frozen\nuvicorn.run("app.main:app",host="127.0.0.1",port=int(sys.argv[3]))', clockInstant, clockZone, String(apiPort)]
+        : ['-m', 'uvicorn', 'app.main:app', '--host', '127.0.0.1', '--port', String(apiPort)];
+    if (clockInstant) evidence.clock = { instant: clockInstant, zone: clockZone, as_of_date: expectedClockDate };
+    start(apiPython, apiArgs, apiEnv, apiRoot, 'api');
     await waitHttp(`${apiBase}/health`);
     if (scenario === 'money') {
         // Isolated synthetic APP metadata setup only; never writes the generated GnuCash book.
@@ -191,7 +201,9 @@ try {
             record.status = upstream.status;
             response.writeHead(upstream.status, { 'content-type': upstream.headers.get('content-type') ?? 'application/json' });
             const body = Buffer.from(await upstream.arrayBuffer());
-            if (record.path.endsWith('/reports/recent-transactions') && upstream.ok) recentPayload = JSON.parse(body.toString());
+            if (record.path.endsWith('/reports/recent-transactions') && upstream.status === 200) recentPayload = JSON.parse(body.toString('utf8'));
+            if (record.path.endsWith('/reports/summary') && upstream.status === 200) summaryAsOf = JSON.parse(body.toString('utf8')).as_of_date;
+            if (record.path.endsWith('/scheduled-transactions') && upstream.status === 200) scheduledAsOf = JSON.parse(body.toString('utf8')).map(item => item.forecast.as_of_date);
             response.end(body);
         } catch { record.status = 502; response.writeHead(502); response.end(); }
     });
@@ -243,6 +255,17 @@ try {
         writeFileSync(join(root, `synthetic-scheduled-${locale}.png`), Buffer.from(screenshot.data, 'base64'), { mode: 0o600 });
         await cdp.navigate(`${webBase}/dashboard`);
         assert.equal(await cdp.evaluate('Boolean(document.querySelector("[data-obligations-incomplete]"))'), expectedInvalid > 0, 'Dashboard must disclose incomplete forecast even when reporting needs setup');
+        if (clockInstant) {
+            assert.equal(summaryAsOf, expectedClockDate, 'QA-04 summary uses the API installation calendar');
+            assert.ok(scheduledAsOf.length > 0 && scheduledAsOf.every(date => date === expectedClockDate), 'QA-04 Scheduled and Dashboard obligations share that date');
+            await cdp.navigate(`${webBase}/reports`);
+            assert.equal(await cdp.evaluate(`document.querySelector('input[name=date_to]')?.value`), expectedClockDate, 'QA-04 report default cannot use the SSR UTC date');
+            await cdp.navigate(`${webBase}/transactions?date_from=${expectedClockDate.slice(0, 7)}-01&date_to=${expectedClockDate}`);
+            const preset = await cdp.evaluate(`document.querySelector('section[aria-labelledby=transactions-date-presets-title] a')?.href`);
+            assert.equal(new URL(preset).searchParams.get('date_to'), expectedClockDate, 'QA-04 quick preset uses the same reporting date');
+            await cdp.navigate(`${webBase}/scheduled?as_of_date=2026-09-01`);
+            assert.ok(scheduledAsOf.every(date => date === '2026-09-01'), 'Explicit scheduled as_of_date wins');
+        }
         if (scenario === 'money') {
             assert.ok(Array.isArray(recentPayload), 'real recent report response must be observed');
             assert.equal(recentPayload.length, Object.keys(fixture.transactions).length);

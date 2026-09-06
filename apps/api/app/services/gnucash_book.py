@@ -82,6 +82,7 @@ from app.services.account_visibility import (
 )
 from app.services.reporting_currency import ReportingCurrencySetupRequired, require_ready_reporting_currency, resolve_reporting_currency
 from app.services.transaction_direction import build_transaction_direction
+from app.services import reporting_clock
 from app.services.transaction_explorer import (
     TransactionExplorerError,
     TransactionExplorerQuery,
@@ -599,7 +600,7 @@ class GnuCashBookService:
     def list_scheduled_transactions(self, as_of_date: date | None = None) -> list[ScheduledTransactionDTO]:
         """Return safe metadata plus deterministic, bounded read-only forecasts."""
 
-        forecast_date = as_of_date or date.today()
+        forecast_date = as_of_date or reporting_clock.reporting_today()
         with self._open_book() as book:
             scheduled_items = list(self._scheduled_transactions(book))
             recurrence_rows = self._scheduled_recurrence_rows(book, scheduled_items)
@@ -867,7 +868,7 @@ class GnuCashBookService:
 
     def get_report_summary(self, as_of_date: date | str | None = None) -> ReportSummaryDTO | ReportSummarySetupDTO:
         """Return dashboard summary or explicit setup-required reporting-currency state."""
-        as_of = _coerce_date(as_of_date) or date.today()
+        as_of = _coerce_date(as_of_date) or reporting_clock.reporting_today()
         today = as_of
         month_start = date(today.year, today.month, 1)
         income_this_month = Decimal("0")

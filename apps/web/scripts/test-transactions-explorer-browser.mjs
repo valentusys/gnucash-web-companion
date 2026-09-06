@@ -197,6 +197,7 @@ async function startSyntheticApi() {
 	const server = createServer((req, res) => {
 		const url = new URL(req.url ?? '/', 'http://127.0.0.1');
 		requests.push({ method: req.method, path: url.pathname, search: url.search, pathWithSearch: `${url.pathname}${url.search}` });
+		if (req.method === 'GET' && url.pathname === '/books/1/reports/reporting-date') return jsonResponse(res, 200, { as_of_date: '2026-09-06', basis: 'api_local_calendar' });
 
 		if (isForbiddenApiMutation(req.method ?? 'GET')) {
 			forbiddenRequests.push({ method: req.method, path: url.pathname, search: url.search });
