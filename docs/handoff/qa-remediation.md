@@ -90,6 +90,13 @@ Reports, dashboard, scheduled and transaction neighboring browser gates passed.
 QA-01–QA-03 full API integration passed (1607 tests); another full API run including
 QA-04 is pending. These are incremental checks, not final roadmap acceptance.
 
+QA-04 follow-up: exact-head CI for `03b113caac373bf40304458622682906b04580b6`
+failed in the umbrella auth guard, which still required a scheduled URL without a date query.
+Local RED reproduced that assertion. The reconciled guard requires the encoded explicit query,
+active-book prefix and auth token, and forbids a frontend-computed scheduled today. Svelte
+check and all current non-browser npm test scripts passed after reconciliation; replacement
+exact-head CI is not yet claimed here. No product write/auth/date behavior was weakened.
+
 QA-09 drilldown, QA-05/06 account groups, QA-07/08/10
 form and pagination states, QA-11/12 layout/localization, followed by full exact-head integration
 and CI. No independent reviewer agent has been run. No final acceptance is claimed.

@@ -34,7 +34,8 @@ reading the full history linearly.
 
 - QA-04: use the API installation calendar for reporting defaults and quick periods.
   Prefer summary as-of, retain explicit dates, and disclose unavailable date defaults
-  instead of silently falling back to frontend UTC. No host timezone change.
+  instead of silently falling back to frontend UTC. No host timezone change. Reconcile the
+  umbrella auth guard with encoded scheduled date overrides and backend-owned default dates.
 
 - QA-03: unscoped explorer amounts are neutral and split-order independent. Scoped
   account changes are labelled in table/mobile views; CSV values/filters use account
