@@ -1,7 +1,7 @@
 <script lang="ts">
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import Money from '$lib/components/Money.svelte';
-	import type { ScheduledTransactionAmount } from '$lib/api/types';
+	import type { ScheduledTransactionAmount, ScheduledTransactionForecast } from '$lib/api/types';
 	import { DEFAULT_LOCALE, t, type Locale, type MessageKey } from '$lib/i18n';
 
 	let { data } = $props();
@@ -11,7 +11,8 @@
 		overdue: 'scheduled.group.overdue',
 		upcoming: 'scheduled.group.upcoming',
 		next_30_days: 'scheduled.group.next30',
-		later_or_inactive: 'scheduled.group.laterOrInactive'
+		later_or_inactive: 'scheduled.group.laterOrInactive',
+		unavailable: 'scheduled.forecast.status.unavailable'
 	};
 
 	function formatDate(value: string | null): string {
@@ -60,7 +61,7 @@
 		return t(locale, groupLabelKeys[key] ?? 'scheduled.group.laterOrInactive');
 	}
 
-	function forecastStatusLabel(status: 'ready' | 'disabled' | 'exhausted'): string {
+	function forecastStatusLabel(status: ScheduledTransactionForecast['status']): string {
 		return t(locale, `scheduled.forecast.status.${status}` as MessageKey);
 	}
 
@@ -99,6 +100,9 @@
 			</span>
 		</div>
 		{#if data.scheduledSummary.total > 0}
+			{#if data.scheduledSummary.unavailable > 0}
+				<p data-forecast-incomplete role="status" class="mt-3 text-sm" style="color: var(--app-warning);">{t(locale, 'scheduled.forecast.incomplete', { count: data.scheduledSummary.unavailable })}</p>
+			{/if}
 			<div class="mt-3 hidden flex-wrap gap-2 sm:flex" aria-label={t(locale, 'scheduled.recurringMetadata')}>
 				{#each [
 					['overdue', data.scheduledSummary.overdue],
@@ -168,7 +172,7 @@
 									<div class="min-w-0">
 										<div class="flex min-w-0 flex-wrap items-center gap-2 text-xs">
 											<span class="font-semibold uppercase tracking-wide" style={`color: ${group.key === 'overdue' ? 'var(--app-danger)' : 'var(--app-accent)'};`}>
-												{scheduled.forecast.next_due_date ? `${t(locale, 'scheduled.nextDue')}: ${scheduled.forecast.next_due_date}` : t(locale, 'scheduled.noDueDate')}
+												{scheduled.forecast.status === 'unavailable' ? t(locale, 'scheduled.forecast.status.unavailable') : scheduled.forecast.next_due_date ? `${t(locale, 'scheduled.nextDue')}: ${scheduled.forecast.next_due_date}` : t(locale, 'scheduled.noDueDate')}
 											</span>
 											<span class="rounded-full px-2 py-0.5 font-semibold" style="background-color: var(--app-hover-bg); color: var(--app-muted);">
 												{scheduled.enabled ? t(locale, 'scheduled.enabled') : t(locale, 'scheduled.disabled')}
@@ -188,6 +192,9 @@
 									</div>
 								</div>
 
+								{#if scheduled.forecast.status === 'unavailable'}
+									<p class="mt-2 text-sm" style="color: var(--app-warning);">{t(locale, 'scheduled.forecast.invalidMetadata')}</p>
+								{:else}
 								<details class="mt-2 min-w-0 border-t pt-2 text-sm" style="border-color: var(--app-border);">
 									<summary class="w-fit cursor-pointer font-semibold underline-offset-2 hover:underline focus:outline-none focus:ring-2" style="color: var(--app-accent);">
 										{t(locale, 'scheduled.details.summary')}
@@ -224,6 +231,7 @@
 										{/if}
 									</div>
 								</details>
+								{/if}
 							</article>
 						{/each}
 					</div>

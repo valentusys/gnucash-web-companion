@@ -110,12 +110,24 @@ jobs:
           npm run test:money-strings
           npm run test:books-onboarding
           npm run test:accounts-explorer
+          npm run test:scheduled-forecast
+          npm run test:qa-loaders
+          npm run test:qa-money
+          npm run test:qa-reporting-date
           npm run test:transaction-entry-create-disposable-browser
           npm run test:accounts-explorer-browser
           npm run test:transactions-explorer-browser
           npm run test:books-onboarding-browser
           node scripts/test-reports-browser.mjs
           node scripts/test-dashboard-browser.mjs
+          node scripts/test-scheduled-forecast-browser.mjs
+          # Reuse the production build above; these cases never execute book writes.
+          for scenario in scheduled_partial scheduled_valid scheduled_invalid empty money; do
+            QA_SCENARIO="$scenario" node scripts/test-qa-regressions-browser.mjs
+          done
+          QA_SCENARIO=scheduled_valid QA_REPORTING_INSTANT=2026-09-05T15:30:00+00:00 QA_REPORTING_ZONE=Asia/Vladivostok node scripts/test-qa-regressions-browser.mjs
+          QA_SCENARIO=scheduled_valid QA_REPORTING_INSTANT=2026-09-06T02:30:00+00:00 QA_REPORTING_ZONE=America/Los_Angeles node scripts/test-qa-regressions-browser.mjs
+          QA_SCENARIO=scheduled_valid QA_REPORTING_INSTANT=2025-12-31T15:00:00+00:00 QA_REPORTING_ZONE=Asia/Vladivostok node scripts/test-qa-regressions-browser.mjs
 
   backend:
     name: Backend tests

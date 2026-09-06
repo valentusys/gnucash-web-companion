@@ -449,6 +449,7 @@ async function startSyntheticApi(sourcePaths) {
 			if (method === 'GET' && suffix === 'accounts/options') return jsonResponse(res, 200, accountOptions(bookId));
 			if (method === 'GET' && suffix === 'accounts') return jsonResponse(res, 410, fixedProblem('unknown_book_problem'));
 			if (method === 'GET' && suffix === 'accounts/explorer') return jsonResponse(res, 200, accountExplorerPayload(bookId));
+			if (method === 'GET' && suffix === 'reports/reporting-date') return jsonResponse(res, 200, { as_of_date: '2026-07-15' });
 			if (method === 'GET' && suffix === 'reports/comparison') return jsonResponse(res, 500, fixedProblem('unknown_book_problem'));
 
 			if (method === 'PATCH' && suffix === '') {
@@ -1104,6 +1105,10 @@ async function runSmoke() {
 		await navigate(cdp, webBase, `/books/${registeredBookId}/select?next=/reports`, 'select reports', '/reports');
 		await waitForExpression(cdp, `location.pathname === '/reports' && /Compare financial periods|FINANCIAL REPORTS/.test(document.body.innerText)`, 'reports reached', 30000);
 		assert.equal(api.requests.some((request) => request.path === `/books/${registeredBookId}/reports/comparison`), true, 'Reports link must select exact book before loading reports');
+		assert.ok(api.requests.some((request) => request.path === `/books/${registeredBookId}/reports/reporting-date`), 'Reports must resolve the selected book reporting clock before its default period');
+		const comparisonRequest = api.requests.find((request) => request.path === `/books/${registeredBookId}/reports/comparison`);
+		assert.equal(new URLSearchParams(comparisonRequest.search).get('date_from'), '2026-07-01', 'Reports default starts in the authoritative reporting month');
+		assert.equal(new URLSearchParams(comparisonRequest.search).get('date_to'), '2026-07-15', 'Reports default ends at the authoritative reporting date');
 
 		await navigate(cdp, webBase, `/books/${registeredBookId}/settings`, 'admin settings');
 		snapshot = await pageSnapshot(cdp);

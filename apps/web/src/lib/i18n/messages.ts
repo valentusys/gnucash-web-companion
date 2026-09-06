@@ -489,6 +489,12 @@ export type MessageKey =
 	| 'transactions.direction.composite'
 	| 'transactions.direction.more'
 	| 'transactions.direction.amountHidden'
+	| 'transactions.amount.neutral'
+	| 'reporting.dateUnavailable'
+	| 'transactions.amount.selectedAccount'
+	| 'transactions.amount.selectedAccounts'
+	| 'transactions.amount.income'
+	| 'transactions.amount.expense'
 	| 'transactionDetail.helper'
 	| 'transactionDetail.date'
 	| 'transactionDetail.currency'
@@ -1085,6 +1091,9 @@ export type MessageKey =
 	| 'scheduled.forecast.status.ready'
 	| 'scheduled.forecast.status.disabled'
 	| 'scheduled.forecast.status.exhausted'
+	| 'scheduled.forecast.status.unavailable'
+	| 'scheduled.forecast.incomplete'
+	| 'scheduled.forecast.invalidMetadata'
 	| 'scheduled.forecast.readOnlyInvariant';
 
 export const messages: Record<Locale, Record<MessageKey, string>> = {
@@ -1430,7 +1439,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'dashboard.drilldownSafety':
 			'Drilldowns preserve the active book and use existing read-only transaction URL filters. Dashboard totals remain base-currency-only with no FX conversion; transaction filter views are evidence for the same period/account context, not invented recomputations.',
 		'dashboard.recentTransactions': 'Recent Transactions',
-		'dashboard.recentTransactionsHelp': 'Same read-only transaction list, newest first; CSV export uses matching filters.',
+		'dashboard.recentTransactionsHelp': 'Newest first. Simple amounts are unsigned magnitudes; From → To shows the movement. Complex amounts are not summarized.',
 		'dashboard.transactionFromTo': 'From {from} to {to}',
 		'dashboard.amountNotShown': 'Amount not shown',
 		'dashboard.viewTransactions': 'View transactions',
@@ -1593,6 +1602,12 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'transactions.direction.composite': 'Composite transaction: multiple split-derived accounts are shown.',
 		'transactions.direction.more': '+{count} more',
 		'transactions.direction.amountHidden': 'No representative total is shown for this composite or ambiguous transaction.',
+		'transactions.amount.neutral': 'Unsigned magnitude',
+		'reporting.dateUnavailable': 'The reporting date is unavailable. Choose an explicit period or retry.',
+		'transactions.amount.selectedAccount': 'Account change: {account}',
+		'transactions.amount.selectedAccounts': 'Net change of selected accounts',
+		'transactions.amount.income': 'Income-account total',
+		'transactions.amount.expense': 'Expense-account total',
 		'transactionDetail.helper': 'Read-only view of the selected GnuCash transaction. Split rows below show memo and reconciliation metadata when available.',
 		'transactionDetail.date': 'Date',
 		'transactionDetail.currency': 'Currency',
@@ -2238,6 +2253,9 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'scheduled.forecast.status.ready': 'Ready',
 		'scheduled.forecast.status.disabled': 'Disabled',
 		'scheduled.forecast.status.exhausted': 'Exhausted',
+		'scheduled.forecast.status.unavailable': 'Forecast unavailable',
+		'scheduled.forecast.incomplete': 'Forecast incomplete: {count} schedules could not be forecast. Upcoming counts exclude them.',
+		'scheduled.forecast.invalidMetadata': 'This schedule has incomplete or unsupported recurrence settings. Review it in GnuCash Desktop. No dates or amounts were inferred.',
 		'scheduled.forecast.readOnlyInvariant': 'Forecast only. No scheduled transaction was created or changed.'
 	},
 	ru: {
@@ -2582,7 +2600,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'dashboard.drilldownSafety':
 			'Drilldown-ссылки сохраняют активную книгу и используют существующие read-only URL-фильтры транзакций. Итоги обзора остаются только в базовой валюте без FX-конвертации; виды транзакций — это evidence для того же периода/счёта, а не заново рассчитанные итоги.',
 		'dashboard.recentTransactions': 'Последние транзакции',
-		'dashboard.recentTransactionsHelp': 'Тот же read-only список транзакций, новые сначала; CSV export использует совпадающие фильтры.',
+		'dashboard.recentTransactionsHelp': 'Новые сначала. Простые суммы показаны без знака; «Откуда → Куда» поясняет движение. Сложные суммы не сводятся к одному числу.',
 		'dashboard.transactionFromTo': 'Со счёта «{from}» на счёт «{to}»',
 		'dashboard.amountNotShown': 'Сумма не показана',
 		'dashboard.viewTransactions': 'Открыть транзакции',
@@ -2745,6 +2763,12 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'transactions.direction.composite': 'Составная транзакция: показаны несколько счетов из проводок.',
 		'transactions.direction.more': 'ещё {count}',
 		'transactions.direction.amountHidden': 'Для составной или неоднозначной транзакции представительная сумма не показана.',
+		'transactions.amount.neutral': 'Сумма без знака',
+		'reporting.dateUnavailable': 'Дата отчётности недоступна. Укажите период вручную или повторите запрос.',
+		'transactions.amount.selectedAccount': 'Изменение счёта: {account}',
+		'transactions.amount.selectedAccounts': 'Итоговое изменение выбранных счетов',
+		'transactions.amount.income': 'Итог по счетам доходов',
+		'transactions.amount.expense': 'Итог по счетам расходов',
 		'transactionDetail.helper': 'Read-only просмотр выбранной транзакции GnuCash. Строки split ниже показывают memo и metadata сверки, если они доступны.',
 		'transactionDetail.date': 'Дата',
 		'transactionDetail.currency': 'Валюта',
@@ -3390,6 +3414,9 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'scheduled.forecast.status.ready': 'Готов',
 		'scheduled.forecast.status.disabled': 'Отключено',
 		'scheduled.forecast.status.exhausted': 'Завершено',
+		'scheduled.forecast.status.unavailable': 'Прогноз недоступен',
+		'scheduled.forecast.incomplete': 'Прогноз неполный: для {count} расписаний прогноз недоступен. Они не включены в число предстоящих операций.',
+		'scheduled.forecast.invalidMetadata': 'В этом расписании неполные или неподдерживаемые настройки повторения. Проверьте его в GnuCash Desktop. Даты и суммы не подставлялись.',
 		'scheduled.forecast.readOnlyInvariant': 'Только прогноз. Плановые транзакции не создавались и не изменялись.'
 	}
 };

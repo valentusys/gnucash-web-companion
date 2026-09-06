@@ -2,6 +2,7 @@ import { env } from '$env/dynamic/private';
 import { redirect } from '@sveltejs/kit';
 import { loadAccountOptions } from '$lib/accounts/options.server';
 import { apiFetch, getAuthToken, getActiveBookContext } from '$lib/api/server';
+import { getReportingDate } from '$lib/server/reporting-date';
 import type { AccountOption, PaginatedTransactions, TransactionExplorerPage, TransactionListItem } from '$lib/api/types';
 import {
 	TRANSACTIONS_EXPLORER_DEFAULT_PAGE_SIZE,
@@ -84,9 +85,9 @@ function positiveInt(value: string | null, fallback: number, max: number): numbe
 }
 
 function formatDate(date: Date): string {
-	const year = date.getFullYear();
-	const month = String(date.getMonth() + 1).padStart(2, '0');
-	const day = String(date.getDate()).padStart(2, '0');
+	const year = date.getUTCFullYear();
+	const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+	const day = String(date.getUTCDate()).padStart(2, '0');
 	return `${year}-${month}-${day}`;
 }
 
@@ -103,13 +104,15 @@ function legacyTransactionUrl(filters: LegacyFilters, override: Partial<LegacyFi
 	return `/transactions?${sp.toString()}`;
 }
 
-function buildLegacyDatePresets(filters: LegacyFilters, now = new Date()) {
-	const year = now.getFullYear();
-	const month = now.getMonth();
+function buildLegacyDatePresets(filters: LegacyFilters, asOfDate: string | null) {
+	if (!asOfDate) return [];
+	const now = new Date(`${asOfDate}T00:00:00Z`);
+	const year = now.getUTCFullYear();
+	const month = now.getUTCMonth();
 	const presets: Array<{ label: string; dates: DatePresetDates }> = [
-		{ label: 'This month', dates: { dateFrom: formatDate(new Date(year, month, 1)), dateTo: formatDate(now) } },
-		{ label: 'Last month', dates: { dateFrom: formatDate(new Date(year, month - 1, 1)), dateTo: formatDate(new Date(year, month, 0)) } },
-		{ label: 'Year to date', dates: { dateFrom: formatDate(new Date(year, 0, 1)), dateTo: formatDate(now) } },
+		{ label: 'This month', dates: { dateFrom: formatDate(new Date(Date.UTC(year, month, 1))), dateTo: formatDate(now) } },
+		{ label: 'Last month', dates: { dateFrom: formatDate(new Date(Date.UTC(year, month - 1, 1))), dateTo: formatDate(new Date(Date.UTC(year, month, 0))) } },
+		{ label: 'Year to date', dates: { dateFrom: formatDate(new Date(Date.UTC(year, 0, 1))), dateTo: formatDate(now) } },
 		{ label: 'Clear dates', dates: { dateFrom: '', dateTo: '' } }
 	];
 	return presets.map((preset) => ({
@@ -119,13 +122,15 @@ function buildLegacyDatePresets(filters: LegacyFilters, now = new Date()) {
 	}));
 }
 
-function buildExplorerDatePresets(filters: TransactionExplorerValidatedInput, now = new Date()) {
-	const year = now.getFullYear();
-	const month = now.getMonth();
+function buildExplorerDatePresets(filters: TransactionExplorerValidatedInput, asOfDate: string | null) {
+	if (!asOfDate) return [];
+	const now = new Date(`${asOfDate}T00:00:00Z`);
+	const year = now.getUTCFullYear();
+	const month = now.getUTCMonth();
 	const presets: Array<{ label: string; dates: DatePresetDates }> = [
-		{ label: 'This month', dates: { dateFrom: formatDate(new Date(year, month, 1)), dateTo: formatDate(now) } },
-		{ label: 'Last month', dates: { dateFrom: formatDate(new Date(year, month - 1, 1)), dateTo: formatDate(new Date(year, month, 0)) } },
-		{ label: 'Year to date', dates: { dateFrom: formatDate(new Date(year, 0, 1)), dateTo: formatDate(now) } },
+		{ label: 'This month', dates: { dateFrom: formatDate(new Date(Date.UTC(year, month, 1))), dateTo: formatDate(now) } },
+		{ label: 'Last month', dates: { dateFrom: formatDate(new Date(Date.UTC(year, month - 1, 1))), dateTo: formatDate(new Date(Date.UTC(year, month, 0))) } },
+		{ label: 'Year to date', dates: { dateFrom: formatDate(new Date(Date.UTC(year, 0, 1))), dateTo: formatDate(now) } },
 		{ label: 'Clear dates', dates: { dateFrom: '', dateTo: '' } }
 	];
 	return presets.map((preset) => ({
@@ -528,6 +533,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 		throw redirect(303, canonicalLegacyHref);
 	}
 
+	const reportingDate = await getReportingDate(fetch, bookPrefix, token);
 	const accountOptionsState = await loadAccountOptions(fetch, bookPrefix, token, {
 		purpose: 'transactions_filter',
 		currency: activeBook.base_currency
@@ -535,6 +541,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 	const accountOptions = accountOptionsState.items;
 	const accounts = accountOptions;
 	const accountOptionsPageState = {
+		reportingDateUnavailable: reportingDate === null,
 		accountOptions,
 		accountOptionsAvailable: accountOptionsState.available,
 		accountOptionsLimited: accountOptionsState.limited,
@@ -552,7 +559,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 			writesEnabled,
 			filters: fallback,
 			pageSizeOptions: TRANSACTIONS_EXPLORER_PAGE_SIZES,
-			datePresets: buildExplorerDatePresets(fallback),
+			datePresets: buildExplorerDatePresets(fallback, reportingDate),
 			activeFilters: [],
 			resetHref: buildTransactionsExplorerUrl(),
 			resetPaginationHref: buildTransactionsExplorerUrl(),
@@ -575,7 +582,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 			activeBook,
 			writesEnabled,
 			filters,
-			datePresets: buildLegacyDatePresets(filters),
+			datePresets: buildLegacyDatePresets(filters, reportingDate),
 			clearFiltersHref: '/transactions?sort=date_desc&page_size=50',
 			legacyNotice: t(locale, 'transactions.explorer.legacyCompatibility'),
 			exportCsv: {
@@ -603,7 +610,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 			writesEnabled,
 			filters,
 			pageSizeOptions: TRANSACTIONS_EXPLORER_PAGE_SIZES,
-			datePresets: buildExplorerDatePresets(filters),
+			datePresets: buildExplorerDatePresets(filters, reportingDate),
 			activeFilters,
 			resetHref,
 			resetPaginationHref,
@@ -623,7 +630,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 			writesEnabled,
 			filters,
 			pageSizeOptions: TRANSACTIONS_EXPLORER_PAGE_SIZES,
-			datePresets: buildExplorerDatePresets(filters),
+			datePresets: buildExplorerDatePresets(filters, reportingDate),
 			activeFilters,
 			resetHref,
 			resetPaginationHref,
@@ -645,7 +652,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 			writesEnabled,
 			filters,
 			pageSizeOptions: TRANSACTIONS_EXPLORER_PAGE_SIZES,
-			datePresets: buildExplorerDatePresets(filters),
+			datePresets: buildExplorerDatePresets(filters, reportingDate),
 			activeFilters,
 			resetHref,
 			resetPaginationHref,
@@ -666,7 +673,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 		writesEnabled,
 		filters,
 		pageSizeOptions: TRANSACTIONS_EXPLORER_PAGE_SIZES,
-		datePresets: buildExplorerDatePresets(filters),
+		datePresets: buildExplorerDatePresets(filters, reportingDate),
 		activeFilters,
 		resetHref,
 		resetPaginationHref,

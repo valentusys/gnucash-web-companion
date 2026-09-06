@@ -52,6 +52,33 @@ Persistent named/saved presets are intentionally not implemented in the current 
 
 ## CSV export parity
 
+### Explorer and CSV amount semantics
+
+The canonical `/transactions/explorer` endpoint declares `amount_basis` separately
+from From/To direction. Without an account/type scope, a balanced two-split
+transaction between different accounts in the transaction currency has a
+`neutral_magnitude` (unsigned decimal string). Split iteration or split GUID order
+must not choose its sign. Composite, mixed-currency, or otherwise unproven totals
+use `multiple_amounts` and `representative_amount=null`; inspect the split details.
+
+Account-scoped explorer values use signed net split quantities in the selected
+account currency, not transaction-currency split values. A zero net change is a
+real zero, not missing data. Multiple selected accounts retain the existing
+single configured base-currency restriction; unsupported currency scopes are
+still rejected rather than summed or converted. Income/expense type scopes also
+use quantities of matching accounts in the configured currency. Both table and
+mobile cards label the basis next to the amount.
+
+The legacy CSV columns `amount`, `currency`, `account_id`, and `account_name`
+describe a signed quantity of the named account, not the explorer's unscoped
+unsigned magnitude. With `account_id`, `amount` is that account's net quantity
+(including repeated splits). Without `account_id`, the legacy export identifies
+the representative account/split it uses; do not interpret its sign as global
+income/expense. Account-scoped amount filters use the absolute net quantity too.
+For supported shared filters, CSV and explorer select the same transaction IDs;
+the UI continues to disable CSV for unsupported explorer-only filter shapes.
+Neither endpoint performs FX conversion or sums different currencies.
+
 The CSV export link preserves the same active filters as the list view:
 
 ```text

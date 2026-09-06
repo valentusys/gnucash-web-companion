@@ -478,9 +478,12 @@ assert.match(
 const scheduledServer = read('src/routes/scheduled/+page.server.ts');
 assert.match(
 	scheduledServer,
-	/getActiveBookContext\(fetch, cookies, token\)[\s\S]*apiFetch<ScheduledTransaction\[\]>\(fetch, `\$\{bookPrefix\}\/scheduled-transactions`, token\)/s,
-	'scheduled page must load safe scheduled metadata for the active accessible book through the API'
+	/getActiveBookContext\(fetch, cookies, token\)[\s\S]*apiFetch<ScheduledTransaction\[\]>\(fetch, `\$\{bookPrefix\}\/scheduled-transactions\$\{asOfQuery\}`, token\)/s,
+	'scheduled page must load safe scheduled metadata for the active accessible book through the API, preserving the explicit reporting date'
 );
+assert.match(scheduledServer, /const asOfDate = url\.searchParams\.get\('as_of_date'\)/, 'scheduled date override comes only from the explicit URL parameter');
+assert.match(scheduledServer, /const asOfQuery = asOfDate !== null \? `\?\$\{new URLSearchParams\(\{ as_of_date: asOfDate \}\)\}` : ''/, 'explicit scheduled date is encoded; absent override delegates to the authoritative backend clock');
+assert.doesNotMatch(scheduledServer, /new Date\(|toISOString\(|getUTC/, 'scheduled loader must not invent its own today');
 assert.match(
 	scheduledServer,
 	/ScheduledSort = 'next_due'[\s\S]*scheduledFilterHref[\s\S]*filterScheduledTransactions[\s\S]*sortScheduledTransactions[\s\S]*forecastGroupKey[\s\S]*upcoming_7_days[\s\S]*upcoming_30_days[\s\S]*groupScheduledTransactions/s,

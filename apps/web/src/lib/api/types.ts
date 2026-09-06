@@ -471,13 +471,19 @@ export type TransactionListItem = {
 	account_display_name?: string | null;
 	counter_account_name: string;
 	direction?: TransactionDirection;
-	representative_amount?: MoneyDTO;
+	representative_amount?: MoneyDTO | null;
 	representative_account?: { id: string; name: string; display_name?: string | null; full_name?: string | null } | null;
 	matched_amount?: MoneyDTO | null;
 	amount_basis?: 'selected_accounts' | 'income' | 'expense' | 'representative_split' | string;
 	matched_account_ids?: string[];
 	is_write_alpha_owned?: boolean;
 };
+
+// The recent-report endpoint is NOT an explorer item. Do not accept explorer-only fields.
+export type RecentTransaction = Pick<TransactionListItem,
+    'id' | 'date' | 'description' | 'amount' | 'currency' | 'account_id' | 'account_name' |
+    'account_display_name' | 'counter_account_name' | 'direction' | 'is_write_alpha_owned'
+> & { amount_is_unambiguous: boolean };
 
 export type TransactionDetail = {
 	id: string;
@@ -516,7 +522,8 @@ export type ScheduledTransactionRecurrence = {
 };
 
 export type ScheduledTransactionForecast = {
-	status: 'ready' | 'disabled' | 'exhausted';
+	status: 'ready' | 'disabled' | 'exhausted' | 'unavailable';
+	reason: 'scheduled_recurrence_invalid_metadata' | null;
 	as_of_date: string;
 	next_due_date: string | null;
 	is_overdue: boolean;
@@ -530,7 +537,8 @@ export type ScheduledTransactionAmountReason =
 	| 'template_variables_unresolved'
 	| 'template_shape_unsupported'
 	| 'template_unbalanced'
-	| 'currency_unavailable';
+	| 'currency_unavailable'
+	| 'forecast_unavailable';
 
 export type ScheduledTransactionAmount = {
 	status: 'resolved' | 'unresolved' | 'not_available';
@@ -647,6 +655,7 @@ export type DashboardExpenseChange = {
 
 export type DashboardUpcomingObligations = {
 	enabled_count: number;
+	unavailable_count: number;
 };
 
 export type ExpenseByAccount = {

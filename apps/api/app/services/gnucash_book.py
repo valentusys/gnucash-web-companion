@@ -82,6 +82,7 @@ from app.services.account_visibility import (
 )
 from app.services.reporting_currency import ReportingCurrencySetupRequired, require_ready_reporting_currency, resolve_reporting_currency
 from app.services.transaction_direction import build_transaction_direction
+from app.services import reporting_clock
 from app.services.transaction_explorer import (
     TransactionExplorerError,
     TransactionExplorerQuery,
@@ -599,18 +600,25 @@ class GnuCashBookService:
     def list_scheduled_transactions(self, as_of_date: date | None = None) -> list[ScheduledTransactionDTO]:
         """Return safe metadata plus deterministic, bounded read-only forecasts."""
 
-        forecast_date = as_of_date or date.today()
+        forecast_date = as_of_date or reporting_clock.reporting_today()
         with self._open_book() as book:
             scheduled_items = list(self._scheduled_transactions(book))
             recurrence_rows = self._scheduled_recurrence_rows(book, scheduled_items)
-            items = [
-                self._scheduled_transaction_to_dto(
-                    item,
-                    recurrences=recurrence_rows.get(_guid(item), []),
-                    as_of_date=forecast_date,
-                )
-                for item in scheduled_items
-            ]
+            items = []
+            for item in scheduled_items:
+                try:
+                    dto = self._scheduled_transaction_to_dto(
+                        item,
+                        recurrences=recurrence_rows.get(_guid(item), []),
+                        as_of_date=forecast_date,
+                    )
+                except ScheduledRecurrenceError as exc:
+                    # Only known record-level metadata errors are recoverable.
+                    # Batch reads/budgets above and recurrence-cycle failures still fail closed.
+                    if exc.code != "scheduled_recurrence_invalid_metadata":
+                        raise
+                    dto = self._unavailable_scheduled_transaction(item, as_of_date=forecast_date)
+                items.append(dto)
             items.sort(key=lambda item: ((item.start_date or "9999-99-99"), item.name.lower(), item.id))
             return items
 
@@ -860,7 +868,7 @@ class GnuCashBookService:
 
     def get_report_summary(self, as_of_date: date | str | None = None) -> ReportSummaryDTO | ReportSummarySetupDTO:
         """Return dashboard summary or explicit setup-required reporting-currency state."""
-        as_of = _coerce_date(as_of_date) or date.today()
+        as_of = _coerce_date(as_of_date) or reporting_clock.reporting_today()
         today = as_of
         month_start = date(today.year, today.month, 1)
         income_this_month = Decimal("0")
@@ -2437,10 +2445,10 @@ class GnuCashBookService:
             return None
 
         state_code = self._normalize_transaction_state(request.transaction_state)
-        display_split = splits[0]
+        display_split = min(splits, key=lambda split: self._account_id(getattr(split, "account", None)))
         matched_amount: Decimal | None = None
         matched_account_ids: list[str] = []
-        amount_basis: Literal["selected_accounts", "income", "expense", "representative_split"] = "representative_split"
+        amount_basis: Literal["selected_accounts", "income", "expense", "neutral_magnitude", "multiple_amounts"] = "multiple_amounts"
 
         if request.account_ids:
             selected_splits = [
@@ -2452,14 +2460,14 @@ class GnuCashBookService:
                 return None
             if state_code and not self._explorer_splits_state_match(selected_splits, state_code):
                 return None
-            matched_amount = sum((self._split_amount(split) for split in selected_splits), Decimal("0"))
+            matched_amount = sum((self._split_quantity(split) for split in selected_splits), Decimal("0"))
             if request.direction == "increase" and matched_amount <= 0:
                 return None
             if request.direction == "decrease" and matched_amount >= 0:
                 return None
             if not self._explorer_amount_in_range(abs(matched_amount), request):
                 return None
-            display_split = selected_splits[0]
+            display_split = min(selected_splits, key=lambda split: self._account_id(getattr(split, "account", None)))
             matched_account_ids = [account_id for account_id in request.account_ids if account_id in {
                 self._account_id(getattr(split, "account", None)).lower() for split in selected_splits
             }]
@@ -2486,20 +2494,25 @@ class GnuCashBookService:
                 "transaction_unreadable",
                 "A transaction in the requested range could not be read safely.",
             )
-        display_amount = self._split_amount(display_split)
         display_currency = self._account_currency(account)
+        display_money = None
+        if matched_amount is not None:
+            display_money = self._money(matched_amount, display_currency)
+        elif self._transaction_amount_is_unambiguous(transaction):
+            amount_basis = "neutral_magnitude"
+            display_money = self._money(abs(self._split_quantity(display_split)), display_currency)
         return TransactionExplorerItemDTO(
             id=_guid(transaction),
             date=_date_string(self._transaction_date(transaction)),
             description=str(getattr(transaction, "description", "")),
-            representative_amount=self._money(display_amount, display_currency),
+            representative_amount=display_money,
             representative_account=TransactionExplorerAccountRefDTO(
                 id=self._account_id(account),
                 name=visibility.full_name(account),
                 display_name=visibility.display_name(account),
                 full_name=visibility.full_name(account),
-            ),
-            matched_amount=self._money(matched_amount, self.base_currency or "XXX") if matched_amount is not None else None,
+            ) if display_money is not None else None,
+            matched_amount=self._money(matched_amount, display_currency) if matched_amount is not None else None,
             amount_basis=amount_basis,
             matched_account_ids=matched_account_ids,
             counter_account_name=self._counter_account_name(splits, account),
@@ -2514,7 +2527,7 @@ class GnuCashBookService:
             if self._account_currency(account) != self.base_currency:
                 continue
             account_type = str(getattr(account, "type", "") or "").upper()
-            amount = self._split_amount(split)
+            amount = self._split_quantity(split)
             include = False
             contribution = Decimal("0")
             if transaction_type == "income" and account_type == "INCOME":
@@ -2843,7 +2856,7 @@ class GnuCashBookService:
         if transaction_state and not self._transaction_state_matches(transaction, account_id, transaction_state):
             return False
         if min_amount is not None or max_amount is not None:
-            amount = abs(self._split_amount(self._select_split(self._splits(transaction), account_id)))
+            amount = abs(self._list_account_quantity(self._splits(transaction), account_id))
             if min_amount is not None and amount < min_amount:
                 return False
             if max_amount is not None and amount > max_amount:
@@ -2872,6 +2885,34 @@ class GnuCashBookService:
             splits = [split for split in splits if self._account_id(getattr(split, "account", None)) == account_id]
         return any(str(getattr(split, "reconcile_state", "") or "").lower() == expected_state for split in splits)
 
+    def _transaction_amount_is_unambiguous(self, transaction: Any) -> bool:
+        """Approve neutral magnitude only for a simple single-currency balanced pair."""
+        splits = self._splits(transaction)
+        currency = getattr(transaction, "currency", None)
+        code = _commodity_code(currency, "XXX")
+        if len(splits) != 2 or code == "XXX" or getattr(currency, "namespace", None) != "CURRENCY":
+            return False
+        accounts = [getattr(split, "account", None) for split in splits]
+        if any(account is None for account in accounts) or len({_guid(account) for account in accounts}) != 2:
+            return False
+        for split, account in zip(splits, accounts):
+            commodity = getattr(account, "commodity", None)
+            if _commodity_code(commodity, "XXX") != code or getattr(commodity, "namespace", None) != "CURRENCY":
+                return False
+            if getattr(split, "value", None) is None or getattr(split, "quantity", None) is None:
+                return False
+            if self._split_quantity(split) != self._split_amount(split):
+                return False
+        return sum((self._split_amount(split) for split in splits), Decimal("0")) == 0
+
+    def _list_account_quantity(self, splits: list[Any], account_id: str | None) -> Decimal:
+        """Legacy list/CSV amounts are signed quantities of their named account, not FX values."""
+        selected = self._select_split(splits, account_id)
+        if account_id is None:
+            return self._split_quantity(selected)
+        return sum((self._split_quantity(split) for split in splits
+                    if self._account_id(getattr(split, "account", None)) == account_id), Decimal("0"))
+
     def _transaction_to_list_item(
         self,
         transaction: Any,
@@ -2882,7 +2923,7 @@ class GnuCashBookService:
         splits = self._splits(transaction)
         selected = self._select_split(splits, account_id)
         account = getattr(selected, "account", None)
-        money = self._money(self._split_amount(selected), self._account_currency(account))
+        money = self._money(self._list_account_quantity(splits, account_id), self._account_currency(account))
         full_name = visibility.full_name(account) if visibility is not None and account is not None else account_full_name(account)
         display_name = visibility.display_name(account) if visibility is not None and account is not None else str(getattr(account, "name", ""))
         return TransactionListItemDTO(
@@ -2890,6 +2931,7 @@ class GnuCashBookService:
             date=_date_string(self._transaction_date(transaction)),
             description=str(getattr(transaction, "description", "")),
             amount=money.amount,
+            amount_is_unambiguous=self._transaction_amount_is_unambiguous(transaction),
             currency=money.currency,
             account_id=self._account_id(account),
             account_name=full_name,
@@ -2913,6 +2955,25 @@ class GnuCashBookService:
             description=str(getattr(transaction, "description", "")),
             currency=currency,
             splits=split_dtos,
+        )
+
+    @staticmethod
+    def _unavailable_scheduled_transaction(scheduled: Any, *, as_of_date: date) -> ScheduledTransactionDTO:
+        """Keep authorized identity only; do not reparse known-invalid metadata."""
+        has_template = bool(getattr(scheduled, "template_act_guid", None))
+        return ScheduledTransactionDTO(
+            id=_guid(scheduled),
+            name=str(getattr(scheduled, "name", "") or ""),
+            enabled=bool(getattr(scheduled, "enabled", False)),
+            has_template_account=has_template,
+            template_reference_status="present_redacted" if has_template else "not_present_redacted",
+            forecast=ScheduledTransactionForecastDTO(
+                status="unavailable",
+                reason="scheduled_recurrence_invalid_metadata",
+                as_of_date=as_of_date.isoformat(),
+                next_due_date=None,
+            ),
+            amount=ScheduledTransactionAmountDTO(status="not_available", reason="forecast_unavailable"),
         )
 
     def _scheduled_transaction_to_dto(

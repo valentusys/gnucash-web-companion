@@ -5,21 +5,22 @@ import type { PageServerLoad } from './$types';
 type ScheduledStatusFilter = 'all' | 'enabled' | 'disabled';
 type ScheduledTemplateFilter = 'all' | 'with_template' | 'without_template';
 type ScheduledSort = 'next_due' | 'name' | 'enabled_first';
-type ScheduledForecastGroupKey = 'overdue' | 'upcoming' | 'next_30_days' | 'later_or_inactive';
+type ScheduledForecastGroupKey = 'overdue' | 'upcoming' | 'next_30_days' | 'later_or_inactive' | 'unavailable';
 
 type ScheduledForecastGroups = Record<ScheduledForecastGroupKey, ScheduledTransaction[]>;
 
 const STATUS_FILTERS: ScheduledStatusFilter[] = ['all', 'enabled', 'disabled'];
 const TEMPLATE_FILTERS: ScheduledTemplateFilter[] = ['all', 'with_template', 'without_template'];
 const SORT_OPTIONS: ScheduledSort[] = ['next_due', 'name', 'enabled_first'];
-const GROUP_ORDER: ScheduledForecastGroupKey[] = ['overdue', 'upcoming', 'next_30_days', 'later_or_inactive'];
+const GROUP_ORDER: ScheduledForecastGroupKey[] = ['overdue', 'upcoming', 'next_30_days', 'later_or_inactive', 'unavailable'];
 
 function normalizeParam<T extends string>(value: string | null, allowed: readonly T[], fallback: T): T {
 	return value && allowed.includes(value as T) ? (value as T) : fallback;
 }
 
-function scheduledFilterHref(status: ScheduledStatusFilter, template: ScheduledTemplateFilter, sort: ScheduledSort): string {
+function scheduledFilterHref(status: ScheduledStatusFilter, template: ScheduledTemplateFilter, sort: ScheduledSort, asOfDate: string | null): string {
 	const params = new URLSearchParams();
+	if (asOfDate !== null) params.set('as_of_date', asOfDate);
 	if (status !== 'all') params.set('status', status);
 	if (template !== 'all') params.set('template', template);
 	if (sort !== 'next_due') params.set('sort', sort);
@@ -63,6 +64,7 @@ function sortScheduledTransactions(items: ScheduledTransaction[], sort: Schedule
 
 function forecastGroupKey(item: ScheduledTransaction): ScheduledForecastGroupKey {
 	const { forecast } = item;
+	if (forecast.status === 'unavailable') return 'unavailable';
 	if (forecast.is_overdue) return 'overdue';
 	const nextDue = forecast.next_due_date;
 	if (nextDue && forecast.upcoming_7_days.includes(nextDue)) return 'upcoming';
@@ -75,7 +77,8 @@ function groupScheduledTransactions(items: ScheduledTransaction[]): ScheduledFor
 		overdue: [],
 		upcoming: [],
 		next_30_days: [],
-		later_or_inactive: []
+		later_or_inactive: [],
+		unavailable: []
 	};
 	for (const item of items) groups[forecastGroupKey(item)].push(item);
 	return groups;
@@ -84,8 +87,10 @@ function groupScheduledTransactions(items: ScheduledTransaction[]): ScheduledFor
 export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 	const token = getAuthToken(cookies);
 	const { books, activeBook, bookPrefix } = await getActiveBookContext(fetch, cookies, token);
+	const asOfDate = url.searchParams.get('as_of_date');
+	const asOfQuery = asOfDate !== null ? `?${new URLSearchParams({ as_of_date: asOfDate })}` : '';
 	const scheduledTransactionsRaw = activeBook
-		? await apiFetch<ScheduledTransaction[]>(fetch, `${bookPrefix}/scheduled-transactions`, token)
+		? await apiFetch<ScheduledTransaction[]>(fetch, `${bookPrefix}/scheduled-transactions${asOfQuery}`, token)
 		: [];
 	const statusFilter = normalizeParam(url.searchParams.get('status'), STATUS_FILTERS, 'all');
 	const templateFilter = normalizeParam(url.searchParams.get('template'), TEMPLATE_FILTERS, 'all');
@@ -108,6 +113,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 		scheduledSummary: {
 			total: scheduledTransactionsRaw.length,
 			shown: scheduledTransactions.length,
+			unavailable: scheduledTransactionsRaw.filter((item) => item.forecast.status === 'unavailable').length,
 			enabled: enabledCount,
 			disabled: disabledCount,
 			withTemplate: templateCount,
@@ -122,16 +128,16 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 			template: templateFilter,
 			sort,
 			links: {
-				all: scheduledFilterHref('all', templateFilter, sort),
-				enabled: scheduledFilterHref('enabled', templateFilter, sort),
-				disabled: scheduledFilterHref('disabled', templateFilter, sort),
-				allTemplates: scheduledFilterHref(statusFilter, 'all', sort),
-				withTemplate: scheduledFilterHref(statusFilter, 'with_template', sort),
-				withoutTemplate: scheduledFilterHref(statusFilter, 'without_template', sort),
-				nextDue: scheduledFilterHref(statusFilter, templateFilter, 'next_due'),
-				name: scheduledFilterHref(statusFilter, templateFilter, 'name'),
-				enabledFirst: scheduledFilterHref(statusFilter, templateFilter, 'enabled_first'),
-				clear: scheduledFilterHref('all', 'all', 'next_due')
+				all: scheduledFilterHref('all', templateFilter, sort, asOfDate),
+				enabled: scheduledFilterHref('enabled', templateFilter, sort, asOfDate),
+				disabled: scheduledFilterHref('disabled', templateFilter, sort, asOfDate),
+				allTemplates: scheduledFilterHref(statusFilter, 'all', sort, asOfDate),
+				withTemplate: scheduledFilterHref(statusFilter, 'with_template', sort, asOfDate),
+				withoutTemplate: scheduledFilterHref(statusFilter, 'without_template', sort, asOfDate),
+				nextDue: scheduledFilterHref(statusFilter, templateFilter, 'next_due', asOfDate),
+				name: scheduledFilterHref(statusFilter, templateFilter, 'name', asOfDate),
+				enabledFirst: scheduledFilterHref(statusFilter, templateFilter, 'enabled_first', asOfDate),
+				clear: scheduledFilterHref('all', 'all', 'next_due', asOfDate)
 			}
 		}
 	};

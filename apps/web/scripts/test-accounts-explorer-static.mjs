@@ -35,7 +35,7 @@ const ciWorkflow = read('..', '..', '.github', 'workflows', 'ci.yml');
 
 assert.equal(packageJson.scripts?.['test:accounts-explorer'], 'node scripts/test-accounts-explorer-static.mjs', 'package.json must expose npm run test:accounts-explorer');
 assert.equal(packageJson.scripts?.['test:accounts-explorer-browser'], 'npm run build && node scripts/test-accounts-explorer-browser.mjs', 'package.json must expose npm run test:accounts-explorer-browser');
-assert.match(ciWorkflow, /npm run test:accounts-explorer\s+npm run test:transaction-entry-create-disposable-browser\s+npm run test:accounts-explorer-browser/s, 'CI must run account static and browser gates without weakening existing transaction/report browser gates');
+assert.match(ciWorkflow, /npm run test:accounts-explorer\s+npm run test:scheduled-forecast\s+npm run test:qa-loaders\s+npm run test:qa-money\s+npm run test:qa-reporting-date\s+npm run test:transaction-entry-create-disposable-browser\s+npm run test:accounts-explorer-browser/s, 'CI must run account static and browser gates without weakening existing transaction/report browser gates');
 
 assert.match(browserScript, /largeAccountCount = 220[\s\S]*initialDomRows[\s\S]*initialDocumentHeight[\s\S]*initial_dom_rows[\s\S]*initial_document_height/s, 'browser smoke must cover 212+ discoverable accounts with bounded initial DOM and document height');
 assert.match(browserScript, /Account explorer loaded[\s\S]*exactly one bounded account explorer request[\s\S]*cursor[\s\S]*offset/s, 'browser smoke must cover canonical /accounts default request bounds');

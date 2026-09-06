@@ -12,10 +12,11 @@ import type {
 	PeriodReportComparison,
 	ReportSummary,
 	ScheduledTransaction,
-	TransactionListItem
+	RecentTransaction
 } from '$lib/api/types';
 import { compareDecimalStrings } from '$lib/money.js';
 import { buildTransactionsExplorerUrl } from '$lib/transactions/explorer';
+import { getReportingDate } from '$lib/server/reporting-date';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -133,9 +134,9 @@ export async function load({ cookies, fetch: fetchFn }: { cookies: any; fetch: a
 	let expenses: ExpenseByAccount[] = [];
 	let cashflowPeriods: CashflowPeriod[] = [];
 	let monthCashflow: CashflowData | null = null;
-	let recentTransactions: TransactionListItem[] = [];
+	let recentTransactions: RecentTransaction[] = [];
 	let expenseChanges: DashboardExpenseChange[] = [];
-	let upcomingObligations: DashboardUpcomingObligations = { enabled_count: 0 };
+	let upcomingObligations: DashboardUpcomingObligations = { enabled_count: 0, unavailable_count: 0 };
 	const sectionErrors: DashboardSectionErrors = {
 		summary: false,
 		expenses: false,
@@ -152,14 +153,13 @@ export async function load({ cookies, fetch: fetchFn }: { cookies: any; fetch: a
 		sectionErrors.summary = true;
 	}
 
-	const fallbackAsOf = new Date().toISOString().slice(0, 10);
-	const asOfDate = strictIsoDate(summary?.as_of_date) ? summary.as_of_date : fallbackAsOf;
-	const dateFrom = monthStart(asOfDate);
-	const dateTo = asOfDate;
-	const comparisonRange = previousEquivalentRange(dateFrom, dateTo);
+	const asOfDate = await getReportingDate(fetchFn, bookPrefix, token, summary?.as_of_date);
+	const dateFrom = asOfDate ? monthStart(asOfDate) : '';
+	const dateTo = asOfDate ?? '';
+	const comparisonRange = asOfDate ? previousEquivalentRange(dateFrom, dateTo) : { date_from: '', date_to: '' };
 
 	const comparisonTask = async (): Promise<PeriodReportComparison | null> => {
-		if (summary?.status !== 'ready') return null;
+		if (summary?.status !== 'ready' || !asOfDate) return null;
 		const params = new URLSearchParams({
 			date_from: dateFrom,
 			date_to: dateTo,
@@ -184,7 +184,7 @@ export async function load({ cookies, fetch: fetchFn }: { cookies: any; fetch: a
 
 	const recentTask = async () => {
 		try {
-			recentTransactions = await apiFetch<TransactionListItem[]>(
+			recentTransactions = await apiFetch<RecentTransaction[]>(
 				fetchFn,
 				`${bookPrefix}/reports/recent-transactions?limit=20`,
 				token
@@ -197,8 +197,11 @@ export async function load({ cookies, fetch: fetchFn }: { cookies: any; fetch: a
 
 	const obligationsTask = async () => {
 		try {
-			const scheduled = await apiFetch<ScheduledTransaction[]>(fetchFn, `${bookPrefix}/scheduled-transactions`, token);
-			upcomingObligations = { enabled_count: scheduled.filter((item) => item.enabled).length };
+			const scheduled = await apiFetch<ScheduledTransaction[]>(fetchFn, `${bookPrefix}/scheduled-transactions${asOfDate ? `?as_of_date=${asOfDate}` : ''}`, token);
+			upcomingObligations = {
+				enabled_count: scheduled.filter((item) => item.enabled).length,
+				unavailable_count: scheduled.filter((item) => item.forecast.status === 'unavailable').length
+			};
 		} catch (reason) {
 			if (isRedirect(reason)) throw reason;
 			sectionErrors.upcomingObligations = true;
@@ -244,6 +247,7 @@ export async function load({ cookies, fetch: fetchFn }: { cookies: any; fetch: a
 
 	return {
 		summary,
+		reportingDate: asOfDate,
 		expenses,
 		cashflowPeriods,
 		monthCashflow,

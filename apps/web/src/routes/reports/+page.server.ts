@@ -14,6 +14,7 @@ import type {
 } from '$lib/api/types';
 import { localeFromCookie, t, type Locale } from '$lib/i18n';
 import { buildTransactionsExplorerUrl } from '$lib/transactions/explorer';
+import { getReportingDate } from '$lib/server/reporting-date';
 import type { PageServerLoad } from './$types';
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -177,7 +178,9 @@ function shiftOneYearBackClamp(value: string): string {
 	return formatDate(new Date(Date.UTC(year, month, day)));
 }
 
-function presetRange(preset: Exclude<ReportPreset, 'custom'>, now = new Date()): { dateFrom: string; dateTo: string } {
+function presetRange(preset: Exclude<ReportPreset, 'custom'>, asOfDate: string | null): { dateFrom: string; dateTo: string } {
+	if (!asOfDate || !strictIsoDate(asOfDate)) return { dateFrom: '', dateTo: '' };
+	const now = parseIsoDate(asOfDate);
 	const year = now.getUTCFullYear();
 	const month = now.getUTCMonth();
 	const today = formatDate(now);
@@ -226,7 +229,7 @@ function isComparisonMode(value: string | null): value is ComparisonMode {
 	return COMPARISON_MODES.includes(value as ComparisonMode);
 }
 
-function resolvePeriod(url: URL, locale: Locale): PeriodResolution {
+function resolvePeriod(url: URL, locale: Locale, asOfDate: string | null): PeriodResolution {
 	const rawPreset = url.searchParams.get('preset');
 	const requestedPreset = isReportPreset(rawPreset) ? rawPreset : null;
 	const hasDateParam = url.searchParams.has('date_from') || url.searchParams.has('date_to');
@@ -253,7 +256,7 @@ function resolvePeriod(url: URL, locale: Locale): PeriodResolution {
 	}
 
 	if (rawPreset !== null && !requestedPreset) {
-		const fallback = presetRange('this-month');
+		const fallback = presetRange('this-month', asOfDate);
 		return {
 			period: { preset: 'this-month', dateFrom: fallback.dateFrom, dateTo: fallback.dateTo },
 			validationError: t(locale, 'reports.validation.unsupportedPreset')
@@ -261,10 +264,10 @@ function resolvePeriod(url: URL, locale: Locale): PeriodResolution {
 	}
 
 	const preset = requestedPreset ?? 'this-month';
-	const range = presetRange(preset);
+	const range = presetRange(preset, asOfDate);
 	return {
 		period: { preset, dateFrom: range.dateFrom, dateTo: range.dateTo },
-		validationError: null
+		validationError: range.dateTo ? null : t(locale, 'reporting.dateUnavailable')
 	};
 }
 
@@ -348,9 +351,10 @@ function comparisonForPrimary(period: ReportPeriod, comparison: ComparisonPeriod
 	return { mode: comparison.mode, ...expectedComparisonRange(comparison.mode, period) };
 }
 
-function buildPresetOptions(period: ReportPeriod, comparison: ComparisonPeriod, locale: Locale) {
+function buildPresetOptions(period: ReportPeriod, comparison: ComparisonPeriod, locale: Locale, asOfDate: string | null) {
+	if (!asOfDate) return [];
 	return (['this-month', 'last-month', 'year-to-date'] as const).map((preset) => {
-		const range = presetRange(preset);
+		const range = presetRange(preset, asOfDate);
 		const nextPeriod = { preset, dateFrom: range.dateFrom, dateTo: range.dateTo };
 		const labelKey =
 			preset === 'this-month'
@@ -368,6 +372,7 @@ function buildPresetOptions(period: ReportPeriod, comparison: ComparisonPeriod, 
 }
 
 function buildComparisonModeOptions(period: ReportPeriod, comparison: ComparisonPeriod, locale: Locale) {
+	if (!strictIsoDate(period.dateFrom) || !strictIsoDate(period.dateTo) || period.dateFrom > period.dateTo) return [];
 	return (['previous_equivalent', 'same_period_last_year'] as const).map((mode) => {
 		const nextComparison = { mode, ...expectedComparisonRange(mode, period) };
 		return {
@@ -730,7 +735,8 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 	const locale = localeFromCookie(cookies);
 	const token = getAuthToken(cookies);
 	const { activeBook, bookPrefix } = await getActiveBookContext(fetch, cookies, token);
-	const periodResolution = resolvePeriod(url, locale);
+	const asOfDate = activeBook ? await getReportingDate(fetch, bookPrefix, token) : null;
+	const periodResolution = resolvePeriod(url, locale, asOfDate);
 	const comparisonResolution = periodResolution.validationError
 		? { comparison: fallbackComparisonPeriod(url, periodResolution.period), validationError: null }
 		: resolveComparisonPeriod(url, periodResolution.period, locale);
@@ -753,7 +759,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 				dateTo: comparisonReport.comparison.requestedPeriod.dateTo
 			}
 		: comparisonResolution.comparison;
-	const presetOptions = buildPresetOptions(activePeriod, activeComparison, locale);
+	const presetOptions = buildPresetOptions(activePeriod, activeComparison, locale, asOfDate);
 	const comparisonModeOptions = buildComparisonModeOptions(activePeriod, activeComparison, locale);
 	const drilldowns = comparisonReport
 		? buildComparisonDrilldowns(comparisonReport)

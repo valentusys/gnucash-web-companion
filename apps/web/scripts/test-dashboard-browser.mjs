@@ -161,8 +161,7 @@ function recentTransactionsPayload(mode) {
 				from_accounts: [{ account_id: 'income-salary', display_name: 'Synthetic Income', full_name: 'Income:Synthetic Salary', value: '-125.00', split_count: 1 }],
 				to_accounts: [{ account_id: 'bank-main', display_name: 'Synthetic Bank', full_name: 'Assets:Synthetic Bank', value: '125.00', split_count: 1 }]
 			},
-			representative_amount: { amount: '125.00', currency: 'SEK' },
-			matched_amount: { amount: '125.00', currency: 'SEK' }
+			amount_is_unambiguous: true
 		},
 		{
 			id: 'tx-dashboard-no-representative',
@@ -180,7 +179,7 @@ function recentTransactionsPayload(mode) {
 				from_accounts: [{ account_id: 'bank-main', display_name: 'Synthetic Bank', full_name: 'Assets:Synthetic Bank', value: '-9.91', split_count: 1 }],
 				to_accounts: [{ account_id: 'expense-food', display_name: 'Synthetic Food', full_name: 'Expenses:Synthetic Food', value: '9.91', split_count: 1 }]
 			},
-			matched_amount: { amount: '999.91', currency: 'SEK' }
+			amount_is_unambiguous: false
 		},
 		{
 			id: 'tx-dashboard-composite',
@@ -201,7 +200,7 @@ function recentTransactionsPayload(mode) {
 					{ account_id: 'expense-supplies', display_name: 'Synthetic Supplies', full_name: 'Expenses:Synthetic Supplies', value: '4.00', split_count: 1 }
 				]
 			},
-			representative_amount: { amount: '777.72', currency: 'SEK' }
+			amount_is_unambiguous: false
 		},
 		{
 			id: 'tx-dashboard-ambiguous',
@@ -230,7 +229,19 @@ function scheduledPayload(mode) {
 		{ id: 'schedule-rent', name: 'Synthetic Rent', enabled: true, start_date: '2025-01-01' },
 		{ id: 'schedule-insurance', name: 'Synthetic Insurance', enabled: true, start_date: '2025-02-01' },
 		{ id: 'schedule-disabled', name: 'Synthetic Disabled Rule', enabled: false, start_date: '2025-03-01' }
-	];
+	].map((item) => ({
+		...item,
+		forecast: {
+			status: item.enabled ? 'ready' : 'disabled', reason: null, as_of_date: '2026-07-15',
+			next_due_date: item.enabled ? '2026-08-01' : null, is_overdue: false,
+			upcoming_7_days: [], upcoming_30_days: item.enabled ? ['2026-08-01'] : []
+		},
+		amount: { status: 'not_available', amount: null, currency: null, unresolved_formula_count: 0, reason: 'no_template_reference' },
+		recurrence: [], new_transactions_created: 0, limitations: [],
+		end_date: null, last_occurred: null, num_occurrences: null, remaining_occurrences: null,
+		auto_create: false, auto_notify: false, advance_create_days: 0, advance_notify_days: 0,
+		instance_count: 0, has_template_account: false, template_reference_status: 'not_present_redacted'
+	}));
 }
 
 function periodReport({ dateFrom, dateTo, mode, comparison = false }) {
@@ -341,6 +352,7 @@ async function startSyntheticApi() {
 	const server = createServer((req, res) => {
 		const url = new URL(req.url ?? '/', 'http://127.0.0.1');
 		requests.push({ method: req.method, path: url.pathname, search: url.search, pathWithSearch: `${url.pathname}${url.search}` });
+		if (req.method === 'GET' && url.pathname === '/books/1/reports/reporting-date') return jsonResponse(res, 200, { as_of_date: '2026-09-06', basis: 'api_local_calendar' });
 
 		if (isForbiddenApiMutation(req.method ?? 'GET', url.pathname, url.search)) {
 			forbiddenRequests.push({ method: req.method, path: url.pathname, search: url.search });
@@ -658,12 +670,14 @@ function assertStaticSafety() {
 	assert.match(server, /sectionErrors[\s\S]*summary[\s\S]*expenses[\s\S]*cashflow[\s\S]*recentTransactions/s, 'dashboard server must return explicit per-section error state');
 	assert.match(page, /data-dashboard-section-error[\s\S]*role="alert"[\s\S]*dashboard\.sectionError\.redacted/s, 'dashboard page must render accessible fixed-copy section errors');
 	assert.doesNotMatch(server, /e\.message|error\.message/, 'dashboard server must not return raw backend exception messages');
-	assert.match(server, /summary\.as_of_date[\s\S]*monthStart[\s\S]*previousEquivalentRange[\s\S]*reports\/comparison/s, 'dashboard report range must derive from the summary as-of date and use exact previous-equivalent dates');
+	assert.match(server, /getReportingDate\(fetchFn, bookPrefix, token, summary\?\.as_of_date\)[\s\S]*monthStart[\s\S]*previousEquivalentRange[\s\S]*reports\/comparison/s, 'dashboard report range must prefer summary as-of and use exact previous-equivalent dates');
+	assert.doesNotMatch(server, /new Date\(\)\.toISOString\(\)/, 'QA-04 dashboard fallback cannot derive today from a JS UTC instant');
 	assert.match(summaryGrid, /data-dashboard-decision="position"[\s\S]*data-dashboard-decision="month-result"[\s\S]*data-dashboard-decision="largest-changes"[\s\S]*data-dashboard-decision="upcoming-obligations"/s, 'dashboard summary must prioritize the four decision cards');
 	assert.match(summaryGrid, /<details[\s\S]*data-dashboard-safety-details[\s\S]*dashboard\.reportingBasis[\s\S]*dashboard\.currencyConversion/s, 'technical calculation and safety copy must live in one disclosure');
 	assert.match(expenses, /expenses\.slice\(0, 5\)[\s\S]*data-dashboard-expense-row/s, 'expenses component must render only five rows');
 	assert.match(expenses, /viewAllHref[\s\S]*dashboard\.viewAllExpenses/s, 'expenses component must expose a view-all link');
-	assert.match(recent, /ordinaryTwoSplit[\s\S]*representative_amount[\s\S]*data-dashboard-recent-kind/s, 'recent transactions must gate friendly summary and representative amounts on an ordinary two-split classification');
+	assert.match(recent, /RecentTransaction[\s\S]*ordinaryTwoSplit[\s\S]*tx\.amount_is_unambiguous[\s\S]*tx\.amount\.replace[\s\S]*currency: tx\.currency[\s\S]*data-dashboard-recent-kind/s, 'QA-02 recent amounts must use the real report contract and backend simple-amount classification');
+	assert.doesNotMatch(recent, /tx\.representative_amount|tx\.matched_amount/, 'QA-02 explorer-only amount fields cannot leak into recent rendering');
 	assert.doesNotMatch(`${server}\n${page}\n${summaryGrid}\n${recent}\n${expenses}`, /parseFloat\(|Number\([^)]*(?:amount|total|net|inflow|outflow|expense|income|delta)/, 'dashboard must not use float/Number conversion on money strings');
 	assert.doesNotMatch(`${summaryGrid}\n${expenses}`, /from ['"][^'"]*(?:chart|d3|echarts|plotly|recharts)/i, 'dashboard trends must not add a heavy chart dependency');
 	assert.doesNotMatch(page, /localStorage|sessionStorage|formaction="\?\/create"|method="POST"/s, 'dashboard must not add browser storage or write submissions');

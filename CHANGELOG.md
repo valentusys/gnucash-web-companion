@@ -30,6 +30,27 @@ reading the full history linearly.
 
 ## [Unreleased]
 
+### QA remediation (in progress)
+
+- QA-04: use the API installation calendar for reporting defaults and quick periods.
+  Prefer summary as-of, retain explicit dates, and disclose unavailable date defaults
+  instead of silently falling back to frontend UTC. No host timezone change. Reconcile the
+  umbrella auth guard with encoded scheduled date overrides and backend-owned default dates.
+
+- QA-03: unscoped explorer amounts are neutral and split-order independent. Scoped
+  account changes are labelled in table/mobile views; CSV values/filters use account
+  quantities without FX conversion. Complex totals are not inferred.
+
+- QA-02: recent dashboard rows use report amount/currency rather than explorer-only fields.
+  A backend classification permits neutral magnitudes only for simple balanced single-currency
+  pairs (including zero); composite, ambiguous and multi-currency amounts are not summarized.
+
+- QA-01: preserve readable scheduled transactions when another record has invalid recurrence
+  metadata. Return an explicit unavailable forecast without inferred dates or amounts and show
+  forecast incompleteness on Scheduled and Dashboard. Global failures still fail closed.
+- Add deterministic synthetic-only, real FastAPI/SvelteKit read-only browser regression coverage.
+  Remaining QA corrections and final integration acceptance are pending; no release is published.
+
 ### Current autonomous/readability and compatibility work
 
 - v0.4 owner-writebeta RC readiness packet:

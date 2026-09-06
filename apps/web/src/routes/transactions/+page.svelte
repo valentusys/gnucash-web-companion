@@ -235,6 +235,9 @@
 	{#if isRouteLoading}
 		<LoadingState variant="transactions" message="Loading transactions for the selected read-only book…" />
 	{:else}
+		{#if data.reportingDateUnavailable}
+			<p role="status" data-reporting-date-unavailable class="mb-4 text-sm" style="color: var(--app-warning);">{t(locale, 'reporting.dateUnavailable')}</p>
+		{/if}
 		{#if isLegacy}
 			<section class="mb-4 rounded-xl border p-3 text-sm" style="border-color: var(--app-warning); background: color-mix(in srgb, var(--app-warning) 10%, var(--app-panel)); color: var(--app-text);" role="status">
 				{data.legacyNotice}

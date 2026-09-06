@@ -111,6 +111,7 @@ class TransactionListItemDTO(BaseModel):
     date: str = Field(..., description="Transaction date as YYYY-MM-DD")
     description: str = Field(..., description="Transaction description")
     amount: str = Field(..., description="Amount relevant to the queried account as decimal string")
+    amount_is_unambiguous: bool = Field(False, description="Two balanced splits in distinct accounts sharing the transaction currency; abs(amount) is a safe neutral magnitude for an unscoped recent list")
     currency: str = Field(..., description="ISO 4217 currency code")
     account_id: str = Field(..., description="The account this amount relates to")
     account_name: str = Field(..., description="Full name of the related account")
@@ -145,7 +146,8 @@ class ScheduledTransactionRecurrenceDTO(BaseModel):
 class ScheduledTransactionForecastDTO(BaseModel):
     """Bounded due-date projection; this never materializes transactions."""
 
-    status: Literal["ready", "disabled", "exhausted"]
+    status: Literal["ready", "disabled", "exhausted", "unavailable"]
+    reason: Literal["scheduled_recurrence_invalid_metadata"] | None = None
     as_of_date: str
     next_due_date: str | None
     is_overdue: bool = False
@@ -167,6 +169,7 @@ class ScheduledTransactionAmountDTO(BaseModel):
         "template_shape_unsupported",
         "template_unbalanced",
         "currency_unavailable",
+        "forecast_unavailable",
     ] | None = None
 
 
