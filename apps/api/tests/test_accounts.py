@@ -551,7 +551,7 @@ class TestAccountExplorer:
         assert bank["child_count"] == 0
         assert bank["match_state"] == "match"
         assert bank["structure_status"] == "normal"
-        assert by_id[_hex_guid(2)]["structure_status"] == "orphan_promoted"
+        assert by_id[_hex_guid(2)]["structure_status"] == "root"
 
         cafe = by_id[_hex_guid(4)]
         assert cafe["name"] == "Café"

@@ -2,6 +2,19 @@
 
 Status: in progress on `fix/qa-20260906`; not merged or released.
 
+## QA-06 — implemented and locally verified
+
+Account records retain structural-root evidence from the full visibility index before root
+suppression. Known structural-root children become top-level `root` nodes without losing
+`source_parent_id`; unknown parents remain orphans. Ordinary accounts named Root are not
+special-cased. Filtered ancestors, self/multi-node cycles and duplicate diagnostics remain.
+
+RED: generated real-service browser and six API assertions showed false orphan status. GREEN:
+`test_qa_account_hierarchy.py`, `test_accounts.py`, `test_account_overview_activity.py` passed
+(62 tests); SQL aggregation suite passed. Generated SQLite and in-memory node DTOs match;
+the real-service account-group browser passes with unchanged book hash and zero mutations.
+All new evidence is synthetic; no book is repaired or modified by the hierarchy view.
+
 ## QA-01 — implemented and locally verified
 
 Only `scheduled_recurrence_invalid_metadata` from an individual DTO conversion is isolated.

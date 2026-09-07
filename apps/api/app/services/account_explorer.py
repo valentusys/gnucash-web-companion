@@ -107,6 +107,7 @@ class _AccountRecord:
     commodity_mnemonic: str
     hidden: bool
     placeholder: bool
+    source_parent_is_structural_root: bool = False
     direct_raw: Decimal = Decimal("0")
     direct_split_count: int = 0
 
@@ -1183,6 +1184,14 @@ def _account_record(
         commodity_mnemonic=unicodedata.normalize("NFC", mnemonic),
         hidden=bool(getattr(account, "hidden", False)),
         placeholder=bool(getattr(account, "placeholder", False)),
+        # Carry evidence from the complete visibility index before structural roots
+        # are removed. A missing identifier or an ordinary filtered parent is not
+        # proof of intentional structural-root suppression.
+        source_parent_is_structural_root=(
+            visibility is not None
+            and parent_id in visibility.accounts_by_id
+            and visibility.is_structural_root_id(parent_id)
+        ),
     )
 
 
@@ -1217,7 +1226,7 @@ def _effective_parent_map(records_by_id: dict[str, _AccountRecord]) -> tuple[dic
             structure_status[account_id] = "root"
         elif source_parent_id not in records_by_id:
             parent_by_id[account_id] = None
-            structure_status[account_id] = "orphan_promoted"
+            structure_status[account_id] = "root" if record.source_parent_is_structural_root else "orphan_promoted"
         else:
             parent_by_id[account_id] = source_parent_id
             structure_status[account_id] = "normal"

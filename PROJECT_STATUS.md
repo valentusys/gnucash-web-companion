@@ -20,7 +20,9 @@ Last updated: 2026-09-07
   synthetic real-backend clicks verify sparse/old and empty books in EN desktop/RU mobile.
 - QA-05 shows placeholder recursive totals by currency and an explicit all-accounts route for
   truncated children; real synthetic browsing reaches every envelope, including hidden tail rows.
-- QA-06/07/08/10/11/12 and final exact-head integration/CI remain pending. This is not final acceptance,
+- QA-06 distinguishes intentionally suppressed structural roots from missing parents, preserving
+  true orphan/cycle diagnostics and SQL/in-memory hierarchy parity.
+- QA-07/08/10/11/12 and final exact-head integration/CI remain pending. This is not final acceptance,
   a merge, a release, or deployment authorization. See [QA handoff](docs/handoff/qa-remediation.md).
 
 ## Quick navigation

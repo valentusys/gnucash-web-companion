@@ -384,6 +384,8 @@ try {
             const ids = fixture.accounts;
             await cdp.navigate(`${webBase}/accounts/${ids.group}`);
             assert.equal(overviewPayload.placeholder, true);
+            assert.equal(overviewPayload.structure_status, 'root', 'QA-06 real canonical-root child is not an orphan');
+            assert.doesNotMatch(await cdp.evaluate('document.querySelector("main").innerText'), /orphan|cycle repairs/i, 'QA-06 no false repair warning in actual account card');
             assert.equal(overviewPayload.children_truncated, true);
             const totals = (await cdp.evaluate(`document.querySelector('[data-account-recursive-totals]')?.innerText ?? ''`)).replace(/\s+/g, ' ');
             assert.ok(totals, 'QA-05 placeholder must show recursive totals');

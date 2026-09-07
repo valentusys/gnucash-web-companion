@@ -32,6 +32,9 @@ reading the full history linearly.
 
 ### QA remediation (in progress)
 
+- QA-06: suppress false orphan warnings only when the complete visibility index proves the
+  omitted parent is an existing structural root. Preserve source parents and real diagnostics.
+
 - QA-05: show full recursive currency buckets for non-postable account groups, disclose
   truncated child lists, and link to the paged account tree with hidden children included.
 
