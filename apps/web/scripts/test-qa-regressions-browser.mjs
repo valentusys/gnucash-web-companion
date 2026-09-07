@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url';
 import net from 'node:net';
 import { compareDecimalStrings } from '../src/lib/money.js';
 import { isReadOnlyQaRequest } from './qa-request-policy.mjs';
+import { verifyHeader } from './qa-header-browser.mjs';
 
 const webRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const repoRoot = resolve(webRoot, '../..');
@@ -201,6 +202,10 @@ try {
         scopeIds = pythonJson('import json,sqlite3,sys\nfrom tests.support.generate_qa_regression_fixture import guid\nwith sqlite3.connect(sys.argv[1]) as db:\n cursor=db.execute("UPDATE books SET base_currency=? WHERE uri_or_path=?", ("RUB",sys.argv[2]))\n assert cursor.rowcount == 1\nprint(json.dumps({name:guid("account:"+name) for name in ["cash","expense","savings"]}))', [join(root, 'app.db'), fixture.book_path]);
         evidence.synthetic_app_metadata_setup_updates = 1;
     }
+    if (process.env.QA_HEADER === '1') {
+        pythonJson('import json,sqlite3,sys\nwith sqlite3.connect(sys.argv[1]) as db:\n db.execute("UPDATE books SET name=?",("SYNTHETIC очень длинное название тестовой книги для проверки навигации и доступности выхода",))\n assert db.execute("SELECT COUNT(*) FROM books WHERE name LIKE ?",("SYNTHETIC%",)).fetchone()[0] >= 1\n print(json.dumps(True))', [join(root,'app.db')]);
+        evidence.synthetic_long_book_label = true;
+    }
     // Transparent proxy observes real web→API responses. No response stubs/DTO rewriting.
     proxy = createServer(async (request, response) => {
         const requestUrl = new URL(request.url, apiBase);
@@ -270,9 +275,18 @@ try {
     const expectedInvalid = fixture.invalid_schedule_ids.length;
     const expectedRows = fixture.valid_schedule_ids.length + expectedInvalid;
     evidence.cases = [];
-    for (const [locale, width] of [['en', 1440], ['ru', 390]]) {
+    for (const [locale, width] of (process.env.QA_HEADER === '1' ? [['ru',1440],['en',1440]] : [['en', 1440], ['ru', 390]])) {
         await cdp.send('Network.setCookie', { name: 'ui_locale', value: locale, url: webBase, path: '/', sameSite: 'Lax' });
         await cdp.send('Emulation.setDeviceMetricsOverride', { width, height: 1000, deviceScaleFactor: 1, mobile: width < 500 });
+        if (process.env.QA_HEADER === '1') {
+            evidence.header_cases ??= [];
+            evidence.header_cases.push(...await verifyHeader(cdp,webBase,locale,password,async name=>{
+                const shot=await cdp.send('Page.captureScreenshot',{format:'png'});
+                writeFileSync(join(root,name),Buffer.from(shot.data,'base64'),{mode:0o600});
+            }));
+            evidence.cases.push({locale,header:'PASS'});
+            continue;
+        }
         if (process.env.QA_FORM_CURRENCY === '1') {
             await cdp.navigate(`${webBase}/books/1/select?next=/transactions/new`);
             const expected = scenario==='money'?'RUB':scenario==='currency_eur'?'EUR':'';
@@ -591,7 +605,8 @@ try {
     evidence.api_requests = apiRequests;
     evidence.browser_requests = browserRequests;
     evidence.book_mutation_requests = [...browserRequests.filter(r=>!isReadOnlyQaRequest(r,'browser')), ...apiRequests.filter(r=>!isReadOnlyQaRequest(r,'api'))];
-    evidence.preview_requests = apiRequests.filter(r=>r.method==='POST' && r.path.endsWith('/transactions/create-preview')).length;
+    evidence.preview_requests = apiRequests.filter(record => record.method === 'POST' && record.path.endsWith('/transactions/create-preview')).length;
+    evidence.session_logout_requests = apiRequests.filter(record => record.method === 'POST' && record.path === '/auth/logout').length;
     if (fixture) {
         evidence.hash_after = hash(fixture.book_path);
         if (evidence.hash_after !== evidence.hash_before) cleanupErrors.push('Generated book changed');

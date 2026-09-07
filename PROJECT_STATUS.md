@@ -28,7 +28,9 @@ Last updated: 2026-09-07
   choice when unavailable/ambiguous, and resets drafts when switching books without router errors.
 - QA-10 distinguishes populated final pages from empty continuations and incomplete scans;
   generated cursor pages and CSV contain exactly the same transaction IDs.
-- QA-11/12 and final exact-head integration/CI remain pending. This is not final acceptance,
+- QA-11 keeps header/logout controls inside the viewport and hit-testable, with keyboard
+  menu dismissal and real synthetic-session logout/login across the responsive matrix.
+- QA-12 and final exact-head integration/CI remain pending. This is not final acceptance,
   a merge, a release, or deployment authorization. See [QA handoff](docs/handoff/qa-remediation.md).
 
 ## Quick navigation

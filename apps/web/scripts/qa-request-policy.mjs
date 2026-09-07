@@ -8,7 +8,7 @@ export function isReadOnlyQaRequest(request, boundary) {
             || (request.path === '/transactions/new' && request.search === '?/preview');
     }
     if (boundary === 'api') {
-        return request.search === '' && (request.path === '/auth/login'
+        return request.search === '' && (['/auth/login', '/auth/logout'].includes(request.path)
             || /^\/books\/[1-9]\d*\/transactions\/create-preview$/.test(request.path));
     }
     return false;

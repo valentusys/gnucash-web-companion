@@ -15,6 +15,7 @@
 	}: { books: Book[]; activeBook: Book | null; locale?: Locale; currentPath?: string; returnTo?: string; isAdmin?: boolean } = $props();
 
 	let menuOpen = $state(false);
+	let menuButton = $state<HTMLButtonElement | null>(null);
 	const showAdminUsers = $derived(isAdmin === true);
 
 	const primaryLinks = $derived([
@@ -42,6 +43,14 @@
 
 	function closeMenu() {
 		menuOpen = false;
+		menuButton?.focus();
+	}
+
+	function handleKeydown(event: KeyboardEvent) {
+		if (event.key === 'Escape' && menuOpen) {
+			event.preventDefault();
+			closeMenu();
+		}
 	}
 
 	function iconFor(name: string, active: boolean) {
@@ -68,6 +77,8 @@
 		}
 	}
 </script>
+
+<svelte:window onkeydown={handleKeydown} />
 
 <nav
 	data-mobile-nav
@@ -137,6 +148,7 @@
 		<button
 			type="button"
 			data-mobile-more
+			bind:this={menuButton}
 			data-active-route={secondaryRouteActive ? 'true' : 'false'}
 			class="flex min-h-[56px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[10px] font-medium transition-colors"
 			style={secondaryRouteActive || menuOpen ? 'color: var(--app-accent); background: var(--app-hover-bg);' : 'color: var(--app-muted);'}

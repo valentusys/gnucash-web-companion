@@ -32,12 +32,12 @@
 </script>
 
 <header class="hidden sticky top-0 z-30 border-b md:block" style="background-color: var(--app-nav-bg); border-color: var(--app-nav-border);">
-	<div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
+	<div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3">
 		<a href="/dashboard" class="text-sm font-semibold" style="color: var(--app-text);">
 			GnuCash Web Companion
 		</a>
 
-		<nav class="hidden items-center gap-1 md:flex" aria-label="Main navigation">
+		<nav class="order-last hidden w-full flex-wrap items-center justify-center gap-1 md:flex" aria-label="Main navigation">
 			{#each navLinks as link}
 				{@const active = isActivePath(link.href)}
 				<a
@@ -54,7 +54,7 @@
 			{/each}
 		</nav>
 
-		<div class="flex items-center gap-3">
+		<div class="flex min-w-0 max-w-full flex-wrap items-center gap-3">
 			<BookSwitcher {books} {activeBook} {locale} />
 			<LocaleSwitcher {locale} {returnTo} compact />
 			<ThemeSwitcher />

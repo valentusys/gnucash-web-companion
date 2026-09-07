@@ -32,6 +32,9 @@ reading the full history linearly.
 
 ### QA remediation (in progress)
 
+- QA-11: wrap desktop navigation instead of clipping session controls; Escape closes the
+  mobile menu and restores focus. Synthetic browser geometry and logout/login are checked.
+
 - QA-10: show a genuine last-page message for populated final results, not an empty-cursor
   notice; incomplete scans stay incomplete. Cursor and CSV semantics are unchanged.
 

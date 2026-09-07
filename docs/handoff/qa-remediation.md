@@ -2,6 +2,22 @@
 
 Status: in progress on `fix/qa-20260906`; not merged or released.
 
+## QA-11 — implemented and locally verified
+
+Desktop header content wraps into bounded rows, leaving logout and other controls visible
+rather than hiding overflow. Mobile Escape dismisses the menu and returns focus to its trigger.
+No routes, permissions, or logout authorization semantics changed.
+
+The generated real-backend runner checks bounding rectangles and center hit tests for navigation,
+locale/theme and logout controls with a long synthetic book name. EN/RU widths are 320, 390, 768,
+1024, 1280, 1440 and 1920; desktop widths also run at a CDP effective CSS viewport equivalent
+to 200% browser zoom. This is reflow emulation, not a native-browser-chrome zoom or real-phone
+claim. Each case reaches logout via Tab, verifies focus visibility, activates it with Enter,
+then logs in again. Collapsed-menu cases also exercise Enter/Escape and focus restoration.
+The 24 session logout requests are separately counted and are not book mutations. Real API
+logout responses succeed; generated book hashes stay identical and child runtimes stop.
+Synthetic desktop/mobile screenshots were visually reviewed: logout is visible and unoverlapped.
+
 ## QA-10 — implemented and locally verified
 
 Nonempty final results now have a dedicated localized `final_page` status. Empty continuation,
