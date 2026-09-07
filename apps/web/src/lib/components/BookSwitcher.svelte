@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
+
 	import type { Book } from '$lib/api/types';
 	import { DEFAULT_LOCALE, t, type Locale } from '$lib/i18n';
 
@@ -23,7 +23,8 @@
 		const select = event.target as HTMLSelectElement;
 		const bookId = select.value;
 		if (bookId) {
-			goto(safeBookSelectHref(bookId));
+			// This is a GET server endpoint, not a page in the client-side router.
+			window.location.assign(safeBookSelectHref(bookId));
 		}
 	}
 </script>

@@ -32,6 +32,7 @@
 		accountOptionsErrorCode: string | null;
 		createSettings: TransactionCreateSettings;
 		previewOnly: boolean;
+		reportingCurrency: string | null;
 	};
 
 	let { data, form }: { data: PageData; form?: PageForm } = $props();
@@ -66,7 +67,8 @@
 	}
 
 	function initialCurrency(): string {
-		return initialPayload()?.currency ?? (data.activeBook ?? data.books[0] ?? null)?.base_currency ?? 'SEK';
+		const explicit = initialPayload()?.currency;
+		return explicit && /^[A-Z]{3}$/.test(explicit) && explicit !== 'XXX' ? explicit : data.reportingCurrency ?? '';
 	}
 
 	function initialSplits(): DraftSplit[] {
@@ -94,6 +96,21 @@
 	let splits = $state<DraftSplit[]>(initialSplits());
 	let splitOrdinal = $state(3);
 	let confirmSubmitting = $state(false);
+	let draftBookId = $state<number | null | undefined>(undefined);
+	$effect(() => {
+		const bookId = selectedBook?.id ?? null;
+		if (draftBookId === undefined) {
+			draftBookId = bookId;
+		} else if (bookId !== draftBookId) {
+			draftBookId = bookId;
+			date = '';
+			description = '';
+			currency = data.reportingCurrency ?? '';
+			splits = initialDraftSplits(null, data.accounts);
+			splitOrdinal = 3;
+			confirmSubmitting = false;
+		}
+	});
 
 	const previewTransactionJson = $derived.by(() => {
 		const payload = initialPayload();
@@ -298,6 +315,7 @@
 			<label class="block min-w-0 text-sm font-medium" style="color: var(--app-text);" for="transaction-currency">
 				{t(locale, 'transactionCreate.currencyLabel')}
 				<input id="transaction-currency" name="currency" maxlength="3" pattern="[A-Za-z][A-Za-z][A-Za-z]" required bind:value={currency} class="mt-1 min-h-11 w-full min-w-0 rounded-lg border px-3 py-2 uppercase" style="border-color: var(--app-border); background: var(--app-bg); color: var(--app-text);" />
+				{#if !data.reportingCurrency}<span id="transaction-currency-help" class="mt-1 block text-sm" style="color: var(--app-muted);">{t(locale, 'transactionCreate.currencyChoose')}</span>{/if}
 			</label>
 		</div>
 

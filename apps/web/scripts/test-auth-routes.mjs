@@ -337,7 +337,7 @@ assert.match(
 const newTransactionServer = read('src/routes/transactions/new/+page.server.ts');
 assert.match(
 	newTransactionServer,
-	/getActiveBookContext\(fetch, cookies, token\)[\s\S]*loadAccountOptions\(fetch, bookPrefix, token[\s\S]*purpose: 'transaction_create_preview'[\s\S]*currency: activeBook\.base_currency/s,
+	/getActiveBookContext\(fetch, cookies, token\)[\s\S]*reports\/summary[\s\S]*loadAccountOptions\(fetch, bookPrefix, token[\s\S]*purpose: 'transaction_create_preview'[\s\S]*currency: reportingCurrency \?\? undefined/s,
 	'new transaction preview page must resolve bounded posting choices through the active accessible book context'
 );
 assert.doesNotMatch(
@@ -883,7 +883,7 @@ const bookSwitcher = read('src/lib/components/BookSwitcher.svelte');
 assert.match(bookSwitcher, /t\(locale, 'safety\.currentBook'\)[\s\S]*:/, 'book switcher must label the current book clearly');
 assert.match(
 	bookSwitcher,
-	/currentRouteNext\(\)[\s\S]*window\.location\.pathname[\s\S]*window\.location\.search[\s\S]*\/books\/\$\{encodeURIComponent\(bookId\)\}\/select\?next=\$\{encodeURIComponent\(currentRouteNext\(\)\)\}[\s\S]*goto\(safeBookSelectHref\(bookId\)\)/s,
+	/currentRouteNext\(\)[\s\S]*window\.location\.pathname[\s\S]*window\.location\.search[\s\S]*\/books\/\$\{encodeURIComponent\(bookId\)\}\/select\?next=\$\{encodeURIComponent\(currentRouteNext\(\)\)\}[\s\S]*window\.location\.assign\(safeBookSelectHref\(bookId\)\)/s,
 	'book switcher must preserve the current route and query string through the server-validated safe-link route when switching books'
 );
 assert.doesNotMatch(

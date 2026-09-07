@@ -24,7 +24,9 @@ Last updated: 2026-09-07
   true orphan/cycle diagnostics and SQL/in-memory hierarchy parity.
 - QA-07 separates fresh/preview/status/error states, maps actual blocked-preview warnings, and
   removes example success outcomes. Real browser checks click preview with writes disabled.
-- QA-08/10/11/12 and final exact-head integration/CI remain pending. This is not final acceptance,
+- QA-08 shares the Summary currency resolver for the draft default, asks for an explicit
+  choice when unavailable/ambiguous, and resets drafts when switching books without router errors.
+- QA-10/11/12 and final exact-head integration/CI remain pending. This is not final acceptance,
   a merge, a release, or deployment authorization. See [QA handoff](docs/handoff/qa-remediation.md).
 
 ## Quick navigation

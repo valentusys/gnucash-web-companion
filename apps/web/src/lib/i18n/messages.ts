@@ -831,6 +831,7 @@ export type MessageKey =
 	| 'transactionCreate.recoveryRef'
 	| 'transactionCreate.dateLabel'
 	| 'transactionCreate.currencyLabel'
+	| 'transactionCreate.currencyChoose'
 	| 'transactionCreate.descriptionLabel'
 	| 'transactionCreate.splitEditorTitle'
 	| 'transactionCreate.splitEditorHelp'
@@ -1978,6 +1979,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'transactionCreate.recoveryRef': 'recovery_ref',
 		'transactionCreate.dateLabel': 'Date',
 		'transactionCreate.currencyLabel': 'Currency',
+		'transactionCreate.currencyChoose': 'Currency could not be determined. Choose the currency of the accounts; no conversion is performed.',
 		'transactionCreate.descriptionLabel': 'Description',
 		'transactionCreate.splitEditorTitle': 'Split editor',
 		'transactionCreate.splitEditorHelp': 'Use 2..50 split rows. Amounts are signed decimal strings and must produce exact zero-sum before confirm.',
@@ -3146,6 +3148,7 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'transactionCreate.recoveryRef': 'recovery_ref',
 		'transactionCreate.dateLabel': 'Дата',
 		'transactionCreate.currencyLabel': 'Валюта',
+		'transactionCreate.currencyChoose': 'Не удалось определить валюту. Укажите валюту счетов; пересчёт между валютами не выполняется.',
 		'transactionCreate.descriptionLabel': 'Описание',
 		'transactionCreate.splitEditorTitle': 'Редактор splits',
 		'transactionCreate.splitEditorHelp': 'Используйте 2..50 split rows. Amounts — signed decimal strings; перед confirm нужен exact zero-sum.',

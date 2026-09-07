@@ -32,6 +32,9 @@ reading the full history linearly.
 
 ### QA remediation (in progress)
 
+- QA-08: use the validated reporting currency instead of a hardcoded draft fallback; retain
+  explicit returned choices, reset cross-book drafts, and navigate book selection as a server GET.
+
 - QA-07: show request errors only after a real failure, explain blocked-preview warning codes,
   and remove sample created outcomes from the form. Preview remains non-mutating.
 

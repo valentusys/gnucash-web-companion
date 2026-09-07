@@ -28,6 +28,9 @@ const ports = [];
 let proxy;
 let cdp;
 let fixture;
+const additionalFixtures = [];
+let alternateBookId;
+let currencyResolution;
 let recentPayload;
 let explorerPayload;
 let overviewPayload;
@@ -162,6 +165,9 @@ try {
     fixture = pythonJson('import json,sys\nfrom tests.support.generate_qa_regression_fixture import generate_qa_regression_fixture\nprint(json.dumps(generate_qa_regression_fixture(sys.argv[1], scenario=sys.argv[2])))', [join(root, 'generated'), scenario]);
     evidence.seed = fixture.seed;
     evidence.hash_before = fixture.sha256;
+    if (process.env.QA_FORM_CURRENCY === '1' && scenario === 'money') {
+        additionalFixtures.push(pythonJson('import json,sys\nfrom tests.support.generate_qa_regression_fixture import generate_qa_regression_fixture\nprint(json.dumps(generate_qa_regression_fixture(sys.argv[1], scenario="currency_eur")))', [join(root, 'generated', 'alternate')]));
+    }
     const apiPort = await freePort();
     const webPort = await freePort();
     const debugPort = await freePort();
@@ -186,7 +192,11 @@ try {
     if (clockInstant) evidence.clock = { instant: clockInstant, zone: clockZone, as_of_date: expectedClockDate };
     start(apiPython, apiArgs, apiEnv, apiRoot, 'api');
     await waitHttp(`${apiBase}/health`);
-    if (['money', 'recent_sparse'].includes(scenario)) {
+    if (additionalFixtures.length) {
+        alternateBookId = pythonJson('import json,sqlite3,sys\nwith sqlite3.connect(sys.argv[1]) as db:\n row=db.execute("SELECT base_currency FROM books WHERE uri_or_path=?",(sys.argv[2],)).fetchone()\n assert row == (None,), row\n cursor=db.execute("INSERT INTO books(name,storage_type,uri_or_path,base_currency,is_default,is_archived,is_enabled,transaction_create_enabled,transaction_create_generation,transaction_create_recovery_required,created_at,updated_at) VALUES (?, ?, ?, NULL,0,0,1,0,1,0,?,?)",("SYNTHETIC Alternate EUR","sqlite",sys.argv[3],"2026-09-01 00:00:00","2026-09-01 00:00:00"))\n book_id=cursor.lastrowid\n db.execute("INSERT INTO user_book_access(user_id,book_id,role) SELECT id,?,? FROM users WHERE username=?",(book_id,"owner","admin"))\n assert db.execute("SELECT base_currency,transaction_create_enabled FROM books WHERE id=?",(book_id,)).fetchone()==(None,0)\n print(json.dumps(book_id))', [join(root,'app.db'),fixture.book_path,additionalFixtures[0].book_path]);
+        evidence.synthetic_app_metadata_registered_books = 1;
+    }
+    if (['money', 'recent_sparse'].includes(scenario) && process.env.QA_FORM_CURRENCY !== '1') {
         // Isolated synthetic APP metadata setup only; never writes the generated GnuCash book.
         scopeIds = pythonJson('import json,sqlite3,sys\nfrom tests.support.generate_qa_regression_fixture import guid\nwith sqlite3.connect(sys.argv[1]) as db:\n cursor=db.execute("UPDATE books SET base_currency=? WHERE uri_or_path=?", ("RUB",sys.argv[2]))\n assert cursor.rowcount == 1\nprint(json.dumps({name:guid("account:"+name) for name in ["cash","expense","savings"]}))', [join(root, 'app.db'), fixture.book_path]);
         evidence.synthetic_app_metadata_setup_updates = 1;
@@ -218,7 +228,11 @@ try {
             if (record.path.endsWith('/transactions/explorer') && upstream.status === 200) explorerPayload = JSON.parse(body.toString('utf8'));
             if (record.path.endsWith('/transactions/create-preview') && upstream.status === 200) previewPayload = JSON.parse(body.toString('utf8'));
             if (/\/accounts\/[0-9a-f]{32}\/overview$/.test(record.path) && upstream.status === 200) overviewPayload = JSON.parse(body.toString('utf8'));
-            if (record.path.endsWith('/reports/summary') && upstream.status === 200) summaryAsOf = JSON.parse(body.toString('utf8')).as_of_date;
+            if (record.path.endsWith('/reports/summary') && upstream.status === 200) {
+                const summary = JSON.parse(body.toString('utf8'));
+                summaryAsOf = summary.as_of_date;
+                currencyResolution = summary.reporting_currency;
+            }
             if (record.path.endsWith('/scheduled-transactions') && upstream.status === 200) scheduledAsOf = JSON.parse(body.toString('utf8')).map(item => item.forecast.as_of_date);
             response.end(body);
         } catch { record.status = 502; response.writeHead(502); response.end(); }
@@ -259,6 +273,35 @@ try {
     for (const [locale, width] of [['en', 1440], ['ru', 390]]) {
         await cdp.send('Network.setCookie', { name: 'ui_locale', value: locale, url: webBase, path: '/', sameSite: 'Lax' });
         await cdp.send('Emulation.setDeviceMetricsOverride', { width, height: 1000, deviceScaleFactor: 1, mobile: width < 500 });
+        if (process.env.QA_FORM_CURRENCY === '1') {
+            await cdp.navigate(`${webBase}/books/1/select?next=/transactions/new`);
+            const expected = scenario==='money'?'RUB':scenario==='currency_eur'?'EUR':'';
+            assert.equal(await cdp.evaluate('document.querySelector("#transaction-currency").value'), expected, 'QA-08 fresh currency must match resolver without configured metadata');
+            assert.equal(currencyResolution.configured_currency,null);
+            assert.equal(currencyResolution.selected_currency,expected||null);
+            assert.equal(currencyResolution.status,expected?'ready':'setup_required');
+            if (!expected) assert.match(await cdp.evaluate('document.querySelector("#transaction-currency-help").innerText'),locale==='ru'?/Укажите валюту счетов/:/Choose the currency of the accounts/);
+            if (alternateBookId) {
+                // Exercise the actual BookSwitcher, recording whether its redirect reloads.
+                const marker = await cdp.evaluate('window.qaDocumentMarker = "same-document"');
+                await cdp.evaluate(`document.querySelector('#transaction-description').value='SYNTHETIC PRIVATE DRAFT'; document.querySelector('#transaction-description').dispatchEvent(new Event('input',{bubbles:true})); document.querySelector('input[name=split_amount]').value='123.4500';document.querySelector('input[name=split_amount]').dispatchEvent(new Event('input',{bubbles:true}));`);
+                for (const [bookId, currency] of [[alternateBookId,'EUR'],[1,'RUB']]) {
+                    if (width < 768) {
+                        await cdp.evaluate(`document.querySelector('[data-mobile-more][aria-expanded=false]')?.click()`);
+                        await cdp.wait(`Boolean(document.querySelector('[data-mobile-menu] select[data-testid=book-switcher-select]'))`);
+                    }
+                    await cdp.evaluate(`(()=>{const s=Array.from(document.querySelectorAll('[data-testid=book-switcher-select]')).find(e=>e.getClientRects().length);s.value=${JSON.stringify(String(bookId))};s.dispatchEvent(new Event('change',{bubbles:true}));})()`);
+                    await cdp.wait(`document.querySelector('input[name=book_id]')?.value===${JSON.stringify(String(bookId))} && document.querySelector('#transaction-currency')?.value===${JSON.stringify(currency)}`);
+                    evidence.book_switch_navigation = await cdp.evaluate('window.qaDocumentMarker')===marker?'client_side':'document_reload';
+                    assert.equal(await cdp.evaluate('document.querySelector("#transaction-description").value'),'');
+                    assert.equal(await cdp.evaluate('document.querySelector("input[name=split_amount]").value'),'');
+                    assert.equal(currencyResolution.selected_currency,currency);
+                }
+                evidence.form_book_switch = true;
+            }
+            evidence.cases.push({locale,width,form_currency:true});
+            continue;
+        }
         await cdp.navigate(`${webBase}/scheduled`);
         // Assertion, not a timeout: baseline must show the real 422 page rather than 16 rows.
         const rows = await cdp.evaluate('document.querySelectorAll("[data-schedule-row]").length');
@@ -318,6 +361,15 @@ try {
                 assert.ok(apiRequests.some(r=>r.path.endsWith('/transactions/create-preview') && r.status===422));
                 assert.equal(await cdp.evaluate('document.querySelector("input[name=split_amount]").value'), '-1.2300');
                 assert.equal(await cdp.evaluate('document.querySelector("#transaction-currency").value'), 'RUB');
+                await cdp.evaluate(`${fill}([["#transaction-currency","USD"]])`);
+                const invalidBefore = apiRequests.filter(r=>r.path.endsWith('/transactions/create-preview')).length;
+                const invalidLoadBefore = cdp.loadCount;
+                await cdp.evaluate(`document.querySelector('button[formaction="?/preview"]').click()`);
+                for (let i=0;i<150 && cdp.loadCount===invalidLoadBefore;i++) await delay(100);
+                assert.ok(cdp.loadCount>invalidLoadBefore,'validation response must finish before checking retained input');
+                await cdp.wait(`document.querySelector('input[name=currency]')?.value==='USD' && document.querySelector('input[name=split_amount]')?.value==='-1.2300'`);
+                assert.equal(apiRequests.filter(r=>r.path.endsWith('/transactions/create-preview')).length,invalidBefore+1);
+                evidence.explicit_currency_preserved = true;
                 disconnectPreview = true;
                 await cdp.evaluate(`document.querySelector('button[formaction="?/preview"]').click()`);
                 await cdp.wait(`document.querySelector('#transaction-create-error-summary')?.innerText.includes(${JSON.stringify('Write failed')})`);
@@ -520,6 +572,12 @@ try {
         evidence.quick_check = pythonJson('import json,sqlite3,sys\nwith sqlite3.connect("file:"+sys.argv[1]+"?mode=ro",uri=True) as db:\n print(json.dumps(db.execute("pragma quick_check").fetchone()[0]))', [fixture.book_path]);
         if (evidence.quick_check !== 'ok') cleanupErrors.push('SQLite quick_check failed');
     }
+    evidence.additional_fixture_checks = additionalFixtures.map(item=>{
+        const unchanged = hash(item.book_path)===item.sha256;
+        const quick_check = pythonJson('import json,sqlite3,sys\nwith sqlite3.connect("file:"+sys.argv[1]+"?mode=ro",uri=True) as db:\n print(json.dumps(db.execute("pragma quick_check").fetchone()[0]))',[item.book_path]);
+        if (!unchanged || quick_check!=='ok') cleanupErrors.push('Additional generated book changed or failed quick_check');
+        return {scenario:item.scenario,unchanged,quick_check};
+    });
     if (evidence.book_mutation_requests.length) cleanupErrors.push('Unexpected mutation request');
     if (cleanupErrors.length) { evidence.status = 'FAIL'; failure ??= new Error(cleanupErrors.join('; ')); }
     evidence.cleanup_errors = cleanupErrors;

@@ -2,6 +2,24 @@
 
 Status: in progress on `fix/qa-20260906`; not merged or released.
 
+## QA-08 — implemented and locally verified
+
+The form loads the same real Summary resolution as Dashboard, uses only a ready valid monetary
+code, and passes it to bounded account choices. Empty, tied, unavailable or invalid resolutions
+leave a blank required currency field with localized guidance. Valid returned explicit choices
+remain above the default after validation errors; no configured metadata or book is changed.
+Backend commodity/configuration validation and all confirmation/write gates remain unchanged:
+an inferred form default is not permission to convert currencies or save a transaction.
+
+Generated RUB/EUR, tie and empty fixtures prove resolver behavior and deterministic hashes.
+Real browser checks exercise EN/RU default fields and the actual mobile/desktop BookSwitcher
+in both directions. This exposed a related console error: `goto` was used for a server-only
+GET endpoint. Navigation now uses its existing encoded, server-validated URL directly, with
+no missing-page fallback. Actual navigation is a document reload; state-reset branch tests
+also exercise same-component book changes. Both generated book hashes stay unchanged.
+Explicit USD choice plus exact decimal strings survive an actual validation response on a
+configured RUB test book. Read-only acceptance executes no confirm or book mutation requests.
+
 ## QA-07 — implemented and locally verified
 
 Absent form errors now produce no error summary; unknown real failures keep a fixed catalog

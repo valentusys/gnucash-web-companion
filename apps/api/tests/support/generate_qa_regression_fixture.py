@@ -16,7 +16,7 @@ import piecash
 from tests.support.generate_issue60_usability_fixture import _stabilize_default_identity
 
 SEED = 20260906
-SCENARIOS = {"scheduled_partial", "scheduled_valid", "scheduled_invalid", "empty", "money", "recent_sparse", "account_groups"}
+SCENARIOS = {"scheduled_partial", "scheduled_valid", "scheduled_invalid", "empty", "money", "recent_sparse", "account_groups", "currency_eur", "currency_tie"}
 
 
 def guid(label: str) -> str:
@@ -87,6 +87,21 @@ def _account_groups_scenario(book):
     return {"group": group.guid, "nested": nested.guid, "last": leaves[-1].guid, "negative": leaves[1].guid, "zero": leaves[2].guid}
 
 
+def _currency_scenario(book, *, tied):
+    eur = piecash.Commodity(namespace="CURRENCY", mnemonic="EUR", fullname="Synthetic EUR", fraction=100)
+    eur.guid = guid("eur")
+    for currency in ([eur, book.default_currency] if tied else [eur]):
+        splits = []
+        for index, kind in enumerate(["BANK", "EQUITY"]):
+            account = piecash.Account(name=f"SYNTHETIC {currency.mnemonic} {kind}", type=kind, commodity=currency, parent=book.root_account)
+            account.guid = guid(f"currency:{currency.mnemonic}:{kind}")
+            split = piecash.Split(account=account, value=Decimal("10") if index == 0 else Decimal("-10"))
+            split.guid = guid(f"currency-split:{currency.mnemonic}:{index}")
+            splits.append(split)
+        tx = piecash.Transaction(currency=currency, description=f"SYNTHETIC opening {currency.mnemonic}", post_date=date(2026, 9, 1), splits=splits)
+        tx.guid = guid(f"currency-tx:{currency.mnemonic}")
+
+
 def generate_qa_regression_fixture(root: Path | str, *, scenario: str = "scheduled_partial") -> dict:
     """Create only in a NEW caller-owned disposable directory; refuse reuse."""
     if scenario not in SCENARIOS:
@@ -104,6 +119,8 @@ def generate_qa_regression_fixture(root: Path | str, *, scenario: str = "schedul
         }
         transactions = _money_scenario(book, sparse=scenario == "recent_sparse") if scenario in {"money", "recent_sparse"} else {}
         accounts = _account_groups_scenario(book) if scenario == "account_groups" else {}
+        if scenario in {"currency_eur", "currency_tie"}:
+            _currency_scenario(book, tied=scenario == "currency_tie")
         book.save()
     finally:
         book.close()

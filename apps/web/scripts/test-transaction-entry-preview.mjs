@@ -388,7 +388,7 @@ const productFormActionAssignments = [...page.matchAll(/\bformaction\s*=\s*(?:"(
 assert.deepEqual([...new Set(productFormActionAssignments)].sort(), ['?/confirm', '?/preview'].sort(), 'product page must expose only preview and confirm SvelteKit action targets');
 
 assert.match(server, /export const actions: Actions = \{[\s\S]*preview:\s*async[\s\S]*confirm:\s*async/s, '/transactions/new must expose preview and confirm actions only for product CREATE');
-assert.match(server, /loadAccountOptions\([\s\S]*purpose: 'transaction_create_preview'[\s\S]*currency: activeBook\.base_currency[\s\S]*accountOptionsAvailable[\s\S]*accountOptionsPartialFailure/s, '/transactions/new must load bounded posting choices and expose safe availability state');
+assert.match(server, /reports\/summary[\s\S]*loadAccountOptions\([\s\S]*purpose: 'transaction_create_preview'[\s\S]*currency: reportingCurrency \?\? undefined[\s\S]*accountOptionsAvailable[\s\S]*accountOptionsPartialFailure/s, '/transactions/new must load bounded posting choices with resolved currency and expose safe availability state');
 assert.doesNotMatch(server, /apiFetch<Account\[\]>|`\$\{bookPrefix\}\/accounts(?:\?|`)/, '/transactions/new must not load the legacy balance-bearing account list');
 assert.match(accountOptionsServer, /purpose: 'transactions_filter' \| 'transaction_create_preview'/, 'shared account-options loader must accept only the two bounded UI purposes');
 assert.match(page, /transaction-create-account-options-status[\s\S]*!data\.accountOptionsAvailable[\s\S]*href="\/diagnostics"/s, 'preview page must render account-option recovery without becoming a route-level 503');

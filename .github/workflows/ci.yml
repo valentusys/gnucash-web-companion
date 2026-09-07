@@ -131,6 +131,9 @@ jobs:
           QA_SCENARIO=scheduled_valid QA_REPORTING_INSTANT=2026-09-05T15:30:00+00:00 QA_REPORTING_ZONE=Asia/Vladivostok node scripts/test-qa-regressions-browser.mjs
           QA_SCENARIO=scheduled_valid QA_REPORTING_INSTANT=2026-09-06T02:30:00+00:00 QA_REPORTING_ZONE=America/Los_Angeles node scripts/test-qa-regressions-browser.mjs
           QA_SCENARIO=scheduled_valid QA_REPORTING_INSTANT=2025-12-31T15:00:00+00:00 QA_REPORTING_ZONE=Asia/Vladivostok node scripts/test-qa-regressions-browser.mjs
+          for scenario in money currency_eur currency_tie empty; do
+            QA_FORM_CURRENCY=1 QA_SCENARIO="$scenario" node scripts/test-qa-regressions-browser.mjs
+          done
 
   backend:
     name: Backend tests

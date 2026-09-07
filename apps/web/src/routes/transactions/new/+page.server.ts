@@ -5,6 +5,7 @@ import { getActiveBookContext, getAuthToken } from '$lib/api/server';
 import { localeFromCookie } from '$lib/i18n';
 import type {
 	Book,
+	ReportSummary,
 	TransactionCreateConfirmResult,
 	TransactionCreateErrorEnvelope,
 	TransactionCreatePreviewResponse,
@@ -325,12 +326,11 @@ export const load: PageServerLoad = async ({ cookies, fetch }) => {
 		errorCode: 'no_active_book'
 	};
 	let createSettings = FALLBACK_CREATE_SETTINGS;
+	let reportingCurrency: string | null = null;
 	if (activeBook) {
-		[accountOptionsState, createSettings] = await Promise.all([
-			loadAccountOptions(fetch, bookPrefix, token, {
-				purpose: 'transaction_create_preview',
-				currency: activeBook.base_currency
-			}),
+		let summary: ReportSummary | null;
+		[summary, createSettings] = await Promise.all([
+			apiGetOptionalJson<ReportSummary | null>(fetch, `${bookPrefix}/reports/summary`, token, null),
 			apiGetOptionalJson<TransactionCreateSettings>(
 				fetch,
 				`/books/${activeBook.id}/transaction-create-settings`,
@@ -338,6 +338,15 @@ export const load: PageServerLoad = async ({ cookies, fetch }) => {
 				FALLBACK_CREATE_SETTINGS
 			)
 		]);
+		const resolution = summary?.reporting_currency;
+		const selected = resolution?.selected_currency;
+		if (summary?.status === 'ready' && resolution?.status === 'ready' && selected && /^[A-Z]{3}$/.test(selected) && selected !== 'XXX') {
+			reportingCurrency = selected;
+		}
+		accountOptionsState = await loadAccountOptions(fetch, bookPrefix, token, {
+			purpose: 'transaction_create_preview',
+			currency: reportingCurrency ?? undefined
+		});
 	}
 	return {
 		locale: localeFromCookie(cookies),
@@ -349,6 +358,7 @@ export const load: PageServerLoad = async ({ cookies, fetch }) => {
 		accountOptionsPartialFailure: accountOptionsState.partialFailure,
 		accountOptionsErrorCode: accountOptionsState.errorCode,
 		createSettings,
+		reportingCurrency,
 		previewOnly: false
 	};
 };
