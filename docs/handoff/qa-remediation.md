@@ -2,6 +2,31 @@
 
 Status: in progress on `fix/qa-20260906`; not merged or released.
 
+## QA-12 — implemented and locally verified
+
+Validated locale determines SSR HTML language; calendar presets and filter chips use the shared
+dictionary without changing dates, URLs, IDs or backend contracts. Russian primary explorer,
+form, error and recovery text no longer mixes developer terminology into the main task.
+Technical metadata is disclosed after transaction results; expanded filters and form policy
+help start closed. Structural account warnings, incomplete scans, unavailable/partial/truncated
+account choices and direct/nested recovery warnings remain visible. A populated final page
+still renders the actual last-page message. No submission or authorization gate is loosened.
+
+The real generated-book UX gate covers EN/RU at 320x800 and 390x844 across accounts, transactions
+and the draft form. Search/tree, filters/first result and form input begin above the mobile
+navigation. Keyboard help disclosure, actual filter submission and visible malformed-cursor
+and invalid-filter errors are exercised. Synthetic RU screenshots were visually reviewed;
+native date-input formatting and currency/account identifiers are not claimed translated.
+Supplementary stub browser cases cover unavailable/partial/truncated choices, direct/nested
+recovery and incomplete scans, with no hidden warnings or book mutations. Existing geometry,
+bounded DOM, focus, request and preview-safety guards remain enforced, not relaxed.
+
+Local check/build and all 18 registered non-browser test scripts pass. Real UX, form-state and
+pagination browser runs pass with identical generated-book hashes, zero book mutation requests
+and stopped child runtimes. Both neighboring explorer browser suites pass. These slice checks
+do not replace the pending full final-head integration and exact-head CI. No private book or
+independent reviewer agent was used for this slice.
+
 ## QA-11 — implemented and locally verified
 
 Desktop header content wraps into bounded rows, leaving logout and other controls visible
@@ -224,9 +249,9 @@ and direct-activity requests are zero, and runtime cleanup passes. The API fixtu
 suite passed 30 tests (36 existing dependency warnings); Svelte check/build, account/auth/recent
 guards and the neighboring account browser passed. Final exact-head acceptance remains pending.
 
-QA-06 root diagnostics, QA-07/08/10
-form and pagination states, QA-11/12 layout/localization, followed by full exact-head integration
-and CI. No independent reviewer agent has been run. No final acceptance is claimed.
+All QA-01 through QA-12 fixes are now locally verified. The remaining work is the full exact-head
+integration, real-backend browser matrix, safety/performance review and CI, followed by human
+review. No independent reviewer agent has been run. No final acceptance is claimed.
 
 Default writes remain disabled. No release, tag, image, package or deployment is authorized by
 this handoff. No private data or raw private evidence belongs in this document.

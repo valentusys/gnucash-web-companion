@@ -178,10 +178,10 @@
 <main class="mx-auto max-w-6xl px-4 py-8">
 	<div class="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
 		<div>
-			<p class="text-sm font-medium uppercase tracking-wide" style="color: var(--app-accent);">{t(locale, 'transactions.kicker')}</p>
+			<p class="sr-only" style="color: var(--app-accent);">{t(locale, 'transactions.kicker')}</p>
 			<h1 class="mt-1 text-3xl font-bold" style="color: var(--app-text);">{t(locale, 'transactions.title')}</h1>
 			{#if data.activeBook}
-				<p class="mt-2 text-sm" style="color: var(--app-muted);">Book: {data.activeBook.name}</p>
+				<p class="mt-2 text-sm" style="color: var(--app-muted);">{t(locale, 'transactionCreate.policyBook')}: {data.activeBook.name}</p>
 			{/if}
 		</div>
 		<div class="flex flex-col gap-2 md:items-end">
@@ -190,10 +190,10 @@
 					class="inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2 text-center text-sm font-semibold"
 					style="background: var(--app-accent); color: white;"
 					href="/transactions/new"
-					>Preview new transaction (no write)</a
+					>{t(locale, 'transactions.previewAction')}</a
 				>
 				<p class="max-w-xs text-xs" style="color: var(--app-muted);">
-					Available while writes are disabled; opens the preview-only form. No CREATE/PATCH/DELETE/batch action is available.
+					{t(locale, 'transactions.previewHelpShort')}
 				</p>
 				{#if data.exportCsv?.enabled}
 					<a
@@ -212,8 +212,7 @@
 						>{exportButtonLabel}</span
 					>
 				{/if}
-				<p id="csv-export-status" class="max-w-xs text-xs" style="color: var(--app-muted);">{csvStatus}</p>
-				<p id="csv-export-reliability-status" class="max-w-xs text-xs" style="color: var(--app-muted);">{csvReliabilityStatus}</p>
+
 			{/if}
 			{#if data.writesEnabled}
 				<div class="max-w-sm space-y-2">
@@ -271,7 +270,7 @@
 			/>
 		{/if}
 
-		{#if !data.accountOptionsAvailable || data.accountOptionsPartialFailure}
+		{#if !data.accountOptionsAvailable || data.accountOptionsPartialFailure || data.accountOptionsLimited}
 			<section
 				id="transactions-account-options-status"
 				class="mb-4 rounded-xl border p-4 text-sm"
@@ -279,65 +278,20 @@
 				role={data.accountOptionsAvailable ? 'status' : 'alert'}
 			>
 				<p class="font-semibold">
-					{data.accountOptionsAvailable
-						? locale === 'ru' ? 'Список вариантов счетов ограничен' : 'Account choices are partially limited'
-						: locale === 'ru' ? 'Фильтры по счетам временно недоступны' : 'Account-specific filters are temporarily unavailable'}
+					{t(locale, data.accountOptionsAvailable ? 'transactions.accountChoicesLimited' : 'transactions.accountChoicesUnavailable')}
 				</p>
 				<p class="mt-1">
-					{locale === 'ru'
-						? 'Данные Transaction Explorer остаются доступны. Фильтры type, dates, state и search продолжают работать.'
-						: 'Transaction Explorer data remains available. Type, date, state, and search filters continue to work.'}
+					{t(locale, 'transactions.accountChoicesHelp')}
 				</p>
 				<a class="mt-3 inline-flex min-h-11 items-center rounded-xl border px-4 py-2 font-semibold" style="border-color: var(--app-border); color: var(--app-text);" href="/diagnostics">
-					{locale === 'ru' ? 'Открыть redacted diagnostics' : 'Open redacted diagnostics'}
+					{t(locale, 'ui.openDiagnostics')}
 				</a>
 			</section>
 		{/if}
 
-		<section
-			class="mb-4 rounded-xl border p-4"
-			style="border-color: var(--app-border); background: var(--app-panel);"
-			aria-label={t(locale, 'transactions.listStatus.title')}
-		>
-			<div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-				<div>
-					<p class="text-sm font-semibold" style="color: var(--app-text);">{t(locale, 'transactions.listStatus.title')}</p>
-					<p class="mt-1 text-xs" style="color: var(--app-muted);">{pageRangeStatus}</p>
-					<p class="mt-1 text-xs" style="color: var(--app-muted);">
-						{isLegacy ? t(locale, 'transactions.listStatus.order') : t(locale, 'transactions.explorer.order', { sort: data.filters.sort ?? 'date_desc' })}
-					</p>
-				</div>
-				<div class="max-w-xl text-xs" style="color: var(--app-muted);">
-					<p>{filterParityStatus}</p>
-					<p class="mt-1">{isLegacy ? t(locale, 'transactions.listStatus.exportParity') : t(locale, 'transactions.explorer.noTotal')}</p>
-					{#if isExplorer && data.txs.limitations?.length}
-						<p class="mt-2 font-semibold">{t(locale, 'transactions.explorer.limitationsTitle')}</p>
-						<ul class="mt-1 list-disc pl-5">
-							{#each data.txs.limitations as limitation}
-								<li>{limitation}</li>
-							{/each}
-						</ul>
-					{/if}
-					{#if writeAlphaOwnedVisibleCount > 0}
-						<p id="write-alpha-history-hint" class="mt-1 font-semibold" style="color: #92400e;">{writeAlphaHistoryHint}</p>
-						<section
-							id="write-alpha-history-followup"
-							class="mt-3 rounded-xl px-3 py-2"
-							style="background: #fffbeb; border: 1px solid #fcd34d; color: #92400e;"
-							aria-labelledby="write-alpha-history-followup-title"
-						>
-							<p id="write-alpha-history-followup-title" class="font-semibold">{t(locale, 'transactions.listStatus.writeAlphaFollowupTitle')}</p>
-							<p class="mt-1">{t(locale, 'transactions.listStatus.writeAlphaFollowupHelp')}</p>
-							<a class="mt-2 inline-flex min-h-11 items-center rounded-lg border px-3 py-2 font-semibold" style="border-color: #f59e0b; color: #92400e;" href="/books/write-alpha-audit">
-								{t(locale, 'transactions.listStatus.writeAlphaAuditLink')}
-							</a>
-						</section>
-					{/if}
-				</div>
-			</div>
-		</section>
 
-		{#if isExplorer && data.status && data.status.kind !== 'ok'}
+
+		{#if isExplorer && data.status && data.status.kind !== 'ok' && data.status.kind !== 'final_page'}
 			<section
 				class="mb-4 rounded-xl border p-4 text-sm"
 				style={data.status.role === 'alert'
@@ -385,7 +339,7 @@
 							class="inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold text-white"
 							style="background-color: var(--app-accent);"
 						>
-							Clear filters
+							{t(locale, 'transactions.explorer.reset')}
 						</a>
 					{/if}
 					{#if isExplorer}
@@ -411,7 +365,7 @@
 						class="inline-flex min-h-11 items-center justify-center rounded-xl border px-4 py-2 text-sm font-semibold"
 						style="border-color: var(--app-border); color: var(--app-text);"
 					>
-						Review books
+						{t(locale, 'nav.books')}
 					</a>
 					{#if data.activeBook}
 						<a
@@ -421,14 +375,62 @@
 							class="inline-flex min-h-11 items-center justify-center rounded-xl border px-4 py-2 text-sm font-semibold"
 							style="border-color: var(--app-border); color: var(--app-text);"
 						>
-							Preview transaction entry (no write)
+							{t(locale, 'transactions.previewAction')}
 						</a>
 						<p id="transactions-empty-preview-note" class="max-w-xs text-xs" style="color: var(--app-muted);">
-							Opens the same preview-only form from the toolbar; no CREATE/PATCH/DELETE/batch action is available.
+							{t(locale, 'transactions.previewHelpShort')}
 						</p>
 					{/if}
 				</EmptyState>
 			{/if}
 		</div>
+		{#if isExplorer && data.status?.kind === 'final_page'}
+			<p class="my-3 text-sm" role="status">{data.status.message}</p>
+		{/if}
+		<details data-technical-info open={writeAlphaOwnedVisibleCount > 0}
+			class="mb-4 rounded-xl border p-3"
+			style="border-color: var(--app-border); background: var(--app-panel);"
+			aria-label={t(locale, 'transactions.listStatus.title')}
+		>
+			<summary class="min-h-11 cursor-pointer py-3 text-sm">{t(locale, 'ui.technicalInfo')}</summary>
+				<p id="csv-export-status" class="max-w-xs text-xs" style="color: var(--app-muted);">{csvStatus}</p>
+				<p id="csv-export-reliability-status" class="max-w-xs text-xs" style="color: var(--app-muted);">{csvReliabilityStatus}</p>
+			<div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+				<div>
+					<p class="text-sm font-semibold" style="color: var(--app-text);">{t(locale, 'transactions.listStatus.title')}</p>
+					<p class="mt-1 text-xs" style="color: var(--app-muted);">{pageRangeStatus}</p>
+					<p class="mt-1 text-xs" style="color: var(--app-muted);">
+						{isLegacy ? t(locale, 'transactions.listStatus.order') : t(locale, 'transactions.explorer.order', { sort: data.filters.sort ?? 'date_desc' })}
+					</p>
+				</div>
+				<div class="max-w-xl text-xs" style="color: var(--app-muted);">
+					<p>{filterParityStatus}</p>
+					<p class="mt-1">{isLegacy ? t(locale, 'transactions.listStatus.exportParity') : t(locale, 'transactions.explorer.noTotal')}</p>
+					{#if isExplorer && data.txs.limitations?.length}
+						<p class="mt-2 font-semibold">{t(locale, 'transactions.explorer.limitationsTitle')}</p>
+						<ul class="mt-1 list-disc pl-5">
+							{#each data.txs.limitations as limitation}
+								<li>{limitation}</li>
+							{/each}
+						</ul>
+					{/if}
+					{#if writeAlphaOwnedVisibleCount > 0}
+						<p id="write-alpha-history-hint" class="mt-1 font-semibold" style="color: #92400e;">{writeAlphaHistoryHint}</p>
+						<section
+							id="write-alpha-history-followup"
+							class="mt-3 rounded-xl px-3 py-2"
+							style="background: #fffbeb; border: 1px solid #fcd34d; color: #92400e;"
+							aria-labelledby="write-alpha-history-followup-title"
+						>
+							<p id="write-alpha-history-followup-title" class="font-semibold">{t(locale, 'transactions.listStatus.writeAlphaFollowupTitle')}</p>
+							<p class="mt-1">{t(locale, 'transactions.listStatus.writeAlphaFollowupHelp')}</p>
+							<a class="mt-2 inline-flex min-h-11 items-center rounded-lg border px-3 py-2 font-semibold" style="border-color: #f59e0b; color: #92400e;" href="/books/write-alpha-audit">
+								{t(locale, 'transactions.listStatus.writeAlphaAuditLink')}
+							</a>
+						</section>
+					{/if}
+				</div>
+			</div>
+		</details>
 	{/if}
 </main>

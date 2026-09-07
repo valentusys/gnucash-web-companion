@@ -1,4 +1,5 @@
 import { error, redirect, type Handle } from '@sveltejs/kit';
+import { localeFromCookie } from '$lib/i18n';
 
 const PROTECTED_PREFIXES = ['/dashboard', '/accounts', '/books', '/scheduled', '/transactions', '/reports'];
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
@@ -33,5 +34,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 		throw redirect(303, `/login?next=${encodeURIComponent(next)}`);
 	}
 
-	return resolve(event);
+	const locale = localeFromCookie(event.cookies);
+	return resolve(event, {
+		transformPageChunk: ({ html }) => html.replace('%lang%', locale)
+	});
 };

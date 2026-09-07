@@ -32,6 +32,10 @@ reading the full history linearly.
 
 ### QA remediation (in progress)
 
+- QA-12: localize primary Russian controls and errors, derive HTML language from the validated
+  locale, and move engineering help behind accessible disclosures. Keep real incomplete-data
+  and recovery warnings visible, including successfully loaded but truncated account choices.
+
 - QA-11: wrap desktop navigation instead of clipping session controls; Escape closes the
   mobile menu and restores focus. Synthetic browser geometry and logout/login are checked.
 

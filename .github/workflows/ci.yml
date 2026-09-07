@@ -117,6 +117,7 @@ jobs:
           npm run test:qa-recent-drilldown
           npm run test:qa-form-states
           npm run test:qa-header
+          npm run test:qa-localization
           npm run test:transaction-create-product-static
           npm run test:transaction-entry-create-disposable-browser
           npm run test:accounts-explorer-browser
@@ -137,6 +138,7 @@ jobs:
           done
           QA_SCENARIO=pagination node scripts/test-qa-regressions-browser.mjs
           QA_HEADER=1 QA_SCENARIO=money node scripts/test-qa-regressions-browser.mjs
+          QA_UX=1 QA_SCENARIO=money node scripts/test-qa-regressions-browser.mjs
 
   backend:
     name: Backend tests

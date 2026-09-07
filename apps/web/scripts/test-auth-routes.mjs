@@ -206,7 +206,7 @@ for (const phrase of [
 	"'accounts.title': 'Дерево счетов'",
 	"'accounts.filter.label': 'Filter accounts'",
 	"'accounts.filter.label': 'Фильтр счетов'",
-	"'transactions.title': 'Просмотр транзакций'",
+	"'transactions.title': 'Операции'",
 	"'transactionDetail.helper': 'Read-only view of the selected GnuCash transaction",
 	"'transactionDetail.helper': 'Read-only просмотр выбранной транзакции GnuCash",
 	"'transactionSplits.helper': 'Read-only split metadata from GnuCash",
@@ -216,9 +216,9 @@ for (const phrase of [
 	'Только read-only метаданные книг',
 	"'transactions.filters.title': 'Transaction filters'",
 	"'transactions.filters.title': 'Фильтры транзакций'",
-	'Сужают read-only список транзакций и CSV export',
+	'Фильтры сужают список и экспорт CSV, не меняя книгу GnuCash.',
 	"'transactions.filters.stateHelp'",
-	'Фильтрует по состоянию сверки split в GnuCash; транзакции не редактируются.',
+	'Состояние сверки проводок. Фильтр не редактирует транзакции.',
 	"'transactions.export.statusFiltered'",
 	'Экспортирует текущий read-only отфильтрованный вид',
 	"'transactions.export.accountStatus'",
@@ -312,9 +312,9 @@ assert.match(
 	/const writesEnabled = env\.GNUCASH_WRITES_ENABLED === 'true'[\s\S]*writesEnabled/s,
 	'transactions page must expose writesEnabled only when GNUCASH_WRITES_ENABLED is true'
 );
-for (const requiredPreset of ['This month', 'Last month', 'Year to date', 'Clear dates']) {
+for (const requiredPreset of ['reports.preset.thisMonth', 'reports.preset.lastMonth', 'reports.preset.yearToDate', 'transactions.filters.clearDates']) {
 	assert.ok(
-		transactionsServer.includes(requiredPreset),
+		transactionsServer.includes(`t(locale, '${requiredPreset}')`),
 		`transactions server load must expose the date preset label: ${requiredPreset}`
 	);
 }
@@ -633,7 +633,7 @@ for (const historyCopyFragment of [
 ]) {
 	assert.ok(i18nMessages.includes(historyCopyFragment), `transaction history write-alpha copy must include: ${historyCopyFragment}`);
 }
-assert.match(transactionListPage, /<EmptyState[\s\S]*href=\{data\.clearFiltersHref\}[\s\S]*Clear filters/s, 'filtered transaction empty state must offer a keyboard-focusable clear-filters action');
+assert.match(transactionListPage, /<EmptyState[\s\S]*href=\{data\.clearFiltersHref\}[\s\S]*t\(locale, 'transactions\.explorer\.reset'\)/s, 'filtered transaction empty state must offer a keyboard-focusable clear-filters action');
 for (const filterParam of ['query', 'date_from', 'date_to', 'account_id', 'min_amount', 'max_amount', 'transaction_state']) {
 	assert.ok(
 		transactionListPage.includes(`sp.set('${filterParam}'`) ||

@@ -25,6 +25,7 @@
 		"test:qa-recent-drilldown": "node scripts/test-qa-recent-drilldown.mjs",
 		"test:qa-form-states": "node scripts/test-qa-form-states.mjs && node scripts/test-qa-request-policy.mjs && node scripts/test-qa-form-currency.mjs",
 		"test:qa-header": "node scripts/test-qa-header.mjs",
+		"test:qa-localization": "node scripts/test-qa-localization.mjs",
 		"test:qa-regressions-browser": "npm run build && node scripts/test-qa-regressions-browser.mjs",
 		"test:scheduled-forecast-browser": "npm run build && node scripts/test-scheduled-forecast-browser.mjs",
 		"test:dashboard-browser": "npm run build && node scripts/test-dashboard-browser.mjs",

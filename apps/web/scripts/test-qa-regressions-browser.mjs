@@ -12,6 +12,7 @@ import net from 'node:net';
 import { compareDecimalStrings } from '../src/lib/money.js';
 import { isReadOnlyQaRequest } from './qa-request-policy.mjs';
 import { verifyHeader } from './qa-header-browser.mjs';
+import { verifyUx } from './qa-ux-browser.mjs';
 
 const webRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const repoRoot = resolve(webRoot, '../..');
@@ -278,6 +279,15 @@ try {
     for (const [locale, width] of (process.env.QA_HEADER === '1' ? [['ru',1440],['en',1440]] : [['en', 1440], ['ru', 390]])) {
         await cdp.send('Network.setCookie', { name: 'ui_locale', value: locale, url: webBase, path: '/', sameSite: 'Lax' });
         await cdp.send('Emulation.setDeviceMetricsOverride', { width, height: 1000, deviceScaleFactor: 1, mobile: width < 500 });
+        if (process.env.QA_UX === '1') {
+            evidence.ux_cases ??= [];
+            await verifyUx(cdp,webBase,locale,evidence.ux_cases,async name=>{
+                const shot=await cdp.send('Page.captureScreenshot',{format:'png'});
+                writeFileSync(join(root,name),Buffer.from(shot.data,'base64'),{mode:0o600});
+            });
+            evidence.cases.push({locale,ux:'PASS'});
+            continue;
+        }
         if (process.env.QA_HEADER === '1') {
             evidence.header_cases ??= [];
             evidence.header_cases.push(...await verifyHeader(cdp,webBase,locale,password,async name=>{
@@ -390,9 +400,9 @@ try {
                 assert.equal(await cdp.evaluate(`document.querySelectorAll('#confirm-create-form,button[formaction="?/confirm"]').length`), 0, 'read-only preview cannot expose a confirm action');
                 const previewText = await cdp.evaluate('document.querySelector("#normalized-preview").innerText');
                 assert.doesNotMatch(previewText, /failed safely|Backend details were redacted|безопасной ошибкой|детали скрыты/i, 'known restriction is not a generic error');
-                assert.match(previewText, locale==='ru' ? /CREATE выключен настройками deployment/ : /CREATE is disabled by deployment settings/);
+                assert.match(previewText, locale==='ru' ? /Сохранение отключено настройками приложения/ : /CREATE is disabled by deployment settings/);
                 await cdp.evaluate(`${fill}([["#transaction-description","SYNTHETIC QA changed draft"]])`);
-                await cdp.wait(`Array.from(document.querySelectorAll('main [role=status]')).some(e=>e.innerText.includes(${JSON.stringify(locale==='ru'?'Draft изменился':'Draft changed')}))`);
+                await cdp.wait(`Array.from(document.querySelectorAll('main [role=status]')).some(e=>e.innerText.includes(${JSON.stringify(locale==='ru'?'Черновик изменён':'Draft changed')}))`);
                 assert.equal(await cdp.evaluate('Boolean(document.querySelector("#transaction-create-error-summary"))'), false, 'stale draft is a status, not a request failure');
                 await cdp.evaluate(`${fill}([['fieldset:nth-of-type(2) input[name=split_amount]','2.2300']])`);
                 await cdp.evaluate(`document.querySelector('button[formaction="?/preview"]').click()`);
@@ -412,7 +422,7 @@ try {
                 evidence.explicit_currency_preserved = true;
                 disconnectPreview = true;
                 await cdp.evaluate(`document.querySelector('button[formaction="?/preview"]').click()`);
-                await cdp.wait(`document.querySelector('#transaction-create-error-summary')?.innerText.includes(${JSON.stringify('Write failed')})`);
+                await cdp.wait(`document.querySelector('#transaction-create-error-summary')?.innerText.includes(${JSON.stringify(locale==='ru'?'Ошибка записи':'Write failed')})`);
                 disconnectPreview = false;
                 evidence.form_states = ['fresh','preview_blocked','stale','validation_error','network_unavailable'];
                 evidence.preview_network_fault_injected = true;
@@ -514,8 +524,8 @@ try {
                 assert.equal(request.query.sort, 'date_desc');
                 assert.equal(request.query.page_size, '50');
                 assert.equal(request.query.cursor, undefined);
-                // app.html currently hardcodes lang=en (tracked for QA-12); verify actual UI locale here.
-                assert.equal(await cdp.evaluate('document.querySelector("main h1")?.innerText'), locale === 'ru' ? 'Просмотр транзакций' : 'Browse transactions', 'UI locale preserved on click');
+                assert.equal(await cdp.evaluate('document.documentElement.lang'), locale, 'HTML locale preserved on click');
+                assert.equal(await cdp.evaluate('document.querySelector("main h1")?.innerText'), locale === 'ru' ? 'Операции' : 'Transactions', 'UI locale preserved on click');
                 if (!expected.length) {
                     assert.equal(explorerPayload.returned_count, 0);
                     assert.ok(await cdp.evaluate(`Boolean(document.querySelector('main [role=status]'))`), 'Genuine empty result explained');

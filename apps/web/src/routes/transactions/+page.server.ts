@@ -105,16 +105,16 @@ function legacyTransactionUrl(filters: LegacyFilters, override: Partial<LegacyFi
 	return `/transactions?${sp.toString()}`;
 }
 
-function buildLegacyDatePresets(filters: LegacyFilters, asOfDate: string | null) {
+function buildLegacyDatePresets(filters: LegacyFilters, asOfDate: string | null, locale: Locale = 'en') {
 	if (!asOfDate) return [];
 	const now = new Date(`${asOfDate}T00:00:00Z`);
 	const year = now.getUTCFullYear();
 	const month = now.getUTCMonth();
 	const presets: Array<{ label: string; dates: DatePresetDates }> = [
-		{ label: 'This month', dates: { dateFrom: formatDate(new Date(Date.UTC(year, month, 1))), dateTo: formatDate(now) } },
-		{ label: 'Last month', dates: { dateFrom: formatDate(new Date(Date.UTC(year, month - 1, 1))), dateTo: formatDate(new Date(Date.UTC(year, month, 0))) } },
-		{ label: 'Year to date', dates: { dateFrom: formatDate(new Date(Date.UTC(year, 0, 1))), dateTo: formatDate(now) } },
-		{ label: 'Clear dates', dates: { dateFrom: '', dateTo: '' } }
+		{ label: t(locale, 'reports.preset.thisMonth'), dates: { dateFrom: formatDate(new Date(Date.UTC(year, month, 1))), dateTo: formatDate(now) } },
+		{ label: t(locale, 'reports.preset.lastMonth'), dates: { dateFrom: formatDate(new Date(Date.UTC(year, month - 1, 1))), dateTo: formatDate(new Date(Date.UTC(year, month, 0))) } },
+		{ label: t(locale, 'reports.preset.yearToDate'), dates: { dateFrom: formatDate(new Date(Date.UTC(year, 0, 1))), dateTo: formatDate(now) } },
+		{ label: t(locale, 'transactions.filters.clearDates'), dates: { dateFrom: '', dateTo: '' } }
 	];
 	return presets.map((preset) => ({
 		label: preset.label,
@@ -123,16 +123,16 @@ function buildLegacyDatePresets(filters: LegacyFilters, asOfDate: string | null)
 	}));
 }
 
-function buildExplorerDatePresets(filters: TransactionExplorerValidatedInput, asOfDate: string | null) {
+function buildExplorerDatePresets(filters: TransactionExplorerValidatedInput, asOfDate: string | null, locale: Locale = 'en') {
 	if (!asOfDate) return [];
 	const now = new Date(`${asOfDate}T00:00:00Z`);
 	const year = now.getUTCFullYear();
 	const month = now.getUTCMonth();
 	const presets: Array<{ label: string; dates: DatePresetDates }> = [
-		{ label: 'This month', dates: { dateFrom: formatDate(new Date(Date.UTC(year, month, 1))), dateTo: formatDate(now) } },
-		{ label: 'Last month', dates: { dateFrom: formatDate(new Date(Date.UTC(year, month - 1, 1))), dateTo: formatDate(new Date(Date.UTC(year, month, 0))) } },
-		{ label: 'Year to date', dates: { dateFrom: formatDate(new Date(Date.UTC(year, 0, 1))), dateTo: formatDate(now) } },
-		{ label: 'Clear dates', dates: { dateFrom: '', dateTo: '' } }
+		{ label: t(locale, 'reports.preset.thisMonth'), dates: { dateFrom: formatDate(new Date(Date.UTC(year, month, 1))), dateTo: formatDate(now) } },
+		{ label: t(locale, 'reports.preset.lastMonth'), dates: { dateFrom: formatDate(new Date(Date.UTC(year, month - 1, 1))), dateTo: formatDate(new Date(Date.UTC(year, month, 0))) } },
+		{ label: t(locale, 'reports.preset.yearToDate'), dates: { dateFrom: formatDate(new Date(Date.UTC(year, 0, 1))), dateTo: formatDate(now) } },
+		{ label: t(locale, 'transactions.filters.clearDates'), dates: { dateFrom: '', dateTo: '' } }
 	];
 	return presets.map((preset) => ({
 		label: preset.label,
@@ -443,10 +443,10 @@ function activeExplorerChips(filters: TransactionExplorerValidatedInput, account
 		});
 	}
 	if (filters.type) {
-		chips.push({ key: 'type', label: `Type: ${filters.type}`, href: buildTransactionsExplorerUrl({ ...withoutCursor, type: '' }) });
+		chips.push({ key: 'type', label: `${t(locale, 'transactions.explorer.type')}: ${t(locale, filters.type === 'income' ? 'transactions.explorer.typeIncome' : 'transactions.explorer.typeExpense')}`, href: buildTransactionsExplorerUrl({ ...withoutCursor, type: '' }) });
 	}
 	if (filters.direction) {
-		chips.push({ key: 'direction', label: `Direction: ${filters.direction}`, href: buildTransactionsExplorerUrl({ ...withoutCursor, direction: '' }) });
+		chips.push({ key: 'direction', label: `${t(locale, 'transactions.explorer.direction')}: ${t(locale, filters.direction === 'increase' ? 'transactions.explorer.directionIncrease' : 'transactions.explorer.directionDecrease')}`, href: buildTransactionsExplorerUrl({ ...withoutCursor, direction: '' }) });
 	}
 	if (filters.minAmount) {
 		chips.push({ key: 'min', label: `${t(locale, 'transactions.filters.summary.minAmount')}: ${filters.minAmount}`, href: buildTransactionsExplorerUrl({ ...withoutCursor, minAmount: '' }) });
@@ -458,7 +458,7 @@ function activeExplorerChips(filters: TransactionExplorerValidatedInput, account
 		chips.push({ key: 'query', label: `${t(locale, 'transactions.filters.summary.search')}: ${filters.query}`, href: buildTransactionsExplorerUrl({ ...withoutCursor, query: '' }) });
 	}
 	if (filters.transactionState) {
-		chips.push({ key: 'state', label: `${t(locale, 'transactions.filters.summary.state')}: ${filters.transactionState}`, href: buildTransactionsExplorerUrl({ ...withoutCursor, transactionState: '' }) });
+		chips.push({ key: 'state', label: `${t(locale, 'transactions.filters.summary.state')}: ${t(locale, ({ unreconciled: 'transactions.filters.stateUnreconciled', cleared: 'transactions.filters.stateCleared', reconciled: 'transactions.filters.stateReconciled', voided: 'transactions.filters.stateVoided' } as const)[filters.transactionState])}`, href: buildTransactionsExplorerUrl({ ...withoutCursor, transactionState: '' }) });
 	}
 	if (filters.cursor) {
 		chips.push({ key: 'cursor', label: t(locale, 'transactions.explorer.cursorChip'), href: buildTransactionsExplorerUrl({ ...withoutCursor, cursor: '' }) });
@@ -561,7 +561,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 			writesEnabled,
 			filters: fallback,
 			pageSizeOptions: TRANSACTIONS_EXPLORER_PAGE_SIZES,
-			datePresets: buildExplorerDatePresets(fallback, reportingDate),
+			datePresets: buildExplorerDatePresets(fallback, reportingDate, locale),
 			activeFilters: [],
 			resetHref: buildTransactionsExplorerUrl(),
 			resetPaginationHref: buildTransactionsExplorerUrl(),
@@ -584,7 +584,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 			activeBook,
 			writesEnabled,
 			filters,
-			datePresets: buildLegacyDatePresets(filters, reportingDate),
+			datePresets: buildLegacyDatePresets(filters, reportingDate, locale),
 			clearFiltersHref: '/transactions?sort=date_desc&page_size=50',
 			legacyNotice: t(locale, 'transactions.explorer.legacyCompatibility'),
 			exportCsv: {
@@ -612,13 +612,13 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 			writesEnabled,
 			filters,
 			pageSizeOptions: TRANSACTIONS_EXPLORER_PAGE_SIZES,
-			datePresets: buildExplorerDatePresets(filters, reportingDate),
+			datePresets: buildExplorerDatePresets(filters, reportingDate, locale),
 			activeFilters,
 			resetHref,
 			resetPaginationHref,
 			exportCsv: { enabled: false, href: '#', reason: t(locale, 'transactions.export.explorerDisabled') },
 			txs: emptyExplorerPage(filters.sort, filters.pageSize),
-			status: { kind: 'invalid_filter', title: t(locale, 'transactions.explorer.invalidFilterTitle'), message: validation.message, role: 'alert' } satisfies ExplorerStatus,
+			status: { kind: 'invalid_filter', title: t(locale, 'transactions.explorer.invalidFilterTitle'), message: locale === 'ru' ? t(locale, 'transactions.explorer.invalidFilterMessage') : validation.message, role: 'alert' } satisfies ExplorerStatus,
 			detailHrefs: {}
 		};
 	}
@@ -632,7 +632,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 			writesEnabled,
 			filters,
 			pageSizeOptions: TRANSACTIONS_EXPLORER_PAGE_SIZES,
-			datePresets: buildExplorerDatePresets(filters, reportingDate),
+			datePresets: buildExplorerDatePresets(filters, reportingDate, locale),
 			activeFilters,
 			resetHref,
 			resetPaginationHref,
@@ -654,7 +654,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 			writesEnabled,
 			filters,
 			pageSizeOptions: TRANSACTIONS_EXPLORER_PAGE_SIZES,
-			datePresets: buildExplorerDatePresets(filters, reportingDate),
+			datePresets: buildExplorerDatePresets(filters, reportingDate, locale),
 			activeFilters,
 			resetHref,
 			resetPaginationHref,
@@ -675,7 +675,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 		writesEnabled,
 		filters,
 		pageSizeOptions: TRANSACTIONS_EXPLORER_PAGE_SIZES,
-		datePresets: buildExplorerDatePresets(filters, reportingDate),
+		datePresets: buildExplorerDatePresets(filters, reportingDate, locale),
 		activeFilters,
 		resetHref,
 		resetPaginationHref,

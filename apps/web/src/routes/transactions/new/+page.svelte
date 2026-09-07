@@ -249,12 +249,14 @@
 
 <main class="mx-auto max-w-4xl min-w-0 px-4 py-8">
 	<div class="space-y-3">
-		<p class="text-sm font-medium uppercase tracking-wide" style="color: var(--app-accent);">{t(locale, 'writeMode.kicker')}</p>
+		<p class="sr-only" style="color: var(--app-accent);">{t(locale, 'writeMode.kicker')}</p>
 		<h1 class="text-3xl font-bold" style="color: var(--app-text);">{t(locale, 'transactionCreate.title')}</h1>
 		<p class="max-w-3xl text-sm" style="color: var(--app-muted);">{t(locale, 'transactionCreate.subtitle')}</p>
 	</div>
 
-	<div class="mt-6">
+	<details data-technical-info class="mt-4 rounded-xl border p-3" style="border-color: var(--app-border);">
+		<summary class="min-h-11 cursor-pointer py-3 font-medium">{t(locale, 'ui.technicalInfo')}</summary>
+	<div class="mt-3">
 		<WriteModeWarning compact {locale} role="status" />
 	</div>
 
@@ -267,8 +269,12 @@
 			<div class="min-w-0"><dt class="font-medium">{t(locale, 'transactionCreate.scopeTitle')}</dt><dd>{t(locale, 'transactionCreate.scopeCopy')}</dd></div>
 		</dl>
 	</section>
+	</details>
+	{#if data.createSettings.recovery_required || data.createSettings.recovery?.required}
+		<p class="mt-3 rounded-xl border p-3" role="alert" style="border-color:var(--app-danger);">{t(locale, 'transactionCreate.error.CREATE_RECOVERY_REQUIRED')}</p>
+	{/if}
 
-	{#if !data.accountOptionsAvailable || data.accountOptionsPartialFailure}
+	{#if !data.accountOptionsAvailable || data.accountOptionsPartialFailure || data.accountOptionsLimited}
 		<section
 			id="transaction-create-account-options-status"
 			class="mt-6 rounded-2xl border p-4 text-sm"
@@ -276,21 +282,13 @@
 			role={data.accountOptionsAvailable ? 'status' : 'alert'}
 		>
 			<h2 class="font-semibold">
-				{!data.accountOptionsAvailable
-					? locale === 'ru' ? 'Варианты posting-счетов временно недоступны' : 'Posting-account choices are temporarily unavailable'
-					: locale === 'ru' ? 'Список posting-счетов ограничен' : 'Posting-account choices are partially limited'}
+				{t(locale, data.accountOptionsAvailable ? 'transactionCreate.accountChoicesLimited' : 'transactionCreate.accountChoicesUnavailable')}
 			</h2>
 			<p class="mt-1">
-				{data.accountOptionsAvailable
-					? locale === 'ru'
-						? 'Доступен ограниченный bounded-набор posting-счетов; preview остаётся доступен без legacy balance reads.'
-						: 'A bounded subset of posting accounts is available; preview remains usable without legacy balance reads.'
-					: locale === 'ru'
-						? 'Выбор счетов и отправка preview отключены безопасно. Другие read-only разделы остаются доступны.'
-						: 'Account selection and preview submission are safely disabled. Other read-only views remain available.'}
+				{t(locale, data.accountOptionsAvailable ? 'transactionCreate.accountChoicesLimitedHelp' : 'transactionCreate.accountChoicesUnavailableHelp')}
 			</p>
 			<a class="mt-3 inline-flex min-h-11 items-center rounded-xl border px-4 py-2 font-semibold" style="border-color: var(--app-border); color: var(--app-text);" href="/diagnostics">
-				{locale === 'ru' ? 'Открыть redacted diagnostics' : 'Open redacted diagnostics'}
+				{t(locale, 'ui.openDiagnostics')}
 			</a>
 		</section>
 	{/if}

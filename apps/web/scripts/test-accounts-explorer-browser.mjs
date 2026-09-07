@@ -830,6 +830,7 @@ async function assertAccessibleResponsiveAccounts(cdp, label, expectedLocalePatt
 			semanticNestedLists: Boolean(document.querySelector('section[aria-label] ul li button[aria-expanded]')),
 			documentHeight: root?.scrollHeight ?? 0,
 			accountRows: document.querySelectorAll('[data-account-row]').length,
+			structuralWarningVisible: (() => { const details=document.querySelector('#accounts-warnings-title')?.closest('details'); return !!details?.open && Array.from(details.querySelectorAll('li')).some(li=>/orphan or cycle repairs|потерянные родители или циклы/.test(li.innerText)&&li.getBoundingClientRect().height>0); })(),
 			bodyText: body?.innerText ?? ''
 		};
 	})()`);
@@ -843,6 +844,7 @@ async function assertAccessibleResponsiveAccounts(cdp, label, expectedLocalePatt
 	assert.ok(state.semanticNestedLists, `${label}: tree mode must render semantic nested lists with native branch buttons`);
 	assert.ok(state.accountRows <= 8, `${label}: collapsed mobile tree must mount only bounded root rows, got ${state.accountRows}`);
 	assert.ok(state.documentHeight <= 2000, `${label}: collapsed mobile document height must stay bounded, got ${state.documentHeight}`);
+	assert.equal(state.structuralWarningVisible,true,`${label}: genuine orphan/cycle warning remains expanded, not hidden to meet height guard`);
 	assert.match(state.bodyText, expectedLocalePattern, `${label}: expected localized account title/status must be visible`);
 	return state;
 }
@@ -1036,8 +1038,8 @@ async function runSmoke() {
 
 		await cdp.send('Emulation.setDeviceMetricsOverride', { width: 320, height: 700, deviceScaleFactor: 2, mobile: true });
 		await cdp.send('Network.setCookie', { name: 'ui_locale', value: 'ru', url: webBase, path: '/', sameSite: 'Lax' });
-		await navigateAndWait(cdp, webBase, '/accounts?hidden=include', `location.pathname === '/accounts' && document.body.innerText.includes('Account explorer загружен')`, 'mobile RU accounts explorer');
-		const mobileState = await assertAccessibleResponsiveAccounts(cdp, 'mobile RU accounts explorer', /Дерево счетов|Account explorer загружен/, 320);
+		await navigateAndWait(cdp, webBase, '/accounts?hidden=include', `location.pathname === '/accounts' && document.body.innerText.includes('Счета загружены')`, 'mobile RU accounts explorer');
+		const mobileState = await assertAccessibleResponsiveAccounts(cdp, 'mobile RU accounts explorer', /Дерево счетов|Счета загружены/, 320);
 		await assertStorageEmpty(cdp, 'mobile RU accounts explorer');
 		screenshots.push(await captureScreenshot(cdp, 'accounts-mobile-ru-320x700'));
 		await cdp.send('Network.setCookie', { name: 'ui_locale', value: 'en', url: webBase, path: '/', sameSite: 'Lax' });

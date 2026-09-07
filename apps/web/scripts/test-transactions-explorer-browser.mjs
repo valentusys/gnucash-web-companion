@@ -193,7 +193,7 @@ function isForbiddenApiMutation(method) {
 async function startSyntheticApi() {
 	const requests = [];
 	const forbiddenRequests = [];
-	const state = { failFilterOptions: false };
+	const state = { failFilterOptions: false, previewWarning: '', recoveryMode: '', scanLimited: false };
 	const server = createServer((req, res) => {
 		const url = new URL(req.url ?? '/', 'http://127.0.0.1');
 		requests.push({ method: req.method, path: url.pathname, search: url.search, pathWithSearch: `${url.pathname}${url.search}` });
@@ -219,7 +219,12 @@ async function startSyntheticApi() {
 			if (state.failFilterOptions && url.searchParams.get('purpose') === 'transactions_filter') {
 				return jsonResponse(res, 503, { detail: { code: 'synthetic_account_options_unavailable' } });
 			}
-			return jsonResponse(res, 200, accountOptionsPayload(url));
+			if (url.searchParams.get('purpose') === 'transaction_create_preview' && state.previewWarning === 'unavailable') {
+				return jsonResponse(res, 503, { detail: { code: 'synthetic_account_options_unavailable' } });
+			}
+			const payload = accountOptionsPayload(url);
+			if (url.searchParams.get('purpose') === 'transaction_create_preview' && state.previewWarning === 'partial') payload.partial_failure = true;
+			return jsonResponse(res, 200, payload);
 		}
 		if (url.pathname === '/books/1/accounts') {
 			return jsonResponse(res, 410, { detail: 'Legacy accounts endpoint is forbidden in the A7 primary UI smoke.' });
@@ -229,11 +234,16 @@ async function startSyntheticApi() {
 				known: true,
 				enabled: false,
 				create_generation: 1,
-				recovery_required: false,
+				recovery_required: state.recoveryMode === 'direct',
+				recovery: { required: state.recoveryMode === 'nested' },
 				blocked_codes: ['CREATE_DEPLOYMENT_DISABLED']
 			});
 		}
-		if (url.pathname === '/books/1/transactions/explorer') return jsonResponse(res, 200, explorerPayload(url));
+		if (url.pathname === '/books/1/transactions/explorer') {
+			const payload = explorerPayload(url);
+			if (state.scanLimited) { payload.scan.scan_limited = true; payload.scan.exhausted = false; payload.has_more = true; }
+			return jsonResponse(res, 200, payload);
+		}
 		const detailMatch = url.pathname.match(/^\/books\/1\/transactions\/(.+)$/);
 		if (detailMatch) {
 			const transactionId = decodeURIComponent(detailMatch[1]);
@@ -493,7 +503,7 @@ async function assertBoundedDateRangeRequiredState(cdp, api, browserRequests, ex
 	})()`);
 	if (locale === 'ru') {
 		assert.match(state.bodyText, /Выберите ограниченный диапазон дат/, `${label}: RU bounded-date message must be rendered`);
-		assert.match(state.bodyText, /Задайте date_from и date_to/, `${label}: RU bounded-date help must be rendered`);
+		assert.match(state.bodyText, /Укажите начало и конец периода длиной до 366 дней/, `${label}: RU bounded-date help must be rendered`);
 	} else {
 		assert.match(state.bodyText, /Choose a bounded date range/, `${label}: EN bounded-date message must be rendered`);
 		assert.match(state.bodyText, /Set both date_from and date_to/, `${label}: EN bounded-date help must be rendered`);
@@ -509,6 +519,10 @@ async function assertBoundedDateRangeRequiredState(cdp, api, browserRequests, ex
 }
 
 async function assertNoMobileOverflowAndAccessibleExplorer(cdp, label) {
+	await evaluate(cdp, `document.querySelector('details[data-filter-controls] summary').focus()`);
+	await cdp.send('Input.dispatchKeyEvent', {type: 'keyDown', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13, text: '\r'});
+	await cdp.send('Input.dispatchKeyEvent', {type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13});
+	await waitForExpression(cdp, `document.querySelector('details[data-filter-controls]').open`, `${label}: keyboard opens filters`);
 	const state = await evaluate(cdp, `(() => {
 		const root = document.documentElement;
 		const body = document.body;
@@ -584,6 +598,7 @@ async function assertExplorerSurvivesAccountOptionsFailure(cdp, api, browserRequ
 		typeDisabled: document.querySelector('#tx-type')?.disabled ?? null,
 		directionDisabled: document.querySelector('#tx-direction')?.disabled ?? null,
 		rowVisible: document.body.innerText.includes('Synthetic explorer transaction'),
+		statusVisible: !!document.querySelector('#transactions-account-options-status')?.getBoundingClientRect().height && !document.querySelector('#transactions-account-options-status')?.closest('details:not([open])'),
 		diagnosticsHref: document.querySelector('#transactions-account-options-status a[href="/diagnostics"]')?.getAttribute('href') ?? '',
 		legacyAccountCalls: 0
 	}))()`);
@@ -591,6 +606,7 @@ async function assertExplorerSurvivesAccountOptionsFailure(cdp, api, browserRequ
 	assert.equal(state.typeDisabled, false, `${width}px: failed account options must not disable type filtering`);
 	assert.equal(state.directionDisabled, true, `${width}px: account-specific direction must remain disabled without account options`);
 	assert.equal(state.rowVisible, true, `${width}px: explorer results must remain visible when account options fail`);
+	assert.equal(state.statusVisible, true, `${width}px: genuine account-options warning cannot be hidden in help`);
 	assert.equal(state.diagnosticsHref, '/diagnostics', `${width}px: partial recovery must link to redacted diagnostics`);
 	assert.equal(explorerRequests(api).length, beforeExplorer + 1, `${width}px: explorer request must continue independently`);
 	assert.equal(accountOptionRequests(api, 'transactions_filter').length, beforeOptions + 1, `${width}px: bounded account options must be attempted once`);
@@ -613,14 +629,14 @@ async function assertWidePreviewChoices(cdp, api, browserRequests, webBase, widt
 		options: document.querySelectorAll('select[name="split_account_id"] option').length,
 		allEnabled: Array.from(document.querySelectorAll('select[name="split_account_id"]')).every((el) => !el.disabled),
 		previewEnabled: !document.querySelector('button[formaction="?/preview"]')?.disabled,
-		failureStatus: Boolean(document.querySelector('#transaction-create-account-options-status')),
+		limitedStatus: (() => {const el=document.querySelector('#transaction-create-account-options-status');return !!el?.getBoundingClientRect().height&&!el?.closest('details:not([open])')&&el?.getAttribute('role')==='status';})(),
 		bodyText: document.body.innerText
 	}))()`);
 	assert.equal(state.selectors, 2, `${width}px: preview must render two posting selectors`);
 	assert.ok(state.options >= 400, `${width}px: generated wide bounded choices must populate both selectors`);
 	assert.equal(state.allEnabled, true, `${width}px: bounded posting choices must be usable`);
 	assert.equal(state.previewEnabled, true, `${width}px: preview submission must remain available when options load`);
-	assert.equal(state.failureStatus, false, `${width}px: successful options load must not render recovery status`);
+	assert.equal(state.limitedStatus, true, `${width}px: a successfully loaded but truncated choice list must show a visible non-error notice`);
 	assert.match(state.bodyText, /New transaction|Новая транзакция/, `${width}px: preview page title must remain visible`);
 	assert.equal(accountOptionRequests(api, 'transaction_create_preview').length, beforePreviewOptions + 1, `${width}px: preview must issue one bounded posting-choice request`);
 	const latestOptions = accountOptionRequests(api, 'transaction_create_preview').at(-1);
@@ -745,6 +761,9 @@ async function runSmoke() {
 		assert.equal(lastParams.get('page_size'), '2', 'initial explorer API request must preserve page_size');
 		assert.equal(lastParams.get('offset'), null, 'explorer API request must not use legacy offset pagination');
 
+		await evaluate(cdp, `document.querySelector('details[data-technical-info] summary').click()`);
+		await waitForExpression(cdp, `document.querySelector('details[data-technical-info]').open`, 'technical page counters disclosure');
+		assert.equal(await evaluate(cdp, `(() => {const el=document.querySelector('#transactions-account-options-status');return !!el?.getBoundingClientRect().height&&!el?.closest('details:not([open])')&&el?.getAttribute('role')==='status';})()`),true,'Truncated explorer choices need a visible non-error notice');
 		const firstState = await evaluate(cdp, `(() => {
 			const detail = Array.from(document.querySelectorAll('a')).map((a) => a.getAttribute('href')).find((href) => href?.startsWith('/transactions/tx-explorer-1?return_to='));
 			return {
@@ -767,10 +786,11 @@ async function runSmoke() {
 		assert.equal(lastParams.get('page_size'), '2', 'cursor next must preserve page_size');
 
 		await evaluate(cdp, `(() => {
+			document.querySelector('details[data-filter-controls] summary').click();
 			const input = document.querySelector('#tx-query');
 			input.value = 'coffee';
 			input.dispatchEvent(new Event('input', { bubbles: true }));
-			document.querySelector('form[action="/transactions"]').requestSubmit();
+			document.querySelector('form[action="/transactions"] button[type="submit"]').click();
 		})()`);
 		await waitForExpression(cdp, `location.pathname === '/transactions' && location.search.includes('query=coffee') && !location.search.includes('cursor=')`, 'submitted explorer query', 20000);
 		lastExplorer = explorerRequests(api).at(-1);
@@ -797,9 +817,10 @@ async function runSmoke() {
 
 		const beforePairedRangeExplorerRequestCount = explorerRequests(api).length;
 		await evaluate(cdp, `(() => {
+			document.querySelector('details[data-filter-controls] summary').click();
 			document.querySelector('#tx-date-from').value = '2026-07-01';
 			document.querySelector('#tx-date-to').value = '2026-07-31';
-			document.querySelector('form[action="/transactions"]').requestSubmit();
+			document.querySelector('form[action="/transactions"] button[type="submit"]').click();
 		})()`);
 		await waitForExpression(cdp, `location.search.includes('date_from=2026-07-01') && location.search.includes('date_to=2026-07-31') && document.body.innerText.includes('Synthetic explorer transaction')`, 'paired date range explorer body', 20000);
 		lastExplorer = explorerRequests(api).at(-1);
@@ -816,6 +837,31 @@ async function runSmoke() {
 		for (const width of [1280, 390, 320]) {
 			await assertWidePreviewChoices(cdp, api, browserRequests, webBase, width);
 		}
+		// Supplementary stub fault-state coverage, not real-backend DTO acceptance.
+		for (const locale of ['en', 'ru']) {
+			await cdp.send('Network.setCookie', { name: 'ui_locale', value: locale, url: webBase, path: '/', sameSite: 'Lax' });
+			await setViewport(cdp, 320, 800);
+			for (const mode of ['partial', 'unavailable', 'direct', 'nested']) {
+				api.state.previewWarning = mode;
+				api.state.recoveryMode = mode;
+				await navigate(cdp, webBase, '/transactions/new', `QA12 ${locale} ${mode}`, '/transactions/new');
+				const selector = ['partial','unavailable'].includes(mode) ? '#transaction-create-account-options-status' : 'main > p[role=alert]';
+				await waitForExpression(cdp, `document.querySelector(${JSON.stringify(selector)})`, `QA12 ${mode} notice`);
+				const notice = await evaluate(cdp, `(() => { const el=document.querySelector(${JSON.stringify(selector)});return {visible:el.getBoundingClientRect().height>0&&!el.closest('details:not([open])'),text:el.innerText,role:el.getAttribute('role'),previewDisabled:document.querySelector('button[formaction="?/preview"]').disabled,confirmAbsent:!document.querySelector('#confirm-create-form')};})()`);
+				assert.equal(notice.visible,true,`${mode}: genuine warning stays outside closed help`);
+				assert.equal(notice.role,mode==='partial'?'status':'alert');
+				assert.equal(notice.previewDisabled,mode==='unavailable');
+				assert.equal(notice.confirmAbsent,true);
+				if(locale==='ru') assert.doesNotMatch(notice.text,/[a-z]/i,`${mode}: warning localized`);
+			}
+			api.state.previewWarning = ''; api.state.recoveryMode = ''; api.state.scanLimited = true;
+			await navigate(cdp, webBase, '/transactions?date_from=2026-07-01&date_to=2026-07-31', 'QA12 limited scan');
+			const scan = await evaluate(cdp, `(() => {const notice=document.querySelector('main section[role=status]');return {visible:!!notice?.getBoundingClientRect().height&&!notice?.closest('details:not([open])'),text:notice?.innerText};})()`);
+			assert.equal(scan.visible,true,'Partial scan must remain outside closed help');
+			assert.match(scan.text,locale==='ru'?/Проверена часть книги/:/Partial bounded scan/);
+			api.state.scanLimited = false;
+		}
+		await cdp.send('Network.setCookie', { name: 'ui_locale', value: 'en', url: webBase, path: '/', sameSite: 'Lax' });
 		await assert503RecoveryPage(cdp, api, browserRequests, webBase);
 
 		assert.equal(legacyAccountRequests(api).length, 0, 'transactions and preview primary UI must not call legacy /accounts');

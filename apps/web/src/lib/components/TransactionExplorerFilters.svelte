@@ -45,12 +45,10 @@
 	style="background-color: var(--app-panel); box-shadow: 0 1px 3px var(--app-panel-shadow); border: 1px solid var(--app-border);"
 	aria-describedby="transactions-explorer-form-help"
 >
-	<div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+	<div class="flex items-center justify-between gap-2">
 		<div>
 			<p class="text-sm font-semibold" style="color: var(--app-text);">{t(locale, 'transactions.filters.title')}</p>
-			<p id="transactions-explorer-form-help" class="mt-1 text-xs" style="color: var(--app-muted);">
-				{t(locale, 'transactions.explorer.formHelp')}
-			</p>
+
 		</div>
 		<a
 			class="inline-flex min-h-11 items-center justify-center rounded-xl border px-4 py-2 text-sm font-semibold"
@@ -63,14 +61,14 @@
 
 	{#if datePresets.length}
 		<section aria-labelledby="transactions-date-presets-title">
-			<p id="transactions-date-presets-title" class="text-xs font-semibold uppercase tracking-wide" style="color: var(--app-muted);">
+			<p id="transactions-date-presets-title" class="sr-only" style="color: var(--app-muted);">
 				{t(locale, 'transactions.filters.datePresets')}
 			</p>
-			<div class="mt-2 flex flex-wrap gap-2" aria-label={t(locale, 'transactions.filters.datePresetAria')}>
+			<div class="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap" aria-label={t(locale, 'transactions.filters.datePresetAria')}>
 				{#each datePresets as preset}
 					<a
 						href={preset.href}
-						class="inline-flex min-h-11 items-center rounded-xl border px-3 py-2 text-sm font-semibold"
+						class="inline-flex min-h-11 items-center justify-center rounded-xl border px-2 py-2 text-sm font-semibold"
 						style={preset.active
 							? 'border-color: var(--app-accent); color: white; background: var(--app-accent);'
 							: 'border-color: var(--app-border); color: var(--app-text); background: var(--app-bg);'}
@@ -80,10 +78,13 @@
 					</a>
 				{/each}
 			</div>
-			<p class="mt-2 text-xs" style="color: var(--app-muted);">{t(locale, 'transactions.explorer.datePresetHelp')}</p>
 		</section>
 	{/if}
 
+	<details data-filter-controls>
+		<summary class="min-h-11 cursor-pointer py-3 text-sm font-medium">{t(locale, 'transactions.filters.edit')}</summary>
+		<p id="transactions-explorer-form-help" class="my-2 text-sm" style="color: var(--app-muted);">{t(locale, 'transactions.explorer.formHelp')}</p>
+		<p class="my-2 text-sm" style="color: var(--app-muted);">{t(locale, 'transactions.explorer.datePresetHelp')}</p>
 	{#if hasActiveFilters}
 		<section
 			class="rounded-xl border px-3 py-3"
@@ -296,4 +297,5 @@
 			<p class="mt-2 text-xs" style="color: var(--app-muted);">{t(locale, 'transactions.explorer.amountPagingHelp')}</p>
 		</fieldset>
 	</div>
+	</details>
 </form>

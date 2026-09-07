@@ -58,7 +58,7 @@ for (const authority of ['2026-09-06', null]) {
     assert.equal(data.reportingDate,authority,'Summary failure uses authoritative date or explicit unavailable state, never UTC today');
 }
 const explorerHelpers = moduleAt('lib/transactions/explorer.ts');
-const txLoader = moduleAt('routes/transactions/+page.server.ts',{'$lib/transactions/explorer':explorerHelpers,'$env/dynamic/private':{env:{}}},'\nexport {buildExplorerDatePresets,buildLegacyDatePresets};');
+const txLoader = moduleAt('routes/transactions/+page.server.ts',{'$lib/transactions/explorer':explorerHelpers,'$lib/i18n':{t:(_locale,key)=>key},'$env/dynamic/private':{env:{}}},'\nexport {buildExplorerDatePresets,buildLegacyDatePresets};');
 const filters = {accountIds:['a'.repeat(32)],direction:'decrease',type:'',transactionState:'reconciled',query:'SYNTHETIC',sort:'date_asc',pageSize:20,cursor:'stale'};
 for (const asOf of ['2026-09-06','2024-03-01','2026-01-01']) {
     const options = txLoader.buildExplorerDatePresets(filters,asOf);

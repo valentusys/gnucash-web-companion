@@ -172,10 +172,10 @@ function activeExplorerChips(filters: AccountExplorerValidatedInput, locale: Loc
 		});
 	}
 	if (filters.hidden !== ACCOUNT_EXPLORER_DEFAULT_HIDDEN) {
-		chips.push({ key: 'hidden', label: `${t(locale, 'accounts.explorer.hidden')}: ${filters.hidden}`, href: buildAccountExplorerUrl({ ...base, hidden: ACCOUNT_EXPLORER_DEFAULT_HIDDEN }) });
+		chips.push({ key: 'hidden', label: `${t(locale, 'accounts.explorer.hidden')}: ${t(locale, ({ include: 'accounts.explorer.visibilityInclude', exclude: 'accounts.explorer.visibilityExclude', only: 'accounts.explorer.visibilityOnly' } as const)[filters.hidden])}`, href: buildAccountExplorerUrl({ ...base, hidden: ACCOUNT_EXPLORER_DEFAULT_HIDDEN }) });
 	}
 	if (filters.placeholder !== ACCOUNT_EXPLORER_DEFAULT_PLACEHOLDER) {
-		chips.push({ key: 'placeholder', label: `${t(locale, 'accounts.explorer.placeholder')}: ${filters.placeholder}`, href: buildAccountExplorerUrl({ ...base, placeholder: ACCOUNT_EXPLORER_DEFAULT_PLACEHOLDER }) });
+		chips.push({ key: 'placeholder', label: `${t(locale, 'accounts.explorer.placeholder')}: ${t(locale, ({ include: 'accounts.explorer.visibilityInclude', exclude: 'accounts.explorer.visibilityExclude', only: 'accounts.explorer.visibilityOnly' } as const)[filters.placeholder])}`, href: buildAccountExplorerUrl({ ...base, placeholder: ACCOUNT_EXPLORER_DEFAULT_PLACEHOLDER }) });
 	}
 	return chips;
 }
@@ -225,7 +225,7 @@ export const load: PageServerLoad = async ({ cookies, fetch, url }) => {
 			resetHref,
 			canonicalHref: validation.canonicalHref,
 			accounts: emptyExplorerResponse(filters.mode),
-			status: { kind: 'invalid_filter', title: t(locale, 'accounts.explorer.invalidFilterTitle'), message: validation.message, role: 'alert' } satisfies AccountExplorerStatus,
+			status: { kind: 'invalid_filter', title: t(locale, 'accounts.explorer.invalidFilterTitle'), message: locale === 'ru' ? t(locale, 'accounts.explorer.invalidFilterMessage') : validation.message, role: 'alert' } satisfies AccountExplorerStatus,
 			detailHrefs: {}
 		};
 	}

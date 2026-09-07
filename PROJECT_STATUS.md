@@ -30,7 +30,10 @@ Last updated: 2026-09-07
   generated cursor pages and CSV contain exactly the same transaction IDs.
 - QA-11 keeps header/logout controls inside the viewport and hit-testable, with keyboard
   menu dismissal and real synthetic-session logout/login across the responsive matrix.
-- QA-12 and final exact-head integration/CI remain pending. This is not final acceptance,
+- QA-12 localizes primary RU controls, errors and presets with validated SSR language, and
+  puts technical help behind disclosures after the primary task. Real errors, partial choices,
+  scan limits and recovery warnings remain visible; generated mobile first-screen checks pass.
+- All twelve fixes are locally verified; final exact-head integration/CI remain pending. This is not final acceptance,
   a merge, a release, or deployment authorization. See [QA handoff](docs/handoff/qa-remediation.md).
 
 ## Quick navigation

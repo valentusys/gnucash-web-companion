@@ -391,7 +391,7 @@ assert.match(server, /export const actions: Actions = \{[\s\S]*preview:\s*async[
 assert.match(server, /reports\/summary[\s\S]*loadAccountOptions\([\s\S]*purpose: 'transaction_create_preview'[\s\S]*currency: reportingCurrency \?\? undefined[\s\S]*accountOptionsAvailable[\s\S]*accountOptionsPartialFailure/s, '/transactions/new must load bounded posting choices with resolved currency and expose safe availability state');
 assert.doesNotMatch(server, /apiFetch<Account\[\]>|`\$\{bookPrefix\}\/accounts(?:\?|`)/, '/transactions/new must not load the legacy balance-bearing account list');
 assert.match(accountOptionsServer, /purpose: 'transactions_filter' \| 'transaction_create_preview'/, 'shared account-options loader must accept only the two bounded UI purposes');
-assert.match(page, /transaction-create-account-options-status[\s\S]*!data\.accountOptionsAvailable[\s\S]*href="\/diagnostics"/s, 'preview page must render account-option recovery without becoming a route-level 503');
+assert.match(page, /\{#if !data\.accountOptionsAvailable \|\| data\.accountOptionsPartialFailure \|\| data\.accountOptionsLimited\}[\s\S]*transaction-create-account-options-status[\s\S]*data\.accountOptionsAvailable \? 'transactionCreate.accountChoicesLimited' : 'transactionCreate.accountChoicesUnavailable'[\s\S]*href="\/diagnostics"/s, 'preview page must render localized account-option recovery and truncation without becoming a route-level 503');
 assert.match(page, /name="split_account_id"[\s\S]*disabled=\{!data\.accountOptionsAvailable\}[\s\S]*formaction="\?\/preview"[\s\S]*disabled=\{!data\.accountOptionsAvailable\}/s, 'preview page must disable account selectors and preview submission when bounded posting choices are unavailable');
 assert.match(browserSmoke, /A7_PREVIEW_ONLY_BROWSER[\s\S]*\/books\/1\/accounts\/options[\s\S]*transaction_create_preview/s, 'transaction-entry browser smoke must expose a no-write A7 mode backed by bounded posting choices');
 assert.match(browserSmoke, /if \(a7PreviewOnlyBrowser\)[\s\S]*assertNoMutationRequestsObserved[\s\S]*explicitCreatePayloads\.length, 0/s, 'A7 browser mode must prove zero mutation requests and skip the legacy disposable CREATE drill');
@@ -417,17 +417,17 @@ assert.ok(
 	'transactions list preview entry point must be outside the writesEnabled-only block'
 );
 for (const requiredListFragment of [
-	'Preview new transaction (no write)',
-	'Available while writes are disabled',
-	'preview-only form',
-	'No CREATE/PATCH/DELETE/batch action is available.',
+	"t(locale, 'transactions.previewAction')",
+	"t(locale, 'transactions.previewHelpShort')",
 	'transactions-empty-preview-link',
-	'Preview transaction entry (no write)',
-	'transactions-empty-preview-note',
-	'Opens the same preview-only form from the toolbar'
+	'transactions-empty-preview-note'
 ]) {
 	assert.ok(transactionsList.includes(requiredListFragment), `transactions list missing preview-only entry copy: ${requiredListFragment}`);
 }
 assert.doesNotMatch(transactionsList, />\s*New transaction\s*</, 'transactions list must not label the preview entry as a normal New transaction write flow');
+assert.match(transactionsList, /id="transactions-empty-preview-link"[\s\S]*?href="\/transactions\/new"/);
+assert.doesNotMatch(transactionsList, /method="POST"|action="\?\/confirm"|\/transaction-create-settings/);
+assert.ok(read('src/lib/i18n/messages.ts').includes("'transactions.previewHelpShort': 'Review a draft without saving it.'"));
+assert.ok(read('src/lib/i18n/messages.ts').includes("'transactions.previewHelpShort': 'Проверка черновика без сохранения.'"));
 
 console.log('transaction-entry-preview-static: ok');

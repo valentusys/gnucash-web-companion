@@ -298,7 +298,7 @@
 					</div>
 				</div>
 
-				<details class="mt-2 rounded-xl border px-3" style="border-color: var(--app-border);">
+				<details data-filter-controls data-technical-info class="mt-2 rounded-xl border px-3" style="border-color: var(--app-border);">
 					<summary class="flex min-h-11 cursor-pointer items-center text-sm font-semibold" style="color: var(--app-text);">{advancedFiltersActive ? t(locale, 'accounts.explorer.advancedFiltersActive') : t(locale, 'accounts.explorer.advancedFilters')}</summary>
 					<p id="accounts-explorer-help" class="text-xs" style="color: var(--app-muted);">{t(locale, 'accounts.explorer.formHelp')}</p>
 					<div class="mt-3 grid gap-3 lg:grid-cols-4">
@@ -355,7 +355,7 @@
 		</section>
 
 		{#if hasContextAncestors || hasHiddenRows || hasPlaceholderRows || structureWarnings.length || hasMixedCommodities || data.accounts.limitations?.length}
-			<details class="mb-3 rounded-xl border px-3" style="border-color: var(--app-warning); background: color-mix(in srgb, var(--app-warning) 10%, var(--app-panel)); color: var(--app-text);">
+			<details open={structureWarnings.length > 0} class="mb-3 rounded-xl border px-3" style="border-color: var(--app-warning); background: color-mix(in srgb, var(--app-warning) 10%, var(--app-panel)); color: var(--app-text);">
 				<summary id="accounts-warnings-title" class="flex min-h-11 cursor-pointer items-center font-semibold">{t(locale, 'accounts.explorer.warningsTitle')}</summary>
 				<ul class="mb-3 list-disc space-y-1 pl-5 text-sm">
 					{#if hasContextAncestors}<li>{t(locale, 'accounts.explorer.contextWarning')}</li>{/if}
