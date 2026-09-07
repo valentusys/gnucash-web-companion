@@ -10,6 +10,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import net from 'node:net';
 import { compareDecimalStrings } from '../src/lib/money.js';
+import { isReadOnlyQaRequest } from './qa-request-policy.mjs';
 
 const webRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const repoRoot = resolve(webRoot, '../..');
@@ -30,6 +31,8 @@ let fixture;
 let recentPayload;
 let explorerPayload;
 let overviewPayload;
+let previewPayload;
+let disconnectPreview = false;
 let summaryAsOf;
 let scheduledAsOf = [];
 let scopeIds;
@@ -107,7 +110,8 @@ class Cdp {
                 this.loadCount++;
             } else if (message.method === 'Network.requestWillBeSent') {
                 const request = message.params.request;
-                browserRequests.push({ method: request.method, path: new URL(request.url).pathname });
+                const url = new URL(request.url);
+                browserRequests.push({ method: request.method, path: url.pathname, search: url.search });
             } else if (message.method === 'Runtime.exceptionThrown') {
                 browserErrors.push(message.params.exceptionDetails.text);
             } else if (message.method === 'Runtime.consoleAPICalled' && ['error', 'warning'].includes(message.params.type)) {
@@ -190,8 +194,14 @@ try {
     // Transparent proxy observes real web→API responses. No response stubs/DTO rewriting.
     proxy = createServer(async (request, response) => {
         const requestUrl = new URL(request.url, apiBase);
-        const record = { method: request.method, path: requestUrl.pathname, query: Object.fromEntries(requestUrl.searchParams), status: null };
+        const record = { method: request.method, path: requestUrl.pathname, search: requestUrl.search, query: Object.fromEntries(requestUrl.searchParams), status: null };
         apiRequests.push(record);
+        if (disconnectPreview && record.path.endsWith('/transactions/create-preview')) {
+            // Explicit network-failure test only: break transport, never replace a DTO.
+            record.status = 'network_disconnected';
+            response.destroy();
+            return;
+        }
         try {
             const chunks = [];
             for await (const chunk of request) chunks.push(chunk);
@@ -206,6 +216,7 @@ try {
             const body = Buffer.from(await upstream.arrayBuffer());
             if (record.path.endsWith('/reports/recent-transactions') && upstream.status === 200) recentPayload = JSON.parse(body.toString('utf8'));
             if (record.path.endsWith('/transactions/explorer') && upstream.status === 200) explorerPayload = JSON.parse(body.toString('utf8'));
+            if (record.path.endsWith('/transactions/create-preview') && upstream.status === 200) previewPayload = JSON.parse(body.toString('utf8'));
             if (/\/accounts\/[0-9a-f]{32}\/overview$/.test(record.path) && upstream.status === 200) overviewPayload = JSON.parse(body.toString('utf8'));
             if (record.path.endsWith('/reports/summary') && upstream.status === 200) summaryAsOf = JSON.parse(body.toString('utf8')).as_of_date;
             if (record.path.endsWith('/scheduled-transactions') && upstream.status === 200) scheduledAsOf = JSON.parse(body.toString('utf8')).map(item => item.forecast.as_of_date);
@@ -272,6 +283,49 @@ try {
             assert.ok(scheduledAsOf.every(date => date === '2026-09-01'), 'Explicit scheduled as_of_date wins');
         }
         if (scenario === 'money') {
+            if (process.env.QA_FORM_STATES === '1') {
+                await cdp.navigate(`${webBase}/transactions/new`);
+                assert.equal(await cdp.evaluate('document.querySelectorAll("main [role=alert]").length'), 0, 'QA-07 fresh GET cannot claim a request failed');
+                assert.doesNotMatch(await cdp.evaluate('document.querySelector("main").innerText'), locale === 'ru' ? /Транзакция создана|уже создал/ : /Transaction created|already created/i, 'QA-07 no fabricated success');
+                const fill = `((values) => { for (const [selector, value] of values) {const el=document.querySelector(selector); el.value=value; el.dispatchEvent(new Event(el.tagName==='SELECT'?'change':'input',{bubbles:true}));} })`;
+                await cdp.evaluate(`${fill}(${JSON.stringify([
+                    ['#transaction-date','2026-09-01'],['#transaction-currency','RUB'],['#transaction-description','SYNTHETIC QA preview only'],
+                    ['select[name=split_account_id]',scopeIds.cash],['fieldset:nth-of-type(2) select[name=split_account_id]',scopeIds.expense],
+                    ['input[name=split_amount]','-1.2300'],['fieldset:nth-of-type(2) input[name=split_amount]','1.2300'],
+                ])})`);
+                const previewsBefore = apiRequests.filter(r=>r.path.endsWith('/transactions/create-preview')).length;
+                await cdp.evaluate(`document.querySelector('button[formaction="?/preview"]').click()`);
+                await cdp.wait('Boolean(document.querySelector("#normalized-preview"))');
+                assert.ok(previewPayload, 'actual non-mutating API preview must be observed');
+                assert.equal(apiRequests.filter(r=>r.path.endsWith('/transactions/create-preview')).length, previewsBefore+1);
+                assert.equal(previewPayload.confirm_allowed, false);
+                assert.equal(previewPayload.preview_only, true);
+                assert.deepEqual(previewPayload.splits.map(s=>s.amount), ['-1.2300','1.2300'], 'preview preserves exact decimal strings');
+                assert.deepEqual(previewPayload.splits.map(s=>s.account.id), [scopeIds.cash,scopeIds.expense]);
+                assert.ok(previewPayload.warnings.some(w=>w.code==='CREATE_DEPLOYMENT_DISABLED'));
+                assert.equal(await cdp.evaluate('document.querySelectorAll("main [role=alert]").length'), 0, 'QA-07 successful preview is not a request failure');
+                assert.equal(await cdp.evaluate(`document.querySelectorAll('#confirm-create-form,button[formaction="?/confirm"]').length`), 0, 'read-only preview cannot expose a confirm action');
+                const previewText = await cdp.evaluate('document.querySelector("#normalized-preview").innerText');
+                assert.doesNotMatch(previewText, /failed safely|Backend details were redacted|безопасной ошибкой|детали скрыты/i, 'known restriction is not a generic error');
+                assert.match(previewText, locale==='ru' ? /CREATE выключен настройками deployment/ : /CREATE is disabled by deployment settings/);
+                await cdp.evaluate(`${fill}([["#transaction-description","SYNTHETIC QA changed draft"]])`);
+                await cdp.wait(`Array.from(document.querySelectorAll('main [role=status]')).some(e=>e.innerText.includes(${JSON.stringify(locale==='ru'?'Draft изменился':'Draft changed')}))`);
+                assert.equal(await cdp.evaluate('Boolean(document.querySelector("#transaction-create-error-summary"))'), false, 'stale draft is a status, not a request failure');
+                await cdp.evaluate(`${fill}([['fieldset:nth-of-type(2) input[name=split_amount]','2.2300']])`);
+                await cdp.evaluate(`document.querySelector('button[formaction="?/preview"]').click()`);
+                await cdp.wait('Boolean(document.querySelector("#transaction-create-error-summary"))');
+                assert.equal(await cdp.evaluate('Boolean(document.querySelector("#normalized-preview"))'), false, 'failed validation does not show a successful preview');
+                assert.ok(apiRequests.some(r=>r.path.endsWith('/transactions/create-preview') && r.status===422));
+                assert.equal(await cdp.evaluate('document.querySelector("input[name=split_amount]").value'), '-1.2300');
+                assert.equal(await cdp.evaluate('document.querySelector("#transaction-currency").value'), 'RUB');
+                disconnectPreview = true;
+                await cdp.evaluate(`document.querySelector('button[formaction="?/preview"]').click()`);
+                await cdp.wait(`document.querySelector('#transaction-create-error-summary')?.innerText.includes(${JSON.stringify('Write failed')})`);
+                disconnectPreview = false;
+                evidence.form_states = ['fresh','preview_blocked','stale','validation_error','network_unavailable'];
+                evidence.preview_network_fault_injected = true;
+                await cdp.navigate(`${webBase}/dashboard`);
+            }
             assert.ok(Array.isArray(recentPayload), 'real recent report response must be observed');
             assert.equal(recentPayload.length, Object.keys(fixture.transactions).length);
             const domRows = await cdp.evaluate(`Array.from(document.querySelectorAll('[data-dashboard-recent-kind]')).map(row => ({text: row.innerText, amount: row.querySelector(':scope > span.shrink-0')?.innerText.replace(/\\s+/g,' ').trim() ?? ''}))`);
@@ -458,7 +512,8 @@ try {
     evidence.runtime_stopped = cleanupErrors.length === 0;
     evidence.api_requests = apiRequests;
     evidence.browser_requests = browserRequests;
-    evidence.book_mutation_requests = [...browserRequests, ...apiRequests].filter((r) => !['GET', 'HEAD', 'OPTIONS'].includes(r.method) && !['/login', '/auth/login', '/logout'].includes(r.path));
+    evidence.book_mutation_requests = [...browserRequests.filter(r=>!isReadOnlyQaRequest(r,'browser')), ...apiRequests.filter(r=>!isReadOnlyQaRequest(r,'api'))];
+    evidence.preview_requests = apiRequests.filter(r=>r.method==='POST' && r.path.endsWith('/transactions/create-preview')).length;
     if (fixture) {
         evidence.hash_after = hash(fixture.book_path);
         if (evidence.hash_after !== evidence.hash_before) cleanupErrors.push('Generated book changed');

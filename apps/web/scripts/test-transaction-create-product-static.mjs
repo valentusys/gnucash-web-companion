@@ -107,14 +107,15 @@ for (const fragment of [
 	'confirm_allowed',
 	'previewIsStale',
 	'transactionCreate.previewStaleTitle',
-	'created',
-	'already_created',
+
 	'320px no horizontal overflow'
 ]) {
 	assert.ok(page.includes(fragment), `transaction create page missing #59 UI fragment: ${fragment}`);
 }
 
 assert.match(page, /function decimalStringToParts[\s\S]*function scaleDecimalParts[\s\S]*BigInt[\s\S]*function decimalStringToUnits/s, 'running balance must use string/BigInt decimal logic');
+assert.doesNotMatch(page, /t\(locale, 'transactionCreate\.success\.(created|already_created)'\)/, 'QA-07 preview form must not display examples as actual success');
+assert.match(page, /form\?\.errorKey \|\| form\?\.errorCode \? message/, 'QA-07 only real failures create an error summary');
 assert.match(page, /function decimalStringToParts[\s\S]*function scaleDecimalParts[\s\S]*maxScale/s, 'running balance must align arbitrary decimal strings at the maximum fractional scale');
 assert.doesNotMatch(page, /fraction\.length > 2|padEnd\(2|slice\(-2\)|\.00\b/, 'running balance must not hard-code a 2-decimal scale');
 assert.match(page, /isKnownMessageKey[\s\S]*messages\[DEFAULT_LOCALE\][\s\S]*transactionCreate\.error\.generic/s, 'page must map backend-provided message keys through the fixed EN/RU catalog');

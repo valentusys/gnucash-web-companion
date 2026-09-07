@@ -45,8 +45,16 @@
 	}
 
 	function message(key: string | undefined): string {
+		if (!key) return '';
 		const safeKey = isKnownMessageKey(key) ? key : 'transactionCreate.error.generic';
 		return t(locale, safeKey);
+	}
+
+	function warningMessage(warning: { code: string; message_key: string }): string {
+		// Preview warnings use backend snake_case keys; map their code to a known
+		// catalog entry instead of treating a successful preview as a failed request.
+		const key = `transactionCreate.error.${warning.code}`;
+		return t(locale, isKnownMessageKey(key) ? key : 'transactionCreate.warningUnavailable');
 	}
 
 	function todayFallback(): string {
@@ -105,7 +113,7 @@
 	const previewIsStale = $derived(Boolean(preview) && transactionJson !== previewTransactionJson);
 	const confirmDisabled = $derived(!preview || !preview.confirm_allowed || previewIsStale || confirmSubmitting);
 	const visibleAccountCount = $derived(data.accounts.length);
-	const errorSummary = $derived(message(form?.errorKey));
+	const errorSummary = $derived(form?.errorKey || form?.errorCode ? message(form.errorKey || 'transactionCreate.error.generic') : '');
 
 	function accountLabel(account: AccountOption): string {
 		return `${account.display_name || account.name} · ${account.type} · ${account.currency}`;
@@ -230,7 +238,7 @@
 	</div>
 
 	<div class="mt-6">
-		<WriteModeWarning compact {locale} />
+		<WriteModeWarning compact {locale} role="status" />
 	</div>
 
 	<section class="mt-6 rounded-2xl border p-4 text-sm" style="border-color: var(--app-border); background: var(--app-card-bg); color: var(--app-text);" aria-labelledby="create-policy-title">
@@ -388,7 +396,7 @@
 			{#if preview.warnings.length}
 				<ul class="mt-4 list-disc pl-5 text-sm" style="color: #92400e;">
 					{#each preview.warnings as warning}
-						<li>{message(warning.message_key)}</li>
+						<li>{warningMessage(warning)}</li>
 					{/each}
 				</ul>
 			{/if}
@@ -415,9 +423,6 @@
 	<section class="mt-6 rounded-2xl border p-4 text-sm" style="border-color: var(--app-border); background: var(--app-card-bg); color: var(--app-text);" aria-labelledby="safe-results-title">
 		<h2 id="safe-results-title" class="font-semibold">{t(locale, 'transactionCreate.safeResultsTitle')}</h2>
 		<p class="mt-1">{t(locale, 'transactionCreate.safeResultsHelp')}</p>
-		<ul class="mt-2 list-disc pl-5">
-			<li>{t(locale, 'transactionCreate.success.created')}</li>
-			<li>{t(locale, 'transactionCreate.success.already_created')}</li>
-		</ul>
+
 	</section>
 </main>

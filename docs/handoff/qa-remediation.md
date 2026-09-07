@@ -2,6 +2,25 @@
 
 Status: in progress on `fix/qa-20260906`; not merged or released.
 
+## QA-07 — implemented and locally verified
+
+Absent form errors now produce no error summary; unknown real failures keep a fixed catalog
+fallback. Backend preview warnings carry snake_case message keys: their known codes map to
+localized restriction messages, while unknown warnings have neutral safe fallback copy.
+Static background safety guidance uses a status role on this form; other write-warning
+callers retain alert by default. Example created/already-created results are removed, not
+the existing server-confirmed success redirect or its catalog entries.
+
+Real generated-book browser checks in EN desktop/RU mobile cover fresh GET, actual preview
+button click, exact decimal strings and controlled IDs, blocked confirmation, edited/stale
+draft, actual validation failure and an explicitly injected transport disconnect. No response
+DTO is rewritten. Known blocked warnings no longer masquerade as generic request errors.
+The network classifier tests exact preview action/query and API path allowlists, rejecting
+confirm/CREATE/PATCH/DELETE/settings and malformed preview requests at both boundaries.
+Book hashes remain unchanged; zero mutations and stopped runtimes are recorded separately
+from non-mutating preview POST counts. Form/request-policy units, check/build, preview/product
+and auth guards pass; historical synthetic CREATE browser drills are not this acceptance.
+
 ## QA-06 — implemented and locally verified
 
 Account records retain structural-root evidence from the full visibility index before root

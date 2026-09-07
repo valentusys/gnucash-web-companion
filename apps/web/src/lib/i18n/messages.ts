@@ -864,6 +864,7 @@ export type MessageKey =
 	| 'transactionCreate.confirmUnavailableHelp'
 	| 'transactionCreate.safeResultsTitle'
 	| 'transactionCreate.safeResultsHelp'
+	| 'transactionCreate.warningUnavailable'
 	| 'transactionCreate.balanceZero'
 	| 'transactionCreate.balanceNonZero'
 	| 'transactionCreate.previewStale'
@@ -2008,8 +2009,9 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'transactionCreate.confirmSubmit': 'Confirm create',
 		'transactionCreate.confirmUnavailableTitle': 'Confirm unavailable',
 		'transactionCreate.confirmUnavailableHelp': 'Confirm is disabled unless confirm_allowed is true and the preview is not stale.',
-		'transactionCreate.safeResultsTitle': 'Safe result states',
-		'transactionCreate.safeResultsHelp': 'created and already_created are the only success states. UI never displays backup filenames or raw backend details.',
+		'transactionCreate.safeResultsTitle': 'About this preview',
+		'transactionCreate.safeResultsHelp': 'A preview does not save a transaction. Saving requires separate confirmation permitted by the server.',
+		'transactionCreate.warningUnavailable': 'The preview includes an additional restriction. Check the confirmation status before continuing.',
 		'transactionCreate.balanceZero': 'Exact zero-sum balance reached.',
 		'transactionCreate.balanceNonZero': 'Splits must sum to exact zero before preview or confirm.',
 		'transactionCreate.previewStale': 'Draft changed after preview. Run a new preview before confirming.',
@@ -3175,8 +3177,9 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'transactionCreate.confirmSubmit': 'Подтвердить CREATE',
 		'transactionCreate.confirmUnavailableTitle': 'Confirm недоступен',
 		'transactionCreate.confirmUnavailableHelp': 'Confirm отключён, пока confirm_allowed не true или preview stale.',
-		'transactionCreate.safeResultsTitle': 'Безопасные result states',
-		'transactionCreate.safeResultsHelp': 'created и already_created — единственные success states. UI никогда не показывает backup filenames или raw backend details.',
+		'transactionCreate.safeResultsTitle': 'О предпросмотре',
+		'transactionCreate.safeResultsHelp': 'Предпросмотр не сохраняет транзакцию. Для сохранения нужно отдельное подтверждение, разрешённое сервером.',
+		'transactionCreate.warningUnavailable': 'В предпросмотре есть дополнительное ограничение. Проверьте доступность подтверждения перед продолжением.',
 		'transactionCreate.balanceZero': 'Достигнут точный zero-sum balance.',
 		'transactionCreate.balanceNonZero': 'Сумма split rows должна быть ровно ноль до preview или confirm.',
 		'transactionCreate.previewStale': 'Draft изменился после preview. Запустите новый preview перед confirm.',

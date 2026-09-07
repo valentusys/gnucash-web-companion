@@ -32,6 +32,9 @@ reading the full history linearly.
 
 ### QA remediation (in progress)
 
+- QA-07: show request errors only after a real failure, explain blocked-preview warning codes,
+  and remove sample created outcomes from the form. Preview remains non-mutating.
+
 - QA-06: suppress false orphan warnings only when the complete visibility index proves the
   omitted parent is an existing structural root. Preserve source parents and real diagnostics.
 

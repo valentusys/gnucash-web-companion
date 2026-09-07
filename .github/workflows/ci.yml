@@ -115,6 +115,8 @@ jobs:
           npm run test:qa-money
           npm run test:qa-reporting-date
           npm run test:qa-recent-drilldown
+          npm run test:qa-form-states
+          npm run test:transaction-create-product-static
           npm run test:transaction-entry-create-disposable-browser
           npm run test:accounts-explorer-browser
           npm run test:transactions-explorer-browser
@@ -124,7 +126,7 @@ jobs:
           node scripts/test-scheduled-forecast-browser.mjs
           # Reuse the production build above; these cases never execute book writes.
           for scenario in scheduled_partial scheduled_valid scheduled_invalid empty money recent_sparse account_groups; do
-            QA_SCENARIO="$scenario" node scripts/test-qa-regressions-browser.mjs
+            QA_FORM_STATES=1 QA_SCENARIO="$scenario" node scripts/test-qa-regressions-browser.mjs
           done
           QA_SCENARIO=scheduled_valid QA_REPORTING_INSTANT=2026-09-05T15:30:00+00:00 QA_REPORTING_ZONE=Asia/Vladivostok node scripts/test-qa-regressions-browser.mjs
           QA_SCENARIO=scheduled_valid QA_REPORTING_INSTANT=2026-09-06T02:30:00+00:00 QA_REPORTING_ZONE=America/Los_Angeles node scripts/test-qa-regressions-browser.mjs

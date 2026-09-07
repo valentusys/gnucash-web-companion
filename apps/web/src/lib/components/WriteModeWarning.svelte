@@ -4,14 +4,15 @@
 	type Props = {
 		compact?: boolean;
 		locale?: Locale;
+		role?: 'alert' | 'status';
 	};
 
-	let { compact = false, locale = DEFAULT_LOCALE }: Props = $props();
+	let { compact = false, locale = DEFAULT_LOCALE, role = 'alert' }: Props = $props();
 </script>
 
 <div
 	class={compact ? 'rounded-2xl p-4 text-sm' : 'rounded-2xl p-5 text-sm'}
-	role="alert"
+	{role}
 	style="border: 1px solid #f59e0b; background: #fffbeb; color: #78350f;"
 >
 	<p class="font-semibold">{t(locale, 'writeMode.title')}</p>

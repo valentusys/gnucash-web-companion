@@ -372,6 +372,8 @@ for (const requiredProductFragment of [
 }
 
 assert.match(page, /function decimalStringToParts[\s\S]*function scaleDecimalParts[\s\S]*BigInt[\s\S]*maxScale/s, 'product running balance must use string/BigInt decimal scaling at max fractional scale');
+assert.doesNotMatch(page, /t\(locale, 'transactionCreate\.success\.(created|already_created)'\)/, 'QA-07 preview does not display fake created outcomes');
+assert.match(page, /form\?\.errorKey \|\| form\?\.errorCode \? message/, 'QA-07 fresh GET and successful preview must not render request errors');
 assert.doesNotMatch(page, /parseFloat|Number\(|fraction\.length > 2|padEnd\(2|slice\(-2\)|\.00\b/, 'product amount UI must not use JS numeric parsing or fixed two-decimal scaling');
 assert.doesNotMatch(page, /name="note"|transaction_note|localStorage|sessionStorage/, 'product route must not submit notes or persist private drafts/tokens in browser storage');
 assert.match(page, /function addSplit\(\)[\s\S]*splits\.length >= 50[\s\S]*disabled=\{splits\.length >= 50\}/s, 'product split editor must disable add at the 50-row bound');
