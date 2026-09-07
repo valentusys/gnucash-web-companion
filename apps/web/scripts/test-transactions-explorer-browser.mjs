@@ -199,8 +199,8 @@ async function startSyntheticApi() {
 		requests.push({ method: req.method, path: url.pathname, search: url.search, pathWithSearch: `${url.pathname}${url.search}` });
 		if (req.method === 'GET' && url.pathname === '/books/1/reports/reporting-date') return jsonResponse(res, 200, { as_of_date: '2026-09-06', basis: 'api_local_calendar' });
 		// QA-08 draft defaults use Summary resolution, not unchecked book metadata.
-		// This existing stub suite still asserts currency-scoped choices; real DTO
-		// compatibility is separately exercised by the generated FastAPI QA runner.
+		// Bounded preview choices are independent of the editable currency default;
+		// real DTO compatibility is exercised by the generated FastAPI QA runner.
 		if (req.method === 'GET' && url.pathname === '/books/1/reports/summary') return jsonResponse(res, 200, {
 			status: 'ready', as_of_date: '2026-09-06',
 			reporting_currency: { status: 'ready', selected_currency: 'SEK', source: 'settings', configured_currency: 'SEK', candidates: ['SEK'], message: 'Synthetic configured currency.' }
@@ -642,7 +642,8 @@ async function assertWidePreviewChoices(cdp, api, browserRequests, webBase, widt
 	const latestOptions = accountOptionRequests(api, 'transaction_create_preview').at(-1);
 	const params = new URLSearchParams(latestOptions.search);
 	assert.equal(params.get('limit'), '200', `${width}px: preview account choices must use the bounded max page`);
-	assert.equal(params.get('currency'), 'SEK', `${width}px: preview account choices must be currency-scoped`);
+	assert.equal(params.get('currency'), null, `${width}px: preview account choices must not inherit the editable currency default`);
+	assert.equal(await evaluate(cdp, `document.querySelector('#transaction-currency').value`), 'SEK', `${width}px: the reporting default remains initialized independently`);
 	await assertViewportNoOverflow(cdp, width, `wide preview choices ${width}px`);
 	assertNoMutationRequestsObserved(api, browserRequests, `wide preview choices ${width}px`);
 }

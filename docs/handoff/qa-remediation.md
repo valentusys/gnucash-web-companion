@@ -104,6 +104,10 @@ real-backend browser invocations passed. Every browser invocation preserved all 
 observed zero book mutation requests and stopped its child runtimes. A redundant local full
 API run was intentionally stopped before completion and is not counted as a full-suite PASS;
 full integration is delegated to exact-commit CI. No personal books, merge or deploy.
+The first correction CI exposed a stale neighboring transaction-explorer browser assertion
+requiring the removed filter. That guard now separately proves the unchanged SEK default
+and unfiltered bounded posting choices. Both neighboring explorer stub browser suites and
+all 18 non-browser aliases passed again; truncation, geometry and no-mutation guards remain.
 
 ## QA-07 — implemented and locally verified
 
