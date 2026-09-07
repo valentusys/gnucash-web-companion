@@ -1,6 +1,6 @@
 # PROJECT_STATUS
 
-Last updated: 2026-09-07
+Last updated: 2026-09-08
 
 ## QA remediation in progress (dedicated fix branch)
 
@@ -26,6 +26,12 @@ Last updated: 2026-09-07
   removes example success outcomes. Real browser checks click preview with writes disabled.
 - QA-08 shares the Summary currency resolver for the draft default, asks for an explicit
   choice when unavailable/ambiguous, and resets drafts when switching books without router errors.
+  Parent-review R1 is corrected: the bounded eligible-account list no longer inherits the
+  default-currency filter. Generated browser checks select two USD IDs after inferred RUB;
+  successful previews require matching explicitly configured synthetic app metadata, while
+  unconfigured/mismatched currency remains rejected. Backend/write gates are unchanged.
+  Correction checks: 112 targeted API tests, all 18 non-browser web aliases, check/build and
+  seven real-backend browser invocations passed; exact-commit CI is the full integration gate.
 - QA-10 distinguishes populated final pages from empty continuations and incomplete scans;
   generated cursor pages and CSV contain exactly the same transaction IDs.
 - QA-11 keeps header/logout controls inside the viewport and hit-testable, with keyboard

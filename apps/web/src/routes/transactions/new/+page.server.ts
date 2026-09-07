@@ -343,9 +343,10 @@ export const load: PageServerLoad = async ({ cookies, fetch }) => {
 		if (summary?.status === 'ready' && resolution?.status === 'ready' && selected && /^[A-Z]{3}$/.test(selected) && selected !== 'XXX') {
 			reportingCurrency = selected;
 		}
+		// Reporting currency initializes the editable draft; it must not hide
+		// eligible accounts in another currency. Keep the bounded preview scope.
 		accountOptionsState = await loadAccountOptions(fetch, bookPrefix, token, {
-			purpose: 'transaction_create_preview',
-			currency: reportingCurrency ?? undefined
+			purpose: 'transaction_create_preview'
 		});
 	}
 	return {

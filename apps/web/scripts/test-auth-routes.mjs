@@ -337,7 +337,7 @@ assert.match(
 const newTransactionServer = read('src/routes/transactions/new/+page.server.ts');
 assert.match(
 	newTransactionServer,
-	/getActiveBookContext\(fetch, cookies, token\)[\s\S]*reports\/summary[\s\S]*loadAccountOptions\(fetch, bookPrefix, token[\s\S]*purpose: 'transaction_create_preview'[\s\S]*currency: reportingCurrency \?\? undefined/s,
+	/getActiveBookContext\(fetch, cookies, token\)[\s\S]*reports\/summary[\s\S]*loadAccountOptions\(fetch, bookPrefix, token, \{\s*purpose: 'transaction_create_preview'\s*\}\)/s,
 	'new transaction preview page must resolve bounded posting choices through the active accessible book context'
 );
 assert.doesNotMatch(

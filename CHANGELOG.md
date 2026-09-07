@@ -45,6 +45,8 @@ reading the full history linearly.
 
 - QA-08: use the validated reporting currency instead of a hardcoded draft fallback; retain
   explicit returned choices, reset cross-book drafts, and navigate book selection as a server GET.
+  Keep eligible nondefault-currency account IDs available in the bounded preview selectors
+  instead of treating the inferred default as a permanent currency filter.
 
 - QA-07: show request errors only after a real failure, explain blocked-preview warning codes,
   and remove sample created outcomes from the form. Preview remains non-mutating.

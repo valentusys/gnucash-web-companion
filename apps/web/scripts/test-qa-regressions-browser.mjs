@@ -13,6 +13,7 @@ import { compareDecimalStrings } from '../src/lib/money.js';
 import { isReadOnlyQaRequest } from './qa-request-policy.mjs';
 import { verifyHeader } from './qa-header-browser.mjs';
 import { verifyUx } from './qa-ux-browser.mjs';
+import { verifyExplicitCurrency } from './qa-explicit-currency-browser.mjs';
 
 const webRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const repoRoot = resolve(webRoot, '../..');
@@ -233,6 +234,7 @@ try {
             if (record.path.endsWith('/reports/recent-transactions') && upstream.status === 200) recentPayload = JSON.parse(body.toString('utf8'));
             if (record.path.endsWith('/transactions/explorer') && upstream.status === 200) explorerPayload = JSON.parse(body.toString('utf8'));
             if (record.path.endsWith('/transactions/create-preview') && upstream.status === 200) previewPayload = JSON.parse(body.toString('utf8'));
+            if (record.path.endsWith('/transactions/create-preview') && upstream.status === 422) record.error_code = JSON.parse(body.toString('utf8')).error?.code;
             if (/\/accounts\/[0-9a-f]{32}\/overview$/.test(record.path) && upstream.status === 200) overviewPayload = JSON.parse(body.toString('utf8'));
             if (record.path.endsWith('/reports/summary') && upstream.status === 200) {
                 const summary = JSON.parse(body.toString('utf8'));
@@ -305,6 +307,19 @@ try {
             assert.equal(currencyResolution.selected_currency,expected||null);
             assert.equal(currencyResolution.status,expected?'ready':'setup_required');
             if (!expected) assert.match(await cdp.evaluate('document.querySelector("#transaction-currency-help").innerText'),locale==='ru'?/Укажите валюту счетов/:/Choose the currency of the accounts/);
+            if (scenario === 'money') {
+                const ids = pythonJson('import json\nfrom tests.support.generate_qa_regression_fixture import guid\nprint(json.dumps({name:guid("account:"+name) for name in ["usd","usd_savings","cash","savings"]}))');
+                const configureSyntheticCurrency = (currency) => {
+                    // Isolated APP metadata prerequisite only; never change book bytes or write gates.
+                    pythonJson('import json,sqlite3,sys\nwith sqlite3.connect(sys.argv[1]) as db:\n cursor=db.execute("UPDATE books SET base_currency=? WHERE id=1",(json.loads(sys.argv[2]),))\n assert cursor.rowcount==1\n assert db.execute("SELECT base_currency,transaction_create_enabled FROM books WHERE id=1").fetchone()==(json.loads(sys.argv[2]),0)\n print(json.dumps(True))',[join(root,'app.db'),JSON.stringify(currency)]);
+                    evidence.synthetic_app_metadata_currency_updates = (evidence.synthetic_app_metadata_currency_updates ?? 0)+1;
+                };
+                const result = await verifyExplicitCurrency(cdp, apiRequests, () => previewPayload, ids, configureSyntheticCurrency);
+                evidence.explicit_currency_cases ??= [];
+                evidence.explicit_currency_cases.push({locale,width,...result});
+                const shot = await cdp.send('Page.captureScreenshot',{format:'png'});
+                writeFileSync(join(root,`synthetic-explicit-currency-${locale}.png`),Buffer.from(shot.data,'base64'),{mode:0o600});
+            }
             if (alternateBookId) {
                 // Exercise the actual BookSwitcher, recording whether its redirect reloads.
                 const marker = await cdp.evaluate('window.qaDocumentMarker = "same-document"');

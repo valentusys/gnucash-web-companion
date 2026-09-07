@@ -52,6 +52,9 @@ def test_generated_money_scenario_is_deterministic_and_balanced(tmp_path):
             values = db.execute("select value_num,value_denom from splits where tx_guid=?", (tx["id"],)).fetchall()
             assert sum((Fraction(n, d) for n, d in values), Fraction()) == 0
         assert db.execute("select count(*) from schedxactions").fetchone() == (0,)
+        # A nondefault-currency draft needs two genuine eligible accounts, not
+        # just an editable currency text field that survives failed validation.
+        assert db.execute("select count(*) from accounts a join commodities c on a.commodity_guid=c.guid where c.mnemonic='USD' and a.account_type='BANK'").fetchone() == (2,)
     assert first["transactions"]["large"]["magnitude"] == "90071992547409.91"
 
 

@@ -28,7 +28,7 @@ def _money_scenario(book, *, sparse=False):
     usd = piecash.Commodity(namespace="CURRENCY", mnemonic="USD", fullname="Synthetic USD", fraction=100)
     usd.guid = guid("usd")
     accounts = {}
-    for name, kind, currency in [("cash", "BANK", rub), ("savings", "BANK", rub), ("income", "INCOME", rub), ("expense", "EXPENSE", rub), ("fees", "EXPENSE", rub), ("credit", "CREDIT", rub), ("usd", "BANK", usd)]:
+    for name, kind, currency in [("cash", "BANK", rub), ("savings", "BANK", rub), ("income", "INCOME", rub), ("expense", "EXPENSE", rub), ("fees", "EXPENSE", rub), ("credit", "CREDIT", rub), ("usd", "BANK", usd), ("usd_savings", "BANK", usd)]:
         account = piecash.Account(name=f"SYNTHETIC {name}", type=kind, commodity=currency, parent=book.root_account)
         account.guid = guid(f"account:{name}")
         accounts[name] = account

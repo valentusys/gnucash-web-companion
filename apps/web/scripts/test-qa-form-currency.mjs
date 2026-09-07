@@ -24,7 +24,8 @@ const ready=(currency)=>({status:'ready',reporting_currency:{status:'ready',sele
 for (const currency of ['RUB','EUR','USD']) {
     const {data,reads,options}=await load(ready(currency));
     assert.equal(data.reportingCurrency,currency,'QA-08 form loader must use the same resolved currency as Summary');
-    assert.equal(options[0].currency,currency);
+    assert.equal(options[0].currency,undefined,'QA-08 inferred default must not lock selectors to that currency');
+    assert.equal(options[0].purpose,'transaction_create_preview','only eligible preview account IDs');
     assert.equal(reads.filter(p=>p.endsWith('/reports/summary')).length,1);
     assert.ok(reads.every(p=>p.startsWith('http://synthetic/books/1/')));
 }
@@ -32,6 +33,11 @@ for(const summary of [null, {status:'setup_required',reporting_currency:{status:
     const {data,options}=await load(summary,{id:2,base_currency:'SEK'});
     assert.equal(data.reportingCurrency,null,'unavailable/ambiguous/invalid resolution must not invent a configured fallback');
     assert.equal(options[0].currency,undefined);
+}
+for (const base_currency of [null,'RUB']) {
+    const {data,options}=await load(ready('RUB'),{id:1,base_currency});
+    assert.equal(data.reportingCurrency,'RUB');
+    assert.equal(options[0].currency,undefined,'configured metadata must not lock an editable draft either');
 }
 const missing=await load(null,null); assert.equal(missing.data.reportingCurrency,null);assert.equal(missing.reads.length,0);assert.equal(missing.options.length,0);
 await assert.rejects(load(null,undefined,401),e=>e.status===303 && e.location==='/login');

@@ -65,8 +65,12 @@ API explorer/export suites also pass, including their stale-cursor regression co
 
 ## QA-08 — implemented and locally verified
 
-The form loads the same real Summary resolution as Dashboard, uses only a ready valid monetary
-code, and passes it to bounded account choices. Empty, tied, unavailable or invalid resolutions
+The form loads the same real Summary resolution as Dashboard and uses a ready valid monetary
+code only as the draft default. Bounded account choices use `transaction_create_preview` without
+an inferred/configured currency filter, so another supported currency remains selectable.
+The existing 200-option limit and partial/unavailable/truncated notices remain in place;
+this correction does not add pagination or claim every account in a large book is loaded.
+Empty, tied, unavailable or invalid resolutions
 leave a blank required currency field with localized guidance. Valid returned explicit choices
 remain above the default after validation errors; no configured metadata or book is changed.
 Backend commodity/configuration validation and all confirmation/write gates remain unchanged:
@@ -80,6 +84,26 @@ no missing-page fallback. Actual navigation is a document reload; state-reset br
 also exercise same-component book changes. Both generated book hashes stay unchanged.
 Explicit USD choice plus exact decimal strings survive an actual validation response on a
 configured RUB test book. Read-only acceptance executes no confirm or book mutation requests.
+
+Parent-review correction (R1): the previous currency filter hid eligible USD IDs after the
+user changed an inferred RUB default. The loader and real-browser selector oracles were RED
+before removing that filter. The generated money fixture now has two eligible USD bank
+accounts; its determinism and balanced transactions remain verified.
+
+The real EN-desktop/RU-mobile test selects both USD IDs while the default is inferred RUB,
+then verifies the existing `COMMODITY_MISMATCH` rejection while book metadata is unconfigured.
+Successful USD and RUB previews are tested only after explicitly configuring the matching
+currency in isolated synthetic **app metadata**. This is test setup, not a product auto-change
+or a relaxation of the backend's configured-currency contract. These setup updates are counted
+separately; the app's write gate remains disabled. Mismatched account currencies still return
+422; exact `-1.2300`/`1.2300` strings, controlled IDs and returned choices remain intact.
+
+Fresh correction checks: 112 targeted API tests passed (all QA modules plus account tests),
+all 18 registered non-browser web aliases passed, check/build passed, and seven generated
+real-backend browser invocations passed. Every browser invocation preserved all book hashes,
+observed zero book mutation requests and stopped its child runtimes. A redundant local full
+API run was intentionally stopped before completion and is not counted as a full-suite PASS;
+full integration is delegated to exact-commit CI. No personal books, merge or deploy.
 
 ## QA-07 — implemented and locally verified
 
