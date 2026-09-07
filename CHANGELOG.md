@@ -35,6 +35,7 @@ reading the full history linearly.
 - QA-12: localize primary Russian controls and errors, derive HTML language from the validated
   locale, and move engineering help behind accessible disclosures. Keep real incomplete-data
   and recovery warnings visible, including successfully loaded but truncated account choices.
+  Stack mobile transaction content so long exact amounts cannot squeeze out descriptions/dates.
 
 - QA-11: wrap desktop navigation instead of clipping session controls; Escape closes the
   mobile menu and restores focus. Synthetic browser geometry and logout/login are checked.

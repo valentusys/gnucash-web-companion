@@ -27,6 +27,13 @@ and stopped child runtimes. Both neighboring explorer browser suites pass. These
 do not replace the pending full final-head integration and exact-head CI. No private book or
 independent reviewer agent was used for this slice.
 
+Final visual review found a related narrow-card defect that document-overflow checks missed:
+a long exact monetary amount squeezed the description and wrapped the date into a tiny column.
+The real UX oracle now checks the synthetic description's own scroll/client width. RED was
+observed at both narrow widths, then GREEN after stacking the mobile card's description/date
+above its unchanged money display. The large exact amount and first results remain visible;
+real money, pagination and neighboring explorer gates pass. No numeric or request logic changed.
+
 ## QA-11 — implemented and locally verified
 
 Desktop header content wraps into bounded rows, leaving logout and other controls visible

@@ -30,7 +30,7 @@
 			role="button"
 			tabindex="0"
 		>
-			<div class="flex items-start justify-between gap-3">
+			<div class="flex flex-col items-stretch gap-3">
 				<div class="min-w-0">
 					{#if detailHref}
 						<a class="block truncate text-sm font-medium hover:underline" style="color: var(--app-accent);" href={detailHref(tx.id)}>{tx.description || t(locale, 'transactionDetail.noDescription')}</a>

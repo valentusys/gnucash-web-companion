@@ -33,6 +33,7 @@ Last updated: 2026-09-07
 - QA-12 localizes primary RU controls, errors and presets with validated SSR language, and
   puts technical help behind disclosures after the primary task. Real errors, partial choices,
   scan limits and recovery warnings remain visible; generated mobile first-screen checks pass.
+  Narrow cards stack long exact amounts below description/date to prevent internal text clipping.
 - All twelve fixes are locally verified; final exact-head integration/CI remain pending. This is not final acceptance,
   a merge, a release, or deployment authorization. See [QA handoff](docs/handoff/qa-remediation.md).
 
