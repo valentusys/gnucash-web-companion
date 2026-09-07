@@ -28,6 +28,7 @@ let proxy;
 let cdp;
 let fixture;
 let recentPayload;
+let explorerPayload;
 let summaryAsOf;
 let scheduledAsOf = [];
 let scopeIds;
@@ -180,14 +181,15 @@ try {
     if (clockInstant) evidence.clock = { instant: clockInstant, zone: clockZone, as_of_date: expectedClockDate };
     start(apiPython, apiArgs, apiEnv, apiRoot, 'api');
     await waitHttp(`${apiBase}/health`);
-    if (scenario === 'money') {
+    if (['money', 'recent_sparse'].includes(scenario)) {
         // Isolated synthetic APP metadata setup only; never writes the generated GnuCash book.
         scopeIds = pythonJson('import json,sqlite3,sys\nfrom tests.support.generate_qa_regression_fixture import guid\nwith sqlite3.connect(sys.argv[1]) as db:\n cursor=db.execute("UPDATE books SET base_currency=? WHERE uri_or_path=?", ("RUB",sys.argv[2]))\n assert cursor.rowcount == 1\nprint(json.dumps({name:guid("account:"+name) for name in ["cash","expense","savings"]}))', [join(root, 'app.db'), fixture.book_path]);
         evidence.synthetic_app_metadata_setup_updates = 1;
     }
     // Transparent proxy observes real web→API responses. No response stubs/DTO rewriting.
     proxy = createServer(async (request, response) => {
-        const record = { method: request.method, path: new URL(request.url, apiBase).pathname, status: null };
+        const requestUrl = new URL(request.url, apiBase);
+        const record = { method: request.method, path: requestUrl.pathname, query: Object.fromEntries(requestUrl.searchParams), status: null };
         apiRequests.push(record);
         try {
             const chunks = [];
@@ -202,6 +204,7 @@ try {
             response.writeHead(upstream.status, { 'content-type': upstream.headers.get('content-type') ?? 'application/json' });
             const body = Buffer.from(await upstream.arrayBuffer());
             if (record.path.endsWith('/reports/recent-transactions') && upstream.status === 200) recentPayload = JSON.parse(body.toString('utf8'));
+            if (record.path.endsWith('/transactions/explorer') && upstream.status === 200) explorerPayload = JSON.parse(body.toString('utf8'));
             if (record.path.endsWith('/reports/summary') && upstream.status === 200) summaryAsOf = JSON.parse(body.toString('utf8')).as_of_date;
             if (record.path.endsWith('/scheduled-transactions') && upstream.status === 200) scheduledAsOf = JSON.parse(body.toString('utf8')).map(item => item.forecast.as_of_date);
             response.end(body);
@@ -287,6 +290,16 @@ try {
                 }
             }
             evidence.recent_money_rows = domRows.length;
+            const recentHref = await cdp.evaluate(`document.querySelector('li[data-dashboard-recent-kind]')?.closest('section')?.querySelector('a')?.href`);
+            const recentUrl = new URL(recentHref);
+            assert.equal(recentUrl.searchParams.get('date_from'), '2026-09-01', 'QA-09 recent link must use the dates actually shown');
+            assert.equal(recentUrl.searchParams.get('date_to'), '2026-09-01');
+            const readsBefore = apiRequests.filter(row => row.path.endsWith('/transactions/explorer')).length;
+            await cdp.evaluate(`document.querySelector('li[data-dashboard-recent-kind]').closest('section').querySelector('a').click()`);
+            await cdp.wait(`location.pathname === '/transactions' && Array.from(document.querySelectorAll('[role=button]')).some(row => row.getClientRects().length && row.innerText.includes('SYNTHETIC QA income'))`);
+            assert.ok(apiRequests.filter(row => row.path.endsWith('/transactions/explorer')).length > readsBefore, 'Recent link click must reach the real backend explorer');
+            assert.ok(await cdp.evaluate(`document.body.innerText.includes('SYNTHETIC QA income')`), 'The transaction shown on Dashboard remains reachable');
+            evidence.recent_drilldown_click = true;
             await cdp.navigate(`${webBase}/transactions?date_from=2026-09-01&date_to=2026-09-02&page_size=20`);
             const explorerRows = await cdp.evaluate(`Array.from(document.querySelectorAll('[role=button]')).filter(row => row.getClientRects().length && row.innerText.includes('SYNTHETIC QA ')).map(row => ({text:row.innerText, amount:(row.querySelector('td:last-child') ?? row.querySelector('.shrink-0.text-right'))?.innerText.replace(/\\s+/g,' ').trim() ?? ''}))`);
             assert.equal(explorerRows.length, Object.keys(fixture.transactions).length, 'QA-03 real explorer rows must render');
@@ -313,6 +326,57 @@ try {
                 assert.match(amount, group ? (locale === 'ru' ? /выбранных счетов/ : /selected accounts/) : (locale === 'ru' ? /Изменение счёта/ : /Account change/), 'signed quantity must identify its account basis');
             }
             evidence.scoped_money_cases = 3;
+        }
+        if (['recent_sparse', 'empty'].includes(scenario)) {
+            await cdp.navigate(`${webBase}/dashboard`);
+            const shown = [...recentPayload];
+            const links = await cdp.evaluate(`Array.from(document.querySelectorAll('[data-recent-period]')).map(a => ({href:a.href, text:a.innerText}))`);
+            assert.equal(links.length, scenario === 'recent_sparse' ? 3 : 1, 'QA-09 every sparse period or explicit empty default must be visible');
+            const primaryHref = await cdp.evaluate(`document.querySelector('[data-recent-drilldown]')?.href`);
+            assert.equal(primaryHref, links[0].href, 'Header uses the latest bounded period');
+            const reached = new Set();
+            for (const [index, link] of links.entries()) {
+                const url = new URL(link.href);
+                const from = url.searchParams.get('date_from');
+                const to = url.searchParams.get('date_to');
+                assert.ok(from && to && from <= to && (Date.parse(to) - Date.parse(from)) / 86400000 < 366);
+                assert.ok(link.text.includes(from) && link.text.includes(to), 'The allowed period is visibly labelled');
+                assert.match(link.text, index === 0 ? (locale === 'ru' ? /Последний период/ : /Latest period/) : (locale === 'ru' ? /Более ранние/ : /Older transactions/));
+                if (scenario === 'empty') {
+                    assert.equal(from, summaryAsOf.slice(0, 7) + '-01');
+                    assert.equal(to, summaryAsOf);
+                }
+                const readsBefore = apiRequests.length;
+                explorerPayload = undefined;
+                await cdp.evaluate(`document.querySelectorAll('[data-recent-period]')[${index}].click()`);
+                await cdp.wait(`location.pathname === '/transactions' && document.querySelector('input[name=date_from]')?.value === ${JSON.stringify(from)}`);
+                const expected = shown.filter(tx => tx.date >= from && tx.date <= to);
+                if (expected.length) await cdp.wait(`Array.from(document.querySelectorAll('[role=button]')).some(row => row.getClientRects().length && row.innerText.includes(${JSON.stringify(expected[0].description)}))`);
+                assert.ok(explorerPayload, 'Click reaches real explorer, not only a filter screen');
+                assert.deepEqual(explorerPayload.items.map(tx => tx.id).sort(), expected.map(tx => tx.id).sort());
+                for (const tx of expected) {
+                    assert.ok(await cdp.evaluate(`Array.from(document.querySelectorAll('[role=button]')).some(row => row.getClientRects().length && row.innerText.includes(${JSON.stringify(tx.description)}))`));
+                    reached.add(tx.id);
+                }
+                const request = apiRequests.slice(readsBefore).find(row => row.path.endsWith('/transactions/explorer') && row.status === 200);
+                const recentRequest = apiRequests.findLast(row => row.path.endsWith('/reports/recent-transactions'));
+                assert.equal(request?.path.replace('/transactions/explorer', ''), recentRequest.path.replace('/reports/recent-transactions', ''), 'Active book preserved');
+                assert.equal(request.query.date_from, from);
+                assert.equal(request.query.date_to, to);
+                assert.equal(request.query.sort, 'date_desc');
+                assert.equal(request.query.page_size, '50');
+                assert.equal(request.query.cursor, undefined);
+                // app.html currently hardcodes lang=en (tracked for QA-12); verify actual UI locale here.
+                assert.equal(await cdp.evaluate('document.querySelector("main h1")?.innerText'), locale === 'ru' ? 'Просмотр транзакций' : 'Browse transactions', 'UI locale preserved on click');
+                if (!expected.length) {
+                    assert.equal(explorerPayload.returned_count, 0);
+                    assert.ok(await cdp.evaluate(`Boolean(document.querySelector('main [role=status]'))`), 'Genuine empty result explained');
+                }
+                await cdp.navigate(`${webBase}/dashboard`);
+            }
+            assert.equal(reached.size, shown.length, 'All previously shown transactions remain reachable');
+            evidence.recent_period_clicks = links.length;
+            evidence.recent_reachable_rows = reached.size;
         }
         evidence.cases.push({ locale, width, scheduled_rows: rows, unavailable_rows: expectedInvalid });
     }

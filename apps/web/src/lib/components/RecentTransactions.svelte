@@ -6,7 +6,13 @@
 	type Transaction = import('$lib/api/types').RecentTransaction;
 	type DashboardTransactionKind = 'ordinary' | 'composite' | 'ambiguous';
 
-	let { transactions, loading = false, drilldownHref = '/transactions', locale = DEFAULT_LOCALE }: { transactions: Transaction[]; loading?: boolean; drilldownHref?: string; locale?: Locale } = $props();
+	let { transactions, loading = false, drilldownHref = null, recentPeriods = [], locale = DEFAULT_LOCALE }: {
+		transactions: Transaction[];
+		loading?: boolean;
+		drilldownHref?: string | null;
+		recentPeriods?: import('$lib/api/types').DashboardDrilldownLinks['recentPeriods'];
+		locale?: Locale;
+	} = $props();
 
 	function ordinaryTwoSplit(tx: Transaction): boolean {
 		const direction = tx.direction;
@@ -44,8 +50,19 @@
 			<h2 class="text-lg font-semibold" style="color: var(--app-text);">{t(locale, 'dashboard.recentTransactions')}</h2>
 			<p class="mt-1 text-xs" style="color: var(--app-muted);">{t(locale, 'dashboard.recentTransactionsHelp')}</p>
 		</div>
-		<a class="text-sm font-semibold" style="color: var(--app-accent);" href={drilldownHref}>{t(locale, 'dashboard.viewTransactions')}</a>
+		{#if drilldownHref}
+			<a data-recent-drilldown class="text-sm font-semibold" style="color: var(--app-accent);" href={drilldownHref}>{t(locale, 'dashboard.viewTransactions')}</a>
+		{/if}
 	</div>
+	{#if recentPeriods.length > 0}
+		<ul class="mt-2 space-y-2 text-xs" aria-label={t(locale, 'dashboard.recentPeriods')}>
+			{#each recentPeriods as period, index}
+				<li>
+					<a data-recent-period class="underline" style="color: var(--app-accent);" href={period.href}>{t(locale, index === 0 ? 'dashboard.recentLatestPeriod' : 'dashboard.recentOlderPeriod', { from: period.date_from, to: period.date_to })}</a>
+				</li>
+			{/each}
+		</ul>
+	{/if}
 
 	{#if loading}
 		<div class="mt-4 space-y-3">

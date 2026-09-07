@@ -75,7 +75,7 @@
 					<p class="mt-1" style="color: var(--app-muted);">{t(locale, 'dashboard.sectionError.redacted')}</p>
 				</section>
 			{:else}
-				<RecentTransactions transactions={data.recentTransactions} drilldownHref={data.drilldowns.recent} {locale} />
+				<RecentTransactions transactions={data.recentTransactions} drilldownHref={data.drilldowns.recent} recentPeriods={data.drilldowns.recentPeriods} {locale} />
 			{/if}
 
 			{#if summarySetupRequired}

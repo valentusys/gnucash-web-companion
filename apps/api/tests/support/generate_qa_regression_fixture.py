@@ -16,14 +16,14 @@ import piecash
 from tests.support.generate_issue60_usability_fixture import _stabilize_default_identity
 
 SEED = 20260906
-SCENARIOS = {"scheduled_partial", "scheduled_valid", "scheduled_invalid", "empty", "money"}
+SCENARIOS = {"scheduled_partial", "scheduled_valid", "scheduled_invalid", "empty", "money", "recent_sparse"}
 
 
 def guid(label: str) -> str:
     return hashlib.sha256(f"synthetic-qa:{SEED}:{label}".encode()).hexdigest()[:32]
 
 
-def _money_scenario(book):
+def _money_scenario(book, *, sparse=False):
     rub = book.default_currency
     usd = piecash.Commodity(namespace="CURRENCY", mnemonic="USD", fullname="Synthetic USD", fraction=100)
     usd.guid = guid("usd")
@@ -44,15 +44,16 @@ def _money_scenario(book):
         "multicurrency": [("cash", "-90", "-90"), ("usd", "90", "1")],
     }
     manifest = {}
-    for name, specs in cases.items():
+    for case_index, (name, specs) in enumerate(cases.items()):
         splits = []
         for index, (account, value, quantity) in enumerate(specs):
             split = piecash.Split(account=accounts[account], value=Decimal(value), quantity=Decimal(quantity))
             split.guid = guid(f"split:{name}:{index}")
             splits.append(split)
-        tx = piecash.Transaction(currency=rub, description=f"SYNTHETIC QA {name}", post_date=date(2026, 9, 1), splits=splits)
+        posted = [date(2010, 1, 1), date(2024, 2, 29), date(2026, 8, 31)][case_index % 3] if sparse else date(2026, 9, 1)
+        tx = piecash.Transaction(currency=rub, description=f"SYNTHETIC QA {name}", post_date=posted, splits=splits)
         tx.guid = guid(f"tx:{name}")
-        manifest[name] = {"id": tx.guid, "magnitude": str(abs(Decimal(specs[0][1]))) if name not in {"composite", "multicurrency"} else None, "currency": "RUB"}
+        manifest[name] = {"id": tx.guid, "date": posted.isoformat(), "magnitude": str(abs(Decimal(specs[0][1]))) if name not in {"composite", "multicurrency"} else None, "currency": "RUB"}
     return manifest
 
 
@@ -71,7 +72,7 @@ def generate_qa_regression_fixture(root: Path | str, *, scenario: str = "schedul
             "old_template_root": book.root_template.guid, "new_template_root": guid("template-root"),
             "old_rub": book.default_currency.guid, "new_rub": guid("rub"),
         }
-        transactions = _money_scenario(book) if scenario == "money" else {}
+        transactions = _money_scenario(book, sparse=scenario == "recent_sparse") if scenario in {"money", "recent_sparse"} else {}
         book.save()
     finally:
         book.close()

@@ -678,6 +678,9 @@ function assertStaticSafety() {
 	assert.match(expenses, /viewAllHref[\s\S]*dashboard\.viewAllExpenses/s, 'expenses component must expose a view-all link');
 	assert.match(recent, /RecentTransaction[\s\S]*ordinaryTwoSplit[\s\S]*tx\.amount_is_unambiguous[\s\S]*tx\.amount\.replace[\s\S]*currency: tx\.currency[\s\S]*data-dashboard-recent-kind/s, 'QA-02 recent amounts must use the real report contract and backend simple-amount classification');
 	assert.doesNotMatch(recent, /tx\.representative_amount|tx\.matched_amount/, 'QA-02 explorer-only amount fields cannot leak into recent rendering');
+	assert.match(server, /boundedRecentPeriods\(recentTransactions, asOfDate\)/, 'QA-09 derive recent navigation from shown dates');
+	assert.match(recent, /data-recent-period[\s\S]*dashboard\.recentOlderPeriod/s, 'QA-09 expose older bounded links');
+	assert.doesNotMatch(server, /recent: transactionFilterHref\(\{\}\)/, 'No unbounded recent link');
 	assert.doesNotMatch(`${server}\n${page}\n${summaryGrid}\n${recent}\n${expenses}`, /parseFloat\(|Number\([^)]*(?:amount|total|net|inflow|outflow|expense|income|delta)/, 'dashboard must not use float/Number conversion on money strings');
 	assert.doesNotMatch(`${summaryGrid}\n${expenses}`, /from ['"][^'"]*(?:chart|d3|echarts|plotly|recharts)/i, 'dashboard trends must not add a heavy chart dependency');
 	assert.doesNotMatch(page, /localStorage|sessionStorage|formaction="\?\/create"|method="POST"/s, 'dashboard must not add browser storage or write submissions');

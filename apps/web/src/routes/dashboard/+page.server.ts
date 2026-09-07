@@ -50,6 +50,24 @@ function monthStart(value: string): string {
 	return `${value.slice(0, 7)}-01`;
 }
 
+// Cover every shown recent date without relaxing the explorer's 366-day bound.
+function boundedRecentPeriods(transactions: Pick<RecentTransaction, 'date'>[], asOfDate: string | null): { date_from: string; date_to: string }[] {
+	const dates = [...new Set(transactions.map((tx) => tx.date).filter(strictIsoDate))].sort().reverse();
+	if (dates.length === 0) {
+		return strictIsoDate(asOfDate) ? [{ date_from: monthStart(asOfDate), date_to: asOfDate }] : [];
+	}
+	const periods: { date_from: string; date_to: string }[] = [];
+	for (const date of dates) {
+		const current = periods.at(-1);
+		if (current && (Date.parse(current.date_to) - Date.parse(date)) / DAY_MS < 366) {
+			current.date_from = date;
+		} else {
+			periods.push({ date_from: date, date_to: date });
+		}
+	}
+	return periods;
+}
+
 function previousEquivalentRange(dateFrom: string, dateTo: string): { date_from: string; date_to: string } {
 	const inclusiveDays = Math.round(
 		(new Date(`${dateTo}T00:00:00Z`).getTime() - new Date(`${dateFrom}T00:00:00Z`).getTime()) / DAY_MS
@@ -226,8 +244,13 @@ export async function load({ cookies, fetch: fetchFn }: { cookies: any; fetch: a
 		sectionErrors.changes = changesStatus === 'error' || changesStatus === 'not_comparable';
 	}
 
+	const recentPeriods = boundedRecentPeriods(recentTransactions, asOfDate).map((period) => ({
+		...period,
+		href: transactionFilterHref(period)
+	}));
 	const drilldowns: DashboardDrilldownLinks = {
-		recent: transactionFilterHref({}),
+		recent: recentPeriods[0]?.href ?? null,
+		recentPeriods,
 		incomeThisMonth: transactionFilterHref({ date_from: dateFrom, date_to: dateTo, type: 'income' }),
 		expensesThisMonth: transactionFilterHref({ date_from: dateFrom, date_to: dateTo, type: 'expense' }),
 		expensesAll: reportHref(dateFrom, dateTo),

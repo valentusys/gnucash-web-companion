@@ -344,6 +344,9 @@ export type MessageKey =
 	| 'dashboard.transactionFromTo'
 	| 'dashboard.amountNotShown'
 	| 'dashboard.viewTransactions'
+	| 'dashboard.recentPeriods'
+	| 'dashboard.recentLatestPeriod'
+	| 'dashboard.recentOlderPeriod'
 	| 'dashboard.noRecentTransactions'
 	| 'dashboard.expensesByAccount'
 	| 'dashboard.expensesByAccountHelp'
@@ -1443,6 +1446,9 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'dashboard.transactionFromTo': 'From {from} to {to}',
 		'dashboard.amountNotShown': 'Amount not shown',
 		'dashboard.viewTransactions': 'View transactions',
+		'dashboard.recentPeriods': 'Periods for recent transactions',
+		'dashboard.recentLatestPeriod': 'Latest period: {from} – {to}',
+		'dashboard.recentOlderPeriod': 'Older transactions: {from} – {to}',
 		'dashboard.noRecentTransactions': 'No transactions found.',
 		'dashboard.expensesByAccount': 'Expenses by Account',
 		'dashboard.expensesByAccountHelp': 'Top five expense accounts for the as-of month, using exact base-currency strings.',
@@ -2604,6 +2610,9 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'dashboard.transactionFromTo': 'Со счёта «{from}» на счёт «{to}»',
 		'dashboard.amountNotShown': 'Сумма не показана',
 		'dashboard.viewTransactions': 'Открыть транзакции',
+		'dashboard.recentPeriods': 'Периоды последних транзакций',
+		'dashboard.recentLatestPeriod': 'Последний период: {from} – {to}',
+		'dashboard.recentOlderPeriod': 'Более ранние транзакции: {from} – {to}',
 		'dashboard.noRecentTransactions': 'Транзакции не найдены.',
 		'dashboard.expensesByAccount': 'Расходы по счетам',
 		'dashboard.expensesByAccountHelp': 'Пять крупнейших счетов расходов за месяц на дату отчёта; точные строки в базовой валюте.',

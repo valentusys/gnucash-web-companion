@@ -55,6 +55,20 @@ def test_generated_money_scenario_is_deterministic_and_balanced(tmp_path):
     assert first["transactions"]["large"]["magnitude"] == "90071992547409.91"
 
 
+def test_generated_recent_sparse_scenario_is_deterministic(tmp_path):
+    from tests.support.generate_qa_regression_fixture import SCENARIOS
+    assert "recent_sparse" in SCENARIOS, "QA-09 needs a deterministic old/sparse book"
+    first = generate_qa_regression_fixture(tmp_path / "sparse1", scenario="recent_sparse")
+    second = generate_qa_regression_fixture(tmp_path / "sparse2", scenario="recent_sparse")
+    assert Path(first["book_path"]).read_bytes() == Path(second["book_path"]).read_bytes()
+    assert {tx["date"] for tx in first["transactions"].values()} == {"2010-01-01", "2024-02-29", "2026-08-31"}
+    with sqlite3.connect(f"file:{first['book_path']}?mode=ro", uri=True) as db:
+        for tx in first["transactions"].values():
+            actual = db.execute("select post_date from transactions where guid=?", (tx["id"],)).fetchone()[0]
+            assert actual[:10] == tx["date"]
+    assert Path(first["book_path"]).stat().st_mode & 0o222 == 0
+
+
 def test_generator_refuses_existing_directory_or_symlink(tmp_path):
     existing = tmp_path / "existing"
     existing.mkdir()

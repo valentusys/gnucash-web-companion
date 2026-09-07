@@ -628,7 +628,8 @@ export type ReportSummarySetup = {
 export type ReportSummary = ReportSummaryReady | ReportSummarySetup;
 
 export type DashboardDrilldownLinks = {
-	recent: string;
+	recent: string | null;
+	recentPeriods: { date_from: string; date_to: string; href: string }[];
 	incomeThisMonth: string;
 	expensesThisMonth: string;
 	expensesAll: string;

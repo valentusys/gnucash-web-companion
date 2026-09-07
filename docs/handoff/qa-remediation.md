@@ -103,9 +103,35 @@ foundation and Compose checks but exposed an onboarding browser stub missing the
 endpoint. Its Reports assertion was reproduced locally. The deterministic stub now models that
 endpoint and asserts exact selected-book month/date query values; the onboarding browser passed.
 This is explicitly a stub-backed lifecycle regression, not replacement real-backend acceptance.
-The replacement commit's exact-head CI remains pending.
+The replacement commit `6994dda13180397cd5fb0dcbf769fac783ea09c9` passed all four
+exact-head CI jobs in run [34003063011](https://github.com/valentusys/gnucash-web-companion/actions/runs/34003063011),
+as verified by the parent before the approved continuation. This does not replace final integration.
 
-QA-09 drilldown, QA-05/06 account groups, QA-07/08/10
+## QA-09 — implemented and locally verified
+
+The loader groups actual recent dates into disjoint periods of at most 366 inclusive days.
+The header opens the latest period; every older group has a visible dated, localized link.
+Empty data uses the authoritative reporting-month range; unavailable authority does not invent
+a date. Active-book cookies, UI locale, descending date sort and page size remain unchanged;
+no stale cursor or all-time query is introduced.
+
+RED reproduced missing date parameters in the real browser and a missing bounded helper in
+the unit guard. GREEN covers leap bounds, duplicate/invalid dates, old and sparse history,
+empty/unavailable dates and actual loader-to-component wiring. A generated sparse book has
+nine transactions across three distant dates; real clicks reach all IDs in both EN desktop
+and RU mobile, with exact API query/date/ID assertions. The empty generated-book click returns
+a genuine zero-row result. Money-scenario header click also passes. Hashes are unchanged,
+SQLite quick_check is ok, book mutation requests are zero and runtimes stop.
+
+Local checks: eight fixture tests; all registered non-browser npm tests; Svelte check and build;
+real money/sparse/empty browser scenarios; neighboring dashboard and explorer browser gates.
+CI includes the new unit and sparse real-backend scenario; this slice's exact-head CI and final
+roadmap matrix are still pending. An existing static HTML lang=en despite RU UI was discovered
+and is tracked for QA-12; this slice verifies visible translated UI, not corrected HTML language.
+
+## Next
+
+QA-05/06 account groups, QA-07/08/10
 form and pagination states, QA-11/12 layout/localization, followed by full exact-head integration
 and CI. No independent reviewer agent has been run. No final acceptance is claimed.
 

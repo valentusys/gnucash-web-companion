@@ -1,6 +1,6 @@
 # PROJECT_STATUS
 
-Last updated: 2026-09-06
+Last updated: 2026-09-07
 
 ## QA remediation in progress (dedicated fix branch)
 
@@ -16,7 +16,9 @@ Last updated: 2026-09-06
 - QA-04 shares the API installation calendar across Summary, Reports, Scheduled and quick
   presets, with explicit unavailable fallback and test-only cross-zone clocks. A stale umbrella
   auth guard was reconciled with the explicit scheduled date query; local static checks pass.
-- QA-05–QA-12 and final exact-head integration/CI remain pending. This is not final acceptance,
+- QA-09 uses actual recent dates for bounded drilldowns, with labelled older-period links;
+  synthetic real-backend clicks verify sparse/old and empty books in EN desktop/RU mobile.
+- QA-05/06/07/08/10/11/12 and final exact-head integration/CI remain pending. This is not final acceptance,
   a merge, a release, or deployment authorization. See [QA handoff](docs/handoff/qa-remediation.md).
 
 ## Quick navigation

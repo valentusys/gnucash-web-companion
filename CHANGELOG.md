@@ -32,6 +32,10 @@ reading the full history linearly.
 
 ### QA remediation (in progress)
 
+- QA-09: recent dashboard links use the dates of shown transactions, split sparse history
+  into labelled periods within the existing 366-day limit, and use the authoritative month
+  for an empty list. No guessed date or unbounded fallback when the clock is unavailable.
+
 - QA-04: use the API installation calendar for reporting defaults and quick periods.
   Prefer summary as-of, retain explicit dates, and disclose unavailable date defaults
   instead of silently falling back to frontend UTC. No host timezone change. Reconcile the
