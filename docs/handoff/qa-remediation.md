@@ -131,7 +131,21 @@ and is tracked for QA-12; this slice verifies visible translated UI, not correct
 
 ## Next
 
-QA-05/06 account groups, QA-07/08/10
+QA-05 is implemented and locally verified. Placeholder detail now shows the API's complete
+recursive currency buckets without calculating totals from the child prefix. The group remains
+non-postable with no direct-activity form. Truncated child lists explicitly link to the existing
+paged tree including hidden accounts. No endpoint bounds or write gates changed.
+
+A deterministic generated group has 205 immediate children, including nested multi-currency
+envelopes and a hidden tail beyond the 200-child overview bound. Real API/browser RED reproduced
+the missing total. GREEN verified separate RUB/USD/EUR buckets, zero/negative leaf amounts,
+every immediate child through tree paging, and opening the hidden tail and nested group in
+EN desktop/RU mobile. The source hash remains unchanged, quick_check is ok, book mutations
+and direct-activity requests are zero, and runtime cleanup passes. The API fixture/overview
+suite passed 30 tests (36 existing dependency warnings); Svelte check/build, account/auth/recent
+guards and the neighboring account browser passed. Final exact-head acceptance remains pending.
+
+QA-06 root diagnostics, QA-07/08/10
 form and pagination states, QA-11/12 layout/localization, followed by full exact-head integration
 and CI. No independent reviewer agent has been run. No final acceptance is claimed.
 

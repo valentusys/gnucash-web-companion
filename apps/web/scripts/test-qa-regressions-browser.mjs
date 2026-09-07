@@ -29,6 +29,7 @@ let cdp;
 let fixture;
 let recentPayload;
 let explorerPayload;
+let overviewPayload;
 let summaryAsOf;
 let scheduledAsOf = [];
 let scopeIds;
@@ -205,6 +206,7 @@ try {
             const body = Buffer.from(await upstream.arrayBuffer());
             if (record.path.endsWith('/reports/recent-transactions') && upstream.status === 200) recentPayload = JSON.parse(body.toString('utf8'));
             if (record.path.endsWith('/transactions/explorer') && upstream.status === 200) explorerPayload = JSON.parse(body.toString('utf8'));
+            if (/\/accounts\/[0-9a-f]{32}\/overview$/.test(record.path) && upstream.status === 200) overviewPayload = JSON.parse(body.toString('utf8'));
             if (record.path.endsWith('/reports/summary') && upstream.status === 200) summaryAsOf = JSON.parse(body.toString('utf8')).as_of_date;
             if (record.path.endsWith('/scheduled-transactions') && upstream.status === 200) scheduledAsOf = JSON.parse(body.toString('utf8')).map(item => item.forecast.as_of_date);
             response.end(body);
@@ -377,6 +379,54 @@ try {
             assert.equal(reached.size, shown.length, 'All previously shown transactions remain reachable');
             evidence.recent_period_clicks = links.length;
             evidence.recent_reachable_rows = reached.size;
+        }
+        if (scenario === 'account_groups') {
+            const ids = fixture.accounts;
+            await cdp.navigate(`${webBase}/accounts/${ids.group}`);
+            assert.equal(overviewPayload.placeholder, true);
+            assert.equal(overviewPayload.children_truncated, true);
+            const totals = (await cdp.evaluate(`document.querySelector('[data-account-recursive-totals]')?.innerText ?? ''`)).replace(/\s+/g, ' ');
+            assert.ok(totals, 'QA-05 placeholder must show recursive totals');
+            for (const bucket of overviewPayload.recursive_balances) {
+                assert.ok(totals.includes(`${bucket.amount} ${bucket.commodity.mnemonic}`), `Group shows each native currency, not a sum of the truncated children: ${JSON.stringify({totals, bucket})}`);
+            }
+            assert.ok(await cdp.evaluate(`document.body.innerText.includes(${JSON.stringify(locale === 'ru' ? 'Непроводимая группа' : 'Non-postable group')})`), 'Placeholder remains non-postable');
+            assert.equal(await cdp.evaluate(`document.querySelectorAll('form[action^="/accounts/"]').length`), 0, 'No direct-activity form on a group');
+            assert.ok(await cdp.evaluate(`Boolean(document.querySelector('[data-account-children-truncated]'))`), 'Truncation stays explicit');
+            const allHref = await cdp.evaluate(`document.querySelector('[data-account-all-children]')?.href`);
+            assert.ok(allHref, 'Truncated overview exposes a route to all envelopes');
+            assert.equal(new URL(allHref).searchParams.get('hidden'), 'include', 'Hidden tail envelopes must remain reachable');
+            await cdp.evaluate(`document.querySelector('[data-account-all-children]').click()`);
+            await cdp.wait(`document.querySelector('[data-account-toggle="${ids.group}"]')`);
+            await cdp.evaluate(`document.querySelector('[data-account-toggle="${ids.group}"]').click()`);
+            await cdp.wait(`document.querySelector('#account-children-${ids.group} [data-account-row]')`);
+            const visited = new Set();
+            for (let page = 0; page < 20; page++) {
+                const current = await cdp.evaluate(`Array.from(document.querySelectorAll('#account-children-${ids.group} [data-account-row]')).map(row=>row.dataset.accountRow)`);
+                current.forEach(id => visited.add(id));
+                const more = await cdp.evaluate(`!document.querySelector('[data-account-page-next="${ids.group}"]').disabled`);
+                if (!more) break;
+                await cdp.evaluate(`document.querySelector('[data-account-page-next="${ids.group}"]').click()`);
+                await cdp.wait(`document.querySelector('#account-children-${ids.group} [data-account-row]')?.dataset.accountRow !== ${JSON.stringify(current[0])}`);
+            }
+            assert.equal(visited.size, 205, 'All immediate envelopes are discoverable, not just the overview prefix');
+            assert.ok(visited.has(ids.last) && visited.has(ids.nested));
+            await cdp.evaluate(`document.querySelector('[data-account-row="${ids.last}"] a').click()`);
+            await cdp.wait(`location.pathname === '/accounts/${ids.last}' && document.querySelector('main h1')?.innerText.includes('Envelope 203')`);
+            assert.ok((await cdp.evaluate(`document.body.innerText`)).replace(/\s+/g, ' ').includes('7 RUB'), 'Tail balance is available');
+            await cdp.navigate(`${webBase}/accounts/${ids.nested}`);
+            const nestedTotals = (await cdp.evaluate(`document.querySelector('[data-account-recursive-totals]')?.innerText ?? ''`)).replace(/\s+/g, ' ');
+            for (const bucket of overviewPayload.recursive_balances) assert.ok(nestedTotals.includes(`${bucket.amount} ${bucket.commodity.mnemonic}`));
+            assert.equal(overviewPayload.children_returned, 3);
+            assert.equal(await cdp.evaluate(`document.querySelectorAll('[data-account-child]').length`), 3);
+            assert.equal(await cdp.evaluate(`document.querySelectorAll('[data-account-all-children]').length`), 0, 'No false truncation navigation for complete children');
+            for (const [id, amount] of [[ids.zero, '0 RUB'], [ids.negative, '-25 RUB']]) {
+                await cdp.navigate(`${webBase}/accounts/${id}`);
+                assert.ok((await cdp.evaluate(`document.body.innerText`)).replace(/\s+/g, ' ').includes(amount), 'Zero and negative leaf balances remain visible');
+            }
+            assert.equal(apiRequests.filter(row => /\/accounts\/[0-9a-f]{32}\/activity$/.test(row.path)).length, 0, 'Overview browsing never requests direct activity');
+            evidence.account_group_children_reached = visited.size;
+            evidence.account_group_currency_buckets = 3;
         }
         evidence.cases.push({ locale, width, scheduled_rows: rows, unavailable_rows: expectedInvalid });
     }

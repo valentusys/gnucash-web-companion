@@ -72,5 +72,5 @@ assert.doesNotMatch(component, /drilldownHref = '\/transactions'/, 'No unbounded
 assert.match(page, /recentPeriods=\{data\.drilldowns\.recentPeriods\}/);
 const ci = readFileSync(new URL('../../../.github/workflows/ci.yml', import.meta.url), 'utf8');
 assert.match(ci, /npm run test:qa-recent-drilldown/);
-assert.match(ci, /for scenario in scheduled_partial scheduled_valid scheduled_invalid empty money recent_sparse; do/);
+assert.match(ci, /for scenario in scheduled_partial scheduled_valid scheduled_invalid empty money recent_sparse account_groups; do/);
 console.log('QA-09 recent bounds, sparse/old/empty/invalid dates, real loader wiring and UI guards passed');

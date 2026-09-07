@@ -110,6 +110,7 @@
 					<div class="min-w-0 rounded-xl p-4 lg:w-[28rem]" style="background: var(--app-elevated-bg); color: var(--app-muted);">
 						<p class="font-medium" style="color: var(--app-text);">{t(locale, 'accounts.explorer.nonPostableGroup')}</p>
 						<p class="mt-1 text-sm">{t(locale, 'accounts.explorer.childCountShort', { count: overview.child_count })}</p>
+						<div data-account-recursive-totals class="mt-3">{@render balancePanel(t(locale, 'accounts.detail.groupTotal'), overview.recursive_balances)}</div>
 					</div>
 				{:else}
 					<div class="grid min-w-0 gap-3 sm:grid-cols-2 lg:w-[36rem]">
@@ -135,7 +136,7 @@
 					{#if data.legacyNotice}<li>{data.legacyNotice}</li>{/if}
 					{#if structureWarnings.length}<li>{t(locale, 'accounts.explorer.repairedWarning')}</li>{/if}
 					{#if hasMixedCommodities}<li>{t(locale, 'accounts.explorer.mixedCommodityWarning')}</li>{/if}
-					{#if overview.children_truncated}<li>{t(locale, 'accounts.detail.childrenTruncated')}</li>{/if}
+					{#if overview.children_truncated}<li data-account-children-truncated>{t(locale, 'accounts.detail.childrenTruncated')}</li>{/if}
 					{#each overview.limitations ?? [] as limitation}<li>{limitation}</li>{/each}
 				</ul>
 			</section>
@@ -150,9 +151,14 @@
 				<a class="inline-flex min-h-11 items-center justify-center rounded-xl border px-4 py-2 text-sm font-semibold" style="border-color: var(--app-border); color: var(--app-text);" href={data.returnTo}>{t(locale, 'accounts.detail.backToExplorer')}</a>
 			</div>
 			{#if overview.children.length}
+				{#if overview.children_truncated}
+					<p class="mt-4 text-sm" style="color: var(--app-muted);">{t(locale, 'accounts.detail.allChildrenHelp')}
+						<a data-account-all-children href="/accounts?hidden=include" class="inline-flex min-h-11 items-center font-semibold underline" style="color: var(--app-accent);">{t(locale, 'accounts.detail.allChildren')}</a>
+					</p>
+				{/if}
 				<ul class="mt-4 space-y-3">
 					{#each overview.children as child (child.id)}
-						<li class="rounded-xl border p-4" style="border-color: var(--app-border); background: var(--app-elevated-bg);">
+						<li data-account-child={child.id} class="rounded-xl border p-4" style="border-color: var(--app-border); background: var(--app-elevated-bg);">
 							<div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
 								<div class="min-w-0">
 									<a class="break-words font-semibold hover:underline" style="color: var(--app-accent);" href={childHref(child)} title={child.full_path}>{accountLabel(child)}</a>

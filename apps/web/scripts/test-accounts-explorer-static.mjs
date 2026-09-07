@@ -111,6 +111,10 @@ assert.match(detailPage, /activity\.transaction_explorer_compatible[\s\S]*data\.
 assert.match(detailPage, /recent_transactions[\s\S]*transactionHref\(tx\.id\)[\s\S]*matched_quantity/s, 'recent activity rows must use exact matched quantity and return-safe transaction detail links');
 assert.match(detailPage, /aria-live=\{data\.status\.role === 'alert' \? 'assertive' : 'polite'\}[\s\S]*min-h-11[\s\S]*break-words/s, 'account detail page must expose accessible status, 44px targets, and wrapping long paths');
 assert.doesNotMatch(detailPage, /localStorage|sessionStorage|fetch\(|method="POST"|formaction="\?\/create"|CREATE|PATCH|DELETE|batch/s, 'account detail page must remain SSR-first/read-only with no product mutation controls');
+assert.match(detailPage, /#if overview\.placeholder[\s\S]*nonPostableGroup[\s\S]*data-account-recursive-totals[\s\S]*balancePanel\(t\(locale, 'accounts\.detail\.groupTotal'\), overview\.recursive_balances\)/s, 'QA-05 placeholder total uses full backend buckets, not a partial children sum');
+assert.match(detailPage, /#if overview\.children_truncated[\s\S]*data-account-all-children href="\/accounts\?hidden=include"/s, 'QA-05 truncated children must remain discoverable including hidden envelopes');
+assert.match(detailPage, /#if !overview\.placeholder[\s\S]*activityTitle[\s\S]*<form method="GET"/s, 'Group total does not make placeholders directly postable');
+assert.match(ciWorkflow, /empty money recent_sparse account_groups; do/, 'CI retains real group totals and prior scenarios');
 
 assert.match(txHelper, /import \{ safeAccountDetailReturnTo \} from '\$lib\/accounts\/explorer'/, 'transaction helper must use account detail return validator');
 assert.match(txHelper, /safeTransactionsReturnTo[\s\S]*parsed\.hash[\s\S]*\/\^\\\/accounts\\\/\[0-9a-f\]\{32\}\$\/[\s\S]*safeAccountDetailReturnTo\(value, '\/transactions'\)/s, 'transaction detail return_to must reject fragments and permit sanitized account detail returns');

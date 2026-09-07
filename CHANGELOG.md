@@ -32,6 +32,9 @@ reading the full history linearly.
 
 ### QA remediation (in progress)
 
+- QA-05: show full recursive currency buckets for non-postable account groups, disclose
+  truncated child lists, and link to the paged account tree with hidden children included.
+
 - QA-09: recent dashboard links use the dates of shown transactions, split sparse history
   into labelled periods within the existing 366-day limit, and use the authoritative month
   for an empty list. No guessed date or unbounded fallback when the clock is unavailable.

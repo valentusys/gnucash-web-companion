@@ -274,6 +274,9 @@ export type MessageKey =
 	| 'accounts.detail.childCount'
 	| 'accounts.detail.childrenReturned'
 	| 'accounts.detail.childrenTruncated'
+	| 'accounts.detail.groupTotal'
+	| 'accounts.detail.allChildren'
+	| 'accounts.detail.allChildrenHelp'
 	| 'accounts.detail.childrenTitle'
 	| 'accounts.detail.childrenHelp'
 	| 'accounts.detail.noChildren'
@@ -1373,7 +1376,10 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'accounts.detail.subtreeCount': 'Subtree accounts',
 		'accounts.detail.childCount': 'Immediate children',
 		'accounts.detail.childrenReturned': 'Children returned',
-		'accounts.detail.childrenTruncated': 'Only the bounded first child rows are shown; child_count reports the full bounded graph count.',
+		'accounts.detail.childrenTruncated': 'Only the first child accounts are shown here. Group totals include the entire subtree, not just this list.',
+		'accounts.detail.groupTotal': 'Group total by currency',
+		'accounts.detail.allChildren': 'All accounts and envelopes',
+		'accounts.detail.allChildrenHelp': 'Open the account tree and expand this group to browse every child, including hidden accounts.',
 		'accounts.detail.childrenTitle': 'Children',
 		'accounts.detail.childrenHelp': 'Immediate child summaries come from the bounded overview response; no transaction pages are aggregated in the browser.',
 		'accounts.detail.noChildren': 'No immediate children were returned for this account.',
@@ -2537,7 +2543,10 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'accounts.detail.subtreeCount': 'Счетов в subtree',
 		'accounts.detail.childCount': 'Immediate children',
 		'accounts.detail.childrenReturned': 'Children returned',
-		'accounts.detail.childrenTruncated': 'Показаны только bounded первые child rows; child_count сообщает полный bounded graph count.',
+		'accounts.detail.childrenTruncated': 'Здесь показаны только первые дочерние счета. Итоги группы включают все вложенные счета, а не только этот список.',
+		'accounts.detail.groupTotal': 'Общий остаток группы по валютам',
+		'accounts.detail.allChildren': 'Все счета и конверты',
+		'accounts.detail.allChildrenHelp': 'Откройте дерево счетов и разверните эту группу, чтобы просмотреть все дочерние счета, включая скрытые.',
 		'accounts.detail.childrenTitle': 'Children',
 		'accounts.detail.childrenHelp': 'Immediate child summaries приходят из bounded overview response; transaction pages в браузере не агрегируются.',
 		'accounts.detail.noChildren': 'Для этого счёта immediate children не вернулись.',

@@ -16,7 +16,7 @@ import piecash
 from tests.support.generate_issue60_usability_fixture import _stabilize_default_identity
 
 SEED = 20260906
-SCENARIOS = {"scheduled_partial", "scheduled_valid", "scheduled_invalid", "empty", "money", "recent_sparse"}
+SCENARIOS = {"scheduled_partial", "scheduled_valid", "scheduled_invalid", "empty", "money", "recent_sparse", "account_groups"}
 
 
 def guid(label: str) -> str:
@@ -57,6 +57,36 @@ def _money_scenario(book, *, sparse=False):
     return manifest
 
 
+def _account_groups_scenario(book):
+    rub = book.default_currency
+    usd = piecash.Commodity(namespace="CURRENCY", mnemonic="USD", fullname="Synthetic USD", fraction=100)
+    eur = piecash.Commodity(namespace="CURRENCY", mnemonic="EUR", fullname="Synthetic EUR", fraction=100)
+    usd.guid, eur.guid = guid("usd"), guid("eur")
+    group = piecash.Account(name="SYNTHETIC QA Savings", type="ASSET", commodity=rub, parent=book.root_account, placeholder=True)
+    group.guid = guid("group")
+    equity = piecash.Account(name="SYNTHETIC QA Equity", type="EQUITY", commodity=rub, parent=book.root_account)
+    equity.guid = guid("group-equity")
+    leaves = []
+    for index in range(204):
+        leaf = piecash.Account(name=f"SYNTHETIC Envelope {index:03d}", type="BANK", commodity=rub, parent=group, hidden=index == 203)
+        leaf.guid = guid(f"envelope:{index}")
+        leaves.append(leaf)
+    nested = piecash.Account(name="ZZ SYNTHETIC Nested", type="ASSET", commodity=rub, parent=group, placeholder=True)
+    nested.guid = guid("nested")
+    nested_leaves = []
+    for currency in [rub, usd, eur]:
+        leaf = piecash.Account(name=f"SYNTHETIC Nested {currency.mnemonic}", type="BANK", commodity=currency, parent=nested)
+        leaf.guid = guid(f"nested:{currency.mnemonic}")
+        nested_leaves.append(leaf)
+    for index, (account, amount) in enumerate([(leaves[0], "100"), (leaves[1], "-25"), (leaves[-1], "7"), (nested_leaves[0], "11"), (nested_leaves[1], "5"), (nested_leaves[2], "-2.5")]):
+        splits = [piecash.Split(account=account, value=Decimal(amount), quantity=Decimal(amount)), piecash.Split(account=equity, value=-Decimal(amount))]
+        for split_index, split in enumerate(splits):
+            split.guid = guid(f"group-split:{index}:{split_index}")
+        tx = piecash.Transaction(currency=rub, description=f"SYNTHETIC group opening {index}", post_date=date(2026, 9, 1), splits=splits)
+        tx.guid = guid(f"group-tx:{index}")
+    return {"group": group.guid, "nested": nested.guid, "last": leaves[-1].guid, "negative": leaves[1].guid, "zero": leaves[2].guid}
+
+
 def generate_qa_regression_fixture(root: Path | str, *, scenario: str = "scheduled_partial") -> dict:
     """Create only in a NEW caller-owned disposable directory; refuse reuse."""
     if scenario not in SCENARIOS:
@@ -73,6 +103,7 @@ def generate_qa_regression_fixture(root: Path | str, *, scenario: str = "schedul
             "old_rub": book.default_currency.guid, "new_rub": guid("rub"),
         }
         transactions = _money_scenario(book, sparse=scenario == "recent_sparse") if scenario in {"money", "recent_sparse"} else {}
+        accounts = _account_groups_scenario(book) if scenario == "account_groups" else {}
         book.save()
     finally:
         book.close()
@@ -102,4 +133,5 @@ def generate_qa_regression_fixture(root: Path | str, *, scenario: str = "schedul
         "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
         "valid_schedule_ids": valid_ids, "invalid_schedule_ids": invalid_ids,
         "transactions": transactions,
+        "accounts": accounts,
     }
