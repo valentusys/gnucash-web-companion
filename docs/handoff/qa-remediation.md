@@ -2,6 +2,19 @@
 
 Status: in progress on `fix/qa-20260906`; not merged or released.
 
+## QA-10 — implemented and locally verified
+
+Nonempty final results now have a dedicated localized `final_page` status. Empty continuation,
+true empty, ordinary ready and scan-limited states remain separate, including conservative
+handling of scan-limited responses with an exhausted flag. No backend cursor/export semantics
+were changed. Unit state branches cover first-page finals and empty continuations in EN/RU.
+
+A deterministic generated book contains 32 transactions. Real browser navigation verifies
+20 then 12 results, the last-page message, all IDs without duplicates or omissions, previous-page
+round-trip, the actual CSV link with the same filters, and an invalid-cursor alert. Exported IDs
+exactly equal both cursor pages. Generated source remains unchanged; no book writes occur.
+API explorer/export suites also pass, including their stale-cursor regression coverage.
+
 ## QA-08 — implemented and locally verified
 
 The form loads the same real Summary resolution as Dashboard, uses only a ready valid monetary

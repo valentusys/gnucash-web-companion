@@ -16,7 +16,7 @@ import piecash
 from tests.support.generate_issue60_usability_fixture import _stabilize_default_identity
 
 SEED = 20260906
-SCENARIOS = {"scheduled_partial", "scheduled_valid", "scheduled_invalid", "empty", "money", "recent_sparse", "account_groups", "currency_eur", "currency_tie"}
+SCENARIOS = {"scheduled_partial", "scheduled_valid", "scheduled_invalid", "empty", "money", "recent_sparse", "account_groups", "currency_eur", "currency_tie", "pagination"}
 
 
 def guid(label: str) -> str:
@@ -87,6 +87,21 @@ def _account_groups_scenario(book):
     return {"group": group.guid, "nested": nested.guid, "last": leaves[-1].guid, "negative": leaves[1].guid, "zero": leaves[2].guid}
 
 
+def _pagination_scenario(book):
+    cash = piecash.Account(name="SYNTHETIC cash", type="BANK", commodity=book.default_currency, parent=book.root_account)
+    equity = piecash.Account(name="SYNTHETIC equity", type="EQUITY", commodity=book.default_currency, parent=book.root_account)
+    cash.guid, equity.guid = guid("pagination-cash"), guid("pagination-equity")
+    manifest = {}
+    for index in range(32):
+        splits = [piecash.Split(account=cash, value=Decimal("1.25")), piecash.Split(account=equity, value=Decimal("-1.25"))]
+        for split_index, split in enumerate(splits):
+            split.guid = guid(f"pagination-split:{index}:{split_index}")
+        tx = piecash.Transaction(currency=book.default_currency, description=f"SYNTHETIC pagination {index:02d}", post_date=date(2026, 9, 1), splits=splits)
+        tx.guid = guid(f"pagination-tx:{index}")
+        manifest[str(index)] = {"id": tx.guid, "date": "2026-09-01"}
+    return manifest
+
+
 def _currency_scenario(book, *, tied):
     eur = piecash.Commodity(namespace="CURRENCY", mnemonic="EUR", fullname="Synthetic EUR", fraction=100)
     eur.guid = guid("eur")
@@ -118,6 +133,8 @@ def generate_qa_regression_fixture(root: Path | str, *, scenario: str = "schedul
             "old_rub": book.default_currency.guid, "new_rub": guid("rub"),
         }
         transactions = _money_scenario(book, sparse=scenario == "recent_sparse") if scenario in {"money", "recent_sparse"} else {}
+        if scenario == "pagination":
+            transactions = _pagination_scenario(book)
         accounts = _account_groups_scenario(book) if scenario == "account_groups" else {}
         if scenario in {"currency_eur", "currency_tie"}:
             _currency_scenario(book, tied=scenario == "currency_tie")

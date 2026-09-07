@@ -42,6 +42,7 @@ type ExplorerStatusKind =
 	| 'true_empty'
 	| 'scan_window_empty'
 	| 'scan_limited'
+	| 'final_page'
 	| 'end'
 	| 'invalid_filter'
 	| 'stale_cursor'
@@ -374,7 +375,8 @@ function explorerStatus(page: TransactionExplorerPage, request: TransactionExplo
 			role: 'status'
 		};
 	}
-	if (page.items.length === 0 && request.cursor) {
+	if (page.items.length === 0 && request.cursor && !scanLimited) {
+		// This branch is only an exhausted/empty continuation, never a populated last page.
 		return {
 			kind: 'end',
 			title: t(locale, 'transactions.explorer.endTitle'),
@@ -382,7 +384,7 @@ function explorerStatus(page: TransactionExplorerPage, request: TransactionExplo
 			role: 'status'
 		};
 	}
-	if (page.items.length === 0) {
+	if (page.items.length === 0 && !scanLimited) {
 		return {
 			kind: 'true_empty',
 			title: t(locale, 'transactions.explorer.trueEmptyTitle'),
@@ -398,11 +400,11 @@ function explorerStatus(page: TransactionExplorerPage, request: TransactionExplo
 			role: 'status'
 		};
 	}
-	if (!page.has_more && request.cursor) {
+	if (!page.has_more) {
 		return {
-			kind: 'end',
-			title: t(locale, 'transactions.explorer.endTitle'),
-			message: t(locale, 'transactions.explorer.endMessage'),
+			kind: 'final_page',
+			title: t(locale, 'transactions.explorer.lastPageTitle'),
+			message: t(locale, 'transactions.explorer.lastPageMessage'),
 			role: 'status'
 		};
 	}

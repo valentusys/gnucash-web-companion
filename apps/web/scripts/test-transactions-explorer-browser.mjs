@@ -198,6 +198,13 @@ async function startSyntheticApi() {
 		const url = new URL(req.url ?? '/', 'http://127.0.0.1');
 		requests.push({ method: req.method, path: url.pathname, search: url.search, pathWithSearch: `${url.pathname}${url.search}` });
 		if (req.method === 'GET' && url.pathname === '/books/1/reports/reporting-date') return jsonResponse(res, 200, { as_of_date: '2026-09-06', basis: 'api_local_calendar' });
+		// QA-08 draft defaults use Summary resolution, not unchecked book metadata.
+		// This existing stub suite still asserts currency-scoped choices; real DTO
+		// compatibility is separately exercised by the generated FastAPI QA runner.
+		if (req.method === 'GET' && url.pathname === '/books/1/reports/summary') return jsonResponse(res, 200, {
+			status: 'ready', as_of_date: '2026-09-06',
+			reporting_currency: { status: 'ready', selected_currency: 'SEK', source: 'settings', configured_currency: 'SEK', candidates: ['SEK'], message: 'Synthetic configured currency.' }
+		});
 
 		if (isForbiddenApiMutation(req.method ?? 'GET')) {
 			forbiddenRequests.push({ method: req.method, path: url.pathname, search: url.search });

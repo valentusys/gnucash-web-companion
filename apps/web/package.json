@@ -35,7 +35,7 @@
 		"test:books-onboarding": "node scripts/test-books-onboarding-static.mjs",
 		"test:books-onboarding-browser": "npm run build && node scripts/test-books-onboarding-browser.mjs",
 		"test:accounts-explorer-browser": "npm run build && node scripts/test-accounts-explorer-browser.mjs",
-		"test:transactions-explorer": "node scripts/test-transactions-explorer-static.mjs",
+		"test:transactions-explorer": "node scripts/test-transactions-explorer-static.mjs && node scripts/test-qa-pagination.mjs",
 		"test:transactions-explorer-browser": "npm run build && node scripts/test-transactions-explorer-browser.mjs",
 		"test:money-strings": "node scripts/test-money-strings.mjs",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",

@@ -32,6 +32,9 @@ reading the full history linearly.
 
 ### QA remediation (in progress)
 
+- QA-10: show a genuine last-page message for populated final results, not an empty-cursor
+  notice; incomplete scans stay incomplete. Cursor and CSV semantics are unchanged.
+
 - QA-08: use the validated reporting currency instead of a hardcoded draft fallback; retain
   explicit returned choices, reset cross-book drafts, and navigate book selection as a server GET.
 

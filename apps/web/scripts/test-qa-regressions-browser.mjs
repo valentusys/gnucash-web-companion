@@ -1,7 +1,7 @@
 // Synthetic-only read-only acceptance against REAL FastAPI + built SvelteKit.
 // No legacy CREATE runner is imported. Every child stays in the caller's cgroup.
 import assert from 'node:assert/strict';
-import { spawn, spawnSync } from 'node:child_process';
+import { spawn, spawnSync, execFileSync } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';
 import { createServer } from 'node:http';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
@@ -196,7 +196,7 @@ try {
         alternateBookId = pythonJson('import json,sqlite3,sys\nwith sqlite3.connect(sys.argv[1]) as db:\n row=db.execute("SELECT base_currency FROM books WHERE uri_or_path=?",(sys.argv[2],)).fetchone()\n assert row == (None,), row\n cursor=db.execute("INSERT INTO books(name,storage_type,uri_or_path,base_currency,is_default,is_archived,is_enabled,transaction_create_enabled,transaction_create_generation,transaction_create_recovery_required,created_at,updated_at) VALUES (?, ?, ?, NULL,0,0,1,0,1,0,?,?)",("SYNTHETIC Alternate EUR","sqlite",sys.argv[3],"2026-09-01 00:00:00","2026-09-01 00:00:00"))\n book_id=cursor.lastrowid\n db.execute("INSERT INTO user_book_access(user_id,book_id,role) SELECT id,?,? FROM users WHERE username=?",(book_id,"owner","admin"))\n assert db.execute("SELECT base_currency,transaction_create_enabled FROM books WHERE id=?",(book_id,)).fetchone()==(None,0)\n print(json.dumps(book_id))', [join(root,'app.db'),fixture.book_path,additionalFixtures[0].book_path]);
         evidence.synthetic_app_metadata_registered_books = 1;
     }
-    if (['money', 'recent_sparse'].includes(scenario) && process.env.QA_FORM_CURRENCY !== '1') {
+    if (['money', 'recent_sparse', 'pagination'].includes(scenario) && !process.env.QA_FORM_CURRENCY) {
         // Isolated synthetic APP metadata setup only; never writes the generated GnuCash book.
         scopeIds = pythonJson('import json,sqlite3,sys\nfrom tests.support.generate_qa_regression_fixture import guid\nwith sqlite3.connect(sys.argv[1]) as db:\n cursor=db.execute("UPDATE books SET base_currency=? WHERE uri_or_path=?", ("RUB",sys.argv[2]))\n assert cursor.rowcount == 1\nprint(json.dumps({name:guid("account:"+name) for name in ["cash","expense","savings"]}))', [join(root, 'app.db'), fixture.book_path]);
         evidence.synthetic_app_metadata_setup_updates = 1;
@@ -324,6 +324,32 @@ try {
             assert.equal(new URL(preset).searchParams.get('date_to'), expectedClockDate, 'QA-04 quick preset uses the same reporting date');
             await cdp.navigate(`${webBase}/scheduled?as_of_date=2026-09-01`);
             assert.ok(scheduledAsOf.every(date => date === '2026-09-01'), 'Explicit scheduled as_of_date wins');
+        }
+        if (scenario === 'pagination') {
+            const firstHref='/transactions?date_from=2026-09-01&date_to=2026-09-30&page_size=20&sort=date_desc';
+            await cdp.navigate(webBase+firstHref);await cdp.wait('document.querySelector("tbody tr a")');
+            assert.equal(explorerPayload.returned_count,20);assert.equal(explorerPayload.items.length,20);assert.equal(explorerPayload.has_more,true);
+            const firstIds=explorerPayload.items.map(x=>x.id);
+            const exportHref=await cdp.evaluate(`document.querySelector('main a[href*="/transactions/export"]')?.getAttribute('href')`);
+            assert.ok(exportHref,'First page exposes the real CSV route for these compatible filters');
+            const next=await cdp.evaluate(`Array.from(document.querySelectorAll('nav a')).find(a=>a.innerText===${JSON.stringify(locale==='ru'?'Вперёд':'Next')})?.getAttribute('href')`);
+            assert.ok(next,'Real next-page href exists');
+            await cdp.navigate(webBase+next);await cdp.wait('document.querySelector("tbody tr a")');
+            assert.equal(explorerPayload.items.length,12);assert.equal(explorerPayload.returned_count,12);assert.equal(explorerPayload.has_more,false);
+            const allIds=[...firstIds,...explorerPayload.items.map(x=>x.id)];
+            assert.equal(new Set(allIds).size,32);assert.deepEqual([...allIds].sort(),Object.values(fixture.transactions).map(x=>x.id).sort());
+            const body=await cdp.evaluate('document.querySelector("main").innerText');
+            assert.ok(body.includes(locale==='ru'?'Это последняя страница':'This is the last page'),'Nonempty continuation has a final-page message');
+            assert.ok(!body.includes(locale==='ru'?'не вернул строки':'returned no rows'),'Nonempty page never claims no rows');
+            const previous=await cdp.evaluate(`Array.from(document.querySelectorAll('nav a')).find(a=>a.innerText===${JSON.stringify(locale==='ru'?'Назад':'Previous')})?.getAttribute('href')`);
+            assert.ok(previous);await cdp.navigate(webBase+previous);await cdp.wait('document.querySelector("tbody tr a")');
+            assert.deepEqual(explorerPayload.items.map(x=>x.id),firstIds,'Previous cursor returns the identical first page');
+            const exported=await cdp.evaluate(`fetch(${JSON.stringify(exportHref)}).then(async r=>({status:r.status,text:await r.text()}))`);
+            assert.equal(exported.status,200);
+            const exportedIds=JSON.parse(execFileSync(apiPython,['-c','import csv,io,json,sys; print(json.dumps([r["id"] for r in csv.DictReader(io.StringIO(sys.stdin.read().lstrip("\\ufeff")))]))'],{input:exported.text,encoding:'utf8'}));
+            assert.deepEqual(exportedIds.sort(),[...allIds].sort(),'CSV export exactly matches both cursor pages');
+            await cdp.navigate(webBase+firstHref+'&cursor=invalid-synthetic-cursor');
+            assert.ok(await cdp.evaluate('!!document.querySelector("main [role=alert]")'),'Invalid cursor is not shown as successful final page');
         }
         if (scenario === 'money') {
             if (process.env.QA_FORM_STATES === '1') {

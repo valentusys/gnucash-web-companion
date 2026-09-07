@@ -33,7 +33,7 @@ const reportsServer = read('src', 'routes', 'reports', '+page.server.ts');
 const dashboardServer = read('src', 'routes', 'dashboard', '+page.server.ts');
 const i18nMessages = read('src', 'lib', 'i18n', 'messages.ts');
 
-assert.equal(packageJson.scripts?.['test:transactions-explorer'], 'node scripts/test-transactions-explorer-static.mjs', 'package.json must expose npm run test:transactions-explorer');
+assert.equal(packageJson.scripts?.['test:transactions-explorer'], 'node scripts/test-transactions-explorer-static.mjs && node scripts/test-qa-pagination.mjs', 'package.json must run both explorer guards and executable pagination states');
 assert.equal(packageJson.scripts?.['test:transactions-explorer-browser'], 'npm run build && node scripts/test-transactions-explorer-browser.mjs', 'package.json must expose a build-backed transactions explorer browser smoke');
 
 assert.match(apiTypes, /export type TransactionExplorerScan[\s\S]*candidate_rows[\s\S]*split_rows[\s\S]*query_count[\s\S]*scan_limited[\s\S]*exhausted/s, 'API types must model explorer scan diagnostics without legacy scan_limited top-level fields');

@@ -988,6 +988,8 @@ export type MessageKey =
 	| 'transactions.explorer.scanWindowEmptyTitle'
 	| 'transactions.explorer.scanWindowEmptyMessage'
 	| 'transactions.explorer.scanLimitedTitle'
+	| 'transactions.explorer.lastPageTitle'
+	| 'transactions.explorer.lastPageMessage'
 	| 'transactions.explorer.scanLimitedMessage'
 	| 'transactions.explorer.endTitle'
 	| 'transactions.explorer.endMessage'
@@ -2142,6 +2144,8 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'transactions.explorer.scanWindowEmptyTitle': 'No rows in this scan window',
 		'transactions.explorer.scanWindowEmptyMessage': 'The backend stopped at a bounded scan window before proving the full result set. Continue pagination or narrow filters.',
 		'transactions.explorer.scanLimitedTitle': 'Partial bounded scan',
+		'transactions.explorer.lastPageTitle': 'Last page',
+		'transactions.explorer.lastPageMessage': 'This is the last page for the selected filters.',
 		'transactions.explorer.scanLimitedMessage': 'This page is valid but scan-limited. Continue with the opaque cursor or narrow filters for a tighter window.',
 		'transactions.explorer.endTitle': 'End of cursor results',
 		'transactions.explorer.endMessage': 'No additional rows were returned for this cursor. Reset pagination to the first page or change filters.',
@@ -3311,6 +3315,8 @@ export const messages: Record<Locale, Record<MessageKey, string>> = {
 		'transactions.explorer.scanWindowEmptyTitle': 'В этом scan window нет строк',
 		'transactions.explorer.scanWindowEmptyMessage': 'Backend остановился на bounded scan window до полного доказательства результата. Продолжите pagination или сузьте фильтры.',
 		'transactions.explorer.scanLimitedTitle': 'Частичный bounded scan',
+		'transactions.explorer.lastPageTitle': 'Последняя страница',
+		'transactions.explorer.lastPageMessage': 'Это последняя страница для выбранных фильтров.',
 		'transactions.explorer.scanLimitedMessage': 'Эта страница валидна, но scan-limited. Продолжите opaque cursor или сузьте фильтры.',
 		'transactions.explorer.endTitle': 'Конец cursor results',
 		'transactions.explorer.endMessage': 'Для этого cursor дополнительных строк не вернулось. Сбросьте pagination на первую страницу или измените фильтры.',

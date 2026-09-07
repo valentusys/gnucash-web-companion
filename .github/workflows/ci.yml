@@ -134,6 +134,7 @@ jobs:
           for scenario in money currency_eur currency_tie empty; do
             QA_FORM_CURRENCY=1 QA_SCENARIO="$scenario" node scripts/test-qa-regressions-browser.mjs
           done
+          QA_SCENARIO=pagination node scripts/test-qa-regressions-browser.mjs
 
   backend:
     name: Backend tests

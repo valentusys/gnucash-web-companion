@@ -26,7 +26,9 @@ Last updated: 2026-09-07
   removes example success outcomes. Real browser checks click preview with writes disabled.
 - QA-08 shares the Summary currency resolver for the draft default, asks for an explicit
   choice when unavailable/ambiguous, and resets drafts when switching books without router errors.
-- QA-10/11/12 and final exact-head integration/CI remain pending. This is not final acceptance,
+- QA-10 distinguishes populated final pages from empty continuations and incomplete scans;
+  generated cursor pages and CSV contain exactly the same transaction IDs.
+- QA-11/12 and final exact-head integration/CI remain pending. This is not final acceptance,
   a merge, a release, or deployment authorization. See [QA handoff](docs/handoff/qa-remediation.md).
 
 ## Quick navigation
